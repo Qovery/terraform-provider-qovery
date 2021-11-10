@@ -3,6 +3,7 @@ vendor
 
 terraform-provider-qovery
 bin
+.idea
 
 # Local .terraform directories
 **/.terraform/*
