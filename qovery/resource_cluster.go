@@ -204,7 +204,7 @@ func (r resourceCluster) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error reading cluster",
-			"Could not read cluster "+state.Id.Value+": "+err.Error(),
+			"Could not read cluster "+state.Id.Value+", unexpected error: "+err.Error(),
 		)
 		return
 	}
