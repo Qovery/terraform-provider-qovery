@@ -11,8 +11,6 @@ operations on Qovery API resources.
 
 ## Example Usage
 
-Do not keep your authentication token in HCL for production environments, use Terraform environment variables.
-
 ```terraform
 terraform {
   required_providers {
@@ -52,9 +50,11 @@ resource "qovery_cluster" "test-orga-cluster" {
 
 - **token** (String, Required) API token used to interact with Qovery API
 
-## Adding New Resources
+# Development
 
-### Add model
+### Adding New Resources
+
+#### Add model
 
 Add new model struct in the `qovery/models.go` file, e.g.
 
@@ -66,7 +66,7 @@ type Organization struct {
 }
 ```
 
-### Register New Resource
+#### Register New Resource
 
 Register new resource in `qovery/provider.go`:
 
@@ -82,7 +82,7 @@ func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceTyp
 }
 ```
 
-### Create Resource
+#### Create Resource
 
 Copy one of the ```qovery/resource_XYZ.go``` files and rename to `qovery/resource_my_new_resource.go`
 
