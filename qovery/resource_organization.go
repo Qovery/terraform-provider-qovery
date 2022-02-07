@@ -2,9 +2,11 @@ package qovery
 
 import (
 	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/qovery/qovery-client-go"
 )
 
@@ -143,6 +145,10 @@ func (r resourceOrganization) Read(ctx context.Context, req tfsdk.ReadResourceRe
 	if resp.Diagnostics.HasError() {
 		return
 	}
+}
+
+func (r resourceOrganization) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }
 
 // Update resource
