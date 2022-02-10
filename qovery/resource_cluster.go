@@ -24,7 +24,7 @@ const (
 
 var cloudProviders = []string{"AWS", "DIGITAL_OCEAN", "SCALEWAY"}
 
-type clusterData struct {
+type clusterResourceData struct {
 	Id             types.String `tfsdk:"id"`
 	OrganizationId types.String `tfsdk:"organization_id"`
 	CredentialsId  types.String `tfsdk:"credentials_id"`
@@ -93,7 +93,7 @@ type clusterResource struct {
 // Create qovery cluster resource
 func (r clusterResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	// Retrieve values from plan
-	var plan clusterData
+	var plan clusterResourceData
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -144,7 +144,7 @@ func (r clusterResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 	}
 
 	// Initialize state values
-	state := clusterData{
+	state := clusterResourceData{
 		Id:             types.String{Value: cluster.Id},
 		CredentialsId:  types.String{Value: *clusterInfo.Credentials.Id},
 		OrganizationId: plan.OrganizationId,
@@ -160,7 +160,7 @@ func (r clusterResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 // Read qovery cluster resource
 func (r clusterResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
 	// Get current state
-	var state clusterData
+	var state clusterResourceData
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -186,10 +186,10 @@ func (r clusterResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 		return
 	}
 
-	var toRefresh *clusterData
+	var toRefresh *clusterResourceData
 	for _, cluster := range clusters.GetResults() {
 		if state.Id.Value == cluster.Id {
-			toRefresh = &clusterData{
+			toRefresh = &clusterResourceData{
 				CredentialsId: types.String{Value: *cloudProviderInfo.Credentials.Id},
 				Name:          types.String{Value: cluster.Name},
 				CloudProvider: types.String{Value: cluster.CloudProvider},
@@ -221,7 +221,7 @@ func (r clusterResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 // Update qovery cluster resource
 func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
 	// Get plan and current state
-	var plan, state clusterData
+	var plan, state clusterResourceData
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -243,7 +243,7 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 		return
 	}
 
-	toUpdate := clusterData{
+	toUpdate := clusterResourceData{
 		Name:          types.String{Value: cluster.Name},
 		CloudProvider: types.String{Value: cluster.CloudProvider},
 		Region:        types.String{Value: cluster.Region},
@@ -261,7 +261,7 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 // Delete qovery cluster resource
 func (r clusterResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
 	// Get current state
-	var state clusterData
+	var state clusterResourceData
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return

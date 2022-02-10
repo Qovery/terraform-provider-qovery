@@ -15,7 +15,7 @@ Use this data source to retrieve information about an existing aws credentials.
 ```terraform
 data "qovery_aws_credentials" "my_aws_creds" {
   id = "<credentials_id>"
-  organizationId = "<organization_id>"
+  organization_id = "<organization_id>"
 }
 ```
 

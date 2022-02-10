@@ -96,6 +96,7 @@ func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourc
 	return map[string]tfsdk.DataSourceType{
 		"qovery_organization":    organizationDataSourceType{},
 		"qovery_aws_credentials": awsCredentialsDataSourceType{},
+		"qovery_cluster":         clusterDataSourceType{},
 	}, nil
 }
 
