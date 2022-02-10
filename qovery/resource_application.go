@@ -53,6 +53,7 @@ var (
 	applicationPortProtocols                       = []string{"HTTPS", "HTTP", "TCP", "UDP"}
 	applicationPortProtocolDefault                 = "HTTP"
 	applicationPortPubliclyAccessibleDefault       = false
+
 	// Application Git Repository
 	applicationGitRepositoryRootPathDefault = "/"
 	applicationGitRepositoryBranchDefault   = "main or master (depending on repository)"

@@ -19,7 +19,7 @@ const organizationAPIResource = "organization"
 
 var organizationPlans = []string{"FREE", "PROFESSIONAL", "BUSINESS"}
 
-type organizationData struct {
+type organizationResourceData struct {
 	Id   types.String `tfsdk:"id"`
 	Name types.String `tfsdk:"name"`
 	Plan types.String `tfsdk:"plan"`
@@ -70,7 +70,7 @@ type organizationResource struct {
 // Create qovery organization resource
 func (r organizationResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	// Retrieve values from plan
-	var plan organizationData
+	var plan organizationResourceData
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -91,7 +91,7 @@ func (r organizationResource) Create(ctx context.Context, req tfsdk.CreateResour
 	}
 
 	// Initialize state values
-	state := organizationData{
+	state := organizationResourceData{
 		Id:   types.String{Value: organization.Id},
 		Name: types.String{Value: organization.Name},
 		Plan: types.String{Value: organization.Plan},
@@ -104,7 +104,7 @@ func (r organizationResource) Create(ctx context.Context, req tfsdk.CreateResour
 // Read qovery organization resource
 func (r organizationResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
 	// Get current state
-	var state organizationData
+	var state organizationResourceData
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -120,7 +120,7 @@ func (r organizationResource) Read(ctx context.Context, req tfsdk.ReadResourceRe
 		return
 	}
 
-	toRefresh := organizationData{
+	toRefresh := organizationResourceData{
 		Name: types.String{
 			Value: organization.Name,
 		},
@@ -140,7 +140,7 @@ func (r organizationResource) Read(ctx context.Context, req tfsdk.ReadResourceRe
 // Update qovery organization resource
 func (r organizationResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
 	// Get plan and current state
-	var plan, state organizationData
+	var plan, state organizationResourceData
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -160,7 +160,7 @@ func (r organizationResource) Update(ctx context.Context, req tfsdk.UpdateResour
 		return
 	}
 
-	toUpdate := organizationData{
+	toUpdate := organizationResourceData{
 		Name: types.String{Value: organization.Name},
 		Plan: types.String{Value: organization.Plan},
 	}
@@ -176,7 +176,7 @@ func (r organizationResource) Update(ctx context.Context, req tfsdk.UpdateResour
 // Delete qovery organization resource
 func (r organizationResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
 	// Get current state
-	var state organizationData
+	var state organizationResourceData
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return

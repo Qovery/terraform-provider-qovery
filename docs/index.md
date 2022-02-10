@@ -2,7 +2,7 @@
 layout: ""
 page_title: "Provider: Qovery"
 description: |-
-The Qovery provider allows you to interact with the Qovery API.
+  The Qovery provider allows you to interact with the Qovery API.
 ---
 
 # Qovery Provider
