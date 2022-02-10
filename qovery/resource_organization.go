@@ -20,9 +20,10 @@ const organizationAPIResource = "organization"
 var organizationPlans = []string{"FREE", "PROFESSIONAL", "BUSINESS"}
 
 type organizationResourceData struct {
-	Id   types.String `tfsdk:"id"`
-	Name types.String `tfsdk:"name"`
-	Plan types.String `tfsdk:"plan"`
+	Id          types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	Plan        types.String `tfsdk:"plan"`
+	Description types.String `tfsdk:"description"`
 }
 
 type organizationResourceType struct{}
@@ -53,6 +54,11 @@ func (r organizationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, di
 					validators.StringEnumValidator{Enum: organizationPlans},
 				},
 			},
+			"description": {
+				Description: "Description of the organization.",
+				Type:        types.StringType,
+				Optional:    true,
+			},
 		},
 	}, nil
 }
@@ -77,12 +83,16 @@ func (r organizationResource) Create(ctx context.Context, req tfsdk.CreateResour
 	}
 
 	// Create new organization
+	payload := qovery.OrganizationRequest{
+		Name: plan.Name.Value,
+		Plan: plan.Plan.Value,
+	}
+	if !plan.Description.Null && !plan.Description.Unknown {
+		payload.Description = &plan.Description.Value
+	}
 	organization, res, err := r.client.OrganizationMainCallsApi.
 		CreateOrganization(ctx).
-		OrganizationRequest(qovery.OrganizationRequest{
-			Name: plan.Name.Value,
-			Plan: plan.Plan.Value,
-		}).
+		OrganizationRequest(payload).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := organizationCreateAPIError(plan.Name.Value, res, err)
@@ -92,9 +102,13 @@ func (r organizationResource) Create(ctx context.Context, req tfsdk.CreateResour
 
 	// Initialize state values
 	state := organizationResourceData{
-		Id:   types.String{Value: organization.Id},
-		Name: types.String{Value: organization.Name},
-		Plan: types.String{Value: organization.Plan},
+		Id:          types.String{Value: organization.Id},
+		Name:        types.String{Value: organization.Name},
+		Plan:        types.String{Value: organization.Plan},
+		Description: types.String{Null: true},
+	}
+	if organization.Description != nil {
+		state.Description = types.String{Value: *organization.Description}
 	}
 
 	// Set state
@@ -121,17 +135,18 @@ func (r organizationResource) Read(ctx context.Context, req tfsdk.ReadResourceRe
 	}
 
 	toRefresh := organizationResourceData{
-		Name: types.String{
-			Value: organization.Name,
-		},
-		Plan: types.String{
-			Value: organization.Plan,
-		},
+		Name:        types.String{Value: organization.Name},
+		Plan:        types.String{Value: organization.Plan},
+		Description: types.String{Null: true},
+	}
+	if organization.Description != nil {
+		toRefresh.Description = types.String{Value: *organization.Description}
 	}
 
 	// Refresh state values
 	state.Name = toRefresh.Name
 	state.Plan = toRefresh.Plan
+	state.Description = toRefresh.Description
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -148,11 +163,15 @@ func (r organizationResource) Update(ctx context.Context, req tfsdk.UpdateResour
 	}
 
 	// Update organization in backend
+	payload := qovery.OrganizationEditRequest{
+		Name: plan.Name.Value,
+	}
+	if !plan.Description.Null && !plan.Description.Unknown {
+		payload.Description = &plan.Description.Value
+	}
 	organization, res, err := r.client.OrganizationMainCallsApi.
 		EditOrganization(ctx, state.Id.Value).
-		OrganizationEditRequest(qovery.OrganizationEditRequest{
-			Name: plan.Name.Value,
-		}).
+		OrganizationEditRequest(payload).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := organizationUpdateAPIError(state.Id.Value, res, err)
@@ -161,13 +180,18 @@ func (r organizationResource) Update(ctx context.Context, req tfsdk.UpdateResour
 	}
 
 	toUpdate := organizationResourceData{
-		Name: types.String{Value: organization.Name},
-		Plan: types.String{Value: organization.Plan},
+		Name:        types.String{Value: organization.Name},
+		Plan:        types.String{Value: organization.Plan},
+		Description: types.String{Null: true},
+	}
+	if organization.Description != nil {
+		toUpdate.Description = types.String{Value: *organization.Description}
 	}
 
 	// Update state values
 	state.Name = toUpdate.Name
 	state.Plan = toUpdate.Plan
+	state.Description = toUpdate.Description
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
