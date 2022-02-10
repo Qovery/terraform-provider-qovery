@@ -19,6 +19,10 @@ resource "qovery_application" "my_application" {
   git_repository = {
     url = "https://github.com/Qovery/terraform-provider-qovery.git"
   }
+
+  depends_on = [
+    qovery_environment.my_environment
+  ]
 }
 ```
 

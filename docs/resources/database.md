@@ -23,6 +23,10 @@ resource "qovery_database" "my_database" {
   cpu = 250
   memory = 256
   storage = 10240
+
+  depends_on = [
+    qovery_environment.my_environment
+  ]
 }
 ```
 
