@@ -17,7 +17,7 @@ import (
 
 const awsCredentialsAPIResource = "aws credentials"
 
-type awsCredentialsData struct {
+type awsCredentialsResourceData struct {
 	Id              types.String `tfsdk:"id"`
 	OrganizationId  types.String `tfsdk:"organization_id"`
 	Name            types.String `tfsdk:"name"`
@@ -75,7 +75,7 @@ type awsCredentialsResource struct {
 // Create qovery aws credentials resource
 func (r awsCredentialsResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	// Retrieve values from plan
-	var plan awsCredentialsData
+	var plan awsCredentialsResourceData
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -97,7 +97,7 @@ func (r awsCredentialsResource) Create(ctx context.Context, req tfsdk.CreateReso
 	}
 
 	// Initialize state values
-	state := awsCredentialsData{
+	state := awsCredentialsResourceData{
 		Id:              types.String{Value: *credentials.Id},
 		Name:            types.String{Value: *credentials.Name},
 		OrganizationId:  plan.OrganizationId,
@@ -112,7 +112,7 @@ func (r awsCredentialsResource) Create(ctx context.Context, req tfsdk.CreateReso
 // Read qovery aws credentials resource
 func (r awsCredentialsResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
 	// Get current state
-	var state awsCredentialsData
+	var state awsCredentialsResourceData
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -128,10 +128,10 @@ func (r awsCredentialsResource) Read(ctx context.Context, req tfsdk.ReadResource
 		return
 	}
 
-	var toRefresh *awsCredentialsData
+	var toRefresh *awsCredentialsResourceData
 	for _, creds := range credentials.GetResults() {
 		if state.Id.Value == *creds.Id {
-			toRefresh = &awsCredentialsData{
+			toRefresh = &awsCredentialsResourceData{
 				Name: types.String{Value: *creds.Name},
 			}
 			break
@@ -157,7 +157,7 @@ func (r awsCredentialsResource) Read(ctx context.Context, req tfsdk.ReadResource
 // Update qovery aws credentials resource
 func (r awsCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
 	// Get plan and current state
-	var plan, state awsCredentialsData
+	var plan, state awsCredentialsResourceData
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -179,7 +179,7 @@ func (r awsCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateReso
 		return
 	}
 
-	toUpdate := awsCredentialsData{
+	toUpdate := awsCredentialsResourceData{
 		Name:            types.String{Value: *credentials.Name},
 		AccessKeyId:     plan.AccessKeyId,
 		SecretAccessKey: plan.SecretAccessKey,
@@ -197,7 +197,7 @@ func (r awsCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateReso
 // Delete qovery aws credentials resource
 func (r awsCredentialsResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
 	// Get current state
-	var state awsCredentialsData
+	var state awsCredentialsResourceData
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
