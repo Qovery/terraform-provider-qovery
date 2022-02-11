@@ -33,12 +33,12 @@ var (
 	applicationMemoryDefault int64 = 500 // in MB
 
 	// Application Min Running Instances
-	applicationMinRunningInstanceMin     int64 = 0
-	applicationMinRunningInstanceDefault int64 = 1
+	applicationMinRunningInstancesMin     int64 = 0
+	applicationMinRunningInstancesDefault int64 = 1
 
 	// Application Max Running Instances
-	applicationMaxRunningInstanceMin     int64 = -1
-	applicationMaxRunningInstanceDefault int64 = 1
+	applicationMaxRunningInstancesMin     int64 = -1
+	applicationMaxRunningInstancesDefault int64 = 1
 
 	// Application Env Preview
 	applicationEnvPreviewDefault = true
@@ -206,25 +206,25 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 			"min_running_instances": {
 				Description: descriptions.NewInt64MinDescription(
 					"Minimum number of instances running for the application.",
-					applicationMinRunningInstanceMin,
-					&applicationMinRunningInstanceDefault,
+					applicationMinRunningInstancesMin,
+					&applicationMinRunningInstancesDefault,
 				),
 				Type:     types.Int64Type,
 				Optional: true,
 				Validators: []tfsdk.AttributeValidator{
-					validators.Int64MinValidator{Min: applicationMinRunningInstanceMin},
+					validators.Int64MinValidator{Min: applicationMinRunningInstancesMin},
 				},
 			},
 			"max_running_instances": {
 				Description: descriptions.NewInt64MinDescription(
 					"Maximum number of instances running for the application.",
-					applicationMaxRunningInstanceMin,
-					&applicationMaxRunningInstanceDefault,
+					applicationMaxRunningInstancesMin,
+					&applicationMaxRunningInstancesDefault,
 				),
 				Type:     types.Int64Type,
 				Optional: true,
 				Validators: []tfsdk.AttributeValidator{
-					validators.Int64MinValidator{Min: applicationMaxRunningInstanceMin},
+					validators.Int64MinValidator{Min: applicationMaxRunningInstancesMin},
 				},
 			},
 			"env_preview": {

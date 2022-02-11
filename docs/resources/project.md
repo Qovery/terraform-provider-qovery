@@ -31,6 +31,10 @@ resource "qovery_project" "my_project" {
 - **name** (String) Name of the project.
 - **organization_id** (String) Id of the organization.
 
+### Optional
+
+- **description** (String) Description of the project.
+
 ### Read-Only
 
 - **id** (String) Id of the project.
@@ -40,5 +44,5 @@ resource "qovery_project" "my_project" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import qovery_project.my_project "<project_id>,<organization_id>"
+terraform import qovery_project.my_project "<project_id>"
 ```

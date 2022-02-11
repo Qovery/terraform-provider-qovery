@@ -22,15 +22,39 @@ const (
 	cloudProviderAPIResource = "cloud provider"
 )
 
-var cloudProviders = []string{"AWS", "DIGITAL_OCEAN", "SCALEWAY"}
+var (
+	// Cloud Provider
+	cloudProviders = []string{"AWS", "DIGITAL_OCEAN", "SCALEWAY"}
+
+	// Cluster CPU
+	clusterCPUMin     int64 = 2000 // in MB
+	clusterCPUDefault int64 = 2000 // in MB
+
+	// Cluster Memory
+	clusterMemoryMin     int64 = 4096 // in MB
+	clusterMemoryDefault int64 = 4096 // in MB
+
+	// Cluster Min Running Nodes
+	clusterMinRunningNodesMin     int64 = 3
+	clusterMinRunningNodesDefault int64 = 3
+
+	// Cluster Max Running Nodes
+	clusterMaxRunningNodesMin     int64 = 3
+	clusterMaxRunningNodesDefault int64 = 10
+)
 
 type clusterResourceData struct {
-	Id             types.String `tfsdk:"id"`
-	OrganizationId types.String `tfsdk:"organization_id"`
-	CredentialsId  types.String `tfsdk:"credentials_id"`
-	Name           types.String `tfsdk:"name"`
-	CloudProvider  types.String `tfsdk:"cloud_provider"`
-	Region         types.String `tfsdk:"region"`
+	Id              types.String `tfsdk:"id"`
+	OrganizationId  types.String `tfsdk:"organization_id"`
+	CredentialsId   types.String `tfsdk:"credentials_id"`
+	Name            types.String `tfsdk:"name"`
+	CloudProvider   types.String `tfsdk:"cloud_provider"`
+	Region          types.String `tfsdk:"region"`
+	Description     types.String `tfsdk:"description"`
+	CPU             types.Int64  `tfsdk:"cpu"`
+	Memory          types.Int64  `tfsdk:"memory"`
+	MinRunningNodes types.Int64  `tfsdk:"min_running_nodes"`
+	MaxRunningNodes types.Int64  `tfsdk:"max_running_nodes"`
 }
 
 type clusterResourceType struct{}
@@ -76,6 +100,64 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Type:        types.StringType,
 				Required:    true,
 			},
+			"description": {
+				Description: "Description of the cluster.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
+			"cpu": {
+				Description: descriptions.NewInt64MinDescription(
+					"CPU of the cluster in millicores (m) [1000m = 1 CPU].",
+					clusterCPUMin,
+					&clusterCPUDefault,
+				),
+				Type:     types.Int64Type,
+				Optional: true,
+				Computed: true,
+				Validators: []tfsdk.AttributeValidator{
+					validators.Int64MinValidator{Min: clusterCPUMin},
+				},
+			},
+			"memory": {
+				Description: descriptions.NewInt64MinDescription(
+					"RAM of the cluster in MB [1024MB = 1GB].",
+					clusterMemoryMin,
+					&clusterMemoryDefault,
+				),
+				Type:     types.Int64Type,
+				Optional: true,
+				Computed: true,
+				Validators: []tfsdk.AttributeValidator{
+					validators.Int64MinValidator{Min: clusterMemoryMin},
+				},
+			},
+			"min_running_nodes": {
+				Description: descriptions.NewInt64MinDescription(
+					"Minimum number of nodes running for the cluster.",
+					clusterMinRunningNodesMin,
+					&clusterMinRunningNodesDefault,
+				),
+				Type:     types.Int64Type,
+				Optional: true,
+				Computed: true,
+				Validators: []tfsdk.AttributeValidator{
+					validators.Int64MinValidator{Min: clusterMinRunningNodesMin},
+				},
+			},
+			"max_running_nodes": {
+				Description: descriptions.NewInt64MinDescription(
+					"Maximum number of nodes running for the cluster.",
+					clusterMaxRunningNodesMin,
+					&clusterMaxRunningNodesDefault,
+				),
+				Type:     types.Int64Type,
+				Optional: true,
+				Computed: true,
+				Validators: []tfsdk.AttributeValidator{
+					validators.Int64MinValidator{Min: clusterMaxRunningNodesMin},
+				},
+			},
 		},
 	}, nil
 }
@@ -100,13 +182,29 @@ func (r clusterResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 	}
 
 	// Create new cluster
+	payload := qovery.ClusterRequest{
+		Name:          plan.Name.Value,
+		CloudProvider: plan.CloudProvider.Value,
+		Region:        plan.Region.Value,
+	}
+	if !plan.Description.Null && !plan.Description.Unknown {
+		payload.Description = &plan.Description.Value
+	}
+	if !plan.CPU.Null && !plan.CPU.Unknown {
+		payload.Cpu = float32ToFloat32Ptr(float32(plan.CPU.Value))
+	}
+	if !plan.Memory.Null && !plan.Memory.Unknown {
+		payload.Memory = float32ToFloat32Ptr(float32(plan.Memory.Value))
+	}
+	if !plan.MinRunningNodes.Null && !plan.MinRunningNodes.Unknown {
+		payload.MinRunningNodes = int32ToInt32Ptr(int32(plan.MinRunningNodes.Value))
+	}
+	if !plan.MaxRunningNodes.Null && !plan.MaxRunningNodes.Unknown {
+		payload.MaxRunningNodes = int32ToInt32Ptr(int32(plan.MaxRunningNodes.Value))
+	}
 	cluster, res, err := r.client.ClustersApi.
 		CreateCluster(ctx, plan.OrganizationId.Value).
-		ClusterRequest(qovery.ClusterRequest{
-			Name:          plan.Name.Value,
-			CloudProvider: plan.CloudProvider.Value,
-			Region:        plan.Region.Value,
-		}).
+		ClusterRequest(payload).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := clusterCreateAPIError(plan.Name.Value, res, err)
@@ -145,12 +243,20 @@ func (r clusterResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 
 	// Initialize state values
 	state := clusterResourceData{
-		Id:             types.String{Value: cluster.Id},
-		CredentialsId:  types.String{Value: *clusterInfo.Credentials.Id},
-		OrganizationId: plan.OrganizationId,
-		Name:           types.String{Value: cluster.Name},
-		CloudProvider:  types.String{Value: cluster.CloudProvider},
-		Region:         types.String{Value: cluster.Region},
+		Id:              types.String{Value: cluster.Id},
+		CredentialsId:   types.String{Value: *clusterInfo.Credentials.Id},
+		OrganizationId:  plan.OrganizationId,
+		Name:            types.String{Value: cluster.Name},
+		CloudProvider:   types.String{Value: cluster.CloudProvider},
+		Region:          types.String{Value: cluster.Region},
+		Description:     types.String{Null: true},
+		CPU:             types.Int64{Value: int64(*cluster.Cpu)},
+		Memory:          types.Int64{Value: int64(*cluster.Memory)},
+		MinRunningNodes: types.Int64{Value: int64(*cluster.MinRunningNodes)},
+		MaxRunningNodes: types.Int64{Value: int64(*cluster.MaxRunningNodes)},
+	}
+	if cluster.Description.Get() != nil {
+		state.Description = types.String{Value: *cluster.Description.Get()}
 	}
 
 	// Set state
@@ -190,10 +296,18 @@ func (r clusterResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 	for _, cluster := range clusters.GetResults() {
 		if state.Id.Value == cluster.Id {
 			toRefresh = &clusterResourceData{
-				CredentialsId: types.String{Value: *cloudProviderInfo.Credentials.Id},
-				Name:          types.String{Value: cluster.Name},
-				CloudProvider: types.String{Value: cluster.CloudProvider},
-				Region:        types.String{Value: cluster.Region},
+				CredentialsId:   types.String{Value: *cloudProviderInfo.Credentials.Id},
+				Name:            types.String{Value: cluster.Name},
+				CloudProvider:   types.String{Value: cluster.CloudProvider},
+				Region:          types.String{Value: cluster.Region},
+				Description:     types.String{Null: true},
+				CPU:             types.Int64{Value: int64(*cluster.Cpu)},
+				Memory:          types.Int64{Value: int64(*cluster.Memory)},
+				MinRunningNodes: types.Int64{Value: int64(*cluster.MinRunningNodes)},
+				MaxRunningNodes: types.Int64{Value: int64(*cluster.MaxRunningNodes)},
+			}
+			if cluster.Description.Get() != nil {
+				toRefresh.Description = types.String{Value: *cluster.Description.Get()}
 			}
 			break
 		}
@@ -213,6 +327,11 @@ func (r clusterResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 	state.Name = toRefresh.Name
 	state.CloudProvider = toRefresh.CloudProvider
 	state.Region = toRefresh.Region
+	state.Description = toRefresh.Description
+	state.CPU = toRefresh.CPU
+	state.Memory = toRefresh.Memory
+	state.MinRunningNodes = toRefresh.MinRunningNodes
+	state.MaxRunningNodes = toRefresh.MaxRunningNodes
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -229,13 +348,36 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 
 	// Update cluster in the backend
+	payload := qovery.ClusterRequest{
+		Name:            plan.Name.Value,
+		CloudProvider:   plan.CloudProvider.Value,
+		Region:          plan.Region.Value,
+		Description:     &state.Description.Value,
+		Cpu:             float32ToFloat32Ptr(float32(state.CPU.Value)),
+		Memory:          float32ToFloat32Ptr(float32(state.Memory.Value)),
+		MinRunningNodes: int32ToInt32Ptr(int32(state.MinRunningNodes.Value)),
+		MaxRunningNodes: int32ToInt32Ptr(int32(state.MaxRunningNodes.Value)),
+	}
+	if !plan.Description.Null && !plan.Description.Unknown {
+		payload.Description = &plan.Description.Value
+	}
+	if !plan.CPU.Null && !plan.CPU.Unknown {
+		payload.Cpu = float32ToFloat32Ptr(float32(plan.CPU.Value))
+	}
+	if !plan.Memory.Null && !plan.Memory.Unknown {
+		payload.Memory = float32ToFloat32Ptr(float32(plan.Memory.Value))
+	}
+	if !plan.MinRunningNodes.Null && !plan.MinRunningNodes.Unknown {
+		payload.MinRunningNodes = int32ToInt32Ptr(int32(plan.MinRunningNodes.Value))
+	}
+	if !plan.MaxRunningNodes.Null && !plan.MaxRunningNodes.Unknown {
+		payload.MaxRunningNodes = int32ToInt32Ptr(int32(plan.MaxRunningNodes.Value))
+	}
+
+	r.client.GetConfig().AddDefaultHeader("content-type", "application/json")
 	cluster, res, err := r.client.ClustersApi.
-		EditCluster(ctx, plan.OrganizationId.Value, plan.Id.Value).
-		ClusterRequest(qovery.ClusterRequest{
-			Name:          plan.Name.Value,
-			CloudProvider: plan.CloudProvider.Value,
-			Region:        plan.Region.Value,
-		}).
+		EditCluster(ctx, state.OrganizationId.Value, state.Id.Value).
+		ClusterRequest(payload).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := clusterUpdateAPIError(state.Id.Value, res, err)
@@ -244,15 +386,28 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 
 	toUpdate := clusterResourceData{
-		Name:          types.String{Value: cluster.Name},
-		CloudProvider: types.String{Value: cluster.CloudProvider},
-		Region:        types.String{Value: cluster.Region},
+		Name:            types.String{Value: cluster.Name},
+		CloudProvider:   types.String{Value: cluster.CloudProvider},
+		Region:          types.String{Value: cluster.Region},
+		Description:     types.String{Null: true},
+		CPU:             types.Int64{Value: int64(*cluster.Cpu)},
+		Memory:          types.Int64{Value: int64(*cluster.Memory)},
+		MinRunningNodes: types.Int64{Value: int64(*cluster.MinRunningNodes)},
+		MaxRunningNodes: types.Int64{Value: int64(*cluster.MaxRunningNodes)},
+	}
+	if cluster.Description.Get() != nil {
+		state.Description = types.String{Value: *cluster.Description.Get()}
 	}
 
 	// Update state values
 	state.Name = toUpdate.Name
 	state.CloudProvider = toUpdate.CloudProvider
 	state.Region = toUpdate.Region
+	state.Description = toUpdate.Description
+	state.CPU = toUpdate.CPU
+	state.Memory = toUpdate.Memory
+	state.MinRunningNodes = toUpdate.MinRunningNodes
+	state.MaxRunningNodes = toUpdate.MaxRunningNodes
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -268,7 +423,9 @@ func (r clusterResource) Delete(ctx context.Context, req tfsdk.DeleteResourceReq
 	}
 
 	// Delete cluster
-	res, err := r.client.ClustersApi.DeleteCluster(ctx, state.OrganizationId.Value, state.Id.Value).Execute()
+	res, err := r.client.ClustersApi.
+		DeleteCluster(ctx, state.OrganizationId.Value, state.Id.Value).
+		Execute()
 	if err != nil || res.StatusCode >= 300 {
 		apiErr := clusterDeleteAPIError(state.Id.Value, res, err)
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
@@ -321,4 +478,12 @@ func cloudProviderCreateAPIError(clusterID string, res *http.Response, err error
 
 func cloudProviderReadAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
 	return apierror.New(cloudProviderAPIResource, clusterID, apierror.Read, res, err)
+}
+
+func float32ToFloat32Ptr(v float32) *float32 {
+	return &v
+}
+
+func int32ToInt32Ptr(v int32) *int32 {
+	return &v
 }
