@@ -39,6 +39,22 @@ resource "qovery_cluster" "my_cluster" {
 - **organization_id** (String) Id of the organization.
 - **region** (String) Region of the cluster.
 
+### Optional
+
+- **cpu** (Number) CPU of the cluster in millicores (m) [1000m = 1 CPU].
+	- Must be: `>= 2000`.
+	- Default: `2000`.
+- **description** (String) Description of the cluster.
+- **max_running_nodes** (Number) Maximum number of nodes running for the cluster.
+	- Must be: `>= 3`.
+	- Default: `10`.
+- **memory** (Number) RAM of the cluster in MB [1024MB = 1GB].
+	- Must be: `>= 4096`.
+	- Default: `4096`.
+- **min_running_nodes** (Number) Minimum number of nodes running for the cluster.
+	- Must be: `>= 3`.
+	- Default: `3`.
+
 ### Read-Only
 
 - **id** (String) Id of the cluster.
