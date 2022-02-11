@@ -2,275 +2,249 @@ package qovery
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/qovery/qovery-client-go"
+
+	"terraform-provider-qovery/qovery/apierror"
 )
 
-type resourceAwsCredentialsType struct{}
+const awsCredentialsAPIResource = "aws credentials"
 
-// AwsCredentials Resource schema
-func (r resourceAwsCredentialsType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+type awsCredentialsResourceData struct {
+	Id              types.String `tfsdk:"id"`
+	OrganizationId  types.String `tfsdk:"organization_id"`
+	Name            types.String `tfsdk:"name"`
+	AccessKeyId     types.String `tfsdk:"access_key_id"`
+	SecretAccessKey types.String `tfsdk:"secret_access_key"`
+}
+
+type awsCredentialsResourceType struct{}
+
+func (r awsCredentialsResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
+		Description: "Provides a Qovery AWS credentials resource. This can be used to create and manage Qovery AWS credentials.",
 		Attributes: map[string]tfsdk.Attribute{
 			"id": {
-				Type:     types.StringType,
-				Computed: true,
-				Required: false,
-				Optional: false,
-			},
-			"name": {
-				Type:     types.StringType,
-				Computed: false,
-				Required: true,
-				Optional: false,
-			},
-			"access_key_id": {
-				Type:      types.StringType,
-				Computed:  false,
-				Required:  true,
-				Optional:  false,
-				Sensitive: true,
-			},
-			"secret_access_key": {
-				Type:      types.StringType,
-				Computed:  false,
-				Required:  true,
-				Optional:  false,
-				Sensitive: true,
+				Description: "Id of the AWS credentials.",
+				Type:        types.StringType,
+				Computed:    true,
 			},
 			"organization_id": {
-				Type:     types.StringType,
-				Computed: false,
-				Required: true,
-				Optional: false,
+				Description: "Id of the organization.",
+				Type:        types.StringType,
+				Required:    true,
+			},
+			"name": {
+				Description: "Name of the aws credentials.",
+				Type:        types.StringType,
+				Required:    true,
+			},
+			"access_key_id": {
+				Description: "Your AWS access key id.",
+				Type:        types.StringType,
+				Required:    true,
+				Sensitive:   true,
+			},
+			"secret_access_key": {
+				Description: "Your AWS secret access key.",
+				Type:        types.StringType,
+				Required:    true,
+				Sensitive:   true,
 			},
 		},
 	}, nil
 }
 
-// New resource instance
-func (r resourceAwsCredentialsType) NewResource(ct context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
-	return resourceAwsCredentials{
-		p: *(p.(*provider)),
+func (r awsCredentialsResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	return awsCredentialsResource{
+		client: p.(*provider).GetClient(),
 	}, nil
 }
 
-type resourceAwsCredentials struct {
-	p provider
+type awsCredentialsResource struct {
+	client *qovery.APIClient
 }
 
-// Create a new resource
-func (r resourceAwsCredentials) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
-	if !r.p.configured {
-		resp.Diagnostics.AddError(
-			"Provider not configured",
-			"The provider hasn't been configured before apply, likely because it depends on an unknown value from another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks!",
-		)
-		return
-	}
-
+// Create qovery aws credentials resource
+func (r awsCredentialsResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	// Retrieve values from plan
-	var plan AwsCredentials
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
+	var plan awsCredentialsResourceData
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Create new credentials
-	credentials, res, err := r.p.client.CloudProviderCredentialsApi.
+	credentials, res, err := r.client.CloudProviderCredentialsApi.
 		CreateAWSCredentials(ctx, plan.OrganizationId.Value).
-		AwsCredentialsRequest(
-			qovery.AwsCredentialsRequest{
-				Name:            plan.Name.Value,
-				AccessKeyId:     &plan.AccessKeyId.Value,
-				SecretAccessKey: &plan.SecretAccessKey.Value,
-			}).
+		AwsCredentialsRequest(qovery.AwsCredentialsRequest{
+			Name:            plan.Name.Value,
+			AccessKeyId:     &plan.AccessKeyId.Value,
+			SecretAccessKey: &plan.SecretAccessKey.Value,
+		}).
 		Execute()
-
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating credentials",
-			"Could not create credentials, unexpected error: "+err.Error(),
-		)
-		return
-	}
-	if res.StatusCode >= 400 {
-		resp.Diagnostics.AddError(
-			"Error creating credentials",
-			"Could not create credentials, unexpected status code: "+string(rune(res.StatusCode)),
-		)
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := awsCredentialsCreateAPIError(plan.Name.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	// Generate resource state struct
-	var result = AwsCredentials{
-		Id: types.String{
-			Value: *credentials.Id,
-		},
-		Name: types.String{
-			Value: *credentials.Name,
-		},
+	// Initialize state values
+	state := awsCredentialsResourceData{
+		Id:              types.String{Value: *credentials.Id},
+		Name:            types.String{Value: *credentials.Name},
+		OrganizationId:  plan.OrganizationId,
 		AccessKeyId:     plan.AccessKeyId,
 		SecretAccessKey: plan.SecretAccessKey,
-		OrganizationId:  plan.OrganizationId,
 	}
-
-	diags = resp.State.Set(ctx, result)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-}
-
-// Read resource information
-func (r resourceAwsCredentials) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
-	// Get current state
-	var state AwsCredentials
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Get credentials from API and then update what is in state from what the API returns
-	credentials, res, err := r.p.client.CloudProviderCredentialsApi.
-		ListAWSCredentials(ctx, state.OrganizationId.Value).
-		Execute()
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error reading credentials",
-			"Could not read credentials of organization "+state.OrganizationId.Value+", unexpected error: "+err.Error(),
-		)
-		return
-	}
-	if res.StatusCode >= 400 {
-		resp.Diagnostics.AddError(
-			"Error reading credentials",
-			"Could not read credentials of organization "+state.OrganizationId.Value+", unexpected status code: "+string(rune(res.StatusCode)),
-		)
-		return
-	}
-
-	var found = AwsCredentials{}
-	for _, credential := range credentials.GetResults() {
-		if state.Id.Value == *credential.Id {
-			found = AwsCredentials{
-				Id: types.String{
-					Value: *credential.Id,
-				},
-				Name: types.String{
-					Value: *credential.Name,
-				},
-			}
-		}
-	}
-	if res.StatusCode >= 400 {
-		resp.Diagnostics.AddError(
-			"Error reading credentials",
-			"Could not find credentials of organization "+state.OrganizationId.Value+" with ID: "+state.Id.Value,
-		)
-		return
-	}
-
-	state.Name = found.Name
 
 	// Set state
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
+// Read qovery aws credentials resource
+func (r awsCredentialsResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	// Get current state
+	var state awsCredentialsResourceData
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	// Get credentials from API
+	credentials, res, err := r.client.CloudProviderCredentialsApi.
+		ListAWSCredentials(ctx, state.OrganizationId.Value).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := awsCredentialsReadAPIError(state.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	var toRefresh *awsCredentialsResourceData
+	for _, creds := range credentials.GetResults() {
+		if state.Id.Value == *creds.Id {
+			toRefresh = &awsCredentialsResourceData{
+				Name: types.String{Value: *creds.Name},
+			}
+			break
+		}
+	}
+
+	// If credential id is not in list
+	// Returning Not Found error
+	if toRefresh == nil {
+		res.StatusCode = 404
+		apiErr := awsCredentialsReadAPIError(state.Id.Value, res, nil)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	// Refresh state values
+	state.Name = toRefresh.Name
+
+	// Set state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-// Update resource
-func (r resourceAwsCredentials) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
-	// Get current state
-	var plan AwsCredentials
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
+// Update qovery aws credentials resource
+func (r awsCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+	// Get plan and current state
+	var plan, state awsCredentialsResourceData
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Update credentials in the backend
-	credential, res, err := r.p.client.CloudProviderCredentialsApi.
-		EditAWSCredentials(ctx, plan.OrganizationId.Value, plan.Id.Value).
-		AwsCredentialsRequest(
-			qovery.AwsCredentialsRequest{
-				Name:            plan.Name.Value,
-				AccessKeyId:     &plan.AccessKeyId.Value,
-				SecretAccessKey: &plan.SecretAccessKey.Value},
-		).
+	credentials, res, err := r.client.CloudProviderCredentialsApi.
+		EditAWSCredentials(ctx, state.OrganizationId.Value, state.Id.Value).
+		AwsCredentialsRequest(qovery.AwsCredentialsRequest{
+			Name:            plan.Name.Value,
+			AccessKeyId:     &plan.AccessKeyId.Value,
+			SecretAccessKey: &plan.SecretAccessKey.Value,
+		}).
 		Execute()
-
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error updating credentials",
-			"Could not update credentials, unexpected error: "+err.Error(),
-		)
-		return
-	}
-	if res.StatusCode >= 400 {
-		resp.Diagnostics.AddError(
-			"Error updating credentials",
-			"Could not update credentials, unexpected status code: "+string(rune(res.StatusCode)),
-		)
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := awsCredentialsUpdateAPIError(state.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	// Get current state
-	var state AwsCredentials
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
+	toUpdate := awsCredentialsResourceData{
+		Name:            types.String{Value: *credentials.Name},
+		AccessKeyId:     plan.AccessKeyId,
+		SecretAccessKey: plan.SecretAccessKey,
 	}
-	req.State.Get(ctx, state)
 
-	// Update
-	state.Name.Value = *credential.Name
-	state.Id.Value = *credential.Id
-	state.AccessKeyId = plan.AccessKeyId
-	state.SecretAccessKey = plan.SecretAccessKey
+	// Update state values
+	state.Name = toUpdate.Name
+	state.AccessKeyId = toUpdate.AccessKeyId
+	state.SecretAccessKey = toUpdate.SecretAccessKey
 
 	// Set state
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-// Delete resource
-func (r resourceAwsCredentials) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+// Delete qovery aws credentials resource
+func (r awsCredentialsResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
 	// Get current state
-	var state AwsCredentials
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	var state awsCredentialsResourceData
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Delete credentials in the backend
-	res, err := r.p.client.CloudProviderCredentialsApi.DeleteAWSCredentials(ctx, state.OrganizationId.Value, state.Id.Value).Execute()
-	if err != nil {
+	res, err := r.client.CloudProviderCredentialsApi.
+		DeleteAWSCredentials(ctx, state.OrganizationId.Value, state.Id.Value).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := awsCredentialsDeleteAPIError(state.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	// Remove credentials from state
+	resp.State.RemoveResource(ctx)
+}
+
+// ImportState imports a qovery aws credentials resource using its id
+func (r awsCredentialsResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+	idParts := strings.Split(req.ID, ",")
+
+	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
 		resp.Diagnostics.AddError(
-			"Error deleting credentials",
-			"Could not delete credentials "+state.Id.Value+": "+err.Error(),
+			"Unexpected Import Identifier",
+			fmt.Sprintf("Expected import identifier with format: aws_credentials_id,organization_id. Got: %q", req.ID),
 		)
 		return
 	}
-	if res.StatusCode >= 400 {
-		resp.Diagnostics.AddError(
-			"Error deleting credentials",
-			"Could not delete credentials, unexpected status code: "+string(rune(res.StatusCode)),
-		)
-		return
-	}
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("id"), idParts[0])...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("organization_id"), idParts[1])...)
+}
+
+func awsCredentialsCreateAPIError(credentialsName string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(awsCredentialsAPIResource, credentialsName, apierror.Create, res, err)
+}
+
+func awsCredentialsReadAPIError(credentialsID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(awsCredentialsAPIResource, credentialsID, apierror.Read, res, err)
+}
+
+func awsCredentialsUpdateAPIError(credentialsID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(awsCredentialsAPIResource, credentialsID, apierror.Update, res, err)
+}
+
+func awsCredentialsDeleteAPIError(credentialsID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(awsCredentialsAPIResource, credentialsID, apierror.Delete, res, err)
 }

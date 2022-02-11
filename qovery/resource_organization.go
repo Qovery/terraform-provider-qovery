@@ -2,233 +2,241 @@ package qovery
 
 import (
 	"context"
+	"net/http"
+
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/qovery/qovery-client-go"
+
+	"terraform-provider-qovery/qovery/apierror"
+	"terraform-provider-qovery/qovery/descriptions"
+	"terraform-provider-qovery/qovery/validators"
 )
 
-type resourceOrganizationType struct{}
+const organizationAPIResource = "organization"
 
-// Organization Resource schema
-func (r resourceOrganizationType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+var organizationPlans = []string{"FREE", "PROFESSIONAL", "BUSINESS"}
+
+type organizationResourceData struct {
+	Id          types.String `tfsdk:"id"`
+	Name        types.String `tfsdk:"name"`
+	Plan        types.String `tfsdk:"plan"`
+	Description types.String `tfsdk:"description"`
+}
+
+type organizationResourceType struct{}
+
+func (r organizationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
+		Description: "Provides a Qovery organization resource. This can be used to create and manage Qovery organizations.",
 		Attributes: map[string]tfsdk.Attribute{
 			"id": {
-				Type:     types.StringType,
-				Computed: true,
+				Description: "Id of the organization.",
+				Type:        types.StringType,
+				Computed:    true,
 			},
 			"name": {
-				Type:     types.StringType,
-				Required: true,
-				Computed: false,
+				Description: "Name of the organization.",
+				Type:        types.StringType,
+				Required:    true,
 			},
 			"plan": {
+				Description: descriptions.NewStringEnumDescription(
+					"Plan of the organization.",
+					organizationPlans,
+					nil,
+				),
 				Type:     types.StringType,
 				Required: true,
+				Validators: []tfsdk.AttributeValidator{
+					validators.StringEnumValidator{Enum: organizationPlans},
+				},
+			},
+			"description": {
+				Description: "Description of the organization.",
+				Type:        types.StringType,
+				Optional:    true,
 			},
 		},
 	}, nil
 }
 
-// New resource instance
-func (r resourceOrganizationType) NewResource(ct context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
-	return resourceOrganization{
-		p: *(p.(*provider)),
+func (r organizationResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+	return organizationResource{
+		client: p.(*provider).GetClient(),
 	}, nil
 }
 
-type resourceOrganization struct {
-	p provider
+type organizationResource struct {
+	client *qovery.APIClient
 }
 
-// Create a new resource
-func (r resourceOrganization) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
-	if !r.p.configured {
-		resp.Diagnostics.AddError(
-			"Provider not configured",
-			"The provider hasn't been configured before apply, likely because it depends on an unknown value from another resource. This leads to weird stuff happening, so we'd prefer if you didn't do that. Thanks! ",
-		)
-		return
-	}
-
+// Create qovery organization resource
+func (r organizationResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	// Retrieve values from plan
-	var plan Organization
-	diags := req.Plan.Get(ctx, &plan)
-	resp.Diagnostics.Append(diags...)
+	var plan organizationResourceData
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Create new org
-	org, res, err := r.p.client.OrganizationMainCallsApi.
+	// Create new organization
+	payload := qovery.OrganizationRequest{
+		Name: plan.Name.Value,
+		Plan: plan.Plan.Value,
+	}
+	if !plan.Description.Null && !plan.Description.Unknown {
+		payload.Description = &plan.Description.Value
+	}
+	organization, res, err := r.client.OrganizationMainCallsApi.
 		CreateOrganization(ctx).
-		OrganizationRequest(qovery.OrganizationRequest{
-			Name: plan.Name.Value,
-			Plan: plan.Plan.Value,
-		}).Execute()
-
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error creating organization",
-			"Could not create organization, unexpected error: "+err.Error(),
-		)
-		return
-	}
-	if res.StatusCode >= 400 {
-		resp.Diagnostics.AddError(
-			"Error creating organization",
-			"Could not create organization, unexpected status code: "+string(rune(res.StatusCode)),
-		)
-		return
-	}
-
-	// Generate resource state struct
-	var result = Organization{
-		Id: types.String{
-			Value: org.Id,
-		},
-		Name: types.String{
-			Value: org.Name,
-		},
-		Plan: types.String{
-			Value: org.Plan,
-		},
-	}
-
-	diags = resp.State.Set(ctx, result)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-}
-
-// Read resource information
-func (r resourceOrganization) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
-	// Get current state
-	var state Organization
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Get organization from API and then update what is in state from what the API returns
-	organization, res, err := r.p.client.OrganizationMainCallsApi.
-		GetOrganization(ctx, state.Id.Value).
+		OrganizationRequest(payload).
 		Execute()
-
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error reading organization",
-			"Could not read organization "+state.Id.Value+", unexpected error: "+err.Error(),
-		)
-		return
-	}
-	if res.StatusCode >= 400 {
-		resp.Diagnostics.AddError(
-			"Error reading organization",
-			"Could not read organization "+state.Id.Value+", unexpected status code: "+string(rune(res.StatusCode)),
-		)
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := organizationCreateAPIError(plan.Name.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	state.Name.Value = organization.Name
-	state.Plan.Value = organization.Plan
-	state.Id.Value = organization.Id
+	// Initialize state values
+	state := organizationResourceData{
+		Id:          types.String{Value: organization.Id},
+		Name:        types.String{Value: organization.Name},
+		Plan:        types.String{Value: organization.Plan},
+		Description: types.String{Null: true},
+	}
+	if organization.Description != nil {
+		state.Description = types.String{Value: *organization.Description}
+	}
 
 	// Set state
-	diags = resp.State.Set(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+}
+
+// Read qovery organization resource
+func (r organizationResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	// Get current state
+	var state organizationResourceData
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
-}
 
-// Update resource
-func (r resourceOrganization) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
-	{
-		// Get current state
-		var plan Organization
-		diags := req.Plan.Get(ctx, &plan)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-
-		// Update organization in backend
-		org, res, err := r.p.client.OrganizationMainCallsApi.
-			EditOrganization(ctx, plan.Id.Value).
-			OrganizationEditRequest(qovery.OrganizationEditRequest{
-				Name: plan.Name.Value,
-			}).
-			Execute()
-
-		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error updating organization",
-				"Could not update organization, unexpected error: "+err.Error(),
-			)
-			return
-		}
-		if res.StatusCode >= 400 {
-			resp.Diagnostics.AddError(
-				"Error updating organization",
-				"Could not update organization, unexpected status code: "+string(rune(res.StatusCode)),
-			)
-			return
-		}
-
-		// Update state
-		var state Organization
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		req.State.Get(ctx, state)
-
-		state.Name.Value = org.Name
-		state.Plan.Value = org.Plan
-		state.Id.Value = org.Id
-
-		// Set state
-		diags = resp.State.Set(ctx, &state)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
+	// Get organization from API
+	organization, res, err := r.client.OrganizationMainCallsApi.
+		GetOrganization(ctx, state.Id.Value).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := organizationReadAPIError(state.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
 	}
 
+	toRefresh := organizationResourceData{
+		Name:        types.String{Value: organization.Name},
+		Plan:        types.String{Value: organization.Plan},
+		Description: types.String{Null: true},
+	}
+	if organization.Description != nil {
+		toRefresh.Description = types.String{Value: *organization.Description}
+	}
+
+	// Refresh state values
+	state.Name = toRefresh.Name
+	state.Plan = toRefresh.Plan
+	state.Description = toRefresh.Description
+
+	// Set state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
-// Delete resource
-func (r resourceOrganization) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+// Update qovery organization resource
+func (r organizationResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+	// Get plan and current state
+	var plan, state organizationResourceData
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Update organization in backend
+	payload := qovery.OrganizationEditRequest{
+		Name: plan.Name.Value,
+	}
+	if !plan.Description.Null && !plan.Description.Unknown {
+		payload.Description = &plan.Description.Value
+	}
+	organization, res, err := r.client.OrganizationMainCallsApi.
+		EditOrganization(ctx, state.Id.Value).
+		OrganizationEditRequest(payload).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := organizationUpdateAPIError(state.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	toUpdate := organizationResourceData{
+		Name:        types.String{Value: organization.Name},
+		Plan:        types.String{Value: organization.Plan},
+		Description: types.String{Null: true},
+	}
+	if organization.Description != nil {
+		toUpdate.Description = types.String{Value: *organization.Description}
+	}
+
+	// Update state values
+	state.Name = toUpdate.Name
+	state.Plan = toUpdate.Plan
+	state.Description = toUpdate.Description
+
+	// Set state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// Delete qovery organization resource
+func (r organizationResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
 	// Get current state
-	var state Organization
-	diags := req.State.Get(ctx, &state)
-	resp.Diagnostics.Append(diags...)
+	var state organizationResourceData
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Delete organization
-	res, err := r.p.client.OrganizationMainCallsApi.DeleteOrganization(ctx, state.Id.Value).Execute()
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error deleting organization",
-			"Could not delete organization "+state.Id.Value+", unexpected error: "+err.Error(),
-		)
+	res, err := r.client.OrganizationMainCallsApi.
+		DeleteOrganization(ctx, state.Id.Value).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := organizationDeleteAPIError(state.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
-	if res.StatusCode >= 400 {
-		resp.Diagnostics.AddError(
-			"Error deleting organization",
-			"Could not delete organization, unexpected status code: "+string(rune(res.StatusCode)),
-		)
-		return
-	}
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
+
+	// Remove organization from state
+	resp.State.RemoveResource(ctx)
+}
+
+// ImportState imports a qovery organization resource using its id
+func (r organizationResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
+}
+
+func organizationCreateAPIError(organizationName string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(organizationAPIResource, organizationName, apierror.Create, res, err)
+}
+
+func organizationReadAPIError(organizationID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(organizationAPIResource, organizationID, apierror.Read, res, err)
+}
+
+func organizationUpdateAPIError(organizationID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(organizationAPIResource, organizationID, apierror.Update, res, err)
+}
+
+func organizationDeleteAPIError(organizationID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(organizationAPIResource, organizationID, apierror.Delete, res, err)
 }
