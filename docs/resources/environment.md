@@ -33,8 +33,8 @@ resource "qovery_environment" "my_environment" {
 
 ### Optional
 
-- **cluster_id** (String) Id of the cluster [NOTE: cannot be updated after creation].
-- **mode** (String) Mode of the environment [NOTE: cannot be updated after creation].
+- **cluster_id** (String) Id of the cluster [NOTE: can't be updated after creation].
+- **mode** (String) Mode of the environment [NOTE: can't be updated after creation].
 	- Can be: `PRODUCTION`, `DEVELOPMENT`, `STAGING`, `PREVIEW`.
 	- Default: `DEVELOPMENT`.
 

@@ -47,7 +47,7 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Required:    true,
 			},
 			"cluster_id": {
-				Description: "Id of the cluster [NOTE: cannot be updated after creation].",
+				Description: "Id of the cluster [NOTE: can't be updated after creation].",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
@@ -59,7 +59,7 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 			},
 			"mode": {
 				Description: descriptions.NewStringEnumDescription(
-					"Mode of the environment [NOTE: cannot be updated after creation].",
+					"Mode of the environment [NOTE: can't be updated after creation].",
 					environmentModes,
 					&environmentModeDefault,
 				),
