@@ -31,6 +31,13 @@ resource "qovery_environment" "my_environment" {
 - **name** (String) Name of the environment.
 - **project_id** (String) Id of the project.
 
+### Optional
+
+- **cluster_id** (String) Id of the cluster [NOTE: cannot be updated after creation].
+- **mode** (String) Mode of the environment [NOTE: cannot be updated after creation].
+	- Can be: `PRODUCTION`, `DEVELOPMENT`, `STAGING`, `PREVIEW`.
+	- Default: `DEVELOPMENT`.
+
 ### Read-Only
 
 - **id** (String) Id of the environment.
@@ -40,5 +47,5 @@ resource "qovery_environment" "my_environment" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import qovery_environment.my_environment "<environment_id>,<project_id>"
+terraform import qovery_environment.my_environment "<environment_id>"
 ```
