@@ -17,7 +17,7 @@ resource "qovery_database" "my_database" {
   environment_id = qovery_environment.my_environment.id
   name = "MyDatabase"
   type = "POSTGRESQL"
-  version = "10.1"
+  version = "10"
   mode = "CONTAINER"
   accessibility = "PRIVATE"
   cpu = 250
@@ -36,10 +36,10 @@ resource "qovery_database" "my_database" {
 ### Required
 
 - **environment_id** (String) Id of the environment.
-- **mode** (String) Mode of the database.
+- **mode** (String) Mode of the database [NOTE: can't be updated after creation].
 	- Can be: `MANAGED`, `CONTAINER`.
 - **name** (String) Name of the database.
-- **type** (String) Type of the database.
+- **type** (String) Type of the database [NOTE: can't be updated after creation].
 	- Can be: `POSTGRESQL`, `MYSQL`, `MONGODB`, `REDIS`.
 - **version** (String) Version of the database
 
@@ -67,5 +67,5 @@ resource "qovery_database" "my_database" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import qovery_database.my_database "<database_id>,<environment_id>"
+terraform import qovery_database.my_database "<database_id>"
 ```

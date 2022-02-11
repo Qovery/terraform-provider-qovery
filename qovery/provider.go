@@ -99,6 +99,7 @@ func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourc
 		"qovery_cluster":         clusterDataSourceType{},
 		"qovery_project":         projectDataSourceType{},
 		"qovery_environment":     environmentDataSourceType{},
+		"qovery_database":        databaseDataSourceType{},
 	}, nil
 }
 
