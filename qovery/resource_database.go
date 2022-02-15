@@ -8,10 +8,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
 	"terraform-provider-qovery/qovery/apierror"
 	"terraform-provider-qovery/qovery/descriptions"
+	"terraform-provider-qovery/qovery/modifiers"
 	"terraform-provider-qovery/qovery/validators"
 )
 
@@ -40,19 +42,6 @@ var (
 	databaseStorageMin     int64 = 10240
 	databaseStorageDefault int64 = 10240
 )
-
-type databaseResourceData struct {
-	Id            types.String `tfsdk:"id"`
-	EnvironmentId types.String `tfsdk:"environment_id"`
-	Name          types.String `tfsdk:"name"`
-	Type          types.String `tfsdk:"type"`
-	Version       types.String `tfsdk:"version"`
-	Mode          types.String `tfsdk:"mode"`
-	Accessibility types.String `tfsdk:"accessibility"`
-	CPU           types.Int64  `tfsdk:"cpu"`
-	Memory        types.Int64  `tfsdk:"memory"`
-	Storage       types.Int64  `tfsdk:"storage"`
-}
 
 type databaseResourceType struct{}
 
@@ -113,6 +102,9 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewStringDefaultModifier(databaseAccessibilityDefault),
+				},
 				Validators: []tfsdk.AttributeValidator{
 					validators.StringEnumValidator{Enum: databaseAccessibilities},
 				},
@@ -126,6 +118,9 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewInt64DefaultModifier(databaseCPUDefault),
+				},
 				Validators: []tfsdk.AttributeValidator{
 					validators.Int64MinValidator{Min: databaseCPUMin},
 				},
@@ -139,6 +134,9 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewInt64DefaultModifier(databaseMemoryDefault),
+				},
 				Validators: []tfsdk.AttributeValidator{
 					validators.Int64MinValidator{Min: databaseMemoryMin},
 				},
@@ -152,6 +150,9 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewInt64DefaultModifier(databaseStorageDefault),
+				},
 				Validators: []tfsdk.AttributeValidator{
 					validators.Int64MinValidator{Min: databaseStorageMin},
 				},
@@ -173,34 +174,16 @@ type databaseResource struct {
 // Create qovery database resource
 func (r databaseResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	// Retrieve values from plan
-	var plan databaseResourceData
+	var plan Database
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Create new database
-	payload := qovery.DatabaseRequest{
-		Name:    plan.Name.Value,
-		Type:    plan.Type.Value,
-		Version: plan.Version.Value,
-		Mode:    plan.Mode.Value,
-	}
-	if !plan.Accessibility.Null && !plan.Accessibility.Unknown {
-		payload.Accessibility = &plan.Accessibility.Value
-	}
-	if !plan.CPU.Null && !plan.CPU.Unknown {
-		payload.Cpu = int32ToInt32Ptr(int32(plan.CPU.Value))
-	}
-	if !plan.Memory.Null && !plan.Memory.Unknown {
-		payload.Memory = int32ToInt32Ptr(int32(plan.Memory.Value))
-	}
-	if !plan.Storage.Null && !plan.Storage.Unknown {
-		payload.Storage = int32ToInt32Ptr(int32(plan.Storage.Value))
-	}
 	database, res, err := r.client.DatabasesApi.
 		CreateDatabase(ctx, plan.EnvironmentId.Value).
-		DatabaseRequest(payload).
+		DatabaseRequest(plan.toCreateDatabaseRequest()).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := databaseCreateAPIError(plan.Name.Value, res, err)
@@ -209,18 +192,8 @@ func (r databaseResource) Create(ctx context.Context, req tfsdk.CreateResourceRe
 	}
 
 	// Initialize state values
-	state := databaseResourceData{
-		Id:            types.String{Value: database.Id},
-		EnvironmentId: plan.EnvironmentId,
-		Name:          types.String{Value: database.Name},
-		Type:          types.String{Value: database.Type},
-		Version:       types.String{Value: database.Version},
-		Mode:          types.String{Value: database.Mode},
-		Accessibility: types.String{Value: *database.Accessibility},
-		CPU:           types.Int64{Value: int64(*database.Cpu)},
-		Memory:        types.Int64{Value: int64(*database.Memory)},
-		Storage:       types.Int64{Value: int64(*database.Storage)},
-	}
+	state := convertResponseToDatabase(database)
+	tflog.Trace(ctx, "created database", "database_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -229,7 +202,7 @@ func (r databaseResource) Create(ctx context.Context, req tfsdk.CreateResourceRe
 // Read qovery database resource
 func (r databaseResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
 	// Get current state
-	var state databaseResourceData
+	var state Database
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -245,28 +218,9 @@ func (r databaseResource) Read(ctx context.Context, req tfsdk.ReadResourceReques
 		return
 	}
 
-	toRefresh := &databaseResourceData{
-		EnvironmentId: types.String{Value: database.Environment.Id},
-		Name:          types.String{Value: database.Name},
-		Type:          types.String{Value: database.Type},
-		Version:       types.String{Value: database.Version},
-		Mode:          types.String{Value: database.Mode},
-		Accessibility: types.String{Value: *database.Accessibility},
-		CPU:           types.Int64{Value: int64(*database.Cpu)},
-		Memory:        types.Int64{Value: int64(*database.Memory)},
-		Storage:       types.Int64{Value: int64(*database.Storage)},
-	}
-
 	// Refresh state values
-	state.EnvironmentId = toRefresh.EnvironmentId
-	state.Name = toRefresh.Name
-	state.Type = toRefresh.Type
-	state.Version = toRefresh.Version
-	state.Mode = toRefresh.Mode
-	state.Accessibility = toRefresh.Accessibility
-	state.CPU = toRefresh.CPU
-	state.Memory = toRefresh.Memory
-	state.Storage = toRefresh.Storage
+	state = convertResponseToDatabase(database)
+	tflog.Trace(ctx, "read database", "database_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -275,7 +229,7 @@ func (r databaseResource) Read(ctx context.Context, req tfsdk.ReadResourceReques
 // Update qovery database resource
 func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
 	// Get plan and current state
-	var plan, state databaseResourceData
+	var plan, state Database
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -283,26 +237,9 @@ func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRe
 	}
 
 	// Update cluster in the backend
-	payload := qovery.DatabaseEditRequest{
-		Name:    &plan.Name.Value,
-		Version: &plan.Version.Value,
-	}
-	if !plan.Accessibility.Null && !plan.Accessibility.Unknown {
-		payload.Accessibility = &plan.Accessibility.Value
-	}
-	if !plan.CPU.Null && !plan.CPU.Unknown {
-		payload.Cpu = int32ToInt32Ptr(int32(plan.CPU.Value))
-	}
-	if !plan.Memory.Null && !plan.Memory.Unknown {
-		payload.Memory = int32ToInt32Ptr(int32(plan.Memory.Value))
-	}
-	if !plan.Storage.Null && !plan.Storage.Unknown {
-		payload.Storage = int32ToInt32Ptr(int32(plan.Storage.Value))
-	}
-
 	database, res, err := r.client.DatabaseMainCallsApi.
 		EditDatabase(ctx, state.Id.Value).
-		DatabaseEditRequest(payload).
+		DatabaseEditRequest(plan.toUpdateDatabaseRequest()).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := databaseUpdateAPIError(state.Id.Value, res, err)
@@ -310,28 +247,9 @@ func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRe
 		return
 	}
 
-	toUpdate := &databaseResourceData{
-		EnvironmentId: types.String{Value: database.Environment.Id},
-		Name:          types.String{Value: database.Name},
-		Type:          types.String{Value: database.Type},
-		Version:       types.String{Value: database.Version},
-		Mode:          types.String{Value: database.Mode},
-		Accessibility: types.String{Value: *database.Accessibility},
-		CPU:           types.Int64{Value: int64(*database.Cpu)},
-		Memory:        types.Int64{Value: int64(*database.Memory)},
-		Storage:       types.Int64{Value: int64(*database.Storage)},
-	}
-
 	// Update state values
-	state.EnvironmentId = toUpdate.EnvironmentId
-	state.Name = toUpdate.Name
-	state.Type = toUpdate.Type
-	state.Version = toUpdate.Version
-	state.Mode = toUpdate.Mode
-	state.Accessibility = toUpdate.Accessibility
-	state.CPU = toUpdate.CPU
-	state.Memory = toUpdate.Memory
-	state.Storage = toUpdate.Storage
+	state = convertResponseToDatabase(database)
+	tflog.Trace(ctx, "updated database", "database_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -340,7 +258,7 @@ func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRe
 // Delete qovery database resource
 func (r databaseResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
 	// Get current state
-	var state databaseResourceData
+	var state Database
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -355,6 +273,8 @@ func (r databaseResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRe
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
+
+	tflog.Trace(ctx, "deleted database", "database_id", state.Id.Value)
 
 	// Remove database from state
 	resp.State.RemoveResource(ctx)

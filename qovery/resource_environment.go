@@ -8,10 +8,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
 	"terraform-provider-qovery/qovery/apierror"
 	"terraform-provider-qovery/qovery/descriptions"
+	"terraform-provider-qovery/qovery/modifiers"
 	"terraform-provider-qovery/qovery/validators"
 )
 
@@ -21,14 +23,6 @@ var (
 	environmentModes       = []string{"PRODUCTION", "DEVELOPMENT", "STAGING", "PREVIEW"}
 	environmentModeDefault = "DEVELOPMENT"
 )
-
-type environmentResourceData struct {
-	Id        types.String `tfsdk:"id"`
-	ProjectId types.String `tfsdk:"project_id"`
-	ClusterId types.String `tfsdk:"cluster_id"`
-	Name      types.String `tfsdk:"name"`
-	Mode      types.String `tfsdk:"mode"`
-}
 
 type environmentResourceType struct{}
 
@@ -66,6 +60,9 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewStringDefaultModifier(environmentModeDefault),
+				},
 				Validators: []tfsdk.AttributeValidator{
 					validators.StringEnumValidator{Enum: environmentModes},
 				},
@@ -87,25 +84,16 @@ type environmentResource struct {
 // Create qovery environment resource
 func (r environmentResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	// Retrieve values from plan
-	var plan environmentResourceData
+	var plan Environment
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Create new environment
-	payload := qovery.EnvironmentRequest{
-		Name: plan.Name.Value,
-	}
-	if !plan.ClusterId.Null && !plan.ClusterId.Unknown {
-		payload.Cluster = &plan.ClusterId.Value
-	}
-	if !plan.Mode.Null && !plan.Mode.Unknown {
-		payload.Mode = &plan.Mode.Value
-	}
 	environment, res, err := r.client.EnvironmentsApi.
 		CreateEnvironment(ctx, plan.ProjectId.Value).
-		EnvironmentRequest(payload).
+		EnvironmentRequest(plan.toCreateEnvironmentRequest()).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := environmentCreateAPIError(plan.Name.Value, res, err)
@@ -114,13 +102,8 @@ func (r environmentResource) Create(ctx context.Context, req tfsdk.CreateResourc
 	}
 
 	// Initialize state values
-	state := environmentResourceData{
-		Id:        types.String{Value: environment.Id},
-		ProjectId: types.String{Value: environment.Project.Id},
-		ClusterId: types.String{Value: environment.ClusterId},
-		Name:      types.String{Value: environment.Name},
-		Mode:      types.String{Value: environment.Mode},
-	}
+	state := convertResponseToEnvironment(environment)
+	tflog.Trace(ctx, "created environment", "environment_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -129,7 +112,7 @@ func (r environmentResource) Create(ctx context.Context, req tfsdk.CreateResourc
 // Read qovery environment resource
 func (r environmentResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
 	// Get current state
-	var state environmentResourceData
+	var state Environment
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -145,18 +128,9 @@ func (r environmentResource) Read(ctx context.Context, req tfsdk.ReadResourceReq
 		return
 	}
 
-	toRefresh := &environmentResourceData{
-		ProjectId: types.String{Value: environment.Project.Id},
-		ClusterId: types.String{Value: environment.ClusterId},
-		Name:      types.String{Value: environment.Name},
-		Mode:      types.String{Value: environment.Mode},
-	}
-
 	// Refresh state values
-	state.ProjectId = toRefresh.ProjectId
-	state.ClusterId = toRefresh.ClusterId
-	state.Name = toRefresh.Name
-	state.Mode = toRefresh.Mode
+	state = convertResponseToEnvironment(environment)
+	tflog.Trace(ctx, "read environment", "environment_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -165,7 +139,7 @@ func (r environmentResource) Read(ctx context.Context, req tfsdk.ReadResourceReq
 // Update qovery environment resource
 func (r environmentResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
 	// Get plan and current state
-	var plan, state environmentResourceData
+	var plan, state Environment
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -173,12 +147,9 @@ func (r environmentResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 	}
 
 	// Update environment in the backend
-	payload := qovery.EnvironmentEditRequest{
-		Name: &plan.Name.Value,
-	}
 	environment, res, err := r.client.EnvironmentMainCallsApi.
 		EditEnvironment(ctx, state.Id.Value).
-		EnvironmentEditRequest(payload).
+		EnvironmentEditRequest(plan.toUpdateEnvironmentRequest()).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := environmentUpdateAPIError(state.Id.Value, res, err)
@@ -186,18 +157,9 @@ func (r environmentResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 		return
 	}
 
-	toRefresh := &environmentResourceData{
-		ProjectId: types.String{Value: environment.Project.Id},
-		ClusterId: types.String{Value: environment.ClusterId},
-		Name:      types.String{Value: environment.Name},
-		Mode:      types.String{Value: environment.Mode},
-	}
-
-	// Refresh state values
-	state.ProjectId = toRefresh.ProjectId
-	state.ClusterId = toRefresh.ClusterId
-	state.Name = toRefresh.Name
-	state.Mode = toRefresh.Mode
+	// Update state values
+	state = convertResponseToEnvironment(environment)
+	tflog.Trace(ctx, "updated environment", "environment_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -206,7 +168,7 @@ func (r environmentResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 // Delete qovery environment resource
 func (r environmentResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
 	// Get current state
-	var state environmentResourceData
+	var state Environment
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -221,6 +183,8 @@ func (r environmentResource) Delete(ctx context.Context, req tfsdk.DeleteResourc
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
+
+	tflog.Trace(ctx, "deleted environment", "environment_id", state.Id.Value)
 
 	// Remove environment from state
 	resp.State.RemoveResource(ctx)

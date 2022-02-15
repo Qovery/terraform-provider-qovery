@@ -9,20 +9,6 @@ import (
 	"github.com/qovery/qovery-client-go"
 )
 
-type clusterDataSourceData struct {
-	Id              types.String `tfsdk:"id"`
-	OrganizationId  types.String `tfsdk:"organization_id"`
-	CredentialsId   types.String `tfsdk:"credentials_id"`
-	Name            types.String `tfsdk:"name"`
-	Description     types.String `tfsdk:"description"`
-	CloudProvider   types.String `tfsdk:"cloud_provider"`
-	Region          types.String `tfsdk:"region"`
-	CPU             types.Int64  `tfsdk:"cpu"`
-	Memory          types.Int64  `tfsdk:"memory"`
-	MinRunningNodes types.Int64  `tfsdk:"min_running_nodes"`
-	MaxRunningNodes types.Int64  `tfsdk:"max_running_nodes"`
-}
-
 type clusterDataSourceType struct{}
 
 func (t clusterDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
@@ -101,7 +87,7 @@ type clusterDataSource struct {
 // Read qovery cluster data source
 func (d clusterDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, resp *tfsdk.ReadDataSourceResponse) {
 	// Get current state
-	var data clusterDataSourceData
+	var data Cluster
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -127,47 +113,19 @@ func (d clusterDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceReq
 		return
 	}
 
-	var state *clusterDataSourceData
+	var state Cluster
+	found := false
 	for _, cluster := range clusters.GetResults() {
 		if data.Id.Value == cluster.Id {
-			state = &clusterDataSourceData{
-				Id:              data.Id,
-				OrganizationId:  data.OrganizationId,
-				CredentialsId:   types.String{Null: true},
-				Name:            types.String{Value: cluster.Name},
-				Description:     types.String{Null: true},
-				CloudProvider:   types.String{Value: cluster.CloudProvider},
-				Region:          types.String{Value: cluster.Region},
-				CPU:             types.Int64{Null: true},
-				Memory:          types.Int64{Null: true},
-				MinRunningNodes: types.Int64{Null: true},
-				MaxRunningNodes: types.Int64{Null: true},
-			}
-			if cloudProviderInfo.Credentials != nil {
-				state.CredentialsId = types.String{Value: *cloudProviderInfo.Credentials.Id}
-			}
-			if cluster.Description.Get() != nil {
-				state.Description = types.String{Value: *cluster.Description.Get()}
-			}
-			if cluster.Cpu != nil {
-				state.CPU = types.Int64{Value: int64(*cluster.Cpu)}
-			}
-			if cluster.Memory != nil {
-				state.Memory = types.Int64{Value: int64(*cluster.Memory)}
-			}
-			if cluster.MinRunningNodes != nil {
-				state.MinRunningNodes = types.Int64{Value: int64(*cluster.MinRunningNodes)}
-			}
-			if cluster.MaxRunningNodes != nil {
-				state.MaxRunningNodes = types.Int64{Value: int64(*cluster.MaxRunningNodes)}
-			}
+			found = true
+			state = convertResponseToCluster(&cluster, cloudProviderInfo, data)
 			break
 		}
 	}
 
 	// If cluster id is not in list
 	// Returning Not Found error
-	if state == nil {
+	if !found {
 		res.StatusCode = 404
 		apiErr := clusterReadAPIError(state.Id.Value, res, nil)
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())

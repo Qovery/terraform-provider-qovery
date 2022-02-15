@@ -393,6 +393,7 @@ func (r applicationResource) Read(ctx context.Context, req tfsdk.ReadResourceReq
 		return
 	}
 
+	// Refresh state values
 	state = convertResponseToApplication(application)
 	tflog.Trace(ctx, "read application", "application_id", state.Id.Value)
 
@@ -421,6 +422,7 @@ func (r applicationResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 		return
 	}
 
+	// Update state values
 	state = convertResponseToApplication(application)
 	tflog.Trace(ctx, "updated application", "application_id", state.Id.Value)
 

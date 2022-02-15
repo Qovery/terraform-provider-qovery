@@ -6,15 +6,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 )
-
-type organizationDataSourceData struct {
-	Id          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Plan        types.String `tfsdk:"plan"`
-	Description types.String `tfsdk:"description"`
-}
 
 type organizationDataSourceType struct{}
 
@@ -59,7 +53,7 @@ type organizationDataSource struct {
 // Read qovery organization data source
 func (d organizationDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, resp *tfsdk.ReadDataSourceResponse) {
 	// Get current state
-	var data organizationDataSourceData
+	var data Organization
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -75,15 +69,8 @@ func (d organizationDataSource) Read(ctx context.Context, req tfsdk.ReadDataSour
 		return
 	}
 
-	state := organizationDataSourceData{
-		Id:          data.Id,
-		Name:        types.String{Value: organization.Name},
-		Plan:        types.String{Value: organization.Plan},
-		Description: types.String{Null: true},
-	}
-	if organization.Description != nil {
-		state.Description = types.String{Value: *organization.Description}
-	}
+	state := convertResponseToOrganization(organization)
+	tflog.Trace(ctx, "read organization", "organization_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

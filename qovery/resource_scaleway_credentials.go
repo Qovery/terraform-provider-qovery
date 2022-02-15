@@ -10,21 +10,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
 	"terraform-provider-qovery/qovery/apierror"
 )
 
 const scalewayCredentialsAPIResource = "scaleway credentials"
-
-type scalewayCredentialsResourceData struct {
-	Id                types.String `tfsdk:"id"`
-	OrganizationId    types.String `tfsdk:"organization_id"`
-	Name              types.String `tfsdk:"name"`
-	ScalewayAccessKey types.String `tfsdk:"scaleway_access_key"`
-	ScalewaySecretKey types.String `tfsdk:"scaleway_secret_key"`
-	ScalewayProjectId types.String `tfsdk:"scaleway_project_id"`
-}
 
 type scalewayCredentialsResourceType struct{}
 
@@ -82,7 +74,7 @@ type scalewayCredentialsResource struct {
 // Create qovery scaleway credentials resource
 func (r scalewayCredentialsResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	// Retrieve values from plan
-	var plan scalewayCredentialsResourceData
+	var plan ScalewayCredentials
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -91,12 +83,7 @@ func (r scalewayCredentialsResource) Create(ctx context.Context, req tfsdk.Creat
 	// Create new credentials
 	credentials, res, err := r.client.CloudProviderCredentialsApi.
 		CreateScalewayCredentials(ctx, plan.OrganizationId.Value).
-		ScalewayCredentialsRequest(qovery.ScalewayCredentialsRequest{
-			Name:              plan.Name.Value,
-			ScalewayAccessKey: &plan.ScalewayAccessKey.Value,
-			ScalewaySecretKey: &plan.ScalewaySecretKey.Value,
-			ScalewayProjectId: &plan.ScalewayProjectId.Value,
-		}).
+		ScalewayCredentialsRequest(plan.toUpsertScalewayCredentialsRequest()).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := scalewayCredentialsCreateAPIError(plan.Name.Value, res, err)
@@ -105,14 +92,8 @@ func (r scalewayCredentialsResource) Create(ctx context.Context, req tfsdk.Creat
 	}
 
 	// Initialize state values
-	state := scalewayCredentialsResourceData{
-		Id:                types.String{Value: *credentials.Id},
-		Name:              types.String{Value: *credentials.Name},
-		OrganizationId:    plan.OrganizationId,
-		ScalewayAccessKey: plan.ScalewayAccessKey,
-		ScalewaySecretKey: plan.ScalewaySecretKey,
-		ScalewayProjectId: plan.ScalewayProjectId,
-	}
+	state := convertResponseToScalewayCredentials(credentials, plan)
+	tflog.Trace(ctx, "created scaleway credentials", "credentials_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -121,7 +102,7 @@ func (r scalewayCredentialsResource) Create(ctx context.Context, req tfsdk.Creat
 // Read qovery scaleway credentials resource
 func (r scalewayCredentialsResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
 	// Get current state
-	var state scalewayCredentialsResourceData
+	var state ScalewayCredentials
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -137,27 +118,25 @@ func (r scalewayCredentialsResource) Read(ctx context.Context, req tfsdk.ReadRes
 		return
 	}
 
-	var toRefresh *scalewayCredentialsResourceData
+	found := false
 	for _, creds := range credentials.GetResults() {
 		if state.Id.Value == *creds.Id {
-			toRefresh = &scalewayCredentialsResourceData{
-				Name: types.String{Value: *creds.Name},
-			}
+			found = true
+			state = convertResponseToScalewayCredentials(&creds, state)
 			break
 		}
 	}
 
 	// If credential id is not in list
 	// Returning Not Found error
-	if toRefresh == nil {
+	if found {
 		res.StatusCode = 404
 		apiErr := scalewayCredentialsReadAPIError(state.Id.Value, res, nil)
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	// Refresh state values
-	state.Name = toRefresh.Name
+	tflog.Trace(ctx, "read scaleway credentials", "credentials_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -166,7 +145,7 @@ func (r scalewayCredentialsResource) Read(ctx context.Context, req tfsdk.ReadRes
 // Update qovery scaleway credentials resource
 func (r scalewayCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
 	// Get plan and current state
-	var plan, state scalewayCredentialsResourceData
+	var plan, state ScalewayCredentials
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -176,12 +155,7 @@ func (r scalewayCredentialsResource) Update(ctx context.Context, req tfsdk.Updat
 	// Update credentials in the backend
 	credentials, res, err := r.client.CloudProviderCredentialsApi.
 		EditScalewayCredentials(ctx, state.OrganizationId.Value, state.Id.Value).
-		ScalewayCredentialsRequest(qovery.ScalewayCredentialsRequest{
-			Name:              plan.Name.Value,
-			ScalewayAccessKey: &plan.ScalewayAccessKey.Value,
-			ScalewaySecretKey: &plan.ScalewaySecretKey.Value,
-			ScalewayProjectId: &plan.ScalewayProjectId.Value,
-		}).
+		ScalewayCredentialsRequest(plan.toUpsertScalewayCredentialsRequest()).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := scalewayCredentialsUpdateAPIError(state.Id.Value, res, err)
@@ -189,18 +163,9 @@ func (r scalewayCredentialsResource) Update(ctx context.Context, req tfsdk.Updat
 		return
 	}
 
-	toUpdate := scalewayCredentialsResourceData{
-		Name:              types.String{Value: *credentials.Name},
-		ScalewayAccessKey: plan.ScalewayAccessKey,
-		ScalewaySecretKey: plan.ScalewaySecretKey,
-		ScalewayProjectId: plan.ScalewayProjectId,
-	}
-
 	// Update state values
-	state.Name = toUpdate.Name
-	state.ScalewayAccessKey = toUpdate.ScalewayAccessKey
-	state.ScalewaySecretKey = toUpdate.ScalewaySecretKey
-	state.ScalewayProjectId = toUpdate.ScalewayProjectId
+	state = convertResponseToScalewayCredentials(credentials, plan)
+	tflog.Trace(ctx, "updated scaleway credentials", "credentials_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -209,7 +174,7 @@ func (r scalewayCredentialsResource) Update(ctx context.Context, req tfsdk.Updat
 // Delete qovery scaleway credentials resource
 func (r scalewayCredentialsResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
 	// Get current state
-	var state scalewayCredentialsResourceData
+	var state ScalewayCredentials
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -224,6 +189,8 @@ func (r scalewayCredentialsResource) Delete(ctx context.Context, req tfsdk.Delet
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
+
+	tflog.Trace(ctx, "deleted scaleway credentials", "credentials_id", state.Id.Value)
 
 	// Remove credentials from state
 	resp.State.RemoveResource(ctx)

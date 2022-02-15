@@ -1,6 +1,9 @@
 package qovery
 
-import "github.com/hashicorp/terraform-plugin-framework/types"
+import (
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/qovery/qovery-client-go"
+)
 
 //
 // Convert Terraform types to Go types
@@ -53,6 +56,13 @@ func fromStringPointer(v *string) types.String {
 		return types.String{Null: true}
 	}
 	return fromString(*v)
+}
+
+func fromNullableString(v qovery.NullableString) types.String {
+	if v.Get() == nil {
+		return types.String{Null: true}
+	}
+	return fromString(*v.Get())
 }
 
 func fromInt64(v int64) types.Int64 {

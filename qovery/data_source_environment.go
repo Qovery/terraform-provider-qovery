@@ -6,16 +6,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 )
-
-type environmentDataSourceData struct {
-	Id        types.String `tfsdk:"id"`
-	ProjectId types.String `tfsdk:"project_id"`
-	ClusterId types.String `tfsdk:"cluster_id"`
-	Name      types.String `tfsdk:"name"`
-	Mode      types.String `tfsdk:"mode"`
-}
 
 type environmentDataSourceType struct{}
 
@@ -65,7 +58,7 @@ type environmentDataSource struct {
 // Read qovery environment data source
 func (d environmentDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, resp *tfsdk.ReadDataSourceResponse) {
 	// Get current state
-	var data environmentDataSourceData
+	var data Environment
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -81,13 +74,8 @@ func (d environmentDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 		return
 	}
 
-	state := environmentDataSourceData{
-		Id:        data.Id,
-		ProjectId: types.String{Value: environment.Project.Id},
-		ClusterId: types.String{Value: environment.ClusterId},
-		Name:      types.String{Value: environment.Name},
-		Mode:      types.String{Value: environment.Mode},
-	}
+	state := convertResponseToEnvironment(environment)
+	tflog.Trace(ctx, "read environment", "environment_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
