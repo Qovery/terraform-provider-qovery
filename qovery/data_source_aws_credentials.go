@@ -6,14 +6,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 )
-
-type awsCredentialsDataSourceData struct {
-	Id             types.String `tfsdk:"id"`
-	OrganizationId types.String `tfsdk:"organization_id"`
-	Name           types.String `tfsdk:"name"`
-}
 
 type awsCredentialsDataSourceType struct{}
 
@@ -53,7 +48,7 @@ type awsCredentialsDataSource struct {
 // Read qovery awsCredentials data source
 func (d awsCredentialsDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, resp *tfsdk.ReadDataSourceResponse) {
 	// Get current state
-	var data awsCredentialsDataSourceData
+	var data AWSCredentialsDataSource
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -69,26 +64,26 @@ func (d awsCredentialsDataSource) Read(ctx context.Context, req tfsdk.ReadDataSo
 		return
 	}
 
-	var state *awsCredentialsDataSourceData
+	var state AWSCredentialsDataSource
+	found := false
 	for _, creds := range credentials.GetResults() {
 		if data.Id.Value == *creds.Id {
-			state = &awsCredentialsDataSourceData{
-				Id:             data.Id,
-				OrganizationId: data.OrganizationId,
-				Name:           types.String{Value: *creds.Name},
-			}
+			found = true
+			state = convertResponseToAWSCredentialsDataSource(&creds, data)
 			break
 		}
 	}
 
 	// If credential id is not in list
 	// Returning Not Found error
-	if state == nil {
+	if !found {
 		res.StatusCode = 404
 		apiErr := awsCredentialsReadAPIError(state.Id.Value, res, nil)
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
+
+	tflog.Trace(ctx, "read aws credentials", "credentials_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

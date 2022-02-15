@@ -10,20 +10,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
 	"terraform-provider-qovery/qovery/apierror"
 )
 
 const awsCredentialsAPIResource = "aws credentials"
-
-type awsCredentialsResourceData struct {
-	Id              types.String `tfsdk:"id"`
-	OrganizationId  types.String `tfsdk:"organization_id"`
-	Name            types.String `tfsdk:"name"`
-	AccessKeyId     types.String `tfsdk:"access_key_id"`
-	SecretAccessKey types.String `tfsdk:"secret_access_key"`
-}
 
 type awsCredentialsResourceType struct{}
 
@@ -75,7 +68,7 @@ type awsCredentialsResource struct {
 // Create qovery aws credentials resource
 func (r awsCredentialsResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	// Retrieve values from plan
-	var plan awsCredentialsResourceData
+	var plan AWSCredentials
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -84,11 +77,7 @@ func (r awsCredentialsResource) Create(ctx context.Context, req tfsdk.CreateReso
 	// Create new credentials
 	credentials, res, err := r.client.CloudProviderCredentialsApi.
 		CreateAWSCredentials(ctx, plan.OrganizationId.Value).
-		AwsCredentialsRequest(qovery.AwsCredentialsRequest{
-			Name:            plan.Name.Value,
-			AccessKeyId:     &plan.AccessKeyId.Value,
-			SecretAccessKey: &plan.SecretAccessKey.Value,
-		}).
+		AwsCredentialsRequest(plan.toUpsertAWSCredentialsRequest()).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := awsCredentialsCreateAPIError(plan.Name.Value, res, err)
@@ -97,13 +86,8 @@ func (r awsCredentialsResource) Create(ctx context.Context, req tfsdk.CreateReso
 	}
 
 	// Initialize state values
-	state := awsCredentialsResourceData{
-		Id:              types.String{Value: *credentials.Id},
-		Name:            types.String{Value: *credentials.Name},
-		OrganizationId:  plan.OrganizationId,
-		AccessKeyId:     plan.AccessKeyId,
-		SecretAccessKey: plan.SecretAccessKey,
-	}
+	state := convertResponseToAWSCredentials(credentials, plan)
+	tflog.Trace(ctx, "created aws credentials", "credentials_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -112,7 +96,7 @@ func (r awsCredentialsResource) Create(ctx context.Context, req tfsdk.CreateReso
 // Read qovery aws credentials resource
 func (r awsCredentialsResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
 	// Get current state
-	var state awsCredentialsResourceData
+	var state AWSCredentials
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -128,27 +112,25 @@ func (r awsCredentialsResource) Read(ctx context.Context, req tfsdk.ReadResource
 		return
 	}
 
-	var toRefresh *awsCredentialsResourceData
+	found := false
 	for _, creds := range credentials.GetResults() {
 		if state.Id.Value == *creds.Id {
-			toRefresh = &awsCredentialsResourceData{
-				Name: types.String{Value: *creds.Name},
-			}
+			found = true
+			state = convertResponseToAWSCredentials(&creds, state)
 			break
 		}
 	}
 
 	// If credential id is not in list
 	// Returning Not Found error
-	if toRefresh == nil {
+	if !found {
 		res.StatusCode = 404
 		apiErr := awsCredentialsReadAPIError(state.Id.Value, res, nil)
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	// Refresh state values
-	state.Name = toRefresh.Name
+	tflog.Trace(ctx, "read aws credentials", "credentials_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -157,7 +139,7 @@ func (r awsCredentialsResource) Read(ctx context.Context, req tfsdk.ReadResource
 // Update qovery aws credentials resource
 func (r awsCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
 	// Get plan and current state
-	var plan, state awsCredentialsResourceData
+	var plan, state AWSCredentials
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -167,11 +149,7 @@ func (r awsCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateReso
 	// Update credentials in the backend
 	credentials, res, err := r.client.CloudProviderCredentialsApi.
 		EditAWSCredentials(ctx, state.OrganizationId.Value, state.Id.Value).
-		AwsCredentialsRequest(qovery.AwsCredentialsRequest{
-			Name:            plan.Name.Value,
-			AccessKeyId:     &plan.AccessKeyId.Value,
-			SecretAccessKey: &plan.SecretAccessKey.Value,
-		}).
+		AwsCredentialsRequest(plan.toUpsertAWSCredentialsRequest()).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := awsCredentialsUpdateAPIError(state.Id.Value, res, err)
@@ -179,16 +157,9 @@ func (r awsCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateReso
 		return
 	}
 
-	toUpdate := awsCredentialsResourceData{
-		Name:            types.String{Value: *credentials.Name},
-		AccessKeyId:     plan.AccessKeyId,
-		SecretAccessKey: plan.SecretAccessKey,
-	}
-
 	// Update state values
-	state.Name = toUpdate.Name
-	state.AccessKeyId = toUpdate.AccessKeyId
-	state.SecretAccessKey = toUpdate.SecretAccessKey
+	state = convertResponseToAWSCredentials(credentials, plan)
+	tflog.Trace(ctx, "updated aws credentials", "credentials_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -197,7 +168,7 @@ func (r awsCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateReso
 // Delete qovery aws credentials resource
 func (r awsCredentialsResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
 	// Get current state
-	var state awsCredentialsResourceData
+	var state AWSCredentials
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -212,6 +183,8 @@ func (r awsCredentialsResource) Delete(ctx context.Context, req tfsdk.DeleteReso
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
+
+	tflog.Trace(ctx, "deleted aws credentials", "credentials_id", state.Id.Value)
 
 	// Remove credentials from state
 	resp.State.RemoveResource(ctx)
