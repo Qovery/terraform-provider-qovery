@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
 	"terraform-provider-qovery/qovery/apierror"
@@ -18,13 +19,6 @@ import (
 const organizationAPIResource = "organization"
 
 var organizationPlans = []string{"FREE", "PROFESSIONAL", "BUSINESS"}
-
-type organizationResourceData struct {
-	Id          types.String `tfsdk:"id"`
-	Name        types.String `tfsdk:"name"`
-	Plan        types.String `tfsdk:"plan"`
-	Description types.String `tfsdk:"description"`
-}
 
 type organizationResourceType struct{}
 
@@ -76,23 +70,16 @@ type organizationResource struct {
 // Create qovery organization resource
 func (r organizationResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	// Retrieve values from plan
-	var plan organizationResourceData
+	var plan Organization
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Create new organization
-	payload := qovery.OrganizationRequest{
-		Name: plan.Name.Value,
-		Plan: plan.Plan.Value,
-	}
-	if !plan.Description.Null && !plan.Description.Unknown {
-		payload.Description = &plan.Description.Value
-	}
 	organization, res, err := r.client.OrganizationMainCallsApi.
 		CreateOrganization(ctx).
-		OrganizationRequest(payload).
+		OrganizationRequest(plan.toCreateOrganizationRequest()).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := organizationCreateAPIError(plan.Name.Value, res, err)
@@ -101,15 +88,8 @@ func (r organizationResource) Create(ctx context.Context, req tfsdk.CreateResour
 	}
 
 	// Initialize state values
-	state := organizationResourceData{
-		Id:          types.String{Value: organization.Id},
-		Name:        types.String{Value: organization.Name},
-		Plan:        types.String{Value: organization.Plan},
-		Description: types.String{Null: true},
-	}
-	if organization.Description != nil {
-		state.Description = types.String{Value: *organization.Description}
-	}
+	state := convertResponseToOrganization(organization)
+	tflog.Trace(ctx, "created organization", "organization_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -118,7 +98,7 @@ func (r organizationResource) Create(ctx context.Context, req tfsdk.CreateResour
 // Read qovery organization resource
 func (r organizationResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
 	// Get current state
-	var state organizationResourceData
+	var state Organization
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -134,19 +114,9 @@ func (r organizationResource) Read(ctx context.Context, req tfsdk.ReadResourceRe
 		return
 	}
 
-	toRefresh := organizationResourceData{
-		Name:        types.String{Value: organization.Name},
-		Plan:        types.String{Value: organization.Plan},
-		Description: types.String{Null: true},
-	}
-	if organization.Description != nil {
-		toRefresh.Description = types.String{Value: *organization.Description}
-	}
-
 	// Refresh state values
-	state.Name = toRefresh.Name
-	state.Plan = toRefresh.Plan
-	state.Description = toRefresh.Description
+	state = convertResponseToOrganization(organization)
+	tflog.Trace(ctx, "read organization", "organization_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -155,7 +125,7 @@ func (r organizationResource) Read(ctx context.Context, req tfsdk.ReadResourceRe
 // Update qovery organization resource
 func (r organizationResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
 	// Get plan and current state
-	var plan, state organizationResourceData
+	var plan, state Organization
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -163,15 +133,9 @@ func (r organizationResource) Update(ctx context.Context, req tfsdk.UpdateResour
 	}
 
 	// Update organization in backend
-	payload := qovery.OrganizationEditRequest{
-		Name: plan.Name.Value,
-	}
-	if !plan.Description.Null && !plan.Description.Unknown {
-		payload.Description = &plan.Description.Value
-	}
 	organization, res, err := r.client.OrganizationMainCallsApi.
 		EditOrganization(ctx, state.Id.Value).
-		OrganizationEditRequest(payload).
+		OrganizationEditRequest(plan.toUpdateOrganizationRequest()).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := organizationUpdateAPIError(state.Id.Value, res, err)
@@ -179,19 +143,9 @@ func (r organizationResource) Update(ctx context.Context, req tfsdk.UpdateResour
 		return
 	}
 
-	toUpdate := organizationResourceData{
-		Name:        types.String{Value: organization.Name},
-		Plan:        types.String{Value: organization.Plan},
-		Description: types.String{Null: true},
-	}
-	if organization.Description != nil {
-		toUpdate.Description = types.String{Value: *organization.Description}
-	}
-
 	// Update state values
-	state.Name = toUpdate.Name
-	state.Plan = toUpdate.Plan
-	state.Description = toUpdate.Description
+	state = convertResponseToOrganization(organization)
+	tflog.Trace(ctx, "updated organization", "organization_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -200,7 +154,7 @@ func (r organizationResource) Update(ctx context.Context, req tfsdk.UpdateResour
 // Delete qovery organization resource
 func (r organizationResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
 	// Get current state
-	var state organizationResourceData
+	var state Organization
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -215,6 +169,8 @@ func (r organizationResource) Delete(ctx context.Context, req tfsdk.DeleteResour
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
+
+	tflog.Trace(ctx, "deleted organization", "organization_id", state.Id.Value)
 
 	// Remove organization from state
 	resp.State.RemoveResource(ctx)
