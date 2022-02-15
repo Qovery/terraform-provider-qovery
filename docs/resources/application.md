@@ -96,7 +96,6 @@ Optional:
 	- Can be: `HTTPS`, `HTTP`, `TCP`, `UDP`.
 	- Default: `HTTP`.
 - **publicly_accessible** (Boolean) Specify if the port is exposed to the world or not for this application.
-	- Default: `false`.
 
 
 <a id="nestedatt--storage"></a>

@@ -155,6 +155,10 @@ func (store ApplicationStorage) toUpdateRequest() qovery.ApplicationStorageRespo
 }
 
 func convertResponseToApplicationStorage(storage []qovery.ApplicationStorageResponseStorage) []ApplicationStorage {
+	if len(storage) == 0 {
+		return nil
+	}
+
 	list := make([]ApplicationStorage, 0, len(storage))
 	for _, s := range storage {
 		list = append(list, ApplicationStorage{
@@ -198,6 +202,10 @@ func (port ApplicationPort) toUpdateRequest() qovery.ApplicationPortResponsePort
 }
 
 func convertResponseToApplicationPorts(ports []qovery.ApplicationPortResponsePorts) []ApplicationPort {
+	if len(ports) == 0 {
+		return nil
+	}
+
 	list := make([]ApplicationPort, 0, len(ports))
 	for _, p := range ports {
 		list = append(list, ApplicationPort{

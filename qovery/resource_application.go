@@ -13,6 +13,7 @@ import (
 
 	"terraform-provider-qovery/qovery/apierror"
 	"terraform-provider-qovery/qovery/descriptions"
+	"terraform-provider-qovery/qovery/modifiers"
 	"terraform-provider-qovery/qovery/validators"
 )
 
@@ -104,6 +105,9 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:     types.StringType,
 						Optional: true,
 						Computed: true,
+						PlanModifiers: tfsdk.AttributePlanModifiers{
+							modifiers.NewStringDefaultModifier(applicationGitRepositoryBranchDefault),
+						},
 					},
 					"root_path": {
 						Description: descriptions.NewStringDefaultDescription(
@@ -113,6 +117,9 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:     types.StringType,
 						Optional: true,
 						Computed: true,
+						PlanModifiers: tfsdk.AttributePlanModifiers{
+							modifiers.NewStringDefaultModifier(applicationGitRepositoryRootPathDefault),
+						},
 					},
 				}),
 			},
@@ -125,6 +132,9 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewStringDefaultModifier(applicationBuildModeDefault),
+				},
 				Validators: []tfsdk.AttributeValidator{
 					validators.StringEnumValidator{Enum: applicationBuildModes},
 				},
@@ -155,6 +165,9 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewInt64DefaultModifier(applicationCPUDefault),
+				},
 				Validators: []tfsdk.AttributeValidator{
 					validators.Int64MinValidator{Min: applicationCPUMin},
 				},
@@ -168,6 +181,9 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewInt64DefaultModifier(applicationMemoryDefault),
+				},
 				Validators: []tfsdk.AttributeValidator{
 					validators.Int64MinValidator{Min: applicationMemoryMin},
 				},
@@ -181,6 +197,9 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewInt64DefaultModifier(applicationMinRunningInstancesDefault),
+				},
 				Validators: []tfsdk.AttributeValidator{
 					validators.Int64MinValidator{Min: applicationMinRunningInstancesMin},
 				},
@@ -194,6 +213,9 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewInt64DefaultModifier(applicationMaxRunningInstancesDefault),
+				},
 				Validators: []tfsdk.AttributeValidator{
 					validators.Int64MinValidator{Min: applicationMaxRunningInstancesMin},
 				},
@@ -206,6 +228,9 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Type:     types.BoolType,
 				Optional: true,
 				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewBoolDefaultModifier(applicationAutoPreviewDefault),
+				},
 			},
 			"storage": {
 				Description: "List of storages linked to this application.",
@@ -288,12 +313,9 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						},
 					},
 					"publicly_accessible": {
-						Description: descriptions.NewBoolDefaultDescription(
-							"Specify if the port is exposed to the world or not for this application.",
-							applicationPortPubliclyAccessibleDefault,
-						),
-						Type:     types.BoolType,
-						Required: true,
+						Description: "Specify if the port is exposed to the world or not for this application.",
+						Type:        types.BoolType,
+						Required:    true,
 					},
 					"protocol": {
 						Description: descriptions.NewStringEnumDescription(
@@ -304,6 +326,9 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:     types.StringType,
 						Optional: true,
 						Computed: true,
+						PlanModifiers: tfsdk.AttributePlanModifiers{
+							modifiers.NewStringDefaultModifier(applicationPortProtocolDefault),
+						},
 					},
 				}, tfsdk.ListNestedAttributesOptions{}),
 			},

@@ -293,8 +293,6 @@ github.com/posener/complete v1.1.1/go.mod h1:em0nMJCgc9GFtwrmVmEMR/ZL6WyhyjMBndr
 github.com/posener/complete v1.2.1 h1:LrvDIY//XNo65Lq84G/akBuMGlawHvGBABv8f/ZN6DI=
 github.com/posener/complete v1.2.1/go.mod h1:6gapUrK/U1TAN7ciCoNRIdVC5sbdBTUh1DKN0g6uH7E=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
-github.com/qovery/qovery-client-go v0.0.0-20220215111925-a6e58736c038 h1:EqOlyJEBfuXUbQCFWE7z7THfOijOJfs50S1poPZ+OjY=
-github.com/qovery/qovery-client-go v0.0.0-20220215111925-a6e58736c038/go.mod h1:0T/WQDI0sHIASv/SR6UX5j5oZADSZMbg97tYt33PXKQ=
 github.com/qovery/qovery-client-go v0.0.0-20220215113331-729302082fea h1:YH7O3tUPXn+RoREBNW29LmuiPeKySKIrYhpVHEe1VGE=
 github.com/qovery/qovery-client-go v0.0.0-20220215113331-729302082fea/go.mod h1:0T/WQDI0sHIASv/SR6UX5j5oZADSZMbg97tYt33PXKQ=
 github.com/rogpeppe/fastuuid v1.2.0/go.mod h1:jVj6XXZzXRy/MSR5jhDC/2q6DgLz+nrA6LYCDYWNEvQ=
