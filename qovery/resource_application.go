@@ -7,6 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
 	"terraform-provider-qovery/qovery/apierror"
@@ -40,11 +42,11 @@ var (
 	applicationMaxRunningInstancesMin     int64 = -1
 	applicationMaxRunningInstancesDefault int64 = 1
 
-	// Application Env Preview
-	applicationEnvPreviewDefault = true
+	// Application Auto Preview
+	applicationAutoPreviewDefault = true
 
 	// Application Storage
-	applicationStorageTypes         = []string{"SLOW_HDD", "HDD", "SSD", "FAST_SSD"}
+	applicationStorageTypes         = []string{"FAST_SSD"}
 	applicationStorageSizeMin int64 = 1 // in GB
 
 	// Application Port
@@ -58,44 +60,6 @@ var (
 	applicationGitRepositoryRootPathDefault = "/"
 	applicationGitRepositoryBranchDefault   = "main or master (depending on repository)"
 )
-
-type applicationData struct {
-	Id                  types.String                 `tfsdk:"id"`
-	EnvironmentId       types.String                 `tfsdk:"environment_id"`
-	Name                types.String                 `tfsdk:"name"`
-	Description         types.String                 `tfsdk:"description"`
-	GitRepository       applicationGitRepositoryData `tfsdk:"git_repository"`
-	BuildMode           types.String                 `tfsdk:"build_mode"`
-	DockerfilePath      types.String                 `tfsdk:"dockerfile_path"`
-	BuildpackLanguage   types.String                 `tfsdk:"buildpack_language"`
-	CPU                 types.Int64                  `tfsdk:"cpu"`
-	Memory              types.Int64                  `tfsdk:"memory"`
-	MinRunningInstances types.Int64                  `tfsdk:"min_running_instances"`
-	MaxRunningInstances types.Int64                  `tfsdk:"max_running_instances"`
-	EnvPreview          types.Bool                   `tfsdk:"env_preview"`
-	Storage             []applicationStorageData     `tfsdk:"storage"`
-	Ports               []applicationPortData        `tfsdk:"ports"`
-}
-
-type applicationGitRepositoryData struct {
-	URL      types.String `tfsdk:"url"`
-	Branch   types.String `tfsdk:"branch"`
-	RootPath types.String `tfsdk:"root_path"`
-}
-
-type applicationStorageData struct {
-	Type       types.String `tfsdk:"type"`
-	Size       types.Int64  `tfsdk:"size"`
-	MountPoint types.String `tfsdk:"mount_point"`
-}
-
-type applicationPortData struct {
-	Name               types.String `tfsdk:"name"`
-	InternalPort       types.Int64  `tfsdk:"internal_port"`
-	ExternalPort       types.Int64  `tfsdk:"external_port"`
-	PubliclyAccessible types.Bool   `tfsdk:"publicly_accessible"`
-	Protocol           types.String `tfsdk:"protocol"`
-}
 
 type applicationResourceType struct{}
 
@@ -139,6 +103,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						),
 						Type:     types.StringType,
 						Optional: true,
+						Computed: true,
 					},
 					"root_path": {
 						Description: descriptions.NewStringDefaultDescription(
@@ -147,6 +112,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						),
 						Type:     types.StringType,
 						Optional: true,
+						Computed: true,
 					},
 				}),
 			},
@@ -158,6 +124,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				),
 				Type:     types.StringType,
 				Optional: true,
+				Computed: true,
 				Validators: []tfsdk.AttributeValidator{
 					validators.StringEnumValidator{Enum: applicationBuildModes},
 				},
@@ -187,6 +154,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				),
 				Type:     types.Int64Type,
 				Optional: true,
+				Computed: true,
 				Validators: []tfsdk.AttributeValidator{
 					validators.Int64MinValidator{Min: applicationCPUMin},
 				},
@@ -199,6 +167,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				),
 				Type:     types.Int64Type,
 				Optional: true,
+				Computed: true,
 				Validators: []tfsdk.AttributeValidator{
 					validators.Int64MinValidator{Min: applicationMemoryMin},
 				},
@@ -211,6 +180,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				),
 				Type:     types.Int64Type,
 				Optional: true,
+				Computed: true,
 				Validators: []tfsdk.AttributeValidator{
 					validators.Int64MinValidator{Min: applicationMinRunningInstancesMin},
 				},
@@ -223,22 +193,29 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				),
 				Type:     types.Int64Type,
 				Optional: true,
+				Computed: true,
 				Validators: []tfsdk.AttributeValidator{
 					validators.Int64MinValidator{Min: applicationMaxRunningInstancesMin},
 				},
 			},
-			"env_preview": {
+			"auto_preview": {
 				Description: descriptions.NewBoolDefaultDescription(
 					"Specify if the environment preview option is activated or not for this application.",
-					applicationEnvPreviewDefault,
+					applicationAutoPreviewDefault,
 				),
 				Type:     types.BoolType,
 				Optional: true,
+				Computed: true,
 			},
 			"storage": {
 				Description: "List of storages linked to this application.",
 				Optional:    true,
 				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the storage.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
 					"type": {
 						Description: descriptions.NewStringEnumDescription(
 							"Type of the storage for the application.",
@@ -260,7 +237,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:     types.Int64Type,
 						Required: true,
 						Validators: []tfsdk.AttributeValidator{
-							validators.Int64MinValidator{Min: databaseMemoryMin},
+							validators.Int64MinValidator{Min: applicationStorageSizeMin},
 						},
 					},
 					"mount_point": {
@@ -270,10 +247,15 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					},
 				}, tfsdk.ListNestedAttributesOptions{}),
 			},
-			"port": {
+			"ports": {
 				Description: "List of storages linked to this application.",
 				Optional:    true,
 				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the port.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
 					"name": {
 						Description: "Name of the port.",
 						Type:        types.StringType,
@@ -294,7 +276,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					},
 					"external_port": {
 						Description: descriptions.NewInt64MinMaxDescription(
-							"External port of the application.",
+							"External port of the application.\n\t- Required if: `ports.publicly_accessible=true`.",
 							applicationPortMin,
 							applicationPortMax,
 							nil,
@@ -311,7 +293,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 							applicationPortPubliclyAccessibleDefault,
 						),
 						Type:     types.BoolType,
-						Optional: true,
+						Required: true,
 					},
 					"protocol": {
 						Description: descriptions.NewStringEnumDescription(
@@ -321,6 +303,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						),
 						Type:     types.StringType,
 						Optional: true,
+						Computed: true,
 					},
 				}, tfsdk.ListNestedAttributesOptions{}),
 			},
@@ -340,23 +323,114 @@ type applicationResource struct {
 
 // Create qovery application resource
 func (r applicationResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+	// Retrieve values from plan
+	var plan Application
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Create new application
+	application, res, err := r.client.ApplicationsApi.
+		CreateApplication(ctx, toString(plan.EnvironmentId)).
+		ApplicationRequest(plan.toCreateApplicationRequest()).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := applicationCreateAPIError(toString(plan.Name), res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	// Initialize state values
+	state := convertResponseToApplication(application)
+	tflog.Trace(ctx, "created application", "application_id", state.Id.Value)
+
+	// Set state
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Read qovery application resource
 func (r applicationResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+	// Get current state
+	var state Application
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Get application from the API
+	application, res, err := r.client.ApplicationMainCallsApi.
+		GetApplication(ctx, state.Id.Value).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := applicationReadAPIError(state.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	state = convertResponseToApplication(application)
+	tflog.Trace(ctx, "read application", "application_id", state.Id.Value)
+
+	// Set state
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Update qovery application resource
 func (r applicationResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+	// Get plan and current state
+	var plan, state Application
+	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Update application in the backend
+	application, res, err := r.client.ApplicationMainCallsApi.
+		EditApplication(ctx, state.Id.Value).
+		ApplicationEditRequest(plan.toUpdateApplicationRequest()).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := applicationUpdateAPIError(state.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	state = convertResponseToApplication(application)
+	tflog.Trace(ctx, "updated application", "application_id", state.Id.Value)
+
+	// Set state
+	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 // Delete qovery application resource
 func (r applicationResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+	// Get current state
+	var state Application
+	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Delete application
+	res, err := r.client.ApplicationMainCallsApi.
+		DeleteApplication(ctx, state.Id.Value).
+		Execute()
+	if err != nil || res.StatusCode >= 300 {
+		apiErr := applicationDeleteAPIError(state.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	tflog.Trace(ctx, "deleted application", "application_id", state.Id.Value)
+
+	// Remove application from state
+	resp.State.RemoveResource(ctx)
 }
 
 // ImportState imports a qovery application resource using its id
 func (r applicationResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
-	tfsdk.ResourceImportStateNotImplemented(ctx, "", resp)
+	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }
 
 func applicationCreateAPIError(applicationName string, res *http.Response, err error) *apierror.APIError {

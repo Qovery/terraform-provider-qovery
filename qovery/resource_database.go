@@ -190,13 +190,13 @@ func (r databaseResource) Create(ctx context.Context, req tfsdk.CreateResourceRe
 		payload.Accessibility = &plan.Accessibility.Value
 	}
 	if !plan.CPU.Null && !plan.CPU.Unknown {
-		payload.Cpu = float32ToFloat32Ptr(float32(plan.CPU.Value))
+		payload.Cpu = int32ToInt32Ptr(int32(plan.CPU.Value))
 	}
 	if !plan.Memory.Null && !plan.Memory.Unknown {
-		payload.Memory = float32ToFloat32Ptr(float32(plan.Memory.Value))
+		payload.Memory = int32ToInt32Ptr(int32(plan.Memory.Value))
 	}
 	if !plan.Storage.Null && !plan.Storage.Unknown {
-		payload.Storage = float32ToFloat32Ptr(float32(plan.Storage.Value))
+		payload.Storage = int32ToInt32Ptr(int32(plan.Storage.Value))
 	}
 	database, res, err := r.client.DatabasesApi.
 		CreateDatabase(ctx, plan.EnvironmentId.Value).
@@ -291,13 +291,13 @@ func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRe
 		payload.Accessibility = &plan.Accessibility.Value
 	}
 	if !plan.CPU.Null && !plan.CPU.Unknown {
-		payload.Cpu = float32ToFloat32Ptr(float32(plan.CPU.Value))
+		payload.Cpu = int32ToInt32Ptr(int32(plan.CPU.Value))
 	}
 	if !plan.Memory.Null && !plan.Memory.Unknown {
-		payload.Memory = float32ToFloat32Ptr(float32(plan.Memory.Value))
+		payload.Memory = int32ToInt32Ptr(int32(plan.Memory.Value))
 	}
 	if !plan.Storage.Null && !plan.Storage.Unknown {
-		payload.Storage = float32ToFloat32Ptr(float32(plan.Storage.Value))
+		payload.Storage = int32ToInt32Ptr(int32(plan.Storage.Value))
 	}
 
 	database, res, err := r.client.DatabaseMainCallsApi.
