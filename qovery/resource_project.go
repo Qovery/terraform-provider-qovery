@@ -8,19 +8,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
 	"terraform-provider-qovery/qovery/apierror"
 )
 
 const projectAPIResource = "project"
-
-type projectResourceData struct {
-	Id             types.String `tfsdk:"id"`
-	OrganizationId types.String `tfsdk:"organization_id"`
-	Name           types.String `tfsdk:"name"`
-	Description    types.String `tfsdk:"description"`
-}
 
 type projectResourceType struct{}
 
@@ -66,22 +60,16 @@ type projectResource struct {
 // Create qovery project resource
 func (r projectResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
 	// Retrieve values from plan
-	var plan projectResourceData
+	var plan Project
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
 	// Create new project
-	payload := qovery.ProjectRequest{
-		Name: plan.Name.Value,
-	}
-	if !plan.Description.Null && !plan.Description.Unknown {
-		payload.Description = &plan.Description.Value
-	}
 	project, res, err := r.client.ProjectsApi.
 		CreateProject(ctx, plan.OrganizationId.Value).
-		ProjectRequest(payload).
+		ProjectRequest(plan.toUpsertProjectRequest()).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := projectCreateAPIError(plan.Name.Value, res, err)
@@ -90,15 +78,8 @@ func (r projectResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 	}
 
 	// Initialize state values
-	state := projectResourceData{
-		Id:             types.String{Value: project.Id},
-		OrganizationId: plan.OrganizationId,
-		Name:           types.String{Value: project.Name},
-		Description:    types.String{Null: true},
-	}
-	if project.Description != nil {
-		state.Description = types.String{Value: *project.Description}
-	}
+	state := convertResponseToProject(project)
+	tflog.Trace(ctx, "created project", "project_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -107,7 +88,7 @@ func (r projectResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 // Read qovery project resource
 func (r projectResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
 	// Get current state
-	var state projectResourceData
+	var state Project
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -123,18 +104,9 @@ func (r projectResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 		return
 	}
 
-	toRefresh := &projectResourceData{
-		OrganizationId: types.String{Value: project.Organization.Id},
-		Name:           types.String{Value: project.Name},
-	}
-	if project.Description != nil {
-		toRefresh.Description = types.String{Value: *project.Description}
-	}
-
 	// Refresh state values
-	state.OrganizationId = toRefresh.OrganizationId
-	state.Name = toRefresh.Name
-	state.Description = toRefresh.Description
+	state = convertResponseToProject(project)
+	tflog.Trace(ctx, "read project", "project_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -143,7 +115,7 @@ func (r projectResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 // Update qovery project resource
 func (r projectResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
 	// Get plan and current state
-	var plan, state projectResourceData
+	var plan, state Project
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
@@ -151,16 +123,9 @@ func (r projectResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 
 	// Update project in the backend
-	payload := qovery.ProjectRequest{
-		Name:        plan.Name.Value,
-		Description: &state.Description.Value,
-	}
-	if !plan.Description.Null && !plan.Description.Unknown {
-		payload.Description = &plan.Description.Value
-	}
 	project, res, err := r.client.ProjectMainCallsApi.
 		EditProject(ctx, state.Id.Value).
-		ProjectRequest(payload).
+		ProjectRequest(plan.toUpsertProjectRequest()).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		apiErr := projectUpdateAPIError(state.Id.Value, res, err)
@@ -168,7 +133,7 @@ func (r projectResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 		return
 	}
 
-	toUpdate := projectResourceData{
+	toUpdate := Project{
 		Name:        types.String{Value: project.Name},
 		Description: types.String{Null: true},
 	}
@@ -177,8 +142,8 @@ func (r projectResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 
 	// Update state values
-	state.Name = toUpdate.Name
-	state.Description = toUpdate.Description
+	state = convertResponseToProject(project)
+	tflog.Trace(ctx, "updated project", "project_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -187,7 +152,7 @@ func (r projectResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 // Delete qovery project resource
 func (r projectResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
 	// Get current state
-	var state projectResourceData
+	var state Project
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -202,6 +167,8 @@ func (r projectResource) Delete(ctx context.Context, req tfsdk.DeleteResourceReq
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
+
+	tflog.Trace(ctx, "deleted project", "project_id", state.Id.Value)
 
 	// Remove project from state
 	resp.State.RemoveResource(ctx)
