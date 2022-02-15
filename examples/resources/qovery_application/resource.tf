@@ -3,6 +3,7 @@ resource "qovery_application" "my_application" {
   name = "MyApplication"
   git_repository = {
     url = "https://github.com/Qovery/terraform-provider-qovery.git"
+    root_path = "/"
   }
 
   depends_on = [

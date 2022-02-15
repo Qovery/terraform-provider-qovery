@@ -1,4 +1,4 @@
-# Terraform 0.13+ uses the Terraform Registry:
+# Terraform 1.0.3+ uses the Terraform Registry:
 
 terraform {
   required_providers {

@@ -9,13 +9,13 @@ description: |-
 
 The [Qovery](https://www.qovery.com/) provider is used to interact with the resources supported by Qovery. 
 The provider needs to be configured with the proper credentials before it can be used. 
-It requires terraform 0.13 or later.
+It requires terraform 1.0.3 or later.
 
 
 ## Example Usage
 
 ```terraform
-# Terraform 0.13+ uses the Terraform Registry:
+# Terraform 1.0.3+ uses the Terraform Registry:
 
 terraform {
   required_providers {
@@ -36,4 +36,4 @@ provider "qovery" {
 
 ### Required
 
-- **token** (String) Qovery API Token
+- **token** (String) The Qovery API Token to use. This can also be specified with the `QOVERY_API_TOKEN` shell environment variable.

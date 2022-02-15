@@ -191,10 +191,10 @@ func (r clusterResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 		payload.Description = &plan.Description.Value
 	}
 	if !plan.CPU.Null && !plan.CPU.Unknown {
-		payload.Cpu = float32ToFloat32Ptr(float32(plan.CPU.Value))
+		payload.Cpu = int32ToInt32Ptr(int32(plan.CPU.Value))
 	}
 	if !plan.Memory.Null && !plan.Memory.Unknown {
-		payload.Memory = float32ToFloat32Ptr(float32(plan.Memory.Value))
+		payload.Memory = int32ToInt32Ptr(int32(plan.Memory.Value))
 	}
 	if !plan.MinRunningNodes.Null && !plan.MinRunningNodes.Unknown {
 		payload.MinRunningNodes = int32ToInt32Ptr(int32(plan.MinRunningNodes.Value))
@@ -353,8 +353,8 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 		CloudProvider:   plan.CloudProvider.Value,
 		Region:          plan.Region.Value,
 		Description:     &state.Description.Value,
-		Cpu:             float32ToFloat32Ptr(float32(state.CPU.Value)),
-		Memory:          float32ToFloat32Ptr(float32(state.Memory.Value)),
+		Cpu:             int32ToInt32Ptr(int32(state.CPU.Value)),
+		Memory:          int32ToInt32Ptr(int32(state.Memory.Value)),
 		MinRunningNodes: int32ToInt32Ptr(int32(state.MinRunningNodes.Value)),
 		MaxRunningNodes: int32ToInt32Ptr(int32(state.MaxRunningNodes.Value)),
 	}
@@ -362,10 +362,10 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 		payload.Description = &plan.Description.Value
 	}
 	if !plan.CPU.Null && !plan.CPU.Unknown {
-		payload.Cpu = float32ToFloat32Ptr(float32(plan.CPU.Value))
+		payload.Cpu = int32ToInt32Ptr(int32(plan.CPU.Value))
 	}
 	if !plan.Memory.Null && !plan.Memory.Unknown {
-		payload.Memory = float32ToFloat32Ptr(float32(plan.Memory.Value))
+		payload.Memory = int32ToInt32Ptr(int32(plan.Memory.Value))
 	}
 	if !plan.MinRunningNodes.Null && !plan.MinRunningNodes.Unknown {
 		payload.MinRunningNodes = int32ToInt32Ptr(int32(plan.MinRunningNodes.Value))
@@ -478,10 +478,6 @@ func cloudProviderCreateAPIError(clusterID string, res *http.Response, err error
 
 func cloudProviderReadAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
 	return apierror.New(cloudProviderAPIResource, clusterID, apierror.Read, res, err)
-}
-
-func float32ToFloat32Ptr(v float32) *float32 {
-	return &v
 }
 
 func int32ToInt32Ptr(v int32) *int32 {

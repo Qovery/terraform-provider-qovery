@@ -101,6 +101,7 @@ func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourc
 		"qovery_cluster":              clusterDataSourceType{},
 		"qovery_project":              projectDataSourceType{},
 		"qovery_environment":          environmentDataSourceType{},
+		"qovery_application":          applicationDataSourceType{},
 		"qovery_database":             databaseDataSourceType{},
 	}, nil
 }
@@ -109,7 +110,7 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 	return tfsdk.Schema{
 		Attributes: map[string]tfsdk.Attribute{
 			"token": {
-				Description: "Qovery API Token",
+				Description: "The Qovery API Token to use. This can also be specified with the `QOVERY_API_TOKEN` shell environment variable.",
 				Type:        types.StringType,
 				Required:    true,
 			},
