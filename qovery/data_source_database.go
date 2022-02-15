@@ -6,21 +6,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 )
-
-type databaseDataSourceData struct {
-	Id            types.String `tfsdk:"id"`
-	EnvironmentId types.String `tfsdk:"environment_id"`
-	Name          types.String `tfsdk:"name"`
-	Type          types.String `tfsdk:"type"`
-	Version       types.String `tfsdk:"version"`
-	Mode          types.String `tfsdk:"mode"`
-	Accessibility types.String `tfsdk:"accessibility"`
-	CPU           types.Int64  `tfsdk:"cpu"`
-	Memory        types.Int64  `tfsdk:"memory"`
-	Storage       types.Int64  `tfsdk:"storage"`
-}
 
 type databaseDataSourceType struct{}
 
@@ -95,7 +83,7 @@ type databaseDataSource struct {
 // Read qovery database data source
 func (d databaseDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, resp *tfsdk.ReadDataSourceResponse) {
 	// Get current state
-	var data databaseDataSourceData
+	var data Database
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -111,18 +99,8 @@ func (d databaseDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRe
 		return
 	}
 
-	state := &databaseResourceData{
-		Id:            data.Id,
-		EnvironmentId: types.String{Value: database.Environment.Id},
-		Name:          types.String{Value: database.Name},
-		Type:          types.String{Value: database.Type},
-		Version:       types.String{Value: database.Version},
-		Mode:          types.String{Value: database.Mode},
-		Accessibility: types.String{Value: *database.Accessibility},
-		CPU:           types.Int64{Value: int64(*database.Cpu)},
-		Memory:        types.Int64{Value: int64(*database.Memory)},
-		Storage:       types.Int64{Value: int64(*database.Storage)},
-	}
+	state := convertResponseToDatabase(database)
+	tflog.Trace(ctx, "read database", "database_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
