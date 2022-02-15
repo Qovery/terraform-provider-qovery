@@ -9,12 +9,6 @@ import (
 	"github.com/qovery/qovery-client-go"
 )
 
-type scalewayCredentialsDataSourceData struct {
-	Id             types.String `tfsdk:"id"`
-	OrganizationId types.String `tfsdk:"organization_id"`
-	Name           types.String `tfsdk:"name"`
-}
-
 type scalewayCredentialsDataSourceType struct{}
 
 func (t scalewayCredentialsDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
@@ -53,7 +47,7 @@ type scalewayCredentialsDataSource struct {
 // Read qovery scalewayCredentials data source
 func (d scalewayCredentialsDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, resp *tfsdk.ReadDataSourceResponse) {
 	// Get current state
-	var data scalewayCredentialsDataSourceData
+	var data ScalewayCredentialsDataSource
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -69,21 +63,19 @@ func (d scalewayCredentialsDataSource) Read(ctx context.Context, req tfsdk.ReadD
 		return
 	}
 
-	var state *scalewayCredentialsDataSourceData
+	var state ScalewayCredentialsDataSource
+	found := false
 	for _, creds := range credentials.GetResults() {
 		if data.Id.Value == *creds.Id {
-			state = &scalewayCredentialsDataSourceData{
-				Id:             data.Id,
-				OrganizationId: data.OrganizationId,
-				Name:           types.String{Value: *creds.Name},
-			}
+			found = true
+			state = convertResponseToScalewayCredentialsDataSource(&creds, data)
 			break
 		}
 	}
 
 	// If credential id is not in list
 	// Returning Not Found error
-	if state == nil {
+	if !found {
 		res.StatusCode = 404
 		apiErr := scalewayCredentialsReadAPIError(state.Id.Value, res, nil)
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
