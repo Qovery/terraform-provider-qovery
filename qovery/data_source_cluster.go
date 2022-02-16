@@ -70,6 +70,11 @@ func (t clusterDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 				Type:        types.Int64Type,
 				Computed:    true,
 			},
+			"state": {
+				Description: "State of the cluster.",
+				Type:        types.StringType,
+				Computed:    true,
+			},
 		},
 	}, nil
 }

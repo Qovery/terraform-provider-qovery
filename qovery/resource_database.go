@@ -28,7 +28,7 @@ var (
 
 	// Database Accessibility
 	databaseAccessibilities      = []string{"PRIVATE", "PUBLIC"}
-	databaseAccessibilityDefault = "PRIVATE"
+	databaseAccessibilityDefault = "PUBLIC"
 
 	// Database CPU
 	databaseCPUMin     int64 = 250
@@ -39,8 +39,8 @@ var (
 	databaseMemoryDefault int64 = 256
 
 	// Database Storage
-	databaseStorageMin     int64 = 10240
-	databaseStorageDefault int64 = 10240
+	databaseStorageMin     int64 = 10
+	databaseStorageDefault int64 = 10
 )
 
 type databaseResourceType struct{}
@@ -143,7 +143,7 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 			},
 			"storage": {
 				Description: descriptions.NewInt64MinDescription(
-					"Storage of the database in MB [1024MB = 1GB].",
+					"Storage of the database in GB [1024MB = 1GB].",
 					databaseStorageMin,
 					&databaseStorageDefault,
 				),

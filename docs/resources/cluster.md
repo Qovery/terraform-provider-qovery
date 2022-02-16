@@ -45,6 +45,7 @@ resource "qovery_cluster" "my_cluster" {
 	- Must be: `>= 2000`.
 	- Default: `2000`.
 - **description** (String) Description of the cluster.
+	- Default: ``.
 - **max_running_nodes** (Number) Maximum number of nodes running for the cluster.
 	- Must be: `>= 3`.
 	- Default: `10`.
@@ -54,6 +55,9 @@ resource "qovery_cluster" "my_cluster" {
 - **min_running_nodes** (Number) Minimum number of nodes running for the cluster.
 	- Must be: `>= 3`.
 	- Default: `3`.
+- **state** (String) State of the cluster.
+	- Can be: `RUNNING`, `STOPPED`.
+	- Default: `RUNNING`.
 
 ### Read-Only
 

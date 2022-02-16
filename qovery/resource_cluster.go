@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -21,10 +22,22 @@ import (
 
 const (
 	clusterAPIResource       = "cluster"
+	clusterStatusAPIResource = "cluster status"
 	cloudProviderAPIResource = "cloud provider"
 )
 
+var ()
+
 var (
+	// Cluster State
+	clusterStateRunning = "RUNNING"
+	clusterStateStopped = "STOPPED"
+	clusterStates       = []string{clusterStateRunning, clusterStateStopped}
+	clusterStateDefault = clusterStateRunning
+
+	// Cluster Description
+	clusterDescriptionDefault = ""
+
 	// Cloud Provider
 	cloudProviders = []string{"AWS", "DIGITAL_OCEAN", "SCALEWAY"}
 
@@ -89,9 +102,16 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Required:    true,
 			},
 			"description": {
-				Description: "Description of the cluster.",
-				Type:        types.StringType,
-				Optional:    true,
+				Description: descriptions.NewStringDefaultDescription(
+					"Description of the cluster.",
+					clusterDescriptionDefault,
+				),
+				Type:     types.StringType,
+				Optional: true,
+				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewStringDefaultModifier(clusterDescriptionDefault),
+				},
 			},
 			"cpu": {
 				Description: descriptions.NewInt64MinDescription(
@@ -102,9 +122,6 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(clusterCPUDefault),
-				},
 				Validators: []tfsdk.AttributeValidator{
 					validators.Int64MinValidator{Min: clusterCPUMin},
 				},
@@ -118,9 +135,6 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(clusterMemoryDefault),
-				},
 				Validators: []tfsdk.AttributeValidator{
 					validators.Int64MinValidator{Min: clusterMemoryMin},
 				},
@@ -157,6 +171,28 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 					validators.Int64MinValidator{Min: clusterMaxRunningNodesMin},
 				},
 			},
+			"state": {
+				Description: descriptions.NewStringEnumDescription(
+					"State of the cluster.",
+					clusterStates,
+					&clusterStateDefault,
+				),
+				Type:     types.StringType,
+				Optional: true,
+				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewStringDefaultModifier(clusterStateDefault),
+				},
+				Validators: []tfsdk.AttributeValidator{
+					validators.StringEnumValidator{Enum: clusterStates},
+				},
+			},
+			//"timeouts": NewTimeoutSchemaAttribute(TimeoutParams{
+			//	ResourceName:  "cluster",
+			//	CreateDefault: "40m",
+			//	UpdateDefault: "40m",
+			//	DeleteDefault: "40m",
+			//}),
 		},
 	}, nil
 }
@@ -202,15 +238,12 @@ func (r clusterResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 		return
 	}
 
-	// Deploy cluster
-	r.client.GetConfig().AddDefaultHeader("content-type", "application/json")
-	_, res, err = r.client.ClustersApi.
-		DeployCluster(ctx, plan.OrganizationId.Value, cluster.Id).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := clusterDeployAPIError(plan.Name.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
+	if plan.State.Value == clusterStateRunning {
+		apiErr := r.deployCluster(ctx, plan.OrganizationId.Value, cluster.Id)
+		if apiErr != nil {
+			resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+			return
+		}
 	}
 
 	// Initialize state values
@@ -318,6 +351,22 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 		return
 	}
 
+	if plan.State.Value == clusterStateRunning && *cluster.Status != "RUNNING" {
+		apiErr := r.deployCluster(ctx, plan.OrganizationId.Value, cluster.Id)
+		if apiErr != nil {
+			resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+			return
+		}
+	}
+
+	if plan.State.Value == clusterStateStopped && *cluster.Status != "STOPPED" {
+		apiErr := r.stopCluster(ctx, plan.OrganizationId.Value, cluster.Id)
+		if apiErr != nil {
+			resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+			return
+		}
+	}
+
 	// Update state values
 	state = convertResponseToCluster(cluster, cloudProviderInfo, plan)
 	tflog.Trace(ctx, "updated cluster", "cluster_id", state.Id.Value)
@@ -367,6 +416,66 @@ func (r clusterResource) ImportState(ctx context.Context, req tfsdk.ImportResour
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("organization_id"), idParts[1])...)
 }
 
+func (r clusterResource) deployCluster(ctx context.Context, organizationID string, clusterID string) *apierror.APIError {
+	// Deploy cluster
+	r.client.GetConfig().AddDefaultHeader("content-type", "application/json")
+	_, res, err := r.client.ClustersApi.
+		DeployCluster(ctx, organizationID, clusterID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return clusterDeployAPIError(clusterID, res, err)
+	}
+
+	ticker := time.NewTicker(10 * time.Second)
+	timeout := time.NewTicker(time.Hour)
+	for {
+		select {
+		case <-timeout.C:
+			return clusterDeployAPIError(clusterID, res, err)
+		case <-ticker.C:
+			status, res, err := r.client.ClustersApi.
+				GetClusterStatus(ctx, organizationID, clusterID).
+				Execute()
+			if err != nil || res.StatusCode >= 400 {
+				return clusterStatusReadAPIError(clusterID, res, err)
+			}
+			if *status.IsDeployed {
+				return nil
+			}
+		}
+	}
+}
+
+func (r clusterResource) stopCluster(ctx context.Context, organizationID string, clusterID string) *apierror.APIError {
+	// Stop cluster
+	r.client.GetConfig().AddDefaultHeader("content-type", "application/json")
+	_, res, err := r.client.ClustersApi.
+		StopCluster(ctx, organizationID, clusterID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return clusterDeployAPIError(clusterID, res, err)
+	}
+
+	ticker := time.NewTicker(10 * time.Second)
+	timeout := time.NewTicker(time.Hour)
+	for {
+		select {
+		case <-timeout.C:
+			return clusterDeployAPIError(clusterID, res, err)
+		case <-ticker.C:
+			status, res, err := r.client.ClustersApi.
+				GetClusterStatus(ctx, organizationID, clusterID).
+				Execute()
+			if err != nil || res.StatusCode >= 400 {
+				return clusterStatusReadAPIError(clusterID, res, err)
+			}
+			if *status.Status == clusterStateStopped {
+				return nil
+			}
+		}
+	}
+}
+
 func clusterCreateAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
 	return apierror.New(clusterAPIResource, clusterID, apierror.Create, res, err)
 }
@@ -387,6 +496,10 @@ func clusterDeployAPIError(clusterID string, res *http.Response, err error) *api
 	return apierror.New(clusterAPIResource, clusterID, apierror.Deploy, res, err)
 }
 
+func clusterStatusReadAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(clusterStatusAPIResource, clusterID, apierror.Read, res, err)
+}
+
 func cloudProviderCreateAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
 	return apierror.New(cloudProviderAPIResource, clusterID, apierror.Create, res, err)
 }
@@ -397,8 +510,4 @@ func cloudProviderUpdateAPIError(clusterID string, res *http.Response, err error
 
 func cloudProviderReadAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
 	return apierror.New(cloudProviderAPIResource, clusterID, apierror.Read, res, err)
-}
-
-func int32ToInt32Ptr(v int32) *int32 {
-	return &v
 }

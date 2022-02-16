@@ -17,6 +17,8 @@ type Cluster struct {
 	Memory          types.Int64  `tfsdk:"memory"`
 	MinRunningNodes types.Int64  `tfsdk:"min_running_nodes"`
 	MaxRunningNodes types.Int64  `tfsdk:"max_running_nodes"`
+	State           types.String `tfsdk:"state"`
+	//Timeouts        Timeout      `tfsdk:"timeouts"`
 }
 
 func (c Cluster) toUpsertClusterRequest() qovery.ClusterRequest {
@@ -56,5 +58,7 @@ func convertResponseToCluster(cluster *qovery.ClusterResponse, clusterInfo *qove
 		Memory:          fromInt32Pointer(cluster.Memory),
 		MinRunningNodes: fromInt32Pointer(cluster.MinRunningNodes),
 		MaxRunningNodes: fromInt32Pointer(cluster.MaxRunningNodes),
+		State:           plan.State,
+		//Timeouts:        plan.Timeouts,
 	}
 }

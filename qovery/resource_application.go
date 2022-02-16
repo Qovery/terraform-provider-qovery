@@ -33,7 +33,7 @@ var (
 
 	// Application Memory
 	applicationMemoryMin     int64 = 1   // in MB
-	applicationMemoryDefault int64 = 500 // in MB
+	applicationMemoryDefault int64 = 512 // in MB
 
 	// Application Min Running Instances
 	applicationMinRunningInstancesMin     int64 = 0
@@ -44,7 +44,7 @@ var (
 	applicationMaxRunningInstancesDefault int64 = 1
 
 	// Application Auto Preview
-	applicationAutoPreviewDefault = true
+	applicationAutoPreviewDefault = false
 
 	// Application Storage
 	applicationStorageTypes         = []string{"FAST_SSD"}
@@ -105,9 +105,6 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:     types.StringType,
 						Optional: true,
 						Computed: true,
-						PlanModifiers: tfsdk.AttributePlanModifiers{
-							modifiers.NewStringDefaultModifier(applicationGitRepositoryBranchDefault),
-						},
 					},
 					"root_path": {
 						Description: descriptions.NewStringDefaultDescription(

@@ -38,5 +38,6 @@ data "qovery_cluster" "my_cluster" {
 - **min_running_nodes** (Number) Minimum number of nodes running for the cluster.
 - **name** (String) Name of the cluster.
 - **region** (String) Region of the cluster.
+- **state** (String) State of the cluster.
 
 

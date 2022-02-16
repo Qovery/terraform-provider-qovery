@@ -42,14 +42,14 @@ func (m Int64DefaultModifier) Modify(ctx context.Context, req tfsdk.ModifyAttrib
 	// for generic plan modifiers, use
 	// https://pkg.go.dev/github.com/hashicorp/terraform-plugin-framework/tfsdk#ConvertValue
 	// to convert into a known type.
-	var str types.Int64
-	diags := tfsdk.ValueAs(ctx, req.AttributePlan, &str)
+	var attr types.Int64
+	diags := tfsdk.ValueAs(ctx, req.AttributePlan, &attr)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
-	if !str.Null {
+	if !attr.Null && !attr.Unknown {
 		return
 	}
 
