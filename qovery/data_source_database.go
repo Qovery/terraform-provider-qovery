@@ -66,6 +66,11 @@ func (t databaseDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag
 				Type:        types.Int64Type,
 				Computed:    true,
 			},
+			"state": {
+				Description: "State of the database.",
+				Type:        types.StringType,
+				Computed:    true,
+			},
 		},
 	}, nil
 }
@@ -99,7 +104,16 @@ func (d databaseDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRe
 		return
 	}
 
-	state := convertResponseToDatabase(database)
+	databaseStatus, res, err := d.client.DatabaseMainCallsApi.
+		GetDatabaseStatus(ctx, database.Id).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := databaseStatusReadAPIError(data.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	state := convertResponseToDatabase(database, databaseStatus)
 	tflog.Trace(ctx, "read database", "database_id", state.Id.Value)
 
 	// Set state

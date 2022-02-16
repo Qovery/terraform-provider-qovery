@@ -42,14 +42,14 @@ func (m BoolDefaultModifier) Modify(ctx context.Context, req tfsdk.ModifyAttribu
 	// for generic plan modifiers, use
 	// https://pkg.go.dev/github.com/hashicorp/terraform-plugin-framework/tfsdk#ConvertValue
 	// to convert into a known type.
-	var str types.Bool
-	diags := tfsdk.ValueAs(ctx, req.AttributePlan, &str)
+	var attr types.Bool
+	diags := tfsdk.ValueAs(ctx, req.AttributePlan, &attr)
 	resp.Diagnostics.Append(diags...)
 	if diags.HasError() {
 		return
 	}
 
-	if !str.Null {
+	if !attr.Null && !attr.Unknown {
 		return
 	}
 

@@ -21,6 +21,7 @@ type Application struct {
 	AutoPreview         types.Bool                `tfsdk:"auto_preview"`
 	Storage             []ApplicationStorage      `tfsdk:"storage"`
 	Ports               []ApplicationPort         `tfsdk:"ports"`
+	State               types.String              `tfsdk:"state"`
 }
 
 func (app Application) toCreateApplicationRequest() qovery.ApplicationRequest {
@@ -79,7 +80,7 @@ func (app Application) toUpdateApplicationRequest() qovery.ApplicationEditReques
 	}
 }
 
-func convertResponseToApplication(application *qovery.ApplicationResponse) Application {
+func convertResponseToApplication(application *qovery.ApplicationResponse, status *qovery.Status) Application {
 	return Application{
 		Id:                  fromString(application.Id),
 		EnvironmentId:       fromString(application.Environment.Id),
@@ -96,6 +97,7 @@ func convertResponseToApplication(application *qovery.ApplicationResponse) Appli
 		GitRepository:       convertResponseToApplicationGitRepository(application.GitRepository),
 		Storage:             convertResponseToApplicationStorage(application.Storage),
 		Ports:               convertResponseToApplicationPorts(application.Ports),
+		State:               fromString(status.State),
 	}
 }
 

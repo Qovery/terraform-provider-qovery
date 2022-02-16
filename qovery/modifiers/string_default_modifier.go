@@ -42,14 +42,13 @@ func (m StringDefaultModifier) Modify(ctx context.Context, req tfsdk.ModifyAttri
 	// for generic plan modifiers, use
 	// https://pkg.go.dev/github.com/hashicorp/terraform-plugin-framework/tfsdk#ConvertValue
 	// to convert into a known type.
-	var str types.String
-	diags := tfsdk.ValueAs(ctx, req.AttributePlan, &str)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() {
+	var attr types.String
+	resp.Diagnostics.Append(tfsdk.ValueAs(ctx, req.AttributePlan, &attr)...)
+	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if !str.Null {
+	if !attr.Null && !attr.Unknown {
 		return
 	}
 

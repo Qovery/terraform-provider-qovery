@@ -39,7 +39,7 @@ resource "qovery_application" "my_application" {
 ### Optional
 
 - **auto_preview** (Boolean) Specify if the environment preview option is activated or not for this application.
-	- Default: `true`.
+	- Default: `false`.
 - **build_mode** (String) Build Mode of the application.
 	- Can be: `BUILDPACKS`, `DOCKER`.
 	- Default: `BUILDPACKS`.
@@ -57,11 +57,14 @@ resource "qovery_application" "my_application" {
 	- Default: `1`.
 - **memory** (Number) RAM of the application in MB [1024MB = 1GB].
 	- Must be: `>= 1`.
-	- Default: `500`.
+	- Default: `512`.
 - **min_running_instances** (Number) Minimum number of instances running for the application.
 	- Must be: `>= 0`.
 	- Default: `1`.
 - **ports** (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
+- **state** (String) State of the application.
+	- Can be: `RUNNING`, `STOPPED`.
+	- Default: `RUNNING`.
 - **storage** (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
 
 ### Read-Only
