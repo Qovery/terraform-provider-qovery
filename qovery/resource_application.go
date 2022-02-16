@@ -19,8 +19,9 @@ import (
 )
 
 const (
-	applicationAPIResource       = "application"
-	applicationStatusAPIResource = "application status"
+	applicationAPIResource                    = "application"
+	applicationStatusAPIResource              = "application status"
+	applicationEnvironmentVariableAPIResource = "application environment variable"
 )
 
 var (
@@ -339,6 +340,28 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					},
 				}, tfsdk.ListNestedAttributesOptions{}),
 			},
+			"environment_variables": {
+				Description: "List of environment variables linked to this application.",
+				Optional:    true,
+				Computed:    true,
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Key of the environment variable.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Value of the environment variable.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
+			},
 			"state": {
 				Description: descriptions.NewStringEnumDescription(
 					"State of the application.",
@@ -403,8 +426,22 @@ func (r applicationResource) Create(ctx context.Context, req tfsdk.CreateResourc
 		return
 	}
 
+	applicationVariables, apiErr := r.updateApplicationEnvironmentVariables(ctx, application, []EnvironmentVariable{}, plan.EnvironmentVariables)
+	if apiErr != nil {
+		res, err := r.client.ApplicationMainCallsApi.
+			DeleteApplication(ctx, application.Id).
+			Execute()
+		if err != nil || res.StatusCode >= 300 {
+			apiErr := applicationDeleteAPIError(application.Id, res, err)
+			resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+			return
+		}
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
 	// Initialize state values
-	state := convertResponseToApplication(application, applicationStatus)
+	state := convertResponseToApplication(application, applicationStatus, applicationVariables)
 	tflog.Trace(ctx, "created application", "application_id", state.Id.Value)
 
 	// Set state
@@ -440,7 +477,7 @@ func (r applicationResource) Read(ctx context.Context, req tfsdk.ReadResourceReq
 	}
 
 	// Refresh state values
-	state = convertResponseToApplication(application, applicationStatus)
+	state = convertResponseToApplication(application, applicationStatus, state.EnvironmentVariables)
 	tflog.Trace(ctx, "read application", "application_id", state.Id.Value)
 
 	// Set state
@@ -474,8 +511,22 @@ func (r applicationResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 		return
 	}
 
+	applicationVariables, apiErr := r.updateApplicationEnvironmentVariables(ctx, application, state.EnvironmentVariables, plan.EnvironmentVariables)
+	if apiErr != nil {
+		res, err := r.client.ApplicationMainCallsApi.
+			DeleteApplication(ctx, application.Id).
+			Execute()
+		if err != nil || res.StatusCode >= 300 {
+			apiErr := applicationDeleteAPIError(application.Id, res, err)
+			resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+			return
+		}
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
 	// Update state values
-	state = convertResponseToApplication(application, applicationStatus)
+	state = convertResponseToApplication(application, applicationStatus, applicationVariables)
 	tflog.Trace(ctx, "updated application", "application_id", state.Id.Value)
 
 	// Set state
@@ -507,6 +558,44 @@ func (r applicationResource) Delete(ctx context.Context, req tfsdk.DeleteResourc
 	resp.State.RemoveResource(ctx)
 }
 
+func (r applicationResource) updateApplicationEnvironmentVariables(ctx context.Context, application *qovery.ApplicationResponse, state []EnvironmentVariable, plan []EnvironmentVariable) ([]EnvironmentVariable, *apierror.APIError) {
+	diff := diffEnvironmentVariables(state, plan)
+	variables := make([]EnvironmentVariable, 0, len(diff.ToCreate)+len(diff.ToUpdate))
+
+	for _, variable := range diff.ToRemove {
+		res, err := r.client.ApplicationEnvironmentVariableApi.
+			DeleteApplicationEnvironmentVariable(ctx, application.Id, variable.Id.Value).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, applicationEnvironmentVariableDeleteAPIError(variable.Id.Value, res, err)
+		}
+	}
+
+	for _, variable := range diff.ToUpdate {
+		v, res, err := r.client.ApplicationEnvironmentVariableApi.
+			EditApplicationEnvironmentVariable(ctx, application.Id, variable.Id.Value).
+			EnvironmentVariableEditRequest(variable.toUpdateRequest()).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, applicationEnvironmentVariableUpdateAPIError(variable.Id.Value, res, err)
+		}
+		variables = append(variables, convertResponseToEnvironmentVariable(v))
+	}
+
+	for _, variable := range diff.ToCreate {
+		v, res, err := r.client.ApplicationEnvironmentVariableApi.
+			CreateApplicationEnvironmentVariable(ctx, application.Id).
+			EnvironmentVariableRequest(variable.toCreateRequest()).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, applicationEnvironmentVariableCreateAPIError(variable.Key.Value, res, err)
+		}
+		variables = append(variables, convertResponseToEnvironmentVariable(v))
+	}
+
+	return variables, nil
+}
+
 func (r applicationResource) updateApplicationState(ctx context.Context, application *qovery.ApplicationResponse, plan Application) (*qovery.Status, *apierror.APIError) {
 	applicationStatus, res, err := r.client.ApplicationMainCallsApi.
 		GetApplicationStatus(ctx, application.Id).
@@ -522,7 +611,7 @@ func (r applicationResource) updateApplicationState(ctx context.Context, applica
 	if plan.State.Value == applicationStateStopped && applicationStatus.State != applicationStateStopped {
 		return r.stopApplication(ctx, application.Id, applicationStatus.State)
 	}
-	return nil, applicationStatusReadAPIError(application.Id, res, err)
+	return applicationStatus, nil
 }
 
 func (r applicationResource) deployApplication(ctx context.Context, application *qovery.ApplicationResponse, status *qovery.Status) (*qovery.Status, *apierror.APIError) {
@@ -644,4 +733,21 @@ func applicationRestartAPIError(applicationID string, res *http.Response, err er
 
 func applicationStatusReadAPIError(applicationID string, res *http.Response, err error) *apierror.APIError {
 	return apierror.New(applicationStatusAPIResource, applicationID, apierror.Read, res, err)
+}
+
+// Application Environment Variable
+func applicationEnvironmentVariableCreateAPIError(applicationID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(applicationEnvironmentVariableAPIResource, applicationID, apierror.Create, res, err)
+}
+
+func applicationEnvironmentVariableReadAPIError(variableID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(applicationEnvironmentVariableAPIResource, variableID, apierror.Read, res, err)
+}
+
+func applicationEnvironmentVariableUpdateAPIError(variableID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(applicationEnvironmentVariableAPIResource, variableID, apierror.Update, res, err)
+}
+
+func applicationEnvironmentVariableDeleteAPIError(variableID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(applicationEnvironmentVariableAPIResource, variableID, apierror.Delete, res, err)
 }

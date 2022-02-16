@@ -159,6 +159,27 @@ func (t applicationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 					},
 				}, tfsdk.ListNestedAttributesOptions{}),
 			},
+			"environment_variables": {
+				Description: "List of environment variables linked to this application.",
+				Computed:    true,
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Key of the environment variable.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Value of the environment variable.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
+			},
 			"state": {
 				Description: "State of the application.",
 				Type:        types.StringType,
@@ -206,7 +227,16 @@ func (d applicationDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 		return
 	}
 
-	state := convertResponseToApplication(application, applicationStatus)
+	applicationVariables, res, err := d.client.ApplicationEnvironmentVariableApi.
+		ListApplicationEnvironmentVariable(ctx, application.Id).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := applicationEnvironmentVariableReadAPIError(data.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	state := convertResponseToApplication(application, applicationStatus, convertResponseToEnvironmentVariables(applicationVariables, EnvironmentVariableScopeApplication))
 	tflog.Trace(ctx, "read application", "application_id", state.Id.Value)
 
 	// Set state
