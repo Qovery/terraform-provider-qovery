@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"net/http"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -17,9 +18,18 @@ import (
 	"terraform-provider-qovery/qovery/validators"
 )
 
-const databaseAPIResource = "database"
+const (
+	databaseAPIResource       = "database"
+	databaseStatusAPIResource = "database status"
+)
 
 var (
+	// Database State
+	databaseStateRunning = "RUNNING"
+	databaseStateStopped = "STOPPED"
+	databaseStates       = []string{databaseStateRunning, databaseStateStopped}
+	databaseStateDefault = databaseStateRunning
+
 	// Database Type
 	databaseTypes = []string{"POSTGRESQL", "MYSQL", "MONGODB", "REDIS"}
 
@@ -157,6 +167,22 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 					validators.Int64MinValidator{Min: databaseStorageMin},
 				},
 			},
+			"state": {
+				Description: descriptions.NewStringEnumDescription(
+					"State of the database.",
+					databaseStates,
+					&databaseStateDefault,
+				),
+				Type:     types.StringType,
+				Optional: true,
+				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewStringDefaultModifier(databaseStateDefault),
+				},
+				Validators: []tfsdk.AttributeValidator{
+					validators.StringEnumValidator{Enum: databaseStates},
+				},
+			},
 		},
 	}, nil
 }
@@ -191,8 +217,14 @@ func (r databaseResource) Create(ctx context.Context, req tfsdk.CreateResourceRe
 		return
 	}
 
+	databaseStatus, apiErr := r.updateDatabaseState(ctx, database, plan)
+	if apiErr != nil {
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
 	// Initialize state values
-	state := convertResponseToDatabase(database)
+	state := convertResponseToDatabase(database, databaseStatus)
 	tflog.Trace(ctx, "created database", "database_id", state.Id.Value)
 
 	// Set state
@@ -218,8 +250,17 @@ func (r databaseResource) Read(ctx context.Context, req tfsdk.ReadResourceReques
 		return
 	}
 
+	databaseStatus, res, err := r.client.DatabaseMainCallsApi.
+		GetDatabaseStatus(ctx, database.Id).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := databaseStatusReadAPIError(state.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
 	// Refresh state values
-	state = convertResponseToDatabase(database)
+	state = convertResponseToDatabase(database, databaseStatus)
 	tflog.Trace(ctx, "read database", "database_id", state.Id.Value)
 
 	// Set state
@@ -236,7 +277,7 @@ func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRe
 		return
 	}
 
-	// Update cluster in the backend
+	// Update database in the backend
 	database, res, err := r.client.DatabaseMainCallsApi.
 		EditDatabase(ctx, state.Id.Value).
 		DatabaseEditRequest(plan.toUpdateDatabaseRequest()).
@@ -247,8 +288,14 @@ func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRe
 		return
 	}
 
+	databaseStatus, apiErr := r.updateDatabaseState(ctx, database, plan)
+	if apiErr != nil {
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
 	// Update state values
-	state = convertResponseToDatabase(database)
+	state = convertResponseToDatabase(database, databaseStatus)
 	tflog.Trace(ctx, "updated database", "database_id", state.Id.Value)
 
 	// Set state
@@ -285,6 +332,107 @@ func (r databaseResource) ImportState(ctx context.Context, req tfsdk.ImportResou
 	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }
 
+func (r databaseResource) updateDatabaseState(ctx context.Context, database *qovery.DatabaseResponse, plan Database) (*qovery.Status, *apierror.APIError) {
+	databaseStatus, res, err := r.client.DatabaseMainCallsApi.
+		GetDatabaseStatus(ctx, database.Id).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return nil, databaseStatusReadAPIError(database.Id, res, err)
+	}
+
+	if plan.State.Value == databaseStateRunning && databaseStatus.State != databaseStateRunning {
+		return r.deployDatabase(ctx, database.Id, databaseStatus.State)
+	}
+
+	if plan.State.Value == databaseStateStopped && databaseStatus.State != databaseStateStopped {
+		return r.stopDatabase(ctx, database.Id, databaseStatus.State)
+	}
+	return nil, databaseStatusReadAPIError(database.Id, res, err)
+}
+
+func (r databaseResource) deployDatabase(ctx context.Context, databaseID string, currentStatus string) (*qovery.Status, *apierror.APIError) {
+	// Deploy database
+	switch currentStatus {
+	case "QUEUED", "DEPLOYING":
+		tflog.Trace(ctx, "database is already being deployed", "database_id", databaseID)
+	case "DEPLOYMENT_ERROR":
+		_, res, err := r.client.DatabaseActionsApi.
+			RestartDatabase(ctx, databaseID).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, databaseRestartAPIError(databaseID, res, err)
+		}
+	default:
+		_, res, err := r.client.DatabaseActionsApi.
+			DeployDatabase(ctx, databaseID).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, databaseDeployAPIError(databaseID, res, err)
+		}
+	}
+
+	ticker := time.NewTicker(10 * time.Second)
+	timeout := time.NewTicker(30 * time.Minute)
+	for {
+		select {
+		case <-timeout.C:
+			_, res, err := r.client.DatabaseMainCallsApi.
+				GetDatabaseStatus(ctx, databaseID).
+				Execute()
+			return nil, databaseDeployAPIError(databaseID, res, err)
+		case <-ticker.C:
+			status, res, err := r.client.DatabaseMainCallsApi.
+				GetDatabaseStatus(ctx, databaseID).
+				Execute()
+			if err != nil || res.StatusCode >= 400 {
+				return nil, databaseStatusReadAPIError(databaseID, res, err)
+			}
+			if status.State == databaseStateRunning {
+				tflog.Trace(ctx, "deployed database", "database_id", databaseID)
+				return status, nil
+			}
+		}
+	}
+}
+
+func (r databaseResource) stopDatabase(ctx context.Context, databaseID string, currentStatus string) (*qovery.Status, *apierror.APIError) {
+	// Stop database
+	switch currentStatus {
+	case "QUEUED", "STOPPING":
+		tflog.Trace(ctx, "database is already being stopped", "database_id", databaseID)
+	default:
+		_, res, err := r.client.DatabaseActionsApi.
+			StopDatabase(ctx, databaseID).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, databaseDeployAPIError(databaseID, res, err)
+		}
+	}
+
+	ticker := time.NewTicker(10 * time.Second)
+	timeout := time.NewTicker(30 * time.Minute)
+	for {
+		select {
+		case <-timeout.C:
+			_, res, err := r.client.DatabaseMainCallsApi.
+				GetDatabaseStatus(ctx, databaseID).
+				Execute()
+			return nil, databaseDeployAPIError(databaseID, res, err)
+		case <-ticker.C:
+			status, res, err := r.client.DatabaseMainCallsApi.
+				GetDatabaseStatus(ctx, databaseID).
+				Execute()
+			if err != nil || res.StatusCode >= 400 {
+				return nil, databaseStatusReadAPIError(databaseID, res, err)
+			}
+			if status.State == databaseStateStopped {
+				tflog.Trace(ctx, "stopped database", "database_id", databaseID)
+				return status, nil
+			}
+		}
+	}
+}
+
 func databaseCreateAPIError(databaseName string, res *http.Response, err error) *apierror.APIError {
 	return apierror.New(databaseAPIResource, databaseName, apierror.Create, res, err)
 }
@@ -299,4 +447,16 @@ func databaseUpdateAPIError(databaseID string, res *http.Response, err error) *a
 
 func databaseDeleteAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {
 	return apierror.New(databaseAPIResource, databaseID, apierror.Delete, res, err)
+}
+
+func databaseDeployAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(databaseAPIResource, databaseID, apierror.Deploy, res, err)
+}
+
+func databaseRestartAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(databaseAPIResource, databaseID, apierror.Restart, res, err)
+}
+
+func databaseStatusReadAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(databaseStatusAPIResource, databaseID, apierror.Read, res, err)
 }

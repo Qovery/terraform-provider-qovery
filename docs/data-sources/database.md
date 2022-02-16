@@ -33,6 +33,7 @@ data "qovery_database" "my_database" {
 - **memory** (Number) RAM of the database in MB [1024MB = 1GB].
 - **mode** (String) Mode of the database.
 - **name** (String) Name of the database.
+- **state** (String) State of the database.
 - **storage** (Number) Storage of the database in MB [1024MB = 1GB].
 - **type** (String) Type of the database.
 - **version** (String) Version of the database

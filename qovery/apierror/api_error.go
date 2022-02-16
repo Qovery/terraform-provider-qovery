@@ -10,11 +10,12 @@ import (
 type APIAction string
 
 var (
-	Create APIAction = "create"
-	Read   APIAction = "read"
-	Update APIAction = "update"
-	Delete APIAction = "delete"
-	Deploy APIAction = "deploy"
+	Create  APIAction = "create"
+	Read    APIAction = "read"
+	Update  APIAction = "update"
+	Delete  APIAction = "delete"
+	Deploy  APIAction = "deploy"
+	Restart APIAction = "restart"
 )
 
 type ErrorPayload struct {

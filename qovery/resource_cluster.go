@@ -351,7 +351,7 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 		return
 	}
 
-	if plan.State.Value == clusterStateRunning && *cluster.Status != "RUNNING" {
+	if plan.State.Value == clusterStateRunning && *cluster.Status != clusterStateRunning {
 		apiErr := r.deployCluster(ctx, plan.OrganizationId.Value, cluster.Id)
 		if apiErr != nil {
 			resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
@@ -359,7 +359,7 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 		}
 	}
 
-	if plan.State.Value == clusterStateStopped && *cluster.Status != "STOPPED" {
+	if plan.State.Value == clusterStateStopped && *cluster.Status != clusterStateStopped {
 		apiErr := r.stopCluster(ctx, plan.OrganizationId.Value, cluster.Id)
 		if apiErr != nil {
 			resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())

@@ -20,6 +20,7 @@ import (
 const environmentAPIResource = "environment"
 
 var (
+	// Environment Mode
 	environmentModes       = []string{"PRODUCTION", "DEVELOPMENT", "STAGING", "PREVIEW"}
 	environmentModeDefault = "DEVELOPMENT"
 )

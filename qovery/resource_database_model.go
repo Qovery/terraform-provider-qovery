@@ -16,6 +16,7 @@ type Database struct {
 	CPU           types.Int64  `tfsdk:"cpu"`
 	Memory        types.Int64  `tfsdk:"memory"`
 	Storage       types.Int64  `tfsdk:"storage"`
+	State         types.String `tfsdk:"state"`
 }
 
 func (d Database) toCreateDatabaseRequest() qovery.DatabaseRequest {
@@ -42,7 +43,7 @@ func (d Database) toUpdateDatabaseRequest() qovery.DatabaseEditRequest {
 	}
 }
 
-func convertResponseToDatabase(database *qovery.DatabaseResponse) Database {
+func convertResponseToDatabase(database *qovery.DatabaseResponse, status *qovery.Status) Database {
 	return Database{
 		Id:            fromString(database.Id),
 		EnvironmentId: fromString(database.Environment.Id),
@@ -54,5 +55,6 @@ func convertResponseToDatabase(database *qovery.DatabaseResponse) Database {
 		CPU:           fromInt32Pointer(database.Cpu),
 		Memory:        fromInt32Pointer(database.Memory),
 		Storage:       fromInt32Pointer(database.Storage),
+		State:         fromString(status.State),
 	}
 }
