@@ -405,7 +405,7 @@ func (r databaseResource) stopDatabase(ctx context.Context, databaseID string, c
 			StopDatabase(ctx, databaseID).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
-			return nil, databaseDeployAPIError(databaseID, res, err)
+			return nil, databaseStopAPIError(databaseID, res, err)
 		}
 	}
 
@@ -451,6 +451,10 @@ func databaseDeleteAPIError(databaseID string, res *http.Response, err error) *a
 
 func databaseDeployAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {
 	return apierror.New(databaseAPIResource, databaseID, apierror.Deploy, res, err)
+}
+
+func databaseStopAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(databaseAPIResource, databaseID, apierror.Stop, res, err)
 }
 
 func databaseRestartAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {

@@ -197,7 +197,16 @@ func (d applicationDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 		return
 	}
 
-	state := convertResponseToApplication(application, data)
+	applicationStatus, res, err := d.client.ApplicationMainCallsApi.
+		GetApplicationStatus(ctx, application.Id).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := applicationStatusReadAPIError(data.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	state := convertResponseToApplication(application, applicationStatus)
 	tflog.Trace(ctx, "read application", "application_id", state.Id.Value)
 
 	// Set state

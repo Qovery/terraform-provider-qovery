@@ -62,6 +62,9 @@ resource "qovery_application" "my_application" {
 	- Must be: `>= 0`.
 	- Default: `1`.
 - **ports** (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
+- **state** (String) State of the application.
+	- Can be: `RUNNING`, `STOPPED`.
+	- Default: `RUNNING`.
 - **storage** (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
 
 ### Read-Only

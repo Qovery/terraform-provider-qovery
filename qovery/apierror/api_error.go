@@ -15,6 +15,7 @@ var (
 	Update  APIAction = "update"
 	Delete  APIAction = "delete"
 	Deploy  APIAction = "deploy"
+	Stop    APIAction = "stop"
 	Restart APIAction = "restart"
 )
 
