@@ -36,6 +36,28 @@ func (t projectDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 				Type:        types.StringType,
 				Computed:    true,
 			},
+			"environment_variables": {
+				Description: "List of environment variables linked to this project.",
+				Optional:    true,
+				Computed:    true,
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Key of the environment variable.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Value of the environment variable.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
+			},
 		},
 	}, nil
 }
@@ -69,7 +91,16 @@ func (d projectDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceReq
 		return
 	}
 
-	state := convertResponseToProject(project)
+	projectVariables, res, err := d.client.ProjectEnvironmentVariableApi.
+		ListProjectEnvironmentVariable(ctx, project.Id).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := projectEnvironmentVariableReadAPIError(data.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	state := convertResponseToProject(project, projectVariables)
 	tflog.Trace(ctx, "read project", "project_id", state.Id.Value)
 
 	// Set state

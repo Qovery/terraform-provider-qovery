@@ -25,10 +25,23 @@ data "qovery_project" "my_project" {
 
 - **id** (String) Id of the project.
 
+### Optional
+
+- **environment_variables** (Attributes List) List of environment variables linked to this project. (see [below for nested schema](#nestedatt--environment_variables))
+
 ### Read-Only
 
 - **description** (String) Description of the project.
 - **name** (String) Name of the project.
 - **organization_id** (String) Id of the organization.
+
+<a id="nestedatt--environment_variables"></a>
+### Nested Schema for `environment_variables`
+
+Optional:
+
+- **id** (String) Id of the environment variable.
+- **key** (String) Key of the environment variable.
+- **value** (String) Value of the environment variable.
 
 

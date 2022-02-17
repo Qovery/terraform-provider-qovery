@@ -14,7 +14,10 @@ import (
 	"terraform-provider-qovery/qovery/apierror"
 )
 
-const projectAPIResource = "project"
+const (
+	projectAPIResource                    = "project"
+	projectEnvironmentVariableAPIResource = "project environment variable"
+)
 
 type projectResourceType struct{}
 
@@ -42,6 +45,28 @@ func (r projectResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+			},
+			"environment_variables": {
+				Description: "List of environment variables linked to this project.",
+				Optional:    true,
+				Computed:    true,
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Key of the environment variable.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Value of the environment variable.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
 			},
 		},
 	}, nil
@@ -77,8 +102,14 @@ func (r projectResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 		return
 	}
 
+	projectVariables, apiErr := r.updateProjectEnvironmentVariables(ctx, project.Id, plan.EnvironmentVariables)
+	if apiErr != nil {
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
 	// Initialize state values
-	state := convertResponseToProject(project)
+	state := convertResponseToProject(project, projectVariables)
 	tflog.Trace(ctx, "created project", "project_id", state.Id.Value)
 
 	// Set state
@@ -104,8 +135,17 @@ func (r projectResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 		return
 	}
 
+	projectVariables, res, err := r.client.ProjectEnvironmentVariableApi.
+		ListProjectEnvironmentVariable(ctx, project.Id).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := projectEnvironmentVariableReadAPIError(state.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
 	// Refresh state values
-	state = convertResponseToProject(project)
+	state = convertResponseToProject(project, projectVariables)
 	tflog.Trace(ctx, "read project", "project_id", state.Id.Value)
 
 	// Set state
@@ -133,16 +173,14 @@ func (r projectResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 		return
 	}
 
-	toUpdate := Project{
-		Name:        types.String{Value: project.Name},
-		Description: types.String{Null: true},
-	}
-	if project.Description != nil {
-		toUpdate.Description = types.String{Value: *project.Description}
+	projectVariables, apiErr := r.updateProjectEnvironmentVariables(ctx, project.Id, plan.EnvironmentVariables)
+	if apiErr != nil {
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
 	}
 
 	// Update state values
-	state = convertResponseToProject(project)
+	state = convertResponseToProject(project, projectVariables)
 	tflog.Trace(ctx, "updated project", "project_id", state.Id.Value)
 
 	// Set state
@@ -179,6 +217,57 @@ func (r projectResource) ImportState(ctx context.Context, req tfsdk.ImportResour
 	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }
 
+func (r projectResource) updateProjectEnvironmentVariables(ctx context.Context, projectID string, plan []EnvironmentVariable) (*qovery.EnvironmentVariableResponseList, *apierror.APIError) {
+	projectVariables, res, err := r.client.ProjectEnvironmentVariableApi.
+		ListProjectEnvironmentVariable(ctx, projectID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return nil, projectEnvironmentVariableReadAPIError(projectID, res, err)
+	}
+
+	diff := diffEnvironmentVariables(
+		convertResponseToEnvironmentVariables(projectVariables, EnvironmentVariableScopeProject),
+		plan,
+	)
+
+	for _, variable := range diff.ToRemove {
+		res, err := r.client.ProjectEnvironmentVariableApi.
+			DeleteProjectEnvironmentVariable(ctx, projectID, variable.Id.Value).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, projectEnvironmentVariableDeleteAPIError(variable.Id.Value, res, err)
+		}
+	}
+
+	for _, variable := range diff.ToUpdate {
+		_, res, err := r.client.ProjectEnvironmentVariableApi.
+			EditProjectEnvironmentVariable(ctx, projectID, variable.Id.Value).
+			EnvironmentVariableEditRequest(variable.toUpdateRequest()).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, projectEnvironmentVariableUpdateAPIError(variable.Id.Value, res, err)
+		}
+	}
+
+	for _, variable := range diff.ToCreate {
+		_, res, err := r.client.ProjectEnvironmentVariableApi.
+			CreateProjectEnvironmentVariable(ctx, projectID).
+			EnvironmentVariableRequest(variable.toCreateRequest()).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, projectEnvironmentVariableCreateAPIError(variable.Key.Value, res, err)
+		}
+	}
+
+	projectVariables, res, err = r.client.ProjectEnvironmentVariableApi.
+		ListProjectEnvironmentVariable(ctx, projectID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return nil, projectEnvironmentVariableReadAPIError(projectID, res, err)
+	}
+	return projectVariables, nil
+}
+
 func projectCreateAPIError(projectName string, res *http.Response, err error) *apierror.APIError {
 	return apierror.New(projectAPIResource, projectName, apierror.Create, res, err)
 }
@@ -193,4 +282,21 @@ func projectUpdateAPIError(projectID string, res *http.Response, err error) *api
 
 func projectDeleteAPIError(projectID string, res *http.Response, err error) *apierror.APIError {
 	return apierror.New(projectAPIResource, projectID, apierror.Delete, res, err)
+}
+
+// Project Environment Variable
+func projectEnvironmentVariableCreateAPIError(projectID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(projectEnvironmentVariableAPIResource, projectID, apierror.Create, res, err)
+}
+
+func projectEnvironmentVariableReadAPIError(variableID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(projectEnvironmentVariableAPIResource, variableID, apierror.Read, res, err)
+}
+
+func projectEnvironmentVariableUpdateAPIError(variableID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(projectEnvironmentVariableAPIResource, variableID, apierror.Update, res, err)
+}
+
+func projectEnvironmentVariableDeleteAPIError(variableID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(projectEnvironmentVariableAPIResource, variableID, apierror.Delete, res, err)
 }

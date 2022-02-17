@@ -41,6 +41,28 @@ func (t environmentDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 				Type:        types.StringType,
 				Computed:    true,
 			},
+			"environment_variables": {
+				Description: "List of environment variables linked to this environment.",
+				Optional:    true,
+				Computed:    true,
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Key of the environment variable.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Value of the environment variable.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
+			},
 		},
 	}, nil
 }
@@ -74,7 +96,16 @@ func (d environmentDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 		return
 	}
 
-	state := convertResponseToEnvironment(environment)
+	environmentVariables, res, err := d.client.EnvironmentVariableApi.
+		ListEnvironmentEnvironmentVariable(ctx, environment.Id).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := environmentEnvironmentVariableReadAPIError(data.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	state := convertResponseToEnvironment(environment, environmentVariables)
 	tflog.Trace(ctx, "read environment", "environment_id", state.Id.Value)
 
 	// Set state

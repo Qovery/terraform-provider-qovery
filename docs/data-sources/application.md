@@ -34,6 +34,7 @@ data "qovery_application" "my_application" {
 - **description** (String) Description of the application.
 - **dockerfile_path** (String) Dockerfile Path of the application.
 - **environment_id** (String) Id of the environment.
+- **environment_variables** (Attributes List) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
 - **git_repository** (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
 - **max_running_instances** (Number) Maximum number of instances running for the application.
 - **memory** (Number) RAM of the application in MB [1024MB = 1GB].
@@ -42,6 +43,16 @@ data "qovery_application" "my_application" {
 - **ports** (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
 - **state** (String) State of the application.
 - **storage** (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
+
+<a id="nestedatt--environment_variables"></a>
+### Nested Schema for `environment_variables`
+
+Read-Only:
+
+- **id** (String) Id of the environment variable.
+- **key** (String) Key of the environment variable.
+- **value** (String) Value of the environment variable.
+
 
 <a id="nestedatt--git_repository"></a>
 ### Nested Schema for `git_repository`
