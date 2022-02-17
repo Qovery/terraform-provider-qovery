@@ -69,7 +69,16 @@ func (d projectDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceReq
 		return
 	}
 
-	state := convertResponseToProject(project)
+	projectVariables, res, err := d.client.ProjectEnvironmentVariableApi.
+		ListProjectEnvironmentVariable(ctx, project.Id).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := projectEnvironmentVariableReadAPIError(data.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	state := convertResponseToProject(project, projectVariables)
 	tflog.Trace(ctx, "read project", "project_id", state.Id.Value)
 
 	// Set state

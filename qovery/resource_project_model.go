@@ -6,10 +6,11 @@ import (
 )
 
 type Project struct {
-	Id             types.String `tfsdk:"id"`
-	OrganizationId types.String `tfsdk:"organization_id"`
-	Name           types.String `tfsdk:"name"`
-	Description    types.String `tfsdk:"description"`
+	Id                   types.String          `tfsdk:"id"`
+	OrganizationId       types.String          `tfsdk:"organization_id"`
+	Name                 types.String          `tfsdk:"name"`
+	Description          types.String          `tfsdk:"description"`
+	EnvironmentVariables []EnvironmentVariable `tfsdk:"environment_variables"`
 }
 
 func (p Project) toUpsertProjectRequest() qovery.ProjectRequest {
@@ -19,11 +20,12 @@ func (p Project) toUpsertProjectRequest() qovery.ProjectRequest {
 	}
 }
 
-func convertResponseToProject(project *qovery.ProjectResponse) Project {
+func convertResponseToProject(project *qovery.ProjectResponse, variables *qovery.EnvironmentVariableResponseList) Project {
 	return Project{
-		Id:             fromString(project.Id),
-		OrganizationId: fromString(project.Organization.Id),
-		Name:           fromString(project.Name),
-		Description:    fromStringPointer(project.Description),
+		Id:                   fromString(project.Id),
+		OrganizationId:       fromString(project.Organization.Id),
+		Name:                 fromString(project.Name),
+		Description:          fromStringPointer(project.Description),
+		EnvironmentVariables: convertResponseToEnvironmentVariables(variables, EnvironmentVariableScopeProject),
 	}
 }

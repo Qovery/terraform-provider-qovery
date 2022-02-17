@@ -81,10 +81,6 @@ func convertResponseToEnvironmentVariable(v *qovery.EnvironmentVariableResponse)
 }
 
 func convertResponseToEnvironmentVariables(vars *qovery.EnvironmentVariableResponseList, scope EnvironmentVariableScope) []EnvironmentVariable {
-	if len(vars.GetResults()) == 0 {
-		return nil
-	}
-
 	list := make([]EnvironmentVariable, 0, len(vars.GetResults()))
 	for _, v := range vars.GetResults() {
 		if v.Scope != string(scope) {

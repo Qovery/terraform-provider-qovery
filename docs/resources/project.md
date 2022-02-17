@@ -34,10 +34,20 @@ resource "qovery_project" "my_project" {
 ### Optional
 
 - **description** (String) Description of the project.
+- **environment_variables** (Attributes List) List of environment variables linked to this project. (see [below for nested schema](#nestedatt--environment_variables))
 
 ### Read-Only
 
 - **id** (String) Id of the project.
+
+<a id="nestedatt--environment_variables"></a>
+### Nested Schema for `environment_variables`
+
+Optional:
+
+- **id** (String) Id of the environment variable.
+- **key** (String) Key of the environment variable.
+- **value** (String) Value of the environment variable.
 
 ## Import
 
