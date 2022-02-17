@@ -17,7 +17,10 @@ import (
 	"terraform-provider-qovery/qovery/validators"
 )
 
-const environmentAPIResource = "environment"
+const (
+	environmentAPIResource                    = "environment"
+	environmentEnvironmentVariableAPIResource = "environment environment variable"
+)
 
 var (
 	// Environment Mode
@@ -68,6 +71,28 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					validators.StringEnumValidator{Enum: environmentModes},
 				},
 			},
+			"environment_variables": {
+				Description: "List of environment variables linked to this environment.",
+				Optional:    true,
+				Computed:    true,
+				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Key of the environment variable.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Value of the environment variable.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}, tfsdk.ListNestedAttributesOptions{}),
+			},
 		},
 	}, nil
 }
@@ -102,8 +127,14 @@ func (r environmentResource) Create(ctx context.Context, req tfsdk.CreateResourc
 		return
 	}
 
+	environmentVariables, apiErr := r.updateEnvironmentEnvironmentVariables(ctx, environment.Id, plan.EnvironmentVariables)
+	if apiErr != nil {
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
 	// Initialize state values
-	state := convertResponseToEnvironment(environment)
+	state := convertResponseToEnvironment(environment, environmentVariables)
 	tflog.Trace(ctx, "created environment", "environment_id", state.Id.Value)
 
 	// Set state
@@ -129,8 +160,17 @@ func (r environmentResource) Read(ctx context.Context, req tfsdk.ReadResourceReq
 		return
 	}
 
+	environmentVariables, res, err := r.client.EnvironmentVariableApi.
+		ListEnvironmentEnvironmentVariable(ctx, environment.Id).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		apiErr := environmentEnvironmentVariableReadAPIError(state.Id.Value, res, err)
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
 	// Refresh state values
-	state = convertResponseToEnvironment(environment)
+	state = convertResponseToEnvironment(environment, environmentVariables)
 	tflog.Trace(ctx, "read environment", "environment_id", state.Id.Value)
 
 	// Set state
@@ -158,8 +198,14 @@ func (r environmentResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 		return
 	}
 
+	environmentVariables, apiErr := r.updateEnvironmentEnvironmentVariables(ctx, environment.Id, plan.EnvironmentVariables)
+	if apiErr != nil {
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
 	// Update state values
-	state = convertResponseToEnvironment(environment)
+	state = convertResponseToEnvironment(environment, environmentVariables)
 	tflog.Trace(ctx, "updated environment", "environment_id", state.Id.Value)
 
 	// Set state
@@ -196,6 +242,57 @@ func (r environmentResource) ImportState(ctx context.Context, req tfsdk.ImportRe
 	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }
 
+func (r environmentResource) updateEnvironmentEnvironmentVariables(ctx context.Context, environmentID string, plan []EnvironmentVariable) (*qovery.EnvironmentVariableResponseList, *apierror.APIError) {
+	environmentVariables, res, err := r.client.EnvironmentVariableApi.
+		ListEnvironmentEnvironmentVariable(ctx, environmentID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return nil, environmentEnvironmentVariableReadAPIError(environmentID, res, err)
+	}
+
+	diff := diffEnvironmentVariables(
+		convertResponseToEnvironmentVariables(environmentVariables, EnvironmentVariableScopeEnvironment),
+		plan,
+	)
+
+	for _, variable := range diff.ToRemove {
+		res, err := r.client.EnvironmentVariableApi.
+			DeleteEnvironmentEnvironmentVariable(ctx, environmentID, variable.Id.Value).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, environmentEnvironmentVariableDeleteAPIError(variable.Id.Value, res, err)
+		}
+	}
+
+	for _, variable := range diff.ToUpdate {
+		_, res, err := r.client.EnvironmentVariableApi.
+			EditEnvironmentEnvironmentVariable(ctx, environmentID, variable.Id.Value).
+			EnvironmentVariableEditRequest(variable.toUpdateRequest()).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, environmentEnvironmentVariableUpdateAPIError(variable.Id.Value, res, err)
+		}
+	}
+
+	for _, variable := range diff.ToCreate {
+		_, res, err := r.client.EnvironmentVariableApi.
+			CreateEnvironmentEnvironmentVariable(ctx, environmentID).
+			EnvironmentVariableRequest(variable.toCreateRequest()).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, environmentEnvironmentVariableCreateAPIError(variable.Key.Value, res, err)
+		}
+	}
+
+	environmentVariables, res, err = r.client.EnvironmentVariableApi.
+		ListEnvironmentEnvironmentVariable(ctx, environmentID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return nil, environmentEnvironmentVariableReadAPIError(environmentID, res, err)
+	}
+	return environmentVariables, nil
+}
+
 func environmentCreateAPIError(environmentName string, res *http.Response, err error) *apierror.APIError {
 	return apierror.New(environmentAPIResource, environmentName, apierror.Create, res, err)
 }
@@ -210,4 +307,21 @@ func environmentUpdateAPIError(environmentID string, res *http.Response, err err
 
 func environmentDeleteAPIError(environmentID string, res *http.Response, err error) *apierror.APIError {
 	return apierror.New(environmentAPIResource, environmentID, apierror.Delete, res, err)
+}
+
+// Environment Environment Variable
+func environmentEnvironmentVariableCreateAPIError(environmentID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(environmentEnvironmentVariableAPIResource, environmentID, apierror.Create, res, err)
+}
+
+func environmentEnvironmentVariableReadAPIError(variableID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(environmentEnvironmentVariableAPIResource, variableID, apierror.Read, res, err)
+}
+
+func environmentEnvironmentVariableUpdateAPIError(variableID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(environmentEnvironmentVariableAPIResource, variableID, apierror.Update, res, err)
+}
+
+func environmentEnvironmentVariableDeleteAPIError(variableID string, res *http.Response, err error) *apierror.APIError {
+	return apierror.New(environmentEnvironmentVariableAPIResource, variableID, apierror.Delete, res, err)
 }

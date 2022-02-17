@@ -6,11 +6,12 @@ import (
 )
 
 type Environment struct {
-	Id        types.String `tfsdk:"id"`
-	ProjectId types.String `tfsdk:"project_id"`
-	ClusterId types.String `tfsdk:"cluster_id"`
-	Name      types.String `tfsdk:"name"`
-	Mode      types.String `tfsdk:"mode"`
+	Id                   types.String          `tfsdk:"id"`
+	ProjectId            types.String          `tfsdk:"project_id"`
+	ClusterId            types.String          `tfsdk:"cluster_id"`
+	Name                 types.String          `tfsdk:"name"`
+	Mode                 types.String          `tfsdk:"mode"`
+	EnvironmentVariables []EnvironmentVariable `tfsdk:"environment_variables"`
 }
 
 func (e Environment) toCreateEnvironmentRequest() qovery.EnvironmentRequest {
@@ -27,12 +28,13 @@ func (e Environment) toUpdateEnvironmentRequest() qovery.EnvironmentEditRequest 
 	}
 }
 
-func convertResponseToEnvironment(environment *qovery.EnvironmentResponse) Environment {
+func convertResponseToEnvironment(environment *qovery.EnvironmentResponse, variables *qovery.EnvironmentVariableResponseList) Environment {
 	return Environment{
-		Id:        fromString(environment.Id),
-		ProjectId: fromString(environment.Project.Id),
-		ClusterId: fromString(environment.ClusterId),
-		Name:      fromString(environment.Name),
-		Mode:      fromString(environment.Mode),
+		Id:                   fromString(environment.Id),
+		ProjectId:            fromString(environment.Project.Id),
+		ClusterId:            fromString(environment.ClusterId),
+		Name:                 fromString(environment.Name),
+		Mode:                 fromString(environment.Mode),
+		EnvironmentVariables: convertResponseToEnvironmentVariables(variables, EnvironmentVariableScopeEnvironment),
 	}
 }
