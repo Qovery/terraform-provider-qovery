@@ -7,7 +7,7 @@ require (
 	github.com/hashicorp/terraform-plugin-framework v0.5.0
 	github.com/hashicorp/terraform-plugin-go v0.6.0
 	github.com/hashicorp/terraform-plugin-log v0.2.1
-	github.com/qovery/qovery-client-go v0.0.0-20220215113331-729302082fea
+	github.com/qovery/qovery-client-go v0.0.0-20220218132847-39e6ed01e2e0
 )
 
 require (
