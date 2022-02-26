@@ -412,7 +412,8 @@ func (r applicationResource) Create(ctx context.Context, req tfsdk.CreateResourc
 		return
 	}
 
-	applicationStatus, apiErr := r.updateApplicationState(ctx, application, plan)
+	// update environment variables and/or secrets
+	applicationVariables, apiErr := r.updateApplicationEnvironmentVariables(ctx, application, []EnvironmentVariable{}, plan.EnvironmentVariables)
 	if apiErr != nil {
 		res, err := r.client.ApplicationMainCallsApi.
 			DeleteApplication(ctx, application.Id).
@@ -426,7 +427,8 @@ func (r applicationResource) Create(ctx context.Context, req tfsdk.CreateResourc
 		return
 	}
 
-	applicationVariables, apiErr := r.updateApplicationEnvironmentVariables(ctx, application, []EnvironmentVariable{}, plan.EnvironmentVariables)
+	// set application state
+	applicationStatus, apiErr := r.updateApplicationState(ctx, application, Application{}, plan)
 	if apiErr != nil {
 		res, err := r.client.ApplicationMainCallsApi.
 			DeleteApplication(ctx, application.Id).
@@ -505,12 +507,7 @@ func (r applicationResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 		return
 	}
 
-	applicationStatus, apiErr := r.updateApplicationState(ctx, application, plan)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
+	// update environment variables and/or secrets
 	applicationVariables, apiErr := r.updateApplicationEnvironmentVariables(ctx, application, state.EnvironmentVariables, plan.EnvironmentVariables)
 	if apiErr != nil {
 		res, err := r.client.ApplicationMainCallsApi.
@@ -521,6 +518,13 @@ func (r applicationResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 			resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 			return
 		}
+		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		return
+	}
+
+	// set application state
+	applicationStatus, apiErr := r.updateApplicationState(ctx, application, state, plan)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -596,7 +600,7 @@ func (r applicationResource) updateApplicationEnvironmentVariables(ctx context.C
 	return variables, nil
 }
 
-func (r applicationResource) updateApplicationState(ctx context.Context, application *qovery.ApplicationResponse, plan Application) (*qovery.Status, *apierror.APIError) {
+func (r applicationResource) updateApplicationState(ctx context.Context, application *qovery.ApplicationResponse, state Application, plan Application) (*qovery.Status, *apierror.APIError) {
 	applicationStatus, res, err := r.client.ApplicationMainCallsApi.
 		GetApplicationStatus(ctx, application.Id).
 		Execute()
@@ -609,8 +613,15 @@ func (r applicationResource) updateApplicationState(ctx context.Context, applica
 	}
 
 	if plan.State.Value == applicationStateStopped && applicationStatus.State != applicationStateStopped {
-		return r.stopApplication(ctx, application.Id, applicationStatus.State)
+		return r.stopApplication(ctx, application.Id, applicationStatus)
 	}
+
+	diff := diffEnvironmentVariables(state.EnvironmentVariables, plan.EnvironmentVariables)
+	if len(diff.ToUpdate) > 0 || len(diff.ToCreate) > 0 || len(diff.ToRemove) > 0 {
+		// environment variables / secrets have been modified, and we need to restart the application
+		return r.restartApplication(ctx, application.Id, applicationStatus)
+	}
+
 	return applicationStatus, nil
 }
 
@@ -661,9 +672,9 @@ func (r applicationResource) deployApplication(ctx context.Context, application 
 	}
 }
 
-func (r applicationResource) stopApplication(ctx context.Context, applicationID string, currentStatus string) (*qovery.Status, *apierror.APIError) {
+func (r applicationResource) stopApplication(ctx context.Context, applicationID string, status *qovery.Status) (*qovery.Status, *apierror.APIError) {
 	// Stop application
-	switch currentStatus {
+	switch status.State {
 	case "QUEUED", "STOPPING":
 		tflog.Trace(ctx, "application is already being stopped", "application_id", applicationID)
 	default:
@@ -692,6 +703,44 @@ func (r applicationResource) stopApplication(ctx context.Context, applicationID 
 				return nil, applicationStatusReadAPIError(applicationID, res, err)
 			}
 			if status.State == applicationStateStopped {
+				return status, nil
+			}
+		}
+	}
+}
+
+func (r applicationResource) restartApplication(ctx context.Context, applicationID string, status *qovery.Status) (*qovery.Status, *apierror.APIError) {
+	// Restart application
+	switch status.State {
+	case "QUEUED", "DEPLOYING":
+		// FIXME wait until the previous deployment is done - ensure that the next deployment has been well scheduled
+		tflog.Trace(ctx, "application deployment in progress", "application_id", applicationID)
+	default:
+		_, res, err := r.client.ApplicationActionsApi.
+			RestartApplication(ctx, applicationID).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, applicationStopAPIError(applicationID, res, err)
+		}
+	}
+
+	ticker := time.NewTicker(10 * time.Second)
+	timeout := time.NewTicker(30 * time.Minute)
+	for {
+		select {
+		case <-timeout.C:
+			_, res, err := r.client.ApplicationMainCallsApi.
+				GetApplicationStatus(ctx, applicationID).
+				Execute()
+			return nil, applicationDeployAPIError(applicationID, res, err)
+		case <-ticker.C:
+			status, res, err := r.client.ApplicationMainCallsApi.
+				GetApplicationStatus(ctx, applicationID).
+				Execute()
+			if err != nil || res.StatusCode >= 400 {
+				return nil, applicationStatusReadAPIError(applicationID, res, err)
+			}
+			if status.State == applicationStateRunning {
 				return status, nil
 			}
 		}
