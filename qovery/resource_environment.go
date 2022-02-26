@@ -204,6 +204,8 @@ func (r environmentResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 		return
 	}
 
+	// TODO restart the whole environment if env vars have been changed
+
 	// Update state values
 	state = convertResponseToEnvironment(environment, environmentVariables)
 	tflog.Trace(ctx, "updated environment", "environment_id", state.Id.Value)
