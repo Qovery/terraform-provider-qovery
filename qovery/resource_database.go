@@ -294,6 +294,8 @@ func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRe
 		return
 	}
 
+	// FIXME restart the database if the configuration has changed
+
 	// Update state values
 	state = convertResponseToDatabase(database, databaseStatus)
 	tflog.Trace(ctx, "updated database", "database_id", state.Id.Value)
@@ -347,10 +349,30 @@ func (r databaseResource) updateDatabaseState(ctx context.Context, database *qov
 	if plan.State.Value == databaseStateStopped && databaseStatus.State != databaseStateStopped {
 		return r.stopDatabase(ctx, database.Id, databaseStatus.State)
 	}
+
+	// FIXME restart the database if the configuration has changed
+
 	return nil, databaseStatusReadAPIError(database.Id, res, err)
 }
 
 func (r databaseResource) deployDatabase(ctx context.Context, databaseID string, currentStatus string) (*qovery.Status, *apierror.APIError) {
+	// wait until we can deploy the DB - otherwise it will fail
+	err := Wait(func() (bool, *apierror.APIError) {
+		status, res, err := r.client.DatabaseMainCallsApi.
+			GetDatabaseStatus(ctx, databaseID).
+			Execute()
+
+		if err != nil || res.StatusCode >= 400 {
+			return false, databaseDeployAPIError(databaseID, res, err)
+		}
+
+		return IsFinalState(status.State), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	// Deploy database
 	switch currentStatus {
 	case "QUEUED", "DEPLOYING":
@@ -396,6 +418,23 @@ func (r databaseResource) deployDatabase(ctx context.Context, databaseID string,
 }
 
 func (r databaseResource) stopDatabase(ctx context.Context, databaseID string, currentStatus string) (*qovery.Status, *apierror.APIError) {
+	// wait until we can stop the DB - otherwise it will fail
+	err := Wait(func() (bool, *apierror.APIError) {
+		status, res, err := r.client.DatabaseMainCallsApi.
+			GetDatabaseStatus(ctx, databaseID).
+			Execute()
+
+		if err != nil || res.StatusCode >= 400 {
+			return false, databaseStopAPIError(databaseID, res, err)
+		}
+
+		return IsFinalState(status.State), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	// Stop database
 	switch currentStatus {
 	case "QUEUED", "STOPPING":
@@ -417,7 +456,7 @@ func (r databaseResource) stopDatabase(ctx context.Context, databaseID string, c
 			_, res, err := r.client.DatabaseMainCallsApi.
 				GetDatabaseStatus(ctx, databaseID).
 				Execute()
-			return nil, databaseDeployAPIError(databaseID, res, err)
+			return nil, databaseStopAPIError(databaseID, res, err)
 		case <-ticker.C:
 			status, res, err := r.client.DatabaseMainCallsApi.
 				GetDatabaseStatus(ctx, databaseID).

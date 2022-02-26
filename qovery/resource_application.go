@@ -622,10 +622,29 @@ func (r applicationResource) updateApplicationState(ctx context.Context, applica
 		return r.restartApplication(ctx, application.Id, applicationStatus)
 	}
 
+	// FIXME restart the application if the configuration has changed
+
 	return applicationStatus, nil
 }
 
 func (r applicationResource) deployApplication(ctx context.Context, application *qovery.ApplicationResponse, status *qovery.Status) (*qovery.Status, *apierror.APIError) {
+	// wait until we can deploy the application - otherwise it will fail
+	err := Wait(func() (bool, *apierror.APIError) {
+		status, res, err := r.client.ApplicationMainCallsApi.
+			GetApplicationStatus(ctx, application.Id).
+			Execute()
+
+		if err != nil || res.StatusCode >= 400 {
+			return false, applicationDeployAPIError(application.Id, res, err)
+		}
+
+		return IsFinalState(status.State), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	// Deploy application
 	switch status.State {
 	case "QUEUED", "DEPLOYING":
@@ -673,6 +692,23 @@ func (r applicationResource) deployApplication(ctx context.Context, application 
 }
 
 func (r applicationResource) stopApplication(ctx context.Context, applicationID string, status *qovery.Status) (*qovery.Status, *apierror.APIError) {
+	// wait until we can stop the application - otherwise it will fail
+	err := Wait(func() (bool, *apierror.APIError) {
+		status, res, err := r.client.ApplicationMainCallsApi.
+			GetApplicationStatus(ctx, applicationID).
+			Execute()
+
+		if err != nil || res.StatusCode >= 400 {
+			return false, applicationStopAPIError(applicationID, res, err)
+		}
+
+		return IsFinalState(status.State), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	// Stop application
 	switch status.State {
 	case "QUEUED", "STOPPING":
@@ -710,6 +746,23 @@ func (r applicationResource) stopApplication(ctx context.Context, applicationID 
 }
 
 func (r applicationResource) restartApplication(ctx context.Context, applicationID string, status *qovery.Status) (*qovery.Status, *apierror.APIError) {
+	// wait until we can restart the application - otherwise it will fail
+	err := Wait(func() (bool, *apierror.APIError) {
+		status, res, err := r.client.ApplicationMainCallsApi.
+			GetApplicationStatus(ctx, applicationID).
+			Execute()
+
+		if err != nil || res.StatusCode >= 400 {
+			return false, applicationRestartAPIError(applicationID, res, err)
+		}
+
+		return IsFinalState(status.State), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	// Restart application
 	switch status.State {
 	case "QUEUED", "DEPLOYING":
