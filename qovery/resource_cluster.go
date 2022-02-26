@@ -439,7 +439,7 @@ func (r clusterResource) deployCluster(ctx context.Context, organizationID strin
 			if err != nil || res.StatusCode >= 400 {
 				return clusterStatusReadAPIError(clusterID, res, err)
 			}
-			if *status.IsDeployed {
+			if *status.IsDeployed || IsStatusError(status.GetStatus()) {
 				return nil
 			}
 		}
@@ -469,7 +469,7 @@ func (r clusterResource) stopCluster(ctx context.Context, organizationID string,
 			if err != nil || res.StatusCode >= 400 {
 				return clusterStatusReadAPIError(clusterID, res, err)
 			}
-			if *status.Status == clusterStateStopped {
+			if *status.Status == clusterStateStopped || IsStatusError(status.GetStatus()) {
 				return nil
 			}
 		}

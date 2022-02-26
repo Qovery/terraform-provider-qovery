@@ -387,7 +387,7 @@ func (r databaseResource) deployDatabase(ctx context.Context, databaseID string,
 			if err != nil || res.StatusCode >= 400 {
 				return nil, databaseStatusReadAPIError(databaseID, res, err)
 			}
-			if status.State == databaseStateRunning {
+			if status.State == databaseStateRunning || IsStatusError(status.State) {
 				tflog.Trace(ctx, "deployed database", "database_id", databaseID)
 				return status, nil
 			}
@@ -425,7 +425,7 @@ func (r databaseResource) stopDatabase(ctx context.Context, databaseID string, c
 			if err != nil || res.StatusCode >= 400 {
 				return nil, databaseStatusReadAPIError(databaseID, res, err)
 			}
-			if status.State == databaseStateStopped {
+			if status.State == databaseStateStopped || IsStatusError(status.State) {
 				tflog.Trace(ctx, "stopped database", "database_id", databaseID)
 				return status, nil
 			}

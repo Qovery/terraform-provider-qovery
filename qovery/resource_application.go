@@ -665,7 +665,7 @@ func (r applicationResource) deployApplication(ctx context.Context, application 
 			if err != nil || res.StatusCode >= 400 {
 				return nil, applicationStatusReadAPIError(application.Id, res, err)
 			}
-			if status.State == applicationStateRunning {
+			if status.State == applicationStateRunning || IsStatusError(status.State) {
 				return status, nil
 			}
 		}
@@ -702,7 +702,7 @@ func (r applicationResource) stopApplication(ctx context.Context, applicationID 
 			if err != nil || res.StatusCode >= 400 {
 				return nil, applicationStatusReadAPIError(applicationID, res, err)
 			}
-			if status.State == applicationStateStopped {
+			if status.State == applicationStateStopped || IsStatusError(status.State) {
 				return status, nil
 			}
 		}
@@ -740,7 +740,7 @@ func (r applicationResource) restartApplication(ctx context.Context, application
 			if err != nil || res.StatusCode >= 400 {
 				return nil, applicationStatusReadAPIError(applicationID, res, err)
 			}
-			if status.State == applicationStateRunning {
+			if status.State == applicationStateRunning || IsStatusError(status.State) {
 				return status, nil
 			}
 		}
