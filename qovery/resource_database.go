@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
-	"terraform-provider-qovery/qovery/apierror"
+	"terraform-provider-qovery/client/apierrors"
 	"terraform-provider-qovery/qovery/descriptions"
 	"terraform-provider-qovery/qovery/modifiers"
 	"terraform-provider-qovery/qovery/validators"
@@ -334,7 +334,7 @@ func (r databaseResource) ImportState(ctx context.Context, req tfsdk.ImportResou
 	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }
 
-func (r databaseResource) updateDatabaseState(ctx context.Context, database *qovery.DatabaseResponse, plan Database) (*qovery.Status, *apierror.APIError) {
+func (r databaseResource) updateDatabaseState(ctx context.Context, database *qovery.DatabaseResponse, plan Database) (*qovery.Status, *apierrors.APIError) {
 	databaseStatus, res, err := r.client.DatabaseMainCallsApi.
 		GetDatabaseStatus(ctx, database.Id).
 		Execute()
@@ -355,9 +355,9 @@ func (r databaseResource) updateDatabaseState(ctx context.Context, database *qov
 	return nil, databaseStatusReadAPIError(database.Id, res, err)
 }
 
-func (r databaseResource) deployDatabase(ctx context.Context, databaseID string, currentStatus string) (*qovery.Status, *apierror.APIError) {
+func (r databaseResource) deployDatabase(ctx context.Context, databaseID string, currentStatus string) (*qovery.Status, *apierrors.APIError) {
 	// wait until we can deploy the DB - otherwise it will fail
-	err := Wait(func() (bool, *apierror.APIError) {
+	err := Wait(func() (bool, *apierrors.APIError) {
 		status, res, err := r.client.DatabaseMainCallsApi.
 			GetDatabaseStatus(ctx, databaseID).
 			Execute()
@@ -417,9 +417,9 @@ func (r databaseResource) deployDatabase(ctx context.Context, databaseID string,
 	}
 }
 
-func (r databaseResource) stopDatabase(ctx context.Context, databaseID string, currentStatus string) (*qovery.Status, *apierror.APIError) {
+func (r databaseResource) stopDatabase(ctx context.Context, databaseID string, currentStatus string) (*qovery.Status, *apierrors.APIError) {
 	// wait until we can stop the DB - otherwise it will fail
-	err := Wait(func() (bool, *apierror.APIError) {
+	err := Wait(func() (bool, *apierrors.APIError) {
 		status, res, err := r.client.DatabaseMainCallsApi.
 			GetDatabaseStatus(ctx, databaseID).
 			Execute()
@@ -472,34 +472,34 @@ func (r databaseResource) stopDatabase(ctx context.Context, databaseID string, c
 	}
 }
 
-func databaseCreateAPIError(databaseName string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(databaseAPIResource, databaseName, apierror.Create, res, err)
+func databaseCreateAPIError(databaseName string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionCreate, databaseAPIResource, databaseName, res, err)
 }
 
-func databaseReadAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(databaseAPIResource, databaseID, apierror.Read, res, err)
+func databaseReadAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionRead, databaseAPIResource, databaseID, res, err)
 }
 
-func databaseUpdateAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(databaseAPIResource, databaseID, apierror.Update, res, err)
+func databaseUpdateAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionUpdate, databaseAPIResource, databaseID, res, err)
 }
 
-func databaseDeleteAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(databaseAPIResource, databaseID, apierror.Delete, res, err)
+func databaseDeleteAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionDelete, databaseAPIResource, databaseID, res, err)
 }
 
-func databaseDeployAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(databaseAPIResource, databaseID, apierror.Deploy, res, err)
+func databaseDeployAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionDeploy, databaseAPIResource, databaseID, res, err)
 }
 
-func databaseStopAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(databaseAPIResource, databaseID, apierror.Stop, res, err)
+func databaseStopAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionStop, databaseAPIResource, databaseID, res, err)
 }
 
-func databaseRestartAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(databaseAPIResource, databaseID, apierror.Restart, res, err)
+func databaseRestartAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionRestart, databaseAPIResource, databaseID, res, err)
 }
 
-func databaseStatusReadAPIError(databaseID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(databaseStatusAPIResource, databaseID, apierror.Read, res, err)
+func databaseStatusReadAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionRead, databaseStatusAPIResource, databaseID, res, err)
 }

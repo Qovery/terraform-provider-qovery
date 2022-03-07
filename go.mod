@@ -1,13 +1,13 @@
 module terraform-provider-qovery
 
-go 1.17
+go 1.18
 
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.5.1
 	github.com/hashicorp/terraform-plugin-framework v0.5.0
 	github.com/hashicorp/terraform-plugin-go v0.6.0
 	github.com/hashicorp/terraform-plugin-log v0.2.1
-	github.com/qovery/qovery-client-go v0.0.0-20220218132847-39e6ed01e2e0
+	github.com/qovery/qovery-client-go v0.0.0-20220302171944-a84024a596ce
 )
 
 require (
@@ -64,8 +64,8 @@ require (
 	golang.org/x/crypto v0.0.0-20210616213533-5ff15b29337e // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/mod v0.3.0 // indirect
-	golang.org/x/net v0.0.0-20220127200216-cd36cc0744dd // indirect
-	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
+	golang.org/x/net v0.0.0-20220225172249-27dd8689420f // indirect
+	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
 	golang.org/x/sys v0.0.0-20211216021012-1d35b9e2eb4e // indirect
 	golang.org/x/text v0.3.7 // indirect
 	golang.org/x/tools v0.0.0-20201028111035-eafbe7b904eb // indirect

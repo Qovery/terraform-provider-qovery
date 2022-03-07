@@ -7,7 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
+
+	"terraform-provider-qovery/client"
 )
 
 type organizationDataSourceType struct{}
@@ -42,12 +43,12 @@ func (t organizationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, 
 
 func (t organizationDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return organizationDataSource{
-		client: p.(*provider).GetClient(),
+		client: p.(*provider).apiClient,
 	}, nil
 }
 
 type organizationDataSource struct {
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // Read qovery organization data source
@@ -60,11 +61,8 @@ func (d organizationDataSource) Read(ctx context.Context, req tfsdk.ReadDataSour
 	}
 
 	// Get organization from API
-	organization, res, err := d.client.OrganizationMainCallsApi.
-		GetOrganization(ctx, data.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := organizationReadAPIError(data.Id.Value, res, err)
+	organization, apiErr := d.client.GetOrganization(ctx, data.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}

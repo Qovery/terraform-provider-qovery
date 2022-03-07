@@ -7,7 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
+
+	"terraform-provider-qovery/client"
 )
 
 type projectDataSourceType struct{}
@@ -64,12 +65,12 @@ func (t projectDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 
 func (t projectDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return projectDataSource{
-		client: p.(*provider).GetClient(),
+		apiClient: p.(*provider).apiClient,
 	}, nil
 }
 
 type projectDataSource struct {
-	client *qovery.APIClient
+	apiClient *client.Client
 }
 
 // Read qovery project data source
@@ -82,25 +83,13 @@ func (d projectDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceReq
 	}
 
 	// Get project from API
-	project, res, err := d.client.ProjectMainCallsApi.
-		GetProject(ctx, data.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := projectReadAPIError(data.Id.Value, res, err)
+	project, apiErr := d.apiClient.GetProject(ctx, data.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	projectVariables, res, err := d.client.ProjectEnvironmentVariableApi.
-		ListProjectEnvironmentVariable(ctx, project.Id).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := projectEnvironmentVariableReadAPIError(data.Id.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	state := convertResponseToProject(project, projectVariables)
+	state := convertResponseToProject(project)
 	tflog.Trace(ctx, "read project", "project_id", state.Id.Value)
 
 	// Set state

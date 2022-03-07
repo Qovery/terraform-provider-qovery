@@ -6,7 +6,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/qovery/qovery-client-go"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
+	"terraform-provider-qovery/client"
 )
 
 type scalewayCredentialsDataSourceType struct{}
@@ -36,12 +38,12 @@ func (t scalewayCredentialsDataSourceType) GetSchema(_ context.Context) (tfsdk.S
 
 func (t scalewayCredentialsDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return scalewayCredentialsDataSource{
-		client: p.(*provider).GetClient(),
+		client: p.(*provider).apiClient,
 	}, nil
 }
 
 type scalewayCredentialsDataSource struct {
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // Read qovery scalewayCredentials data source
@@ -54,33 +56,14 @@ func (d scalewayCredentialsDataSource) Read(ctx context.Context, req tfsdk.ReadD
 	}
 
 	// Get credentials from API
-	credentials, res, err := d.client.CloudProviderCredentialsApi.
-		ListScalewayCredentials(ctx, data.OrganizationId.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := scalewayCredentialsReadAPIError(data.Id.Value, res, err)
+	credentials, apiErr := d.client.GetScalewayCredentials(ctx, data.OrganizationId.Value, data.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	var state ScalewayCredentialsDataSource
-	found := false
-	for _, creds := range credentials.GetResults() {
-		if data.Id.Value == *creds.Id {
-			found = true
-			state = convertResponseToScalewayCredentialsDataSource(&creds, data)
-			break
-		}
-	}
-
-	// If credential id is not in list
-	// Returning Not Found error
-	if !found {
-		res.StatusCode = 404
-		apiErr := scalewayCredentialsReadAPIError(state.Id.Value, res, nil)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
+	state := convertResponseToScalewayCredentialsDataSource(credentials, data)
+	tflog.Trace(ctx, "read scaleway credentials", "credentials_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

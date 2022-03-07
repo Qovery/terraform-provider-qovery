@@ -14,7 +14,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
-	"terraform-provider-qovery/qovery/apierror"
+	"terraform-provider-qovery/client/apierrors"
 	"terraform-provider-qovery/qovery/descriptions"
 	"terraform-provider-qovery/qovery/modifiers"
 	"terraform-provider-qovery/qovery/validators"
@@ -416,7 +416,7 @@ func (r clusterResource) ImportState(ctx context.Context, req tfsdk.ImportResour
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("organization_id"), idParts[1])...)
 }
 
-func (r clusterResource) deployCluster(ctx context.Context, organizationID string, clusterID string) *apierror.APIError {
+func (r clusterResource) deployCluster(ctx context.Context, organizationID string, clusterID string) *apierrors.APIError {
 	// Deploy cluster
 	r.client.GetConfig().AddDefaultHeader("content-type", "application/json")
 	_, res, err := r.client.ClustersApi.
@@ -446,7 +446,7 @@ func (r clusterResource) deployCluster(ctx context.Context, organizationID strin
 	}
 }
 
-func (r clusterResource) stopCluster(ctx context.Context, organizationID string, clusterID string) *apierror.APIError {
+func (r clusterResource) stopCluster(ctx context.Context, organizationID string, clusterID string) *apierrors.APIError {
 	// Stop cluster
 	r.client.GetConfig().AddDefaultHeader("content-type", "application/json")
 	_, res, err := r.client.ClustersApi.
@@ -476,38 +476,38 @@ func (r clusterResource) stopCluster(ctx context.Context, organizationID string,
 	}
 }
 
-func clusterCreateAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(clusterAPIResource, clusterID, apierror.Create, res, err)
+func clusterCreateAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionCreate, clusterAPIResource, clusterID, res, err)
 }
 
-func clusterReadAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(clusterAPIResource, clusterID, apierror.Read, res, err)
+func clusterReadAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionRead, clusterAPIResource, clusterID, res, err)
 }
 
-func clusterUpdateAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(clusterAPIResource, clusterID, apierror.Update, res, err)
+func clusterUpdateAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionUpdate, clusterAPIResource, clusterID, res, err)
 }
 
-func clusterDeleteAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(clusterAPIResource, clusterID, apierror.Delete, res, err)
+func clusterDeleteAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionDelete, clusterAPIResource, clusterID, res, err)
 }
 
-func clusterDeployAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(clusterAPIResource, clusterID, apierror.Deploy, res, err)
+func clusterDeployAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionDeploy, clusterAPIResource, clusterID, res, err)
 }
 
-func clusterStatusReadAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(clusterStatusAPIResource, clusterID, apierror.Read, res, err)
+func clusterStatusReadAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionRead, clusterStatusAPIResource, clusterID, res, err)
 }
 
-func cloudProviderCreateAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(cloudProviderAPIResource, clusterID, apierror.Create, res, err)
+func cloudProviderCreateAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionCreate, cloudProviderAPIResource, clusterID, res, err)
 }
 
-func cloudProviderUpdateAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(cloudProviderAPIResource, clusterID, apierror.Update, res, err)
+func cloudProviderUpdateAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionUpdate, cloudProviderAPIResource, clusterID, res, err)
 }
 
-func cloudProviderReadAPIError(clusterID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(cloudProviderAPIResource, clusterID, apierror.Read, res, err)
+func cloudProviderReadAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
+	return apierrors.NewError(apierrors.APIActionRead, cloudProviderAPIResource, clusterID, res, err)
 }
