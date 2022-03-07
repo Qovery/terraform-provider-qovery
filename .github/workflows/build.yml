@@ -11,7 +11,7 @@
 #
 name: "Build"
 
-on: [push, pull_request]
+on: [push]
 
 jobs:
   build:
@@ -27,3 +27,27 @@ jobs:
 
       - name: Build
         run: go build .
+
+  check-documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: 1.17
+
+      - name: Check out source code
+        uses: actions/checkout@v3
+
+      - name: Generate documentation
+        run: go generate
+
+      - name: Check if there are changes
+        id: changes
+        uses: UnicornGlobal/has-changes-action@v1.0.11
+
+      - name: Process changes
+        if: steps.changes.outputs.changed == 1
+        run: |
+          echo "Documentation is not up to date"
+          exit 1
