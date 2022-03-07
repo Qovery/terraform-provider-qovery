@@ -28,7 +28,7 @@ func (c *Client) CreateProject(ctx context.Context, organizationID string, param
 	}
 
 	if !params.EnvironmentVariablesDiff.IsEmpty() {
-		if _, apiErr := c.updateProjectEnvironmentVariables(ctx, project.Id, params.EnvironmentVariablesDiff); apiErr != nil {
+		if apiErr := c.updateProjectEnvironmentVariables(ctx, project.Id, params.EnvironmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}
@@ -73,7 +73,7 @@ func (c *Client) UpdateProject(ctx context.Context, projectID string, params Pro
 	}
 
 	if !params.EnvironmentVariablesDiff.IsEmpty() {
-		if _, apiErr := c.updateProjectEnvironmentVariables(ctx, project.Id, params.EnvironmentVariablesDiff); apiErr != nil {
+		if apiErr := c.updateProjectEnvironmentVariables(ctx, project.Id, params.EnvironmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}

@@ -18,38 +18,34 @@ func (c *Client) GetApplicationEnvironmentVariables(ctx context.Context, applica
 	return environmentVariableResponseListToArray(applicationVariables, EnvironmentVariableScopeApplication), nil
 }
 
-func (c *Client) updateApplicationEnvironmentVariables(ctx context.Context, applicationID string, request EnvironmentVariablesDiff) ([]*qovery.EnvironmentVariableResponse, *apierrors.APIError) {
-	variables := make([]*qovery.EnvironmentVariableResponse, 0, len(request.Create)+len(request.Update))
-
+func (c *Client) updateApplicationEnvironmentVariables(ctx context.Context, applicationID string, request EnvironmentVariablesDiff) *apierrors.APIError {
 	for _, variable := range request.Delete {
 		res, err := c.api.ApplicationEnvironmentVariableApi.
 			DeleteApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
-			return nil, apierrors.NewDeleteError(apierrors.APIResourceApplicationEnvironmentVariable, variable.Id, res, err)
+			return apierrors.NewDeleteError(apierrors.APIResourceApplicationEnvironmentVariable, variable.Id, res, err)
 		}
 	}
 
 	for _, variable := range request.Update {
-		v, res, err := c.api.ApplicationEnvironmentVariableApi.
+		_, res, err := c.api.ApplicationEnvironmentVariableApi.
 			EditApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			EnvironmentVariableEditRequest(variable.EnvironmentVariableEditRequest).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
-			return nil, apierrors.NewUpdateError(apierrors.APIResourceApplicationEnvironmentVariable, variable.Id, res, err)
+			return apierrors.NewUpdateError(apierrors.APIResourceApplicationEnvironmentVariable, variable.Id, res, err)
 		}
-		variables = append(variables, v)
 	}
 
 	for _, variable := range request.Create {
-		v, res, err := c.api.ApplicationEnvironmentVariableApi.
+		_, res, err := c.api.ApplicationEnvironmentVariableApi.
 			CreateApplicationEnvironmentVariable(ctx, applicationID).
 			EnvironmentVariableRequest(variable.EnvironmentVariableRequest).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
-			return nil, apierrors.NewCreateError(apierrors.APIResourceApplicationEnvironmentVariable, variable.Key, res, err)
+			return apierrors.NewCreateError(apierrors.APIResourceApplicationEnvironmentVariable, variable.Key, res, err)
 		}
-		variables = append(variables, v)
 	}
-	return variables, nil
+	return nil
 }

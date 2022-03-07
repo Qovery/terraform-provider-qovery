@@ -65,12 +65,12 @@ func (t projectDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 
 func (t projectDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return projectDataSource{
-		apiClient: p.(*provider).apiClient,
+		client: p.(*provider).apiClient,
 	}, nil
 }
 
 type projectDataSource struct {
-	apiClient *client.Client
+	client *client.Client
 }
 
 // Read qovery project data source
@@ -83,7 +83,7 @@ func (d projectDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceReq
 	}
 
 	// Get project from API
-	project, apiErr := d.apiClient.GetProject(ctx, data.Id.Value)
+	project, apiErr := d.client.GetProject(ctx, data.Id.Value)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return

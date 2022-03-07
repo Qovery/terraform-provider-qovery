@@ -67,12 +67,12 @@ func (r projectResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 
 func (r projectResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return projectResource{
-		apiClient: p.(*provider).apiClient,
+		client: p.(*provider).apiClient,
 	}, nil
 }
 
 type projectResource struct {
-	apiClient *client.Client
+	client *client.Client
 }
 
 // Create qovery project resource
@@ -86,7 +86,7 @@ func (r projectResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 
 	// Create new project
 
-	project, apiErr := r.apiClient.CreateProject(ctx, plan.OrganizationId.Value, plan.toCreateProjectRequest())
+	project, apiErr := r.client.CreateProject(ctx, plan.OrganizationId.Value, plan.toCreateProjectRequest())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -110,7 +110,7 @@ func (r projectResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 	}
 
 	// Get project from the API
-	project, apiErr := r.apiClient.GetProject(ctx, state.Id.Value)
+	project, apiErr := r.client.GetProject(ctx, state.Id.Value)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -135,7 +135,7 @@ func (r projectResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 
 	// Update project in the backend
-	project, apiErr := r.apiClient.UpdateProject(ctx, state.Id.Value, plan.toUpdateProjectRequest(state))
+	project, apiErr := r.client.UpdateProject(ctx, state.Id.Value, plan.toUpdateProjectRequest(state))
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -159,7 +159,7 @@ func (r projectResource) Delete(ctx context.Context, req tfsdk.DeleteResourceReq
 	}
 
 	// Delete project
-	apiErr := r.apiClient.DeleteProject(ctx, state.Id.Value)
+	apiErr := r.client.DeleteProject(ctx, state.Id.Value)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return

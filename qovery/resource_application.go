@@ -377,14 +377,12 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 
 func (r applicationResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return applicationResource{
-		client:    p.(*provider).GetClient(),
-		apiClient: p.(*provider).apiClient,
+		client: p.(*provider).apiClient,
 	}, nil
 }
 
 type applicationResource struct {
-	client    *qovery.APIClient
-	apiClient *client.Client
+	client *client.Client
 }
 
 // Create qovery application resource
@@ -397,7 +395,7 @@ func (r applicationResource) Create(ctx context.Context, req tfsdk.CreateResourc
 	}
 
 	// Create new application
-	application, apiErr := r.apiClient.CreateApplication(ctx, toString(plan.EnvironmentId), plan.toCreateApplicationRequest())
+	application, apiErr := r.client.CreateApplication(ctx, toString(plan.EnvironmentId), plan.toCreateApplicationRequest())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -421,7 +419,7 @@ func (r applicationResource) Read(ctx context.Context, req tfsdk.ReadResourceReq
 	}
 
 	// Get application from the API
-	application, apiErr := r.apiClient.GetApplication(ctx, state.Id.Value)
+	application, apiErr := r.client.GetApplication(ctx, state.Id.Value)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -446,7 +444,7 @@ func (r applicationResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 	}
 
 	// Update application in the backend
-	application, apiErr := r.apiClient.UpdateApplication(ctx, state.Id.Value, plan.toUpdateApplicationRequest(state))
+	application, apiErr := r.client.UpdateApplication(ctx, state.Id.Value, plan.toUpdateApplicationRequest(state))
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -470,7 +468,7 @@ func (r applicationResource) Delete(ctx context.Context, req tfsdk.DeleteResourc
 	}
 
 	// Delete application
-	apiErr := r.apiClient.DeleteApplication(ctx, state.Id.Value)
+	apiErr := r.client.DeleteApplication(ctx, state.Id.Value)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return

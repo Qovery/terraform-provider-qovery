@@ -33,7 +33,7 @@ func (c *Client) CreateEnvironment(ctx context.Context, projectID string, params
 	}
 
 	if !params.EnvironmentVariablesDiff.IsEmpty() {
-		if _, apiErr := c.updateEnvironmentEnvironmentVariables(ctx, environment.Id, params.EnvironmentVariablesDiff); apiErr != nil {
+		if apiErr := c.updateEnvironmentEnvironmentVariables(ctx, environment.Id, params.EnvironmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}
@@ -78,7 +78,7 @@ func (c *Client) UpdateEnvironment(ctx context.Context, environmentID string, pa
 	}
 
 	if !params.EnvironmentVariablesDiff.IsEmpty() {
-		if _, apiErr := c.updateEnvironmentEnvironmentVariables(ctx, environment.Id, params.EnvironmentVariablesDiff); apiErr != nil {
+		if apiErr := c.updateEnvironmentEnvironmentVariables(ctx, environment.Id, params.EnvironmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}

@@ -192,12 +192,12 @@ func (t applicationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 
 func (t applicationDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return applicationDataSource{
-		apiClient: p.(*provider).apiClient,
+		client: p.(*provider).apiClient,
 	}, nil
 }
 
 type applicationDataSource struct {
-	apiClient *client.Client
+	client *client.Client
 }
 
 // Read qovery application data source
@@ -210,7 +210,7 @@ func (d applicationDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 	}
 
 	// Get application from API
-	application, apiErr := d.apiClient.GetApplication(ctx, data.Id.Value)
+	application, apiErr := d.client.GetApplication(ctx, data.Id.Value)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return

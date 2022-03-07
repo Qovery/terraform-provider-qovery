@@ -92,12 +92,12 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 
 func (r environmentResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return environmentResource{
-		apiClient: p.(*provider).apiClient,
+		client: p.(*provider).apiClient,
 	}, nil
 }
 
 type environmentResource struct {
-	apiClient *client.Client
+	client *client.Client
 }
 
 // Create qovery environment resource
@@ -110,7 +110,7 @@ func (r environmentResource) Create(ctx context.Context, req tfsdk.CreateResourc
 	}
 
 	// Create new environment
-	environment, apiErr := r.apiClient.CreateEnvironment(ctx, plan.ProjectId.Value, plan.toCreateEnvironmentRequest())
+	environment, apiErr := r.client.CreateEnvironment(ctx, plan.ProjectId.Value, plan.toCreateEnvironmentRequest())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -134,7 +134,7 @@ func (r environmentResource) Read(ctx context.Context, req tfsdk.ReadResourceReq
 	}
 
 	// Get environment from the API
-	environment, apiErr := r.apiClient.GetEnvironment(ctx, state.Id.Value)
+	environment, apiErr := r.client.GetEnvironment(ctx, state.Id.Value)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -159,7 +159,7 @@ func (r environmentResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 	}
 
 	// Update environment in the backend
-	environment, apiErr := r.apiClient.UpdateEnvironment(ctx, state.Id.Value, plan.toUpdateEnvironmentRequest(state))
+	environment, apiErr := r.client.UpdateEnvironment(ctx, state.Id.Value, plan.toUpdateEnvironmentRequest(state))
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -183,7 +183,7 @@ func (r environmentResource) Delete(ctx context.Context, req tfsdk.DeleteResourc
 	}
 
 	// Delete environment
-	apiErr := r.apiClient.DeleteEnvironment(ctx, state.Id.Value)
+	apiErr := r.client.DeleteEnvironment(ctx, state.Id.Value)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return

@@ -7,14 +7,6 @@ import (
 	"terraform-provider-qovery/client"
 )
 
-type EnvironmentVariableScope string
-
-const (
-	EnvironmentVariableScopeApplication EnvironmentVariableScope = "APPLICATION"
-	EnvironmentVariableScopeEnvironment EnvironmentVariableScope = "ENVIRONMENT"
-	EnvironmentVariableScopeProject     EnvironmentVariableScope = "PROJECT"
-)
-
 type EnvironmentVariable struct {
 	Id    types.String `tfsdk:"id"`
 	Key   types.String `tfsdk:"key"`

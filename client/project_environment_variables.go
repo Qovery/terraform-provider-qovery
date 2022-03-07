@@ -19,40 +19,36 @@ func (c *Client) GetProjectEnvironmentVariables(ctx context.Context, projectID s
 	return environmentVariableResponseListToArray(projectVariables, EnvironmentVariableScopeProject), nil
 }
 
-func (c *Client) updateProjectEnvironmentVariables(ctx context.Context, projectID string, request EnvironmentVariablesDiff) ([]*qovery.EnvironmentVariableResponse, *apierrors.APIError) {
-	variables := make([]*qovery.EnvironmentVariableResponse, 0, len(request.Create)+len(request.Update))
-
+func (c *Client) updateProjectEnvironmentVariables(ctx context.Context, projectID string, request EnvironmentVariablesDiff) *apierrors.APIError {
 	for _, variable := range request.Delete {
 		res, err := c.api.ProjectEnvironmentVariableApi.
 			DeleteProjectEnvironmentVariable(ctx, projectID, variable.Id).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
-			return nil, apierrors.NewDeleteError(apierrors.APIResourceProjectEnvironmentVariable, variable.Id, res, err)
+			return apierrors.NewDeleteError(apierrors.APIResourceProjectEnvironmentVariable, variable.Id, res, err)
 		}
 	}
 
 	for _, variable := range request.Update {
-		v, res, err := c.api.ProjectEnvironmentVariableApi.
+		_, res, err := c.api.ProjectEnvironmentVariableApi.
 			EditProjectEnvironmentVariable(ctx, projectID, variable.Id).
 			EnvironmentVariableEditRequest(variable.EnvironmentVariableEditRequest).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
-			return nil, apierrors.NewUpdateError(apierrors.APIResourceProjectEnvironmentVariable, variable.Id, res, err)
+			return apierrors.NewUpdateError(apierrors.APIResourceProjectEnvironmentVariable, variable.Id, res, err)
 		}
-		variables = append(variables, v)
 	}
 
 	for _, variable := range request.Create {
-		v, res, err := c.api.ProjectEnvironmentVariableApi.
+		_, res, err := c.api.ProjectEnvironmentVariableApi.
 			CreateProjectEnvironmentVariable(ctx, projectID).
 			EnvironmentVariableRequest(variable.EnvironmentVariableRequest).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
-			return nil, apierrors.NewCreateError(apierrors.APIResourceProjectEnvironmentVariable, variable.Key, res, err)
+			return apierrors.NewCreateError(apierrors.APIResourceProjectEnvironmentVariable, variable.Key, res, err)
 		}
-		variables = append(variables, v)
 	}
-	return variables, nil
+	return nil
 }
 
 func environmentVariableResponseListToArray(list *qovery.EnvironmentVariableResponseList, scope EnvironmentVariableScope) []*qovery.EnvironmentVariableResponse {
