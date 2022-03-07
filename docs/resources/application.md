@@ -45,7 +45,7 @@ resource "qovery_application" "my_application" {
 	- Default: `BUILDPACKS`.
 - **buildpack_language** (String) Buildpack Language framework.
 	- Required if: `build_mode="BUILDPACKS"`.
-	- Can be: `RUBY`, `NODE_JS`, `CLOJURE`, `PYTHON`, `JAVA`, `GRADLE`, `JVM`, `GRAILS`, `SCALA`, `PLAY`, `PHP`, `GO`.
+	- Can be: `CLOJURE`, `GO`, `GRADLE`, `GRAILS`, `JAVA`, `JVM`, `NODE_JS`, `PHP`, `PLAY`, `PYTHON`, `SCALA`.
 - **cpu** (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 250`.
 	- Default: `500`.
