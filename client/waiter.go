@@ -9,9 +9,20 @@ import (
 
 const defaultWaitTimeout = 30 * time.Minute
 
-func waitForStatus(ctx context.Context, checker StatusChecker, timeout *time.Duration) *apierrors.APIError {
+type waitFunc func(ctx context.Context) (bool, *apierrors.APIError)
+
+func wait(ctx context.Context, f waitFunc, timeout *time.Duration) *apierrors.APIError {
 	if timeout == nil {
 		timeout = toDurationPointer(defaultWaitTimeout)
+	}
+
+	// Run the function once before waiting
+	ok, apiErr := f(ctx)
+	if apiErr != nil {
+		return apiErr
+	}
+	if ok {
+		return nil
 	}
 
 	ticker := time.NewTicker(10 * time.Second)
@@ -22,7 +33,7 @@ func waitForStatus(ctx context.Context, checker StatusChecker, timeout *time.Dur
 		case <-timeoutTicker.C:
 			return nil
 		case <-ticker.C:
-			ok, apiErr := checker.Exec(ctx)
+			ok, apiErr := f(ctx)
 			if apiErr != nil {
 				return apiErr
 			}
@@ -33,50 +44,24 @@ func waitForStatus(ctx context.Context, checker StatusChecker, timeout *time.Dur
 	}
 }
 
-type StatusChecker interface {
-	Exec(ctx context.Context) (bool, *apierrors.APIError)
-}
-
-type ApplicationStatusChecker struct {
-	client        *Client
-	applicationID string
-	expected      string
-}
-
-func NewApplicationStatusChecker(client *Client, applicationID string, expected string) *ApplicationStatusChecker {
-	return &ApplicationStatusChecker{
-		client:        client,
-		applicationID: applicationID,
-		expected:      expected,
+func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, expected string) waitFunc {
+	return func(ctx context.Context) (bool, *apierrors.APIError) {
+		status, apiErr := client.GetApplicationStatus(ctx, applicationID)
+		if apiErr != nil {
+			return false, apiErr
+		}
+		return status.State == expected, nil
 	}
 }
 
-func (c ApplicationStatusChecker) Exec(ctx context.Context) (bool, *apierrors.APIError) {
-	status, err := c.client.GetApplicationStatus(ctx, c.applicationID)
-	if err != nil {
-		return false, err
+func newApplicationFinalStateCheckerWaitFunc(client *Client, applicationID string) waitFunc {
+	return func(ctx context.Context) (bool, *apierrors.APIError) {
+		status, apiErr := client.GetApplicationStatus(ctx, applicationID)
+		if apiErr != nil {
+			return false, apiErr
+		}
+		return isFinalState(status.State), nil
 	}
-	return status.State == c.expected, nil
-}
-
-type ApplicationFinalStateChecker struct {
-	client        *Client
-	applicationID string
-}
-
-func NewApplicationFinalStateChecker(client *Client, applicationID string) *ApplicationFinalStateChecker {
-	return &ApplicationFinalStateChecker{
-		client:        client,
-		applicationID: applicationID,
-	}
-}
-
-func (c ApplicationFinalStateChecker) Exec(ctx context.Context) (bool, *apierrors.APIError) {
-	status, err := c.client.GetApplicationStatus(ctx, c.applicationID)
-	if err != nil {
-		return false, err
-	}
-	return isFinalState(status.State), nil
 }
 
 func isFinalState(state string) bool {

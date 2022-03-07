@@ -34,7 +34,6 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, params.ApplicationRequest.Name, res, err)
 	}
-
 	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.DesiredState)
 }
 
@@ -82,8 +81,8 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 		return apierrors.NewDeleteError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
 
-	checker := NewApplicationStatusChecker(c, applicationID, "DELETED")
-	if apiErr := waitForStatus(ctx, checker, nil); apiErr != nil {
+	checker := newApplicationStatusCheckerWaitFunc(c, applicationID, "DELETED")
+	if apiErr := wait(ctx, checker, nil); apiErr != nil {
 		return apiErr
 	}
 	return nil
@@ -137,8 +136,8 @@ func (c *Client) deployApplication(ctx context.Context, applicationID string, de
 		}
 	}
 
-	checker := NewApplicationStatusChecker(c, applicationID, applicationStateRunning)
-	if apiErr := waitForStatus(ctx, checker, nil); apiErr != nil {
+	statusChecker := newApplicationStatusCheckerWaitFunc(c, applicationID, applicationStateRunning)
+	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
 	return c.GetApplicationStatus(ctx, applicationID)
@@ -162,16 +161,16 @@ func (c *Client) stopApplication(ctx context.Context, applicationID string) (*qo
 		}
 	}
 
-	checker := NewApplicationStatusChecker(c, applicationID, applicationStateStopped)
-	if apiErr := waitForStatus(ctx, checker, nil); apiErr != nil {
+	statusChecker := newApplicationStatusCheckerWaitFunc(c, applicationID, applicationStateStopped)
+	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
 	return c.GetApplicationStatus(ctx, applicationID)
 }
 
 func (c *Client) restartApplication(ctx context.Context, applicationID string) (*qovery.Status, *apierrors.APIError) {
-	finalStateChecker := NewApplicationFinalStateChecker(c, applicationID)
-	if apiErr := waitForStatus(ctx, finalStateChecker, nil); apiErr != nil {
+	finalStateChecker := newApplicationFinalStateCheckerWaitFunc(c, applicationID)
+	if apiErr := wait(ctx, finalStateChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
 
@@ -182,8 +181,8 @@ func (c *Client) restartApplication(ctx context.Context, applicationID string) (
 		return nil, apierrors.NewRestartError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
 
-	statusChecker := NewApplicationStatusChecker(c, applicationID, applicationStateRunning)
-	if apiErr := waitForStatus(ctx, statusChecker, nil); apiErr != nil {
+	statusChecker := newApplicationStatusCheckerWaitFunc(c, applicationID, applicationStateRunning)
+	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
 	return c.GetApplicationStatus(ctx, applicationID)

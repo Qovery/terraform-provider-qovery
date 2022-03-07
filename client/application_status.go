@@ -25,8 +25,8 @@ func (c *Client) GetApplicationStatus(ctx context.Context, applicationID string)
 
 func (c *Client) updateApplicationStatus(ctx context.Context, application *qovery.ApplicationResponse, desiredState string, forceRestart bool) (*qovery.Status, *apierrors.APIError) {
 	// wait until we can stop the application - otherwise it will fail
-	checker := NewApplicationFinalStateChecker(c, application.Id)
-	if apiErr := waitForStatus(ctx, checker, nil); apiErr != nil {
+	checker := newApplicationFinalStateCheckerWaitFunc(c, application.Id)
+	if apiErr := wait(ctx, checker, nil); apiErr != nil {
 		return nil, apiErr
 	}
 
