@@ -2,7 +2,6 @@ package qovery
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -485,10 +484,18 @@ func (r applicationResource) ImportState(ctx context.Context, req tfsdk.ImportRe
 	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }
 
-func toStringArray[T any](values []T) []string {
+func toStringArray(values []qovery.BuildPackLanguageEnum) []string {
 	enum := make([]string, 0, len(values))
 	for _, v := range values {
-		enum = append(enum, fmt.Sprintf("%x", v))
+		enum = append(enum, string(v))
 	}
 	return enum
 }
+
+//func toStringArray[T any](values []T) []string {
+//	enum := make([]string, 0, len(values))
+//	for _, v := range values {
+//		enum = append(enum, fmt.Sprintf("%x", v))
+//	}
+//	return enum
+//}

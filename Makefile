@@ -1,4 +1,4 @@
-GO=go1.18rc1
+GO=go
 TEST?=$$(${GO} list ./... | grep -v 'vendor')
 HOSTNAME=qovery.com
 NAMESPACE=api

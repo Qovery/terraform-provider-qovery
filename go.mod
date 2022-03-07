@@ -1,6 +1,6 @@
 module terraform-provider-qovery
 
-go 1.18
+go 1.17
 
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.5.1
