@@ -13,7 +13,7 @@ const (
 	databaseStateStopped = "STOPPED"
 )
 
-func (c *Client) GetDatabaseStatus(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
+func (c *Client) getDatabaseStatus(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
 	status, res, err := c.api.DatabaseMainCallsApi.
 		GetDatabaseStatus(ctx, databaseID).
 		Execute()
@@ -30,7 +30,7 @@ func (c *Client) updateDatabaseStatus(ctx context.Context, database *qovery.Data
 		return nil, apiErr
 	}
 
-	status, apiErr := c.GetDatabaseStatus(ctx, database.Id)
+	status, apiErr := c.getDatabaseStatus(ctx, database.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}

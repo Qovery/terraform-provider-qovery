@@ -42,7 +42,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 		return nil, apierrors.NewReadError(apierrors.APIResourceDatabase, databaseID, res, err)
 	}
 
-	status, apiErr := c.GetDatabaseStatus(ctx, databaseID)
+	status, apiErr := c.getDatabaseStatus(ctx, databaseID)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -93,7 +93,7 @@ func (c *Client) updateDatabase(ctx context.Context, database *qovery.DatabaseRe
 }
 
 func (c *Client) deployDatabase(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
-	status, apiErr := c.GetDatabaseStatus(ctx, databaseID)
+	status, apiErr := c.getDatabaseStatus(ctx, databaseID)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -116,11 +116,11 @@ func (c *Client) deployDatabase(ctx context.Context, databaseID string) (*qovery
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
-	return c.GetDatabaseStatus(ctx, databaseID)
+	return c.getDatabaseStatus(ctx, databaseID)
 }
 
 func (c *Client) stopDatabase(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
-	status, apiErr := c.GetDatabaseStatus(ctx, databaseID)
+	status, apiErr := c.getDatabaseStatus(ctx, databaseID)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -141,7 +141,7 @@ func (c *Client) stopDatabase(ctx context.Context, databaseID string) (*qovery.S
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
-	return c.GetDatabaseStatus(ctx, databaseID)
+	return c.getDatabaseStatus(ctx, databaseID)
 }
 
 func (c *Client) restartDatabase(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
@@ -161,5 +161,5 @@ func (c *Client) restartDatabase(ctx context.Context, databaseID string) (*qover
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
-	return c.GetDatabaseStatus(ctx, databaseID)
+	return c.getDatabaseStatus(ctx, databaseID)
 }

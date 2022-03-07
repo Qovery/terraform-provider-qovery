@@ -87,7 +87,7 @@ func newClusterFinalStateCheckerWaitFunc(client *Client, organizationID string, 
 
 func newDatabaseStatusCheckerWaitFunc(client *Client, databaseID string, expected string) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
-		status, apiErr := client.GetDatabaseStatus(ctx, databaseID)
+		status, apiErr := client.getDatabaseStatus(ctx, databaseID)
 		if apiErr != nil {
 			return false, apiErr
 		}
@@ -97,7 +97,7 @@ func newDatabaseStatusCheckerWaitFunc(client *Client, databaseID string, expecte
 
 func newDatabaseFinalStateCheckerWaitFunc(client *Client, databaseID string) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
-		status, apiErr := client.GetDatabaseStatus(ctx, databaseID)
+		status, apiErr := client.getDatabaseStatus(ctx, databaseID)
 		if apiErr != nil {
 			return false, apiErr
 		}
