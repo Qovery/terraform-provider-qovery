@@ -6,7 +6,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/qovery/qovery-client-go"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+
+	"terraform-provider-qovery/client"
 )
 
 type clusterDataSourceType struct{}
@@ -81,12 +83,12 @@ func (t clusterDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 
 func (t clusterDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return clusterDataSource{
-		client: p.(*provider).GetClient(),
+		client: p.(*provider).apiClient,
 	}, nil
 }
 
 type clusterDataSource struct {
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // Read qovery cluster data source
@@ -99,43 +101,14 @@ func (d clusterDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceReq
 	}
 
 	// Get cluster from the API
-	clusters, res, err := d.client.ClustersApi.
-		ListOrganizationCluster(ctx, data.OrganizationId.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := clusterReadAPIError(data.Id.Value, res, err)
+	cluster, apiErr := d.client.GetCluster(ctx, data.OrganizationId.Value, data.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	// Get cluster credentials from the API
-	cloudProviderInfo, res, err := d.client.ClustersApi.
-		GetOrganizationCloudProviderInfo(ctx, data.OrganizationId.Value, data.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := cloudProviderReadAPIError(data.Id.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	var state Cluster
-	found := false
-	for _, cluster := range clusters.GetResults() {
-		if data.Id.Value == cluster.Id {
-			found = true
-			state = convertResponseToCluster(&cluster, cloudProviderInfo, data)
-			break
-		}
-	}
-
-	// If cluster id is not in list
-	// Returning Not Found error
-	if !found {
-		res.StatusCode = 404
-		apiErr := clusterReadAPIError(state.Id.Value, res, nil)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
+	state := convertResponseToCluster(cluster)
+	tflog.Trace(ctx, "read cluster", "cluster_id", state.Id.Value)
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

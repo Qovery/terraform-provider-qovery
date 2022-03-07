@@ -3,27 +3,18 @@ package qovery
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
 
-	"terraform-provider-qovery/client/apierrors"
+	"terraform-provider-qovery/client"
 	"terraform-provider-qovery/qovery/descriptions"
 	"terraform-provider-qovery/qovery/modifiers"
 	"terraform-provider-qovery/qovery/validators"
-)
-
-const (
-	clusterAPIResource       = "cluster"
-	clusterStatusAPIResource = "cluster status"
-	cloudProviderAPIResource = "cloud provider"
 )
 
 var (
@@ -195,14 +186,14 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 	}, nil
 }
 
-func (r clusterResourceType) NewResource(ct context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+func (r clusterResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return clusterResource{
-		client: p.(*provider).GetClient(),
+		client: p.(*provider).apiClient,
 	}, nil
 }
 
 type clusterResource struct {
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // Create qovery cluster resource
@@ -215,37 +206,14 @@ func (r clusterResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 	}
 
 	// Create new cluster
-	cluster, res, err := r.client.ClustersApi.
-		CreateCluster(ctx, plan.OrganizationId.Value).
-		ClusterRequest(plan.toUpsertClusterRequest()).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := clusterCreateAPIError(plan.Name.Value, res, err)
+	cluster, apiErr := r.client.CreateCluster(ctx, plan.OrganizationId.Value, plan.toUpsertClusterRequest(nil))
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
-	}
-
-	// Specify cluster credentials
-	clusterInfo, res, err := r.client.ClustersApi.
-		SpecifyClusterCloudProviderInfo(ctx, plan.OrganizationId.Value, cluster.Id).
-		ClusterCloudProviderInfoRequest(plan.toUpdateClusterCloudProviderInfoRequest()).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := cloudProviderCreateAPIError(plan.Name.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	if plan.State.Value == clusterStateRunning {
-		apiErr := r.deployCluster(ctx, plan.OrganizationId.Value, cluster.Id)
-		if apiErr != nil {
-			resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-			return
-		}
 	}
 
 	// Initialize state values
-	state := convertResponseToCluster(cluster, clusterInfo, plan)
+	state := convertResponseToCluster(cluster)
 	tflog.Trace(ctx, "created cluster", "cluster_id", state.Id.Value)
 
 	// Set state
@@ -262,43 +230,13 @@ func (r clusterResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 	}
 
 	// Get cluster from the API
-	clusters, res, err := r.client.ClustersApi.
-		ListOrganizationCluster(ctx, state.OrganizationId.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := clusterReadAPIError(state.Id.Value, res, err)
+	cluster, apiErr := r.client.GetCluster(ctx, state.OrganizationId.Value, state.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	// Get cluster credentials from the API
-	cloudProviderInfo, res, err := r.client.ClustersApi.
-		GetOrganizationCloudProviderInfo(ctx, state.OrganizationId.Value, state.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := cloudProviderReadAPIError(state.Id.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	found := false
-	for _, cluster := range clusters.GetResults() {
-		if state.Id.Value == cluster.Id {
-			found = true
-			state = convertResponseToCluster(&cluster, cloudProviderInfo, state)
-			break
-		}
-	}
-
-	// If cluster id is not in list
-	// Returning Not Found error
-	if !found {
-		res.StatusCode = 404
-		apiErr := clusterReadAPIError(state.Id.Value, res, nil)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
+	state = convertResponseToCluster(cluster)
 	tflog.Trace(ctx, "read cluster", "cluster_id", state.Id.Value)
 
 	// Set state
@@ -316,57 +254,13 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 
 	// Update cluster in the backend
-	r.client.GetConfig().AddDefaultHeader("content-type", "application/json")
-	cluster, res, err := r.client.ClustersApi.
-		EditCluster(ctx, state.OrganizationId.Value, state.Id.Value).
-		ClusterRequest(plan.toUpsertClusterRequest()).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := clusterUpdateAPIError(state.Id.Value, res, err)
+	cluster, apiErr := r.client.UpdateCluster(ctx, state.OrganizationId.Value, state.Id.Value, plan.toUpsertClusterRequest(&state))
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
-
-	if plan.CredentialsId != state.CredentialsId {
-		// Specify cluster credentials
-		_, res, err := r.client.ClustersApi.
-			SpecifyClusterCloudProviderInfo(ctx, plan.OrganizationId.Value, cluster.Id).
-			ClusterCloudProviderInfoRequest(plan.toUpdateClusterCloudProviderInfoRequest()).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			apiErr := cloudProviderUpdateAPIError(plan.Name.Value, res, err)
-			resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-			return
-		}
-	}
-
-	cloudProviderInfo, res, err := r.client.ClustersApi.
-		GetOrganizationCloudProviderInfo(ctx, state.OrganizationId.Value, state.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := cloudProviderUpdateAPIError(state.Id.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	if plan.State.Value == clusterStateRunning && *cluster.Status != clusterStateRunning {
-		apiErr := r.deployCluster(ctx, plan.OrganizationId.Value, cluster.Id)
-		if apiErr != nil {
-			resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-			return
-		}
-	}
-
-	if plan.State.Value == clusterStateStopped && *cluster.Status != clusterStateStopped {
-		apiErr := r.stopCluster(ctx, plan.OrganizationId.Value, cluster.Id)
-		if apiErr != nil {
-			resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-			return
-		}
-	}
-
 	// Update state values
-	state = convertResponseToCluster(cluster, cloudProviderInfo, plan)
+	state = convertResponseToCluster(cluster)
 	tflog.Trace(ctx, "updated cluster", "cluster_id", state.Id.Value)
 
 	// Set state
@@ -383,11 +277,8 @@ func (r clusterResource) Delete(ctx context.Context, req tfsdk.DeleteResourceReq
 	}
 
 	// Delete cluster
-	res, err := r.client.ClustersApi.
-		DeleteCluster(ctx, state.OrganizationId.Value, state.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 300 {
-		apiErr := clusterDeleteAPIError(state.Id.Value, res, err)
+	apiErr := r.client.DeleteCluster(ctx, state.OrganizationId.Value, state.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -412,100 +303,4 @@ func (r clusterResource) ImportState(ctx context.Context, req tfsdk.ImportResour
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("id"), idParts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("organization_id"), idParts[1])...)
-}
-
-func (r clusterResource) deployCluster(ctx context.Context, organizationID string, clusterID string) *apierrors.APIError {
-	// Deploy cluster
-	r.client.GetConfig().AddDefaultHeader("content-type", "application/json")
-	_, res, err := r.client.ClustersApi.
-		DeployCluster(ctx, organizationID, clusterID).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		return clusterDeployAPIError(clusterID, res, err)
-	}
-
-	ticker := time.NewTicker(10 * time.Second)
-	timeout := time.NewTicker(time.Hour)
-	for {
-		select {
-		case <-timeout.C:
-			return clusterDeployAPIError(clusterID, res, err)
-		case <-ticker.C:
-			status, res, err := r.client.ClustersApi.
-				GetClusterStatus(ctx, organizationID, clusterID).
-				Execute()
-			if err != nil || res.StatusCode >= 400 {
-				return clusterStatusReadAPIError(clusterID, res, err)
-			}
-			if *status.IsDeployed || IsStatusError(status.GetStatus()) {
-				return nil
-			}
-		}
-	}
-}
-
-func (r clusterResource) stopCluster(ctx context.Context, organizationID string, clusterID string) *apierrors.APIError {
-	// Stop cluster
-	r.client.GetConfig().AddDefaultHeader("content-type", "application/json")
-	_, res, err := r.client.ClustersApi.
-		StopCluster(ctx, organizationID, clusterID).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		return clusterDeployAPIError(clusterID, res, err)
-	}
-
-	ticker := time.NewTicker(10 * time.Second)
-	timeout := time.NewTicker(time.Hour)
-	for {
-		select {
-		case <-timeout.C:
-			return clusterDeployAPIError(clusterID, res, err)
-		case <-ticker.C:
-			status, res, err := r.client.ClustersApi.
-				GetClusterStatus(ctx, organizationID, clusterID).
-				Execute()
-			if err != nil || res.StatusCode >= 400 {
-				return clusterStatusReadAPIError(clusterID, res, err)
-			}
-			if *status.Status == clusterStateStopped || IsStatusError(status.GetStatus()) {
-				return nil
-			}
-		}
-	}
-}
-
-func clusterCreateAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionCreate, clusterAPIResource, clusterID, res, err)
-}
-
-func clusterReadAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionRead, clusterAPIResource, clusterID, res, err)
-}
-
-func clusterUpdateAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionUpdate, clusterAPIResource, clusterID, res, err)
-}
-
-func clusterDeleteAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionDelete, clusterAPIResource, clusterID, res, err)
-}
-
-func clusterDeployAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionDeploy, clusterAPIResource, clusterID, res, err)
-}
-
-func clusterStatusReadAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionRead, clusterStatusAPIResource, clusterID, res, err)
-}
-
-func cloudProviderCreateAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionCreate, cloudProviderAPIResource, clusterID, res, err)
-}
-
-func cloudProviderUpdateAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionUpdate, cloudProviderAPIResource, clusterID, res, err)
-}
-
-func cloudProviderReadAPIError(clusterID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionRead, cloudProviderAPIResource, clusterID, res, err)
 }

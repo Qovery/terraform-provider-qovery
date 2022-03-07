@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"terraform-provider-qovery/client/apierrors"
@@ -64,6 +65,26 @@ func newApplicationFinalStateCheckerWaitFunc(client *Client, applicationID strin
 	}
 }
 
+func newClusterStatusCheckerWaitFunc(client *Client, organizationID string, clusterID string, expected string) waitFunc {
+	return func(ctx context.Context) (bool, *apierrors.APIError) {
+		status, apiErr := client.getClusterStatus(ctx, organizationID, clusterID)
+		if apiErr != nil {
+			return false, apiErr
+		}
+		return status.GetStatus() == expected || isStatusError(status.GetStatus()), nil
+	}
+}
+
+func newClusterFinalStateCheckerWaitFunc(client *Client, organizationID string, clusterID string) waitFunc {
+	return func(ctx context.Context) (bool, *apierrors.APIError) {
+		status, apiErr := client.getClusterStatus(ctx, organizationID, clusterID)
+		if apiErr != nil {
+			return false, apiErr
+		}
+		return isFinalState(status.GetStatus()), nil
+	}
+}
+
 func newDatabaseStatusCheckerWaitFunc(client *Client, databaseID string, expected string) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
 		status, apiErr := client.GetDatabaseStatus(ctx, databaseID)
@@ -99,6 +120,10 @@ func isFinalState(state string) bool {
 		state != "DELETING" &&
 		state != "STOPPING" &&
 		state != "QUEUED"
+}
+
+func isStatusError(state string) bool {
+	return strings.HasSuffix(state, "_ERROR")
 }
 
 func toDurationPointer(d time.Duration) *time.Duration {
