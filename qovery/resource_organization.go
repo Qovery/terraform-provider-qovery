@@ -55,7 +55,7 @@ func (r organizationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, di
 
 func (r organizationResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return organizationResource{
-		client: p.(*provider).apiClient,
+		client: p.(*provider).client,
 	}, nil
 }
 

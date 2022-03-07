@@ -83,7 +83,7 @@ func (t clusterDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 
 func (t clusterDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return clusterDataSource{
-		client: p.(*provider).apiClient,
+		client: p.(*provider).client,
 	}, nil
 }
 

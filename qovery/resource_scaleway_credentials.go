@@ -59,7 +59,7 @@ func (r scalewayCredentialsResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 
 func (r scalewayCredentialsResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return scalewayCredentialsResource{
-		client: p.(*provider).apiClient,
+		client: p.(*provider).client,
 	}, nil
 }
 

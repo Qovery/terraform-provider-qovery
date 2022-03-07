@@ -38,7 +38,7 @@ func (t scalewayCredentialsDataSourceType) GetSchema(_ context.Context) (tfsdk.S
 
 func (t scalewayCredentialsDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return scalewayCredentialsDataSource{
-		client: p.(*provider).apiClient,
+		client: p.(*provider).client,
 	}, nil
 }
 

@@ -181,7 +181,7 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 
 func (r databaseResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return databaseResource{
-		client: p.(*provider).apiClient,
+		client: p.(*provider).client,
 	}, nil
 }
 

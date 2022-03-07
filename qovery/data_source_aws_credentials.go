@@ -38,7 +38,7 @@ func (t awsCredentialsDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 
 func (t awsCredentialsDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return awsCredentialsDataSource{
-		client: p.(*provider).apiClient,
+		client: p.(*provider).client,
 	}, nil
 }
 

@@ -192,7 +192,7 @@ func (t applicationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 
 func (t applicationDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return applicationDataSource{
-		client: p.(*provider).apiClient,
+		client: p.(*provider).client,
 	}, nil
 }
 

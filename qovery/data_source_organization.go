@@ -43,7 +43,7 @@ func (t organizationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, 
 
 func (t organizationDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return organizationDataSource{
-		client: p.(*provider).apiClient,
+		client: p.(*provider).client,
 	}, nil
 }
 

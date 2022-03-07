@@ -70,7 +70,7 @@ func (t environmentDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 
 func (t environmentDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return environmentDataSource{
-		client: p.(*provider).apiClient,
+		client: p.(*provider).client,
 	}, nil
 }
 

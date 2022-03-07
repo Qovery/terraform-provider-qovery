@@ -53,7 +53,7 @@ func (r awsCredentialsResourceType) GetSchema(_ context.Context) (tfsdk.Schema, 
 
 func (r awsCredentialsResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return awsCredentialsResource{
-		client: p.(*provider).apiClient,
+		client: p.(*provider).client,
 	}, nil
 }
 

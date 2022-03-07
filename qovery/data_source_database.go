@@ -78,7 +78,7 @@ func (t databaseDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag
 
 func (t databaseDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return databaseDataSource{
-		client: p.(*provider).apiClient,
+		client: p.(*provider).client,
 	}, nil
 }
 
