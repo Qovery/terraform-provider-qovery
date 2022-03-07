@@ -46,7 +46,7 @@ func wait(ctx context.Context, f waitFunc, timeout *time.Duration) *apierrors.AP
 
 func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, expected string) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
-		status, apiErr := client.GetApplicationStatus(ctx, applicationID)
+		status, apiErr := client.getApplicationStatus(ctx, applicationID)
 		if apiErr != nil {
 			return false, apiErr
 		}
@@ -56,7 +56,37 @@ func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, e
 
 func newApplicationFinalStateCheckerWaitFunc(client *Client, applicationID string) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
-		status, apiErr := client.GetApplicationStatus(ctx, applicationID)
+		status, apiErr := client.getApplicationStatus(ctx, applicationID)
+		if apiErr != nil {
+			return false, apiErr
+		}
+		return isFinalState(status.State), nil
+	}
+}
+
+func newDatabaseStatusCheckerWaitFunc(client *Client, databaseID string, expected string) waitFunc {
+	return func(ctx context.Context) (bool, *apierrors.APIError) {
+		status, apiErr := client.GetDatabaseStatus(ctx, databaseID)
+		if apiErr != nil {
+			return false, apiErr
+		}
+		return status.State == expected, nil
+	}
+}
+
+func newDatabaseFinalStateCheckerWaitFunc(client *Client, databaseID string) waitFunc {
+	return func(ctx context.Context) (bool, *apierrors.APIError) {
+		status, apiErr := client.GetDatabaseStatus(ctx, databaseID)
+		if apiErr != nil {
+			return false, apiErr
+		}
+		return isFinalState(status.State), nil
+	}
+}
+
+func newEnvironmentFinalStateCheckerWaitFunc(client *Client, environmentID string) waitFunc {
+	return func(ctx context.Context) (bool, *apierrors.APIError) {
+		status, apiErr := client.getEnvironmentStatus(ctx, environmentID)
 		if apiErr != nil {
 			return false, apiErr
 		}

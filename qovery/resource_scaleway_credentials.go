@@ -3,7 +3,6 @@ package qovery
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -13,10 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"terraform-provider-qovery/client"
-	"terraform-provider-qovery/client/apierrors"
 )
-
-const scalewayCredentialsAPIResource = "scaleway credentials"
 
 type scalewayCredentialsResourceType struct{}
 
@@ -179,20 +175,4 @@ func (r scalewayCredentialsResource) ImportState(ctx context.Context, req tfsdk.
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("id"), idParts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("organization_id"), idParts[1])...)
-}
-
-func scalewayCredentialsCreateAPIError(credentialsName string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionCreate, scalewayCredentialsAPIResource, credentialsName, res, err)
-}
-
-func scalewayCredentialsReadAPIError(credentialsID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionRead, scalewayCredentialsAPIResource, credentialsID, res, err)
-}
-
-func scalewayCredentialsUpdateAPIError(credentialsID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionUpdate, scalewayCredentialsAPIResource, credentialsID, res, err)
-}
-
-func scalewayCredentialsDeleteAPIError(credentialsID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionDelete, scalewayCredentialsAPIResource, credentialsID, res, err)
 }

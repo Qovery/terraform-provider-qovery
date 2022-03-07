@@ -33,7 +33,7 @@ func (c *Client) CreateProject(ctx context.Context, organizationID string, param
 		}
 	}
 
-	projectVariables, apiErr := c.GetProjectEnvironmentVariables(ctx, project.Id)
+	projectVariables, apiErr := c.getProjectEnvironmentVariables(ctx, project.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -52,7 +52,7 @@ func (c *Client) GetProject(ctx context.Context, projectID string) (*ProjectResp
 		return nil, apierrors.NewReadError(apierrors.APIResourceProject, projectID, res, err)
 	}
 
-	projectVariables, apiErr := c.GetProjectEnvironmentVariables(ctx, project.Id)
+	projectVariables, apiErr := c.getProjectEnvironmentVariables(ctx, project.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -78,7 +78,7 @@ func (c *Client) UpdateProject(ctx context.Context, projectID string, params Pro
 		}
 	}
 
-	projectVariables, apiErr := c.GetProjectEnvironmentVariables(ctx, project.Id)
+	projectVariables, apiErr := c.getProjectEnvironmentVariables(ctx, project.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}

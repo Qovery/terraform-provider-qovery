@@ -38,7 +38,7 @@ func (c *Client) CreateEnvironment(ctx context.Context, projectID string, params
 		}
 	}
 
-	environmentVariables, apiErr := c.GetEnvironmentEnvironmentVariables(ctx, environment.Id)
+	environmentVariables, apiErr := c.getEnvironmentEnvironmentVariables(ctx, environment.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -57,7 +57,7 @@ func (c *Client) GetEnvironment(ctx context.Context, environmentID string) (*Env
 		return nil, apierrors.NewReadError(apierrors.APIResourceEnvironment, environmentID, res, err)
 	}
 
-	environmentVariables, apiErr := c.GetEnvironmentEnvironmentVariables(ctx, environment.Id)
+	environmentVariables, apiErr := c.getEnvironmentEnvironmentVariables(ctx, environment.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -83,7 +83,7 @@ func (c *Client) UpdateEnvironment(ctx context.Context, environmentID string, pa
 		}
 	}
 
-	environmentVariables, apiErr := c.GetEnvironmentEnvironmentVariables(ctx, environment.Id)
+	environmentVariables, apiErr := c.getEnvironmentEnvironmentVariables(ctx, environment.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}

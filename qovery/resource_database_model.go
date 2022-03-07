@@ -3,6 +3,8 @@ package qovery
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
+
+	"terraform-provider-qovery/client"
 )
 
 type Database struct {
@@ -19,42 +21,48 @@ type Database struct {
 	State         types.String `tfsdk:"state"`
 }
 
-func (d Database) toCreateDatabaseRequest() qovery.DatabaseRequest {
-	return qovery.DatabaseRequest{
-		Name:          toString(d.Name),
-		Type:          toString(d.Type),
-		Version:       toString(d.Version),
-		Mode:          toString(d.Mode),
-		Accessibility: toStringPointer(d.Accessibility),
-		Cpu:           toInt32Pointer(d.CPU),
-		Memory:        toInt32Pointer(d.Memory),
-		Storage:       toInt32Pointer(d.Storage),
+func (d Database) toCreateDatabaseRequest() client.DatabaseCreateParams {
+	return client.DatabaseCreateParams{
+		DatabaseRequest: qovery.DatabaseRequest{
+			Name:          toString(d.Name),
+			Type:          toString(d.Type),
+			Version:       toString(d.Version),
+			Mode:          toString(d.Mode),
+			Accessibility: toStringPointer(d.Accessibility),
+			Cpu:           toInt32Pointer(d.CPU),
+			Memory:        toInt32Pointer(d.Memory),
+			Storage:       toInt32Pointer(d.Storage),
+		},
+		DesiredState: d.State.Value,
 	}
 }
 
-func (d Database) toUpdateDatabaseRequest() qovery.DatabaseEditRequest {
-	return qovery.DatabaseEditRequest{
-		Name:          toStringPointer(d.Name),
-		Version:       toStringPointer(d.Version),
-		Accessibility: toStringPointer(d.Accessibility),
-		Cpu:           toInt32Pointer(d.CPU),
-		Memory:        toInt32Pointer(d.Memory),
-		Storage:       toInt32Pointer(d.Storage),
+func (d Database) toUpdateDatabaseRequest() client.DatabaseUpdateParams {
+	return client.DatabaseUpdateParams{
+		DatabaseEditRequest: qovery.DatabaseEditRequest{
+			Name:          toStringPointer(d.Name),
+			Version:       toStringPointer(d.Version),
+			Accessibility: toStringPointer(d.Accessibility),
+			Cpu:           toInt32Pointer(d.CPU),
+			Memory:        toInt32Pointer(d.Memory),
+			Storage:       toInt32Pointer(d.Storage),
+		},
+		DesiredState: d.State.Value,
 	}
 }
 
-func convertResponseToDatabase(database *qovery.DatabaseResponse, status *qovery.Status) Database {
+func convertResponseToDatabase(res *client.DatabaseResponse) Database {
 	return Database{
-		Id:            fromString(database.Id),
-		EnvironmentId: fromString(database.Environment.Id),
-		Name:          fromString(database.Name),
-		Type:          fromString(database.Type),
-		Version:       fromString(database.Version),
-		Mode:          fromString(database.Mode),
-		Accessibility: fromStringPointer(database.Accessibility),
-		CPU:           fromInt32Pointer(database.Cpu),
-		Memory:        fromInt32Pointer(database.Memory),
-		Storage:       fromInt32Pointer(database.Storage),
-		State:         fromString(status.State),
+		Id:            fromString(res.DatabaseResponse.Id),
+		EnvironmentId: fromString(res.DatabaseResponse.Environment.Id),
+		Name:          fromString(res.DatabaseResponse.Name),
+		Type:          fromString(res.DatabaseResponse.Type),
+		Version:       fromString(res.DatabaseResponse.Version),
+		Mode:          fromString(res.DatabaseResponse.Mode),
+		Accessibility: fromStringPointer(res.DatabaseResponse.Accessibility),
+		CPU:           fromInt32Pointer(res.DatabaseResponse.Cpu),
+		Memory:        fromInt32Pointer(res.DatabaseResponse.Memory),
+		Storage:       fromInt32Pointer(res.DatabaseResponse.Storage),
+		State:         fromString(res.DatabaseStatus.State),
 	}
 }

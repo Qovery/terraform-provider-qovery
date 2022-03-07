@@ -2,25 +2,17 @@ package qovery
 
 import (
 	"context"
-	"net/http"
-	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
 
-	"terraform-provider-qovery/client/apierrors"
+	"terraform-provider-qovery/client"
 	"terraform-provider-qovery/qovery/descriptions"
 	"terraform-provider-qovery/qovery/modifiers"
 	"terraform-provider-qovery/qovery/validators"
-)
-
-const (
-	databaseAPIResource       = "database"
-	databaseStatusAPIResource = "database status"
 )
 
 var (
@@ -189,12 +181,12 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 
 func (r databaseResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return databaseResource{
-		client: p.(*provider).GetClient(),
+		client: p.(*provider).apiClient,
 	}, nil
 }
 
 type databaseResource struct {
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // Create qovery database resource
@@ -207,24 +199,14 @@ func (r databaseResource) Create(ctx context.Context, req tfsdk.CreateResourceRe
 	}
 
 	// Create new database
-	database, res, err := r.client.DatabasesApi.
-		CreateDatabase(ctx, plan.EnvironmentId.Value).
-		DatabaseRequest(plan.toCreateDatabaseRequest()).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := databaseCreateAPIError(plan.Name.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	databaseStatus, apiErr := r.updateDatabaseState(ctx, database, plan)
+	database, apiErr := r.client.CreateDatabase(ctx, plan.EnvironmentId.Value, plan.toCreateDatabaseRequest())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
 	// Initialize state values
-	state := convertResponseToDatabase(database, databaseStatus)
+	state := convertResponseToDatabase(database)
 	tflog.Trace(ctx, "created database", "database_id", state.Id.Value)
 
 	// Set state
@@ -241,26 +223,14 @@ func (r databaseResource) Read(ctx context.Context, req tfsdk.ReadResourceReques
 	}
 
 	// Get database from the API
-	database, res, err := r.client.DatabaseMainCallsApi.
-		GetDatabase(ctx, state.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := databaseReadAPIError(state.Id.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	databaseStatus, res, err := r.client.DatabaseMainCallsApi.
-		GetDatabaseStatus(ctx, database.Id).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := databaseStatusReadAPIError(state.Id.Value, res, err)
+	database, apiErr := r.client.GetDatabase(ctx, state.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
 	// Refresh state values
-	state = convertResponseToDatabase(database, databaseStatus)
+	state = convertResponseToDatabase(database)
 	tflog.Trace(ctx, "read database", "database_id", state.Id.Value)
 
 	// Set state
@@ -278,26 +248,14 @@ func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRe
 	}
 
 	// Update database in the backend
-	database, res, err := r.client.DatabaseMainCallsApi.
-		EditDatabase(ctx, state.Id.Value).
-		DatabaseEditRequest(plan.toUpdateDatabaseRequest()).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := databaseUpdateAPIError(state.Id.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	databaseStatus, apiErr := r.updateDatabaseState(ctx, database, plan)
+	database, apiErr := r.client.UpdateDatabase(ctx, state.Id.Value, plan.toUpdateDatabaseRequest())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	// FIXME restart the database if the configuration has changed
-
 	// Update state values
-	state = convertResponseToDatabase(database, databaseStatus)
+	state = convertResponseToDatabase(database)
 	tflog.Trace(ctx, "updated database", "database_id", state.Id.Value)
 
 	// Set state
@@ -314,11 +272,8 @@ func (r databaseResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRe
 	}
 
 	// Delete database
-	res, err := r.client.DatabaseMainCallsApi.
-		DeleteDatabase(ctx, state.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 300 {
-		apiErr := databaseDeleteAPIError(state.Id.Value, res, err)
+	apiErr := r.client.DeleteDatabase(ctx, state.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -332,174 +287,4 @@ func (r databaseResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRe
 // ImportState imports a qovery database resource using its id
 func (r databaseResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
 	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
-}
-
-func (r databaseResource) updateDatabaseState(ctx context.Context, database *qovery.DatabaseResponse, plan Database) (*qovery.Status, *apierrors.APIError) {
-	databaseStatus, res, err := r.client.DatabaseMainCallsApi.
-		GetDatabaseStatus(ctx, database.Id).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		return nil, databaseStatusReadAPIError(database.Id, res, err)
-	}
-
-	if plan.State.Value == databaseStateRunning && databaseStatus.State != databaseStateRunning {
-		return r.deployDatabase(ctx, database.Id, databaseStatus.State)
-	}
-
-	if plan.State.Value == databaseStateStopped && databaseStatus.State != databaseStateStopped {
-		return r.stopDatabase(ctx, database.Id, databaseStatus.State)
-	}
-
-	// FIXME restart the database if the configuration has changed
-
-	return nil, databaseStatusReadAPIError(database.Id, res, err)
-}
-
-func (r databaseResource) deployDatabase(ctx context.Context, databaseID string, currentStatus string) (*qovery.Status, *apierrors.APIError) {
-	// wait until we can deploy the DB - otherwise it will fail
-	err := Wait(func() (bool, *apierrors.APIError) {
-		status, res, err := r.client.DatabaseMainCallsApi.
-			GetDatabaseStatus(ctx, databaseID).
-			Execute()
-
-		if err != nil || res.StatusCode >= 400 {
-			return false, databaseDeployAPIError(databaseID, res, err)
-		}
-
-		return IsFinalState(status.State), nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	// Deploy database
-	switch currentStatus {
-	case "QUEUED", "DEPLOYING":
-		tflog.Trace(ctx, "database is already being deployed", "database_id", databaseID)
-	case "DEPLOYMENT_ERROR":
-		_, res, err := r.client.DatabaseActionsApi.
-			RestartDatabase(ctx, databaseID).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return nil, databaseRestartAPIError(databaseID, res, err)
-		}
-	default:
-		_, res, err := r.client.DatabaseActionsApi.
-			DeployDatabase(ctx, databaseID).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return nil, databaseDeployAPIError(databaseID, res, err)
-		}
-	}
-
-	ticker := time.NewTicker(10 * time.Second)
-	timeout := time.NewTicker(30 * time.Minute)
-	for {
-		select {
-		case <-timeout.C:
-			_, res, err := r.client.DatabaseMainCallsApi.
-				GetDatabaseStatus(ctx, databaseID).
-				Execute()
-			return nil, databaseDeployAPIError(databaseID, res, err)
-		case <-ticker.C:
-			status, res, err := r.client.DatabaseMainCallsApi.
-				GetDatabaseStatus(ctx, databaseID).
-				Execute()
-			if err != nil || res.StatusCode >= 400 {
-				return nil, databaseStatusReadAPIError(databaseID, res, err)
-			}
-			if status.State == databaseStateRunning || IsStatusError(status.State) {
-				tflog.Trace(ctx, "deployed database", "database_id", databaseID)
-				return status, nil
-			}
-		}
-	}
-}
-
-func (r databaseResource) stopDatabase(ctx context.Context, databaseID string, currentStatus string) (*qovery.Status, *apierrors.APIError) {
-	// wait until we can stop the DB - otherwise it will fail
-	err := Wait(func() (bool, *apierrors.APIError) {
-		status, res, err := r.client.DatabaseMainCallsApi.
-			GetDatabaseStatus(ctx, databaseID).
-			Execute()
-
-		if err != nil || res.StatusCode >= 400 {
-			return false, databaseStopAPIError(databaseID, res, err)
-		}
-
-		return IsFinalState(status.State), nil
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	// Stop database
-	switch currentStatus {
-	case "QUEUED", "STOPPING":
-		tflog.Trace(ctx, "database is already being stopped", "database_id", databaseID)
-	default:
-		_, res, err := r.client.DatabaseActionsApi.
-			StopDatabase(ctx, databaseID).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return nil, databaseStopAPIError(databaseID, res, err)
-		}
-	}
-
-	ticker := time.NewTicker(10 * time.Second)
-	timeout := time.NewTicker(30 * time.Minute)
-	for {
-		select {
-		case <-timeout.C:
-			_, res, err := r.client.DatabaseMainCallsApi.
-				GetDatabaseStatus(ctx, databaseID).
-				Execute()
-			return nil, databaseStopAPIError(databaseID, res, err)
-		case <-ticker.C:
-			status, res, err := r.client.DatabaseMainCallsApi.
-				GetDatabaseStatus(ctx, databaseID).
-				Execute()
-			if err != nil || res.StatusCode >= 400 {
-				return nil, databaseStatusReadAPIError(databaseID, res, err)
-			}
-			if status.State == databaseStateStopped || IsStatusError(status.State) {
-				tflog.Trace(ctx, "stopped database", "database_id", databaseID)
-				return status, nil
-			}
-		}
-	}
-}
-
-func databaseCreateAPIError(databaseName string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionCreate, databaseAPIResource, databaseName, res, err)
-}
-
-func databaseReadAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionRead, databaseAPIResource, databaseID, res, err)
-}
-
-func databaseUpdateAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionUpdate, databaseAPIResource, databaseID, res, err)
-}
-
-func databaseDeleteAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionDelete, databaseAPIResource, databaseID, res, err)
-}
-
-func databaseDeployAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionDeploy, databaseAPIResource, databaseID, res, err)
-}
-
-func databaseStopAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionStop, databaseAPIResource, databaseID, res, err)
-}
-
-func databaseRestartAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionRestart, databaseAPIResource, databaseID, res, err)
-}
-
-func databaseStatusReadAPIError(databaseID string, res *http.Response, err error) *apierrors.APIError {
-	return apierrors.NewError(apierrors.APIActionRead, databaseStatusAPIResource, databaseID, res, err)
 }

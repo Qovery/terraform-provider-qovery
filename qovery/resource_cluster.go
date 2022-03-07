@@ -26,8 +26,6 @@ const (
 	cloudProviderAPIResource = "cloud provider"
 )
 
-var ()
-
 var (
 	// Cluster State
 	clusterStateRunning = "RUNNING"

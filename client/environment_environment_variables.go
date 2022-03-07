@@ -8,7 +8,7 @@ import (
 	"terraform-provider-qovery/client/apierrors"
 )
 
-func (c *Client) GetEnvironmentEnvironmentVariables(ctx context.Context, environmentID string) ([]*qovery.EnvironmentVariableResponse, *apierrors.APIError) {
+func (c *Client) getEnvironmentEnvironmentVariables(ctx context.Context, environmentID string) ([]*qovery.EnvironmentVariableResponse, *apierrors.APIError) {
 	vars, res, err := c.api.EnvironmentVariableApi.
 		ListEnvironmentEnvironmentVariable(ctx, environmentID).
 		Execute()

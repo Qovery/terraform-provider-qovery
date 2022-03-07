@@ -13,7 +13,7 @@ const (
 	applicationStateStopped = "STOPPED"
 )
 
-func (c *Client) GetApplicationStatus(ctx context.Context, applicationID string) (*qovery.Status, *apierrors.APIError) {
+func (c *Client) getApplicationStatus(ctx context.Context, applicationID string) (*qovery.Status, *apierrors.APIError) {
 	status, res, err := c.api.ApplicationMainCallsApi.
 		GetApplicationStatus(ctx, applicationID).
 		Execute()
@@ -30,7 +30,7 @@ func (c *Client) updateApplicationStatus(ctx context.Context, application *qover
 		return nil, apiErr
 	}
 
-	status, apiErr := c.GetApplicationStatus(ctx, application.Id)
+	status, apiErr := c.getApplicationStatus(ctx, application.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -38,14 +38,15 @@ func (c *Client) updateApplicationStatus(ctx context.Context, application *qover
 	if status.State != desiredState {
 		switch desiredState {
 		case applicationStateRunning:
-			return c.deployApplication(ctx, application.Id, *application.GitRepository.DeployedCommitId)
+			return c.deployApplication(ctx, application)
 		case applicationStateStopped:
-			return c.stopApplication(ctx, application.Id)
+			return c.stopApplication(ctx, application)
 		}
 	}
 
-	if forceRestart {
-		return c.restartApplication(ctx, application.Id)
+	deploymentStatus := status.ServiceDeploymentStatus.Get()
+	if (deploymentStatus != nil && *deploymentStatus == "OUT_OF_DATE") || forceRestart {
+		return c.restartApplication(ctx, application)
 	}
 
 	return status, nil

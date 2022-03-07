@@ -45,12 +45,12 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
 
-	status, apiErr := c.GetApplicationStatus(ctx, applicationID)
+	status, apiErr := c.getApplicationStatus(ctx, applicationID)
 	if apiErr != nil {
 		return nil, apiErr
 	}
 
-	environmentVariables, apiErr := c.GetApplicationEnvironmentVariables(ctx, application.Id)
+	environmentVariables, apiErr := c.getApplicationEnvironmentVariables(ctx, application.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -101,7 +101,7 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 		return nil, apiErr
 	}
 
-	environmentVariables, apiErr := c.GetApplicationEnvironmentVariables(ctx, application.Id)
+	environmentVariables, apiErr := c.getApplicationEnvironmentVariables(ctx, application.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -111,79 +111,4 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 		ApplicationStatus:               status,
 		ApplicationEnvironmentVariables: environmentVariables,
 	}, nil
-}
-
-func (c *Client) deployApplication(ctx context.Context, applicationID string, deployedCommitID string) (*qovery.Status, *apierrors.APIError) {
-	status, apiErr := c.GetApplicationStatus(ctx, applicationID)
-	if apiErr != nil {
-		return nil, apiErr
-	}
-
-	switch status.State {
-	case applicationStateRunning:
-		return status, nil
-	case "DEPLOYMENT_ERROR":
-		return c.restartApplication(ctx, applicationID)
-	default:
-		_, res, err := c.api.ApplicationActionsApi.
-			DeployApplication(ctx, applicationID).
-			DeployRequest(qovery.DeployRequest{
-				GitCommitId: deployedCommitID,
-			}).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return nil, apierrors.NewDeployError(apierrors.APIResourceApplication, applicationID, res, err)
-		}
-	}
-
-	statusChecker := newApplicationStatusCheckerWaitFunc(c, applicationID, applicationStateRunning)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
-		return nil, apiErr
-	}
-	return c.GetApplicationStatus(ctx, applicationID)
-}
-
-func (c *Client) stopApplication(ctx context.Context, applicationID string) (*qovery.Status, *apierrors.APIError) {
-	status, apiErr := c.GetApplicationStatus(ctx, applicationID)
-	if apiErr != nil {
-		return nil, apiErr
-	}
-
-	switch status.State {
-	case "STOPPED":
-		return status, nil
-	default:
-		_, res, err := c.api.ApplicationActionsApi.
-			StopApplication(ctx, applicationID).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return nil, apierrors.NewStopError(apierrors.APIResourceApplication, applicationID, res, err)
-		}
-	}
-
-	statusChecker := newApplicationStatusCheckerWaitFunc(c, applicationID, applicationStateStopped)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
-		return nil, apiErr
-	}
-	return c.GetApplicationStatus(ctx, applicationID)
-}
-
-func (c *Client) restartApplication(ctx context.Context, applicationID string) (*qovery.Status, *apierrors.APIError) {
-	finalStateChecker := newApplicationFinalStateCheckerWaitFunc(c, applicationID)
-	if apiErr := wait(ctx, finalStateChecker, nil); apiErr != nil {
-		return nil, apiErr
-	}
-
-	_, res, err := c.api.ApplicationActionsApi.
-		RestartApplication(ctx, applicationID).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		return nil, apierrors.NewRestartError(apierrors.APIResourceApplication, applicationID, res, err)
-	}
-
-	statusChecker := newApplicationStatusCheckerWaitFunc(c, applicationID, applicationStateRunning)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
-		return nil, apiErr
-	}
-	return c.GetApplicationStatus(ctx, applicationID)
 }
