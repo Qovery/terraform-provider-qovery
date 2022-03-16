@@ -28,13 +28,13 @@ resource "qovery_environment" "my_environment" {
 
 ### Required
 
+- `environment_variables` (Attributes List) List of environment variables linked to this environment. (see [below for nested schema](#nestedatt--environment_variables))
 - `name` (String) Name of the environment.
 - `project_id` (String) Id of the project.
 
 ### Optional
 
 - `cluster_id` (String) Id of the cluster [NOTE: can't be updated after creation].
-- `environment_variables` (Attributes List) List of environment variables linked to this environment. (see [below for nested schema](#nestedatt--environment_variables))
 - `mode` (String) Mode of the environment [NOTE: can't be updated after creation].
 	- Can be: `PRODUCTION`, `DEVELOPMENT`, `STAGING`, `PREVIEW`.
 	- Default: `DEVELOPMENT`.
@@ -46,7 +46,7 @@ resource "qovery_environment" "my_environment" {
 <a id="nestedatt--environment_variables"></a>
 ### Nested Schema for `environment_variables`
 
-Optional:
+Required:
 
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
