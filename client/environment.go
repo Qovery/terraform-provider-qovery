@@ -97,11 +97,21 @@ func (c *Client) UpdateEnvironment(ctx context.Context, environmentID string, pa
 }
 
 func (c *Client) DeleteEnvironment(ctx context.Context, environmentID string) *apierrors.APIError {
+	finalStateChecker := newEnvironmentFinalStateCheckerWaitFunc(c, environmentID)
+	if apiErr := wait(ctx, finalStateChecker, nil); apiErr != nil {
+		return apiErr
+	}
+
 	res, err := c.api.EnvironmentMainCallsApi.
 		DeleteEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {
 		return apierrors.NewDeleteError(apierrors.APIResourceEnvironment, environmentID, res, err)
+	}
+
+	checker := newEnvironmentStatusCheckerWaitFunc(c, environmentID, "DELETED")
+	if apiErr := wait(ctx, checker, nil); apiErr != nil {
+		return apiErr
 	}
 	return nil
 }

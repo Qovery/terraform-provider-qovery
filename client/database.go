@@ -66,6 +66,11 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params D
 }
 
 func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierrors.APIError {
+	finalStateChecker := newDatabaseFinalStateCheckerWaitFunc(c, databaseID)
+	if apiErr := wait(ctx, finalStateChecker, nil); apiErr != nil {
+		return apiErr
+	}
+
 	res, err := c.api.DatabaseMainCallsApi.
 		DeleteDatabase(ctx, databaseID).
 		Execute()

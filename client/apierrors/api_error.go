@@ -15,6 +15,10 @@ type APIError struct {
 	res        *http.Response
 }
 
+func IsNotFound(e *APIError) bool {
+	return e.res.StatusCode == http.StatusNotFound
+}
+
 type errorPayload struct {
 	Status    int    `json:"status"`
 	Error     string `json:"error"`

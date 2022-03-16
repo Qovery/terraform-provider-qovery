@@ -74,6 +74,11 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 }
 
 func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *apierrors.APIError {
+	finalStateChecker := newApplicationFinalStateCheckerWaitFunc(c, applicationID)
+	if apiErr := wait(ctx, finalStateChecker, nil); apiErr != nil {
+		return apiErr
+	}
+
 	res, err := c.api.ApplicationMainCallsApi.
 		DeleteApplication(ctx, applicationID).
 		Execute()
