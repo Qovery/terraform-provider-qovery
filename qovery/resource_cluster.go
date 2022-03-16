@@ -214,7 +214,7 @@ func (r clusterResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 
 	// Initialize state values
 	state := convertResponseToCluster(cluster)
-	tflog.Trace(ctx, "created cluster", "cluster_id", state.Id.Value)
+	tflog.Trace(ctx, "created cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -237,7 +237,7 @@ func (r clusterResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 	}
 
 	state = convertResponseToCluster(cluster)
-	tflog.Trace(ctx, "read cluster", "cluster_id", state.Id.Value)
+	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -261,7 +261,7 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 	// Update state values
 	state = convertResponseToCluster(cluster)
-	tflog.Trace(ctx, "updated cluster", "cluster_id", state.Id.Value)
+	tflog.Trace(ctx, "updated cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -283,7 +283,7 @@ func (r clusterResource) Delete(ctx context.Context, req tfsdk.DeleteResourceReq
 		return
 	}
 
-	tflog.Trace(ctx, "deleted cluster", "cluster_id", state.Id.Value)
+	tflog.Trace(ctx, "deleted cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Remove cluster from state
 	resp.State.RemoveResource(ctx)

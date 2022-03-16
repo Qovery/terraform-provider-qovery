@@ -217,7 +217,7 @@ func (d applicationDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 	}
 
 	state := convertResponseToApplication(application)
-	tflog.Trace(ctx, "read application", "application_id", state.Id.Value)
+	tflog.Trace(ctx, "read application", map[string]interface{}{"application_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

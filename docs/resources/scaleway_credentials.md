@@ -17,14 +17,14 @@ Provides a Qovery SCALEWAY credentials resource. This can be used to create and 
 
 ### Required
 
-- **name** (String) Name of the scaleway credentials.
-- **organization_id** (String) Id of the organization.
-- **scaleway_access_key** (String, Sensitive) Your SCALEWAY access key id.
-- **scaleway_project_id** (String, Sensitive) Your SCALEWAY project ID.
-- **scaleway_secret_key** (String, Sensitive) Your SCALEWAY secret key.
+- `name` (String) Name of the scaleway credentials.
+- `organization_id` (String) Id of the organization.
+- `scaleway_access_key` (String, Sensitive) Your SCALEWAY access key id.
+- `scaleway_project_id` (String, Sensitive) Your SCALEWAY project ID.
+- `scaleway_secret_key` (String, Sensitive) Your SCALEWAY secret key.
 
 ### Read-Only
 
-- **id** (String) Id of the SCALEWAY credentials.
+- `id` (String) Id of the SCALEWAY credentials.
 
 

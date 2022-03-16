@@ -79,7 +79,7 @@ func (r awsCredentialsResource) Create(ctx context.Context, req tfsdk.CreateReso
 
 	// Initialize state values
 	state := convertResponseToAWSCredentials(credentials, plan)
-	tflog.Trace(ctx, "created aws credentials", "credentials_id", state.Id.Value)
+	tflog.Trace(ctx, "created aws credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -102,7 +102,7 @@ func (r awsCredentialsResource) Read(ctx context.Context, req tfsdk.ReadResource
 	}
 
 	state = convertResponseToAWSCredentials(credentials, state)
-	tflog.Trace(ctx, "read aws credentials", "credentials_id", state.Id.Value)
+	tflog.Trace(ctx, "read aws credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -127,7 +127,7 @@ func (r awsCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateReso
 
 	// Update state values
 	state = convertResponseToAWSCredentials(credentials, plan)
-	tflog.Trace(ctx, "updated aws credentials", "credentials_id", state.Id.Value)
+	tflog.Trace(ctx, "updated aws credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -149,7 +149,7 @@ func (r awsCredentialsResource) Delete(ctx context.Context, req tfsdk.DeleteReso
 		return
 	}
 
-	tflog.Trace(ctx, "deleted aws credentials", "credentials_id", state.Id.Value)
+	tflog.Trace(ctx, "deleted aws credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Remove credentials from state
 	resp.State.RemoveResource(ctx)

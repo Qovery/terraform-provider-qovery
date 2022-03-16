@@ -24,11 +24,11 @@ data "qovery_aws_credentials" "my_aws_creds" {
 
 ### Required
 
-- **id** (String) Id of the credentials.
-- **organization_id** (String) Id of the organization.
+- `id` (String) Id of the credentials.
+- `organization_id` (String) Id of the organization.
 
 ### Read-Only
 
-- **name** (String) Name of the aws credentials.
+- `name` (String) Name of the aws credentials.
 
 

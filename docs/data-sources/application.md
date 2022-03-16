@@ -23,35 +23,35 @@ data "qovery_application" "my_application" {
 
 ### Required
 
-- **id** (String) Id of the application.
+- `id` (String) Id of the application.
 
 ### Read-Only
 
-- **auto_preview** (Boolean) Specify if the environment preview option is activated or not for this application.
-- **build_mode** (String) Build Mode of the application.
-- **buildpack_language** (String) Buildpack Language framework.
-- **cpu** (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
-- **description** (String) Description of the application.
-- **dockerfile_path** (String) Dockerfile Path of the application.
-- **environment_id** (String) Id of the environment.
-- **environment_variables** (Attributes List) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
-- **git_repository** (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
-- **max_running_instances** (Number) Maximum number of instances running for the application.
-- **memory** (Number) RAM of the application in MB [1024MB = 1GB].
-- **min_running_instances** (Number) Minimum number of instances running for the application.
-- **name** (String) Name of the application.
-- **ports** (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
-- **state** (String) State of the application.
-- **storage** (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
+- `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
+- `build_mode` (String) Build Mode of the application.
+- `buildpack_language` (String) Buildpack Language framework.
+- `cpu` (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
+- `description` (String) Description of the application.
+- `dockerfile_path` (String) Dockerfile Path of the application.
+- `environment_id` (String) Id of the environment.
+- `environment_variables` (Attributes List) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
+- `git_repository` (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
+- `max_running_instances` (Number) Maximum number of instances running for the application.
+- `memory` (Number) RAM of the application in MB [1024MB = 1GB].
+- `min_running_instances` (Number) Minimum number of instances running for the application.
+- `name` (String) Name of the application.
+- `ports` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
+- `state` (String) State of the application.
+- `storage` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
 
 <a id="nestedatt--environment_variables"></a>
 ### Nested Schema for `environment_variables`
 
 Read-Only:
 
-- **id** (String) Id of the environment variable.
-- **key** (String) Key of the environment variable.
-- **value** (String) Value of the environment variable.
+- `id` (String) Id of the environment variable.
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
 
 
 <a id="nestedatt--git_repository"></a>
@@ -59,9 +59,9 @@ Read-Only:
 
 Read-Only:
 
-- **branch** (String) Branch of the git repository.
-- **root_path** (String) Root path of the application.
-- **url** (String) URL of the git repository.
+- `branch` (String) Branch of the git repository.
+- `root_path` (String) Root path of the application.
+- `url` (String) URL of the git repository.
 
 
 <a id="nestedatt--ports"></a>
@@ -69,12 +69,12 @@ Read-Only:
 
 Read-Only:
 
-- **external_port** (Number) External port of the application.
-- **id** (String) Id of the port.
-- **internal_port** (Number) Internal port of the application.
-- **name** (String) Name of the port.
-- **protocol** (String) Protocol used for the port of the application.
-- **publicly_accessible** (Boolean) Specify if the port is exposed to the world or not for this application.
+- `external_port` (Number) External port of the application.
+- `id` (String) Id of the port.
+- `internal_port` (Number) Internal port of the application.
+- `name` (String) Name of the port.
+- `protocol` (String) Protocol used for the port of the application.
+- `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this application.
 
 
 <a id="nestedatt--storage"></a>
@@ -82,9 +82,9 @@ Read-Only:
 
 Read-Only:
 
-- **id** (String) Id of the storage.
-- **mount_point** (String) Mount point of the storage for the application.
-- **size** (Number) Size of the storage for the application in GB [1024MB = 1GB].
-- **type** (String) Type of the storage for the application.
+- `id` (String) Id of the storage.
+- `mount_point` (String) Mount point of the storage for the application.
+- `size` (Number) Size of the storage for the application in GB [1024MB = 1GB].
+- `type` (String) Type of the storage for the application.
 
 

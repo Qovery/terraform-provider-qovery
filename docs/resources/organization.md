@@ -24,17 +24,17 @@ resource "qovery_organization" "my_organization" {
 
 ### Required
 
-- **name** (String) Name of the organization.
-- **plan** (String) Plan of the organization.
+- `name` (String) Name of the organization.
+- `plan` (String) Plan of the organization.
 	- Can be: `FREE`, `PROFESSIONAL`, `BUSINESS`.
 
 ### Optional
 
-- **description** (String) Description of the organization.
+- `description` (String) Description of the organization.
 
 ### Read-Only
 
-- **id** (String) Id of the organization.
+- `id` (String) Id of the organization.
 
 ## Import
 

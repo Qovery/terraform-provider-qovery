@@ -35,35 +35,35 @@ resource "qovery_database" "my_database" {
 
 ### Required
 
-- **environment_id** (String) Id of the environment.
-- **mode** (String) Mode of the database [NOTE: can't be updated after creation].
+- `environment_id` (String) Id of the environment.
+- `mode` (String) Mode of the database [NOTE: can't be updated after creation].
 	- Can be: `MANAGED`, `CONTAINER`.
-- **name** (String) Name of the database.
-- **type** (String) Type of the database [NOTE: can't be updated after creation].
+- `name` (String) Name of the database.
+- `type` (String) Type of the database [NOTE: can't be updated after creation].
 	- Can be: `POSTGRESQL`, `MYSQL`, `MONGODB`, `REDIS`.
-- **version** (String) Version of the database
+- `version` (String) Version of the database
 
 ### Optional
 
-- **accessibility** (String) Accessibility of the database.
+- `accessibility` (String) Accessibility of the database.
 	- Can be: `PRIVATE`, `PUBLIC`.
 	- Default: `PUBLIC`.
-- **cpu** (Number) CPU of the database in millicores (m) [1000m = 1 CPU].
+- `cpu` (Number) CPU of the database in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 250`.
 	- Default: `250`.
-- **memory** (Number) RAM of the database in MB [1024MB = 1GB].
+- `memory` (Number) RAM of the database in MB [1024MB = 1GB].
 	- Must be: `>= 100`.
 	- Default: `256`.
-- **state** (String) State of the database.
+- `state` (String) State of the database.
 	- Can be: `RUNNING`, `STOPPED`.
 	- Default: `RUNNING`.
-- **storage** (Number) Storage of the database in GB [1024MB = 1GB].
+- `storage` (Number) Storage of the database in GB [1024MB = 1GB].
 	- Must be: `>= 10`.
 	- Default: `10`.
 
 ### Read-Only
 
-- **id** (String) Id of the database.
+- `id` (String) Id of the database.
 
 ## Import
 

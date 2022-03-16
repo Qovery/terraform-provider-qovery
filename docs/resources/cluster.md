@@ -32,36 +32,36 @@ resource "qovery_cluster" "my_cluster" {
 
 ### Required
 
-- **cloud_provider** (String) Cloud provider of the cluster.
+- `cloud_provider` (String) Cloud provider of the cluster.
 	- Can be: `AWS`, `DIGITAL_OCEAN`, `SCALEWAY`.
-- **credentials_id** (String) Id of the credentials.
-- **name** (String) Name of the cluster.
-- **organization_id** (String) Id of the organization.
-- **region** (String) Region of the cluster.
+- `credentials_id` (String) Id of the credentials.
+- `name` (String) Name of the cluster.
+- `organization_id` (String) Id of the organization.
+- `region` (String) Region of the cluster.
 
 ### Optional
 
-- **cpu** (Number) CPU of the cluster in millicores (m) [1000m = 1 CPU].
+- `cpu` (Number) CPU of the cluster in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 2000`.
 	- Default: `2000`.
-- **description** (String) Description of the cluster.
+- `description` (String) Description of the cluster.
 	- Default: ``.
-- **max_running_nodes** (Number) Maximum number of nodes running for the cluster.
+- `max_running_nodes` (Number) Maximum number of nodes running for the cluster.
 	- Must be: `>= 3`.
 	- Default: `10`.
-- **memory** (Number) RAM of the cluster in MB [1024MB = 1GB].
+- `memory` (Number) RAM of the cluster in MB [1024MB = 1GB].
 	- Must be: `>= 4096`.
 	- Default: `4096`.
-- **min_running_nodes** (Number) Minimum number of nodes running for the cluster.
+- `min_running_nodes` (Number) Minimum number of nodes running for the cluster.
 	- Must be: `>= 3`.
 	- Default: `3`.
-- **state** (String) State of the cluster.
+- `state` (String) State of the cluster.
 	- Can be: `RUNNING`, `STOPPED`.
 	- Default: `RUNNING`.
 
 ### Read-Only
 
-- **id** (String) Id of the cluster.
+- `id` (String) Id of the cluster.
 
 ## Import
 

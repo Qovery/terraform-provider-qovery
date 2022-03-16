@@ -68,7 +68,7 @@ func (d organizationDataSource) Read(ctx context.Context, req tfsdk.ReadDataSour
 	}
 
 	state := convertResponseToOrganization(organization)
-	tflog.Trace(ctx, "read organization", "organization_id", state.Id.Value)
+	tflog.Trace(ctx, "read organization", map[string]interface{}{"organization_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

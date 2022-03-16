@@ -90,7 +90,7 @@ func (d projectDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceReq
 	}
 
 	state := convertResponseToProject(project)
-	tflog.Trace(ctx, "read project", "project_id", state.Id.Value)
+	tflog.Trace(ctx, "read project", map[string]interface{}{"project_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

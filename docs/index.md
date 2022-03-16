@@ -36,4 +36,4 @@ provider "qovery" {
 
 ### Required
 
-- **token** (String) The Qovery API Token to use. This can also be specified with the `QOVERY_API_TOKEN` shell environment variable.
+- `token` (String) The Qovery API Token to use. This can also be specified with the `QOVERY_API_TOKEN` shell environment variable.
