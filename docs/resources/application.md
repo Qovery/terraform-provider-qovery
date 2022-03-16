@@ -33,6 +33,7 @@ resource "qovery_application" "my_application" {
 ### Required
 
 - `environment_id` (String) Id of the environment.
+- `environment_variables` (Attributes List) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
 - `git_repository` (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
 - `name` (String) Name of the application.
 
@@ -52,7 +53,6 @@ resource "qovery_application" "my_application" {
 - `description` (String) Description of the application.
 - `dockerfile_path` (String) Dockerfile Path of the application.
 	- Required if: `build_mode="DOCKER"`.
-- `environment_variables` (Attributes List) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
 - `max_running_instances` (Number) Maximum number of instances running for the application.
 	- Must be: `>= -1`.
 	- Default: `1`.
@@ -72,6 +72,16 @@ resource "qovery_application" "my_application" {
 
 - `id` (String) Id of the application.
 
+<a id="nestedatt--environment_variables"></a>
+### Nested Schema for `environment_variables`
+
+Required:
+
+- `id` (String) Id of the environment variable.
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
+
+
 <a id="nestedatt--git_repository"></a>
 ### Nested Schema for `git_repository`
 
@@ -82,16 +92,6 @@ Required:
 - `root_path` (String) Root path of the application.
 	- Default: `/`.
 - `url` (String) URL of the git repository.
-
-
-<a id="nestedatt--environment_variables"></a>
-### Nested Schema for `environment_variables`
-
-Optional:
-
-- `id` (String) Id of the environment variable.
-- `key` (String) Key of the environment variable.
-- `value` (String) Value of the environment variable.
 
 
 <a id="nestedatt--ports"></a>
