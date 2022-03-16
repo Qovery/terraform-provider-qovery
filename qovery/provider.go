@@ -9,6 +9,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
+
+	"terraform-provider-qovery/client"
 )
 
 const qoveryAPITokenEnvName = "QOVERY_API_TOKEN"
@@ -28,7 +30,7 @@ type provider struct {
 
 	// client is set at the end of the Configure method.
 	// This is used to make http request to Qovery API.
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -74,8 +76,8 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 	cfg := qovery.NewConfiguration()
 	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Bearer %s", token))
 
-	p.client = qovery.NewAPIClient(cfg)
 	p.configured = true
+	p.client = client.New(token, p.version)
 }
 
 // GetResources - Defines provider resources
@@ -118,7 +120,7 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 	}, nil
 }
 
-func (p provider) GetClient() *qovery.APIClient {
+func (p provider) GetClient() *client.Client {
 	return p.client
 }
 

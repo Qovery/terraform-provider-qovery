@@ -7,7 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
+
+	"terraform-provider-qovery/client"
 )
 
 type databaseDataSourceType struct{}
@@ -77,12 +78,12 @@ func (t databaseDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag
 
 func (t databaseDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return databaseDataSource{
-		client: p.(*provider).GetClient(),
+		client: p.(*provider).client,
 	}, nil
 }
 
 type databaseDataSource struct {
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // Read qovery database data source
@@ -95,25 +96,12 @@ func (d databaseDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRe
 	}
 
 	// Get database from API
-	database, res, err := d.client.DatabaseMainCallsApi.
-		GetDatabase(ctx, data.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := databaseReadAPIError(data.Id.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	database, apiErr := d.client.GetDatabase(ctx, data.Id.Value)
+	if apiErr != nil {
 		return
 	}
 
-	databaseStatus, res, err := d.client.DatabaseMainCallsApi.
-		GetDatabaseStatus(ctx, database.Id).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := databaseStatusReadAPIError(data.Id.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	state := convertResponseToDatabase(database, databaseStatus)
+	state := convertResponseToDatabase(database)
 	tflog.Trace(ctx, "read database", "database_id", state.Id.Value)
 
 	// Set state

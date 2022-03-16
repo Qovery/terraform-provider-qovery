@@ -3,7 +3,6 @@ package qovery
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -11,12 +10,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
 
-	"terraform-provider-qovery/qovery/apierror"
+	"terraform-provider-qovery/client"
 )
-
-const scalewayCredentialsAPIResource = "scaleway credentials"
 
 type scalewayCredentialsResourceType struct{}
 
@@ -63,12 +59,12 @@ func (r scalewayCredentialsResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 
 func (r scalewayCredentialsResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return scalewayCredentialsResource{
-		client: p.(*provider).GetClient(),
+		client: p.(*provider).client,
 	}, nil
 }
 
 type scalewayCredentialsResource struct {
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // Create qovery scaleway credentials resource
@@ -81,12 +77,8 @@ func (r scalewayCredentialsResource) Create(ctx context.Context, req tfsdk.Creat
 	}
 
 	// Create new credentials
-	credentials, res, err := r.client.CloudProviderCredentialsApi.
-		CreateScalewayCredentials(ctx, plan.OrganizationId.Value).
-		ScalewayCredentialsRequest(plan.toUpsertScalewayCredentialsRequest()).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := scalewayCredentialsCreateAPIError(plan.Name.Value, res, err)
+	credentials, apiErr := r.client.CreateScalewayCredentials(ctx, plan.OrganizationId.Value, plan.toUpsertScalewayCredentialsRequest())
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -109,33 +101,13 @@ func (r scalewayCredentialsResource) Read(ctx context.Context, req tfsdk.ReadRes
 	}
 
 	// Get credentials from API
-	credentials, res, err := r.client.CloudProviderCredentialsApi.
-		ListScalewayCredentials(ctx, state.OrganizationId.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := scalewayCredentialsReadAPIError(state.Id.Value, res, err)
+	credentials, apiErr := r.client.GetScalewayCredentials(ctx, state.OrganizationId.Value, state.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	found := false
-	for _, creds := range credentials.GetResults() {
-		if state.Id.Value == *creds.Id {
-			found = true
-			state = convertResponseToScalewayCredentials(&creds, state)
-			break
-		}
-	}
-
-	// If credential id is not in list
-	// Returning Not Found error
-	if found {
-		res.StatusCode = 404
-		apiErr := scalewayCredentialsReadAPIError(state.Id.Value, res, nil)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
+	state = convertResponseToScalewayCredentials(credentials, state)
 	tflog.Trace(ctx, "read scaleway credentials", "credentials_id", state.Id.Value)
 
 	// Set state
@@ -153,12 +125,8 @@ func (r scalewayCredentialsResource) Update(ctx context.Context, req tfsdk.Updat
 	}
 
 	// Update credentials in the backend
-	credentials, res, err := r.client.CloudProviderCredentialsApi.
-		EditScalewayCredentials(ctx, state.OrganizationId.Value, state.Id.Value).
-		ScalewayCredentialsRequest(plan.toUpsertScalewayCredentialsRequest()).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := scalewayCredentialsUpdateAPIError(state.Id.Value, res, err)
+	credentials, apiErr := r.client.UpdateScalewayCredentials(ctx, state.OrganizationId.Value, state.Id.Value, plan.toUpsertScalewayCredentialsRequest())
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -181,11 +149,8 @@ func (r scalewayCredentialsResource) Delete(ctx context.Context, req tfsdk.Delet
 	}
 
 	// Delete credentials in the backend
-	res, err := r.client.CloudProviderCredentialsApi.
-		DeleteScalewayCredentials(ctx, state.OrganizationId.Value, state.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := scalewayCredentialsDeleteAPIError(state.Id.Value, res, err)
+	apiErr := r.client.DeleteScalewayCredentials(ctx, state.OrganizationId.Value, state.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -210,20 +175,4 @@ func (r scalewayCredentialsResource) ImportState(ctx context.Context, req tfsdk.
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("id"), idParts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("organization_id"), idParts[1])...)
-}
-
-func scalewayCredentialsCreateAPIError(credentialsName string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(scalewayCredentialsAPIResource, credentialsName, apierror.Create, res, err)
-}
-
-func scalewayCredentialsReadAPIError(credentialsID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(scalewayCredentialsAPIResource, credentialsID, apierror.Read, res, err)
-}
-
-func scalewayCredentialsUpdateAPIError(credentialsID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(scalewayCredentialsAPIResource, credentialsID, apierror.Update, res, err)
-}
-
-func scalewayCredentialsDeleteAPIError(credentialsID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(scalewayCredentialsAPIResource, credentialsID, apierror.Delete, res, err)
 }

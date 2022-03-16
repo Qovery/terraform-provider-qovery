@@ -3,7 +3,6 @@ package qovery
 import (
 	"context"
 	"fmt"
-	"net/http"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -11,12 +10,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
 
-	"terraform-provider-qovery/qovery/apierror"
+	"terraform-provider-qovery/client"
 )
-
-const awsCredentialsAPIResource = "aws credentials"
 
 type awsCredentialsResourceType struct{}
 
@@ -57,12 +53,12 @@ func (r awsCredentialsResourceType) GetSchema(_ context.Context) (tfsdk.Schema, 
 
 func (r awsCredentialsResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return awsCredentialsResource{
-		client: p.(*provider).GetClient(),
+		client: p.(*provider).client,
 	}, nil
 }
 
 type awsCredentialsResource struct {
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // Create qovery aws credentials resource
@@ -75,12 +71,8 @@ func (r awsCredentialsResource) Create(ctx context.Context, req tfsdk.CreateReso
 	}
 
 	// Create new credentials
-	credentials, res, err := r.client.CloudProviderCredentialsApi.
-		CreateAWSCredentials(ctx, plan.OrganizationId.Value).
-		AwsCredentialsRequest(plan.toUpsertAWSCredentialsRequest()).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := awsCredentialsCreateAPIError(plan.Name.Value, res, err)
+	credentials, apiErr := r.client.CreateAWSCredentials(ctx, plan.OrganizationId.Value, plan.toUpsertAWSCredentialsRequest())
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -103,33 +95,13 @@ func (r awsCredentialsResource) Read(ctx context.Context, req tfsdk.ReadResource
 	}
 
 	// Get credentials from API
-	credentials, res, err := r.client.CloudProviderCredentialsApi.
-		ListAWSCredentials(ctx, state.OrganizationId.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := awsCredentialsReadAPIError(state.Id.Value, res, err)
+	credentials, apiErr := r.client.GetAWSCredentials(ctx, state.OrganizationId.Value, state.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	found := false
-	for _, creds := range credentials.GetResults() {
-		if state.Id.Value == *creds.Id {
-			found = true
-			state = convertResponseToAWSCredentials(&creds, state)
-			break
-		}
-	}
-
-	// If credential id is not in list
-	// Returning Not Found error
-	if !found {
-		res.StatusCode = 404
-		apiErr := awsCredentialsReadAPIError(state.Id.Value, res, nil)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
+	state = convertResponseToAWSCredentials(credentials, state)
 	tflog.Trace(ctx, "read aws credentials", "credentials_id", state.Id.Value)
 
 	// Set state
@@ -147,12 +119,8 @@ func (r awsCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateReso
 	}
 
 	// Update credentials in the backend
-	credentials, res, err := r.client.CloudProviderCredentialsApi.
-		EditAWSCredentials(ctx, state.OrganizationId.Value, state.Id.Value).
-		AwsCredentialsRequest(plan.toUpsertAWSCredentialsRequest()).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := awsCredentialsUpdateAPIError(state.Id.Value, res, err)
+	credentials, apiErr := r.client.UpdateAWSCredentials(ctx, state.OrganizationId.Value, state.Id.Value, plan.toUpsertAWSCredentialsRequest())
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -175,11 +143,8 @@ func (r awsCredentialsResource) Delete(ctx context.Context, req tfsdk.DeleteReso
 	}
 
 	// Delete credentials in the backend
-	res, err := r.client.CloudProviderCredentialsApi.
-		DeleteAWSCredentials(ctx, state.OrganizationId.Value, state.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := awsCredentialsDeleteAPIError(state.Id.Value, res, err)
+	apiErr := r.client.DeleteAWSCredentials(ctx, state.OrganizationId.Value, state.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -204,20 +169,4 @@ func (r awsCredentialsResource) ImportState(ctx context.Context, req tfsdk.Impor
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("id"), idParts[0])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("organization_id"), idParts[1])...)
-}
-
-func awsCredentialsCreateAPIError(credentialsName string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(awsCredentialsAPIResource, credentialsName, apierror.Create, res, err)
-}
-
-func awsCredentialsReadAPIError(credentialsID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(awsCredentialsAPIResource, credentialsID, apierror.Read, res, err)
-}
-
-func awsCredentialsUpdateAPIError(credentialsID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(awsCredentialsAPIResource, credentialsID, apierror.Update, res, err)
-}
-
-func awsCredentialsDeleteAPIError(credentialsID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(awsCredentialsAPIResource, credentialsID, apierror.Delete, res, err)
 }

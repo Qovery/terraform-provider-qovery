@@ -9,6 +9,25 @@ import (
 // Convert Terraform types to Go types
 //
 
+func toNullableNullableBuildPackLanguageEnum(v types.String) qovery.NullableBuildPackLanguageEnum {
+	enum, err := qovery.NewBuildPackLanguageEnumFromValue(v.Value)
+	if err != nil || v.Null || v.Unknown {
+		s := qovery.NewNullableBuildPackLanguageEnum(nil)
+		return *s
+	}
+	s := qovery.NewNullableBuildPackLanguageEnum(enum)
+	return *s
+}
+
+func toNullableString(v types.String) qovery.NullableString {
+	if v.Null || v.Unknown {
+		s := qovery.NewNullableString(nil)
+		return *s
+	}
+	s := qovery.NewNullableString(&v.Value)
+	return *s
+}
+
 func toString(v types.String) string {
 	return v.Value
 }
@@ -46,6 +65,13 @@ func toInt32Pointer(v types.Int64) *int32 {
 //
 // Convert Go types to Terraform types
 //
+
+func fromNullableNullableBuildPackLanguageEnum(v qovery.NullableBuildPackLanguageEnum) types.String {
+	if v.Get() == nil {
+		return fromStringPointer(nil)
+	}
+	return fromString(string(*v.Get()))
+}
 
 func fromString(v string) types.String {
 	return types.String{Value: v}

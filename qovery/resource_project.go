@@ -2,21 +2,14 @@ package qovery
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
 
-	"terraform-provider-qovery/qovery/apierror"
-)
-
-const (
-	projectAPIResource                    = "project"
-	projectEnvironmentVariableAPIResource = "project environment variable"
+	"terraform-provider-qovery/client"
 )
 
 type projectResourceType struct{}
@@ -74,12 +67,12 @@ func (r projectResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 
 func (r projectResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return projectResource{
-		client: p.(*provider).GetClient(),
+		client: p.(*provider).client,
 	}, nil
 }
 
 type projectResource struct {
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // Create qovery project resource
@@ -92,24 +85,15 @@ func (r projectResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 	}
 
 	// Create new project
-	project, res, err := r.client.ProjectsApi.
-		CreateProject(ctx, plan.OrganizationId.Value).
-		ProjectRequest(plan.toUpsertProjectRequest()).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := projectCreateAPIError(plan.Name.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
 
-	projectVariables, apiErr := r.updateProjectEnvironmentVariables(ctx, project.Id, plan.EnvironmentVariables)
+	project, apiErr := r.client.CreateProject(ctx, plan.OrganizationId.Value, plan.toCreateProjectRequest())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
 	// Initialize state values
-	state := convertResponseToProject(project, projectVariables)
+	state := convertResponseToProject(project)
 	tflog.Trace(ctx, "created project", "project_id", state.Id.Value)
 
 	// Set state
@@ -126,26 +110,14 @@ func (r projectResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 	}
 
 	// Get project from the API
-	project, res, err := r.client.ProjectMainCallsApi.
-		GetProject(ctx, state.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := projectReadAPIError(state.Id.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	projectVariables, res, err := r.client.ProjectEnvironmentVariableApi.
-		ListProjectEnvironmentVariable(ctx, project.Id).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := projectEnvironmentVariableReadAPIError(state.Id.Value, res, err)
+	project, apiErr := r.client.GetProject(ctx, state.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
 	// Refresh state values
-	state = convertResponseToProject(project, projectVariables)
+	state = convertResponseToProject(project)
 	tflog.Trace(ctx, "read project", "project_id", state.Id.Value)
 
 	// Set state
@@ -163,24 +135,14 @@ func (r projectResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 
 	// Update project in the backend
-	project, res, err := r.client.ProjectMainCallsApi.
-		EditProject(ctx, state.Id.Value).
-		ProjectRequest(plan.toUpsertProjectRequest()).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := projectUpdateAPIError(state.Id.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	projectVariables, apiErr := r.updateProjectEnvironmentVariables(ctx, project.Id, plan.EnvironmentVariables)
+	project, apiErr := r.client.UpdateProject(ctx, state.Id.Value, plan.toUpdateProjectRequest(state))
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
 	// Update state values
-	state = convertResponseToProject(project, projectVariables)
+	state = convertResponseToProject(project)
 	tflog.Trace(ctx, "updated project", "project_id", state.Id.Value)
 
 	// Set state
@@ -197,11 +159,8 @@ func (r projectResource) Delete(ctx context.Context, req tfsdk.DeleteResourceReq
 	}
 
 	// Delete project
-	res, err := r.client.ProjectMainCallsApi.
-		DeleteProject(ctx, state.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 300 {
-		apiErr := projectDeleteAPIError(state.Id.Value, res, err)
+	apiErr := r.client.DeleteProject(ctx, state.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -215,88 +174,4 @@ func (r projectResource) Delete(ctx context.Context, req tfsdk.DeleteResourceReq
 // ImportState imports a qovery project resource using its id
 func (r projectResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
 	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
-}
-
-func (r projectResource) updateProjectEnvironmentVariables(ctx context.Context, projectID string, plan []EnvironmentVariable) (*qovery.EnvironmentVariableResponseList, *apierror.APIError) {
-	projectVariables, res, err := r.client.ProjectEnvironmentVariableApi.
-		ListProjectEnvironmentVariable(ctx, projectID).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		return nil, projectEnvironmentVariableReadAPIError(projectID, res, err)
-	}
-
-	diff := diffEnvironmentVariables(
-		convertResponseToEnvironmentVariables(projectVariables, EnvironmentVariableScopeProject),
-		plan,
-	)
-
-	for _, variable := range diff.ToRemove {
-		res, err := r.client.ProjectEnvironmentVariableApi.
-			DeleteProjectEnvironmentVariable(ctx, projectID, variable.Id.Value).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return nil, projectEnvironmentVariableDeleteAPIError(variable.Id.Value, res, err)
-		}
-	}
-
-	for _, variable := range diff.ToUpdate {
-		_, res, err := r.client.ProjectEnvironmentVariableApi.
-			EditProjectEnvironmentVariable(ctx, projectID, variable.Id.Value).
-			EnvironmentVariableEditRequest(variable.toUpdateRequest()).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return nil, projectEnvironmentVariableUpdateAPIError(variable.Id.Value, res, err)
-		}
-	}
-
-	for _, variable := range diff.ToCreate {
-		_, res, err := r.client.ProjectEnvironmentVariableApi.
-			CreateProjectEnvironmentVariable(ctx, projectID).
-			EnvironmentVariableRequest(variable.toCreateRequest()).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return nil, projectEnvironmentVariableCreateAPIError(variable.Key.Value, res, err)
-		}
-	}
-
-	projectVariables, res, err = r.client.ProjectEnvironmentVariableApi.
-		ListProjectEnvironmentVariable(ctx, projectID).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		return nil, projectEnvironmentVariableReadAPIError(projectID, res, err)
-	}
-	return projectVariables, nil
-}
-
-func projectCreateAPIError(projectName string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(projectAPIResource, projectName, apierror.Create, res, err)
-}
-
-func projectReadAPIError(projectID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(projectAPIResource, projectID, apierror.Read, res, err)
-}
-
-func projectUpdateAPIError(projectID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(projectAPIResource, projectID, apierror.Update, res, err)
-}
-
-func projectDeleteAPIError(projectID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(projectAPIResource, projectID, apierror.Delete, res, err)
-}
-
-// Project Environment Variable
-func projectEnvironmentVariableCreateAPIError(projectID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(projectEnvironmentVariableAPIResource, projectID, apierror.Create, res, err)
-}
-
-func projectEnvironmentVariableReadAPIError(variableID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(projectEnvironmentVariableAPIResource, variableID, apierror.Read, res, err)
-}
-
-func projectEnvironmentVariableUpdateAPIError(variableID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(projectEnvironmentVariableAPIResource, variableID, apierror.Update, res, err)
-}
-
-func projectEnvironmentVariableDeleteAPIError(variableID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(projectEnvironmentVariableAPIResource, variableID, apierror.Delete, res, err)
 }

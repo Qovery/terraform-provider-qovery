@@ -1,4 +1,4 @@
-package apierror
+package apierrors
 
 import (
 	"encoding/json"
@@ -7,42 +7,20 @@ import (
 	"net/http"
 )
 
-type APIAction string
+type APIError struct {
+	err        error
+	action     APIAction
+	resource   APIResource
+	resourceID string
+	res        *http.Response
+}
 
-var (
-	Create  APIAction = "create"
-	Read    APIAction = "read"
-	Update  APIAction = "update"
-	Delete  APIAction = "delete"
-	Deploy  APIAction = "deploy"
-	Stop    APIAction = "stop"
-	Restart APIAction = "restart"
-)
-
-type ErrorPayload struct {
+type errorPayload struct {
 	Status    int    `json:"status"`
 	Error     string `json:"error"`
 	Message   string `json:"message"`
 	Timestamp string `json:"timestamp"`
 	Path      string `json:"path"`
-}
-
-type APIError struct {
-	resource   string
-	resourceID string
-	action     APIAction
-	res        *http.Response
-	err        error
-}
-
-func New(resource string, resourceID string, action APIAction, res *http.Response, err error) *APIError {
-	return &APIError{
-		resource:   resource,
-		resourceID: resourceID,
-		action:     action,
-		res:        res,
-		err:        err,
-	}
 }
 
 func (e APIError) Summary() string {
@@ -51,7 +29,7 @@ func (e APIError) Summary() string {
 
 func (e APIError) Detail() string {
 	var extra string
-	payload := e.ErrorPayload()
+	payload := e.errorPayload()
 
 	if e.err != nil {
 		extra = fmt.Sprintf("unexpected error: %s", e.err)
@@ -64,7 +42,7 @@ func (e APIError) Detail() string {
 	return fmt.Sprintf("Could not %s %s '%s', %s", e.action, e.resource, e.resourceID, extra)
 }
 
-func (e APIError) ErrorPayload() *ErrorPayload {
+func (e APIError) errorPayload() *errorPayload {
 	if e.err == nil {
 		return nil
 	}
@@ -74,7 +52,7 @@ func (e APIError) ErrorPayload() *ErrorPayload {
 		return nil
 	}
 
-	var payload ErrorPayload
+	var payload errorPayload
 	if err := json.Unmarshal(body, &payload); err != nil {
 		return nil
 	}

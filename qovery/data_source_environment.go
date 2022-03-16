@@ -7,7 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
+
+	"terraform-provider-qovery/client"
 )
 
 type environmentDataSourceType struct{}
@@ -69,12 +70,12 @@ func (t environmentDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 
 func (t environmentDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return environmentDataSource{
-		client: p.(*provider).GetClient(),
+		client: p.(*provider).client,
 	}, nil
 }
 
 type environmentDataSource struct {
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // Read qovery environment data source
@@ -87,25 +88,13 @@ func (d environmentDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 	}
 
 	// Get environment from API
-	environment, res, err := d.client.EnvironmentMainCallsApi.
-		GetEnvironment(ctx, data.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := environmentReadAPIError(data.Id.Value, res, err)
+	environment, apiErr := d.client.GetEnvironment(ctx, data.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	environmentVariables, res, err := d.client.EnvironmentVariableApi.
-		ListEnvironmentEnvironmentVariable(ctx, environment.Id).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := environmentEnvironmentVariableReadAPIError(data.Id.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	state := convertResponseToEnvironment(environment, environmentVariables)
+	state := convertResponseToEnvironment(environment)
 	tflog.Trace(ctx, "read environment", "environment_id", state.Id.Value)
 
 	// Set state

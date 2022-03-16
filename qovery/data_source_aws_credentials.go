@@ -7,7 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
+
+	"terraform-provider-qovery/client"
 )
 
 type awsCredentialsDataSourceType struct{}
@@ -37,12 +38,12 @@ func (t awsCredentialsDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 
 func (t awsCredentialsDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return awsCredentialsDataSource{
-		client: p.(*provider).GetClient(),
+		client: p.(*provider).client,
 	}, nil
 }
 
 type awsCredentialsDataSource struct {
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // Read qovery awsCredentials data source
@@ -55,34 +56,13 @@ func (d awsCredentialsDataSource) Read(ctx context.Context, req tfsdk.ReadDataSo
 	}
 
 	// Get credentials from API
-	credentials, res, err := d.client.CloudProviderCredentialsApi.
-		ListAWSCredentials(ctx, data.OrganizationId.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := awsCredentialsReadAPIError(data.Id.Value, res, err)
+	credentials, apiErr := d.client.GetAWSCredentials(ctx, data.OrganizationId.Value, data.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	var state AWSCredentialsDataSource
-	found := false
-	for _, creds := range credentials.GetResults() {
-		if data.Id.Value == *creds.Id {
-			found = true
-			state = convertResponseToAWSCredentialsDataSource(&creds, data)
-			break
-		}
-	}
-
-	// If credential id is not in list
-	// Returning Not Found error
-	if !found {
-		res.StatusCode = 404
-		apiErr := awsCredentialsReadAPIError(state.Id.Value, res, nil)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
+	state := convertResponseToAWSCredentialsDataSource(credentials, data)
 	tflog.Trace(ctx, "read aws credentials", "credentials_id", state.Id.Value)
 
 	// Set state

@@ -3,6 +3,8 @@ package qovery
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
+
+	"terraform-provider-qovery/client"
 )
 
 type Application struct {
@@ -25,7 +27,7 @@ type Application struct {
 	State                types.String              `tfsdk:"state"`
 }
 
-func (app Application) toCreateApplicationRequest() qovery.ApplicationRequest {
+func (app Application) toCreateApplicationRequest() client.ApplicationCreateParams {
 	storage := make([]qovery.ApplicationStorageRequestStorage, 0, len(app.Storage))
 	for _, store := range app.Storage {
 		storage = append(storage, store.toCreateRequest())
@@ -36,24 +38,29 @@ func (app Application) toCreateApplicationRequest() qovery.ApplicationRequest {
 		ports = append(ports, port.toCreateRequest())
 	}
 
-	return qovery.ApplicationRequest{
-		Name:                toString(app.Name),
-		Description:         toStringPointer(app.Description),
-		BuildMode:           toStringPointer(app.BuildMode),
-		DockerfilePath:      toStringPointer(app.DockerfilePath),
-		BuildpackLanguage:   toStringPointer(app.BuildpackLanguage),
-		Cpu:                 toInt32Pointer(app.CPU),
-		Memory:              toInt32Pointer(app.Memory),
-		MinRunningInstances: toInt32Pointer(app.MinRunningInstances),
-		MaxRunningInstances: toInt32Pointer(app.MinRunningInstances),
-		AutoPreview:         toBoolPointer(app.AutoPreview),
-		GitRepository:       app.GitRepository.toCreateRequest(),
-		Storage:             storage,
-		Ports:               ports,
+	return client.ApplicationCreateParams{
+		ApplicationRequest: qovery.ApplicationRequest{
+			Name:                toString(app.Name),
+			Description:         toNullableString(app.Description),
+			BuildMode:           toStringPointer(app.BuildMode),
+			DockerfilePath:      toNullableString(app.DockerfilePath),
+			BuildpackLanguage:   toNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
+			Cpu:                 toInt32Pointer(app.CPU),
+			Memory:              toInt32Pointer(app.Memory),
+			MinRunningInstances: toInt32Pointer(app.MinRunningInstances),
+			MaxRunningInstances: toInt32Pointer(app.MinRunningInstances),
+			AutoPreview:         toBoolPointer(app.AutoPreview),
+			GitRepository:       app.GitRepository.toCreateRequest(),
+			Storage:             storage,
+			Ports:               ports,
+		},
+		DesiredState:             app.State.Value,
+		EnvironmentVariablesDiff: diffEnvironmentVariables([]EnvironmentVariable{}, app.EnvironmentVariables),
 	}
+
 }
 
-func (app Application) toUpdateApplicationRequest() qovery.ApplicationEditRequest {
+func (app Application) toUpdateApplicationRequest(state Application) client.ApplicationUpdateParams {
 	storage := make([]qovery.ApplicationStorageResponseStorage, 0, len(app.Storage))
 	for _, store := range app.Storage {
 		storage = append(storage, store.toUpdateRequest())
@@ -64,12 +71,12 @@ func (app Application) toUpdateApplicationRequest() qovery.ApplicationEditReques
 		ports = append(ports, port.toUpdateRequest())
 	}
 
-	return qovery.ApplicationEditRequest{
+	applicationEditRequest := qovery.ApplicationEditRequest{
 		Name:                toStringPointer(app.Name),
 		Description:         toStringPointer(app.Description),
 		BuildMode:           toStringPointer(app.BuildMode),
 		DockerfilePath:      toStringPointer(app.DockerfilePath),
-		BuildpackLanguage:   toStringPointer(app.BuildpackLanguage),
+		BuildpackLanguage:   toNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
 		Cpu:                 toInt32Pointer(app.CPU),
 		Memory:              toInt32Pointer(app.Memory),
 		MinRunningInstances: toInt32Pointer(app.MinRunningInstances),
@@ -79,27 +86,33 @@ func (app Application) toUpdateApplicationRequest() qovery.ApplicationEditReques
 		Storage:             storage,
 		Ports:               ports,
 	}
+	return client.ApplicationUpdateParams{
+		ApplicationEditRequest:   applicationEditRequest,
+		EnvironmentVariablesDiff: diffEnvironmentVariables(state.EnvironmentVariables, app.EnvironmentVariables),
+		DesiredState:             app.State.Value,
+	}
+
 }
 
-func convertResponseToApplication(application *qovery.ApplicationResponse, status *qovery.Status, variables []EnvironmentVariable) Application {
+func convertResponseToApplication(app *client.ApplicationResponse) Application {
 	return Application{
-		Id:                   fromString(application.Id),
-		EnvironmentId:        fromString(application.Environment.Id),
-		Name:                 fromStringPointer(application.Name),
-		Description:          fromStringPointer(application.Description),
-		BuildMode:            fromStringPointer(application.BuildMode),
-		DockerfilePath:       fromStringPointer(application.DockerfilePath),
-		BuildpackLanguage:    fromStringPointer(application.BuildpackLanguage),
-		CPU:                  fromInt32Pointer(application.Cpu),
-		Memory:               fromInt32Pointer(application.Memory),
-		MinRunningInstances:  fromInt32Pointer(application.MinRunningInstances),
-		MaxRunningInstances:  fromInt32Pointer(application.MaxRunningInstances),
-		AutoPreview:          fromBoolPointer(application.AutoPreview),
-		GitRepository:        convertResponseToApplicationGitRepository(application.GitRepository),
-		Storage:              convertResponseToApplicationStorage(application.Storage),
-		Ports:                convertResponseToApplicationPorts(application.Ports),
-		State:                fromString(status.State),
-		EnvironmentVariables: variables,
+		Id:                   fromString(app.ApplicationResponse.Id),
+		EnvironmentId:        fromString(app.ApplicationResponse.Environment.Id),
+		Name:                 fromStringPointer(app.ApplicationResponse.Name),
+		Description:          fromNullableString(app.ApplicationResponse.Description),
+		BuildMode:            fromStringPointer(app.ApplicationResponse.BuildMode),
+		DockerfilePath:       fromNullableString(app.ApplicationResponse.DockerfilePath),
+		BuildpackLanguage:    fromNullableNullableBuildPackLanguageEnum(app.ApplicationResponse.BuildpackLanguage),
+		CPU:                  fromInt32Pointer(app.ApplicationResponse.Cpu),
+		Memory:               fromInt32Pointer(app.ApplicationResponse.Memory),
+		MinRunningInstances:  fromInt32Pointer(app.ApplicationResponse.MinRunningInstances),
+		MaxRunningInstances:  fromInt32Pointer(app.ApplicationResponse.MaxRunningInstances),
+		AutoPreview:          fromBoolPointer(app.ApplicationResponse.AutoPreview),
+		GitRepository:        convertResponseToApplicationGitRepository(app.ApplicationResponse.GitRepository),
+		Storage:              convertResponseToApplicationStorage(app.ApplicationResponse.Storage),
+		Ports:                convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
+		State:                fromString(app.ApplicationStatus.State),
+		EnvironmentVariables: convertResponseToEnvironmentVariables(app.ApplicationEnvironmentVariables),
 	}
 }
 
@@ -186,7 +199,7 @@ type ApplicationPort struct {
 
 func (port ApplicationPort) toCreateRequest() qovery.ApplicationPortRequestPorts {
 	return qovery.ApplicationPortRequestPorts{
-		Name:               toStringPointer(port.Name),
+		Name:               toNullableString(port.Name),
 		InternalPort:       toInt32(port.InternalPort),
 		ExternalPort:       toInt32Pointer(port.ExternalPort),
 		Protocol:           toStringPointer(port.Protocol),
@@ -197,7 +210,7 @@ func (port ApplicationPort) toCreateRequest() qovery.ApplicationPortRequestPorts
 func (port ApplicationPort) toUpdateRequest() qovery.ApplicationPortResponsePorts {
 	return qovery.ApplicationPortResponsePorts{
 		Id:                 toStringPointer(port.Id),
-		Name:               toStringPointer(port.Name),
+		Name:               toNullableString(port.Name),
 		InternalPort:       toInt32(port.InternalPort),
 		ExternalPort:       toInt32Pointer(port.ExternalPort),
 		Protocol:           toStringPointer(port.Protocol),
@@ -214,7 +227,7 @@ func convertResponseToApplicationPorts(ports []qovery.ApplicationPortResponsePor
 	for _, p := range ports {
 		list = append(list, ApplicationPort{
 			Id:                 fromStringPointer(p.Id),
-			Name:               fromStringPointer(p.Name),
+			Name:               fromNullableString(p.Name),
 			InternalPort:       fromInt32(p.InternalPort),
 			ExternalPort:       fromInt32Pointer(p.ExternalPort),
 			Protocol:           fromStringPointer(p.Protocol),

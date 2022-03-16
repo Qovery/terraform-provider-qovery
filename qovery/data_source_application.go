@@ -7,7 +7,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
+
+	"terraform-provider-qovery/client"
 )
 
 type applicationDataSourceType struct{}
@@ -191,12 +192,12 @@ func (t applicationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 
 func (t applicationDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return applicationDataSource{
-		client: p.(*provider).GetClient(),
+		client: p.(*provider).client,
 	}, nil
 }
 
 type applicationDataSource struct {
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // Read qovery application data source
@@ -209,34 +210,13 @@ func (d applicationDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 	}
 
 	// Get application from API
-	application, res, err := d.client.ApplicationMainCallsApi.
-		GetApplication(ctx, data.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := applicationReadAPIError(data.Id.Value, res, err)
+	application, apiErr := d.client.GetApplication(ctx, data.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	applicationStatus, res, err := d.client.ApplicationMainCallsApi.
-		GetApplicationStatus(ctx, application.Id).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := applicationStatusReadAPIError(data.Id.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	applicationVariables, res, err := d.client.ApplicationEnvironmentVariableApi.
-		ListApplicationEnvironmentVariable(ctx, application.Id).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := applicationEnvironmentVariableReadAPIError(data.Id.Value, res, err)
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	state := convertResponseToApplication(application, applicationStatus, convertResponseToEnvironmentVariables(applicationVariables, EnvironmentVariableScopeApplication))
+	state := convertResponseToApplication(application)
 	tflog.Trace(ctx, "read application", "application_id", state.Id.Value)
 
 	// Set state

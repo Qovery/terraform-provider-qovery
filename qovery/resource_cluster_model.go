@@ -3,6 +3,8 @@ package qovery
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
+
+	"terraform-provider-qovery/client"
 )
 
 type Cluster struct {
@@ -21,44 +23,49 @@ type Cluster struct {
 	//Timeouts        Timeout      `tfsdk:"timeouts"`
 }
 
-func (c Cluster) toUpsertClusterRequest() qovery.ClusterRequest {
-	return qovery.ClusterRequest{
-		Name:            toString(c.Name),
-		CloudProvider:   toString(c.CloudProvider),
-		Region:          toString(c.Region),
-		Description:     toStringPointer(c.Description),
-		Cpu:             toInt32Pointer(c.CPU),
-		Memory:          toInt32Pointer(c.Memory),
-		MinRunningNodes: toInt32Pointer(c.MinRunningNodes),
-		MaxRunningNodes: toInt32Pointer(c.MaxRunningNodes),
+func (c Cluster) toUpsertClusterRequest(state *Cluster) client.ClusterUpsertParams {
+	var clusterCloudProviderRequest *qovery.ClusterCloudProviderInfoRequest
+	if state == nil || c.CredentialsId != state.CredentialsId {
+		clusterCloudProviderRequest = &qovery.ClusterCloudProviderInfoRequest{
+			CloudProvider: toStringPointer(c.CloudProvider),
+			Region:        toStringPointer(c.Region),
+			Credentials: &qovery.ClusterCloudProviderInfoRequestCredentials{
+				Id:   toStringPointer(c.CredentialsId),
+				Name: toStringPointer(c.Name),
+			},
+		}
 	}
-}
 
-func (c Cluster) toUpdateClusterCloudProviderInfoRequest() qovery.ClusterCloudProviderInfoRequest {
-	return qovery.ClusterCloudProviderInfoRequest{
-		CloudProvider: toStringPointer(c.CloudProvider),
-		Region:        toStringPointer(c.Region),
-		Credentials: &qovery.ClusterCloudProviderInfoRequestCredentials{
-			Id:   toStringPointer(c.CredentialsId),
-			Name: toStringPointer(c.Name),
+	return client.ClusterUpsertParams{
+		ClusterCloudProviderRequest: clusterCloudProviderRequest,
+		ClusterRequest: qovery.ClusterRequest{
+			Name:            toString(c.Name),
+			CloudProvider:   toString(c.CloudProvider),
+			Region:          toString(c.Region),
+			Description:     toStringPointer(c.Description),
+			Cpu:             toInt32Pointer(c.CPU),
+			Memory:          toInt32Pointer(c.Memory),
+			MinRunningNodes: toInt32Pointer(c.MinRunningNodes),
+			MaxRunningNodes: toInt32Pointer(c.MaxRunningNodes),
 		},
+		DesiredState: toString(c.State),
 	}
 }
 
-func convertResponseToCluster(cluster *qovery.ClusterResponse, clusterInfo *qovery.ClusterCloudProviderInfoResponse, plan Cluster) Cluster {
+func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 	return Cluster{
-		Id:              fromString(cluster.Id),
-		CredentialsId:   fromStringPointer(clusterInfo.Credentials.Id),
-		OrganizationId:  plan.OrganizationId,
-		Name:            fromString(cluster.Name),
-		CloudProvider:   fromString(cluster.CloudProvider),
-		Region:          fromString(cluster.Region),
-		Description:     fromNullableString(cluster.Description),
-		CPU:             fromInt32Pointer(cluster.Cpu),
-		Memory:          fromInt32Pointer(cluster.Memory),
-		MinRunningNodes: fromInt32Pointer(cluster.MinRunningNodes),
-		MaxRunningNodes: fromInt32Pointer(cluster.MaxRunningNodes),
-		State:           plan.State,
+		Id:              fromString(res.ClusterResponse.Id),
+		CredentialsId:   fromStringPointer(res.ClusterInfo.Credentials.Id),
+		OrganizationId:  fromString(res.OrganizationID),
+		Name:            fromString(res.ClusterResponse.Name),
+		CloudProvider:   fromString(res.ClusterResponse.CloudProvider),
+		Region:          fromString(res.ClusterResponse.Region),
+		Description:     fromNullableString(res.ClusterResponse.Description),
+		CPU:             fromInt32Pointer(res.ClusterResponse.Cpu),
+		Memory:          fromInt32Pointer(res.ClusterResponse.Memory),
+		MinRunningNodes: fromInt32Pointer(res.ClusterResponse.MinRunningNodes),
+		MaxRunningNodes: fromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
+		State:           fromString(res.ClusterResponse.GetStatus()),
 		//Timeouts:        plan.Timeouts,
 	}
 }

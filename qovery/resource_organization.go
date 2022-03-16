@@ -2,21 +2,17 @@ package qovery
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
 
-	"terraform-provider-qovery/qovery/apierror"
+	"terraform-provider-qovery/client"
 	"terraform-provider-qovery/qovery/descriptions"
 	"terraform-provider-qovery/qovery/validators"
 )
-
-const organizationAPIResource = "organization"
 
 var organizationPlans = []string{"FREE", "PROFESSIONAL", "BUSINESS"}
 
@@ -59,12 +55,12 @@ func (r organizationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, di
 
 func (r organizationResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return organizationResource{
-		client: p.(*provider).GetClient(),
+		client: p.(*provider).client,
 	}, nil
 }
 
 type organizationResource struct {
-	client *qovery.APIClient
+	client *client.Client
 }
 
 // Create qovery organization resource
@@ -77,12 +73,8 @@ func (r organizationResource) Create(ctx context.Context, req tfsdk.CreateResour
 	}
 
 	// Create new organization
-	organization, res, err := r.client.OrganizationMainCallsApi.
-		CreateOrganization(ctx).
-		OrganizationRequest(plan.toCreateOrganizationRequest()).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := organizationCreateAPIError(plan.Name.Value, res, err)
+	organization, apiErr := r.client.CreateOrganization(ctx, plan.toCreateOrganizationRequest())
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -105,11 +97,8 @@ func (r organizationResource) Read(ctx context.Context, req tfsdk.ReadResourceRe
 	}
 
 	// Get organization from API
-	organization, res, err := r.client.OrganizationMainCallsApi.
-		GetOrganization(ctx, state.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := organizationReadAPIError(state.Id.Value, res, err)
+	organization, apiErr := r.client.GetOrganization(ctx, state.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -133,12 +122,8 @@ func (r organizationResource) Update(ctx context.Context, req tfsdk.UpdateResour
 	}
 
 	// Update organization in backend
-	organization, res, err := r.client.OrganizationMainCallsApi.
-		EditOrganization(ctx, state.Id.Value).
-		OrganizationEditRequest(plan.toUpdateOrganizationRequest()).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := organizationUpdateAPIError(state.Id.Value, res, err)
+	organization, apiErr := r.client.UpdateOrganization(ctx, state.Id.Value, plan.toUpdateOrganizationRequest())
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -161,11 +146,8 @@ func (r organizationResource) Delete(ctx context.Context, req tfsdk.DeleteResour
 	}
 
 	// Delete organization
-	res, err := r.client.OrganizationMainCallsApi.
-		DeleteOrganization(ctx, state.Id.Value).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		apiErr := organizationDeleteAPIError(state.Id.Value, res, err)
+	apiErr := r.client.DeleteOrganization(ctx, state.Id.Value)
+	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
@@ -179,20 +161,4 @@ func (r organizationResource) Delete(ctx context.Context, req tfsdk.DeleteResour
 // ImportState imports a qovery organization resource using its id
 func (r organizationResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
 	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
-}
-
-func organizationCreateAPIError(organizationName string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(organizationAPIResource, organizationName, apierror.Create, res, err)
-}
-
-func organizationReadAPIError(organizationID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(organizationAPIResource, organizationID, apierror.Read, res, err)
-}
-
-func organizationUpdateAPIError(organizationID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(organizationAPIResource, organizationID, apierror.Update, res, err)
-}
-
-func organizationDeleteAPIError(organizationID string, res *http.Response, err error) *apierror.APIError {
-	return apierror.New(organizationAPIResource, organizationID, apierror.Delete, res, err)
 }

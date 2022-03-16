@@ -3,6 +3,8 @@ package qovery
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
+
+	"terraform-provider-qovery/client"
 )
 
 type Environment struct {
@@ -14,27 +16,33 @@ type Environment struct {
 	EnvironmentVariables []EnvironmentVariable `tfsdk:"environment_variables"`
 }
 
-func (e Environment) toCreateEnvironmentRequest() qovery.EnvironmentRequest {
-	return qovery.EnvironmentRequest{
-		Name:    toString(e.Name),
-		Cluster: toStringPointer(e.ClusterId),
-		Mode:    toStringPointer(e.Mode),
+func (e Environment) toCreateEnvironmentRequest() client.EnvironmentCreateParams {
+	return client.EnvironmentCreateParams{
+		EnvironmentRequest: qovery.EnvironmentRequest{
+			Name:    toString(e.Name),
+			Cluster: toStringPointer(e.ClusterId),
+			Mode:    toStringPointer(e.Mode),
+		},
+		EnvironmentVariablesDiff: diffEnvironmentVariables([]EnvironmentVariable{}, e.EnvironmentVariables),
 	}
 }
 
-func (e Environment) toUpdateEnvironmentRequest() qovery.EnvironmentEditRequest {
-	return qovery.EnvironmentEditRequest{
-		Name: toStringPointer(e.Name),
+func (e Environment) toUpdateEnvironmentRequest(state Environment) client.EnvironmentUpdateParams {
+	return client.EnvironmentUpdateParams{
+		EnvironmentEditRequest: qovery.EnvironmentEditRequest{
+			Name: toStringPointer(e.Name),
+		},
+		EnvironmentVariablesDiff: diffEnvironmentVariables(state.EnvironmentVariables, e.EnvironmentVariables),
 	}
 }
 
-func convertResponseToEnvironment(environment *qovery.EnvironmentResponse, variables *qovery.EnvironmentVariableResponseList) Environment {
+func convertResponseToEnvironment(res *client.EnvironmentResponse) Environment {
 	return Environment{
-		Id:                   fromString(environment.Id),
-		ProjectId:            fromString(environment.Project.Id),
-		ClusterId:            fromString(environment.ClusterId),
-		Name:                 fromString(environment.Name),
-		Mode:                 fromString(environment.Mode),
-		EnvironmentVariables: convertResponseToEnvironmentVariables(variables, EnvironmentVariableScopeEnvironment),
+		Id:                   fromString(res.EnvironmentResponse.Id),
+		ProjectId:            fromString(res.EnvironmentResponse.Project.Id),
+		ClusterId:            fromString(res.EnvironmentResponse.ClusterId),
+		Name:                 fromString(res.EnvironmentResponse.Name),
+		Mode:                 fromString(res.EnvironmentResponse.Mode),
+		EnvironmentVariables: convertResponseToEnvironmentVariables(res.EnvironmentEnvironmentVariables),
 	}
 }
