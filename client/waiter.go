@@ -49,6 +49,9 @@ func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, e
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
 		status, apiErr := client.getApplicationStatus(ctx, applicationID)
 		if apiErr != nil {
+			if apierrors.IsNotFound(apiErr) && expected == "DELETED" {
+				return true, nil
+			}
 			return false, apiErr
 		}
 		return status.State == expected, nil
@@ -69,6 +72,9 @@ func newClusterStatusCheckerWaitFunc(client *Client, organizationID string, clus
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
 		status, apiErr := client.getClusterStatus(ctx, organizationID, clusterID)
 		if apiErr != nil {
+			if apierrors.IsNotFound(apiErr) && expected == "DELETED" {
+				return true, nil
+			}
 			return false, apiErr
 		}
 		return status.GetStatus() == expected || isStatusError(status.GetStatus()), nil
@@ -89,6 +95,9 @@ func newDatabaseStatusCheckerWaitFunc(client *Client, databaseID string, expecte
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
 		status, apiErr := client.getDatabaseStatus(ctx, databaseID)
 		if apiErr != nil {
+			if apierrors.IsNotFound(apiErr) && expected == "DELETED" {
+				return true, nil
+			}
 			return false, apiErr
 		}
 		return status.State == expected, nil
@@ -102,6 +111,19 @@ func newDatabaseFinalStateCheckerWaitFunc(client *Client, databaseID string) wai
 			return false, apiErr
 		}
 		return isFinalState(status.State), nil
+	}
+}
+
+func newEnvironmentStatusCheckerWaitFunc(client *Client, environmentID string, expected string) waitFunc {
+	return func(ctx context.Context) (bool, *apierrors.APIError) {
+		status, apiErr := client.getEnvironmentStatus(ctx, environmentID)
+		if apiErr != nil {
+			if apierrors.IsNotFound(apiErr) && expected == "DELETED" {
+				return true, nil
+			}
+			return false, apiErr
+		}
+		return status.State == expected, nil
 	}
 }
 
@@ -119,7 +141,12 @@ func isFinalState(state string) bool {
 	return state != "DEPLOYING" &&
 		state != "DELETING" &&
 		state != "STOPPING" &&
-		state != "QUEUED"
+		state != "QUEUED" &&
+		!isWaitingState(state)
+}
+
+func isWaitingState(state string) bool {
+	return strings.HasPrefix(state, "WAITING_")
 }
 
 func isStatusError(state string) bool {

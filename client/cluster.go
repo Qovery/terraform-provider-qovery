@@ -63,6 +63,11 @@ func (c *Client) UpdateCluster(ctx context.Context, organizationID string, clust
 }
 
 func (c *Client) DeleteCluster(ctx context.Context, organizationID string, clusterID string) *apierrors.APIError {
+	finalStateChecker := newClusterFinalStateCheckerWaitFunc(c, organizationID, clusterID)
+	if apiErr := wait(ctx, finalStateChecker, nil); apiErr != nil {
+		return apiErr
+	}
+
 	res, err := c.api.ClustersApi.
 		DeleteCluster(ctx, organizationID, clusterID).
 		Execute()

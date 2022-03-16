@@ -35,6 +35,11 @@ func (c *Client) updateApplicationStatus(ctx context.Context, application *qover
 		return nil, apiErr
 	}
 
+	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, application.Environment.Id)
+	if apiErr := wait(ctx, envChecker, nil); apiErr != nil {
+		return nil, apiErr
+	}
+
 	if status.State != desiredState {
 		switch desiredState {
 		case applicationStateRunning:
