@@ -17,11 +17,11 @@ Use this data source to retrieve information about an existing Scaleway credenti
 
 ### Required
 
-- **id** (String) Id of the credentials.
-- **organization_id** (String) Id of the organization.
+- `id` (String) Id of the credentials.
+- `organization_id` (String) Id of the organization.
 
 ### Read-Only
 
-- **name** (String) Name of the Scaleway credentials.
+- `name` (String) Name of the Scaleway credentials.
 
 

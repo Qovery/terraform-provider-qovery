@@ -95,7 +95,7 @@ func (d environmentDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 	}
 
 	state := convertResponseToEnvironment(environment)
-	tflog.Trace(ctx, "read environment", "environment_id", state.Id.Value)
+	tflog.Trace(ctx, "read environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

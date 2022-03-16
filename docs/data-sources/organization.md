@@ -23,12 +23,12 @@ data "qovery_organization" "my_organization" {
 
 ### Required
 
-- **id** (String) Id of the organization.
+- `id` (String) Id of the organization.
 
 ### Read-Only
 
-- **description** (String) Description of the organization.
-- **name** (String) Name of the organization.
-- **plan** (String) Plan of the organization.
+- `description` (String) Description of the organization.
+- `name` (String) Name of the organization.
+- `plan` (String) Plan of the organization.
 
 

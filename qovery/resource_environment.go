@@ -118,7 +118,7 @@ func (r environmentResource) Create(ctx context.Context, req tfsdk.CreateResourc
 
 	// Initialize state values
 	state := convertResponseToEnvironment(environment)
-	tflog.Trace(ctx, "created environment", "environment_id", state.Id.Value)
+	tflog.Trace(ctx, "created environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -142,7 +142,7 @@ func (r environmentResource) Read(ctx context.Context, req tfsdk.ReadResourceReq
 
 	// Refresh state values
 	state = convertResponseToEnvironment(environment)
-	tflog.Trace(ctx, "read environment", "environment_id", state.Id.Value)
+	tflog.Trace(ctx, "read environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -167,7 +167,7 @@ func (r environmentResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 
 	// Update state values
 	state = convertResponseToEnvironment(environment)
-	tflog.Trace(ctx, "updated environment", "environment_id", state.Id.Value)
+	tflog.Trace(ctx, "updated environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -189,7 +189,7 @@ func (r environmentResource) Delete(ctx context.Context, req tfsdk.DeleteResourc
 		return
 	}
 
-	tflog.Trace(ctx, "deleted environment", "environment_id", state.Id.Value)
+	tflog.Trace(ctx, "deleted environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Remove environment from state
 	resp.State.RemoveResource(ctx)

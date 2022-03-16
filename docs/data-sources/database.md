@@ -23,19 +23,19 @@ data "qovery_database" "my_database" {
 
 ### Required
 
-- **id** (String) Id of the database.
+- `id` (String) Id of the database.
 
 ### Read-Only
 
-- **accessibility** (String) Accessibility of the database.
-- **cpu** (Number) CPU of the database in millicores (m) [1000m = 1 CPU].
-- **environment_id** (String) Id of the environment.
-- **memory** (Number) RAM of the database in MB [1024MB = 1GB].
-- **mode** (String) Mode of the database.
-- **name** (String) Name of the database.
-- **state** (String) State of the database.
-- **storage** (Number) Storage of the database in MB [1024MB = 1GB].
-- **type** (String) Type of the database.
-- **version** (String) Version of the database
+- `accessibility` (String) Accessibility of the database.
+- `cpu` (Number) CPU of the database in millicores (m) [1000m = 1 CPU].
+- `environment_id` (String) Id of the environment.
+- `memory` (Number) RAM of the database in MB [1024MB = 1GB].
+- `mode` (String) Mode of the database.
+- `name` (String) Name of the database.
+- `state` (String) State of the database.
+- `storage` (Number) Storage of the database in MB [1024MB = 1GB].
+- `type` (String) Type of the database.
+- `version` (String) Version of the database
 
 

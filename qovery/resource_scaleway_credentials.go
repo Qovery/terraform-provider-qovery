@@ -85,7 +85,7 @@ func (r scalewayCredentialsResource) Create(ctx context.Context, req tfsdk.Creat
 
 	// Initialize state values
 	state := convertResponseToScalewayCredentials(credentials, plan)
-	tflog.Trace(ctx, "created scaleway credentials", "credentials_id", state.Id.Value)
+	tflog.Trace(ctx, "created scaleway credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -108,7 +108,7 @@ func (r scalewayCredentialsResource) Read(ctx context.Context, req tfsdk.ReadRes
 	}
 
 	state = convertResponseToScalewayCredentials(credentials, state)
-	tflog.Trace(ctx, "read scaleway credentials", "credentials_id", state.Id.Value)
+	tflog.Trace(ctx, "read scaleway credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -133,7 +133,7 @@ func (r scalewayCredentialsResource) Update(ctx context.Context, req tfsdk.Updat
 
 	// Update state values
 	state = convertResponseToScalewayCredentials(credentials, plan)
-	tflog.Trace(ctx, "updated scaleway credentials", "credentials_id", state.Id.Value)
+	tflog.Trace(ctx, "updated scaleway credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -155,7 +155,7 @@ func (r scalewayCredentialsResource) Delete(ctx context.Context, req tfsdk.Delet
 		return
 	}
 
-	tflog.Trace(ctx, "deleted scaleway credentials", "credentials_id", state.Id.Value)
+	tflog.Trace(ctx, "deleted scaleway credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Remove credentials from state
 	resp.State.RemoveResource(ctx)

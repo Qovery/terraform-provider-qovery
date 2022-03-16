@@ -102,7 +102,7 @@ func (d databaseDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRe
 	}
 
 	state := convertResponseToDatabase(database)
-	tflog.Trace(ctx, "read database", "database_id", state.Id.Value)
+	tflog.Trace(ctx, "read database", map[string]interface{}{"database_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

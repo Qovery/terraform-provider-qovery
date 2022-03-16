@@ -402,7 +402,7 @@ func (r applicationResource) Create(ctx context.Context, req tfsdk.CreateResourc
 
 	// Initialize state values
 	state := convertResponseToApplication(application)
-	tflog.Trace(ctx, "created application", "application_id", state.Id.Value)
+	tflog.Trace(ctx, "created application", map[string]interface{}{"application_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -426,7 +426,7 @@ func (r applicationResource) Read(ctx context.Context, req tfsdk.ReadResourceReq
 
 	// Refresh state values
 	state = convertResponseToApplication(application)
-	tflog.Trace(ctx, "read application", "application_id", state.Id.Value)
+	tflog.Trace(ctx, "read application", map[string]interface{}{"application_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -451,7 +451,7 @@ func (r applicationResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 
 	// Update state values
 	state = convertResponseToApplication(application)
-	tflog.Trace(ctx, "updated application", "application_id", state.Id.Value)
+	tflog.Trace(ctx, "updated application", map[string]interface{}{"application_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -473,7 +473,7 @@ func (r applicationResource) Delete(ctx context.Context, req tfsdk.DeleteResourc
 		return
 	}
 
-	tflog.Trace(ctx, "deleted application", "application_id", state.Id.Value)
+	tflog.Trace(ctx, "deleted application", map[string]interface{}{"application_id": state.Id.Value})
 
 	// Remove application from state
 	resp.State.RemoveResource(ctx)

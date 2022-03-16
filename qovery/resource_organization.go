@@ -81,7 +81,7 @@ func (r organizationResource) Create(ctx context.Context, req tfsdk.CreateResour
 
 	// Initialize state values
 	state := convertResponseToOrganization(organization)
-	tflog.Trace(ctx, "created organization", "organization_id", state.Id.Value)
+	tflog.Trace(ctx, "created organization", map[string]interface{}{"organization_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -105,7 +105,7 @@ func (r organizationResource) Read(ctx context.Context, req tfsdk.ReadResourceRe
 
 	// Refresh state values
 	state = convertResponseToOrganization(organization)
-	tflog.Trace(ctx, "read organization", "organization_id", state.Id.Value)
+	tflog.Trace(ctx, "read organization", map[string]interface{}{"organization_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -130,7 +130,7 @@ func (r organizationResource) Update(ctx context.Context, req tfsdk.UpdateResour
 
 	// Update state values
 	state = convertResponseToOrganization(organization)
-	tflog.Trace(ctx, "updated organization", "organization_id", state.Id.Value)
+	tflog.Trace(ctx, "updated organization", map[string]interface{}{"organization_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -152,7 +152,7 @@ func (r organizationResource) Delete(ctx context.Context, req tfsdk.DeleteResour
 		return
 	}
 
-	tflog.Trace(ctx, "deleted organization", "organization_id", state.Id.Value)
+	tflog.Trace(ctx, "deleted organization", map[string]interface{}{"organization_id": state.Id.Value})
 
 	// Remove organization from state
 	resp.State.RemoveResource(ctx)

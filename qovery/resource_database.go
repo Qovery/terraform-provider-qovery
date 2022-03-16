@@ -207,7 +207,7 @@ func (r databaseResource) Create(ctx context.Context, req tfsdk.CreateResourceRe
 
 	// Initialize state values
 	state := convertResponseToDatabase(database)
-	tflog.Trace(ctx, "created database", "database_id", state.Id.Value)
+	tflog.Trace(ctx, "created database", map[string]interface{}{"database_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -231,7 +231,7 @@ func (r databaseResource) Read(ctx context.Context, req tfsdk.ReadResourceReques
 
 	// Refresh state values
 	state = convertResponseToDatabase(database)
-	tflog.Trace(ctx, "read database", "database_id", state.Id.Value)
+	tflog.Trace(ctx, "read database", map[string]interface{}{"database_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -256,7 +256,7 @@ func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRe
 
 	// Update state values
 	state = convertResponseToDatabase(database)
-	tflog.Trace(ctx, "updated database", "database_id", state.Id.Value)
+	tflog.Trace(ctx, "updated database", map[string]interface{}{"database_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -278,7 +278,7 @@ func (r databaseResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRe
 		return
 	}
 
-	tflog.Trace(ctx, "deleted database", "database_id", state.Id.Value)
+	tflog.Trace(ctx, "deleted database", map[string]interface{}{"database_id": state.Id.Value})
 
 	// Remove database from state
 	resp.State.RemoveResource(ctx)

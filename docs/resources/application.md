@@ -32,56 +32,56 @@ resource "qovery_application" "my_application" {
 
 ### Required
 
-- **environment_id** (String) Id of the environment.
-- **git_repository** (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
-- **name** (String) Name of the application.
+- `environment_id` (String) Id of the environment.
+- `git_repository` (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
+- `name` (String) Name of the application.
 
 ### Optional
 
-- **auto_preview** (Boolean) Specify if the environment preview option is activated or not for this application.
+- `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
 	- Default: `false`.
-- **build_mode** (String) Build Mode of the application.
+- `build_mode` (String) Build Mode of the application.
 	- Can be: `BUILDPACKS`, `DOCKER`.
 	- Default: `BUILDPACKS`.
-- **buildpack_language** (String) Buildpack Language framework.
+- `buildpack_language` (String) Buildpack Language framework.
 	- Required if: `build_mode="BUILDPACKS"`.
 	- Can be: `CLOJURE`, `GO`, `GRADLE`, `GRAILS`, `JAVA`, `JVM`, `NODE_JS`, `PHP`, `PLAY`, `PYTHON`, `SCALA`.
-- **cpu** (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
+- `cpu` (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 250`.
 	- Default: `500`.
-- **description** (String) Description of the application.
-- **dockerfile_path** (String) Dockerfile Path of the application.
+- `description` (String) Description of the application.
+- `dockerfile_path` (String) Dockerfile Path of the application.
 	- Required if: `build_mode="DOCKER"`.
-- **environment_variables** (Attributes List) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
-- **max_running_instances** (Number) Maximum number of instances running for the application.
+- `environment_variables` (Attributes List) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
+- `max_running_instances` (Number) Maximum number of instances running for the application.
 	- Must be: `>= -1`.
 	- Default: `1`.
-- **memory** (Number) RAM of the application in MB [1024MB = 1GB].
+- `memory` (Number) RAM of the application in MB [1024MB = 1GB].
 	- Must be: `>= 1`.
 	- Default: `512`.
-- **min_running_instances** (Number) Minimum number of instances running for the application.
+- `min_running_instances` (Number) Minimum number of instances running for the application.
 	- Must be: `>= 0`.
 	- Default: `1`.
-- **ports** (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
-- **state** (String) State of the application.
+- `ports` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
+- `state` (String) State of the application.
 	- Can be: `RUNNING`, `STOPPED`.
 	- Default: `RUNNING`.
-- **storage** (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
+- `storage` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
 
 ### Read-Only
 
-- **id** (String) Id of the application.
+- `id` (String) Id of the application.
 
 <a id="nestedatt--git_repository"></a>
 ### Nested Schema for `git_repository`
 
 Required:
 
-- **branch** (String) Branch of the git repository.
+- `branch` (String) Branch of the git repository.
 	- Default: `main or master (depending on repository)`.
-- **root_path** (String) Root path of the application.
+- `root_path` (String) Root path of the application.
 	- Default: `/`.
-- **url** (String) URL of the git repository.
+- `url` (String) URL of the git repository.
 
 
 <a id="nestedatt--environment_variables"></a>
@@ -89,9 +89,9 @@ Required:
 
 Optional:
 
-- **id** (String) Id of the environment variable.
-- **key** (String) Key of the environment variable.
-- **value** (String) Value of the environment variable.
+- `id` (String) Id of the environment variable.
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
 
 
 <a id="nestedatt--ports"></a>
@@ -99,17 +99,17 @@ Optional:
 
 Optional:
 
-- **external_port** (Number) External port of the application.
+- `external_port` (Number) External port of the application.
 	- Required if: `ports.publicly_accessible=true`.
 	- Must be: `>= 1` and `<= 65535`.
-- **id** (String) Id of the port.
-- **internal_port** (Number) Internal port of the application.
+- `id` (String) Id of the port.
+- `internal_port` (Number) Internal port of the application.
 	- Must be: `>= 1` and `<= 65535`.
-- **name** (String) Name of the port.
-- **protocol** (String) Protocol used for the port of the application.
+- `name` (String) Name of the port.
+- `protocol` (String) Protocol used for the port of the application.
 	- Can be: `HTTPS`, `HTTP`, `TCP`, `UDP`.
 	- Default: `HTTP`.
-- **publicly_accessible** (Boolean) Specify if the port is exposed to the world or not for this application.
+- `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this application.
 
 
 <a id="nestedatt--storage"></a>
@@ -117,11 +117,11 @@ Optional:
 
 Optional:
 
-- **id** (String) Id of the storage.
-- **mount_point** (String) Mount point of the storage for the application.
-- **size** (Number) Size of the storage for the application in GB [1024MB = 1GB].
+- `id` (String) Id of the storage.
+- `mount_point` (String) Mount point of the storage for the application.
+- `size` (Number) Size of the storage for the application in GB [1024MB = 1GB].
 	- Must be: `>= 1`.
-- **type** (String) Type of the storage for the application.
+- `type` (String) Type of the storage for the application.
 	- Can be: `FAST_SSD`.
 
 ## Import

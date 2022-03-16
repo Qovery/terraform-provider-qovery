@@ -63,7 +63,7 @@ func (d awsCredentialsDataSource) Read(ctx context.Context, req tfsdk.ReadDataSo
 	}
 
 	state := convertResponseToAWSCredentialsDataSource(credentials, data)
-	tflog.Trace(ctx, "read aws credentials", "credentials_id", state.Id.Value)
+	tflog.Trace(ctx, "read aws credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
