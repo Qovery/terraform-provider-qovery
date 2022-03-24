@@ -12,7 +12,7 @@ type Client struct {
 
 func New(token string, version string) *Client {
 	cfg := qovery.NewConfiguration()
-	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Bearer %s", token))
+	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Token %s", token))
 	cfg.AddDefaultHeader("content-type", "application/json")
 
 	cfg.UserAgent = fmt.Sprintf("terraform-provider-qovery/%s", version)

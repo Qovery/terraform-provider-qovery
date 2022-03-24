@@ -74,7 +74,7 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 
 	// Create a new Qovery client and set it to the provider client
 	cfg := qovery.NewConfiguration()
-	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Bearer %s", token))
+	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Token %s", token))
 
 	p.configured = true
 	p.client = client.New(token, p.version)
