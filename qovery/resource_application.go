@@ -334,7 +334,8 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 			},
 			"environment_variables": {
 				Description: "List of environment variables linked to this application.",
-				Required:    true,
+				Optional:    true,
+				Computed:    true,
 				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
 					"id": {
 						Description: "Id of the environment variable.",
