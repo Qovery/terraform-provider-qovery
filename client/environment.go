@@ -24,7 +24,7 @@ type EnvironmentUpdateParams struct {
 }
 
 func (c *Client) CreateEnvironment(ctx context.Context, projectID string, params EnvironmentCreateParams) (*EnvironmentResponse, *apierrors.APIError) {
-	environment, res, err := c.api.EnvironmentsApi.
+	environment, res, err := c.API.EnvironmentsApi.
 		CreateEnvironment(ctx, projectID).
 		EnvironmentRequest(params.EnvironmentRequest).
 		Execute()
@@ -50,7 +50,7 @@ func (c *Client) CreateEnvironment(ctx context.Context, projectID string, params
 }
 
 func (c *Client) GetEnvironment(ctx context.Context, environmentID string) (*EnvironmentResponse, *apierrors.APIError) {
-	environment, res, err := c.api.EnvironmentMainCallsApi.
+	environment, res, err := c.API.EnvironmentMainCallsApi.
 		GetEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -69,7 +69,7 @@ func (c *Client) GetEnvironment(ctx context.Context, environmentID string) (*Env
 }
 
 func (c *Client) UpdateEnvironment(ctx context.Context, environmentID string, params EnvironmentUpdateParams) (*EnvironmentResponse, *apierrors.APIError) {
-	environment, res, err := c.api.EnvironmentMainCallsApi.
+	environment, res, err := c.API.EnvironmentMainCallsApi.
 		EditEnvironment(ctx, environmentID).
 		EnvironmentEditRequest(params.EnvironmentEditRequest).
 		Execute()
@@ -102,7 +102,7 @@ func (c *Client) DeleteEnvironment(ctx context.Context, environmentID string) *a
 		return apiErr
 	}
 
-	res, err := c.api.EnvironmentMainCallsApi.
+	res, err := c.API.EnvironmentMainCallsApi.
 		DeleteEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {

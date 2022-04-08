@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Client) CreateOrganization(ctx context.Context, request qovery.OrganizationRequest) (*qovery.OrganizationResponse, *apierrors.APIError) {
-	organization, res, err := c.api.OrganizationMainCallsApi.
+	organization, res, err := c.API.OrganizationMainCallsApi.
 		CreateOrganization(ctx).
 		OrganizationRequest(request).
 		Execute()
@@ -20,7 +20,7 @@ func (c *Client) CreateOrganization(ctx context.Context, request qovery.Organiza
 }
 
 func (c *Client) GetOrganization(ctx context.Context, organizationID string) (*qovery.OrganizationResponse, *apierrors.APIError) {
-	organization, res, err := c.api.OrganizationMainCallsApi.
+	organization, res, err := c.API.OrganizationMainCallsApi.
 		GetOrganization(ctx, organizationID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -30,7 +30,7 @@ func (c *Client) GetOrganization(ctx context.Context, organizationID string) (*q
 }
 
 func (c *Client) UpdateOrganization(ctx context.Context, organizationID string, request qovery.OrganizationEditRequest) (*qovery.OrganizationResponse, *apierrors.APIError) {
-	organization, res, err := c.api.OrganizationMainCallsApi.
+	organization, res, err := c.API.OrganizationMainCallsApi.
 		EditOrganization(ctx, organizationID).
 		OrganizationEditRequest(request).
 		Execute()
@@ -41,7 +41,7 @@ func (c *Client) UpdateOrganization(ctx context.Context, organizationID string, 
 }
 
 func (c *Client) DeleteOrganization(ctx context.Context, organizationID string) *apierrors.APIError {
-	res, err := c.api.OrganizationMainCallsApi.
+	res, err := c.API.OrganizationMainCallsApi.
 		DeleteOrganization(ctx, organizationID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {

@@ -14,7 +14,7 @@ const (
 )
 
 func (c *Client) getDatabaseStatus(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
-	status, res, err := c.api.DatabaseMainCallsApi.
+	status, res, err := c.API.DatabaseMainCallsApi.
 		GetDatabaseStatus(ctx, databaseID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {

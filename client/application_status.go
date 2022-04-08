@@ -14,7 +14,7 @@ const (
 )
 
 func (c *Client) getApplicationStatus(ctx context.Context, applicationID string) (*qovery.Status, *apierrors.APIError) {
-	status, res, err := c.api.ApplicationMainCallsApi.
+	status, res, err := c.API.ApplicationMainCallsApi.
 		GetApplicationStatus(ctx, applicationID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {

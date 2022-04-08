@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Client) CreateAWSCredentials(ctx context.Context, organizationID string, request qovery.AwsCredentialsRequest) (*qovery.ClusterCredentialsResponse, *apierrors.APIError) {
-	credentials, res, err := c.api.CloudProviderCredentialsApi.
+	credentials, res, err := c.API.CloudProviderCredentialsApi.
 		CreateAWSCredentials(ctx, organizationID).
 		AwsCredentialsRequest(request).
 		Execute()
@@ -20,7 +20,7 @@ func (c *Client) CreateAWSCredentials(ctx context.Context, organizationID string
 }
 
 func (c *Client) GetAWSCredentials(ctx context.Context, organizationID string, credentialsID string) (*qovery.ClusterCredentialsResponse, *apierrors.APIError) {
-	credentials, res, err := c.api.CloudProviderCredentialsApi.
+	credentials, res, err := c.API.CloudProviderCredentialsApi.
 		ListAWSCredentials(ctx, organizationID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -36,7 +36,7 @@ func (c *Client) GetAWSCredentials(ctx context.Context, organizationID string, c
 }
 
 func (c *Client) UpdateAWSCredentials(ctx context.Context, organizationID string, credentialsID string, request qovery.AwsCredentialsRequest) (*qovery.ClusterCredentialsResponse, *apierrors.APIError) {
-	credentials, res, err := c.api.CloudProviderCredentialsApi.
+	credentials, res, err := c.API.CloudProviderCredentialsApi.
 		EditAWSCredentials(ctx, organizationID, credentialsID).
 		AwsCredentialsRequest(request).
 		Execute()
@@ -47,7 +47,7 @@ func (c *Client) UpdateAWSCredentials(ctx context.Context, organizationID string
 }
 
 func (c *Client) DeleteAWSCredentials(ctx context.Context, organizationID string, credentialsID string) *apierrors.APIError {
-	res, err := c.api.CloudProviderCredentialsApi.
+	res, err := c.API.CloudProviderCredentialsApi.
 		DeleteAWSCredentials(ctx, organizationID, credentialsID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {

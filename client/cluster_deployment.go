@@ -18,7 +18,7 @@ func (c *Client) deployCluster(ctx context.Context, organizationID string, clust
 	case clusterStateRunning:
 		return status, nil
 	default:
-		_, res, err := c.api.ClustersApi.
+		_, res, err := c.API.ClustersApi.
 			DeployCluster(ctx, organizationID, cluster.Id).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -43,7 +43,7 @@ func (c *Client) stopCluster(ctx context.Context, organizationID string, cluster
 	case clusterStateStopped:
 		return status, nil
 	default:
-		_, res, err := c.api.ClustersApi.
+		_, res, err := c.API.ClustersApi.
 			StopCluster(ctx, organizationID, cluster.Id).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {

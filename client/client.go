@@ -7,7 +7,7 @@ import (
 )
 
 type Client struct {
-	api *qovery.APIClient
+	API *qovery.APIClient
 }
 
 func New(token string, version string) *Client {

@@ -14,7 +14,7 @@ const (
 )
 
 func (c *Client) getClusterStatus(ctx context.Context, organizationID string, clusterID string) (*qovery.ClusterStatusResponse, *apierrors.APIError) {
-	status, res, err := c.api.ClustersApi.
+	status, res, err := c.API.ClustersApi.
 		GetClusterStatus(ctx, organizationID, clusterID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {

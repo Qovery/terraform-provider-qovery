@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Client) getApplicationEnvironmentVariables(ctx context.Context, applicationID string) ([]*qovery.EnvironmentVariableResponse, *apierrors.APIError) {
-	applicationVariables, res, err := c.api.ApplicationEnvironmentVariableApi.
+	applicationVariables, res, err := c.API.ApplicationEnvironmentVariableApi.
 		ListApplicationEnvironmentVariable(ctx, applicationID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -20,7 +20,7 @@ func (c *Client) getApplicationEnvironmentVariables(ctx context.Context, applica
 
 func (c *Client) updateApplicationEnvironmentVariables(ctx context.Context, applicationID string, request EnvironmentVariablesDiff) *apierrors.APIError {
 	for _, variable := range request.Delete {
-		res, err := c.api.ApplicationEnvironmentVariableApi.
+		res, err := c.API.ApplicationEnvironmentVariableApi.
 			DeleteApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -29,7 +29,7 @@ func (c *Client) updateApplicationEnvironmentVariables(ctx context.Context, appl
 	}
 
 	for _, variable := range request.Update {
-		_, res, err := c.api.ApplicationEnvironmentVariableApi.
+		_, res, err := c.API.ApplicationEnvironmentVariableApi.
 			EditApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			EnvironmentVariableEditRequest(variable.EnvironmentVariableEditRequest).
 			Execute()
@@ -39,7 +39,7 @@ func (c *Client) updateApplicationEnvironmentVariables(ctx context.Context, appl
 	}
 
 	for _, variable := range request.Create {
-		_, res, err := c.api.ApplicationEnvironmentVariableApi.
+		_, res, err := c.API.ApplicationEnvironmentVariableApi.
 			CreateApplicationEnvironmentVariable(ctx, applicationID).
 			EnvironmentVariableRequest(variable.EnvironmentVariableRequest).
 			Execute()

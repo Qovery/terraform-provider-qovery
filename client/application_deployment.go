@@ -20,7 +20,7 @@ func (c *Client) deployApplication(ctx context.Context, application *qovery.Appl
 	case "DEPLOYMENT_ERROR":
 		return c.restartApplication(ctx, application)
 	default:
-		_, res, err := c.api.ApplicationActionsApi.
+		_, res, err := c.API.ApplicationActionsApi.
 			DeployApplication(ctx, application.Id).
 			DeployRequest(qovery.DeployRequest{
 				GitCommitId: *application.GitRepository.DeployedCommitId,
@@ -48,7 +48,7 @@ func (c *Client) stopApplication(ctx context.Context, application *qovery.Applic
 	case "STOPPED":
 		return status, nil
 	default:
-		_, res, err := c.api.ApplicationActionsApi.
+		_, res, err := c.API.ApplicationActionsApi.
 			StopApplication(ctx, application.Id).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -74,7 +74,7 @@ func (c *Client) restartApplication(ctx context.Context, application *qovery.App
 		return nil, apiErr
 	}
 
-	_, res, err := c.api.ApplicationActionsApi.
+	_, res, err := c.API.ApplicationActionsApi.
 		RestartApplication(ctx, application.Id).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {

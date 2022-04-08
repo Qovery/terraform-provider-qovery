@@ -21,7 +21,7 @@ type ClusterUpsertParams struct {
 }
 
 func (c *Client) CreateCluster(ctx context.Context, organizationID string, params ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
-	cluster, res, err := c.api.ClustersApi.
+	cluster, res, err := c.API.ClustersApi.
 		CreateCluster(ctx, organizationID).
 		ClusterRequest(params.ClusterRequest).
 		Execute()
@@ -37,7 +37,7 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 		return nil, apiErr
 	}
 
-	clusterInfo, res, err := c.api.ClustersApi.
+	clusterInfo, res, err := c.API.ClustersApi.
 		GetOrganizationCloudProviderInfo(ctx, organizationID, cluster.Id).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -51,7 +51,7 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 	}, nil
 }
 func (c *Client) UpdateCluster(ctx context.Context, organizationID string, clusterID string, params ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
-	cluster, res, err := c.api.ClustersApi.
+	cluster, res, err := c.API.ClustersApi.
 		EditCluster(ctx, organizationID, clusterID).
 		ClusterRequest(params.ClusterRequest).
 		Execute()
@@ -68,7 +68,7 @@ func (c *Client) DeleteCluster(ctx context.Context, organizationID string, clust
 		return apiErr
 	}
 
-	res, err := c.api.ClustersApi.
+	res, err := c.API.ClustersApi.
 		DeleteCluster(ctx, organizationID, clusterID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {
@@ -83,7 +83,7 @@ func (c *Client) DeleteCluster(ctx context.Context, organizationID string, clust
 }
 
 func (c *Client) getClusterByID(ctx context.Context, organizationID string, clusterID string) (*qovery.ClusterResponse, *apierrors.APIError) {
-	clusters, res, err := c.api.ClustersApi.
+	clusters, res, err := c.API.ClustersApi.
 		ListOrganizationCluster(ctx, organizationID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -101,7 +101,7 @@ func (c *Client) getClusterByID(ctx context.Context, organizationID string, clus
 
 func (c *Client) updateCluster(ctx context.Context, organizationID string, cluster *qovery.ClusterResponse, params ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
 	if params.ClusterCloudProviderRequest != nil {
-		_, res, err := c.api.ClustersApi.
+		_, res, err := c.API.ClustersApi.
 			SpecifyClusterCloudProviderInfo(ctx, organizationID, cluster.Id).
 			ClusterCloudProviderInfoRequest(*params.ClusterCloudProviderRequest).
 			Execute()
@@ -110,7 +110,7 @@ func (c *Client) updateCluster(ctx context.Context, organizationID string, clust
 		}
 	}
 
-	clusterInfo, res, err := c.api.ClustersApi.
+	clusterInfo, res, err := c.API.ClustersApi.
 		GetOrganizationCloudProviderInfo(ctx, organizationID, cluster.Id).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {

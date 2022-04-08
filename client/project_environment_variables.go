@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Client) getProjectEnvironmentVariables(ctx context.Context, projectID string) ([]*qovery.EnvironmentVariableResponse, *apierrors.APIError) {
-	projectVariables, res, err := c.api.ProjectEnvironmentVariableApi.
+	projectVariables, res, err := c.API.ProjectEnvironmentVariableApi.
 		ListProjectEnvironmentVariable(ctx, projectID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -21,7 +21,7 @@ func (c *Client) getProjectEnvironmentVariables(ctx context.Context, projectID s
 
 func (c *Client) updateProjectEnvironmentVariables(ctx context.Context, projectID string, request EnvironmentVariablesDiff) *apierrors.APIError {
 	for _, variable := range request.Delete {
-		res, err := c.api.ProjectEnvironmentVariableApi.
+		res, err := c.API.ProjectEnvironmentVariableApi.
 			DeleteProjectEnvironmentVariable(ctx, projectID, variable.Id).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -30,7 +30,7 @@ func (c *Client) updateProjectEnvironmentVariables(ctx context.Context, projectI
 	}
 
 	for _, variable := range request.Update {
-		_, res, err := c.api.ProjectEnvironmentVariableApi.
+		_, res, err := c.API.ProjectEnvironmentVariableApi.
 			EditProjectEnvironmentVariable(ctx, projectID, variable.Id).
 			EnvironmentVariableEditRequest(variable.EnvironmentVariableEditRequest).
 			Execute()
@@ -40,7 +40,7 @@ func (c *Client) updateProjectEnvironmentVariables(ctx context.Context, projectI
 	}
 
 	for _, variable := range request.Create {
-		_, res, err := c.api.ProjectEnvironmentVariableApi.
+		_, res, err := c.API.ProjectEnvironmentVariableApi.
 			CreateProjectEnvironmentVariable(ctx, projectID).
 			EnvironmentVariableRequest(variable.EnvironmentVariableRequest).
 			Execute()

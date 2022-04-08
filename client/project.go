@@ -19,7 +19,7 @@ type ProjectUpsertParams struct {
 }
 
 func (c *Client) CreateProject(ctx context.Context, organizationID string, params ProjectUpsertParams) (*ProjectResponse, *apierrors.APIError) {
-	project, res, err := c.api.ProjectsApi.
+	project, res, err := c.API.ProjectsApi.
 		CreateProject(ctx, organizationID).
 		ProjectRequest(params.ProjectRequest).
 		Execute()
@@ -45,7 +45,7 @@ func (c *Client) CreateProject(ctx context.Context, organizationID string, param
 }
 
 func (c *Client) GetProject(ctx context.Context, projectID string) (*ProjectResponse, *apierrors.APIError) {
-	project, res, err := c.api.ProjectMainCallsApi.
+	project, res, err := c.API.ProjectMainCallsApi.
 		GetProject(ctx, projectID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -64,7 +64,7 @@ func (c *Client) GetProject(ctx context.Context, projectID string) (*ProjectResp
 }
 
 func (c *Client) UpdateProject(ctx context.Context, projectID string, params ProjectUpsertParams) (*ProjectResponse, *apierrors.APIError) {
-	project, res, err := c.api.ProjectMainCallsApi.
+	project, res, err := c.API.ProjectMainCallsApi.
 		EditProject(ctx, projectID).
 		ProjectRequest(params.ProjectRequest).
 		Execute()
@@ -90,7 +90,7 @@ func (c *Client) UpdateProject(ctx context.Context, projectID string, params Pro
 }
 
 func (c *Client) DeleteProject(ctx context.Context, projectID string) *apierrors.APIError {
-	res, err := c.api.ProjectMainCallsApi.
+	res, err := c.API.ProjectMainCallsApi.
 		DeleteProject(ctx, projectID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {

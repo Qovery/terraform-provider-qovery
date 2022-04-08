@@ -24,7 +24,7 @@ type DatabaseUpdateParams struct {
 }
 
 func (c *Client) CreateDatabase(ctx context.Context, environmentID string, params DatabaseCreateParams) (*DatabaseResponse, *apierrors.APIError) {
-	database, res, err := c.api.DatabasesApi.
+	database, res, err := c.API.DatabasesApi.
 		CreateDatabase(ctx, environmentID).
 		DatabaseRequest(params.DatabaseRequest).
 		Execute()
@@ -35,7 +35,7 @@ func (c *Client) CreateDatabase(ctx context.Context, environmentID string, param
 }
 
 func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseResponse, *apierrors.APIError) {
-	database, res, err := c.api.DatabaseMainCallsApi.
+	database, res, err := c.API.DatabaseMainCallsApi.
 		GetDatabase(ctx, databaseID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -54,7 +54,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 }
 
 func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params DatabaseUpdateParams) (*DatabaseResponse, *apierrors.APIError) {
-	database, res, err := c.api.DatabaseMainCallsApi.
+	database, res, err := c.API.DatabaseMainCallsApi.
 		EditDatabase(ctx, databaseID).
 		DatabaseEditRequest(params.DatabaseEditRequest).
 		Execute()
@@ -71,7 +71,7 @@ func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierro
 		return apiErr
 	}
 
-	res, err := c.api.DatabaseMainCallsApi.
+	res, err := c.API.DatabaseMainCallsApi.
 		DeleteDatabase(ctx, databaseID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {
@@ -109,7 +109,7 @@ func (c *Client) deployDatabase(ctx context.Context, databaseID string) (*qovery
 	case "DEPLOYMENT_ERROR":
 		return c.restartDatabase(ctx, databaseID)
 	default:
-		_, res, err := c.api.DatabaseActionsApi.
+		_, res, err := c.API.DatabaseActionsApi.
 			DeployDatabase(ctx, databaseID).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -134,7 +134,7 @@ func (c *Client) stopDatabase(ctx context.Context, databaseID string) (*qovery.S
 	case databaseStateStopped:
 		return status, nil
 	default:
-		_, res, err := c.api.DatabaseActionsApi.
+		_, res, err := c.API.DatabaseActionsApi.
 			StopDatabase(ctx, databaseID).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -155,7 +155,7 @@ func (c *Client) restartDatabase(ctx context.Context, databaseID string) (*qover
 		return nil, apiErr
 	}
 
-	_, res, err := c.api.DatabaseActionsApi.
+	_, res, err := c.API.DatabaseActionsApi.
 		RestartDatabase(ctx, databaseID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {

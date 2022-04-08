@@ -27,7 +27,7 @@ type ApplicationUpdateParams struct {
 }
 
 func (c *Client) CreateApplication(ctx context.Context, environmentID string, params ApplicationCreateParams) (*ApplicationResponse, *apierrors.APIError) {
-	application, res, err := c.api.ApplicationsApi.
+	application, res, err := c.API.ApplicationsApi.
 		CreateApplication(ctx, environmentID).
 		ApplicationRequest(params.ApplicationRequest).
 		Execute()
@@ -38,7 +38,7 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 }
 
 func (c *Client) GetApplication(ctx context.Context, applicationID string) (*ApplicationResponse, *apierrors.APIError) {
-	application, res, err := c.api.ApplicationMainCallsApi.
+	application, res, err := c.API.ApplicationMainCallsApi.
 		GetApplication(ctx, applicationID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -63,7 +63,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 }
 
 func (c *Client) UpdateApplication(ctx context.Context, applicationID string, params ApplicationUpdateParams) (*ApplicationResponse, *apierrors.APIError) {
-	application, res, err := c.api.ApplicationMainCallsApi.
+	application, res, err := c.API.ApplicationMainCallsApi.
 		EditApplication(ctx, applicationID).
 		ApplicationEditRequest(params.ApplicationEditRequest).
 		Execute()
@@ -79,7 +79,7 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 		return apiErr
 	}
 
-	res, err := c.api.ApplicationMainCallsApi.
+	res, err := c.API.ApplicationMainCallsApi.
 		DeleteApplication(ctx, applicationID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {

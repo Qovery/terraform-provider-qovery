@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Client) CreateScalewayCredentials(ctx context.Context, organizationID string, request qovery.ScalewayCredentialsRequest) (*qovery.ClusterCredentialsResponse, *apierrors.APIError) {
-	credentials, res, err := c.api.CloudProviderCredentialsApi.
+	credentials, res, err := c.API.CloudProviderCredentialsApi.
 		CreateScalewayCredentials(ctx, organizationID).
 		ScalewayCredentialsRequest(request).
 		Execute()
@@ -20,7 +20,7 @@ func (c *Client) CreateScalewayCredentials(ctx context.Context, organizationID s
 }
 
 func (c *Client) GetScalewayCredentials(ctx context.Context, organizationID string, credentialsID string) (*qovery.ClusterCredentialsResponse, *apierrors.APIError) {
-	credentials, res, err := c.api.CloudProviderCredentialsApi.
+	credentials, res, err := c.API.CloudProviderCredentialsApi.
 		ListScalewayCredentials(ctx, organizationID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -36,7 +36,7 @@ func (c *Client) GetScalewayCredentials(ctx context.Context, organizationID stri
 }
 
 func (c *Client) UpdateScalewayCredentials(ctx context.Context, organizationID string, credentialsID string, request qovery.ScalewayCredentialsRequest) (*qovery.ClusterCredentialsResponse, *apierrors.APIError) {
-	credentials, res, err := c.api.CloudProviderCredentialsApi.
+	credentials, res, err := c.API.CloudProviderCredentialsApi.
 		EditScalewayCredentials(ctx, organizationID, credentialsID).
 		ScalewayCredentialsRequest(request).
 		Execute()
@@ -47,7 +47,7 @@ func (c *Client) UpdateScalewayCredentials(ctx context.Context, organizationID s
 }
 
 func (c *Client) DeleteScalewayCredentials(ctx context.Context, organizationID string, credentialsID string) *apierrors.APIError {
-	res, err := c.api.CloudProviderCredentialsApi.
+	res, err := c.API.CloudProviderCredentialsApi.
 		DeleteScalewayCredentials(ctx, organizationID, credentialsID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {
