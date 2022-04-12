@@ -9,10 +9,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"terraform-provider-qovery/client"
-	"terraform-provider-qovery/qovery/descriptions"
-	"terraform-provider-qovery/qovery/modifiers"
-	"terraform-provider-qovery/qovery/validators"
+	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
+	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
+	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
 var (

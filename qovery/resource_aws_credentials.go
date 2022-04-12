@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/client"
 )
 
 type awsCredentialsResourceType struct{}

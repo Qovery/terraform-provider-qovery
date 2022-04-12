@@ -4,7 +4,7 @@ import (
 	"strings"
 	"time"
 
-	"terraform-provider-qovery/client/apierrors"
+	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
 // IsStatusError check if the status state is an Error

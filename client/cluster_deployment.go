@@ -5,7 +5,7 @@ import (
 
 	"github.com/qovery/qovery-client-go"
 
-	"terraform-provider-qovery/client/apierrors"
+	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
 func (c *Client) deployCluster(ctx context.Context, organizationID string, cluster *qovery.ClusterResponse) (*qovery.ClusterStatusResponse, *apierrors.APIError) {

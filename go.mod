@@ -1,4 +1,4 @@
-module terraform-provider-qovery
+module github.com/qovery/terraform-provider-qovery
 
 go 1.17
 

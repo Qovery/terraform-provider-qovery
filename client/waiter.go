@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"terraform-provider-qovery/client/apierrors"
+	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
 const defaultWaitTimeout = 30 * time.Minute

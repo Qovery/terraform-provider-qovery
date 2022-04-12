@@ -10,10 +10,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
-	"terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/client"
 )
 
-const qoveryAPITokenEnvName = "QOVERY_API_TOKEN"
+const APITokenEnvName = "QOVERY_API_TOKEN"
 
 // provider satisfies the tfsdk.Provider interface and usually is included
 // with all organizationResource and DataSource implementations.
@@ -60,7 +60,7 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 
 	token := data.Token.Value
 	if data.Token.Null {
-		token = os.Getenv(qoveryAPITokenEnvName)
+		token = os.Getenv(APITokenEnvName)
 	}
 
 	if token == "" {
@@ -83,28 +83,28 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 // GetResources - Defines provider resources
 func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceType, diag.Diagnostics) {
 	return map[string]tfsdk.ResourceType{
-		"qovery_organization":         organizationResourceType{},
-		"qovery_aws_credentials":      awsCredentialsResourceType{},
-		"qovery_scaleway_credentials": scalewayCredentialsResourceType{},
-		"qovery_cluster":              clusterResourceType{},
-		"qovery_project":              projectResourceType{},
-		"qovery_environment":          environmentResourceType{},
 		"qovery_application":          applicationResourceType{},
+		"qovery_aws_credentials":      awsCredentialsResourceType{},
+		"qovery_cluster":              clusterResourceType{},
 		"qovery_database":             databaseResourceType{},
+		"qovery_environment":          environmentResourceType{},
+		"qovery_organization":         organizationResourceType{},
+		"qovery_project":              projectResourceType{},
+		"qovery_scaleway_credentials": scalewayCredentialsResourceType{},
 	}, nil
 }
 
 // GetDataSources - Defines provider data sources
 func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourceType, diag.Diagnostics) {
 	return map[string]tfsdk.DataSourceType{
-		"qovery_organization":         organizationDataSourceType{},
-		"qovery_aws_credentials":      awsCredentialsDataSourceType{},
-		"qovery_scaleway_credentials": scalewayCredentialsDataSourceType{},
-		"qovery_cluster":              clusterDataSourceType{},
-		"qovery_project":              projectDataSourceType{},
-		"qovery_environment":          environmentDataSourceType{},
 		"qovery_application":          applicationDataSourceType{},
+		"qovery_aws_credentials":      awsCredentialsDataSourceType{},
+		"qovery_cluster":              clusterDataSourceType{},
 		"qovery_database":             databaseDataSourceType{},
+		"qovery_environment":          environmentDataSourceType{},
+		"qovery_organization":         organizationDataSourceType{},
+		"qovery_project":              projectDataSourceType{},
+		"qovery_scaleway_credentials": scalewayCredentialsDataSourceType{},
 	}, nil
 }
 

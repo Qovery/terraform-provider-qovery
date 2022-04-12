@@ -6,8 +6,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"terraform-provider-qovery/qovery/descriptions"
-	"terraform-provider-qovery/qovery/modifiers"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
+	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 )
 
 const timeoutDocumentationURL = "https://www.terraform.io/language/resources/syntax#operation-timeouts"

@@ -5,7 +5,7 @@ import (
 
 	"github.com/qovery/qovery-client-go"
 
-	"terraform-provider-qovery/client/apierrors"
+	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
 func (c *Client) getProjectEnvironmentVariables(ctx context.Context, projectID string) ([]*qovery.EnvironmentVariableResponse, *apierrors.APIError) {
