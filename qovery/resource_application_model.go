@@ -4,7 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
-	"terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/client"
 )
 
 type Application struct {
