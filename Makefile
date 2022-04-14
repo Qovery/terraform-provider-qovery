@@ -1,3 +1,8 @@
+ifneq (,$(wildcard ./.env))
+    include .env
+    export
+endif
+
 GO=go
 TEST?=$$(${GO} list ./... | grep -v 'vendor')
 HOSTNAME=qovery.com

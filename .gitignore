@@ -1,9 +1,12 @@
+.env
 .DS_Store
 vendor
 
 terraform-provider-qovery
 bin
 .idea
+.task
+.vscode
 *.iml
 
 # Local .terraform directories
