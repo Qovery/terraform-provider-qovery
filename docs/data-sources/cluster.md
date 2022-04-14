@@ -14,7 +14,7 @@ Use this data source to retrieve information about an existing cluster.
 
 ```terraform
 data "qovery_cluster" "my_cluster" {
-  id = "<cluster_id>"
+  id              = "<cluster_id>"
   organization_id = "<organization_id>"
 }
 ```
