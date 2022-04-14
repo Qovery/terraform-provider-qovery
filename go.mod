@@ -5,7 +5,7 @@ go 1.17
 require (
 	github.com/hashicorp/terraform-plugin-docs v0.7.0
 	github.com/hashicorp/terraform-plugin-framework v0.6.1
-	github.com/hashicorp/terraform-plugin-go v0.8.0
+	github.com/hashicorp/terraform-plugin-go v0.9.0
 	github.com/hashicorp/terraform-plugin-log v0.3.0
 	github.com/qovery/qovery-client-go v0.0.0-20220302171944-a84024a596ce
 )
@@ -26,7 +26,7 @@ require (
 	github.com/hashicorp/go-hclog v1.2.0 // indirect
 	github.com/hashicorp/go-multierror v1.1.1 // indirect
 	github.com/hashicorp/go-plugin v1.4.3 // indirect
-	github.com/hashicorp/go-uuid v1.0.2 // indirect
+	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.4.0 // indirect
 	github.com/hashicorp/hc-install v0.3.1 // indirect
 	github.com/hashicorp/terraform-exec v0.16.0 // indirect
@@ -56,5 +56,5 @@ require (
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20200904004341-0bd0a958aa1d // indirect
 	google.golang.org/grpc v1.45.0 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
+	google.golang.org/protobuf v1.28.0 // indirect
 )
