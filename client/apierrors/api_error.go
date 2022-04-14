@@ -27,6 +27,10 @@ type errorPayload struct {
 	Path      string `json:"path"`
 }
 
+func (e APIError) Error() string {
+	return e.Detail()
+}
+
 func (e APIError) Summary() string {
 	return fmt.Sprintf("Error on %s %s", e.resource, e.action)
 }

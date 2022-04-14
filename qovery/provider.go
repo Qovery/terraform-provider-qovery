@@ -114,7 +114,7 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 			"token": {
 				Description: "The Qovery API Token to use. This can also be specified with the `QOVERY_API_TOKEN` shell environment variable.",
 				Type:        types.StringType,
-				Required:    true,
+				Optional:    true,
 			},
 		},
 	}, nil
