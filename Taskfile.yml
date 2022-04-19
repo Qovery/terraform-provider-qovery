@@ -37,7 +37,7 @@ tasks:
     env:
       TF_ACC: true
     cmds:
-      - go test -v --cover ./... {{.CLI_ARGS}}
+      - go test -v --cover -timeout 2h ./... {{.CLI_ARGS}}
 
   docs:
     desc: Update the generated documentation
