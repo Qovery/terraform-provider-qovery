@@ -32,6 +32,10 @@ func (c *Client) GetAWSCredentials(ctx context.Context, organizationID string, c
 			return &creds, nil
 		}
 	}
+
+	// NOTE: Force status 404 since we didn't find the credential.
+	// The status is used to generate the proper error return by the provider.
+	res.StatusCode = 404
 	return nil, apierrors.NewReadError(apierrors.APIResourceAWSCredentials, credentialsID, res, err)
 }
 
@@ -48,7 +52,7 @@ func (c *Client) UpdateAWSCredentials(ctx context.Context, organizationID string
 
 func (c *Client) DeleteAWSCredentials(ctx context.Context, organizationID string, credentialsID string) *apierrors.APIError {
 	res, err := c.api.CloudProviderCredentialsApi.
-		DeleteAWSCredentials(ctx, organizationID, credentialsID).
+		DeleteAWSCredentials(ctx, credentialsID, organizationID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {
 		return apierrors.NewDeleteError(apierrors.APIResourceAWSCredentials, credentialsID, res, err)
