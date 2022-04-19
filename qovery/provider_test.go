@@ -18,10 +18,11 @@ const (
 )
 
 type testEnvironment struct {
-	QoveryApiToken  string `env:"QOVERY_API_TOKEN,required"`
-	OrganizationID  string `env:"TEST_ORGANIZATION_ID,required"`
-	AccessKeyID     string `env:"TEST_ACCESS_KEY_ID,required"`
-	SecretAccessKey string `env:"TEST_SECRET_ACCESS_KEY,required"`
+	QoveryApiToken                string `env:"QOVERY_API_TOKEN,required"`
+	OrganizationID                string `env:"TEST_ORGANIZATION_ID,required"`
+	AwsCredentialsID              string `env:"TEST_AWS_CREDENTIALS_ID,required"`
+	AwsCredentialsAccessKeyID     string `env:"TEST_AWS_CREDENTIALS_ACCESS_KEY_ID,required"`
+	AwsCredentialsSecretAccessKey string `env:"TEST_AWS_CREDENTIALS_SECRET_ACCESS_KEY,required"`
 }
 
 var apiClient = client.New(os.Getenv(qovery.APITokenEnvName), "test")
@@ -43,10 +44,14 @@ func getTestOrganizationID() string {
 	return os.Getenv("TEST_ORGANIZATION_ID")
 }
 
-func getTestAccessKeyID() string {
-	return os.Getenv("TEST_ACCESS_KEY_ID")
+func getTestAWSCredentialsID() string {
+	return os.Getenv("TEST_AWS_CREDENTIALS_ID")
 }
 
-func getTestSecretAccessKey() string {
-	return os.Getenv("TEST_SECRET_ACCESS_KEY")
+func getTestAWSCredentialsAccessKeyID() string {
+	return os.Getenv("TEST_AWS_CREDENTIALS_ACCESS_KEY_ID")
+}
+
+func getTestAWSCredentialsSecretAccessKey() string {
+	return os.Getenv("TEST_AWS_CREDENTIALS_SECRET_ACCESS_KEY")
 }

@@ -13,7 +13,7 @@ func TestAcc_OrganizationDataSource(t *testing.T) {
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Create and Read testing
+			// Read testing
 			{
 				Config: testAccOrganizationDataSourceConfig(
 					getTestOrganizationID(),

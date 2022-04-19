@@ -44,5 +44,5 @@ resource "qovery_aws_credentials" "my_aws_creds" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import qovery_aws_credentials.my_aws_creds "<aws_credentials_id>,<organization_id>"
+terraform import qovery_aws_credentials.my_aws_creds "<organization_id>,<aws_credentials_id>"
 ```
