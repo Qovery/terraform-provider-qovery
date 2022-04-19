@@ -66,11 +66,11 @@ func testAccQoveryOrganizationExists(resourceName string) resource.TestCheckFunc
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {
-			return fmt.Errorf("not found: %s", resourceName)
+			return fmt.Errorf("organization not found: %s", resourceName)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("no organizationID is set")
+			return fmt.Errorf("organization.id not found")
 		}
 
 		_, err := apiClient.GetOrganization(context.TODO(), rs.Primary.ID)
@@ -85,11 +85,11 @@ func testAccQoveryOrganizationDestroy(resourceName string) resource.TestCheckFun
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {
-			return fmt.Errorf("not found: %s", resourceName)
+			return fmt.Errorf("organization not found: %s", resourceName)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("no organizationID is set")
+			return fmt.Errorf("organization.id not found")
 		}
 
 		_, apiErr := apiClient.GetOrganization(context.TODO(), rs.Primary.ID)
