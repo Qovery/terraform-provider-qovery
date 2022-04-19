@@ -19,6 +19,10 @@ func IsNotFound(e *APIError) bool {
 	return e.res.StatusCode == http.StatusNotFound
 }
 
+func IsBadRequest(e *APIError) bool {
+	return e.res.StatusCode == http.StatusBadRequest
+}
+
 type errorPayload struct {
 	Status    int    `json:"status"`
 	Error     string `json:"error"`

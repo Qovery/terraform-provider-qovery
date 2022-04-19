@@ -72,7 +72,7 @@ func newClusterStatusCheckerWaitFunc(client *Client, organizationID string, clus
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
 		status, apiErr := client.getClusterStatus(ctx, organizationID, clusterID)
 		if apiErr != nil {
-			if apierrors.IsNotFound(apiErr) && expected == "DELETED" {
+			if (apierrors.IsBadRequest(apiErr) || apierrors.IsNotFound(apiErr)) && expected == "DELETED" {
 				return true, nil
 			}
 			return false, apiErr

@@ -96,6 +96,9 @@ func (c *Client) getClusterByID(ctx context.Context, organizationID string, clus
 		}
 	}
 
+	// NOTE: Force status 404 since we didn't find the credential.
+	// The status is used to generate the proper error return by the provider.
+	res.StatusCode = 404
 	return nil, apierrors.NewReadError(apierrors.APIResourceCluster, clusterID, res, err)
 }
 

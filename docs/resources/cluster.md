@@ -68,5 +68,5 @@ resource "qovery_cluster" "my_cluster" {
 Import is supported using the following syntax:
 
 ```shell
-terraform import qovery_cluster.my_cluster "<cluster_id>,<organization_id>"
+terraform import qovery_cluster.my_cluster "<organization_id>,<cluster_id>"
 ```
