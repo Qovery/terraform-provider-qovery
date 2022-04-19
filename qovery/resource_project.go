@@ -41,8 +41,8 @@ func (r projectResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 			},
 			"environment_variables": {
 				Description: "List of environment variables linked to this project.",
-				Required:    true,
-				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
 					"id": {
 						Description: "Id of the environment variable.",
 						Type:        types.StringType,
@@ -58,7 +58,7 @@ func (r projectResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 						Type:        types.StringType,
 						Required:    true,
 					},
-				}, tfsdk.ListNestedAttributesOptions{}),
+				}, tfsdk.SetNestedAttributesOptions{}),
 			},
 		},
 	}, nil

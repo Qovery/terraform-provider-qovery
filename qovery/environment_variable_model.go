@@ -91,6 +91,10 @@ func convertResponseToEnvironmentVariable(v *qovery.EnvironmentVariableResponse)
 }
 
 func convertResponseToEnvironmentVariables(vars []*qovery.EnvironmentVariableResponse) []EnvironmentVariable {
+	if len(vars) == 0 {
+		return nil
+	}
+
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
 		list = append(list, convertResponseToEnvironmentVariable(v))
