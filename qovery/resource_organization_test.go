@@ -62,6 +62,37 @@ func TestAcc_Organization(t *testing.T) {
 	})
 }
 
+func TestAcc_OrganizationImport(t *testing.T) {
+	t.Parallel()
+	organizationNameSuffix := uuid.New().String()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryOrganizationDestroy("qovery_organization.test"),
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccOrganizationConfig(
+					generateOrganizationName(organizationNameSuffix),
+					"FREE",
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryOrganizationExists("qovery_organization.test"),
+					resource.TestCheckResourceAttr("qovery_organization.test", "name", generateOrganizationName(organizationNameSuffix)),
+					resource.TestCheckResourceAttr("qovery_organization.test", "plan", "FREE"),
+					resource.TestCheckNoResourceAttr("qovery_organization.test", "description"),
+				),
+			},
+			// Check Import
+			{
+				ResourceName:      "qovery_organization.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccQoveryOrganizationExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
@@ -106,7 +137,7 @@ func testAccQoveryOrganizationDestroy(resourceName string) resource.TestCheckFun
 }
 
 func generateOrganizationName(suffix string) string {
-	return fmt.Sprintf("q-test-42-terraform-acc-organization-%s", suffix)
+	return fmt.Sprintf("%s-organization-%s", testResourcePrefix, suffix)
 }
 
 func testAccOrganizationConfig(name string, plan string) string {
