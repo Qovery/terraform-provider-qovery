@@ -13,6 +13,10 @@ import (
 	"github.com/qovery/terraform-provider-qovery/qovery"
 )
 
+const (
+	testResourcePrefix = "q-test-42-terraform-acc"
+)
+
 type testEnvironment struct {
 	QoveryApiToken  string `env:"QOVERY_API_TOKEN,required"`
 	OrganizationID  string `env:"TEST_ORGANIZATION_ID,required"`
