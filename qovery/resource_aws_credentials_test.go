@@ -25,15 +25,15 @@ func TestAcc_AWSCredentials(t *testing.T) {
 				Config: testAccAWSCredentialsConfig(
 					getTestOrganizationID(),
 					generateAWSCredentialsName(credentialsNameSuffix),
-					getTestAccessKeyID(),
-					getTestSecretAccessKey(),
+					getTestAWSCredentialsAccessKeyID(),
+					getTestAWSCredentialsSecretAccessKey(),
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryAWSCredentialsExists("qovery_aws_credentials.test"),
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "organization_id", getTestOrganizationID()),
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "name", generateAWSCredentialsName(credentialsNameSuffix)),
-					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "access_key_id", getTestAccessKeyID()),
-					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "secret_access_key", getTestSecretAccessKey()),
+					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "access_key_id", getTestAWSCredentialsAccessKeyID()),
+					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "secret_access_key", getTestAWSCredentialsSecretAccessKey()),
 				),
 			},
 			// Update name
@@ -41,16 +41,52 @@ func TestAcc_AWSCredentials(t *testing.T) {
 				Config: testAccAWSCredentialsConfig(
 					getTestOrganizationID(),
 					fmt.Sprintf("%s-updated", generateAWSCredentialsName(credentialsNameSuffix)),
-					getTestAccessKeyID(),
-					getTestSecretAccessKey(),
+					getTestAWSCredentialsAccessKeyID(),
+					getTestAWSCredentialsSecretAccessKey(),
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryAWSCredentialsExists("qovery_aws_credentials.test"),
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "organization_id", getTestOrganizationID()),
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "name", fmt.Sprintf("%s-updated", generateAWSCredentialsName(credentialsNameSuffix))),
-					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "access_key_id", getTestAccessKeyID()),
-					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "secret_access_key", getTestSecretAccessKey()),
+					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "access_key_id", getTestAWSCredentialsAccessKeyID()),
+					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "secret_access_key", getTestAWSCredentialsSecretAccessKey()),
 				),
+			},
+		},
+	})
+}
+
+func TestAcc_AWSCredentialsImport(t *testing.T) {
+	t.Parallel()
+	credentialsNameSuffix := uuid.New().String()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryAWSCredentialsDestroy("qovery_aws_credentials.test"),
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccAWSCredentialsConfig(
+					getTestOrganizationID(),
+					generateAWSCredentialsName(credentialsNameSuffix),
+					getTestAWSCredentialsAccessKeyID(),
+					getTestAWSCredentialsSecretAccessKey(),
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryAWSCredentialsExists("qovery_aws_credentials.test"),
+					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "organization_id", getTestOrganizationID()),
+					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "name", generateAWSCredentialsName(credentialsNameSuffix)),
+					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "access_key_id", getTestAWSCredentialsAccessKeyID()),
+					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "secret_access_key", getTestAWSCredentialsSecretAccessKey()),
+				),
+			},
+			// Check Import
+			{
+				ResourceName:            "qovery_aws_credentials.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
+				ImportStateVerifyIgnore: []string{"access_key_id", "secret_access_key"},
 			},
 		},
 	})
@@ -110,5 +146,5 @@ resource "qovery_aws_credentials" "test" {
 }
 
 func generateAWSCredentialsName(suffix string) string {
-	return fmt.Sprintf("q-test-42-terraform-acc-aws-credentials-%s", suffix)
+	return fmt.Sprintf("%s-aws-credentials-%s", testResourcePrefix, suffix)
 }
