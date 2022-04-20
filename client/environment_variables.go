@@ -10,7 +10,12 @@ const (
 	EnvironmentVariableScopeApplication EnvironmentVariableScope = "APPLICATION"
 	EnvironmentVariableScopeEnvironment EnvironmentVariableScope = "ENVIRONMENT"
 	EnvironmentVariableScopeProject     EnvironmentVariableScope = "PROJECT"
+	EnvironmentVariableScopeBuiltIn     EnvironmentVariableScope = "BUILT_IN"
 )
+
+func (s EnvironmentVariableScope) String() string {
+	return string(s)
+}
 
 type EnvironmentVariablesDiff struct {
 	Create []EnvironmentVariableCreateRequest

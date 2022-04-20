@@ -6,7 +6,6 @@ vars:
   BINARY_FOLDER: bin
   BINARY_NAME: terraform-provider-qovery
   GOLANGCI_LINT_VERSION: v1.45.2
-  TFPROCIDERLINT_VERSION: v0.28.1
 
 dotenv: ['.env']
 

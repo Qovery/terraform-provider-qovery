@@ -90,14 +90,17 @@ func convertResponseToEnvironmentVariable(v *qovery.EnvironmentVariableResponse)
 	}
 }
 
-func convertResponseToEnvironmentVariables(vars []*qovery.EnvironmentVariableResponse) []EnvironmentVariable {
-	if len(vars) == 0 {
-		return nil
-	}
-
+func convertResponseToEnvironmentVariables(vars []*qovery.EnvironmentVariableResponse, scope client.EnvironmentVariableScope) []EnvironmentVariable {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
+		if v.Scope != scope.String() {
+			continue
+		}
 		list = append(list, convertResponseToEnvironmentVariable(v))
+	}
+
+	if len(list) == 0 {
+		return nil
 	}
 	return list
 }
