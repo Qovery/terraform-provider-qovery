@@ -43,6 +43,6 @@ func convertResponseToEnvironment(res *client.EnvironmentResponse) Environment {
 		ClusterId:            fromString(res.EnvironmentResponse.ClusterId),
 		Name:                 fromString(res.EnvironmentResponse.Name),
 		Mode:                 fromString(res.EnvironmentResponse.Mode),
-		EnvironmentVariables: convertResponseToEnvironmentVariables(res.EnvironmentEnvironmentVariables),
+		EnvironmentVariables: convertResponseToEnvironmentVariables(res.EnvironmentEnvironmentVariables, client.EnvironmentVariableScopeEnvironment),
 	}
 }

@@ -119,6 +119,7 @@ func TestAcc_Cluster(t *testing.T) {
 				),
 			},
 			// Check Import
+			// Since this takes too much time to create a cluster, the import test is done here.
 			{
 				ResourceName:        "qovery_cluster.test",
 				ImportState:         true,

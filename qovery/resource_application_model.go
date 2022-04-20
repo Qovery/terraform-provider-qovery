@@ -112,7 +112,7 @@ func convertResponseToApplication(app *client.ApplicationResponse) Application {
 		Storage:              convertResponseToApplicationStorage(app.ApplicationResponse.Storage),
 		Ports:                convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
 		State:                fromString(app.ApplicationStatus.State),
-		EnvironmentVariables: convertResponseToEnvironmentVariables(app.ApplicationEnvironmentVariables),
+		EnvironmentVariables: convertResponseToEnvironmentVariables(app.ApplicationEnvironmentVariables, client.EnvironmentVariableScopeApplication),
 	}
 }
 
