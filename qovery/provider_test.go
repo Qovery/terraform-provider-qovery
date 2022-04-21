@@ -25,6 +25,7 @@ type testEnvironment struct {
 	AwsCredentialsSecretAccessKey string `env:"TEST_AWS_CREDENTIALS_SECRET_ACCESS_KEY,required"`
 	ClusterID                     string `env:"TEST_CLUSTER_ID,required"`
 	ProjectID                     string `env:"TEST_PROJECT_ID,required"`
+	EnvironmentID                 string `env:"TEST_ENVIRONMENT_ID,required"`
 }
 
 var apiClient = client.New(os.Getenv(qovery.APITokenEnvName), "test")
@@ -64,4 +65,8 @@ func getTestClusterID() string {
 
 func getTestProjectID() string {
 	return os.Getenv("TEST_PROJECT_ID")
+}
+
+func getTestEnvironmentID() string {
+	return os.Getenv("TEST_ENVIRONMENT_ID")
 }

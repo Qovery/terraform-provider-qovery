@@ -64,10 +64,32 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					validators.StringEnumValidator{Enum: environmentModes},
 				},
 			},
+			//"built_in_environment_variables": {
+			//	Description: "List of built-in environment variables linked to this environment.",
+			//	Computed:    true,
+			//	Optional:    true,
+			//	Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+			//		"id": {
+			//			Description: "Id of the environment variable.",
+			//			Type:        types.StringType,
+			//			Computed:    true,
+			//		},
+			//		"key": {
+			//			Description: "Key of the environment variable.",
+			//			Type:        types.StringType,
+			//			Computed:    true,
+			//		},
+			//		"value": {
+			//			Description: "Value of the environment variable.",
+			//			Type:        types.StringType,
+			//			Computed:    true,
+			//		},
+			//	}, tfsdk.SetNestedAttributesOptions{}),
+			//},
 			"environment_variables": {
 				Description: "List of environment variables linked to this environment.",
-				Required:    true,
-				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
 					"id": {
 						Description: "Id of the environment variable.",
 						Type:        types.StringType,
@@ -83,7 +105,7 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:        types.StringType,
 						Required:    true,
 					},
-				}, tfsdk.ListNestedAttributesOptions{}),
+				}, tfsdk.SetNestedAttributesOptions{}),
 			},
 		},
 	}, nil

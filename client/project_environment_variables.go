@@ -54,7 +54,7 @@ func (c *Client) updateProjectEnvironmentVariables(ctx context.Context, projectI
 func environmentVariableResponseListToArray(list *qovery.EnvironmentVariableResponseList, scope EnvironmentVariableScope) []*qovery.EnvironmentVariableResponse {
 	vars := make([]*qovery.EnvironmentVariableResponse, 0, len(list.GetResults()))
 	for _, v := range list.GetResults() {
-		if string(scope) != v.Scope && scope != EnvironmentVariableScopeBuiltIn {
+		if v.Scope != scope.String() && v.Scope != EnvironmentVariableScopeBuiltIn.String() {
 			continue
 		}
 		cpy := v

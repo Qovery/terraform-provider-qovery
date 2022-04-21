@@ -14,7 +14,7 @@ import (
 
 func TestAcc_AWSCredentials(t *testing.T) {
 	t.Parallel()
-	credentialsNameSuffix := uuid.New().String()
+	nameSuffix := uuid.New().String()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -24,14 +24,14 @@ func TestAcc_AWSCredentials(t *testing.T) {
 			{
 				Config: testAccAWSCredentialsConfig(
 					getTestOrganizationID(),
-					generateAWSCredentialsName(credentialsNameSuffix),
+					generateAWSCredentialsName(nameSuffix),
 					getTestAWSCredentialsAccessKeyID(),
 					getTestAWSCredentialsSecretAccessKey(),
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryAWSCredentialsExists("qovery_aws_credentials.test"),
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "name", generateAWSCredentialsName(credentialsNameSuffix)),
+					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "name", generateAWSCredentialsName(nameSuffix)),
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "access_key_id", getTestAWSCredentialsAccessKeyID()),
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "secret_access_key", getTestAWSCredentialsSecretAccessKey()),
 				),
@@ -40,14 +40,14 @@ func TestAcc_AWSCredentials(t *testing.T) {
 			{
 				Config: testAccAWSCredentialsConfig(
 					getTestOrganizationID(),
-					fmt.Sprintf("%s-updated", generateAWSCredentialsName(credentialsNameSuffix)),
+					fmt.Sprintf("%s-updated", generateAWSCredentialsName(nameSuffix)),
 					getTestAWSCredentialsAccessKeyID(),
 					getTestAWSCredentialsSecretAccessKey(),
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryAWSCredentialsExists("qovery_aws_credentials.test"),
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "name", fmt.Sprintf("%s-updated", generateAWSCredentialsName(credentialsNameSuffix))),
+					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "name", fmt.Sprintf("%s-updated", generateAWSCredentialsName(nameSuffix))),
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "access_key_id", getTestAWSCredentialsAccessKeyID()),
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "secret_access_key", getTestAWSCredentialsSecretAccessKey()),
 				),
@@ -58,7 +58,7 @@ func TestAcc_AWSCredentials(t *testing.T) {
 
 func TestAcc_AWSCredentialsImport(t *testing.T) {
 	t.Parallel()
-	credentialsNameSuffix := uuid.New().String()
+	nameSuffix := uuid.New().String()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -68,14 +68,14 @@ func TestAcc_AWSCredentialsImport(t *testing.T) {
 			{
 				Config: testAccAWSCredentialsConfig(
 					getTestOrganizationID(),
-					generateAWSCredentialsName(credentialsNameSuffix),
+					generateAWSCredentialsName(nameSuffix),
 					getTestAWSCredentialsAccessKeyID(),
 					getTestAWSCredentialsSecretAccessKey(),
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryAWSCredentialsExists("qovery_aws_credentials.test"),
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "name", generateAWSCredentialsName(credentialsNameSuffix)),
+					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "name", generateAWSCredentialsName(nameSuffix)),
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "access_key_id", getTestAWSCredentialsAccessKeyID()),
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "secret_access_key", getTestAWSCredentialsSecretAccessKey()),
 				),
