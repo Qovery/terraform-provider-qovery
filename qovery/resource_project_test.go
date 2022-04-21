@@ -15,7 +15,7 @@ import (
 
 func TestAcc_Project(t *testing.T) {
 	t.Parallel()
-	credentialsNameSuffix := uuid.New().String()
+	nameSuffix := uuid.New().String()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -25,12 +25,12 @@ func TestAcc_Project(t *testing.T) {
 			{
 				Config: testAccProjectConfig(
 					getTestOrganizationID(),
-					generateProjectName(credentialsNameSuffix),
+					generateProjectName(nameSuffix),
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					resource.TestCheckResourceAttr("qovery_project.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_project.test", "name", generateProjectName(credentialsNameSuffix)),
+					resource.TestCheckResourceAttr("qovery_project.test", "name", generateProjectName(nameSuffix)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
 				),
@@ -39,13 +39,13 @@ func TestAcc_Project(t *testing.T) {
 			{
 				Config: testAccProjectConfigWithDescription(
 					getTestOrganizationID(),
-					generateProjectName(credentialsNameSuffix),
+					generateProjectName(nameSuffix),
 					"this is a description",
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					resource.TestCheckResourceAttr("qovery_project.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_project.test", "name", generateProjectName(credentialsNameSuffix)),
+					resource.TestCheckResourceAttr("qovery_project.test", "name", generateProjectName(nameSuffix)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", "this is a description"),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
 				),
@@ -54,7 +54,7 @@ func TestAcc_Project(t *testing.T) {
 			{
 				Config: testAccProjectConfigWithEnvironmentVars(
 					getTestOrganizationID(),
-					generateProjectName(credentialsNameSuffix),
+					generateProjectName(nameSuffix),
 					map[string]string{
 						"key1": "value1",
 						"key2": "value2",
@@ -63,7 +63,7 @@ func TestAcc_Project(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					resource.TestCheckResourceAttr("qovery_project.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_project.test", "name", generateProjectName(credentialsNameSuffix)),
+					resource.TestCheckResourceAttr("qovery_project.test", "name", generateProjectName(nameSuffix)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
 						"key":   "key1",
@@ -72,6 +72,31 @@ func TestAcc_Project(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
 						"key":   "key2",
 						"value": "value2",
+					}),
+				),
+			},
+			// Update environment variables
+			{
+				Config: testAccProjectConfigWithEnvironmentVars(
+					getTestOrganizationID(),
+					generateProjectName(nameSuffix),
+					map[string]string{
+						"key1": "value1-updated",
+						"key2": "value2-updated",
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					resource.TestCheckResourceAttr("qovery_project.test", "organization_id", getTestOrganizationID()),
+					resource.TestCheckResourceAttr("qovery_project.test", "name", generateProjectName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
+						"key":   "key1",
+						"value": "value1-updated",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
+						"key":   "key2",
+						"value": "value2-updated",
 					}),
 				),
 			},
@@ -87,7 +112,7 @@ func TestAcc_Project(t *testing.T) {
 
 func TestAcc_ProjectImport(t *testing.T) {
 	t.Parallel()
-	credentialsNameSuffix := uuid.New().String()
+	nameSuffix := uuid.New().String()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -97,12 +122,12 @@ func TestAcc_ProjectImport(t *testing.T) {
 			{
 				Config: testAccProjectConfig(
 					getTestOrganizationID(),
-					generateProjectName(credentialsNameSuffix),
+					generateProjectName(nameSuffix),
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					resource.TestCheckResourceAttr("qovery_project.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_project.test", "name", generateProjectName(credentialsNameSuffix)),
+					resource.TestCheckResourceAttr("qovery_project.test", "name", generateProjectName(nameSuffix)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
 				),

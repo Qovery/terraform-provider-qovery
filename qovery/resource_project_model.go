@@ -8,12 +8,12 @@ import (
 )
 
 type Project struct {
-	Id                          types.String          `tfsdk:"id"`
-	OrganizationId              types.String          `tfsdk:"organization_id"`
-	Name                        types.String          `tfsdk:"name"`
-	Description                 types.String          `tfsdk:"description"`
-	BuiltInEnvironmentVariables []EnvironmentVariable `tfsdk:"built_in_environment_variables"`
-	EnvironmentVariables        []EnvironmentVariable `tfsdk:"environment_variables"`
+	Id             types.String `tfsdk:"id"`
+	OrganizationId types.String `tfsdk:"organization_id"`
+	Name           types.String `tfsdk:"name"`
+	Description    types.String `tfsdk:"description"`
+	//BuiltInEnvironmentVariables []EnvironmentVariable `tfsdk:"built_in_environment_variables"`
+	EnvironmentVariables []EnvironmentVariable `tfsdk:"environment_variables"`
 }
 
 func (p Project) toCreateProjectRequest() client.ProjectUpsertParams {
@@ -38,11 +38,11 @@ func (p Project) toUpdateProjectRequest(state Project) client.ProjectUpsertParam
 
 func convertResponseToProject(res *client.ProjectResponse) Project {
 	return Project{
-		Id:                          fromString(res.ProjectResponse.Id),
-		OrganizationId:              fromString(res.ProjectResponse.Organization.Id),
-		Name:                        fromString(res.ProjectResponse.Name),
-		Description:                 fromStringPointer(res.ProjectResponse.Description),
-		BuiltInEnvironmentVariables: convertResponseToEnvironmentVariables(res.ProjectEnvironmentVariables, client.EnvironmentVariableScopeBuiltIn),
-		EnvironmentVariables:        convertResponseToEnvironmentVariables(res.ProjectEnvironmentVariables, client.EnvironmentVariableScopeProject),
+		Id:             fromString(res.ProjectResponse.Id),
+		OrganizationId: fromString(res.ProjectResponse.Organization.Id),
+		Name:           fromString(res.ProjectResponse.Name),
+		Description:    fromStringPointer(res.ProjectResponse.Description),
+		//BuiltInEnvironmentVariables: convertResponseToEnvironmentVariables(res.ProjectEnvironmentVariables, client.EnvironmentVariableScopeBuiltIn),
+		EnvironmentVariables: convertResponseToEnvironmentVariables(res.ProjectEnvironmentVariables, client.EnvironmentVariableScopeProject),
 	}
 }

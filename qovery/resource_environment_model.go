@@ -8,11 +8,12 @@ import (
 )
 
 type Environment struct {
-	Id                   types.String          `tfsdk:"id"`
-	ProjectId            types.String          `tfsdk:"project_id"`
-	ClusterId            types.String          `tfsdk:"cluster_id"`
-	Name                 types.String          `tfsdk:"name"`
-	Mode                 types.String          `tfsdk:"mode"`
+	Id        types.String `tfsdk:"id"`
+	ProjectId types.String `tfsdk:"project_id"`
+	ClusterId types.String `tfsdk:"cluster_id"`
+	Name      types.String `tfsdk:"name"`
+	Mode      types.String `tfsdk:"mode"`
+	//BuiltInEnvironmentVariables *[]EnvironmentVariable `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables []EnvironmentVariable `tfsdk:"environment_variables"`
 }
 
@@ -37,12 +38,14 @@ func (e Environment) toUpdateEnvironmentRequest(state Environment) client.Enviro
 }
 
 func convertResponseToEnvironment(res *client.EnvironmentResponse) Environment {
+	//arr := convertResponseToEnvironmentVariables(res.EnvironmentEnvironmentVariables, client.EnvironmentVariableScopeBuiltIn)
 	return Environment{
-		Id:                   fromString(res.EnvironmentResponse.Id),
-		ProjectId:            fromString(res.EnvironmentResponse.Project.Id),
-		ClusterId:            fromString(res.EnvironmentResponse.ClusterId),
-		Name:                 fromString(res.EnvironmentResponse.Name),
-		Mode:                 fromString(res.EnvironmentResponse.Mode),
+		Id:        fromString(res.EnvironmentResponse.Id),
+		ProjectId: fromString(res.EnvironmentResponse.Project.Id),
+		ClusterId: fromString(res.EnvironmentResponse.ClusterId),
+		Name:      fromString(res.EnvironmentResponse.Name),
+		Mode:      fromString(res.EnvironmentResponse.Mode),
+		//BuiltInEnvironmentVariables: &arr,
 		EnvironmentVariables: convertResponseToEnvironmentVariables(res.EnvironmentEnvironmentVariables, client.EnvironmentVariableScopeEnvironment),
 	}
 }
