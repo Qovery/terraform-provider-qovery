@@ -13,7 +13,7 @@ tasks:
   build:
     desc: Build the provider binary
     cmds:
-      - go build -o {{.BINARY_FOLDER}}/{{.BINARY_NAME}}
+      - go build -v -o {{.BINARY_FOLDER}}/{{.BINARY_NAME}}
     sources:
       - "**/*.go"
       - go.mod
@@ -29,14 +29,14 @@ tasks:
   test:
     desc: Run acceptance tests
     cmds:
-      - go test -v --cover ./... {{.CLI_ARGS}}
+      - go test -v -cover ./... {{.CLI_ARGS}}
 
   testacc:
     desc: Run acceptance tests
     env:
       TF_ACC: true
     cmds:
-      - go test -v --cover -timeout 2h ./... {{.CLI_ARGS}}
+      - go test -v -cover -timeout 2h ./... {{.CLI_ARGS}}
 
   docs:
     desc: Update the generated documentation

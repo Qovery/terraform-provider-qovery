@@ -1,0 +1,125 @@
+# Terraform Provider testing workflow.
+name: Tests
+
+# This GitHub action runs your tests for each pull request and push.
+# Optionally, you can turn it on using a schedule for regular testing.
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'README.md'
+      - '.gitignore'
+  pull_request:
+      # The branches below must be a subset of the branches above
+      branches: [ main ]
+      paths-ignore:
+        - 'README.md'
+        - '.gitignore'
+
+# Testing only needs permissions to read the repository contents.
+permissions:
+  contents: read
+
+# Default values to simplify job configurations below.
+env:
+  # Go language version to use for building. This value should also be updated
+  # in the release workflow if changed.
+  GO_VERSION: 1.18
+  TASK_VERSION: 3.x
+
+jobs:
+  # Ensure project builds before running testing matrix
+  build:
+    name: Build Terraform Provider
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up Task
+        uses: arduino/setup-task@v1
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Check out source code
+        uses: actions/checkout@v3
+
+      - name: Build
+        run: task build
+
+  generate:
+    name: Generate Documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up Task
+        uses: arduino/setup-task@v1
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Check out source code
+        uses: actions/checkout@v3
+
+      - name: Generate documentation
+        run: task docs
+
+      - name: Check git diff
+        run: |
+          git diff --compact-summary --exit-code || \
+            (echo; echo "Unexpected difference in directories after code generation. Run 'task docs' command and commit."; exit 1)
+
+  # Run acceptance tests in a matrix with Terraform CLI versions
+  test:
+    name: Terraform Provider Acceptance Tests
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        # list whatever Terraform versions here you would like to support
+        terraform:
+          - '1.0.*'
+          - '1.1.*'
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: ${{ matrix.terraform }}
+          terraform_wrapper: false
+
+      - name: Set up Task
+        uses: arduino/setup-task@v1
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Check out source code
+        uses: actions/checkout@v3
+
+      - name: Run acceptance tests
+        timeout-minutes: 120
+        env:
+          TF_ACC: "1"
+          QOVERY_API_TOKEN: ${{ secrets.QOVERY_API_TOKEN }}
+          TEST_ORGANIZATION_ID: ${{ secrets.TEST_ORGANIZATION_ID }}
+          TEST_AWS_CREDENTIALS_ID: ${{ secrets.TEST_AWS_CREDENTIALS_ID }}
+          TEST_AWS_CREDENTIALS_ACCESS_KEY_ID: ${{ secrets.TEST_AWS_CREDENTIALS_ACCESS_KEY_ID }}
+          TEST_AWS_CREDENTIALS_SECRET_ACCESS_KEY: ${{ secrets.TEST_AWS_CREDENTIALS_SECRET_ACCESS_KEY }}
+          TEST_CLUSTER_ID: ${{ secrets.TEST_CLUSTER_ID }}
+          TEST_PROJECT_ID: ${{ secrets.TEST_PROJECT_ID }}
+          TEST_ENVIRONMENT_ID: ${{ secrets.TEST_ENVIRONMENT_ID }}
+          TEST_APPLICATION_ID: ${{ secrets.TEST_APPLICATION_ID }}
+          TEST_DATABASE_ID: ${{ secrets.TEST_DATABASE_ID }}
+        run: task testacc
