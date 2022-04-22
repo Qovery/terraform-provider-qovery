@@ -16,7 +16,9 @@ type APIError struct {
 }
 
 func IsNotFound(e *APIError) bool {
-	return e.res.StatusCode == http.StatusNotFound
+	// NOTE: consider 403 Forbidden as a 404 NotFound until the api is fixed
+	return e.res.StatusCode == http.StatusNotFound ||
+		e.res.StatusCode == http.StatusForbidden
 }
 
 func IsBadRequest(e *APIError) bool {
