@@ -2,13 +2,11 @@ package qovery
 
 import (
 	"context"
-	"fmt"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 )
@@ -73,9 +71,6 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 	}
 
 	// Create a new Qovery client and set it to the provider client
-	cfg := qovery.NewConfiguration()
-	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Bearer %s", token))
-
 	p.configured = true
 	p.client = client.New(token, p.version)
 }

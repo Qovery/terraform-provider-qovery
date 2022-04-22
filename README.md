@@ -65,10 +65,10 @@ This JWT needs to be put inside a `.env` file at the root of the repository.
 You can use the `.env.example` file as a base for you file.  
 
 ```dotenv
-QOVERY_API_TOKEN=<qovery-jwt-token>
+QOVERY_API_TOKEN=<qovery-api-token>
 ```
 
-*Note:* API tokens generated via the [qovery-cli](https://github.com/Qovery/qovery-cli) command `qovery token` are not supported yet, but they will be soon.
+*Note:* API tokens can be generated via the [qovery-cli](https://github.com/Qovery/qovery-cli) command `qovery token`.
 
 In order to run the tests with extra debugging context, prefix with `TF_LOG` (see the [terraform documentation](https://www.terraform.io/docs/internals/debugging.html) for details).
 
