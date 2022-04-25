@@ -50,7 +50,6 @@ resource "qovery_application" "my_application" {
 - `cpu` (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 250`.
 	- Default: `500`.
-- `description` (String) Description of the application.
 - `dockerfile_path` (String) Dockerfile Path of the application.
 	- Required if: `build_mode="DOCKER"`.
 - `max_running_instances` (Number) Maximum number of instances running for the application.
