@@ -176,12 +176,6 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 					validators.StringEnumValidator{Enum: clusterStates},
 				},
 			},
-			//"timeouts": NewTimeoutSchemaAttribute(TimeoutParams{
-			//	ResourceName:  "cluster",
-			//	CreateDefault: "40m",
-			//	UpdateDefault: "40m",
-			//	DeleteDefault: "40m",
-			//}),
 		},
 	}, nil
 }

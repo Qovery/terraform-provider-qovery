@@ -20,7 +20,6 @@ type Cluster struct {
 	MinRunningNodes types.Int64  `tfsdk:"min_running_nodes"`
 	MaxRunningNodes types.Int64  `tfsdk:"max_running_nodes"`
 	State           types.String `tfsdk:"state"`
-	//Timeouts        Timeout      `tfsdk:"timeouts"`
 }
 
 func (c Cluster) toUpsertClusterRequest(state *Cluster) client.ClusterUpsertParams {
@@ -66,6 +65,5 @@ func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 		MinRunningNodes: fromInt32Pointer(res.ClusterResponse.MinRunningNodes),
 		MaxRunningNodes: fromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
 		State:           fromString(res.ClusterResponse.GetStatus()),
-		//Timeouts:        plan.Timeouts,
 	}
 }
