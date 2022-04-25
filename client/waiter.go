@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"time"
 
@@ -100,7 +101,11 @@ func newDatabaseStatusCheckerWaitFunc(client *Client, databaseID string, expecte
 			}
 			return false, apiErr
 		}
-		return status.State == expected, nil
+		isExpectedState := status.State == expected
+		if !isExpectedState && isFinalState(status.State) {
+			return false, apierrors.NewDeployError(apierrors.APIResourceDatabase, databaseID, nil, fmt.Errorf("expected status '%s' but got '%s'", expected, status.State))
+		}
+		return isExpectedState, nil
 	}
 }
 
@@ -141,16 +146,20 @@ func isFinalState(state string) bool {
 	return state != "DEPLOYING" &&
 		state != "DELETING" &&
 		state != "STOPPING" &&
-		state != "QUEUED" &&
-		!isWaitingState(state)
-}
-
-func isWaitingState(state string) bool {
-	return strings.HasPrefix(state, "WAITING_")
+		!isWaitingState(state) &&
+		!isQueuedState(state)
 }
 
 func isStatusError(state string) bool {
 	return strings.HasSuffix(state, "_ERROR")
+}
+
+func isWaitingState(state string) bool {
+	return strings.Contains(state, "WAITING")
+}
+
+func isQueuedState(state string) bool {
+	return strings.Contains(state, "QUEUED")
 }
 
 func toDurationPointer(d time.Duration) *time.Duration {

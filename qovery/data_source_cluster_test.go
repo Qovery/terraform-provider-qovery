@@ -31,7 +31,7 @@ func TestAcc_ClusterDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "memory", "4096"),
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "max_running_nodes", "10"),
-					resource.TestCheckResourceAttr("data.qovery_cluster.test", "state", "STOPPED"),
+					resource.TestCheckResourceAttr("data.qovery_cluster.test", "state", "RUNNING"),
 				),
 			},
 		},
