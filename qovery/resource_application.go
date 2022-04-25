@@ -86,11 +86,6 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Type:        types.StringType,
 				Required:    true,
 			},
-			"description": {
-				Description: "Description of the application.",
-				Type:        types.StringType,
-				Optional:    true,
-			},
 			"git_repository": {
 				Description: "Git repository of the application.",
 				Required:    true,

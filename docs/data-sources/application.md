@@ -31,7 +31,6 @@ data "qovery_application" "my_application" {
 - `build_mode` (String) Build Mode of the application.
 - `buildpack_language` (String) Buildpack Language framework.
 - `cpu` (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
-- `description` (String) Description of the application.
 - `dockerfile_path` (String) Dockerfile Path of the application.
 - `environment_id` (String) Id of the environment.
 - `environment_variables` (Attributes List) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))

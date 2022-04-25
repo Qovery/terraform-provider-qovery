@@ -11,7 +11,6 @@ type Application struct {
 	Id                   types.String              `tfsdk:"id"`
 	EnvironmentId        types.String              `tfsdk:"environment_id"`
 	Name                 types.String              `tfsdk:"name"`
-	Description          types.String              `tfsdk:"description"`
 	GitRepository        *ApplicationGitRepository `tfsdk:"git_repository"`
 	BuildMode            types.String              `tfsdk:"build_mode"`
 	DockerfilePath       types.String              `tfsdk:"dockerfile_path"`
@@ -41,7 +40,6 @@ func (app Application) toCreateApplicationRequest() client.ApplicationCreatePara
 	return client.ApplicationCreateParams{
 		ApplicationRequest: qovery.ApplicationRequest{
 			Name:                toString(app.Name),
-			Description:         toNullableString(app.Description),
 			BuildMode:           toStringPointer(app.BuildMode),
 			DockerfilePath:      toNullableString(app.DockerfilePath),
 			BuildpackLanguage:   toNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
@@ -73,14 +71,13 @@ func (app Application) toUpdateApplicationRequest(state Application) client.Appl
 
 	applicationEditRequest := qovery.ApplicationEditRequest{
 		Name:                toStringPointer(app.Name),
-		Description:         toStringPointer(app.Description),
 		BuildMode:           toStringPointer(app.BuildMode),
 		DockerfilePath:      toStringPointer(app.DockerfilePath),
 		BuildpackLanguage:   toNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
 		Cpu:                 toInt32Pointer(app.CPU),
 		Memory:              toInt32Pointer(app.Memory),
 		MinRunningInstances: toInt32Pointer(app.MinRunningInstances),
-		MaxRunningInstances: toInt32Pointer(app.MinRunningInstances),
+		MaxRunningInstances: toInt32Pointer(app.MaxRunningInstances),
 		AutoPreview:         toBoolPointer(app.AutoPreview),
 		GitRepository:       app.GitRepository.toUpdateRequest(),
 		Storage:             storage,
@@ -99,7 +96,6 @@ func convertResponseToApplication(app *client.ApplicationResponse) Application {
 		Id:                   fromString(app.ApplicationResponse.Id),
 		EnvironmentId:        fromString(app.ApplicationResponse.Environment.Id),
 		Name:                 fromStringPointer(app.ApplicationResponse.Name),
-		Description:          fromNullableString(app.ApplicationResponse.Description),
 		BuildMode:            fromStringPointer(app.ApplicationResponse.BuildMode),
 		DockerfilePath:       fromNullableString(app.ApplicationResponse.DockerfilePath),
 		BuildpackLanguage:    fromNullableNullableBuildPackLanguageEnum(app.ApplicationResponse.BuildpackLanguage),

@@ -32,11 +32,6 @@ func (t applicationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 				Type:        types.StringType,
 				Computed:    true,
 			},
-			"description": {
-				Description: "Description of the application.",
-				Type:        types.StringType,
-				Computed:    true,
-			},
 			"git_repository": {
 				Description: "Git repository of the application.",
 				Computed:    true,
