@@ -26,6 +26,8 @@ type testEnvironment struct {
 	ClusterID                     string `env:"TEST_CLUSTER_ID,required"`
 	ProjectID                     string `env:"TEST_PROJECT_ID,required"`
 	EnvironmentID                 string `env:"TEST_ENVIRONMENT_ID,required"`
+	ApplicationID                 string `env:"TEST_APPLICATION_ID,required"`
+	DatabaseID                    string `env:"TEST_DATABASE_ID,required"`
 }
 
 var apiClient = client.New(os.Getenv(qovery.APITokenEnvName), "test")
@@ -69,4 +71,12 @@ func getTestProjectID() string {
 
 func getTestEnvironmentID() string {
 	return os.Getenv("TEST_ENVIRONMENT_ID")
+}
+
+func getTestApplicationID() string {
+	return os.Getenv("TEST_APPLICATION_ID")
+}
+
+func getTestDatabaseID() string {
+	return os.Getenv("TEST_DATABASE_ID")
 }

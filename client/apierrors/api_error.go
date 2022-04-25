@@ -57,7 +57,7 @@ func (e APIError) Detail() string {
 }
 
 func (e APIError) errorPayload() *errorPayload {
-	if e.err == nil {
+	if e.err == nil || e.res == nil {
 		return nil
 	}
 

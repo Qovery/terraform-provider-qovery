@@ -29,10 +29,10 @@ func TestAcc_OrganizationDataSource(t *testing.T) {
 	})
 }
 
-func testAccOrganizationDataSourceConfig(name string) string {
+func testAccOrganizationDataSourceConfig(organizationID string) string {
 	return fmt.Sprintf(`
 data "qovery_organization" "test" {
   id = "%s"
 }
-`, name)
+`, organizationID)
 }
