@@ -111,30 +111,6 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "state", "RUNNING"),
 				),
 			},
-			// TODO: uncomment after debugging why storage can't be updated
-			//// Update storage
-			//{
-			//	Config: testAccDatabaseDefaultConfigWithStorage(
-			//		generateDatabaseName(nameSuffix),
-			//		"REDIS",
-			//		"6",
-			//		"CONTAINER",
-			//		15,
-			//	),
-			//	Check: resource.ComposeAggregateTestCheckFunc(
-			//		testAccQoveryDatabaseExists("qovery_database.test"),
-			//		resource.TestCheckResourceAttr("qovery_database.test", "environment_id", getTestEnvironmentID()),
-			//		resource.TestCheckResourceAttr("qovery_database.test", "name", generateDatabaseName(nameSuffix)),
-			//		resource.TestCheckResourceAttr("qovery_database.test", "type", "REDIS"),
-			//		resource.TestCheckResourceAttr("qovery_database.test", "version", "6"),
-			//		resource.TestCheckResourceAttr("qovery_database.test", "mode", "CONTAINER"),
-			//		resource.TestCheckResourceAttr("qovery_database.test", "accessibility", "PUBLIC"),
-			//		resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
-			//		resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
-			//		resource.TestCheckResourceAttr("qovery_database.test", "storage", "15"),
-			//		resource.TestCheckResourceAttr("qovery_database.test", "state", "RUNNING"),
-			//	),
-			//},
 		},
 	})
 }

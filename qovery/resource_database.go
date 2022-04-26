@@ -145,7 +145,7 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 			},
 			"storage": {
 				Description: descriptions.NewInt64MinDescription(
-					"Storage of the database in GB [1024MB = 1GB].",
+					"Storage of the database in GB [1024MB = 1GB] [NOTE: can't be updated after creation].",
 					databaseStorageMin,
 					&databaseStorageDefault,
 				),
