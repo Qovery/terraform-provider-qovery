@@ -55,6 +55,10 @@ func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, e
 			}
 			return false, apiErr
 		}
+		isExpectedState := status.State == expected
+		if !isExpectedState && isFinalState(status.State) {
+			return false, apierrors.NewDeployError(apierrors.APIResourceApplication, applicationID, nil, fmt.Errorf("expected status '%s' but got '%s'", expected, status.State))
+		}
 		return status.State == expected, nil
 	}
 }
@@ -127,6 +131,10 @@ func newEnvironmentStatusCheckerWaitFunc(client *Client, environmentID string, e
 				return true, nil
 			}
 			return false, apiErr
+		}
+		isExpectedState := status.State == expected
+		if !isExpectedState && isFinalState(status.State) {
+			return false, apierrors.NewDeployError(apierrors.APIResourceEnvironment, environmentID, nil, fmt.Errorf("expected status '%s' but got '%s'", expected, status.State))
 		}
 		return status.State == expected, nil
 	}

@@ -37,7 +37,7 @@ func TestAcc_Environment(t *testing.T) {
 			},
 			// Add environment variables
 			{
-				Config: testAccEnvironmentConfigWithEnvironmentVars(
+				Config: testAccEnvironmentConfigWithEnvironmentVariables(
 					getTestProjectID(),
 					generateEnvironmentName(nameSuffix),
 					map[string]string{
@@ -62,7 +62,7 @@ func TestAcc_Environment(t *testing.T) {
 			},
 			// Update environment variables
 			{
-				Config: testAccEnvironmentConfigWithEnvironmentVars(
+				Config: testAccEnvironmentConfigWithEnvironmentVariables(
 					getTestProjectID(),
 					generateEnvironmentName(nameSuffix),
 					map[string]string{
@@ -222,7 +222,7 @@ resource "qovery_environment" "test" {
 	)
 }
 
-func testAccEnvironmentConfigWithEnvironmentVars(organizationID string, name string, environmentVariables map[string]string) string {
+func testAccEnvironmentConfigWithEnvironmentVariables(organizationID string, name string, environmentVariables map[string]string) string {
 	return fmt.Sprintf(`
 resource "qovery_environment" "test" {
   project_id = "%s"
