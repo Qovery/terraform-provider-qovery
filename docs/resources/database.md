@@ -57,7 +57,7 @@ resource "qovery_database" "my_database" {
 - `state` (String) State of the database.
 	- Can be: `RUNNING`, `STOPPED`.
 	- Default: `RUNNING`.
-- `storage` (Number) Storage of the database in GB [1024MB = 1GB].
+- `storage` (Number) Storage of the database in GB [1024MB = 1GB] [NOTE: can't be updated after creation].
 	- Must be: `>= 10`.
 	- Default: `10`.
 
