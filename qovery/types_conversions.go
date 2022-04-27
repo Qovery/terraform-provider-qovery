@@ -6,6 +6,14 @@ import (
 )
 
 //
+// Convert to pointer
+//
+
+func stringAsPointer(v string) *string {
+	return &v
+}
+
+//
 // Convert Terraform types to Go types
 //
 

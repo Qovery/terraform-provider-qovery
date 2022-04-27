@@ -201,35 +201,45 @@ func testAccQoveryEnvironmentDestroy(resourceName string) resource.TestCheckFunc
 	}
 }
 
-func testAccEnvironmentConfig(organizationID string, name string) string {
+func testAccEnvironmentDefaultConfig(name string) string {
 	return fmt.Sprintf(`
 resource "qovery_environment" "test" {
   project_id = "%s" 
   name = "%s"
 }
-`, organizationID, name,
+`, getTestProjectID(), name,
 	)
 }
 
-func testAccEnvironmentConfigWithMode(organizationID string, name string, mode string) string {
+func testAccEnvironmentConfig(projectID string, name string) string {
+	return fmt.Sprintf(`
+resource "qovery_environment" "test" {
+  project_id = "%s" 
+  name = "%s"
+}
+`, projectID, name,
+	)
+}
+
+func testAccEnvironmentConfigWithMode(projectID string, name string, mode string) string {
 	return fmt.Sprintf(`
 resource "qovery_environment" "test" {
   project_id = "%s"
   name = "%s"
   mode = "%s"
 }
-`, organizationID, name, mode,
+`, projectID, name, mode,
 	)
 }
 
-func testAccEnvironmentConfigWithEnvironmentVariables(organizationID string, name string, environmentVariables map[string]string) string {
+func testAccEnvironmentConfigWithEnvironmentVariables(projectID string, name string, environmentVariables map[string]string) string {
 	return fmt.Sprintf(`
 resource "qovery_environment" "test" {
   project_id = "%s"
   name = "%s"
   environment_variables = %s
 }
-`, organizationID, name, convertEnvVarsToString(environmentVariables),
+`, projectID, name, convertEnvVarsToString(environmentVariables),
 	)
 }
 
