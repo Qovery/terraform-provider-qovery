@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
@@ -14,41 +13,38 @@ import (
 
 func TestAcc_Environment(t *testing.T) {
 	t.Parallel()
-	nameSuffix := uuid.New().String()
+	testName := "environment"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccQoveryEnvironmentDestroy("qovery_environment.test"),
-
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccEnvironmentConfig(
-					getTestProjectID(),
-					generateEnvironmentName(nameSuffix),
+				Config: testAccEnvironmentDefaultConfig(
+					testName,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
-					resource.TestCheckResourceAttr("qovery_environment.test", "project_id", getTestProjectID()),
-					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateEnvironmentName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "DEVELOPMENT"),
 					resource.TestCheckNoResourceAttr("qovery_environment.test", "environment_variables.0"),
 				),
 			},
 			// Add environment variables
 			{
-				Config: testAccEnvironmentConfigWithEnvironmentVariables(
-					getTestProjectID(),
-					generateEnvironmentName(nameSuffix),
+				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariables(
+					testName,
 					map[string]string{
 						"key1": "value1",
 						"key2": "value2",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
-					resource.TestCheckResourceAttr("qovery_environment.test", "project_id", getTestProjectID()),
-					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateEnvironmentName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "DEVELOPMENT"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
 						"key":   "key1",
@@ -62,18 +58,17 @@ func TestAcc_Environment(t *testing.T) {
 			},
 			// Update environment variables
 			{
-				Config: testAccEnvironmentConfigWithEnvironmentVariables(
-					getTestProjectID(),
-					generateEnvironmentName(nameSuffix),
+				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariables(
+					testName,
 					map[string]string{
 						"key1": "value1-updated",
 						"key2": "value2-updated",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
-					resource.TestCheckResourceAttr("qovery_environment.test", "project_id", getTestProjectID()),
-					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateEnvironmentName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "DEVELOPMENT"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
 						"key":   "key1",
@@ -97,7 +92,7 @@ func TestAcc_Environment(t *testing.T) {
 
 func TestAcc_EnvironmentWithMode(t *testing.T) {
 	t.Parallel()
-	nameSuffix := uuid.New().String()
+	testName := "environment-with-mode"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -105,15 +100,14 @@ func TestAcc_EnvironmentWithMode(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing with mode
 			{
-				Config: testAccEnvironmentConfigWithMode(
-					getTestProjectID(),
-					generateEnvironmentName(nameSuffix),
+				Config: testAccEnvironmentDefaultConfigWithMode(
+					testName,
 					"PRODUCTION",
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
-					resource.TestCheckResourceAttr("qovery_environment.test", "project_id", getTestProjectID()),
-					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateEnvironmentName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "PRODUCTION"),
 					resource.TestCheckNoResourceAttr("qovery_environment.test", "environment_variables.0"),
 				),
@@ -130,7 +124,7 @@ func TestAcc_EnvironmentWithMode(t *testing.T) {
 
 func TestAcc_EnvironmentImport(t *testing.T) {
 	t.Parallel()
-	nameSuffix := uuid.New().String()
+	testName := "environment-import"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -138,14 +132,13 @@ func TestAcc_EnvironmentImport(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccEnvironmentConfig(
-					getTestProjectID(),
-					generateEnvironmentName(nameSuffix),
+				Config: testAccEnvironmentDefaultConfig(
+					testName,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
-					resource.TestCheckResourceAttr("qovery_environment.test", "project_id", getTestProjectID()),
-					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateEnvironmentName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "DEVELOPMENT"),
 					resource.TestCheckNoResourceAttr("qovery_environment.test", "environment_variables.0"),
 				),
@@ -201,48 +194,40 @@ func testAccQoveryEnvironmentDestroy(resourceName string) resource.TestCheckFunc
 	}
 }
 
-func testAccEnvironmentDefaultConfig(name string) string {
+func testAccEnvironmentDefaultConfig(testName string) string {
 	return fmt.Sprintf(`
+%s
+
 resource "qovery_environment" "test" {
-  project_id = "%s" 
+  project_id = qovery_project.test.id
   name = "%s"
 }
-`, getTestProjectID(), name,
+`, testAccProjectDefaultConfig(testName), generateTestName(testName),
 	)
 }
 
-func testAccEnvironmentConfig(projectID string, name string) string {
+func testAccEnvironmentDefaultConfigWithMode(testName string, mode string) string {
 	return fmt.Sprintf(`
-resource "qovery_environment" "test" {
-  project_id = "%s" 
-  name = "%s"
-}
-`, projectID, name,
-	)
-}
+%s
 
-func testAccEnvironmentConfigWithMode(projectID string, name string, mode string) string {
-	return fmt.Sprintf(`
 resource "qovery_environment" "test" {
-  project_id = "%s"
+  project_id = qovery_project.test.id
   name = "%s"
   mode = "%s"
 }
-`, projectID, name, mode,
+`, testAccProjectDefaultConfig(testName), generateTestName(testName), mode,
 	)
 }
 
-func testAccEnvironmentConfigWithEnvironmentVariables(projectID string, name string, environmentVariables map[string]string) string {
+func testAccEnvironmentDefaultConfigWithEnvironmentVariables(testName string, environmentVariables map[string]string) string {
 	return fmt.Sprintf(`
+%s
+
 resource "qovery_environment" "test" {
-  project_id = "%s"
+  project_id = qovery_project.test.id
   name = "%s"
   environment_variables = %s
 }
-`, projectID, name, convertEnvVarsToString(environmentVariables),
+`, testAccProjectDefaultConfig(testName), generateTestName(testName), convertEnvVarsToString(environmentVariables),
 	)
-}
-
-func generateEnvironmentName(suffix string) string {
-	return fmt.Sprintf("%s-environment-%s", testResourcePrefix, suffix)
 }

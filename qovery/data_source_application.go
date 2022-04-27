@@ -167,12 +167,12 @@ func (t applicationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 					"key": {
 						Description: "Key of the environment variable.",
 						Type:        types.StringType,
-						Required:    true,
+						Computed:    true,
 					},
 					"value": {
 						Description: "Value of the environment variable.",
 						Type:        types.StringType,
-						Required:    true,
+						Computed:    true,
 					},
 				}, tfsdk.ListNestedAttributesOptions{}),
 			},

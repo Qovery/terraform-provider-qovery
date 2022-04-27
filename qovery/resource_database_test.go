@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
@@ -14,7 +13,7 @@ import (
 
 func TestAcc_DatabaseContainer(t *testing.T) {
 	t.Parallel()
-	nameSuffix := uuid.New().String()
+	testName := "database-container"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -23,15 +22,16 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 			// Create and Read testing
 			{
 				Config: testAccDatabaseDefaultConfig(
-					generateDatabaseName(nameSuffix),
+					testName,
 					"REDIS",
 					"6",
 					"CONTAINER",
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "environment_id", getTestEnvironmentID()),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", generateDatabaseName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_database.test", "type", "REDIS"),
 					resource.TestCheckResourceAttr("qovery_database.test", "version", "6"),
 					resource.TestCheckResourceAttr("qovery_database.test", "mode", "CONTAINER"),
@@ -45,15 +45,16 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 			// Update name
 			{
 				Config: testAccDatabaseDefaultConfig(
-					fmt.Sprintf("%s-updated", generateDatabaseName(nameSuffix)),
+					fmt.Sprintf("%s-updated", testName),
 					"REDIS",
 					"6",
 					"CONTAINER",
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "environment_id", getTestEnvironmentID()),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", fmt.Sprintf("%s-updated", generateDatabaseName(nameSuffix))),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(fmt.Sprintf("%s-updated", testName))),
 					resource.TestCheckResourceAttr("qovery_database.test", "type", "REDIS"),
 					resource.TestCheckResourceAttr("qovery_database.test", "version", "6"),
 					resource.TestCheckResourceAttr("qovery_database.test", "mode", "CONTAINER"),
@@ -67,16 +68,17 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 			// Update accessibility
 			{
 				Config: testAccDatabaseDefaultConfigWithAccessibility(
-					generateDatabaseName(nameSuffix),
+					testName,
 					"REDIS",
 					"6",
 					"CONTAINER",
 					"PRIVATE",
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "environment_id", getTestEnvironmentID()),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", generateDatabaseName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_database.test", "type", "REDIS"),
 					resource.TestCheckResourceAttr("qovery_database.test", "version", "6"),
 					resource.TestCheckResourceAttr("qovery_database.test", "mode", "CONTAINER"),
@@ -90,7 +92,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 			// Update resources
 			{
 				Config: testAccDatabaseDefaultConfigWithResources(
-					generateDatabaseName(nameSuffix),
+					testName,
 					"REDIS",
 					"6",
 					"CONTAINER",
@@ -98,9 +100,10 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					512,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "environment_id", getTestEnvironmentID()),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", generateDatabaseName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_database.test", "type", "REDIS"),
 					resource.TestCheckResourceAttr("qovery_database.test", "version", "6"),
 					resource.TestCheckResourceAttr("qovery_database.test", "mode", "CONTAINER"),
@@ -117,7 +120,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 
 func TestAcc_DatabaseManaged(t *testing.T) {
 	t.Parallel()
-	nameSuffix := uuid.New().String()
+	testName := "database-managed"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -126,15 +129,16 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 			// Create and Read testing
 			{
 				Config: testAccDatabaseDefaultConfig(
-					generateDatabaseName(nameSuffix),
+					testName,
 					"POSTGRESQL",
 					"13",
 					"MANAGED",
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "environment_id", getTestEnvironmentID()),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", generateDatabaseName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_database.test", "type", "POSTGRESQL"),
 					resource.TestCheckResourceAttr("qovery_database.test", "version", "13"),
 					resource.TestCheckResourceAttr("qovery_database.test", "mode", "MANAGED"),
@@ -148,15 +152,16 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 			// Update name
 			{
 				Config: testAccDatabaseDefaultConfig(
-					fmt.Sprintf("%s-updated", generateDatabaseName(nameSuffix)),
+					fmt.Sprintf("%s-updated", testName),
 					"POSTGRESQL",
 					"13",
 					"MANAGED",
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "environment_id", getTestEnvironmentID()),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", fmt.Sprintf("%s-updated", generateDatabaseName(nameSuffix))),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(fmt.Sprintf("%s-updated", testName))),
 					resource.TestCheckResourceAttr("qovery_database.test", "type", "POSTGRESQL"),
 					resource.TestCheckResourceAttr("qovery_database.test", "version", "13"),
 					resource.TestCheckResourceAttr("qovery_database.test", "mode", "MANAGED"),
@@ -170,16 +175,17 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 			// Update accessibility
 			{
 				Config: testAccDatabaseDefaultConfigWithAccessibility(
-					generateDatabaseName(nameSuffix),
+					testName,
 					"POSTGRESQL",
 					"13",
 					"MANAGED",
 					"PRIVATE",
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "environment_id", getTestEnvironmentID()),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", generateDatabaseName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_database.test", "type", "POSTGRESQL"),
 					resource.TestCheckResourceAttr("qovery_database.test", "version", "13"),
 					resource.TestCheckResourceAttr("qovery_database.test", "mode", "MANAGED"),
@@ -193,7 +199,7 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 			// Update resources
 			{
 				Config: testAccDatabaseDefaultConfigWithResources(
-					generateDatabaseName(nameSuffix),
+					testName,
 					"POSTGRESQL",
 					"13",
 					"MANAGED",
@@ -201,9 +207,10 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					512,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "environment_id", getTestEnvironmentID()),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", generateDatabaseName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_database.test", "type", "POSTGRESQL"),
 					resource.TestCheckResourceAttr("qovery_database.test", "version", "13"),
 					resource.TestCheckResourceAttr("qovery_database.test", "mode", "MANAGED"),
@@ -217,16 +224,16 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 			// Update storage
 			{
 				Config: testAccDatabaseDefaultConfigWithStorage(
-					generateDatabaseName(nameSuffix),
+					testName,
 					"POSTGRESQL",
 					"13",
 					"MANAGED",
 					15,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "environment_id", getTestEnvironmentID()),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", generateDatabaseName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_database.test", "type", "POSTGRESQL"),
 					resource.TestCheckResourceAttr("qovery_database.test", "version", "13"),
 					resource.TestCheckResourceAttr("qovery_database.test", "mode", "MANAGED"),
@@ -243,7 +250,7 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 
 func TestAcc_DatabaseImport(t *testing.T) {
 	t.Parallel()
-	nameSuffix := uuid.New().String()
+	testName := "database-import"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -252,15 +259,16 @@ func TestAcc_DatabaseImport(t *testing.T) {
 			// Create and Read testing
 			{
 				Config: testAccDatabaseDefaultConfig(
-					generateDatabaseName(nameSuffix),
+					testName,
 					"REDIS",
 					"6",
 					"CONTAINER",
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "environment_id", getTestEnvironmentID()),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", generateDatabaseName(nameSuffix)),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_database.test", "type", "REDIS"),
 					resource.TestCheckResourceAttr("qovery_database.test", "version", "6"),
 					resource.TestCheckResourceAttr("qovery_database.test", "mode", "CONTAINER"),
@@ -322,37 +330,43 @@ func testAccQoveryDatabaseDestroy(resourceName string) resource.TestCheckFunc {
 	}
 }
 
-func testAccDatabaseDefaultConfig(name string, dbType string, version string, mode string) string {
+func testAccDatabaseDefaultConfig(testName string, dbType string, version string, mode string) string {
 	return fmt.Sprintf(`
+%s
+
 resource "qovery_database" "test" {
-  environment_id = "%s"
+  environment_id = qovery_environment.test.id
   name = "%s"
   type = "%s"
   version = "%s"
   mode = "%s"
 }
-`, getTestEnvironmentID(), name, dbType, version, mode,
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), dbType, version, mode,
 	)
 }
 
-func testAccDatabaseDefaultConfigWithAccessibility(name string, dbType string, version string, mode string, accessibility string) string {
+func testAccDatabaseDefaultConfigWithAccessibility(testName string, dbType string, version string, mode string, accessibility string) string {
 	return fmt.Sprintf(`
+%s
+
 resource "qovery_database" "test" {
-  environment_id = "%s"
+  environment_id = qovery_environment.test.id
   name = "%s"
   type = "%s"
   version = "%s"
   mode = "%s"
   accessibility = "%s"
 }
-`, getTestEnvironmentID(), name, dbType, version, mode, accessibility,
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), dbType, version, mode, accessibility,
 	)
 }
 
-func testAccDatabaseDefaultConfigWithResources(name string, dbType string, version string, mode string, cpu int64, memory int64) string {
+func testAccDatabaseDefaultConfigWithResources(testName string, dbType string, version string, mode string, cpu int64, memory int64) string {
 	return fmt.Sprintf(`
+%s
+
 resource "qovery_database" "test" {
-  environment_id = "%s"
+  environment_id = qovery_environment.test.id
   name = "%s"
   type = "%s"
   version = "%s"
@@ -360,24 +374,22 @@ resource "qovery_database" "test" {
   cpu = %d
   memory = %d
 }
-`, getTestEnvironmentID(), name, dbType, version, mode, cpu, memory,
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), dbType, version, mode, cpu, memory,
 	)
 }
 
-func testAccDatabaseDefaultConfigWithStorage(name string, dbType string, version string, mode string, storage int64) string {
+func testAccDatabaseDefaultConfigWithStorage(testName string, dbType string, version string, mode string, storage int64) string {
 	return fmt.Sprintf(`
+%s
+
 resource "qovery_database" "test" {
-  environment_id = "%s"
+  environment_id = qovery_environment.test.id
   name = "%s"
   type = "%s"
   version = "%s"
   mode = "%s"
   storage = %d
 }
-`, getTestEnvironmentID(), name, dbType, version, mode, storage,
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), dbType, version, mode, storage,
 	)
-}
-
-func generateDatabaseName(suffix string) string {
-	return fmt.Sprintf("%s-database-%s", testResourcePrefix, suffix)
 }
