@@ -127,7 +127,7 @@ package qovery_test
 //}
 //
 //func generateOrganizationName(suffix string) string {
-//	return fmt.Sprintf("%s-organization-%s", testResourcePrefix, suffix)
+//	return fmt.Sprintf("%s-organization-%s", testNamePrefix, suffix)
 //}
 //
 //func testAccOrganizationConfig(name string, plan string) string {

@@ -45,6 +45,9 @@ var (
 	// Cluster Max Running Nodes
 	clusterMaxRunningNodesMin     int64 = 3
 	clusterMaxRunningNodesDefault int64 = 10
+
+	// Cluster Feature VPC_SUBNET
+	clusterFeatureVpcSubnetDefault string = "10.0.0.0/16"
 )
 
 type clusterResourceType struct{}
@@ -168,6 +171,10 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 						Description: "Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].",
 						Type:        types.StringType,
 						Optional:    true,
+						Computed:    true,
+						PlanModifiers: tfsdk.AttributePlanModifiers{
+							modifiers.NewStringDefaultModifier(clusterDescriptionDefault),
+						},
 					},
 				}),
 			},

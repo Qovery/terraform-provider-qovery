@@ -73,6 +73,17 @@ func (t clusterDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 				Type:        types.Int64Type,
 				Computed:    true,
 			},
+			"features": {
+				Description: "Features of the cluster.",
+				Computed:    true,
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"vpc_subnet": {
+						Description: "Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+				}),
+			},
 			"state": {
 				Description: "State of the cluster.",
 				Type:        types.StringType,
@@ -108,7 +119,7 @@ func (d clusterDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceReq
 		return
 	}
 
-	state := convertResponseToCluster(cluster, ClusterFeatures{})
+	state := convertResponseToCluster(cluster, nil)
 	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state

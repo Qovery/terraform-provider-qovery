@@ -23,19 +23,19 @@ func (f ClusterFeatures) ToQoveryFeatures() []qovery.ClusterFeatureRequestFeatur
 }
 
 type Cluster struct {
-	Id              types.String    `tfsdk:"id"`
-	OrganizationId  types.String    `tfsdk:"organization_id"`
-	CredentialsId   types.String    `tfsdk:"credentials_id"`
-	Name            types.String    `tfsdk:"name"`
-	CloudProvider   types.String    `tfsdk:"cloud_provider"`
-	Region          types.String    `tfsdk:"region"`
-	Description     types.String    `tfsdk:"description"`
-	CPU             types.Int64     `tfsdk:"cpu"`
-	Memory          types.Int64     `tfsdk:"memory"`
-	MinRunningNodes types.Int64     `tfsdk:"min_running_nodes"`
-	MaxRunningNodes types.Int64     `tfsdk:"max_running_nodes"`
-	Features        ClusterFeatures `tfsdk:"features"`
-	State           types.String    `tfsdk:"state"`
+	Id              types.String     `tfsdk:"id"`
+	OrganizationId  types.String     `tfsdk:"organization_id"`
+	CredentialsId   types.String     `tfsdk:"credentials_id"`
+	Name            types.String     `tfsdk:"name"`
+	CloudProvider   types.String     `tfsdk:"cloud_provider"`
+	Region          types.String     `tfsdk:"region"`
+	Description     types.String     `tfsdk:"description"`
+	CPU             types.Int64      `tfsdk:"cpu"`
+	Memory          types.Int64      `tfsdk:"memory"`
+	MinRunningNodes types.Int64      `tfsdk:"min_running_nodes"`
+	MaxRunningNodes types.Int64      `tfsdk:"max_running_nodes"`
+	Features        *ClusterFeatures `tfsdk:"features"`
+	State           types.String     `tfsdk:"state"`
 }
 
 func (c Cluster) toUpsertClusterRequest(state *Cluster) client.ClusterUpsertParams {
@@ -51,6 +51,11 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) client.ClusterUpsertPara
 		}
 	}
 
+	var features []qovery.ClusterFeatureRequestFeatures
+	if c.Features != nil {
+		features = c.Features.ToQoveryFeatures()
+	}
+
 	return client.ClusterUpsertParams{
 		ClusterCloudProviderRequest: clusterCloudProviderRequest,
 		ClusterRequest: qovery.ClusterRequest{
@@ -62,13 +67,13 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) client.ClusterUpsertPara
 			Memory:          toInt32Pointer(c.Memory),
 			MinRunningNodes: toInt32Pointer(c.MinRunningNodes),
 			MaxRunningNodes: toInt32Pointer(c.MaxRunningNodes),
-			Features:        c.Features.ToQoveryFeatures(),
+			Features:        features,
 		},
 		DesiredState: toString(c.State),
 	}
 }
 
-func convertResponseToCluster(res *client.ClusterResponse, features ClusterFeatures) Cluster {
+func convertResponseToCluster(res *client.ClusterResponse, features *ClusterFeatures) Cluster {
 	return Cluster{
 		Id:              fromString(res.ClusterResponse.Id),
 		CredentialsId:   fromStringPointer(res.ClusterInfo.Credentials.Id),

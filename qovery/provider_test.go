@@ -2,9 +2,11 @@ package qovery_test
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/sethvargo/go-envconfig"
@@ -13,8 +15,9 @@ import (
 	"github.com/qovery/terraform-provider-qovery/qovery"
 )
 
-const (
-	testResourcePrefix = "q-test-42-terraform-acc"
+var (
+	testNamePrefix = "testacc"
+	testNameSuffix = uuid.New()
 )
 
 type testEnvironment struct {
@@ -79,4 +82,8 @@ func getTestApplicationID() string {
 
 func getTestDatabaseID() string {
 	return os.Getenv("TEST_DATABASE_ID")
+}
+
+func generateTestName(testName string) string {
+	return fmt.Sprintf("%s-%s-%s", testNamePrefix, testName, testNameSuffix)
 }
