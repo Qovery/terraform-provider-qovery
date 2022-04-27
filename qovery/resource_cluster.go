@@ -160,6 +160,17 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 					validators.Int64MinValidator{Min: clusterMaxRunningNodesMin},
 				},
 			},
+			"features": {
+				Description: "Features of the cluster.",
+				Optional:    true,
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"vpc_subnet": {
+						Description: "Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+				}),
+			},
 			"state": {
 				Description: descriptions.NewStringEnumDescription(
 					"State of the cluster.",
@@ -207,7 +218,8 @@ func (r clusterResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 	}
 
 	// Initialize state values
-	state := convertResponseToCluster(cluster)
+	// TODO: handle this properly when qovery-api-client is updated with features key
+	state := convertResponseToCluster(cluster, plan.Features)
 	tflog.Trace(ctx, "created cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state
@@ -230,7 +242,8 @@ func (r clusterResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 		return
 	}
 
-	state = convertResponseToCluster(cluster)
+	// TODO: handle this properly when qovery-api-client is updated with features key
+	state = convertResponseToCluster(cluster, state.Features)
 	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state
@@ -254,7 +267,8 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 		return
 	}
 	// Update state values
-	state = convertResponseToCluster(cluster)
+	// TODO: handle this properly when qovery-api-client is updated with features key
+	state = convertResponseToCluster(cluster, state.Features)
 	tflog.Trace(ctx, "updated cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state

@@ -14,6 +14,7 @@ import (
 type clusterDataSourceType struct{}
 
 func (t clusterDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	// TODO: add features fields when qovery-api-client is updated with it.
 	return tfsdk.Schema{
 		Description: "Use this data source to retrieve information about an existing cluster.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -107,7 +108,7 @@ func (d clusterDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceReq
 		return
 	}
 
-	state := convertResponseToCluster(cluster)
+	state := convertResponseToCluster(cluster, ClusterFeatures{})
 	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state

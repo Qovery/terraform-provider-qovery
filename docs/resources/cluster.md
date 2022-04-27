@@ -46,6 +46,7 @@ resource "qovery_cluster" "my_cluster" {
 	- Default: `2000`.
 - `description` (String) Description of the cluster.
 	- Default: ``.
+- `features` (Attributes) Features of the cluster. (see [below for nested schema](#nestedatt--features))
 - `max_running_nodes` (Number) Maximum number of nodes running for the cluster.
 	- Must be: `>= 3`.
 	- Default: `10`.
@@ -62,6 +63,13 @@ resource "qovery_cluster" "my_cluster" {
 ### Read-Only
 
 - `id` (String) Id of the cluster.
+
+<a id="nestedatt--features"></a>
+### Nested Schema for `features`
+
+Optional:
+
+- `vpc_subnet` (String) Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].
 
 ## Import
 

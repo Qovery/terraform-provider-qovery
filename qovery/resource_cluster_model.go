@@ -7,19 +7,35 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client"
 )
 
+type ClusterFeatures struct {
+	VpcSubnet types.String `tfsdk:"vpc_subnet"`
+}
+
+func (f ClusterFeatures) ToQoveryFeatures() []qovery.ClusterFeatureRequestFeatures {
+	features := make([]qovery.ClusterFeatureRequestFeatures, 0, 1)
+	if !f.VpcSubnet.Null && !f.VpcSubnet.Unknown {
+		features = append(features, qovery.ClusterFeatureRequestFeatures{
+			Id:    stringAsPointer("VPC_SUBNET"),
+			Value: *qovery.NewNullableString(toStringPointer(f.VpcSubnet)),
+		})
+	}
+	return features
+}
+
 type Cluster struct {
-	Id              types.String `tfsdk:"id"`
-	OrganizationId  types.String `tfsdk:"organization_id"`
-	CredentialsId   types.String `tfsdk:"credentials_id"`
-	Name            types.String `tfsdk:"name"`
-	CloudProvider   types.String `tfsdk:"cloud_provider"`
-	Region          types.String `tfsdk:"region"`
-	Description     types.String `tfsdk:"description"`
-	CPU             types.Int64  `tfsdk:"cpu"`
-	Memory          types.Int64  `tfsdk:"memory"`
-	MinRunningNodes types.Int64  `tfsdk:"min_running_nodes"`
-	MaxRunningNodes types.Int64  `tfsdk:"max_running_nodes"`
-	State           types.String `tfsdk:"state"`
+	Id              types.String    `tfsdk:"id"`
+	OrganizationId  types.String    `tfsdk:"organization_id"`
+	CredentialsId   types.String    `tfsdk:"credentials_id"`
+	Name            types.String    `tfsdk:"name"`
+	CloudProvider   types.String    `tfsdk:"cloud_provider"`
+	Region          types.String    `tfsdk:"region"`
+	Description     types.String    `tfsdk:"description"`
+	CPU             types.Int64     `tfsdk:"cpu"`
+	Memory          types.Int64     `tfsdk:"memory"`
+	MinRunningNodes types.Int64     `tfsdk:"min_running_nodes"`
+	MaxRunningNodes types.Int64     `tfsdk:"max_running_nodes"`
+	Features        ClusterFeatures `tfsdk:"features"`
+	State           types.String    `tfsdk:"state"`
 }
 
 func (c Cluster) toUpsertClusterRequest(state *Cluster) client.ClusterUpsertParams {
@@ -46,12 +62,13 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) client.ClusterUpsertPara
 			Memory:          toInt32Pointer(c.Memory),
 			MinRunningNodes: toInt32Pointer(c.MinRunningNodes),
 			MaxRunningNodes: toInt32Pointer(c.MaxRunningNodes),
+			Features:        c.Features.ToQoveryFeatures(),
 		},
 		DesiredState: toString(c.State),
 	}
 }
 
-func convertResponseToCluster(res *client.ClusterResponse) Cluster {
+func convertResponseToCluster(res *client.ClusterResponse, features ClusterFeatures) Cluster {
 	return Cluster{
 		Id:              fromString(res.ClusterResponse.Id),
 		CredentialsId:   fromStringPointer(res.ClusterInfo.Credentials.Id),
@@ -64,6 +81,7 @@ func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 		Memory:          fromInt32Pointer(res.ClusterResponse.Memory),
 		MinRunningNodes: fromInt32Pointer(res.ClusterResponse.MinRunningNodes),
 		MaxRunningNodes: fromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
+		Features:        features,
 		State:           fromString(res.ClusterResponse.GetStatus()),
 	}
 }
