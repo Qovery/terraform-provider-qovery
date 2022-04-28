@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
@@ -17,20 +18,21 @@ import (
 
 var (
 	// Database State
-	databaseStateRunning = "RUNNING"
-	databaseStateStopped = "STOPPED"
-	databaseStates       = []string{databaseStateRunning, databaseStateStopped}
-	databaseStateDefault = databaseStateRunning
+	databaseStates = clientEnumToStringArray([]qovery.StateEnum{
+		qovery.STATEENUM_RUNNING,
+		qovery.STATEENUM_STOPPED,
+	})
+	databaseStateDefault = string(qovery.STATEENUM_RUNNING)
 
 	// Database Type
-	databaseTypes = []string{"POSTGRESQL", "MYSQL", "MONGODB", "REDIS"}
+	databaseTypes = clientEnumToStringArray(qovery.AllowedDatabaseTypeEnumEnumValues)
 
 	// Database Mode
-	databaseModes = []string{"MANAGED", "CONTAINER"}
+	databaseModes = clientEnumToStringArray(qovery.AllowedDatabaseModeEnumEnumValues)
 
 	// Database Accessibility
-	databaseAccessibilities      = []string{"PRIVATE", "PUBLIC"}
-	databaseAccessibilityDefault = "PUBLIC"
+	databaseAccessibilities      = clientEnumToStringArray(qovery.AllowedDatabaseAccessibilityEnumEnumValues)
+	databaseAccessibilityDefault = string(qovery.DATABASEACCESSIBILITYENUM_PUBLIC)
 
 	// Database CPU
 	databaseCPUMin     int64 = 250
@@ -199,7 +201,12 @@ func (r databaseResource) Create(ctx context.Context, req tfsdk.CreateResourceRe
 	}
 
 	// Create new database
-	database, apiErr := r.client.CreateDatabase(ctx, plan.EnvironmentId.Value, plan.toCreateDatabaseRequest())
+	request, err := plan.toCreateDatabaseRequest()
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	database, apiErr := r.client.CreateDatabase(ctx, plan.EnvironmentId.Value, request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -248,7 +255,12 @@ func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRe
 	}
 
 	// Update database in the backend
-	database, apiErr := r.client.UpdateDatabase(ctx, state.Id.Value, plan.toUpdateDatabaseRequest())
+	request, err := plan.toUpdateDatabaseRequest()
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	database, apiErr := r.client.UpdateDatabase(ctx, state.Id.Value, request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return

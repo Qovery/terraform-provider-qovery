@@ -8,14 +8,14 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-func (c *Client) getEnvironmentEnvironmentVariables(ctx context.Context, environmentID string) ([]*qovery.EnvironmentVariableResponse, *apierrors.APIError) {
+func (c *Client) getEnvironmentEnvironmentVariables(ctx context.Context, environmentID string) ([]*qovery.EnvironmentVariable, *apierrors.APIError) {
 	vars, res, err := c.api.EnvironmentVariableApi.
 		ListEnvironmentEnvironmentVariable(ctx, environmentID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceEnvironmentEnvironmentVariable, environmentID, res, err)
 	}
-	return environmentVariableResponseListToArray(vars, EnvironmentVariableScopeEnvironment), nil
+	return environmentVariableResponseListToArray(vars, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT), nil
 }
 
 func (c *Client) updateEnvironmentEnvironmentVariables(ctx context.Context, environmentID string, request EnvironmentVariablesDiff) *apierrors.APIError {

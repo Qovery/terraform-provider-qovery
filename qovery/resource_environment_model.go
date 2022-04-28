@@ -17,15 +17,20 @@ type Environment struct {
 	EnvironmentVariables []EnvironmentVariable `tfsdk:"environment_variables"`
 }
 
-func (e Environment) toCreateEnvironmentRequest() client.EnvironmentCreateParams {
-	return client.EnvironmentCreateParams{
+func (e Environment) toCreateEnvironmentRequest() (*client.EnvironmentCreateParams, error) {
+	mode, err := qovery.NewEnvironmentModeEnumFromValue(toString(e.Mode))
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.EnvironmentCreateParams{
 		EnvironmentRequest: qovery.EnvironmentRequest{
 			Name:    toString(e.Name),
 			Cluster: toStringPointer(e.ClusterId),
-			Mode:    toStringPointer(e.Mode),
+			Mode:    mode,
 		},
 		EnvironmentVariablesDiff: diffEnvironmentVariables([]EnvironmentVariable{}, e.EnvironmentVariables),
-	}
+	}, nil
 }
 
 func (e Environment) toUpdateEnvironmentRequest(state Environment) client.EnvironmentUpdateParams {
@@ -44,8 +49,8 @@ func convertResponseToEnvironment(res *client.EnvironmentResponse) Environment {
 		ProjectId: fromString(res.EnvironmentResponse.Project.Id),
 		ClusterId: fromString(res.EnvironmentResponse.ClusterId),
 		Name:      fromString(res.EnvironmentResponse.Name),
-		Mode:      fromString(res.EnvironmentResponse.Mode),
+		Mode:      fromClientEnum(res.EnvironmentResponse.Mode),
 		//BuiltInEnvironmentVariables: &arr,
-		EnvironmentVariables: convertResponseToEnvironmentVariables(res.EnvironmentEnvironmentVariables, client.EnvironmentVariableScopeEnvironment),
+		EnvironmentVariables: convertResponseToEnvironmentVariables(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT),
 	}
 }

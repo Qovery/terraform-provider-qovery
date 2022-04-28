@@ -119,7 +119,7 @@ func (d clusterDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceReq
 		return
 	}
 
-	state := convertResponseToCluster(cluster, nil)
+	state := convertResponseToCluster(cluster)
 	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state

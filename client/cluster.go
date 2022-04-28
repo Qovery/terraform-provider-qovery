@@ -10,17 +10,17 @@ import (
 
 type ClusterResponse struct {
 	OrganizationID  string
-	ClusterResponse *qovery.ClusterResponse
-	ClusterInfo     *qovery.ClusterCloudProviderInfoResponse
+	ClusterResponse *qovery.Cluster
+	ClusterInfo     *qovery.ClusterCloudProviderInfo
 }
 
 type ClusterUpsertParams struct {
 	ClusterRequest              qovery.ClusterRequest
 	ClusterCloudProviderRequest *qovery.ClusterCloudProviderInfoRequest
-	DesiredState                string
+	DesiredState                qovery.StateEnum
 }
 
-func (c *Client) CreateCluster(ctx context.Context, organizationID string, params ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
+func (c *Client) CreateCluster(ctx context.Context, organizationID string, params *ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
 	cluster, res, err := c.api.ClustersApi.
 		CreateCluster(ctx, organizationID).
 		ClusterRequest(params.ClusterRequest).
@@ -50,7 +50,8 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 		ClusterInfo:     clusterInfo,
 	}, nil
 }
-func (c *Client) UpdateCluster(ctx context.Context, organizationID string, clusterID string, params ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
+
+func (c *Client) UpdateCluster(ctx context.Context, organizationID string, clusterID string, params *ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
 	cluster, res, err := c.api.ClustersApi.
 		EditCluster(ctx, organizationID, clusterID).
 		ClusterRequest(params.ClusterRequest).
@@ -82,7 +83,7 @@ func (c *Client) DeleteCluster(ctx context.Context, organizationID string, clust
 	return nil
 }
 
-func (c *Client) getClusterByID(ctx context.Context, organizationID string, clusterID string) (*qovery.ClusterResponse, *apierrors.APIError) {
+func (c *Client) getClusterByID(ctx context.Context, organizationID string, clusterID string) (*qovery.Cluster, *apierrors.APIError) {
 	clusters, res, err := c.api.ClustersApi.
 		ListOrganizationCluster(ctx, organizationID).
 		Execute()
@@ -102,7 +103,7 @@ func (c *Client) getClusterByID(ctx context.Context, organizationID string, clus
 	return nil, apierrors.NewReadError(apierrors.APIResourceCluster, clusterID, res, err)
 }
 
-func (c *Client) updateCluster(ctx context.Context, organizationID string, cluster *qovery.ClusterResponse, params ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
+func (c *Client) updateCluster(ctx context.Context, organizationID string, cluster *qovery.Cluster, params *ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
 	if params.ClusterCloudProviderRequest != nil {
 		_, res, err := c.api.ClustersApi.
 			SpecifyClusterCloudProviderInfo(ctx, organizationID, cluster.Id).

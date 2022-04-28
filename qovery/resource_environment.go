@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
@@ -17,8 +18,8 @@ import (
 
 var (
 	// Environment Mode
-	environmentModes       = []string{"PRODUCTION", "DEVELOPMENT", "STAGING", "PREVIEW"}
-	environmentModeDefault = "DEVELOPMENT"
+	environmentModes       = clientEnumToStringArray(qovery.AllowedEnvironmentModeEnumEnumValues)
+	environmentModeDefault = string(qovery.ENVIRONMENTMODEENUM_DEVELOPMENT)
 )
 
 type environmentResourceType struct{}
@@ -131,7 +132,12 @@ func (r environmentResource) Create(ctx context.Context, req tfsdk.CreateResourc
 	}
 
 	// Create new environment
-	environment, apiErr := r.client.CreateEnvironment(ctx, plan.ProjectId.Value, plan.toCreateEnvironmentRequest())
+	request, err := plan.toCreateEnvironmentRequest()
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	environment, apiErr := r.client.CreateEnvironment(ctx, plan.ProjectId.Value, request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return

@@ -29,7 +29,7 @@ func (creds ScalewayCredentials) toUpsertScalewayCredentialsRequest() qovery.Sca
 	}
 }
 
-func convertResponseToScalewayCredentials(creds *qovery.ClusterCredentialsResponse, plan ScalewayCredentials) ScalewayCredentials {
+func convertResponseToScalewayCredentials(creds *qovery.ClusterCredentials, plan ScalewayCredentials) ScalewayCredentials {
 	return ScalewayCredentials{
 		Id:                fromStringPointer(creds.Id),
 		Name:              fromStringPointer(creds.Name),
@@ -40,7 +40,7 @@ func convertResponseToScalewayCredentials(creds *qovery.ClusterCredentialsRespon
 	}
 }
 
-func convertResponseToScalewayCredentialsDataSource(creds *qovery.ClusterCredentialsResponse, plan ScalewayCredentialsDataSource) ScalewayCredentialsDataSource {
+func convertResponseToScalewayCredentialsDataSource(creds *qovery.ClusterCredentials, plan ScalewayCredentialsDataSource) ScalewayCredentialsDataSource {
 	return ScalewayCredentialsDataSource{
 		Id:             fromStringPointer(creds.Id),
 		Name:           fromStringPointer(creds.Name),

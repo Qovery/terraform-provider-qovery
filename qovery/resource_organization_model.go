@@ -12,12 +12,17 @@ type Organization struct {
 	Description types.String `tfsdk:"description"`
 }
 
-func (org Organization) toCreateOrganizationRequest() qovery.OrganizationRequest {
-	return qovery.OrganizationRequest{
-		Name:        toString(org.Name),
-		Plan:        toString(org.Plan),
-		Description: toStringPointer(org.Description),
+func (org Organization) toCreateOrganizationRequest() (*qovery.OrganizationRequest, error) {
+	plan, err := qovery.NewPlanEnumFromValue(toString(org.Plan))
+	if err != nil {
+		return nil, err
 	}
+
+	return &qovery.OrganizationRequest{
+		Name:        toString(org.Name),
+		Plan:        *plan,
+		Description: toStringPointer(org.Description),
+	}, nil
 }
 
 func (org Organization) toUpdateOrganizationRequest() qovery.OrganizationEditRequest {
@@ -27,11 +32,11 @@ func (org Organization) toUpdateOrganizationRequest() qovery.OrganizationEditReq
 	}
 }
 
-func convertResponseToOrganization(organization *qovery.OrganizationResponse) Organization {
+func convertResponseToOrganization(organization *qovery.Organization) Organization {
 	return Organization{
 		Id:          fromString(organization.Id),
 		Name:        fromString(organization.Name),
-		Plan:        fromString(organization.Plan),
+		Plan:        fromClientEnum(organization.Plan),
 		Description: fromStringPointer(organization.Description),
 	}
 }

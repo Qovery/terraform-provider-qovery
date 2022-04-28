@@ -9,21 +9,21 @@ import (
 )
 
 type DatabaseResponse struct {
-	DatabaseResponse *qovery.DatabaseResponse
+	DatabaseResponse *qovery.Database
 	DatabaseStatus   *qovery.Status
 }
 
 type DatabaseCreateParams struct {
 	DatabaseRequest qovery.DatabaseRequest
-	DesiredState    string
+	DesiredState    qovery.StateEnum
 }
 
 type DatabaseUpdateParams struct {
 	DatabaseEditRequest qovery.DatabaseEditRequest
-	DesiredState        string
+	DesiredState        qovery.StateEnum
 }
 
-func (c *Client) CreateDatabase(ctx context.Context, environmentID string, params DatabaseCreateParams) (*DatabaseResponse, *apierrors.APIError) {
+func (c *Client) CreateDatabase(ctx context.Context, environmentID string, params *DatabaseCreateParams) (*DatabaseResponse, *apierrors.APIError) {
 	database, res, err := c.api.DatabasesApi.
 		CreateDatabase(ctx, environmentID).
 		DatabaseRequest(params.DatabaseRequest).
@@ -53,7 +53,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 	}, nil
 }
 
-func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params DatabaseUpdateParams) (*DatabaseResponse, *apierrors.APIError) {
+func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *DatabaseUpdateParams) (*DatabaseResponse, *apierrors.APIError) {
 	database, res, err := c.api.DatabaseMainCallsApi.
 		EditDatabase(ctx, databaseID).
 		DatabaseEditRequest(params.DatabaseEditRequest).
@@ -85,7 +85,7 @@ func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierro
 	return nil
 }
 
-func (c *Client) updateDatabase(ctx context.Context, database *qovery.DatabaseResponse, desiredState string) (*DatabaseResponse, *apierrors.APIError) {
+func (c *Client) updateDatabase(ctx context.Context, database *qovery.Database, desiredState qovery.StateEnum) (*DatabaseResponse, *apierrors.APIError) {
 	status, apiErr := c.updateDatabaseStatus(ctx, database, desiredState)
 	if apiErr != nil {
 		return nil, apiErr
@@ -104,9 +104,9 @@ func (c *Client) deployDatabase(ctx context.Context, databaseID string) (*qovery
 	}
 
 	switch status.State {
-	case databaseStateRunning:
+	case qovery.STATEENUM_RUNNING:
 		return status, nil
-	case "DEPLOYMENT_ERROR":
+	case qovery.STATEENUM_DEPLOYMENT_ERROR:
 		return c.restartDatabase(ctx, databaseID)
 	default:
 		_, res, err := c.api.DatabaseActionsApi.
@@ -117,7 +117,7 @@ func (c *Client) deployDatabase(ctx context.Context, databaseID string) (*qovery
 		}
 	}
 
-	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, databaseStateRunning)
+	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_RUNNING)
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
@@ -131,7 +131,7 @@ func (c *Client) stopDatabase(ctx context.Context, databaseID string) (*qovery.S
 	}
 
 	switch status.State {
-	case databaseStateStopped:
+	case qovery.STATEENUM_STOPPED:
 		return status, nil
 	default:
 		_, res, err := c.api.DatabaseActionsApi.
@@ -142,7 +142,7 @@ func (c *Client) stopDatabase(ctx context.Context, databaseID string) (*qovery.S
 		}
 	}
 
-	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, databaseStateStopped)
+	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_STOPPED)
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
@@ -162,7 +162,7 @@ func (c *Client) restartDatabase(ctx context.Context, databaseID string) (*qover
 		return nil, apierrors.NewRestartError(apierrors.APIResourceDatabase, databaseID, res, err)
 	}
 
-	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, databaseStateRunning)
+	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_RUNNING)
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}

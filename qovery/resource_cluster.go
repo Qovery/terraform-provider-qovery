@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
@@ -19,16 +20,17 @@ import (
 
 var (
 	// Cluster State
-	clusterStateRunning = "RUNNING"
-	clusterStateStopped = "STOPPED"
-	clusterStates       = []string{clusterStateRunning, clusterStateStopped}
-	clusterStateDefault = clusterStateRunning
+	clusterStates = clientEnumToStringArray([]qovery.StateEnum{
+		qovery.STATEENUM_RUNNING,
+		qovery.STATEENUM_STOPPED,
+	})
+	clusterStateDefault = string(qovery.STATEENUM_RUNNING)
 
 	// Cluster Description
 	clusterDescriptionDefault = ""
 
 	// Cloud Provider
-	cloudProviders = []string{"AWS", "DIGITAL_OCEAN", "SCALEWAY"}
+	cloudProviders = clientEnumToStringArray(qovery.AllowedCloudProviderEnumEnumValues)
 
 	// Cluster CPU
 	clusterCPUMin     int64 = 2000 // in MB
@@ -218,15 +220,19 @@ func (r clusterResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 	}
 
 	// Create new cluster
-	cluster, apiErr := r.client.CreateCluster(ctx, plan.OrganizationId.Value, plan.toUpsertClusterRequest(nil))
+	request, err := plan.toUpsertClusterRequest(nil)
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	cluster, apiErr := r.client.CreateCluster(ctx, plan.OrganizationId.Value, request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
 	// Initialize state values
-	// TODO: handle this properly when qovery-api-client is updated with features key
-	state := convertResponseToCluster(cluster, plan.Features)
+	state := convertResponseToCluster(cluster)
 	tflog.Trace(ctx, "created cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state
@@ -249,8 +255,7 @@ func (r clusterResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 		return
 	}
 
-	// TODO: handle this properly when qovery-api-client is updated with features key
-	state = convertResponseToCluster(cluster, state.Features)
+	state = convertResponseToCluster(cluster)
 	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state
@@ -268,14 +273,18 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 
 	// Update cluster in the backend
-	cluster, apiErr := r.client.UpdateCluster(ctx, state.OrganizationId.Value, state.Id.Value, plan.toUpsertClusterRequest(&state))
+	request, err := plan.toUpsertClusterRequest(&state)
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	cluster, apiErr := r.client.UpdateCluster(ctx, state.OrganizationId.Value, state.Id.Value, request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 	// Update state values
-	// TODO: handle this properly when qovery-api-client is updated with features key
-	state = convertResponseToCluster(cluster, state.Features)
+	state = convertResponseToCluster(cluster)
 	tflog.Trace(ctx, "updated cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state

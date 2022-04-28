@@ -17,7 +17,7 @@ import (
 
 var (
 	testNamePrefix = "testacc"
-	testNameSuffix = uuid.New()
+	testNameSuffix = uuid.NewString()
 )
 
 type testEnvironment struct {

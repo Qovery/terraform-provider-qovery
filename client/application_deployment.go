@@ -8,16 +8,16 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-func (c *Client) deployApplication(ctx context.Context, application *qovery.ApplicationResponse) (*qovery.Status, *apierrors.APIError) {
+func (c *Client) deployApplication(ctx context.Context, application *qovery.Application) (*qovery.Status, *apierrors.APIError) {
 	status, apiErr := c.getApplicationStatus(ctx, application.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
 
 	switch status.State {
-	case applicationStateRunning:
+	case qovery.STATEENUM_RUNNING:
 		return status, nil
-	case "DEPLOYMENT_ERROR":
+	case qovery.STATEENUM_DEPLOYMENT_ERROR:
 		return c.restartApplication(ctx, application)
 	default:
 		_, res, err := c.api.ApplicationActionsApi.
@@ -31,21 +31,21 @@ func (c *Client) deployApplication(ctx context.Context, application *qovery.Appl
 		}
 	}
 
-	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, applicationStateRunning)
+	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, qovery.STATEENUM_RUNNING)
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
 	return c.getApplicationStatus(ctx, application.Id)
 }
 
-func (c *Client) stopApplication(ctx context.Context, application *qovery.ApplicationResponse) (*qovery.Status, *apierrors.APIError) {
+func (c *Client) stopApplication(ctx context.Context, application *qovery.Application) (*qovery.Status, *apierrors.APIError) {
 	status, apiErr := c.getApplicationStatus(ctx, application.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
 
 	switch status.State {
-	case "STOPPED":
+	case qovery.STATEENUM_STOPPED:
 		return status, nil
 	default:
 		_, res, err := c.api.ApplicationActionsApi.
@@ -56,14 +56,14 @@ func (c *Client) stopApplication(ctx context.Context, application *qovery.Applic
 		}
 	}
 
-	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, applicationStateStopped)
+	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, qovery.STATEENUM_STOPPED)
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
 	return c.getApplicationStatus(ctx, application.Id)
 }
 
-func (c *Client) restartApplication(ctx context.Context, application *qovery.ApplicationResponse) (*qovery.Status, *apierrors.APIError) {
+func (c *Client) restartApplication(ctx context.Context, application *qovery.Application) (*qovery.Status, *apierrors.APIError) {
 	appFinalStateChecker := newApplicationFinalStateCheckerWaitFunc(c, application.Id)
 	if apiErr := wait(ctx, appFinalStateChecker, nil); apiErr != nil {
 		return nil, apiErr
@@ -81,7 +81,7 @@ func (c *Client) restartApplication(ctx context.Context, application *qovery.App
 		return nil, apierrors.NewRestartError(apierrors.APIResourceApplication, application.Id, res, err)
 	}
 
-	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, applicationStateRunning)
+	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, qovery.STATEENUM_RUNNING)
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}

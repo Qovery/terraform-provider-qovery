@@ -8,11 +8,6 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-const (
-	applicationStateRunning = "RUNNING"
-	applicationStateStopped = "STOPPED"
-)
-
 func (c *Client) getApplicationStatus(ctx context.Context, applicationID string) (*qovery.Status, *apierrors.APIError) {
 	status, res, err := c.api.ApplicationMainCallsApi.
 		GetApplicationStatus(ctx, applicationID).
@@ -23,7 +18,7 @@ func (c *Client) getApplicationStatus(ctx context.Context, applicationID string)
 	return status, nil
 }
 
-func (c *Client) updateApplicationStatus(ctx context.Context, application *qovery.ApplicationResponse, desiredState string, forceRestart bool) (*qovery.Status, *apierrors.APIError) {
+func (c *Client) updateApplicationStatus(ctx context.Context, application *qovery.Application, desiredState qovery.StateEnum, forceRestart bool) (*qovery.Status, *apierrors.APIError) {
 	// wait until we can stop the application - otherwise it will fail
 	checker := newApplicationFinalStateCheckerWaitFunc(c, application.Id)
 	if apiErr := wait(ctx, checker, nil); apiErr != nil {
@@ -42,15 +37,15 @@ func (c *Client) updateApplicationStatus(ctx context.Context, application *qover
 
 	if status.State != desiredState {
 		switch desiredState {
-		case applicationStateRunning:
+		case qovery.STATEENUM_RUNNING:
 			return c.deployApplication(ctx, application)
-		case applicationStateStopped:
+		case qovery.STATEENUM_STOPPED:
 			return c.stopApplication(ctx, application)
 		}
 	}
 
 	deploymentStatus := status.ServiceDeploymentStatus.Get()
-	if (deploymentStatus != nil && *deploymentStatus == "OUT_OF_DATE") || forceRestart {
+	if (deploymentStatus != nil && *deploymentStatus == qovery.SERVICEDEPLOYMENTSTATUSENUM_OUT_OF_DATE) || forceRestart {
 		return c.restartApplication(ctx, application)
 	}
 

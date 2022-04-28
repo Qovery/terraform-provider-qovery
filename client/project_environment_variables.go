@@ -8,7 +8,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-func (c *Client) getProjectEnvironmentVariables(ctx context.Context, projectID string) ([]*qovery.EnvironmentVariableResponse, *apierrors.APIError) {
+func (c *Client) getProjectEnvironmentVariables(ctx context.Context, projectID string) ([]*qovery.EnvironmentVariable, *apierrors.APIError) {
 	projectVariables, res, err := c.api.ProjectEnvironmentVariableApi.
 		ListProjectEnvironmentVariable(ctx, projectID).
 		Execute()
@@ -16,7 +16,7 @@ func (c *Client) getProjectEnvironmentVariables(ctx context.Context, projectID s
 		return nil, apierrors.NewReadError(apierrors.APIResourceProjectEnvironmentVariable, projectID, res, err)
 	}
 
-	return environmentVariableResponseListToArray(projectVariables, EnvironmentVariableScopeProject), nil
+	return environmentVariableResponseListToArray(projectVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_PROJECT), nil
 }
 
 func (c *Client) updateProjectEnvironmentVariables(ctx context.Context, projectID string, request EnvironmentVariablesDiff) *apierrors.APIError {
@@ -51,10 +51,10 @@ func (c *Client) updateProjectEnvironmentVariables(ctx context.Context, projectI
 	return nil
 }
 
-func environmentVariableResponseListToArray(list *qovery.EnvironmentVariableResponseList, scope EnvironmentVariableScope) []*qovery.EnvironmentVariableResponse {
-	vars := make([]*qovery.EnvironmentVariableResponse, 0, len(list.GetResults()))
+func environmentVariableResponseListToArray(list *qovery.EnvironmentVariableResponseList, scope qovery.EnvironmentVariableScopeEnum) []*qovery.EnvironmentVariable {
+	vars := make([]*qovery.EnvironmentVariable, 0, len(list.GetResults()))
 	for _, v := range list.GetResults() {
-		if v.Scope != scope.String() && v.Scope != EnvironmentVariableScopeBuiltIn.String() {
+		if v.Scope != scope && v.Scope != qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN {
 			continue
 		}
 		cpy := v

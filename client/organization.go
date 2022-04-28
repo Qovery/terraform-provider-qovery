@@ -8,10 +8,10 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-func (c *Client) CreateOrganization(ctx context.Context, request qovery.OrganizationRequest) (*qovery.OrganizationResponse, *apierrors.APIError) {
+func (c *Client) CreateOrganization(ctx context.Context, request *qovery.OrganizationRequest) (*qovery.Organization, *apierrors.APIError) {
 	organization, res, err := c.api.OrganizationMainCallsApi.
 		CreateOrganization(ctx).
-		OrganizationRequest(request).
+		OrganizationRequest(*request).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewCreateError(apierrors.APIResourceOrganization, request.Name, res, err)
@@ -19,7 +19,7 @@ func (c *Client) CreateOrganization(ctx context.Context, request qovery.Organiza
 	return organization, nil
 }
 
-func (c *Client) GetOrganization(ctx context.Context, organizationID string) (*qovery.OrganizationResponse, *apierrors.APIError) {
+func (c *Client) GetOrganization(ctx context.Context, organizationID string) (*qovery.Organization, *apierrors.APIError) {
 	organization, res, err := c.api.OrganizationMainCallsApi.
 		GetOrganization(ctx, organizationID).
 		Execute()
@@ -29,7 +29,7 @@ func (c *Client) GetOrganization(ctx context.Context, organizationID string) (*q
 	return organization, nil
 }
 
-func (c *Client) UpdateOrganization(ctx context.Context, organizationID string, request qovery.OrganizationEditRequest) (*qovery.OrganizationResponse, *apierrors.APIError) {
+func (c *Client) UpdateOrganization(ctx context.Context, organizationID string, request qovery.OrganizationEditRequest) (*qovery.Organization, *apierrors.APIError) {
 	organization, res, err := c.api.OrganizationMainCallsApi.
 		EditOrganization(ctx, organizationID).
 		OrganizationEditRequest(request).

@@ -9,24 +9,24 @@ import (
 )
 
 type ApplicationResponse struct {
-	ApplicationResponse             *qovery.ApplicationResponse
+	ApplicationResponse             *qovery.Application
 	ApplicationStatus               *qovery.Status
-	ApplicationEnvironmentVariables []*qovery.EnvironmentVariableResponse
+	ApplicationEnvironmentVariables []*qovery.EnvironmentVariable
 }
 
 type ApplicationCreateParams struct {
 	ApplicationRequest       qovery.ApplicationRequest
 	EnvironmentVariablesDiff EnvironmentVariablesDiff
-	DesiredState             string
+	DesiredState             qovery.StateEnum
 }
 
 type ApplicationUpdateParams struct {
 	ApplicationEditRequest   qovery.ApplicationEditRequest
 	EnvironmentVariablesDiff EnvironmentVariablesDiff
-	DesiredState             string
+	DesiredState             qovery.StateEnum
 }
 
-func (c *Client) CreateApplication(ctx context.Context, environmentID string, params ApplicationCreateParams) (*ApplicationResponse, *apierrors.APIError) {
+func (c *Client) CreateApplication(ctx context.Context, environmentID string, params *ApplicationCreateParams) (*ApplicationResponse, *apierrors.APIError) {
 	application, res, err := c.api.ApplicationsApi.
 		CreateApplication(ctx, environmentID).
 		ApplicationRequest(params.ApplicationRequest).
@@ -62,7 +62,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 	}, nil
 }
 
-func (c *Client) UpdateApplication(ctx context.Context, applicationID string, params ApplicationUpdateParams) (*ApplicationResponse, *apierrors.APIError) {
+func (c *Client) UpdateApplication(ctx context.Context, applicationID string, params *ApplicationUpdateParams) (*ApplicationResponse, *apierrors.APIError) {
 	application, res, err := c.api.ApplicationMainCallsApi.
 		EditApplication(ctx, applicationID).
 		ApplicationEditRequest(params.ApplicationEditRequest).
@@ -93,7 +93,7 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 	return nil
 }
 
-func (c *Client) updateApplication(ctx context.Context, application *qovery.ApplicationResponse, environmentVariablesDiff EnvironmentVariablesDiff, desiredState string) (*ApplicationResponse, *apierrors.APIError) {
+func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, environmentVariablesDiff EnvironmentVariablesDiff, desiredState qovery.StateEnum) (*ApplicationResponse, *apierrors.APIError) {
 	forceRestart := !environmentVariablesDiff.IsEmpty()
 	if !environmentVariablesDiff.IsEmpty() {
 		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application.Id, environmentVariablesDiff); apiErr != nil {

@@ -106,7 +106,7 @@ Optional:
 	- Must be: `>= 1` and `<= 65535`.
 - `name` (String) Name of the port.
 - `protocol` (String) Protocol used for the port of the application.
-	- Can be: `HTTPS`, `HTTP`, `TCP`, `UDP`.
+	- Can be: `HTTP`, `HTTPS`, `TCP`, `UDP`.
 	- Default: `HTTP`.
 - `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this application.
 

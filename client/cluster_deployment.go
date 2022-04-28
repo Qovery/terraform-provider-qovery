@@ -8,14 +8,14 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-func (c *Client) deployCluster(ctx context.Context, organizationID string, cluster *qovery.ClusterResponse) (*qovery.ClusterStatusResponse, *apierrors.APIError) {
+func (c *Client) deployCluster(ctx context.Context, organizationID string, cluster *qovery.Cluster) (*qovery.ClusterStatus, *apierrors.APIError) {
 	status, apiErr := c.getClusterStatus(ctx, organizationID, cluster.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
 
 	switch status.GetStatus() {
-	case clusterStateRunning:
+	case qovery.STATEENUM_RUNNING:
 		return status, nil
 	default:
 		_, res, err := c.api.ClustersApi.
@@ -26,21 +26,21 @@ func (c *Client) deployCluster(ctx context.Context, organizationID string, clust
 		}
 	}
 
-	statusChecker := newClusterStatusCheckerWaitFunc(c, organizationID, cluster.Id, clusterStateRunning)
+	statusChecker := newClusterStatusCheckerWaitFunc(c, organizationID, cluster.Id, qovery.STATEENUM_RUNNING)
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
 	return c.getClusterStatus(ctx, organizationID, cluster.Id)
 }
 
-func (c *Client) stopCluster(ctx context.Context, organizationID string, cluster *qovery.ClusterResponse) (*qovery.ClusterStatusResponse, *apierrors.APIError) {
+func (c *Client) stopCluster(ctx context.Context, organizationID string, cluster *qovery.Cluster) (*qovery.ClusterStatus, *apierrors.APIError) {
 	status, apiErr := c.getClusterStatus(ctx, organizationID, cluster.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
 
 	switch status.GetStatus() {
-	case clusterStateStopped:
+	case qovery.STATEENUM_STOPPED:
 		return status, nil
 	default:
 		_, res, err := c.api.ClustersApi.
@@ -51,7 +51,7 @@ func (c *Client) stopCluster(ctx context.Context, organizationID string, cluster
 		}
 	}
 
-	statusChecker := newClusterStatusCheckerWaitFunc(c, organizationID, cluster.Id, clusterStateStopped)
+	statusChecker := newClusterStatusCheckerWaitFunc(c, organizationID, cluster.Id, qovery.STATEENUM_STOPPED)
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}

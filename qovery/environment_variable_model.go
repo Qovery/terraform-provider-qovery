@@ -82,7 +82,7 @@ func diffEnvironmentVariables(old, new []EnvironmentVariable) client.Environment
 	return diff
 }
 
-func convertResponseToEnvironmentVariable(v *qovery.EnvironmentVariableResponse) EnvironmentVariable {
+func convertResponseToEnvironmentVariable(v *qovery.EnvironmentVariable) EnvironmentVariable {
 	return EnvironmentVariable{
 		Id:    fromString(v.Id),
 		Key:   fromString(v.Key),
@@ -90,10 +90,10 @@ func convertResponseToEnvironmentVariable(v *qovery.EnvironmentVariableResponse)
 	}
 }
 
-func convertResponseToEnvironmentVariables(vars []*qovery.EnvironmentVariableResponse, scope client.EnvironmentVariableScope) []EnvironmentVariable {
+func convertResponseToEnvironmentVariables(vars []*qovery.EnvironmentVariable, scope qovery.EnvironmentVariableScopeEnum) []EnvironmentVariable {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
-		if v.Scope != scope.String() {
+		if v.Scope != scope {
 			continue
 		}
 		list = append(list, convertResponseToEnvironmentVariable(v))

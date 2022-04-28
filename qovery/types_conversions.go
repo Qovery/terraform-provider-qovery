@@ -1,9 +1,48 @@
 package qovery
 
 import (
+	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 )
+
+//
+// Convert client enums to []string
+//
+
+type ClientEnum interface {
+	qovery.BuildModeEnum |
+		qovery.BuildPackLanguageEnum |
+		qovery.CloudProviderEnum |
+		qovery.DatabaseAccessibilityEnum |
+		qovery.DatabaseModeEnum |
+		qovery.DatabaseTypeEnum |
+		qovery.EnvironmentModeEnum |
+		qovery.PlanEnum |
+		qovery.PortProtocolEnum |
+		qovery.StateEnum |
+		qovery.StorageTypeEnum
+}
+
+func clientEnumToStringArray[T ClientEnum](enum []T) []string {
+	arr := make([]string, len(enum))
+	for idx, e := range enum {
+		arr[idx] = fmt.Sprintf("%s", e)
+	}
+	return arr
+}
+
+func fromClientEnum[T ClientEnum](v T) types.String {
+	return fromString(string(v))
+}
+
+func fromClientEnumPointer[T ClientEnum](v *T) types.String {
+	if v == nil {
+		return types.String{Null: true}
+	}
+	return fromClientEnum(*v)
+}
 
 //
 // Convert to pointer
