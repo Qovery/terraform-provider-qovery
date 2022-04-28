@@ -25,6 +25,7 @@ func TestAcc_Cluster(t *testing.T) {
 					testName,
 					"AWS",
 					"eu-west-3",
+					"T3A_MEDIUM",
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
@@ -33,8 +34,7 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "cpu", "2000"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "memory", "4096"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
@@ -47,6 +47,7 @@ func TestAcc_Cluster(t *testing.T) {
 					testName,
 					"AWS",
 					"eu-west-3",
+					"T3A_MEDIUM",
 					"cluster description",
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -56,8 +57,7 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", "cluster description"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "cpu", "2000"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "memory", "4096"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
@@ -70,6 +70,7 @@ func TestAcc_Cluster(t *testing.T) {
 					testName,
 					"AWS",
 					"eu-west-3",
+					"T3A_MEDIUM",
 					"STOPPED",
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -79,8 +80,7 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "cpu", "2000"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "memory", "4096"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
@@ -93,8 +93,7 @@ func TestAcc_Cluster(t *testing.T) {
 					testName,
 					"AWS",
 					"eu-west-3",
-					"3000",
-					"8192",
+					"T3A_LARGE",
 					"4",
 					"11",
 				),
@@ -105,8 +104,7 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "cpu", "3000"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "memory", "8192"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_LARGE"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "4"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "11"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
@@ -140,6 +138,7 @@ func TestAcc_ClusterWithVpcSubnet(t *testing.T) {
 					testName,
 					"AWS",
 					"eu-west-3",
+					"T3A_MEDIUM",
 					"10.42.0.0/16",
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -149,8 +148,7 @@ func TestAcc_ClusterWithVpcSubnet(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "cpu", "2000"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "memory", "4096"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.42.0.0/16"),
@@ -202,7 +200,7 @@ func testAccQoveryClusterDestroy(resourceName string) resource.TestCheckFunc {
 	}
 }
 
-func testAccClusterDefaultConfig(testName string, cloudProvider string, region string) string {
+func testAccClusterDefaultConfig(testName string, cloudProvider string, region string, instanceType string) string {
 	return fmt.Sprintf(`
 resource "qovery_cluster" "test" {
   credentials_id = "%s"
@@ -210,12 +208,13 @@ resource "qovery_cluster" "test" {
   name = "%s"
   cloud_provider = "%s"
   region = "%s"
+  instance_type = "%s"
 }
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region,
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType,
 	)
 }
 
-func testAccClusterDefaultConfigWithDescription(testName string, cloudProvider string, region string, description string) string {
+func testAccClusterDefaultConfigWithDescription(testName string, cloudProvider string, region string, instanceType string, description string) string {
 	return fmt.Sprintf(`
 resource "qovery_cluster" "test" {
   credentials_id = "%s"
@@ -223,13 +222,14 @@ resource "qovery_cluster" "test" {
   name = "%s"
   cloud_provider = "%s"
   region = "%s"
+  instance_type = "%s"
   description = "%s"
 }
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, description,
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, description,
 	)
 }
 
-func testAccClusterDefaultConfigWithState(testName string, cloudProvider string, region string, state string) string {
+func testAccClusterDefaultConfigWithState(testName string, cloudProvider string, region string, instanceType string, state string) string {
 	return fmt.Sprintf(`
 resource "qovery_cluster" "test" {
   credentials_id = "%s"
@@ -237,15 +237,16 @@ resource "qovery_cluster" "test" {
   name = "%s"
   cloud_provider = "%s"
   region = "%s"
+  instance_type = "%s" 
   state = "%s"
 }
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, state,
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, state,
 	)
 }
 
 func testAccClusterDefaultConfigWithResources(
-	testName string, cloudProvider string, region string,
-	cpu string, memory string, minRunningNodes string, maxRunningNodes string,
+	testName string, cloudProvider string, region string, instanceType string,
+	minRunningNodes string, maxRunningNodes string,
 ) string {
 	return fmt.Sprintf(`
 resource "qovery_cluster" "test" {
@@ -254,16 +255,15 @@ resource "qovery_cluster" "test" {
   name = "%s"
   cloud_provider = "%s"
   region = "%s"
-  cpu = "%s"
-  memory = "%s"
+  instance_type = "%s"
   min_running_nodes = "%s"
   max_running_nodes = "%s"
 }
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, cpu, memory, minRunningNodes, maxRunningNodes,
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, minRunningNodes, maxRunningNodes,
 	)
 }
 
-func testAccClusterDefaultConfigWithVpcSubnet(testName string, cloudProvider string, region string, vpcSubnet string) string {
+func testAccClusterDefaultConfigWithVpcSubnet(testName string, cloudProvider string, region string, instanceType string, vpcSubnet string) string {
 	return fmt.Sprintf(`
 resource "qovery_cluster" "test" {
   credentials_id = "%s"
@@ -271,10 +271,11 @@ resource "qovery_cluster" "test" {
   name = "%s"
   cloud_provider = "%s"
   region = "%s"
+  instance_type = "%s"
   features = {
     vpc_subnet = "%s"
   }
 }
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, vpcSubnet,
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, vpcSubnet,
 	)
 }

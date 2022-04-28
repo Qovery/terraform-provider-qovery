@@ -52,14 +52,9 @@ func (t clusterDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 				Type:        types.StringType,
 				Computed:    true,
 			},
-			"cpu": {
-				Description: "CPU of the cluster in millicores (m) [1000m = 1 CPU].",
-				Type:        types.Int64Type,
-				Computed:    true,
-			},
-			"memory": {
-				Description: "RAM of the cluster in MB [1024MB = 1GB].",
-				Type:        types.Int64Type,
+			"instance_type": {
+				Description: "Instance type of the cluster.",
+				Type:        types.StringType,
 				Computed:    true,
 			},
 			"min_running_nodes": {

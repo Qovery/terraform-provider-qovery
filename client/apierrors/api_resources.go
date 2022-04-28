@@ -9,6 +9,7 @@ const (
 	APIResourceApplicationStatus              APIResource = "application status"
 	APIResourceCluster                        APIResource = "cluster"
 	APIResourceClusterCloudProvider           APIResource = "cluster cloud provider"
+	APIResourceClusterInstanceType            APIResource = "cluster instance type"
 	APIResourceClusterStatus                  APIResource = "cluster status"
 	APIResourceDatabase                       APIResource = "database"
 	APIResourceDatabaseStatus                 APIResource = "database status"
