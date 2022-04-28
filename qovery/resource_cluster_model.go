@@ -49,8 +49,7 @@ type Cluster struct {
 	CloudProvider   types.String     `tfsdk:"cloud_provider"`
 	Region          types.String     `tfsdk:"region"`
 	Description     types.String     `tfsdk:"description"`
-	CPU             types.Int64      `tfsdk:"cpu"`
-	Memory          types.Int64      `tfsdk:"memory"`
+	InstanceType    types.String     `tfsdk:"instance_type"`
 	MinRunningNodes types.Int64      `tfsdk:"min_running_nodes"`
 	MaxRunningNodes types.Int64      `tfsdk:"max_running_nodes"`
 	Features        *ClusterFeatures `tfsdk:"features"`
@@ -92,8 +91,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			CloudProvider:   *cloudProvider,
 			Region:          toString(c.Region),
 			Description:     toStringPointer(c.Description),
-			Cpu:             toInt32Pointer(c.CPU),
-			Memory:          toInt32Pointer(c.Memory),
+			InstanceType:    toStringPointer(c.InstanceType),
 			MinRunningNodes: toInt32Pointer(c.MinRunningNodes),
 			MaxRunningNodes: toInt32Pointer(c.MaxRunningNodes),
 			Features:        features,
@@ -111,8 +109,7 @@ func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 		CloudProvider:   fromClientEnum(res.ClusterResponse.CloudProvider),
 		Region:          fromString(res.ClusterResponse.Region),
 		Description:     fromStringPointer(res.ClusterResponse.Description),
-		CPU:             fromInt32Pointer(res.ClusterResponse.Cpu),
-		Memory:          fromInt32Pointer(res.ClusterResponse.Memory),
+		InstanceType:    fromStringPointer(res.ClusterResponse.InstanceType),
 		MinRunningNodes: fromInt32Pointer(res.ClusterResponse.MinRunningNodes),
 		MaxRunningNodes: fromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
 		Features:        newClusterFeatures(res.ClusterResponse.Features),

@@ -32,14 +32,6 @@ var (
 	// Cloud Provider
 	cloudProviders = clientEnumToStringArray(qovery.AllowedCloudProviderEnumEnumValues)
 
-	// Cluster CPU
-	clusterCPUMin     int64 = 2000 // in MB
-	clusterCPUDefault int64 = 2000 // in MB
-
-	// Cluster Memory
-	clusterMemoryMin     int64 = 4096 // in MB
-	clusterMemoryDefault int64 = 4096 // in MB
-
 	// Cluster Min Running Nodes
 	clusterMinRunningNodesMin     int64 = 3
 	clusterMinRunningNodesDefault int64 = 3
@@ -49,12 +41,28 @@ var (
 	clusterMaxRunningNodesDefault int64 = 10
 
 	// Cluster Feature VPC_SUBNET
-	clusterFeatureVpcSubnetDefault string = "10.0.0.0/16"
+	clusterFeatureVpcSubnetDefault = "10.0.0.0/16"
 )
 
-type clusterResourceType struct{}
+type clusterResourceType struct {
+	client *client.Client
+}
 
 func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	// Dynamically fetch cluster instance type for documentation
+	clusterInstanceTypesByProvider, err := fetchInstanceTypes(r.client)
+	if err != nil {
+		return tfsdk.Schema{}, []diag.Diagnostic{
+			diag.NewErrorDiagnostic("Unable to fetch cluster instance types", err.Error()),
+		}
+	}
+	var clusterInstanceTypes []string
+	for _, tt := range clusterInstanceTypesByProvider {
+		for _, t := range tt {
+			clusterInstanceTypes = append(clusterInstanceTypes, t)
+		}
+	}
+
 	return tfsdk.Schema{
 		Description: "Provides a Qovery cluster resource. This can be used to create and manage Qovery cluster.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -107,30 +115,16 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 					modifiers.NewStringDefaultModifier(clusterDescriptionDefault),
 				},
 			},
-			"cpu": {
-				Description: descriptions.NewInt64MinDescription(
-					"CPU of the cluster in millicores (m) [1000m = 1 CPU].",
-					clusterCPUMin,
-					&clusterCPUDefault,
+			"instance_type": {
+				Description: descriptions.NewMapStringArrayEnumDescription(
+					"Instance type of the cluster.",
+					clusterInstanceTypesByProvider,
+					nil,
 				),
-				Type:     types.Int64Type,
-				Optional: true,
-				Computed: true,
+				Type:     types.StringType,
+				Required: true,
 				Validators: []tfsdk.AttributeValidator{
-					validators.Int64MinValidator{Min: clusterCPUMin},
-				},
-			},
-			"memory": {
-				Description: descriptions.NewInt64MinDescription(
-					"RAM of the cluster in MB [1024MB = 1GB].",
-					clusterMemoryMin,
-					&clusterMemoryDefault,
-				),
-				Type:     types.Int64Type,
-				Optional: true,
-				Computed: true,
-				Validators: []tfsdk.AttributeValidator{
-					validators.Int64MinValidator{Min: clusterMemoryMin},
+					validators.StringEnumValidator{Enum: clusterInstanceTypes},
 				},
 			},
 			"min_running_nodes": {
@@ -331,4 +325,22 @@ func (r clusterResource) ImportState(ctx context.Context, req tfsdk.ImportResour
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("id"), idParts[1])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("organization_id"), idParts[0])...)
+}
+
+func fetchInstanceTypes(api *client.Client) (map[string][]string, error) {
+	resp, err := api.GetClusterInstanceTypes(context.Background())
+	if err != nil {
+		return nil, err
+	}
+
+	instanceTypesByProvider := map[string][]string{}
+	for provider, instanceTypes := range resp {
+		if instanceTypesByProvider[string(provider)] == nil {
+			instanceTypesByProvider[string(provider)] = make([]string, len(instanceTypes.GetResults()))
+		}
+		for idx, it := range instanceTypes.GetResults() {
+			instanceTypesByProvider[string(provider)][idx] = it.Type
+		}
+	}
+	return instanceTypesByProvider, nil
 }

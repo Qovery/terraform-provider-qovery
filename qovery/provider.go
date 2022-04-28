@@ -80,7 +80,7 @@ func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceTyp
 	return map[string]tfsdk.ResourceType{
 		"qovery_application":          applicationResourceType{},
 		"qovery_aws_credentials":      awsCredentialsResourceType{},
-		"qovery_cluster":              clusterResourceType{},
+		"qovery_cluster":              clusterResourceType{client: client.New(os.Getenv(APITokenEnvName), p.version)},
 		"qovery_database":             databaseResourceType{},
 		"qovery_environment":          environmentResourceType{},
 		"qovery_organization":         organizationResourceType{},

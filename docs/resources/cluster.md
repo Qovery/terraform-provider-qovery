@@ -35,24 +35,22 @@ resource "qovery_cluster" "my_cluster" {
 - `cloud_provider` (String) Cloud provider of the cluster.
 	- Can be: `AWS`, `DIGITAL_OCEAN`, `SCALEWAY`.
 - `credentials_id` (String) Id of the credentials.
+- `instance_type` (String) Instance type of the cluster.
+	- AWS: `T3_LARGE`, `T3_XLARGE`, `T3A_MEDIUM`, `T3A_LARGE`, `T3A_2XLARGE`, `T2_LARGE`, `T2_XLARGE`.
+	- DIGITAL_OCEAN: `S_1VCPU_1GB`, `S_2VCPU_2GB`, `S_2VCPU_4GB`, `S_4VCPU_8GB`, `S_8VCPU_16GB`.
+	- SCALEWAY: `DEV1_M`, `DEV1_L`, `DEV1_XL`, `GP1_XS`, `GP1_S`, `GP1_M`, `GP1_L`, `GP1_XL`.
 - `name` (String) Name of the cluster.
 - `organization_id` (String) Id of the organization.
 - `region` (String) Region of the cluster.
 
 ### Optional
 
-- `cpu` (Number) CPU of the cluster in millicores (m) [1000m = 1 CPU].
-	- Must be: `>= 2000`.
-	- Default: `2000`.
 - `description` (String) Description of the cluster.
 	- Default: ``.
 - `features` (Attributes) Features of the cluster. (see [below for nested schema](#nestedatt--features))
 - `max_running_nodes` (Number) Maximum number of nodes running for the cluster.
 	- Must be: `>= 3`.
 	- Default: `10`.
-- `memory` (Number) RAM of the cluster in MB [1024MB = 1GB].
-	- Must be: `>= 4096`.
-	- Default: `4096`.
 - `min_running_nodes` (Number) Minimum number of nodes running for the cluster.
 	- Must be: `>= 3`.
 	- Default: `3`.

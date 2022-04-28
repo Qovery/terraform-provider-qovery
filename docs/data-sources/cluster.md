@@ -30,12 +30,11 @@ data "qovery_cluster" "my_cluster" {
 ### Read-Only
 
 - `cloud_provider` (String) Cloud provider of the cluster.
-- `cpu` (Number) CPU of the cluster in millicores (m) [1000m = 1 CPU].
 - `credentials_id` (String) Id of the credentials.
 - `description` (String) Description of the cluster.
 - `features` (Attributes) Features of the cluster. (see [below for nested schema](#nestedatt--features))
+- `instance_type` (String) Instance type of the cluster.
 - `max_running_nodes` (Number) Maximum number of nodes running for the cluster.
-- `memory` (Number) RAM of the cluster in MB [1024MB = 1GB].
 - `min_running_nodes` (Number) Minimum number of nodes running for the cluster.
 - `name` (String) Name of the cluster.
 - `region` (String) Region of the cluster.
