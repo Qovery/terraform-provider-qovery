@@ -8,7 +8,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-func (c *Client) CreateAWSCredentials(ctx context.Context, organizationID string, request qovery.AwsCredentialsRequest) (*qovery.ClusterCredentialsResponse, *apierrors.APIError) {
+func (c *Client) CreateAWSCredentials(ctx context.Context, organizationID string, request qovery.AwsCredentialsRequest) (*qovery.ClusterCredentials, *apierrors.APIError) {
 	credentials, res, err := c.api.CloudProviderCredentialsApi.
 		CreateAWSCredentials(ctx, organizationID).
 		AwsCredentialsRequest(request).
@@ -19,7 +19,7 @@ func (c *Client) CreateAWSCredentials(ctx context.Context, organizationID string
 	return credentials, nil
 }
 
-func (c *Client) GetAWSCredentials(ctx context.Context, organizationID string, credentialsID string) (*qovery.ClusterCredentialsResponse, *apierrors.APIError) {
+func (c *Client) GetAWSCredentials(ctx context.Context, organizationID string, credentialsID string) (*qovery.ClusterCredentials, *apierrors.APIError) {
 	credentials, res, err := c.api.CloudProviderCredentialsApi.
 		ListAWSCredentials(ctx, organizationID).
 		Execute()
@@ -39,7 +39,7 @@ func (c *Client) GetAWSCredentials(ctx context.Context, organizationID string, c
 	return nil, apierrors.NewReadError(apierrors.APIResourceAWSCredentials, credentialsID, res, err)
 }
 
-func (c *Client) UpdateAWSCredentials(ctx context.Context, organizationID string, credentialsID string, request qovery.AwsCredentialsRequest) (*qovery.ClusterCredentialsResponse, *apierrors.APIError) {
+func (c *Client) UpdateAWSCredentials(ctx context.Context, organizationID string, credentialsID string, request qovery.AwsCredentialsRequest) (*qovery.ClusterCredentials, *apierrors.APIError) {
 	credentials, res, err := c.api.CloudProviderCredentialsApi.
 		EditAWSCredentials(ctx, organizationID, credentialsID).
 		AwsCredentialsRequest(request).

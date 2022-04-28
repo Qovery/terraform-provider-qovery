@@ -9,8 +9,8 @@ import (
 )
 
 type ProjectResponse struct {
-	ProjectResponse             *qovery.ProjectResponse
-	ProjectEnvironmentVariables []*qovery.EnvironmentVariableResponse
+	ProjectResponse             *qovery.Project
+	ProjectEnvironmentVariables []*qovery.EnvironmentVariable
 }
 
 type ProjectUpsertParams struct {

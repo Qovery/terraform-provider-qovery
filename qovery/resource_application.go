@@ -18,17 +18,18 @@ import (
 
 var (
 	// Application State
-	applicationStateRunning = "RUNNING"
-	applicationStateStopped = "STOPPED"
-	applicationStates       = []string{applicationStateRunning, applicationStateStopped}
-	applicationStateDefault = applicationStateRunning
+	applicationStates = clientEnumToStringArray([]qovery.StateEnum{
+		qovery.STATEENUM_RUNNING,
+		qovery.STATEENUM_STOPPED,
+	})
+	applicationStateDefault = string(qovery.STATEENUM_RUNNING)
 
 	// Application Build Mode
-	applicationBuildModes       = []string{"BUILDPACKS", "DOCKER"}
-	applicationBuildModeDefault = "BUILDPACKS"
+	applicationBuildModes       = clientEnumToStringArray(qovery.AllowedBuildModeEnumEnumValues)
+	applicationBuildModeDefault = string(qovery.BUILDMODEENUM_BUILDPACKS)
 
-	// Application Buildpack
-	applicationBuildpackLanguages = qovery.AllowedBuildPackLanguageEnumEnumValues
+	// Application BuildPack
+	applicationBuildPackLanguages = clientEnumToStringArray(qovery.AllowedBuildPackLanguageEnumEnumValues)
 
 	// Application CPU
 	applicationCPUMin     int64 = 250 // in MB
@@ -50,14 +51,14 @@ var (
 	applicationAutoPreviewDefault = false
 
 	// Application Storage
-	applicationStorageTypes         = []string{"FAST_SSD"}
+	applicationStorageTypes         = clientEnumToStringArray(qovery.AllowedStorageTypeEnumEnumValues)
 	applicationStorageSizeMin int64 = 1 // in GB
 
 	// Application Port
 	applicationPortMin                       int64 = 1
 	applicationPortMax                       int64 = 65535
-	applicationPortProtocols                       = []string{"HTTPS", "HTTP", "TCP", "UDP"}
-	applicationPortProtocolDefault                 = "HTTP"
+	applicationPortProtocols                       = clientEnumToStringArray(qovery.AllowedPortProtocolEnumEnumValues)
+	applicationPortProtocolDefault                 = string(qovery.PORTPROTOCOLENUM_HTTP)
 	applicationPortPubliclyAccessibleDefault       = false
 
 	// Application Git Repository
@@ -142,13 +143,13 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 			"buildpack_language": {
 				Description: descriptions.NewStringEnumDescription(
 					"Buildpack Language framework.\n\t- Required if: `build_mode=\"BUILDPACKS\"`.",
-					toStringArray(applicationBuildpackLanguages),
+					applicationBuildPackLanguages,
 					nil,
 				),
 				Type:     types.StringType,
 				Optional: true,
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: toStringArray(applicationBuildpackLanguages)},
+					validators.StringEnumValidator{Enum: applicationBuildPackLanguages},
 				},
 			},
 			"cpu": {
@@ -388,7 +389,12 @@ func (r applicationResource) Create(ctx context.Context, req tfsdk.CreateResourc
 	}
 
 	// Create new application
-	application, apiErr := r.client.CreateApplication(ctx, toString(plan.EnvironmentId), plan.toCreateApplicationRequest())
+	request, err := plan.toCreateApplicationRequest()
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	application, apiErr := r.client.CreateApplication(ctx, toString(plan.EnvironmentId), request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -437,7 +443,12 @@ func (r applicationResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 	}
 
 	// Update application in the backend
-	application, apiErr := r.client.UpdateApplication(ctx, state.Id.Value, plan.toUpdateApplicationRequest(state))
+	request, err := plan.toUpdateApplicationRequest(state)
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	application, apiErr := r.client.UpdateApplication(ctx, state.Id.Value, request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -477,19 +488,3 @@ func (r applicationResource) Delete(ctx context.Context, req tfsdk.DeleteResourc
 func (r applicationResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
 	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
 }
-
-func toStringArray(values []qovery.BuildPackLanguageEnum) []string {
-	enum := make([]string, 0, len(values))
-	for _, v := range values {
-		enum = append(enum, string(v))
-	}
-	return enum
-}
-
-//func toStringArray[T any](values []T) []string {
-//	enum := make([]string, 0, len(values))
-//	for _, v := range values {
-//		enum = append(enum, fmt.Sprintf("%x", v))
-//	}
-//	return enum
-//}

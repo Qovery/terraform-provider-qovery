@@ -70,6 +70,7 @@ resource "qovery_cluster" "my_cluster" {
 Optional:
 
 - `vpc_subnet` (String) Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].
+	- Default: `10.0.0.0/16`.
 
 ## Import
 

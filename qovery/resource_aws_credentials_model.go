@@ -27,7 +27,7 @@ func (creds AWSCredentials) toUpsertAWSCredentialsRequest() qovery.AwsCredential
 	}
 }
 
-func convertResponseToAWSCredentials(creds *qovery.ClusterCredentialsResponse, plan AWSCredentials) AWSCredentials {
+func convertResponseToAWSCredentials(creds *qovery.ClusterCredentials, plan AWSCredentials) AWSCredentials {
 	return AWSCredentials{
 		Id:              fromStringPointer(creds.Id),
 		Name:            fromStringPointer(creds.Name),
@@ -37,7 +37,7 @@ func convertResponseToAWSCredentials(creds *qovery.ClusterCredentialsResponse, p
 	}
 }
 
-func convertResponseToAWSCredentialsDataSource(creds *qovery.ClusterCredentialsResponse, plan AWSCredentialsDataSource) AWSCredentialsDataSource {
+func convertResponseToAWSCredentialsDataSource(creds *qovery.ClusterCredentials, plan AWSCredentialsDataSource) AWSCredentialsDataSource {
 	return AWSCredentialsDataSource{
 		Id:             fromStringPointer(creds.Id),
 		Name:           fromStringPointer(creds.Name),

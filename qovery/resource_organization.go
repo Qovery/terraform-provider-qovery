@@ -8,13 +8,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
-var organizationPlans = []string{"FREE", "PROFESSIONAL", "BUSINESS"}
+var organizationPlans = clientEnumToStringArray(qovery.AllowedPlanEnumEnumValues)
 
 type organizationResourceType struct{}
 
@@ -73,7 +74,12 @@ func (r organizationResource) Create(ctx context.Context, req tfsdk.CreateResour
 	}
 
 	// Create new organization
-	organization, apiErr := r.client.CreateOrganization(ctx, plan.toCreateOrganizationRequest())
+	request, err := plan.toCreateOrganizationRequest()
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	organization, apiErr := r.client.CreateOrganization(ctx, request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return

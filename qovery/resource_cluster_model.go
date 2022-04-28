@@ -7,15 +7,34 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client"
 )
 
+const (
+	featureIdVpcSubnet = "VPC_SUBNET"
+)
+
 type ClusterFeatures struct {
 	VpcSubnet types.String `tfsdk:"vpc_subnet"`
+}
+
+func newClusterFeatures(ff []qovery.ClusterFeature) *ClusterFeatures {
+	var features ClusterFeatures
+	for _, f := range ff {
+		if f.Id == nil {
+			continue
+		}
+		switch *f.Id {
+		case featureIdVpcSubnet:
+			features.VpcSubnet = fromString(f.Value.(string))
+		}
+	}
+	return &features
+
 }
 
 func (f ClusterFeatures) ToQoveryFeatures() []qovery.ClusterFeatureRequestFeatures {
 	features := make([]qovery.ClusterFeatureRequestFeatures, 0, 1)
 	if !f.VpcSubnet.Null && !f.VpcSubnet.Unknown {
 		features = append(features, qovery.ClusterFeatureRequestFeatures{
-			Id:    stringAsPointer("VPC_SUBNET"),
+			Id:    stringAsPointer(featureIdVpcSubnet),
 			Value: *qovery.NewNullableString(toStringPointer(f.VpcSubnet)),
 		})
 	}
@@ -38,11 +57,16 @@ type Cluster struct {
 	State           types.String     `tfsdk:"state"`
 }
 
-func (c Cluster) toUpsertClusterRequest(state *Cluster) client.ClusterUpsertParams {
+func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertParams, error) {
+	cloudProvider, err := qovery.NewCloudProviderEnumFromValue(toString(c.CloudProvider))
+	if err != nil {
+		return nil, err
+	}
+
 	var clusterCloudProviderRequest *qovery.ClusterCloudProviderInfoRequest
 	if state == nil || c.CredentialsId != state.CredentialsId {
 		clusterCloudProviderRequest = &qovery.ClusterCloudProviderInfoRequest{
-			CloudProvider: toStringPointer(c.CloudProvider),
+			CloudProvider: cloudProvider,
 			Region:        toStringPointer(c.Region),
 			Credentials: &qovery.ClusterCloudProviderInfoRequestCredentials{
 				Id:   toStringPointer(c.CredentialsId),
@@ -56,11 +80,16 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) client.ClusterUpsertPara
 		features = c.Features.ToQoveryFeatures()
 	}
 
-	return client.ClusterUpsertParams{
+	desiredState, err := qovery.NewStateEnumFromValue(toString(c.State))
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.ClusterUpsertParams{
 		ClusterCloudProviderRequest: clusterCloudProviderRequest,
 		ClusterRequest: qovery.ClusterRequest{
 			Name:            toString(c.Name),
-			CloudProvider:   toString(c.CloudProvider),
+			CloudProvider:   *cloudProvider,
 			Region:          toString(c.Region),
 			Description:     toStringPointer(c.Description),
 			Cpu:             toInt32Pointer(c.CPU),
@@ -69,24 +98,24 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) client.ClusterUpsertPara
 			MaxRunningNodes: toInt32Pointer(c.MaxRunningNodes),
 			Features:        features,
 		},
-		DesiredState: toString(c.State),
-	}
+		DesiredState: *desiredState,
+	}, nil
 }
 
-func convertResponseToCluster(res *client.ClusterResponse, features *ClusterFeatures) Cluster {
+func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 	return Cluster{
 		Id:              fromString(res.ClusterResponse.Id),
 		CredentialsId:   fromStringPointer(res.ClusterInfo.Credentials.Id),
 		OrganizationId:  fromString(res.OrganizationID),
 		Name:            fromString(res.ClusterResponse.Name),
-		CloudProvider:   fromString(res.ClusterResponse.CloudProvider),
+		CloudProvider:   fromClientEnum(res.ClusterResponse.CloudProvider),
 		Region:          fromString(res.ClusterResponse.Region),
-		Description:     fromNullableString(res.ClusterResponse.Description),
+		Description:     fromStringPointer(res.ClusterResponse.Description),
 		CPU:             fromInt32Pointer(res.ClusterResponse.Cpu),
 		Memory:          fromInt32Pointer(res.ClusterResponse.Memory),
 		MinRunningNodes: fromInt32Pointer(res.ClusterResponse.MinRunningNodes),
 		MaxRunningNodes: fromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
-		Features:        features,
-		State:           fromString(res.ClusterResponse.GetStatus()),
+		Features:        newClusterFeatures(res.ClusterResponse.Features),
+		State:           fromClientEnumPointer(res.ClusterResponse.Status),
 	}
 }

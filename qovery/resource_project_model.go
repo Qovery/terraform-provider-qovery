@@ -43,6 +43,6 @@ func convertResponseToProject(res *client.ProjectResponse) Project {
 		Name:           fromString(res.ProjectResponse.Name),
 		Description:    fromStringPointer(res.ProjectResponse.Description),
 		//BuiltInEnvironmentVariables: convertResponseToEnvironmentVariables(res.ProjectEnvironmentVariables, client.EnvironmentVariableScopeBuiltIn),
-		EnvironmentVariables: convertResponseToEnvironmentVariables(res.ProjectEnvironmentVariables, client.EnvironmentVariableScopeProject),
+		EnvironmentVariables: convertResponseToEnvironmentVariables(res.ProjectEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_PROJECT),
 	}
 }

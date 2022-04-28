@@ -37,10 +37,10 @@ resource "qovery_database" "my_database" {
 
 - `environment_id` (String) Id of the environment.
 - `mode` (String) Mode of the database [NOTE: can't be updated after creation].
-	- Can be: `MANAGED`, `CONTAINER`.
+	- Can be: `CONTAINER`, `MANAGED`.
 - `name` (String) Name of the database.
 - `type` (String) Type of the database [NOTE: can't be updated after creation].
-	- Can be: `POSTGRESQL`, `MYSQL`, `MONGODB`, `REDIS`.
+	- Can be: `MONGODB`, `MYSQL`, `POSTGRESQL`, `REDIS`.
 - `version` (String) Version of the database
 
 ### Optional

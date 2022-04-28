@@ -8,7 +8,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-func (c *Client) CreateScalewayCredentials(ctx context.Context, organizationID string, request qovery.ScalewayCredentialsRequest) (*qovery.ClusterCredentialsResponse, *apierrors.APIError) {
+func (c *Client) CreateScalewayCredentials(ctx context.Context, organizationID string, request qovery.ScalewayCredentialsRequest) (*qovery.ClusterCredentials, *apierrors.APIError) {
 	credentials, res, err := c.api.CloudProviderCredentialsApi.
 		CreateScalewayCredentials(ctx, organizationID).
 		ScalewayCredentialsRequest(request).
@@ -19,7 +19,7 @@ func (c *Client) CreateScalewayCredentials(ctx context.Context, organizationID s
 	return credentials, nil
 }
 
-func (c *Client) GetScalewayCredentials(ctx context.Context, organizationID string, credentialsID string) (*qovery.ClusterCredentialsResponse, *apierrors.APIError) {
+func (c *Client) GetScalewayCredentials(ctx context.Context, organizationID string, credentialsID string) (*qovery.ClusterCredentials, *apierrors.APIError) {
 	credentials, res, err := c.api.CloudProviderCredentialsApi.
 		ListScalewayCredentials(ctx, organizationID).
 		Execute()
@@ -35,7 +35,7 @@ func (c *Client) GetScalewayCredentials(ctx context.Context, organizationID stri
 	return nil, apierrors.NewReadError(apierrors.APIResourceScalewayCredentials, credentialsID, res, err)
 }
 
-func (c *Client) UpdateScalewayCredentials(ctx context.Context, organizationID string, credentialsID string, request qovery.ScalewayCredentialsRequest) (*qovery.ClusterCredentialsResponse, *apierrors.APIError) {
+func (c *Client) UpdateScalewayCredentials(ctx context.Context, organizationID string, credentialsID string, request qovery.ScalewayCredentialsRequest) (*qovery.ClusterCredentials, *apierrors.APIError) {
 	credentials, res, err := c.api.CloudProviderCredentialsApi.
 		EditScalewayCredentials(ctx, organizationID, credentialsID).
 		ScalewayCredentialsRequest(request).
