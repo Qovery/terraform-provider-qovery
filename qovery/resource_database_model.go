@@ -21,34 +21,64 @@ type Database struct {
 	State         types.String `tfsdk:"state"`
 }
 
-func (d Database) toCreateDatabaseRequest() client.DatabaseCreateParams {
-	return client.DatabaseCreateParams{
+func (d Database) toCreateDatabaseRequest() (*client.DatabaseCreateParams, error) {
+	dbType, err := qovery.NewDatabaseTypeEnumFromValue(toString(d.Type))
+	if err != nil {
+		return nil, err
+	}
+
+	mode, err := qovery.NewDatabaseModeEnumFromValue(toString(d.Mode))
+	if err != nil {
+		return nil, err
+	}
+
+	accessibility, err := qovery.NewDatabaseAccessibilityEnumFromValue(toString(d.Accessibility))
+	if err != nil {
+		return nil, err
+	}
+
+	desiredState, err := qovery.NewStateEnumFromValue(toString(d.State))
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.DatabaseCreateParams{
 		DatabaseRequest: qovery.DatabaseRequest{
 			Name:          toString(d.Name),
-			Type:          toString(d.Type),
+			Type:          *dbType,
 			Version:       toString(d.Version),
-			Mode:          toString(d.Mode),
-			Accessibility: toStringPointer(d.Accessibility),
+			Mode:          *mode,
+			Accessibility: accessibility,
 			Cpu:           toInt32Pointer(d.CPU),
 			Memory:        toInt32Pointer(d.Memory),
 			Storage:       toInt32Pointer(d.Storage),
 		},
-		DesiredState: d.State.Value,
-	}
+		DesiredState: *desiredState,
+	}, nil
 }
 
-func (d Database) toUpdateDatabaseRequest() client.DatabaseUpdateParams {
-	return client.DatabaseUpdateParams{
+func (d Database) toUpdateDatabaseRequest() (*client.DatabaseUpdateParams, error) {
+	accessibility, err := qovery.NewDatabaseAccessibilityEnumFromValue(toString(d.Accessibility))
+	if err != nil {
+		return nil, err
+	}
+
+	desiredState, err := qovery.NewStateEnumFromValue(toString(d.State))
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.DatabaseUpdateParams{
 		DatabaseEditRequest: qovery.DatabaseEditRequest{
 			Name:          toStringPointer(d.Name),
 			Version:       toStringPointer(d.Version),
-			Accessibility: toStringPointer(d.Accessibility),
+			Accessibility: accessibility,
 			Cpu:           toInt32Pointer(d.CPU),
 			Memory:        toInt32Pointer(d.Memory),
 			Storage:       toInt32Pointer(d.Storage),
 		},
-		DesiredState: d.State.Value,
-	}
+		DesiredState: *desiredState,
+	}, nil
 }
 
 func convertResponseToDatabase(res *client.DatabaseResponse) Database {
@@ -56,13 +86,13 @@ func convertResponseToDatabase(res *client.DatabaseResponse) Database {
 		Id:            fromString(res.DatabaseResponse.Id),
 		EnvironmentId: fromString(res.DatabaseResponse.Environment.Id),
 		Name:          fromString(res.DatabaseResponse.Name),
-		Type:          fromString(res.DatabaseResponse.Type),
+		Type:          fromClientEnum(res.DatabaseResponse.Type),
 		Version:       fromString(res.DatabaseResponse.Version),
-		Mode:          fromString(res.DatabaseResponse.Mode),
-		Accessibility: fromStringPointer(res.DatabaseResponse.Accessibility),
+		Mode:          fromClientEnum(res.DatabaseResponse.Mode),
+		Accessibility: fromClientEnumPointer(res.DatabaseResponse.Accessibility),
 		CPU:           fromInt32Pointer(res.DatabaseResponse.Cpu),
 		Memory:        fromInt32Pointer(res.DatabaseResponse.Memory),
 		Storage:       fromInt32Pointer(res.DatabaseResponse.Storage),
-		State:         fromString(res.DatabaseStatus.State),
+		State:         fromString(string(res.DatabaseStatus.State)),
 	}
 }

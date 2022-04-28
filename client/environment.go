@@ -9,8 +9,8 @@ import (
 )
 
 type EnvironmentResponse struct {
-	EnvironmentResponse             *qovery.EnvironmentResponse
-	EnvironmentEnvironmentVariables []*qovery.EnvironmentVariableResponse
+	EnvironmentResponse             *qovery.Environment
+	EnvironmentEnvironmentVariables []*qovery.EnvironmentVariable
 }
 
 type EnvironmentCreateParams struct {
@@ -23,7 +23,7 @@ type EnvironmentUpdateParams struct {
 	EnvironmentVariablesDiff EnvironmentVariablesDiff
 }
 
-func (c *Client) CreateEnvironment(ctx context.Context, projectID string, params EnvironmentCreateParams) (*EnvironmentResponse, *apierrors.APIError) {
+func (c *Client) CreateEnvironment(ctx context.Context, projectID string, params *EnvironmentCreateParams) (*EnvironmentResponse, *apierrors.APIError) {
 	environment, res, err := c.api.EnvironmentsApi.
 		CreateEnvironment(ctx, projectID).
 		EnvironmentRequest(params.EnvironmentRequest).

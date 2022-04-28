@@ -6,6 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/qovery/qovery-client-go"
+
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
@@ -46,11 +48,11 @@ func wait(ctx context.Context, f waitFunc, timeout *time.Duration) *apierrors.AP
 	}
 }
 
-func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, expected string) waitFunc {
+func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, expected qovery.StateEnum) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
 		status, apiErr := client.getApplicationStatus(ctx, applicationID)
 		if apiErr != nil {
-			if apierrors.IsNotFound(apiErr) && expected == "DELETED" {
+			if apierrors.IsNotFound(apiErr) && expected == qovery.STATEENUM_DELETED {
 				return true, nil
 			}
 			return false, apiErr
@@ -73,11 +75,11 @@ func newApplicationFinalStateCheckerWaitFunc(client *Client, applicationID strin
 	}
 }
 
-func newClusterStatusCheckerWaitFunc(client *Client, organizationID string, clusterID string, expected string) waitFunc {
+func newClusterStatusCheckerWaitFunc(client *Client, organizationID string, clusterID string, expected qovery.StateEnum) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
 		status, apiErr := client.getClusterStatus(ctx, organizationID, clusterID)
 		if apiErr != nil {
-			if (apierrors.IsBadRequest(apiErr) || apierrors.IsNotFound(apiErr)) && expected == "DELETED" {
+			if (apierrors.IsBadRequest(apiErr) || apierrors.IsNotFound(apiErr)) && expected == qovery.STATEENUM_DELETED {
 				return true, nil
 			}
 			return false, apiErr
@@ -96,11 +98,11 @@ func newClusterFinalStateCheckerWaitFunc(client *Client, organizationID string, 
 	}
 }
 
-func newDatabaseStatusCheckerWaitFunc(client *Client, databaseID string, expected string) waitFunc {
+func newDatabaseStatusCheckerWaitFunc(client *Client, databaseID string, expected qovery.StateEnum) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
 		status, apiErr := client.getDatabaseStatus(ctx, databaseID)
 		if apiErr != nil {
-			if apierrors.IsNotFound(apiErr) && expected == "DELETED" {
+			if apierrors.IsNotFound(apiErr) && expected == qovery.STATEENUM_DELETED {
 				return true, nil
 			}
 			return false, apiErr
@@ -123,11 +125,11 @@ func newDatabaseFinalStateCheckerWaitFunc(client *Client, databaseID string) wai
 	}
 }
 
-func newEnvironmentStatusCheckerWaitFunc(client *Client, environmentID string, expected string) waitFunc {
+func newEnvironmentStatusCheckerWaitFunc(client *Client, environmentID string, expected qovery.StateEnum) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
 		status, apiErr := client.getEnvironmentStatus(ctx, environmentID)
 		if apiErr != nil {
-			if apierrors.IsNotFound(apiErr) && expected == "DELETED" {
+			if apierrors.IsNotFound(apiErr) && expected == qovery.STATEENUM_DELETED {
 				return true, nil
 			}
 			return false, apiErr
@@ -150,24 +152,24 @@ func newEnvironmentFinalStateCheckerWaitFunc(client *Client, environmentID strin
 	}
 }
 
-func isFinalState(state string) bool {
-	return state != "DEPLOYING" &&
-		state != "DELETING" &&
-		state != "STOPPING" &&
+func isFinalState(state qovery.StateEnum) bool {
+	return state != qovery.STATEENUM_DEPLOYING &&
+		state != qovery.STATEENUM_DELETING &&
+		state != qovery.STATEENUM_STOPPING &&
 		!isWaitingState(state) &&
 		!isQueuedState(state)
 }
 
-func isStatusError(state string) bool {
-	return strings.HasSuffix(state, "_ERROR")
+func isStatusError(state qovery.StateEnum) bool {
+	return strings.HasSuffix(string(state), "_ERROR")
 }
 
-func isWaitingState(state string) bool {
-	return strings.Contains(state, "WAITING")
+func isWaitingState(state qovery.StateEnum) bool {
+	return strings.Contains(string(state), "WAITING")
 }
 
-func isQueuedState(state string) bool {
-	return strings.Contains(state, "QUEUED")
+func isQueuedState(state qovery.StateEnum) bool {
+	return strings.Contains(string(state), "QUEUED")
 }
 
 func toDurationPointer(d time.Duration) *time.Duration {

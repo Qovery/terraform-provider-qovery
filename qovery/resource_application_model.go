@@ -26,21 +26,43 @@ type Application struct {
 	State                types.String              `tfsdk:"state"`
 }
 
-func (app Application) toCreateApplicationRequest() client.ApplicationCreateParams {
+func (app Application) toCreateApplicationRequest() (*client.ApplicationCreateParams, error) {
 	storage := make([]qovery.ApplicationStorageRequestStorage, 0, len(app.Storage))
 	for _, store := range app.Storage {
-		storage = append(storage, store.toCreateRequest())
+		s, err := store.toCreateRequest()
+		if err != nil {
+			return nil, err
+		}
+		storage = append(storage, *s)
 	}
 
 	ports := make([]qovery.ApplicationPortRequestPorts, 0, len(app.Ports))
 	for _, port := range app.Ports {
-		ports = append(ports, port.toCreateRequest())
+		p, err := port.toCreateRequest()
+		if err != nil {
+			return nil, err
+		}
+		ports = append(ports, *p)
 	}
 
-	return client.ApplicationCreateParams{
+	var buildMode *qovery.BuildModeEnum
+	if !app.BuildMode.Null && !app.BuildMode.Unknown {
+		bm, err := qovery.NewBuildModeEnumFromValue(toString(app.BuildMode))
+		if err != nil {
+			return nil, err
+		}
+		buildMode = bm
+	}
+
+	desiredState, err := qovery.NewStateEnumFromValue(toString(app.State))
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.ApplicationCreateParams{
 		ApplicationRequest: qovery.ApplicationRequest{
 			Name:                toString(app.Name),
-			BuildMode:           toStringPointer(app.BuildMode),
+			BuildMode:           buildMode,
 			DockerfilePath:      toNullableString(app.DockerfilePath),
 			BuildpackLanguage:   toNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
 			Cpu:                 toInt32Pointer(app.CPU),
@@ -52,26 +74,48 @@ func (app Application) toCreateApplicationRequest() client.ApplicationCreatePara
 			Storage:             storage,
 			Ports:               ports,
 		},
-		DesiredState:             app.State.Value,
+		DesiredState:             *desiredState,
 		EnvironmentVariablesDiff: diffEnvironmentVariables([]EnvironmentVariable{}, app.EnvironmentVariables),
-	}
+	}, nil
 
 }
 
-func (app Application) toUpdateApplicationRequest(state Application) client.ApplicationUpdateParams {
-	storage := make([]qovery.ApplicationStorageResponseStorage, 0, len(app.Storage))
+func (app Application) toUpdateApplicationRequest(state Application) (*client.ApplicationUpdateParams, error) {
+	storage := make([]qovery.ApplicationStorageStorage, 0, len(app.Storage))
 	for _, store := range app.Storage {
-		storage = append(storage, store.toUpdateRequest())
+		s, err := store.toUpdateRequest()
+		if err != nil {
+			return nil, err
+		}
+		storage = append(storage, *s)
 	}
 
-	ports := make([]qovery.ApplicationPortResponsePorts, 0, len(app.Ports))
+	ports := make([]qovery.ApplicationPortPorts, 0, len(app.Ports))
 	for _, port := range app.Ports {
-		ports = append(ports, port.toUpdateRequest())
+		p, err := port.toUpdateRequest()
+		if err != nil {
+			return nil, err
+		}
+		ports = append(ports, *p)
+	}
+
+	var buildMode *qovery.BuildModeEnum
+	if !app.BuildMode.Null && !app.BuildMode.Unknown {
+		bm, err := qovery.NewBuildModeEnumFromValue(toString(app.BuildMode))
+		if err != nil {
+			return nil, err
+		}
+		buildMode = bm
+	}
+
+	desiredState, err := qovery.NewStateEnumFromValue(toString(app.State))
+	if err != nil {
+		return nil, err
 	}
 
 	applicationEditRequest := qovery.ApplicationEditRequest{
 		Name:                toStringPointer(app.Name),
-		BuildMode:           toStringPointer(app.BuildMode),
+		BuildMode:           buildMode,
 		DockerfilePath:      toStringPointer(app.DockerfilePath),
 		BuildpackLanguage:   toNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
 		Cpu:                 toInt32Pointer(app.CPU),
@@ -83,11 +127,11 @@ func (app Application) toUpdateApplicationRequest(state Application) client.Appl
 		Storage:             storage,
 		Ports:               ports,
 	}
-	return client.ApplicationUpdateParams{
+	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:   applicationEditRequest,
 		EnvironmentVariablesDiff: diffEnvironmentVariables(state.EnvironmentVariables, app.EnvironmentVariables),
-		DesiredState:             app.State.Value,
-	}
+		DesiredState:             *desiredState,
+	}, nil
 
 }
 
@@ -96,7 +140,7 @@ func convertResponseToApplication(app *client.ApplicationResponse) Application {
 		Id:                   fromString(app.ApplicationResponse.Id),
 		EnvironmentId:        fromString(app.ApplicationResponse.Environment.Id),
 		Name:                 fromStringPointer(app.ApplicationResponse.Name),
-		BuildMode:            fromStringPointer(app.ApplicationResponse.BuildMode),
+		BuildMode:            fromClientEnumPointer(app.ApplicationResponse.BuildMode),
 		DockerfilePath:       fromNullableString(app.ApplicationResponse.DockerfilePath),
 		BuildpackLanguage:    fromNullableNullableBuildPackLanguageEnum(app.ApplicationResponse.BuildpackLanguage),
 		CPU:                  fromInt32Pointer(app.ApplicationResponse.Cpu),
@@ -107,8 +151,8 @@ func convertResponseToApplication(app *client.ApplicationResponse) Application {
 		GitRepository:        convertResponseToApplicationGitRepository(app.ApplicationResponse.GitRepository),
 		Storage:              convertResponseToApplicationStorage(app.ApplicationResponse.Storage),
 		Ports:                convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
-		State:                fromString(app.ApplicationStatus.State),
-		EnvironmentVariables: convertResponseToEnvironmentVariables(app.ApplicationEnvironmentVariables, client.EnvironmentVariableScopeApplication),
+		State:                fromClientEnum(app.ApplicationStatus.State),
+		EnvironmentVariables: convertResponseToEnvironmentVariables(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION),
 	}
 }
 
@@ -131,7 +175,7 @@ func (repo ApplicationGitRepository) toUpdateRequest() *qovery.ApplicationGitRep
 	return &req
 }
 
-func convertResponseToApplicationGitRepository(gitRepository *qovery.ApplicationGitRepositoryResponse) *ApplicationGitRepository {
+func convertResponseToApplicationGitRepository(gitRepository *qovery.ApplicationGitRepository) *ApplicationGitRepository {
 	if gitRepository == nil {
 		return nil
 	}
@@ -150,24 +194,34 @@ type ApplicationStorage struct {
 	MountPoint types.String `tfsdk:"mount_point"`
 }
 
-func (store ApplicationStorage) toCreateRequest() qovery.ApplicationStorageRequestStorage {
-	return qovery.ApplicationStorageRequestStorage{
-		Type:       toString(store.Type),
+func (store ApplicationStorage) toCreateRequest() (*qovery.ApplicationStorageRequestStorage, error) {
+	storageType, err := qovery.NewStorageTypeEnumFromValue(toString(store.Type))
+	if err != nil {
+		return nil, err
+	}
+
+	return &qovery.ApplicationStorageRequestStorage{
+		Type:       *storageType,
 		Size:       toInt32(store.Size),
 		MountPoint: toString(store.MountPoint),
-	}
+	}, nil
 }
 
-func (store ApplicationStorage) toUpdateRequest() qovery.ApplicationStorageResponseStorage {
-	return qovery.ApplicationStorageResponseStorage{
+func (store ApplicationStorage) toUpdateRequest() (*qovery.ApplicationStorageStorage, error) {
+	storageType, err := qovery.NewStorageTypeEnumFromValue(toString(store.Type))
+	if err != nil {
+		return nil, err
+	}
+
+	return &qovery.ApplicationStorageStorage{
 		Id:         toStringPointer(store.Id),
-		Type:       toString(store.Type),
+		Type:       *storageType,
 		Size:       toInt32(store.Size),
 		MountPoint: toString(store.MountPoint),
-	}
+	}, nil
 }
 
-func convertResponseToApplicationStorage(storage []qovery.ApplicationStorageResponseStorage) []ApplicationStorage {
+func convertResponseToApplicationStorage(storage []qovery.ApplicationStorageStorage) []ApplicationStorage {
 	if len(storage) == 0 {
 		return nil
 	}
@@ -176,7 +230,7 @@ func convertResponseToApplicationStorage(storage []qovery.ApplicationStorageResp
 	for _, s := range storage {
 		list = append(list, ApplicationStorage{
 			Id:         fromStringPointer(s.Id),
-			Type:       fromString(s.Type),
+			Type:       fromClientEnum(s.Type),
 			Size:       fromInt32(s.Size),
 			MountPoint: fromString(s.MountPoint),
 		})
@@ -193,28 +247,38 @@ type ApplicationPort struct {
 	Protocol           types.String `tfsdk:"protocol"`
 }
 
-func (port ApplicationPort) toCreateRequest() qovery.ApplicationPortRequestPorts {
-	return qovery.ApplicationPortRequestPorts{
+func (port ApplicationPort) toCreateRequest() (*qovery.ApplicationPortRequestPorts, error) {
+	protocol, err := qovery.NewPortProtocolEnumFromValue(toString(port.Protocol))
+	if err != nil {
+		return nil, err
+	}
+
+	return &qovery.ApplicationPortRequestPorts{
 		Name:               toNullableString(port.Name),
 		InternalPort:       toInt32(port.InternalPort),
 		ExternalPort:       toInt32Pointer(port.ExternalPort),
-		Protocol:           toStringPointer(port.Protocol),
+		Protocol:           protocol,
 		PubliclyAccessible: toBool(port.PubliclyAccessible),
-	}
+	}, nil
 }
 
-func (port ApplicationPort) toUpdateRequest() qovery.ApplicationPortResponsePorts {
-	return qovery.ApplicationPortResponsePorts{
+func (port ApplicationPort) toUpdateRequest() (*qovery.ApplicationPortPorts, error) {
+	protocol, err := qovery.NewPortProtocolEnumFromValue(toString(port.Protocol))
+	if err != nil {
+		return nil, err
+	}
+
+	return &qovery.ApplicationPortPorts{
 		Id:                 toStringPointer(port.Id),
 		Name:               toNullableString(port.Name),
 		InternalPort:       toInt32(port.InternalPort),
 		ExternalPort:       toInt32Pointer(port.ExternalPort),
-		Protocol:           toStringPointer(port.Protocol),
+		Protocol:           protocol,
 		PubliclyAccessible: toBool(port.PubliclyAccessible),
-	}
+	}, nil
 }
 
-func convertResponseToApplicationPorts(ports []qovery.ApplicationPortResponsePorts) []ApplicationPort {
+func convertResponseToApplicationPorts(ports []qovery.ApplicationPortPorts) []ApplicationPort {
 	if len(ports) == 0 {
 		return nil
 	}
@@ -226,7 +290,7 @@ func convertResponseToApplicationPorts(ports []qovery.ApplicationPortResponsePor
 			Name:               fromNullableString(p.Name),
 			InternalPort:       fromInt32(p.InternalPort),
 			ExternalPort:       fromInt32Pointer(p.ExternalPort),
-			Protocol:           fromStringPointer(p.Protocol),
+			Protocol:           fromClientEnumPointer(p.Protocol),
 			PubliclyAccessible: fromBool(p.PubliclyAccessible),
 		})
 	}
