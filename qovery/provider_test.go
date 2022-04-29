@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/sethvargo/go-envconfig"
 
@@ -36,9 +36,7 @@ type testEnvironment struct {
 var apiClient = client.New(os.Getenv(qovery.APITokenEnvName), "test")
 
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
-	"qovery": func() (tfprotov6.ProviderServer, error) {
-		return tfsdk.NewProtocol6Server(qovery.New("test")()), nil
-	},
+	"qovery": providerserver.NewProtocol6WithError(qovery.New("test")()),
 }
 
 func testAccPreCheck(t *testing.T) {
