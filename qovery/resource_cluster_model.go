@@ -1,6 +1,7 @@
 package qovery
 
 import (
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
@@ -8,52 +9,23 @@ import (
 )
 
 const (
-	featureIdVpcSubnet = "VPC_SUBNET"
+	featureKeyVpcSubnet = "vpc_subnet"
+	featureIdVpcSubnet  = "VPC_SUBNET"
 )
 
-type ClusterFeatures struct {
-	VpcSubnet types.String `tfsdk:"vpc_subnet"`
-}
-
-func newClusterFeatures(ff []qovery.ClusterFeature) *ClusterFeatures {
-	var features ClusterFeatures
-	for _, f := range ff {
-		if f.Id == nil {
-			continue
-		}
-		switch *f.Id {
-		case featureIdVpcSubnet:
-			features.VpcSubnet = fromString(f.Value.(string))
-		}
-	}
-	return &features
-
-}
-
-func (f ClusterFeatures) ToQoveryFeatures() []qovery.ClusterFeatureRequestFeatures {
-	features := make([]qovery.ClusterFeatureRequestFeatures, 0, 1)
-	if !f.VpcSubnet.Null && !f.VpcSubnet.Unknown {
-		features = append(features, qovery.ClusterFeatureRequestFeatures{
-			Id:    stringAsPointer(featureIdVpcSubnet),
-			Value: *qovery.NewNullableString(toStringPointer(f.VpcSubnet)),
-		})
-	}
-	return features
-}
-
 type Cluster struct {
-	Id              types.String     `tfsdk:"id"`
-	OrganizationId  types.String     `tfsdk:"organization_id"`
-	CredentialsId   types.String     `tfsdk:"credentials_id"`
-	Name            types.String     `tfsdk:"name"`
-	CloudProvider   types.String     `tfsdk:"cloud_provider"`
-	Region          types.String     `tfsdk:"region"`
-	Description     types.String     `tfsdk:"description"`
-	InstanceType    types.String     `tfsdk:"instance_type"`
-	MinRunningNodes types.Int64      `tfsdk:"min_running_nodes"`
-	MaxRunningNodes types.Int64      `tfsdk:"max_running_nodes"`
-	Features        *ClusterFeatures `tfsdk:"features"`
-	State           types.String     `tfsdk:"state"`
+	Id              types.String `tfsdk:"id"`
+	OrganizationId  types.String `tfsdk:"organization_id"`
+	CredentialsId   types.String `tfsdk:"credentials_id"`
+	Name            types.String `tfsdk:"name"`
+	CloudProvider   types.String `tfsdk:"cloud_provider"`
+	Region          types.String `tfsdk:"region"`
+	Description     types.String `tfsdk:"description"`
+	InstanceType    types.String `tfsdk:"instance_type"`
+	MinRunningNodes types.Int64  `tfsdk:"min_running_nodes"`
+	MaxRunningNodes types.Int64  `tfsdk:"max_running_nodes"`
+	Features        types.Object `tfsdk:"features"`
+	State           types.String `tfsdk:"state"`
 }
 
 func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertParams, error) {
@@ -74,11 +46,6 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		}
 	}
 
-	var features []qovery.ClusterFeatureRequestFeatures
-	if c.Features != nil {
-		features = c.Features.ToQoveryFeatures()
-	}
-
 	desiredState, err := qovery.NewStateEnumFromValue(toString(c.State))
 	if err != nil {
 		return nil, err
@@ -94,7 +61,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			InstanceType:    toStringPointer(c.InstanceType),
 			MinRunningNodes: toInt32Pointer(c.MinRunningNodes),
 			MaxRunningNodes: toInt32Pointer(c.MaxRunningNodes),
-			Features:        features,
+			Features:        toQoveryClusterFeatures(c.Features),
 		},
 		DesiredState: *desiredState,
 	}, nil
@@ -112,7 +79,51 @@ func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 		InstanceType:    fromStringPointer(res.ClusterResponse.InstanceType),
 		MinRunningNodes: fromInt32Pointer(res.ClusterResponse.MinRunningNodes),
 		MaxRunningNodes: fromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
-		Features:        newClusterFeatures(res.ClusterResponse.Features),
+		Features:        fromQoveryClusterFeatures(res.ClusterResponse.Features),
 		State:           fromClientEnumPointer(res.ClusterResponse.Status),
 	}
+}
+
+func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
+	if ff == nil {
+		return types.Object{Null: true}
+	}
+
+	attrs := make(map[string]attr.Value)
+	attrTypes := make(map[string]attr.Type)
+	for _, f := range ff {
+		if f.Id == nil {
+			continue
+		}
+		switch *f.Id {
+		case featureIdVpcSubnet:
+			attrs[featureKeyVpcSubnet] = fromString(f.Value.(string))
+			attrTypes[featureKeyVpcSubnet] = types.StringType
+		}
+	}
+
+	if len(attrs) == 0 && len(attrTypes) == 0 {
+		return types.Object{Unknown: true}
+	}
+
+	return types.Object{
+		Attrs:     attrs,
+		AttrTypes: attrTypes,
+	}
+}
+
+func toQoveryClusterFeatures(f types.Object) []qovery.ClusterFeatureRequestFeatures {
+	if f.Null || f.Unknown {
+		return nil
+	}
+
+	features := make([]qovery.ClusterFeatureRequestFeatures, 0, len(f.Attrs))
+	if _, ok := f.Attrs[featureKeyVpcSubnet]; ok {
+		features = append(features, qovery.ClusterFeatureRequestFeatures{
+			Id:    stringAsPointer(featureIdVpcSubnet),
+			Value: *qovery.NewNullableString(toStringPointer(f.Attrs[featureKeyVpcSubnet].(types.String))),
+		})
+	}
+
+	return features
 }
