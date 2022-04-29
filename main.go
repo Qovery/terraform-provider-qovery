@@ -4,7 +4,7 @@ import (
 	"context"
 	"log"
 
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 
 	"github.com/qovery/terraform-provider-qovery/qovery"
 )
@@ -22,11 +22,11 @@ import (
 var version = "dev"
 
 func main() {
-	opts := tfsdk.ServeOpts{
-		Name: "qovery",
+	opts := providerserver.ServeOpts{
+		Address: "registry.terraform.io/Qovery/qovery",
 	}
 
-	if err := tfsdk.Serve(context.Background(), qovery.New(version), opts); err != nil {
+	if err := providerserver.Serve(context.Background(), qovery.New(version), opts); err != nil {
 		log.Fatal(err)
 	}
 }
