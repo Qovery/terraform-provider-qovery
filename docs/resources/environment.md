@@ -56,12 +56,23 @@ resource "qovery_environment" "my_environment_with_environment_variables" {
 
 ### Read-Only
 
+- `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this environment. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `id` (String) Id of the environment.
 
 <a id="nestedatt--environment_variables"></a>
 ### Nested Schema for `environment_variables`
 
 Optional:
+
+- `id` (String) Id of the environment variable.
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
+
+
+<a id="nestedatt--built_in_environment_variables"></a>
+### Nested Schema for `built_in_environment_variables`
+
+Read-Only:
 
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.

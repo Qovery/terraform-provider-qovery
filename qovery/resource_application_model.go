@@ -22,7 +22,7 @@ type Application struct {
 	AutoPreview          types.Bool                `tfsdk:"auto_preview"`
 	Storage              []ApplicationStorage      `tfsdk:"storage"`
 	Ports                []ApplicationPort         `tfsdk:"ports"`
-	EnvironmentVariables []EnvironmentVariable     `tfsdk:"environment_variables"`
+	EnvironmentVariables EnvironmentVariableList   `tfsdk:"environment_variables"`
 	State                types.String              `tfsdk:"state"`
 }
 
@@ -75,7 +75,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			Ports:               ports,
 		},
 		DesiredState:             *desiredState,
-		EnvironmentVariablesDiff: diffEnvironmentVariables([]EnvironmentVariable{}, app.EnvironmentVariables),
+		EnvironmentVariablesDiff: app.EnvironmentVariables.diff(nil),
 	}, nil
 
 }
@@ -129,7 +129,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:   applicationEditRequest,
-		EnvironmentVariablesDiff: diffEnvironmentVariables(state.EnvironmentVariables, app.EnvironmentVariables),
+		EnvironmentVariablesDiff: app.EnvironmentVariables.diff(state.EnvironmentVariables),
 		DesiredState:             *desiredState,
 	}, nil
 
@@ -152,7 +152,7 @@ func convertResponseToApplication(app *client.ApplicationResponse) Application {
 		Storage:              convertResponseToApplicationStorage(app.ApplicationResponse.Storage),
 		Ports:                convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
 		State:                fromClientEnum(app.ApplicationStatus.State),
-		EnvironmentVariables: convertResponseToEnvironmentVariables(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION),
+		EnvironmentVariables: newEnvironmentVariableListFromResponse(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION),
 	}
 }
 

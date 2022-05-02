@@ -8,12 +8,11 @@ import (
 )
 
 type Project struct {
-	Id             types.String `tfsdk:"id"`
-	OrganizationId types.String `tfsdk:"organization_id"`
-	Name           types.String `tfsdk:"name"`
-	Description    types.String `tfsdk:"description"`
-	//BuiltInEnvironmentVariables []EnvironmentVariable `tfsdk:"built_in_environment_variables"`
-	EnvironmentVariables []EnvironmentVariable `tfsdk:"environment_variables"`
+	Id                   types.String            `tfsdk:"id"`
+	OrganizationId       types.String            `tfsdk:"organization_id"`
+	Name                 types.String            `tfsdk:"name"`
+	Description          types.String            `tfsdk:"description"`
+	EnvironmentVariables EnvironmentVariableList `tfsdk:"environment_variables"`
 }
 
 func (p Project) toCreateProjectRequest() client.ProjectUpsertParams {
@@ -22,7 +21,7 @@ func (p Project) toCreateProjectRequest() client.ProjectUpsertParams {
 			Name:        toString(p.Name),
 			Description: toStringPointer(p.Description),
 		},
-		EnvironmentVariablesDiff: diffEnvironmentVariables([]EnvironmentVariable{}, p.EnvironmentVariables),
+		EnvironmentVariablesDiff: p.EnvironmentVariables.diff(nil),
 	}
 }
 
@@ -32,17 +31,16 @@ func (p Project) toUpdateProjectRequest(state Project) client.ProjectUpsertParam
 			Name:        toString(p.Name),
 			Description: toStringPointer(p.Description),
 		},
-		EnvironmentVariablesDiff: diffEnvironmentVariables(state.EnvironmentVariables, p.EnvironmentVariables),
+		EnvironmentVariablesDiff: p.EnvironmentVariables.diff(state.EnvironmentVariables),
 	}
 }
 
 func convertResponseToProject(res *client.ProjectResponse) Project {
 	return Project{
-		Id:             fromString(res.ProjectResponse.Id),
-		OrganizationId: fromString(res.ProjectResponse.Organization.Id),
-		Name:           fromString(res.ProjectResponse.Name),
-		Description:    fromStringPointer(res.ProjectResponse.Description),
-		//BuiltInEnvironmentVariables: convertResponseToEnvironmentVariables(res.ProjectEnvironmentVariables, client.EnvironmentVariableScopeBuiltIn),
-		EnvironmentVariables: convertResponseToEnvironmentVariables(res.ProjectEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_PROJECT),
+		Id:                   fromString(res.ProjectResponse.Id),
+		OrganizationId:       fromString(res.ProjectResponse.Organization.Id),
+		Name:                 fromString(res.ProjectResponse.Name),
+		Description:          fromStringPointer(res.ProjectResponse.Description),
+		EnvironmentVariables: newEnvironmentVariableListFromResponse(res.ProjectEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_PROJECT),
 	}
 }
