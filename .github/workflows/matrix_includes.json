@@ -1,0 +1,10 @@
+[
+  {
+    "terraform": "1.1.*",
+    "runOnBranch": "always"
+  },
+  {
+    "terraform": "1.0.*'",
+    "runOnBranch": "main"
+  }
+]
