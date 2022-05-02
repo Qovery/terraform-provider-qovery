@@ -28,6 +28,28 @@ env:
   TASK_VERSION: 3.x
 
 jobs:
+  # Setup matrix for current branch.
+  # If we are on main, run tests with all terraform version
+  # Otherwise, run tests only on latest
+  matrix_prep:
+    name: Prepare Test Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v2
+
+      - name: Branch name
+        uses: nelonoel/branch-name@v1.0.1
+
+      - name: Conditional build matrix
+        id: set-matrix
+        uses: JoshuaTheMiller/conditional-build-matrix@0.1.0
+        with:
+          # The simple branch name can be used in the filter now!
+          filter: '[?runOnBranch==`${{ env.BRANCH_NAME }}` || runOnBranch==`always`]'
+
   # Ensure project builds before running testing matrix
   build:
     name: Build Terraform Provider
@@ -80,16 +102,14 @@ jobs:
   # Run acceptance tests in a matrix with Terraform CLI versions
   test:
     name: Terraform Provider Acceptance Tests
-    needs: build
+    needs:
+      - matrix_prep
+      - build
     runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:
       fail-fast: false
-      matrix:
-        # list whatever Terraform versions here you would like to support
-        terraform:
-          - '1.0.*'
-          - '1.1.*'
+      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
     steps:
       - name: Set up Go
         uses: actions/setup-go@v3
