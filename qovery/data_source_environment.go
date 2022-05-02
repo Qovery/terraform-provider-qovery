@@ -42,11 +42,10 @@ func (t environmentDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 				Type:        types.StringType,
 				Computed:    true,
 			},
-			"environment_variables": {
-				Description: "List of environment variables linked to this environment.",
-				Optional:    true,
+			"built_in_environment_variables": {
+				Description: "List of built-in environment variables linked to this environment.",
 				Computed:    true,
-				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
 					"id": {
 						Description: "Id of the environment variable.",
 						Type:        types.StringType,
@@ -62,7 +61,29 @@ func (t environmentDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 						Type:        types.StringType,
 						Computed:    true,
 					},
-				}, tfsdk.ListNestedAttributesOptions{}),
+				}, tfsdk.SetNestedAttributesOptions{}),
+			},
+			"environment_variables": {
+				Description: "List of environment variables linked to this environment.",
+				Optional:    true,
+				Computed:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Key of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"value": {
+						Description: "Value of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+				}, tfsdk.SetNestedAttributesOptions{}),
 			},
 		},
 	}, nil

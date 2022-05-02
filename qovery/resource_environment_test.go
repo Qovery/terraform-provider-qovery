@@ -3,6 +3,7 @@ package qovery_test
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -30,6 +31,43 @@ func TestAcc_Environment(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "DEVELOPMENT"),
 					resource.TestCheckNoResourceAttr("qovery_environment.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+				),
+			},
+			// Check Import
+			{
+				ResourceName:      "qovery_environment.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
+	t.Parallel()
+	testName := "environment-with-environment-variables"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryEnvironmentDestroy("qovery_environment.test"),
+		Steps: []resource.TestStep{
+			// Check for built in variables
+			{
+				Config: testAccEnvironmentDefaultConfig(
+					testName,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "DEVELOPMENT"),
+					resource.TestCheckNoResourceAttr("qovery_environment.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
 				),
 			},
 			// Add environment variables
@@ -54,6 +92,9 @@ func TestAcc_Environment(t *testing.T) {
 						"key":   "key2",
 						"value": "value2",
 					}),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
 				),
 			},
 			// Update environment variables
@@ -77,6 +118,9 @@ func TestAcc_Environment(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
 						"key":   "key2",
 						"value": "value2-updated",
+					}),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 				),
 			},
@@ -110,6 +154,9 @@ func TestAcc_EnvironmentWithMode(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "PRODUCTION"),
 					resource.TestCheckNoResourceAttr("qovery_environment.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
 				),
 			},
 			// Check Import
@@ -141,6 +188,9 @@ func TestAcc_EnvironmentImport(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "DEVELOPMENT"),
 					resource.TestCheckNoResourceAttr("qovery_environment.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
 				),
 			},
 			// Check Import

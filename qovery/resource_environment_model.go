@@ -8,13 +8,13 @@ import (
 )
 
 type Environment struct {
-	Id        types.String `tfsdk:"id"`
-	ProjectId types.String `tfsdk:"project_id"`
-	ClusterId types.String `tfsdk:"cluster_id"`
-	Name      types.String `tfsdk:"name"`
-	Mode      types.String `tfsdk:"mode"`
-	//BuiltInEnvironmentVariables *[]EnvironmentVariable `tfsdk:"built_in_environment_variables"`
-	EnvironmentVariables []EnvironmentVariable `tfsdk:"environment_variables"`
+	Id                          types.String `tfsdk:"id"`
+	ProjectId                   types.String `tfsdk:"project_id"`
+	ClusterId                   types.String `tfsdk:"cluster_id"`
+	Name                        types.String `tfsdk:"name"`
+	Mode                        types.String `tfsdk:"mode"`
+	BuiltInEnvironmentVariables types.Set    `tfsdk:"built_in_environment_variables"`
+	EnvironmentVariables        types.Set    `tfsdk:"environment_variables"`
 }
 
 func (e Environment) toCreateEnvironmentRequest() (*client.EnvironmentCreateParams, error) {
@@ -29,7 +29,7 @@ func (e Environment) toCreateEnvironmentRequest() (*client.EnvironmentCreatePara
 			Cluster: toStringPointer(e.ClusterId),
 			Mode:    mode,
 		},
-		EnvironmentVariablesDiff: diffEnvironmentVariables([]EnvironmentVariable{}, e.EnvironmentVariables),
+		EnvironmentVariablesDiff: toEnvironmentVariableList(e.EnvironmentVariables).diff(nil),
 	}, nil
 }
 
@@ -38,19 +38,18 @@ func (e Environment) toUpdateEnvironmentRequest(state Environment) client.Enviro
 		EnvironmentEditRequest: qovery.EnvironmentEditRequest{
 			Name: toStringPointer(e.Name),
 		},
-		EnvironmentVariablesDiff: diffEnvironmentVariables(state.EnvironmentVariables, e.EnvironmentVariables),
+		EnvironmentVariablesDiff: toEnvironmentVariableList(e.EnvironmentVariables).diff(toEnvironmentVariableList(state.EnvironmentVariables)),
 	}
 }
 
 func convertResponseToEnvironment(res *client.EnvironmentResponse) Environment {
-	//arr := convertResponseToEnvironmentVariables(res.EnvironmentEnvironmentVariables, client.EnvironmentVariableScopeBuiltIn)
 	return Environment{
-		Id:        fromString(res.EnvironmentResponse.Id),
-		ProjectId: fromString(res.EnvironmentResponse.Project.Id),
-		ClusterId: fromString(res.EnvironmentResponse.ClusterId),
-		Name:      fromString(res.EnvironmentResponse.Name),
-		Mode:      fromClientEnum(res.EnvironmentResponse.Mode),
-		//BuiltInEnvironmentVariables: &arr,
-		EnvironmentVariables: convertResponseToEnvironmentVariables(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT),
+		Id:                          fromString(res.EnvironmentResponse.Id),
+		ProjectId:                   fromString(res.EnvironmentResponse.Project.Id),
+		ClusterId:                   fromString(res.EnvironmentResponse.ClusterId),
+		Name:                        fromString(res.EnvironmentResponse.Name),
+		Mode:                        fromClientEnum(res.EnvironmentResponse.Mode),
+		BuiltInEnvironmentVariables: newEnvironmentVariableListFromResponse(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
+		EnvironmentVariables:        newEnvironmentVariableListFromResponse(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT).toTerraformSet(),
 	}
 }
