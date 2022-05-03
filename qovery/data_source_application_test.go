@@ -2,6 +2,7 @@ package qovery_test
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -39,6 +40,9 @@ func TestAcc_ApplicationDataSource(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_application.test", "environment_variables.*", map[string]string{
 						"key":   "MY_TERRAFORM_APPLICATION_VARIABLE",
 						"value": "MY_TERRAFORM_APPLICATION_VALUE",
+					}),
+					resource.TestMatchTypeSetElemNestedAttrs("data.qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "state", "RUNNING"),
 				),

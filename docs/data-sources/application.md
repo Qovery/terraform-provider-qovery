@@ -30,10 +30,11 @@ data "qovery_application" "my_application" {
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
 - `build_mode` (String) Build Mode of the application.
 - `buildpack_language` (String) Buildpack Language framework.
+- `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this application. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `cpu` (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
 - `dockerfile_path` (String) Dockerfile Path of the application.
 - `environment_id` (String) Id of the environment.
-- `environment_variables` (Attributes List) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
+- `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
 - `git_repository` (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
 - `max_running_instances` (Number) Maximum number of instances running for the application.
 - `memory` (Number) RAM of the application in MB [1024MB = 1GB].
@@ -42,6 +43,16 @@ data "qovery_application" "my_application" {
 - `ports` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
 - `state` (String) State of the application.
 - `storage` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
+
+<a id="nestedatt--built_in_environment_variables"></a>
+### Nested Schema for `built_in_environment_variables`
+
+Read-Only:
+
+- `id` (String) Id of the environment variable.
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
+
 
 <a id="nestedatt--environment_variables"></a>
 ### Nested Schema for `environment_variables`

@@ -39,27 +39,27 @@ func (r projectResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Optional:    true,
 				Computed:    true,
 			},
-			//"built_in_environment_variables": {
-			//	Description: "List of built-in environment variables linked to this project.",
-			//	Optional:    true,
-			//	Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-			//		"id": {
-			//			Description: "Id of the environment variable.",
-			//			Type:        types.StringType,
-			//			Computed:    true,
-			//		},
-			//		"key": {
-			//			Description: "Key of the environment variable.",
-			//			Type:        types.StringType,
-			//			Computed:    true,
-			//		},
-			//		"value": {
-			//			Description: "Value of the environment variable.",
-			//			Type:        types.StringType,
-			//			Computed:    true,
-			//		},
-			//	}, tfsdk.SetNestedAttributesOptions{}),
-			//},
+			"built_in_environment_variables": {
+				Description: "List of built-in environment variables linked to this project.",
+				Computed:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Key of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"value": {
+						Description: "Value of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+				}, tfsdk.SetNestedAttributesOptions{}),
+			},
 			"environment_variables": {
 				Description: "List of environment variables linked to this project.",
 				Optional:    true,

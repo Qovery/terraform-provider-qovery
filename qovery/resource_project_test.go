@@ -31,6 +31,7 @@ func TestAcc_Project(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 				),
 			},
 			// Add description
@@ -45,6 +46,7 @@ func TestAcc_Project(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", "this is a description"),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 				),
 			},
 			// Add environment variables
@@ -69,6 +71,7 @@ func TestAcc_Project(t *testing.T) {
 						"key":   "key2",
 						"value": "value2",
 					}),
+					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 				),
 			},
 			// Update environment variables
@@ -93,6 +96,7 @@ func TestAcc_Project(t *testing.T) {
 						"key":   "key2",
 						"value": "value2-updated",
 					}),
+					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 				),
 			},
 			// Check Import
@@ -124,6 +128,7 @@ func TestAcc_ProjectImport(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 				),
 			},
 			// Check Import
