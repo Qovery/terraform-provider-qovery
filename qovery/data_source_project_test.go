@@ -25,6 +25,7 @@ func TestAcc_ProjectDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_project.test", "name", "MyTerraformProject"),
 					resource.TestCheckResourceAttr("data.qovery_project.test", "description", "Project to test terraform"),
 					resource.TestCheckNoResourceAttr("data.qovery_project.test", "environment_variables.0.id"),
+					resource.TestCheckNoResourceAttr("data.qovery_project.test", "built_in_environment_variables.0.id"),
 				),
 			},
 		},

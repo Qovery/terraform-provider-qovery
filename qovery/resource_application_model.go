@@ -8,22 +8,31 @@ import (
 )
 
 type Application struct {
-	Id                   types.String              `tfsdk:"id"`
-	EnvironmentId        types.String              `tfsdk:"environment_id"`
-	Name                 types.String              `tfsdk:"name"`
-	GitRepository        *ApplicationGitRepository `tfsdk:"git_repository"`
-	BuildMode            types.String              `tfsdk:"build_mode"`
-	DockerfilePath       types.String              `tfsdk:"dockerfile_path"`
-	BuildpackLanguage    types.String              `tfsdk:"buildpack_language"`
-	CPU                  types.Int64               `tfsdk:"cpu"`
-	Memory               types.Int64               `tfsdk:"memory"`
-	MinRunningInstances  types.Int64               `tfsdk:"min_running_instances"`
-	MaxRunningInstances  types.Int64               `tfsdk:"max_running_instances"`
-	AutoPreview          types.Bool                `tfsdk:"auto_preview"`
-	Storage              []ApplicationStorage      `tfsdk:"storage"`
-	Ports                []ApplicationPort         `tfsdk:"ports"`
-	EnvironmentVariables EnvironmentVariableList   `tfsdk:"environment_variables"`
-	State                types.String              `tfsdk:"state"`
+	Id                          types.String              `tfsdk:"id"`
+	EnvironmentId               types.String              `tfsdk:"environment_id"`
+	Name                        types.String              `tfsdk:"name"`
+	GitRepository               *ApplicationGitRepository `tfsdk:"git_repository"`
+	BuildMode                   types.String              `tfsdk:"build_mode"`
+	DockerfilePath              types.String              `tfsdk:"dockerfile_path"`
+	BuildpackLanguage           types.String              `tfsdk:"buildpack_language"`
+	CPU                         types.Int64               `tfsdk:"cpu"`
+	Memory                      types.Int64               `tfsdk:"memory"`
+	MinRunningInstances         types.Int64               `tfsdk:"min_running_instances"`
+	MaxRunningInstances         types.Int64               `tfsdk:"max_running_instances"`
+	AutoPreview                 types.Bool                `tfsdk:"auto_preview"`
+	Storage                     []ApplicationStorage      `tfsdk:"storage"`
+	Ports                       []ApplicationPort         `tfsdk:"ports"`
+	BuiltInEnvironmentVariables types.Set                 `tfsdk:"built_in_environment_variables"`
+	EnvironmentVariables        types.Set                 `tfsdk:"environment_variables"`
+	State                       types.String              `tfsdk:"state"`
+}
+
+func (app Application) EnvironmentVariableList() EnvironmentVariableList {
+	return toEnvironmentVariableList(app.EnvironmentVariables)
+}
+
+func (app Application) BuiltInEnvironmentVariableList() EnvironmentVariableList {
+	return toEnvironmentVariableList(app.BuiltInEnvironmentVariables)
 }
 
 func (app Application) toCreateApplicationRequest() (*client.ApplicationCreateParams, error) {
@@ -75,7 +84,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			Ports:               ports,
 		},
 		DesiredState:             *desiredState,
-		EnvironmentVariablesDiff: app.EnvironmentVariables.diff(nil),
+		EnvironmentVariablesDiff: app.EnvironmentVariableList().diff(nil),
 	}, nil
 
 }
@@ -129,7 +138,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:   applicationEditRequest,
-		EnvironmentVariablesDiff: app.EnvironmentVariables.diff(state.EnvironmentVariables),
+		EnvironmentVariablesDiff: app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
 		DesiredState:             *desiredState,
 	}, nil
 
@@ -137,22 +146,23 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 
 func convertResponseToApplication(app *client.ApplicationResponse) Application {
 	return Application{
-		Id:                   fromString(app.ApplicationResponse.Id),
-		EnvironmentId:        fromString(app.ApplicationResponse.Environment.Id),
-		Name:                 fromStringPointer(app.ApplicationResponse.Name),
-		BuildMode:            fromClientEnumPointer(app.ApplicationResponse.BuildMode),
-		DockerfilePath:       fromNullableString(app.ApplicationResponse.DockerfilePath),
-		BuildpackLanguage:    fromNullableNullableBuildPackLanguageEnum(app.ApplicationResponse.BuildpackLanguage),
-		CPU:                  fromInt32Pointer(app.ApplicationResponse.Cpu),
-		Memory:               fromInt32Pointer(app.ApplicationResponse.Memory),
-		MinRunningInstances:  fromInt32Pointer(app.ApplicationResponse.MinRunningInstances),
-		MaxRunningInstances:  fromInt32Pointer(app.ApplicationResponse.MaxRunningInstances),
-		AutoPreview:          fromBoolPointer(app.ApplicationResponse.AutoPreview),
-		GitRepository:        convertResponseToApplicationGitRepository(app.ApplicationResponse.GitRepository),
-		Storage:              convertResponseToApplicationStorage(app.ApplicationResponse.Storage),
-		Ports:                convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
-		State:                fromClientEnum(app.ApplicationStatus.State),
-		EnvironmentVariables: newEnvironmentVariableListFromResponse(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION),
+		Id:                          fromString(app.ApplicationResponse.Id),
+		EnvironmentId:               fromString(app.ApplicationResponse.Environment.Id),
+		Name:                        fromStringPointer(app.ApplicationResponse.Name),
+		BuildMode:                   fromClientEnumPointer(app.ApplicationResponse.BuildMode),
+		DockerfilePath:              fromNullableString(app.ApplicationResponse.DockerfilePath),
+		BuildpackLanguage:           fromNullableNullableBuildPackLanguageEnum(app.ApplicationResponse.BuildpackLanguage),
+		CPU:                         fromInt32Pointer(app.ApplicationResponse.Cpu),
+		Memory:                      fromInt32Pointer(app.ApplicationResponse.Memory),
+		MinRunningInstances:         fromInt32Pointer(app.ApplicationResponse.MinRunningInstances),
+		MaxRunningInstances:         fromInt32Pointer(app.ApplicationResponse.MaxRunningInstances),
+		AutoPreview:                 fromBoolPointer(app.ApplicationResponse.AutoPreview),
+		GitRepository:               convertResponseToApplicationGitRepository(app.ApplicationResponse.GitRepository),
+		Storage:                     convertResponseToApplicationStorage(app.ApplicationResponse.Storage),
+		Ports:                       convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
+		State:                       fromClientEnum(app.ApplicationStatus.State),
+		BuiltInEnvironmentVariables: fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
+		EnvironmentVariables:        fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
 	}
 }
 

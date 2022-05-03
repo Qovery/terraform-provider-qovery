@@ -3,6 +3,7 @@ package qovery_test
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -90,6 +91,9 @@ func TestAcc_Application(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -117,6 +121,9 @@ func TestAcc_Application(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -145,6 +152,9 @@ func TestAcc_Application(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -176,6 +186,9 @@ func TestAcc_Application(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -221,6 +234,9 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 						"key":   "key1",
 						"value": "value1",
 					}),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -253,6 +269,9 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "environment_variables.*", map[string]string{
 						"key":   "key1",
 						"value": "value1-updated",
+					}),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
@@ -292,6 +311,9 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 						"key":   "key2",
 						"value": "value2",
 					}),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -325,12 +347,170 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 						"key":   "key2",
 						"value": "value2",
 					}),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
 		},
 	})
 }
+
+//func TestAcc_ApplicationWithDatabase(t *testing.T) {
+//	t.Parallel()
+//	testName := "application-with-database"
+//	resource.Test(t, resource.TestCase{
+//		PreCheck:                 func() { testAccPreCheck(t) },
+//		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+//		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
+//		Steps: []resource.TestStep{
+//			// Create and Read testing
+//			{
+//				Config: testAccApplicationDefaultConfigWithDatabase(
+//					testName,
+//				),
+//				Check: resource.ComposeAggregateTestCheckFunc(
+//					testAccQoveryProjectExists("qovery_project.test"),
+//					testAccQoveryEnvironmentExists("qovery_environment.test"),
+//					testAccQoveryApplicationExists("qovery_application.test"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", "main"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+//					resource.TestCheckNoResourceAttr("qovery_application.test", "buildpack_language"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+//					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+//					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
+//					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "environment_variables.*", map[string]string{
+//						"key":   "key1",
+//						"value": "value1",
+//					}),
+//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+//						"key": regexp.MustCompile(`^QOVERY_`),
+//					}),
+//					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
+//				),
+//			},
+//			// Update environment variables
+//			{
+//				Config: testAccApplicationDefaultConfigWithEnvironmentVariables(
+//					testName,
+//					map[string]string{
+//						"key1": "value1-updated",
+//					},
+//				),
+//				Check: resource.ComposeAggregateTestCheckFunc(
+//					testAccQoveryProjectExists("qovery_project.test"),
+//					testAccQoveryEnvironmentExists("qovery_environment.test"),
+//					testAccQoveryApplicationExists("qovery_application.test"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", "main"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+//					resource.TestCheckNoResourceAttr("qovery_application.test", "buildpack_language"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+//					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+//					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
+//					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "environment_variables.*", map[string]string{
+//						"key":   "key1",
+//						"value": "value1-updated",
+//					}),
+//					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
+//				),
+//			},
+//			// Add environment variables
+//			{
+//				Config: testAccApplicationDefaultConfigWithEnvironmentVariables(
+//					testName,
+//					map[string]string{
+//						"key1": "value1",
+//						"key2": "value2",
+//					},
+//				),
+//				Check: resource.ComposeAggregateTestCheckFunc(
+//					testAccQoveryProjectExists("qovery_project.test"),
+//					testAccQoveryEnvironmentExists("qovery_environment.test"),
+//					testAccQoveryApplicationExists("qovery_application.test"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", "main"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+//					resource.TestCheckNoResourceAttr("qovery_application.test", "buildpack_language"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+//					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+//					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
+//					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "environment_variables.*", map[string]string{
+//						"key":   "key1",
+//						"value": "value1",
+//					}),
+//					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "environment_variables.*", map[string]string{
+//						"key":   "key2",
+//						"value": "value2",
+//					}),
+//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+//						"key": regexp.MustCompile(`^QOVERY_`),
+//					}),
+//					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
+//				),
+//			},
+//			// Remove environment variables
+//			{
+//				Config: testAccApplicationDefaultConfigWithEnvironmentVariables(
+//					testName,
+//					map[string]string{
+//						"key2": "value2",
+//					},
+//				),
+//				Check: resource.ComposeAggregateTestCheckFunc(
+//					testAccQoveryProjectExists("qovery_project.test"),
+//					testAccQoveryEnvironmentExists("qovery_environment.test"),
+//					testAccQoveryApplicationExists("qovery_application.test"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", "main"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+//					resource.TestCheckNoResourceAttr("qovery_application.test", "buildpack_language"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+//					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+//					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+//					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
+//					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "environment_variables.*", map[string]string{
+//						"key":   "key2",
+//						"value": "value2",
+//					}),
+//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+//						"key": regexp.MustCompile(`^QOVERY_`),
+//					}),
+//					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
+//				),
+//			},
+//		},
+//	})
+//}
 
 // TODO: uncomment after debugging why storage can't be updated
 //func TestAcc_ApplicationWithStorage(t *testing.T) {
@@ -374,6 +554,9 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 //					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.mount_point", "/"),
 //					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
 //					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+//						"key": regexp.MustCompile(`^QOVERY_`),
+//					}),
 //					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 //				),
 //			},
@@ -418,6 +601,9 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 //					resource.TestCheckResourceAttr("qovery_application.test", "storage.1.mount_point", "/tata"),
 //					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
 //					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+//						"key": regexp.MustCompile(`^QOVERY_`),
+//					}),
 //					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 //				),
 //			},
@@ -454,6 +640,9 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 //					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.mount_point", "/toto"),
 //					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
 //					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+//						"key": regexp.MustCompile(`^QOVERY_`),
+//					}),
 //					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 //				),
 //			},
@@ -501,6 +690,9 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 //					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.internal_port", "80"),
 //					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.publicly_accessible", "false"),
 //					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+//						"key": regexp.MustCompile(`^QOVERY_`),
+//					}),
 //					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 //				),
 //			},
@@ -546,6 +738,10 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 //					resource.TestCheckResourceAttr("qovery_application.test", "ports.1.external_port", "443"),
 //					resource.TestCheckResourceAttr("qovery_application.test", "ports.1.publicly_accessible", "true"),
 //					resource.TestCheckResourceAttr("qovery_application.test", "ports.1.protocol", "HTTP"),
+//					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+//						"key": regexp.MustCompile(`^QOVERY_`),
+//					}),
 //					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 //				),
 //			},
@@ -586,6 +782,9 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 //					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.publicly_accessible", "true"),
 //					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.protocol", "HTTP"),
 //					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+//						"key": regexp.MustCompile(`^QOVERY_`),
+//					}),
 //					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 //				),
 //			},
@@ -626,6 +825,9 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 //					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
 //					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
 //					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+//						"key": regexp.MustCompile(`^QOVERY_`),
+//					}),
 //					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 //				),
 //			},
@@ -788,6 +990,23 @@ resource "qovery_application" "test" {
   environment_variables = %s
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertEnvVarsToString(environmentVariables),
+	)
+}
+
+func testAccApplicationDefaultConfigWithDatabase(testName string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_application" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  build_mode = "DOCKER"
+  dockerfile_path = "Dockerfile"
+  git_repository = {
+    url = "%s"
+  }
+}
+`, testAccDatabaseDefaultConfig(testName, "REDIS", "6", "CONTAINER"), generateTestName(testName), applicationRepositoryURL,
 	)
 }
 

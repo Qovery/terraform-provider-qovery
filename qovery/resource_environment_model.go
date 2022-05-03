@@ -17,6 +17,14 @@ type Environment struct {
 	EnvironmentVariables        types.Set    `tfsdk:"environment_variables"`
 }
 
+func (e Environment) EnvironmentVariableList() EnvironmentVariableList {
+	return toEnvironmentVariableList(e.EnvironmentVariables)
+}
+
+func (e Environment) BuiltInEnvironmentVariableList() EnvironmentVariableList {
+	return toEnvironmentVariableList(e.BuiltInEnvironmentVariables)
+}
+
 func (e Environment) toCreateEnvironmentRequest() (*client.EnvironmentCreateParams, error) {
 	mode, err := qovery.NewEnvironmentModeEnumFromValue(toString(e.Mode))
 	if err != nil {
@@ -29,7 +37,7 @@ func (e Environment) toCreateEnvironmentRequest() (*client.EnvironmentCreatePara
 			Cluster: toStringPointer(e.ClusterId),
 			Mode:    mode,
 		},
-		EnvironmentVariablesDiff: toEnvironmentVariableList(e.EnvironmentVariables).diff(nil),
+		EnvironmentVariablesDiff: e.EnvironmentVariableList().diff(nil),
 	}, nil
 }
 
@@ -38,7 +46,7 @@ func (e Environment) toUpdateEnvironmentRequest(state Environment) client.Enviro
 		EnvironmentEditRequest: qovery.EnvironmentEditRequest{
 			Name: toStringPointer(e.Name),
 		},
-		EnvironmentVariablesDiff: toEnvironmentVariableList(e.EnvironmentVariables).diff(toEnvironmentVariableList(state.EnvironmentVariables)),
+		EnvironmentVariablesDiff: e.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
 	}
 }
 
@@ -49,7 +57,7 @@ func convertResponseToEnvironment(res *client.EnvironmentResponse) Environment {
 		ClusterId:                   fromString(res.EnvironmentResponse.ClusterId),
 		Name:                        fromString(res.EnvironmentResponse.Name),
 		Mode:                        fromClientEnum(res.EnvironmentResponse.Mode),
-		BuiltInEnvironmentVariables: newEnvironmentVariableListFromResponse(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
-		EnvironmentVariables:        newEnvironmentVariableListFromResponse(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT).toTerraformSet(),
+		BuiltInEnvironmentVariables: fromEnvironmentVariableList(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
+		EnvironmentVariables:        fromEnvironmentVariableList(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT).toTerraformSet(),
 	}
 }

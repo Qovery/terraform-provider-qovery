@@ -121,7 +121,7 @@ func (e EnvironmentVariable) toDeleteRequest() client.EnvironmentVariableDeleteR
 	}
 }
 
-func newEnvironmentVariableFromResponse(v *qovery.EnvironmentVariable) EnvironmentVariable {
+func fromEnvironmentVariable(v *qovery.EnvironmentVariable) EnvironmentVariable {
 	return EnvironmentVariable{
 		Id:    fromString(v.Id),
 		Key:   fromString(v.Key),
@@ -129,19 +129,27 @@ func newEnvironmentVariableFromResponse(v *qovery.EnvironmentVariable) Environme
 	}
 }
 
-func newEnvironmentVariableListFromResponse(vars []*qovery.EnvironmentVariable, scope qovery.EnvironmentVariableScopeEnum) EnvironmentVariableList {
+func fromEnvironmentVariableList(vars []*qovery.EnvironmentVariable, scope qovery.EnvironmentVariableScopeEnum) EnvironmentVariableList {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
 		if v.Scope != scope {
 			continue
 		}
-		list = append(list, newEnvironmentVariableFromResponse(v))
+		list = append(list, fromEnvironmentVariable(v))
 	}
 
 	if len(list) == 0 {
 		return nil
 	}
 	return list
+}
+
+func toEnvironmentVariable(v types.Object) EnvironmentVariable {
+	return EnvironmentVariable{
+		Id:    v.Attrs["id"].(types.String),
+		Key:   v.Attrs["key"].(types.String),
+		Value: v.Attrs["value"].(types.String),
+	}
 }
 
 func toEnvironmentVariableList(vars types.Set) EnvironmentVariableList {
@@ -151,12 +159,7 @@ func toEnvironmentVariableList(vars types.Set) EnvironmentVariableList {
 
 	environmentVariables := make([]EnvironmentVariable, 0, len(vars.Elems))
 	for _, elem := range vars.Elems {
-		v := elem.(types.Object)
-		environmentVariables = append(environmentVariables, EnvironmentVariable{
-			Id:    v.Attrs["id"].(types.String),
-			Key:   v.Attrs["key"].(types.String),
-			Value: v.Attrs["value"].(types.String),
-		})
+		environmentVariables = append(environmentVariables, toEnvironmentVariable(elem.(types.Object)))
 	}
 
 	return environmentVariables

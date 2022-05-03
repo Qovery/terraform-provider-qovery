@@ -69,6 +69,7 @@ resource "qovery_application" "my_application" {
 
 ### Read-Only
 
+- `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this application. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `id` (String) Id of the application.
 
 <a id="nestedatt--git_repository"></a>
@@ -122,6 +123,16 @@ Optional:
 	- Must be: `>= 1`.
 - `type` (String) Type of the storage for the application.
 	- Can be: `FAST_SSD`.
+
+
+<a id="nestedatt--built_in_environment_variables"></a>
+### Nested Schema for `built_in_environment_variables`
+
+Read-Only:
+
+- `id` (String) Id of the environment variable.
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
 
 ## Import
 
