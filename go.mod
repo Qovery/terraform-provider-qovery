@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/terraform-plugin-go v0.9.0
 	github.com/hashicorp/terraform-plugin-log v0.3.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.14.0
-	github.com/qovery/qovery-client-go v0.0.0-20220428130950-b796fcce435c
+	github.com/qovery/qovery-client-go v0.0.0-20220429114405-a74736d79151
 	github.com/sethvargo/go-envconfig v0.6.0
 )
 
