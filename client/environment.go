@@ -81,14 +81,17 @@ func (c *Client) UpdateEnvironment(ctx context.Context, environmentID string, pa
 		if apiErr := c.updateEnvironmentEnvironmentVariables(ctx, environment.Id, params.EnvironmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
 		}
+
+		// Restart environment if environment variables has been updated
+		if _, apiErr := c.restartEnvironment(ctx, environment.Id); apiErr != nil {
+			return nil, apiErr
+		}
 	}
 
 	environmentVariables, apiErr := c.getEnvironmentEnvironmentVariables(ctx, environment.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
-
-	// TODO restart the whole environment if env vars have been changed
 
 	return &EnvironmentResponse{
 		EnvironmentResponse:             environment,
