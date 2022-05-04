@@ -47,6 +47,8 @@ tasks:
       - "qovery/**/*.go"
       - "examples/**/*.tf"
       - "templates/**/*.tmpl"
+      - go.mod
+      - go.sum
     generates:
       - docs/**/*.md
 
