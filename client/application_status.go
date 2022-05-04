@@ -15,6 +15,11 @@ func (c *Client) getApplicationStatus(ctx context.Context, applicationID string)
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplicationStatus, applicationID, res, err)
 	}
+
+	// Handle READY as STOPPED state
+	if status.State == qovery.STATEENUM_READY {
+		status.State = qovery.STATEENUM_STOPPED
+	}
 	return status, nil
 }
 

@@ -93,6 +93,6 @@ func convertResponseToDatabase(res *client.DatabaseResponse) Database {
 		CPU:           fromInt32Pointer(res.DatabaseResponse.Cpu),
 		Memory:        fromInt32Pointer(res.DatabaseResponse.Memory),
 		Storage:       fromInt32Pointer(res.DatabaseResponse.Storage),
-		State:         fromString(string(res.DatabaseStatus.State)),
+		State:         fromClientEnum(res.DatabaseStatus.State),
 	}
 }

@@ -196,6 +196,80 @@ func TestAcc_Application(t *testing.T) {
 	})
 }
 
+func TestAcc_ApplicationWithState(t *testing.T) {
+	t.Parallel()
+	testName := "application-with-state"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccApplicationDefaultConfigWithState(
+					testName,
+					"STOPPED",
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", "main"),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "buildpack_language"),
+					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckResourceAttr("qovery_application.test", "state", "STOPPED"),
+				),
+			},
+			// Update state
+			{
+				Config: testAccApplicationDefaultConfigWithState(
+					testName,
+					"RUNNING",
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", "main"),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "buildpack_language"),
+					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
+				),
+			},
+		},
+	})
+}
+
 func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 	t.Parallel()
 	testName := "application-with-environment-variables"
@@ -898,6 +972,24 @@ resource "qovery_application" "test" {
 	)
 }
 
+func testAccApplicationDefaultConfigWithState(testName string, state string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_application" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  build_mode = "DOCKER"
+  dockerfile_path = "Dockerfile"
+  git_repository = {
+    url = "%s"
+  }
+  state = "%s"
+}
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, state,
+	)
+}
+
 func testAccApplicationDefaultConfigWithAutoPreview(testName string, autoPreview string) string {
 	return fmt.Sprintf(`
 %s
@@ -1004,7 +1096,7 @@ resource "qovery_application" "test" {
     url = "%s"
   }
 }
-`, testAccDatabaseDefaultConfig(testName, "REDIS", "6", "CONTAINER"), generateTestName(testName), applicationRepositoryURL,
+`, testAccDatabaseDefaultConfig(testName, redisContainer), generateTestName(testName), applicationRepositoryURL,
 	)
 }
 
