@@ -14,6 +14,7 @@ type Project struct {
 	Description                 types.String `tfsdk:"description"`
 	BuiltInEnvironmentVariables types.Set    `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables        types.Set    `tfsdk:"environment_variables"`
+	Secrets                     types.Set    `tfsdk:"secrets"`
 }
 
 func (p Project) EnvironmentVariableList() EnvironmentVariableList {
@@ -24,6 +25,10 @@ func (p Project) BuiltInEnvironmentVariableList() EnvironmentVariableList {
 	return toEnvironmentVariableList(p.BuiltInEnvironmentVariables)
 }
 
+func (p Project) SecretList() SecretList {
+	return toSecretList(p.Secrets)
+}
+
 func (p Project) toCreateProjectRequest() client.ProjectUpsertParams {
 	return client.ProjectUpsertParams{
 		ProjectRequest: qovery.ProjectRequest{
@@ -31,6 +36,7 @@ func (p Project) toCreateProjectRequest() client.ProjectUpsertParams {
 			Description: toStringPointer(p.Description),
 		},
 		EnvironmentVariablesDiff: p.EnvironmentVariableList().diff(nil),
+		SecretsDiff:              p.SecretList().diff(nil),
 	}
 }
 
@@ -41,10 +47,11 @@ func (p Project) toUpdateProjectRequest(state Project) client.ProjectUpsertParam
 			Description: toStringPointer(p.Description),
 		},
 		EnvironmentVariablesDiff: p.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
+		SecretsDiff:              p.SecretList().diff(state.SecretList()),
 	}
 }
 
-func convertResponseToProject(res *client.ProjectResponse) Project {
+func convertResponseToProject(state Project, res *client.ProjectResponse) Project {
 	return Project{
 		Id:                          fromString(res.ProjectResponse.Id),
 		OrganizationId:              fromString(res.ProjectResponse.Organization.Id),
@@ -52,5 +59,6 @@ func convertResponseToProject(res *client.ProjectResponse) Project {
 		Description:                 fromStringPointer(res.ProjectResponse.Description),
 		BuiltInEnvironmentVariables: fromEnvironmentVariableList(res.ProjectEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
 		EnvironmentVariables:        fromEnvironmentVariableList(res.ProjectEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_PROJECT).toTerraformSet(),
+		Secrets:                     fromSecretList(state.SecretList(), res.ProjectSecret, qovery.ENVIRONMENTVARIABLESCOPEENUM_PROJECT).toTerraformSet(),
 	}
 }

@@ -197,6 +197,28 @@ func (t applicationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
+			"secrets": {
+				Description: "List of secrets linked to this application.",
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the secret.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Key of the secret.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"value": {
+						Description: "Value of the secret [NOTE: will always be empty].",
+						Type:        types.StringType,
+						Computed:    true,
+						Sensitive:   true,
+					},
+				}, tfsdk.SetNestedAttributesOptions{}),
+			},
 			"state": {
 				Description: "State of the application.",
 				Type:        types.StringType,
@@ -232,7 +254,7 @@ func (d applicationDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 		return
 	}
 
-	state := convertResponseToApplication(application)
+	state := convertResponseToApplication(data, application)
 	tflog.Trace(ctx, "read application", map[string]interface{}{"application_id": state.Id.Value})
 
 	// Set state

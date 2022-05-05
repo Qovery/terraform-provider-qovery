@@ -24,6 +24,7 @@ type Application struct {
 	Ports                       []ApplicationPort         `tfsdk:"ports"`
 	BuiltInEnvironmentVariables types.Set                 `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables        types.Set                 `tfsdk:"environment_variables"`
+	Secrets                     types.Set                 `tfsdk:"secrets"`
 	State                       types.String              `tfsdk:"state"`
 }
 
@@ -33,6 +34,10 @@ func (app Application) EnvironmentVariableList() EnvironmentVariableList {
 
 func (app Application) BuiltInEnvironmentVariableList() EnvironmentVariableList {
 	return toEnvironmentVariableList(app.BuiltInEnvironmentVariables)
+}
+
+func (app Application) SecretList() SecretList {
+	return toSecretList(app.Secrets)
 }
 
 func (app Application) toCreateApplicationRequest() (*client.ApplicationCreateParams, error) {
@@ -85,6 +90,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		},
 		DesiredState:             *desiredState,
 		EnvironmentVariablesDiff: app.EnvironmentVariableList().diff(nil),
+		SecretsDiff:              app.SecretList().diff(nil),
 	}, nil
 
 }
@@ -139,12 +145,13 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:   applicationEditRequest,
 		EnvironmentVariablesDiff: app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
+		SecretsDiff:              app.SecretList().diff(state.SecretList()),
 		DesiredState:             *desiredState,
 	}, nil
 
 }
 
-func convertResponseToApplication(app *client.ApplicationResponse) Application {
+func convertResponseToApplication(state Application, app *client.ApplicationResponse) Application {
 	return Application{
 		Id:                          fromString(app.ApplicationResponse.Id),
 		EnvironmentId:               fromString(app.ApplicationResponse.Environment.Id),
@@ -163,6 +170,7 @@ func convertResponseToApplication(app *client.ApplicationResponse) Application {
 		State:                       fromClientEnum(app.ApplicationStatus.State),
 		BuiltInEnvironmentVariables: fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
 		EnvironmentVariables:        fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
+		Secrets:                     fromSecretList(state.SecretList(), app.ApplicationSecrets, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
 	}
 }
 

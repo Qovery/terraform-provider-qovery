@@ -62,6 +62,7 @@ resource "qovery_application" "my_application" {
 	- Must be: `>= 0`.
 	- Default: `1`.
 - `ports` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
+- `secrets` (Attributes Set) List of secrets linked to this application. (see [below for nested schema](#nestedatt--secrets))
 - `state` (String) State of the application.
 	- Can be: `RUNNING`, `STOPPED`.
 	- Default: `RUNNING`.
@@ -110,6 +111,16 @@ Optional:
 	- Can be: `HTTP`, `HTTPS`, `TCP`, `UDP`.
 	- Default: `HTTP`.
 - `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this application.
+
+
+<a id="nestedatt--secrets"></a>
+### Nested Schema for `secrets`
+
+Optional:
+
+- `id` (String) Id of the secret.
+- `key` (String) Key of the secret.
+- `value` (String, Sensitive) Value of the secret.
 
 
 <a id="nestedatt--storage"></a>

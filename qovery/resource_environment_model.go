@@ -15,6 +15,7 @@ type Environment struct {
 	Mode                        types.String `tfsdk:"mode"`
 	BuiltInEnvironmentVariables types.Set    `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables        types.Set    `tfsdk:"environment_variables"`
+	Secrets                     types.Set    `tfsdk:"secrets"`
 }
 
 func (e Environment) EnvironmentVariableList() EnvironmentVariableList {
@@ -23,6 +24,10 @@ func (e Environment) EnvironmentVariableList() EnvironmentVariableList {
 
 func (e Environment) BuiltInEnvironmentVariableList() EnvironmentVariableList {
 	return toEnvironmentVariableList(e.BuiltInEnvironmentVariables)
+}
+
+func (e Environment) SecretList() SecretList {
+	return toSecretList(e.Secrets)
 }
 
 func (e Environment) toCreateEnvironmentRequest() (*client.EnvironmentCreateParams, error) {
@@ -38,6 +43,7 @@ func (e Environment) toCreateEnvironmentRequest() (*client.EnvironmentCreatePara
 			Mode:    mode,
 		},
 		EnvironmentVariablesDiff: e.EnvironmentVariableList().diff(nil),
+		SecretsDiff:              e.SecretList().diff(nil),
 	}, nil
 }
 
@@ -47,10 +53,11 @@ func (e Environment) toUpdateEnvironmentRequest(state Environment) client.Enviro
 			Name: toStringPointer(e.Name),
 		},
 		EnvironmentVariablesDiff: e.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
+		SecretsDiff:              e.SecretList().diff(state.SecretList()),
 	}
 }
 
-func convertResponseToEnvironment(res *client.EnvironmentResponse) Environment {
+func convertResponseToEnvironment(state Environment, res *client.EnvironmentResponse) Environment {
 	return Environment{
 		Id:                          fromString(res.EnvironmentResponse.Id),
 		ProjectId:                   fromString(res.EnvironmentResponse.Project.Id),
@@ -59,5 +66,6 @@ func convertResponseToEnvironment(res *client.EnvironmentResponse) Environment {
 		Mode:                        fromClientEnum(res.EnvironmentResponse.Mode),
 		BuiltInEnvironmentVariables: fromEnvironmentVariableList(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
 		EnvironmentVariables:        fromEnvironmentVariableList(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT).toTerraformSet(),
+		Secrets:                     fromSecretList(state.SecretList(), res.EnvironmentSecret, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT).toTerraformSet(),
 	}
 }

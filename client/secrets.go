@@ -4,27 +4,39 @@ import (
 	"github.com/qovery/qovery-client-go"
 )
 
-type EnvironmentVariablesDiff struct {
-	Create []EnvironmentVariableCreateRequest
-	Update []EnvironmentVariableUpdateRequest
-	Delete []EnvironmentVariableDeleteRequest
+type SecretsDiff struct {
+	Create []SecretCreateRequest
+	Update []SecretUpdateRequest
+	Delete []SecretDeleteRequest
 }
 
-func (d EnvironmentVariablesDiff) IsEmpty() bool {
+func (d SecretsDiff) IsEmpty() bool {
 	return len(d.Create) == 0 &&
 		len(d.Update) == 0 &&
 		len(d.Delete) == 0
 }
 
-type EnvironmentVariableCreateRequest struct {
-	qovery.EnvironmentVariableRequest
+type SecretCreateRequest struct {
+	qovery.SecretRequest
 }
 
-type EnvironmentVariableUpdateRequest struct {
-	qovery.EnvironmentVariableEditRequest
+type SecretUpdateRequest struct {
+	qovery.SecretEditRequest
 	Id string
 }
 
-type EnvironmentVariableDeleteRequest struct {
+type SecretDeleteRequest struct {
 	Id string
+}
+
+func secretResponseListToArray(list *qovery.SecretResponseList, scope qovery.EnvironmentVariableScopeEnum) []*qovery.Secret {
+	vars := make([]*qovery.Secret, 0, len(list.GetResults()))
+	for _, v := range list.GetResults() {
+		if v.Scope != scope && v.Scope != qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN {
+			continue
+		}
+		cpy := v
+		vars = append(vars, &cpy)
+	}
+	return vars
 }

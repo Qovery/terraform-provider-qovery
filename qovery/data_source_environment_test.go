@@ -29,6 +29,9 @@ func TestAcc_EnvironmentDataSource(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("data.qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_environment.test", "secrets.*", map[string]string{
+						"key": "MY_TERRAFORM_ENVIRONMENT_SECRET",
+					}),
 				),
 			},
 		},

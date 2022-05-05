@@ -50,6 +50,7 @@ resource "qovery_project" "my_project_with_environment_variables" {
 
 - `description` (String) Description of the project.
 - `environment_variables` (Attributes Set) List of environment variables linked to this project. (see [below for nested schema](#nestedatt--environment_variables))
+- `secrets` (Attributes Set) List of secrets linked to this project. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
 
@@ -64,6 +65,16 @@ Optional:
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
+
+
+<a id="nestedatt--secrets"></a>
+### Nested Schema for `secrets`
+
+Optional:
+
+- `id` (String) Id of the secret.
+- `key` (String) Key of the secret.
+- `value` (String, Sensitive) Value of the secret.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>

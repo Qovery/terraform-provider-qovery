@@ -25,6 +25,10 @@ data "qovery_application" "my_application" {
 
 - `id` (String) Id of the application.
 
+### Optional
+
+- `secrets` (Attributes Set) List of secrets linked to this application. (see [below for nested schema](#nestedatt--secrets))
+
 ### Read-Only
 
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
@@ -43,6 +47,16 @@ data "qovery_application" "my_application" {
 - `ports` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
 - `state` (String) State of the application.
 - `storage` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
+
+<a id="nestedatt--secrets"></a>
+### Nested Schema for `secrets`
+
+Optional:
+
+- `id` (String) Id of the secret.
+- `key` (String) Key of the secret.
+- `value` (String, Sensitive) Value of the secret [NOTE: will always be empty].
+
 
 <a id="nestedatt--built_in_environment_variables"></a>
 ### Nested Schema for `built_in_environment_variables`

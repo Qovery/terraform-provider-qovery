@@ -107,6 +107,28 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
+			"secrets": {
+				Description: "List of secrets linked to this environment.",
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the secret.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Key of the secret.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Value of the secret.",
+						Type:        types.StringType,
+						Required:    true,
+						Sensitive:   true,
+					},
+				}, tfsdk.SetNestedAttributesOptions{}),
+			},
 		},
 	}, nil
 }
@@ -143,7 +165,7 @@ func (r environmentResource) Create(ctx context.Context, req tfsdk.CreateResourc
 	}
 
 	// Initialize state values
-	state := convertResponseToEnvironment(environment)
+	state := convertResponseToEnvironment(plan, environment)
 	tflog.Trace(ctx, "created environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
@@ -167,7 +189,7 @@ func (r environmentResource) Read(ctx context.Context, req tfsdk.ReadResourceReq
 	}
 
 	// Refresh state values
-	state = convertResponseToEnvironment(environment)
+	state = convertResponseToEnvironment(state, environment)
 	tflog.Trace(ctx, "read environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
@@ -192,7 +214,7 @@ func (r environmentResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 	}
 
 	// Update state values
-	state = convertResponseToEnvironment(environment)
+	state = convertResponseToEnvironment(plan, environment)
 	tflog.Trace(ctx, "updated environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
