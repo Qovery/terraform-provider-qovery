@@ -53,6 +53,7 @@ resource "qovery_environment" "my_environment_with_environment_variables" {
 - `mode` (String) Mode of the environment [NOTE: can't be updated after creation].
 	- Can be: `DEVELOPMENT`, `PREVIEW`, `PRODUCTION`, `STAGING`.
 	- Default: `DEVELOPMENT`.
+- `secrets` (Attributes Set) List of secrets linked to this environment. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
 
@@ -67,6 +68,16 @@ Optional:
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
+
+
+<a id="nestedatt--secrets"></a>
+### Nested Schema for `secrets`
+
+Optional:
+
+- `id` (String) Id of the secret.
+- `key` (String) Key of the secret.
+- `value` (String, Sensitive) Value of the secret.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>

@@ -370,6 +370,28 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
+			"secrets": {
+				Description: "List of secrets linked to this application.",
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the secret.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Key of the secret.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Value of the secret.",
+						Type:        types.StringType,
+						Required:    true,
+						Sensitive:   true,
+					},
+				}, tfsdk.SetNestedAttributesOptions{}),
+			},
 			"state": {
 				Description: descriptions.NewStringEnumDescription(
 					"State of the application.",
@@ -422,7 +444,7 @@ func (r applicationResource) Create(ctx context.Context, req tfsdk.CreateResourc
 	}
 
 	// Initialize state values
-	state := convertResponseToApplication(application)
+	state := convertResponseToApplication(plan, application)
 	tflog.Trace(ctx, "created application", map[string]interface{}{"application_id": state.Id.Value})
 
 	// Set state
@@ -446,7 +468,7 @@ func (r applicationResource) Read(ctx context.Context, req tfsdk.ReadResourceReq
 	}
 
 	// Refresh state values
-	state = convertResponseToApplication(application)
+	state = convertResponseToApplication(state, application)
 	tflog.Trace(ctx, "read application", map[string]interface{}{"application_id": state.Id.Value})
 
 	// Set state
@@ -476,7 +498,7 @@ func (r applicationResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 	}
 
 	// Update state values
-	state = convertResponseToApplication(application)
+	state = convertResponseToApplication(plan, application)
 	tflog.Trace(ctx, "updated application", map[string]interface{}{"application_id": state.Id.Value})
 
 	// Set state

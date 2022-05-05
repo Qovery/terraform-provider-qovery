@@ -81,6 +81,28 @@ func (r projectResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
+			"secrets": {
+				Description: "List of secrets linked to this project.",
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the secret.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Key of the secret.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Value of the secret.",
+						Type:        types.StringType,
+						Required:    true,
+						Sensitive:   true,
+					},
+				}, tfsdk.SetNestedAttributesOptions{}),
+			},
 		},
 	}, nil
 }
@@ -113,7 +135,7 @@ func (r projectResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 	}
 
 	// Initialize state values
-	state := convertResponseToProject(project)
+	state := convertResponseToProject(plan, project)
 	tflog.Trace(ctx, "created project", map[string]interface{}{"project_id": state.Id.Value})
 
 	// Set state
@@ -137,7 +159,7 @@ func (r projectResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 	}
 
 	// Refresh state values
-	state = convertResponseToProject(project)
+	state = convertResponseToProject(state, project)
 	tflog.Trace(ctx, "read project", map[string]interface{}{"project_id": state.Id.Value})
 
 	// Set state
@@ -162,7 +184,7 @@ func (r projectResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 
 	// Update state values
-	state = convertResponseToProject(project)
+	state = convertResponseToProject(plan, project)
 	tflog.Trace(ctx, "updated project", map[string]interface{}{"project_id": state.Id.Value})
 
 	// Set state

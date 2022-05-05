@@ -50,15 +50,3 @@ func (c *Client) updateProjectEnvironmentVariables(ctx context.Context, projectI
 	}
 	return nil
 }
-
-func environmentVariableResponseListToArray(list *qovery.EnvironmentVariableResponseList, scope qovery.EnvironmentVariableScopeEnum) []*qovery.EnvironmentVariable {
-	vars := make([]*qovery.EnvironmentVariable, 0, len(list.GetResults()))
-	for _, v := range list.GetResults() {
-		if v.Scope != scope && v.Scope != qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN {
-			continue
-		}
-		cpy := v
-		vars = append(vars, &cpy)
-	}
-	return vars
-}

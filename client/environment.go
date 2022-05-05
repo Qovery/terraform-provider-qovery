@@ -11,16 +11,19 @@ import (
 type EnvironmentResponse struct {
 	EnvironmentResponse             *qovery.Environment
 	EnvironmentEnvironmentVariables []*qovery.EnvironmentVariable
+	EnvironmentSecret               []*qovery.Secret
 }
 
 type EnvironmentCreateParams struct {
 	EnvironmentRequest       qovery.EnvironmentRequest
 	EnvironmentVariablesDiff EnvironmentVariablesDiff
+	SecretsDiff              SecretsDiff
 }
 
 type EnvironmentUpdateParams struct {
 	EnvironmentEditRequest   qovery.EnvironmentEditRequest
 	EnvironmentVariablesDiff EnvironmentVariablesDiff
+	SecretsDiff              SecretsDiff
 }
 
 func (c *Client) CreateEnvironment(ctx context.Context, projectID string, params *EnvironmentCreateParams) (*EnvironmentResponse, *apierrors.APIError) {
@@ -38,7 +41,18 @@ func (c *Client) CreateEnvironment(ctx context.Context, projectID string, params
 		}
 	}
 
+	if !params.SecretsDiff.IsEmpty() {
+		if apiErr := c.updateEnvironmentSecrets(ctx, environment.Id, params.SecretsDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
 	environmentVariables, apiErr := c.getEnvironmentEnvironmentVariables(ctx, environment.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	secrets, apiErr := c.getEnvironmentSecrets(ctx, environment.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -46,6 +60,7 @@ func (c *Client) CreateEnvironment(ctx context.Context, projectID string, params
 	return &EnvironmentResponse{
 		EnvironmentResponse:             environment,
 		EnvironmentEnvironmentVariables: environmentVariables,
+		EnvironmentSecret:               secrets,
 	}, nil
 }
 
@@ -62,9 +77,15 @@ func (c *Client) GetEnvironment(ctx context.Context, environmentID string) (*Env
 		return nil, apiErr
 	}
 
+	secrets, apiErr := c.getEnvironmentSecrets(ctx, environment.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	return &EnvironmentResponse{
 		EnvironmentResponse:             environment,
 		EnvironmentEnvironmentVariables: environmentVariables,
+		EnvironmentSecret:               secrets,
 	}, nil
 }
 
@@ -81,8 +102,16 @@ func (c *Client) UpdateEnvironment(ctx context.Context, environmentID string, pa
 		if apiErr := c.updateEnvironmentEnvironmentVariables(ctx, environment.Id, params.EnvironmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
 		}
+	}
 
-		// Restart environment if environment variables has been updated
+	if !params.SecretsDiff.IsEmpty() {
+		if apiErr := c.updateEnvironmentSecrets(ctx, environment.Id, params.SecretsDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
+	// Restart environment if environment variables / secrets has been updated
+	if !params.EnvironmentVariablesDiff.IsEmpty() || !params.SecretsDiff.IsEmpty() {
 		if _, apiErr := c.restartEnvironment(ctx, environment.Id); apiErr != nil {
 			return nil, apiErr
 		}
@@ -93,9 +122,15 @@ func (c *Client) UpdateEnvironment(ctx context.Context, environmentID string, pa
 		return nil, apiErr
 	}
 
+	secrets, apiErr := c.getEnvironmentSecrets(ctx, environment.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	return &EnvironmentResponse{
 		EnvironmentResponse:             environment,
 		EnvironmentEnvironmentVariables: environmentVariables,
+		EnvironmentSecret:               secrets,
 	}, nil
 }
 

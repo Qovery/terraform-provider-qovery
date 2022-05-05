@@ -11,11 +11,13 @@ import (
 type ProjectResponse struct {
 	ProjectResponse             *qovery.Project
 	ProjectEnvironmentVariables []*qovery.EnvironmentVariable
+	ProjectSecret               []*qovery.Secret
 }
 
 type ProjectUpsertParams struct {
 	ProjectRequest           qovery.ProjectRequest
 	EnvironmentVariablesDiff EnvironmentVariablesDiff
+	SecretsDiff              SecretsDiff
 }
 
 func (c *Client) CreateProject(ctx context.Context, organizationID string, params ProjectUpsertParams) (*ProjectResponse, *apierrors.APIError) {
@@ -33,7 +35,18 @@ func (c *Client) CreateProject(ctx context.Context, organizationID string, param
 		}
 	}
 
+	if !params.SecretsDiff.IsEmpty() {
+		if apiErr := c.updateProjectSecrets(ctx, project.Id, params.SecretsDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
 	projectVariables, apiErr := c.getProjectEnvironmentVariables(ctx, project.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	secrets, apiErr := c.getProjectSecrets(ctx, project.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -41,6 +54,7 @@ func (c *Client) CreateProject(ctx context.Context, organizationID string, param
 	return &ProjectResponse{
 		ProjectResponse:             project,
 		ProjectEnvironmentVariables: projectVariables,
+		ProjectSecret:               secrets,
 	}, nil
 }
 
@@ -57,9 +71,15 @@ func (c *Client) GetProject(ctx context.Context, projectID string) (*ProjectResp
 		return nil, apiErr
 	}
 
+	secrets, apiErr := c.getProjectSecrets(ctx, project.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	return &ProjectResponse{
 		ProjectResponse:             project,
 		ProjectEnvironmentVariables: projectVariables,
+		ProjectSecret:               secrets,
 	}, nil
 }
 
@@ -78,7 +98,18 @@ func (c *Client) UpdateProject(ctx context.Context, projectID string, params Pro
 		}
 	}
 
+	if !params.SecretsDiff.IsEmpty() {
+		if apiErr := c.updateProjectSecrets(ctx, project.Id, params.SecretsDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
 	projectVariables, apiErr := c.getProjectEnvironmentVariables(ctx, project.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	secrets, apiErr := c.getProjectSecrets(ctx, project.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -86,6 +117,7 @@ func (c *Client) UpdateProject(ctx context.Context, projectID string, params Pro
 	return &ProjectResponse{
 		ProjectResponse:             project,
 		ProjectEnvironmentVariables: projectVariables,
+		ProjectSecret:               secrets,
 	}, nil
 }
 

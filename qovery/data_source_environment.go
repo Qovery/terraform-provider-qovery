@@ -85,6 +85,28 @@ func (t environmentDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
+			"secrets": {
+				Description: "List of secrets linked to this environment.",
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the secret.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Key of the secret.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"value": {
+						Description: "Value of the secret [NOTE: will always be empty].",
+						Type:        types.StringType,
+						Computed:    true,
+						Sensitive:   true,
+					},
+				}, tfsdk.SetNestedAttributesOptions{}),
+			},
 		},
 	}, nil
 }
@@ -115,7 +137,7 @@ func (d environmentDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 		return
 	}
 
-	state := convertResponseToEnvironment(environment)
+	state := convertResponseToEnvironment(data, environment)
 	tflog.Trace(ctx, "read environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
