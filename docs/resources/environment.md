@@ -14,26 +14,28 @@ Provides a Qovery environment resource. This can be used to create and manage Qo
 
 ```terraform
 resource "qovery_environment" "my_environment" {
+  # Required
   project_id = qovery_project.my_project.id
   name       = "MyEnvironment"
 
-  depends_on = [
-    qovery_project.my_project
-  ]
-}
-
-resource "qovery_environment" "my_environment_with_environment_variables" {
-  project_id = qovery_project.my_project.id
-  name       = "MyEnvironment"
+  # Optional
+  cluster_id = qovery_cluster.my_cluster.id
+  mode       = "DEVELOPMENT"
   environment_variables = [
     {
-      "key" : "key",
-      "value" : "value"
+      key   = "ENV_VAR_KEY"
+      value = "ENV_VAR_VALUE"
+    }
+  ]
+  secrets = [
+    {
+      key   = "SECRET_KEY"
+      value = "SECRET_VALUE"
     }
   ]
 
   depends_on = [
-    qovery_organization.my_project
+    qovery_project.my_project
   ]
 }
 ```

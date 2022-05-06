@@ -14,15 +14,19 @@ Provides a Qovery database resource. This can be used to create and manage Qover
 
 ```terraform
 resource "qovery_database" "my_database" {
+  # Required
   environment_id = qovery_environment.my_environment.id
   name           = "MyDatabase"
   type           = "POSTGRESQL"
   version        = "10"
   mode           = "CONTAINER"
-  accessibility  = "PRIVATE"
-  cpu            = 250
-  memory         = 256
-  storage        = 10240
+
+  # Optional
+  accessibility = "PRIVATE"
+  cpu           = 250
+  memory        = 256
+  storage       = 10
+  state         = "RUNNING"
 
   depends_on = [
     qovery_environment.my_environment

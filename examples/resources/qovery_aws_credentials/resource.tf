@@ -1,4 +1,5 @@
 resource "qovery_aws_credentials" "my_aws_creds" {
+  # Required
   organization_id   = qovery_organization.my_organization.id
   name              = "my_aws_creds"
   access_key_id     = "<your-aws-access-key-id>"
