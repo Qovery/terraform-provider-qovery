@@ -1,7 +1,11 @@
 package qovery
 
 import (
+	"bytes"
 	"context"
+	"embed"
+	_ "embed"
+	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -19,6 +23,9 @@ import (
 )
 
 var (
+	//go:embed data/cluster_instance_types/*.json
+	instanceTypes embed.FS
+
 	// Cluster State
 	clusterStates = clientEnumToStringArray([]qovery.StateEnum{
 		qovery.STATEENUM_RUNNING,
@@ -49,8 +56,8 @@ type clusterResourceType struct {
 }
 
 func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	// Dynamically fetch cluster instance type for documentation
-	clusterInstanceTypesByProvider, err := fetchInstanceTypes(r.client)
+	// Read cluster instance type for documentation from embedded files
+	clusterInstanceTypesByProvider, err := readInstanceTypes()
 	if err != nil {
 		return tfsdk.Schema{}, []diag.Diagnostic{
 			diag.NewErrorDiagnostic("Unable to fetch cluster instance types", err.Error()),
@@ -327,20 +334,28 @@ func (r clusterResource) ImportState(ctx context.Context, req tfsdk.ImportResour
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, tftypes.NewAttributePath().WithAttributeName("organization_id"), idParts[0])...)
 }
 
-func fetchInstanceTypes(api *client.Client) (map[string][]string, error) {
-	resp, err := api.GetClusterInstanceTypes(context.Background())
+func readInstanceTypes() (map[string][]string, error) {
+	dir := "data/cluster_instance_types"
+	files, err := instanceTypes.ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 
 	instanceTypesByProvider := map[string][]string{}
-	for provider, instanceTypes := range resp {
-		if instanceTypesByProvider[string(provider)] == nil {
-			instanceTypesByProvider[string(provider)] = make([]string, len(instanceTypes.GetResults()))
+	for _, f := range files {
+		byteArray, err := instanceTypes.ReadFile(fmt.Sprintf("%s/%s", dir, f.Name()))
+		if err != nil {
+			return nil, err
 		}
-		for idx, it := range instanceTypes.GetResults() {
-			instanceTypesByProvider[string(provider)][idx] = it.Type
+
+		var data []string
+		if err := json.NewDecoder(bytes.NewBuffer(byteArray)).Decode(&data); err != nil {
+			return nil, err
 		}
+
+		provider := strings.Split(f.Name(), ".")[0]
+		instanceTypesByProvider[strings.ToUpper(provider)] = data
 	}
+
 	return instanceTypesByProvider, nil
 }

@@ -47,10 +47,20 @@ tasks:
       - "qovery/**/*.go"
       - "examples/**/*.tf"
       - "templates/**/*.tmpl"
+      - "qovery/data/cluster_instance_types/*.json"
       - go.mod
       - go.sum
     generates:
       - docs/**/*.md
+    deps:
+      - fetch-instance-types
+
+  fetch-instance-types:
+    desc: Update cluster_instance_types local data
+    cmds:
+      - ./scripts/fetch_instance_types.sh
+    generates:
+      - qovery/data/cluster_instance_types/*.json
 
   lint:
     desc: Run linters
