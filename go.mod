@@ -8,7 +8,7 @@ require (
 	github.com/hashicorp/terraform-plugin-framework v0.8.0
 	github.com/hashicorp/terraform-plugin-go v0.9.0
 	github.com/hashicorp/terraform-plugin-log v0.4.0
-	github.com/hashicorp/terraform-plugin-sdk/v2 v2.15.0
+	github.com/hashicorp/terraform-plugin-sdk/v2 v2.16.0
 	github.com/qovery/qovery-client-go v0.0.0-20220429114405-a74736d79151
 	github.com/sethvargo/go-envconfig v0.6.0
 )
@@ -34,7 +34,7 @@ require (
 	github.com/hashicorp/go-plugin v1.4.3 // indirect
 	github.com/hashicorp/go-uuid v1.0.3 // indirect
 	github.com/hashicorp/go-version v1.4.0 // indirect
-	github.com/hashicorp/hc-install v0.3.1 // indirect
+	github.com/hashicorp/hc-install v0.3.2 // indirect
 	github.com/hashicorp/hcl/v2 v2.12.0 // indirect
 	github.com/hashicorp/logutils v1.0.0 // indirect
 	github.com/hashicorp/terraform-exec v0.16.1 // indirect
