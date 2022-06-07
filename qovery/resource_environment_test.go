@@ -388,10 +388,11 @@ func testAccEnvironmentDefaultConfig(testName string) string {
 %s
 
 resource "qovery_environment" "test" {
+  cluster_id = "%s"
   project_id = qovery_project.test.id
   name = "%s"
 }
-`, testAccProjectDefaultConfig(testName), generateTestName(testName),
+`, testAccProjectDefaultConfig(testName), getTestClusterID(), generateTestName(testName),
 	)
 }
 
@@ -400,11 +401,12 @@ func testAccEnvironmentDefaultConfigWithMode(testName string, mode string) strin
 %s
 
 resource "qovery_environment" "test" {
+  cluster_id = "%s"
   project_id = qovery_project.test.id
   name = "%s"
   mode = "%s"
 }
-`, testAccProjectDefaultConfig(testName), generateTestName(testName), mode,
+`, testAccProjectDefaultConfig(testName), getTestClusterID(), generateTestName(testName), mode,
 	)
 }
 
@@ -413,11 +415,12 @@ func testAccEnvironmentDefaultConfigWithEnvironmentVariables(testName string, en
 %s
 
 resource "qovery_environment" "test" {
+  cluster_id = "%s"
   project_id = qovery_project.test.id
   name = "%s"
   environment_variables = %s
 }
-`, testAccProjectDefaultConfig(testName), generateTestName(testName), convertEnvVarsToString(environmentVariables),
+`, testAccProjectDefaultConfig(testName), getTestClusterID(), generateTestName(testName), convertEnvVarsToString(environmentVariables),
 	)
 }
 
@@ -426,10 +429,11 @@ func testAccEnvironmentDefaultConfigWithSecrets(testName string, secrets map[str
 %s
 
 resource "qovery_environment" "test" {
+  cluster_id = "%s"
   project_id = qovery_project.test.id
   name = "%s"
   secrets = %s
 }
-`, testAccProjectDefaultConfig(testName), generateTestName(testName), convertEnvVarsToString(secrets),
+`, testAccProjectDefaultConfig(testName), getTestClusterID(), generateTestName(testName), convertEnvVarsToString(secrets),
 	)
 }
