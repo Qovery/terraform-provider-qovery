@@ -23,7 +23,7 @@ func TestAcc_EnvironmentDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_environment.test", "id", getTestEnvironmentID()),
 					resource.TestCheckResourceAttr("data.qovery_environment.test", "project_id", getTestProjectID()),
 					resource.TestCheckResourceAttr("data.qovery_environment.test", "cluster_id", getTestClusterID()),
-					resource.TestCheckResourceAttr("data.qovery_environment.test", "name", "MyTerraformEnvironment"),
+					resource.TestCheckResourceAttr("data.qovery_environment.test", "name", "tests"),
 					resource.TestCheckResourceAttr("data.qovery_environment.test", "mode", "DEVELOPMENT"),
 					resource.TestCheckNoResourceAttr("data.qovery_environment.test", "environment_variables.0"),
 					resource.TestMatchTypeSetElemNestedAttrs("data.qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{

@@ -22,8 +22,8 @@ func TestAcc_ProjectDataSource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.qovery_project.test", "id", getTestProjectID()),
 					resource.TestCheckResourceAttr("data.qovery_project.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("data.qovery_project.test", "name", "MyTerraformProject"),
-					resource.TestCheckResourceAttr("data.qovery_project.test", "description", "Project to test terraform"),
+					resource.TestCheckResourceAttr("data.qovery_project.test", "name", "Terraform Provider Tests"),
+					resource.TestCheckResourceAttr("data.qovery_project.test", "description", "Project used to run test for our terraform provider"),
 					resource.TestCheckNoResourceAttr("data.qovery_project.test", "environment_variables.0.id"),
 					resource.TestCheckNoResourceAttr("data.qovery_project.test", "built_in_environment_variables.0.id"),
 					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_project.test", "secrets.*", map[string]string{
