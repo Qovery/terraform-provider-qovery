@@ -23,7 +23,7 @@ func TestAcc_ApplicationDataSource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.qovery_application.test", "id", getTestApplicationID()),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "environment_id", getTestEnvironmentID()),
-					resource.TestCheckResourceAttr("data.qovery_application.test", "name", "MyTerraformApplication"),
+					resource.TestCheckResourceAttr("data.qovery_application.test", "name", "http-server"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "git_repository.url", applicationRepositoryURL),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "git_repository.branch", "main"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "git_repository.root_path", "/"),
@@ -39,7 +39,7 @@ func TestAcc_ApplicationDataSource(t *testing.T) {
 					resource.TestCheckNoResourceAttr("data.qovery_application.test", "ports.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_application.test", "environment_variables.*", map[string]string{
 						"key":   "MY_TERRAFORM_APPLICATION_VARIABLE",
-						"value": "MY_TERRAFORM_APPLICATION_VALUE",
+						"value": "MY_TERRAFORM_APPLICATION_VARIABLE_VALUE",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_application.test", "secrets.*", map[string]string{
 						"key": "MY_TERRAFORM_APPLICATION_SECRET",

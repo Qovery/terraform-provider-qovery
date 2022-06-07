@@ -13,7 +13,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-const applicationRepositoryURL = "https://gitlab.com/bbenamira/go-http-server.git"
+const applicationRepositoryURL = "https://github.com/benamib/go-http-server.git"
 
 type applicationStorage struct {
 	Type       string
