@@ -41,8 +41,7 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 			"cluster_id": {
 				Description: "Id of the cluster [NOTE: can't be updated after creation].",
 				Type:        types.StringType,
-				Optional:    true,
-				Computed:    true,
+				Required:    true,
 			},
 			"name": {
 				Description: "Name of the environment.",
