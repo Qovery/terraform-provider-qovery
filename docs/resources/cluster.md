@@ -47,7 +47,7 @@ resource "qovery_cluster" "my_cluster" {
 	- Can be: `AWS`, `DIGITAL_OCEAN`, `SCALEWAY`.
 - `credentials_id` (String) Id of the credentials.
 - `instance_type` (String) Instance type of the cluster.
-	- AWS: `M5_2XLARGE`, `M5_4XLARGE`, `M5_LARGE`, `M5_XLARGE`, `T2_LARGE`, `T2_XLARGE`, `T3A_2XLARGE`, `T3A_LARGE`, `T3A_MEDIUM`, `T3A_XLARGE`, `T3_2XLARGE`, `T3_LARGE`, `T3_MEDIUM`, `T3_XLARGE`.
+	- AWS: `M5_2XLARGE`, `M5_4XLARGE`, `M5_LARGE`, `M5_XLARGE`, `T2_LARGE`, `T2_XLARGE`, `T3A_2XLARGE`, `T3A_LARGE`, `T3A_MEDIUM`, `T3A_SMALL`, `T3A_XLARGE`, `T3_2XLARGE`, `T3_LARGE`, `T3_MEDIUM`, `T3_SMALL`, `T3_XLARGE`.
 	- DIGITAL_OCEAN: `S_1VCPU_1GB`, `S_2VCPU_2GB`, `S_2VCPU_4GB`, `S_4VCPU_8GB`, `S_8VCPU_16GB`.
 	- SCALEWAY: `DEV1_L`, `DEV1_M`, `DEV1_XL`, `GP1_L`, `GP1_M`, `GP1_S`, `GP1_XL`, `GP1_XS`.
 - `name` (String) Name of the cluster.
