@@ -39,7 +39,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		clusterCloudProviderRequest = &qovery.ClusterCloudProviderInfoRequest{
 			CloudProvider: cloudProvider,
 			Region:        toStringPointer(c.Region),
-			Credentials: &qovery.ClusterCloudProviderInfoRequestCredentials{
+			Credentials: &qovery.ClusterCloudProviderInfoCredentials{
 				Id:   toStringPointer(c.CredentialsId),
 				Name: toStringPointer(c.Name),
 			},
@@ -97,7 +97,7 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 		}
 		switch *f.Id {
 		case featureIdVpcSubnet:
-			attrs[featureKeyVpcSubnet] = fromString(f.Value.(string))
+			attrs[featureKeyVpcSubnet] = fromStringPointer(f.GetValue().String)
 			attrTypes[featureKeyVpcSubnet] = types.StringType
 		}
 	}
@@ -112,14 +112,14 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 	}
 }
 
-func toQoveryClusterFeatures(f types.Object) []qovery.ClusterFeatureRequestFeatures {
+func toQoveryClusterFeatures(f types.Object) []qovery.ClusterFeatureRequestFeaturesInner {
 	if f.Null || f.Unknown {
 		return nil
 	}
 
-	features := make([]qovery.ClusterFeatureRequestFeatures, 0, len(f.Attrs))
+	features := make([]qovery.ClusterFeatureRequestFeaturesInner, 0, len(f.Attrs))
 	if _, ok := f.Attrs[featureKeyVpcSubnet]; ok {
-		features = append(features, qovery.ClusterFeatureRequestFeatures{
+		features = append(features, qovery.ClusterFeatureRequestFeaturesInner{
 			Id:    stringAsPointer(featureIdVpcSubnet),
 			Value: *qovery.NewNullableString(toStringPointer(f.Attrs[featureKeyVpcSubnet].(types.String))),
 		})
