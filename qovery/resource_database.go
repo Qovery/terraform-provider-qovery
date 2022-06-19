@@ -161,6 +161,31 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 					validators.Int64MinValidator{Min: databaseStorageMin},
 				},
 			},
+			"external_host": {
+				Description: "The database external FQDN host (only if your database is publicly accessible with ACCESSIBILITY = PUBLIC)",
+				Type:        types.StringType,
+				Computed:    true,
+			},
+			"internal_host": {
+				Description: "The database internal host (Recommended for your application)",
+				Type:        types.StringType,
+				Computed:    true,
+			},
+			"port": {
+				Description: "The port to connect to your database",
+				Type:        types.Int64Type,
+				Computed:    true,
+			},
+			"login": {
+				Description: "The login to connect to your database",
+				Type:        types.StringType,
+				Computed:    true,
+			},
+			"password": {
+				Description: "The password to connect to your database",
+				Type:        types.StringType,
+				Computed:    true,
+			},
 			"state": {
 				Description: descriptions.NewStringEnumDescription(
 					"State of the database.",

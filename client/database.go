@@ -66,7 +66,8 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 	// Context: since I need to get the internal host of my database and this information is only available via the environment env vars,
 	// then we list all env vars from the environment where the database is to take it.
 	// FIXME - it's a really bad idea of doing that but I have no choice... If we change the way we structure environment variable backend side, then we will be f***ed up :/
-	hostInternalKey := fmt.Sprintf("QOVERY_POSTGRESQL_Z%s_HOST_INTERNAL", strings.Split(databaseID, "-")[0])
+	hostInternalKey := fmt.Sprintf("QOVERY_POSTGRESQL_Z%s_HOST_INTERNAL", strings.ToUpper(strings.Split(databaseID, "-")[0]))
+	// Expected host internal key syntax is `QOVERY_POSTGRESQL_Z{DB-ID}_HOST_INTERNAL`
 	hostInternal := ""
 	for _, env := range environmentVariables {
 		if env.Key == hostInternalKey {
