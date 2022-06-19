@@ -3,7 +3,6 @@ package qovery
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
-
 	"github.com/qovery/terraform-provider-qovery/client"
 )
 
@@ -17,6 +16,11 @@ type Database struct {
 	Accessibility types.String `tfsdk:"accessibility"`
 	CPU           types.Int64  `tfsdk:"cpu"`
 	Memory        types.Int64  `tfsdk:"memory"`
+	ExternalHost  types.String `tfsdk:"external_host"`
+	InternalHost  types.String `tfsdk:"internal_host"`
+	Port          types.Int64  `tfsdk:"port"`
+	Login         types.String `tfsdk:"login"`
+	Password      types.String `tfsdk:"password"`
 	Storage       types.Int64  `tfsdk:"storage"`
 	State         types.String `tfsdk:"state"`
 }
@@ -92,6 +96,11 @@ func convertResponseToDatabase(res *client.DatabaseResponse) Database {
 		Accessibility: fromClientEnumPointer(res.DatabaseResponse.Accessibility),
 		CPU:           fromInt32Pointer(res.DatabaseResponse.Cpu),
 		Memory:        fromInt32Pointer(res.DatabaseResponse.Memory),
+		ExternalHost:  fromString(res.DatabaseResponse.GetHost()),
+		InternalHost:  fromString(res.DatabaseInternalHost),
+		Port:          fromInt32Pointer(res.DatabaseResponse.Port),
+		Login:         fromString(res.DatabaseCredentials.Login),
+		Password:      fromString(res.DatabaseCredentials.Password),
 		Storage:       fromInt32Pointer(res.DatabaseResponse.Storage),
 		State:         fromClientEnum(res.DatabaseStatus.State),
 	}

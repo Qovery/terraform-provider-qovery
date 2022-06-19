@@ -53,10 +53,11 @@ func (t databaseDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag
 				Computed:    true,
 			},
 			"cpu": {
-				Description: "CPU of the database in millicores (m) [1000m = 1 CPU].",
+				Description: "CPU of the database in milli-cores (m) [1000m = 1 CPU].",
 				Type:        types.Int64Type,
 				Computed:    true,
 			},
+
 			"memory": {
 				Description: "RAM of the database in MB [1024MB = 1GB].",
 				Type:        types.Int64Type,
@@ -65,6 +66,31 @@ func (t databaseDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag
 			"storage": {
 				Description: "Storage of the database in MB [1024MB = 1GB].",
 				Type:        types.Int64Type,
+				Computed:    true,
+			},
+			"external_host": {
+				Description: "The database external FQDN host (only if your database is publicly accessible with ACCESSIBILITY = PUBLIC)",
+				Type:        types.StringType,
+				Computed:    true,
+			},
+			"internal_host": {
+				Description: "The database internal host (Recommended for your application)",
+				Type:        types.StringType,
+				Computed:    true,
+			},
+			"port": {
+				Description: "The port to connect to your database",
+				Type:        types.Int64Type,
+				Computed:    true,
+			},
+			"login": {
+				Description: "The login to connect to your database",
+				Type:        types.StringType,
+				Computed:    true,
+			},
+			"password": {
+				Description: "The password to connect to your database",
+				Type:        types.StringType,
 				Computed:    true,
 			},
 			"state": {

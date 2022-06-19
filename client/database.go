@@ -2,6 +2,8 @@ package client
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/qovery/qovery-client-go"
 
@@ -9,8 +11,10 @@ import (
 )
 
 type DatabaseResponse struct {
-	DatabaseResponse *qovery.Database
-	DatabaseStatus   *qovery.Status
+	DatabaseResponse     *qovery.Database
+	DatabaseStatus       *qovery.Status
+	DatabaseCredentials  *qovery.Credentials
+	DatabaseInternalHost string
 }
 
 type DatabaseCreateParams struct {
@@ -47,10 +51,47 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 		return nil, apiErr
 	}
 
+	credentials, apiErr := c.GetDatabaseCredentials(ctx, databaseID)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	environmentVariables, apiErr := c.getEnvironmentEnvironmentVariables(ctx, database.Environment.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	// Get all environment variables associated to this database,
+	// and pick only the elements that I need to construct my struct below
+	// Context: since I need to get the internal host of my database and this information is only available via the environment env vars,
+	// then we list all env vars from the environment where the database is to take it.
+	// FIXME - it's a really bad idea of doing that but I have no choice... If we change the way we structure environment variable backend side, then we will be f***ed up :/
+	hostInternalKey := fmt.Sprintf("QOVERY_POSTGRESQL_Z%s_HOST_INTERNAL", strings.Split(databaseID, "-")[0])
+	hostInternal := ""
+	for _, env := range environmentVariables {
+		if env.Key == hostInternalKey {
+			hostInternal = env.Value
+			break
+		}
+	}
+
 	return &DatabaseResponse{
-		DatabaseResponse: database,
-		DatabaseStatus:   status,
+		DatabaseResponse:     database,
+		DatabaseStatus:       status,
+		DatabaseCredentials:  credentials,
+		DatabaseInternalHost: hostInternal,
 	}, nil
+}
+
+func (c *Client) GetDatabaseCredentials(ctx context.Context, databaseID string) (*qovery.Credentials, *apierrors.APIError) {
+	credentials, res, err := c.api.DatabaseMainCallsApi.
+		GetDatabaseMasterCredentials(ctx, databaseID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return nil, apierrors.NewReadError(apierrors.APIResourceDatabase, databaseID, res, err)
+	}
+
+	return credentials, nil
 }
 
 func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *DatabaseUpdateParams) (*DatabaseResponse, *apierrors.APIError) {

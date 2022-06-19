@@ -28,11 +28,16 @@ data "qovery_database" "my_database" {
 ### Read-Only
 
 - `accessibility` (String) Accessibility of the database.
-- `cpu` (Number) CPU of the database in millicores (m) [1000m = 1 CPU].
+- `cpu` (Number) CPU of the database in milli-cores (m) [1000m = 1 CPU].
 - `environment_id` (String) Id of the environment.
+- `external_host` (String) The database external FQDN host (only if your database is publicly accessible with ACCESSIBILITY = PUBLIC)
+- `internal_host` (String) The database internal host (Recommended for your application)
+- `login` (String) The login to connect to your database
 - `memory` (Number) RAM of the database in MB [1024MB = 1GB].
 - `mode` (String) Mode of the database.
 - `name` (String) Name of the database.
+- `password` (String) The password to connect to your database
+- `port` (Number) The port to connect to your database
 - `state` (String) State of the database.
 - `storage` (Number) Storage of the database in MB [1024MB = 1GB].
 - `type` (String) Type of the database.
