@@ -57,7 +57,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 		return nil, apiErr
 	}
 
-	hostInternal, apiErr := c.getHostInternal(ctx, database.Environment.Id, databaseID)
+	hostInternal, apiErr := c.getDatabaseHostInternal(ctx, database)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -70,8 +70,8 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 	}, nil
 }
 
-func (c *Client) getHostInternal(ctx context.Context, environmentID string, databaseID string) (string, *apierrors.APIError) {
-	environmentVariables, apiErr := c.getEnvironmentEnvironmentVariables(ctx, environmentID)
+func (c *Client) getDatabaseHostInternal(ctx context.Context, database *qovery.Database) (string, *apierrors.APIError) {
+	environmentVariables, apiErr := c.getEnvironmentEnvironmentVariables(ctx, database.Environment.Id)
 	if apiErr != nil {
 		return "", apiErr
 	}
@@ -81,7 +81,7 @@ func (c *Client) getHostInternal(ctx context.Context, environmentID string, data
 	// Context: since I need to get the internal host of my database and this information is only available via the environment env vars,
 	// then we list all env vars from the environment where the database is to take it.
 	// FIXME - it's a really bad idea of doing that but I have no choice... If we change the way we structure environment variable backend side, then we will be f***ed up :/
-	hostInternalKey := fmt.Sprintf("QOVERY_POSTGRESQL_Z%s_HOST_INTERNAL", strings.ToUpper(strings.Split(databaseID, "-")[0]))
+	hostInternalKey := fmt.Sprintf("QOVERY_%s_Z%s_HOST_INTERNAL", database.Type, strings.ToUpper(strings.Split(database.Id, "-")[0]))
 	// Expected host internal key syntax is `QOVERY_POSTGRESQL_Z{DB-ID}_HOST_INTERNAL`
 	hostInternal := ""
 	for _, env := range environmentVariables {
@@ -148,7 +148,7 @@ func (c *Client) updateDatabase(ctx context.Context, database *qovery.Database, 
 		return nil, apiErr
 	}
 
-	hostInternal, apiErr := c.getHostInternal(ctx, database.Environment.Id, database.Id)
+	hostInternal, apiErr := c.getDatabaseHostInternal(ctx, database)
 	if apiErr != nil {
 		return nil, apiErr
 	}
