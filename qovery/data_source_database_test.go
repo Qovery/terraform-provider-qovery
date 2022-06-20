@@ -33,7 +33,7 @@ func TestAcc_DatabaseDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_database.test", "port", "6379"),
 					resource.TestCheckResourceAttrSet("data.qovery_database.test", "external_host"),
 					resource.TestCheckResourceAttrSet("data.qovery_database.test", "internal_host"),
-					resource.TestCheckResourceAttrSet("data.qovery_database.test", "login"),
+					// resource.TestCheckResourceAttrSet("data.qovery_database.test", "login"), Login can be empty with Redis
 					resource.TestCheckResourceAttrSet("data.qovery_database.test", "password"),
 				),
 			},

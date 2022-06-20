@@ -42,6 +42,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 	database, res, err := c.api.DatabaseMainCallsApi.
 		GetDatabase(ctx, databaseID).
 		Execute()
+
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceDatabase, databaseID, res, err)
 	}
@@ -56,9 +57,23 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 		return nil, apiErr
 	}
 
-	environmentVariables, apiErr := c.getEnvironmentEnvironmentVariables(ctx, database.Environment.Id)
+	hostInternal, apiErr := c.getHostInternal(ctx, database.Environment.Id, databaseID)
 	if apiErr != nil {
 		return nil, apiErr
+	}
+
+	return &DatabaseResponse{
+		DatabaseResponse:     database,
+		DatabaseStatus:       status,
+		DatabaseCredentials:  credentials,
+		DatabaseInternalHost: hostInternal,
+	}, nil
+}
+
+func (c *Client) getHostInternal(ctx context.Context, environmentID string, databaseID string) (string, *apierrors.APIError) {
+	environmentVariables, apiErr := c.getEnvironmentEnvironmentVariables(ctx, environmentID)
+	if apiErr != nil {
+		return "", apiErr
 	}
 
 	// Get all environment variables associated to this database,
@@ -76,12 +91,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 		}
 	}
 
-	return &DatabaseResponse{
-		DatabaseResponse:     database,
-		DatabaseStatus:       status,
-		DatabaseCredentials:  credentials,
-		DatabaseInternalHost: hostInternal,
-	}, nil
+	return hostInternal, nil
 }
 
 func (c *Client) GetDatabaseCredentials(ctx context.Context, databaseID string) (*qovery.Credentials, *apierrors.APIError) {
@@ -133,9 +143,21 @@ func (c *Client) updateDatabase(ctx context.Context, database *qovery.Database, 
 		return nil, apiErr
 	}
 
+	credentials, apiErr := c.GetDatabaseCredentials(ctx, database.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	hostInternal, apiErr := c.getHostInternal(ctx, database.Environment.Id, database.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	return &DatabaseResponse{
-		DatabaseResponse: database,
-		DatabaseStatus:   status,
+		DatabaseResponse:     database,
+		DatabaseStatus:       status,
+		DatabaseCredentials:  credentials,
+		DatabaseInternalHost: hostInternal,
 	}, nil
 }
 
