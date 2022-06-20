@@ -11,7 +11,9 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
+// FIXME: disabled until ttl advanced setting has been implemented for cleaning
 func TestAcc_Cluster(t *testing.T) {
+	t.SkipNow()
 	t.Parallel()
 	testName := "cluster"
 	resource.Test(t, resource.TestCase{
@@ -124,7 +126,9 @@ func TestAcc_Cluster(t *testing.T) {
 	})
 }
 
+// FIXME: disabled until ttl advanced setting has been implemented for cleaning
 func TestAcc_ClusterWithVpcSubnet(t *testing.T) {
+	t.SkipNow()
 	t.Parallel()
 	testName := "cluster-with-vpc-subnet"
 	resource.Test(t, resource.TestCase{
