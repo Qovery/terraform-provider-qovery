@@ -18,6 +18,16 @@ func (c *Client) getEnvironmentEnvironmentVariables(ctx context.Context, environ
 	return environmentVariableResponseListToArray(vars, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT), nil
 }
 
+func (c *Client) getEnvironmentBuiltInEnvironmentVariables(ctx context.Context, environmentID string) ([]*qovery.EnvironmentVariable, *apierrors.APIError) {
+	vars, res, err := c.api.EnvironmentVariableApi.
+		ListEnvironmentEnvironmentVariable(ctx, environmentID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return nil, apierrors.NewReadError(apierrors.APIResourceEnvironmentEnvironmentVariable, environmentID, res, err)
+	}
+	return environmentVariableResponseListToArray(vars, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN), nil
+}
+
 func (c *Client) updateEnvironmentEnvironmentVariables(ctx context.Context, environmentID string, request EnvironmentVariablesDiff) *apierrors.APIError {
 	for _, variable := range request.Delete {
 		res, err := c.api.EnvironmentVariableApi.
