@@ -18,7 +18,6 @@ func TestAcc_ApplicationDataSource(t *testing.T) {
 			{
 				Config: testAccApplicationDataSourceConfig(
 					getTestApplicationID(),
-					getTestEnvironmentID(),
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.qovery_application.test", "id", getTestApplicationID()),
@@ -54,12 +53,11 @@ func TestAcc_ApplicationDataSource(t *testing.T) {
 	})
 }
 
-func testAccApplicationDataSourceConfig(credentialsID string, environmentID string) string {
+func testAccApplicationDataSourceConfig(applicationID string) string {
 	return fmt.Sprintf(`
 data "qovery_application" "test" {
   id = "%s"
-  environment_id = "%s"
 }
-`, credentialsID, environmentID,
+`, applicationID,
 	)
 }

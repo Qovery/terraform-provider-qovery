@@ -56,7 +56,7 @@ func (t projectDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 						Type:        types.StringType,
 						Computed:    true,
 					},
-				}, tfsdk.SetNestedAttributesOptions{}),
+				}),
 			},
 			"environment_variables": {
 				Description: "List of environment variables linked to this project.",
@@ -78,7 +78,7 @@ func (t projectDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 						Type:        types.StringType,
 						Required:    true,
 					},
-				}, tfsdk.SetNestedAttributesOptions{}),
+				}),
 			},
 			"secrets": {
 				Description: "List of secrets linked to this project.",
@@ -100,7 +100,7 @@ func (t projectDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 						Computed:    true,
 						Sensitive:   true,
 					},
-				}, tfsdk.SetNestedAttributesOptions{}),
+				}),
 			},
 		},
 	}, nil
