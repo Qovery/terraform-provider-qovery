@@ -17,7 +17,6 @@ func TestAcc_ProjectDataSource(t *testing.T) {
 			{
 				Config: testAccProjectDataSourceConfig(
 					getTestProjectID(),
-					getTestOrganizationID(),
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.qovery_project.test", "id", getTestProjectID()),
@@ -38,12 +37,11 @@ func TestAcc_ProjectDataSource(t *testing.T) {
 	})
 }
 
-func testAccProjectDataSourceConfig(credentialsID string, organizationID string) string {
+func testAccProjectDataSourceConfig(projectID string) string {
 	return fmt.Sprintf(`
 data "qovery_project" "test" {
   id = "%s"
-  organization_id = "%s"
 }
-`, credentialsID, organizationID,
+`, projectID,
 	)
 }

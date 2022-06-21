@@ -83,7 +83,7 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:        types.StringType,
 						Computed:    true,
 					},
-				}, tfsdk.SetNestedAttributesOptions{}),
+				}),
 			},
 			"environment_variables": {
 				Description: "List of environment variables linked to this environment.",
@@ -104,7 +104,7 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:        types.StringType,
 						Required:    true,
 					},
-				}, tfsdk.SetNestedAttributesOptions{}),
+				}),
 			},
 			"secrets": {
 				Description: "List of secrets linked to this environment.",
@@ -126,7 +126,7 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Required:    true,
 						Sensitive:   true,
 					},
-				}, tfsdk.SetNestedAttributesOptions{}),
+				}),
 			},
 		},
 	}, nil

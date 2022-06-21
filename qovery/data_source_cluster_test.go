@@ -37,12 +37,12 @@ func TestAcc_ClusterDataSource(t *testing.T) {
 	})
 }
 
-func testAccClusterDataSourceConfig(credentialsID string, organizationID string) string {
+func testAccClusterDataSourceConfig(clusterID string, organizationID string) string {
 	return fmt.Sprintf(`
 data "qovery_cluster" "test" {
   id = "%s"
   organization_id = "%s"
 }
-`, credentialsID, organizationID,
+`, clusterID, organizationID,
 	)
 }

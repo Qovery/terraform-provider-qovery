@@ -266,7 +266,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:        types.StringType,
 						Required:    true,
 					},
-				}, tfsdk.ListNestedAttributesOptions{}),
+				}),
 			},
 			"ports": {
 				Description: "List of storages linked to this application.",
@@ -326,7 +326,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 							modifiers.NewStringDefaultModifier(applicationPortProtocolDefault),
 						},
 					},
-				}, tfsdk.ListNestedAttributesOptions{}),
+				}),
 			},
 			"built_in_environment_variables": {
 				Description: "List of built-in environment variables linked to this application.",
@@ -347,7 +347,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:        types.StringType,
 						Computed:    true,
 					},
-				}, tfsdk.SetNestedAttributesOptions{}),
+				}),
 			},
 			"environment_variables": {
 				Description: "List of environment variables linked to this application.",
@@ -368,7 +368,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:        types.StringType,
 						Required:    true,
 					},
-				}, tfsdk.SetNestedAttributesOptions{}),
+				}),
 			},
 			"secrets": {
 				Description: "List of secrets linked to this application.",
@@ -390,7 +390,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Required:    true,
 						Sensitive:   true,
 					},
-				}, tfsdk.SetNestedAttributesOptions{}),
+				}),
 			},
 			"state": {
 				Description: descriptions.NewStringEnumDescription(
