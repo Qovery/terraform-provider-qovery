@@ -129,6 +129,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 }
 
 func TestAcc_DatabaseManaged(t *testing.T) {
+	skipInCIUnlessMainBranch(t)
 	t.Parallel()
 	testName := "database-managed"
 	resource.Test(t, resource.TestCase{
