@@ -85,3 +85,9 @@ func getTestDatabaseID() string {
 func generateTestName(testName string) string {
 	return fmt.Sprintf("%s-%s-%s", testNamePrefix, testName, testNameSuffix)
 }
+
+func skipInCIUnlessMainBranch(t *testing.T) {
+	if os.Getenv("CI") == "true" && os.Getenv("GITHUB_REF_NAME") != "main" {
+		t.SkipNow()
+	}
+}
