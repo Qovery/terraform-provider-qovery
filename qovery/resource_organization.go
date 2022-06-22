@@ -114,7 +114,7 @@ func (r organizationResource) Read(ctx context.Context, req tfsdk.ReadResourceRe
 	tflog.Trace(ctx, "read organization", map[string]interface{}{"organization_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Update qovery organization resource
@@ -139,7 +139,7 @@ func (r organizationResource) Update(ctx context.Context, req tfsdk.UpdateResour
 	tflog.Trace(ctx, "updated organization", map[string]interface{}{"organization_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Delete qovery organization resource

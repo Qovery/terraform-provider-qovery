@@ -71,7 +71,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 }
 
 func (c *Client) getDatabaseHostInternal(ctx context.Context, database *qovery.Database) (string, *apierrors.APIError) {
-	environmentVariables, apiErr := c.getEnvironmentBuiltInEnvironmentVariables(ctx, database.Environment.Id)
+	environmentVariables, apiErr := c.getEnvironmentEnvironmentVariables(ctx, database.Environment.Id)
 	if apiErr != nil {
 		return "", apiErr
 	}

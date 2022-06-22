@@ -65,6 +65,7 @@ Read-Only:
 
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
+- `scope` (String) Scope of the environment variable.
 - `value` (String) Value of the environment variable.
 
 
@@ -75,6 +76,7 @@ Read-Only:
 
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
+- `scope` (String) Scope of the environment variable.
 - `value` (String) Value of the environment variable.
 
 

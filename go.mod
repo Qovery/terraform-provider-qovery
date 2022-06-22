@@ -11,6 +11,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.17.0
 	github.com/qovery/qovery-client-go v0.0.0-20220607143215-3998885e9a42
 	github.com/sethvargo/go-envconfig v0.7.0
+	golang.org/x/exp v0.0.0-20220613132600-b0d781184e0d
 )
 
 require (

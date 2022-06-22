@@ -59,8 +59,9 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 			{
 				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariables(
 					testName,
-					map[string]string{
-						"key1": "value1",
+					[]environmentVariable{
+						{key: "env_key_1", value: "env_value_1", scope: "ENVIRONMENT"},
+						{key: "project_key_1", value: "project_value_1", scope: "PROJECT"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -70,8 +71,14 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "DEVELOPMENT"),
 					resource.TestCheckNoResourceAttr("qovery_environment.test", "secrets.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
-						"key":   "key1",
-						"value": "value1",
+						"key":   "env_key_1",
+						"value": "env_value_1",
+						"scope": "ENVIRONMENT",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
+						"key":   "project_key_1",
+						"value": "project_value_1",
+						"scope": "PROJECT",
 					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
@@ -82,8 +89,9 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 			{
 				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariables(
 					testName,
-					map[string]string{
-						"key1": "value1-updated",
+					[]environmentVariable{
+						{key: "env_key_1", value: "env_value_1_updated", scope: "ENVIRONMENT"},
+						{key: "project_key_1", value: "project_value_1_updated", scope: "PROJECT"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -93,8 +101,14 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "DEVELOPMENT"),
 					resource.TestCheckNoResourceAttr("qovery_environment.test", "secrets.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
-						"key":   "key1",
-						"value": "value1-updated",
+						"key":   "env_key_1",
+						"value": "env_value_1_updated",
+						"scope": "ENVIRONMENT",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
+						"key":   "project_key_1",
+						"value": "project_value_1_updated",
+						"scope": "PROJECT",
 					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
@@ -105,9 +119,11 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 			{
 				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariables(
 					testName,
-					map[string]string{
-						"key1": "value1",
-						"key2": "value2",
+					[]environmentVariable{
+						{key: "env_key_1", value: "env_value_1", scope: "ENVIRONMENT"},
+						{key: "env_key_2", value: "env_value_2", scope: "ENVIRONMENT"},
+						{key: "project_key_1", value: "project_value_1", scope: "PROJECT"},
+						{key: "project_key_2", value: "project_value_2", scope: "PROJECT"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -117,24 +133,37 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "DEVELOPMENT"),
 					resource.TestCheckNoResourceAttr("qovery_environment.test", "secrets.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
-						"key":   "key1",
-						"value": "value1",
+						"key":   "env_key_1",
+						"value": "env_value_1",
+						"scope": "ENVIRONMENT",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
-						"key":   "key2",
-						"value": "value2",
+						"key":   "env_key_2",
+						"value": "env_value_2",
+						"scope": "ENVIRONMENT",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
+						"key":   "project_key_1",
+						"value": "project_value_1",
+						"scope": "PROJECT",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
+						"key":   "project_key_2",
+						"value": "project_value_2",
+						"scope": "PROJECT",
 					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 				),
 			},
-			// Delete environment variable
+			// Remove environment variable
 			{
 				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariables(
 					testName,
-					map[string]string{
-						"key2": "value2",
+					[]environmentVariable{
+						{key: "env_key_2", value: "env_value_2", scope: "ENVIRONMENT"},
+						{key: "project_key_2", value: "project_value_2", scope: "PROJECT"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -144,8 +173,14 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "DEVELOPMENT"),
 					resource.TestCheckNoResourceAttr("qovery_environment.test", "secrets.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
-						"key":   "key2",
-						"value": "value2",
+						"key":   "env_key_2",
+						"value": "env_value_2",
+						"scope": "ENVIRONMENT",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
+						"key":   "project_key_2",
+						"value": "project_value_2",
+						"scope": "PROJECT",
 					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
@@ -174,8 +209,8 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 			{
 				Config: testAccEnvironmentDefaultConfigWithSecrets(
 					testName,
-					map[string]string{
-						"key1": "value1",
+					[]environmentSecret{
+						{key: "key1", value: "value1"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -197,8 +232,8 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 			{
 				Config: testAccEnvironmentDefaultConfigWithSecrets(
 					testName,
-					map[string]string{
-						"key1": "value1-updated",
+					[]environmentSecret{
+						{key: "key1", value: "value1-updated"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -220,9 +255,9 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 			{
 				Config: testAccEnvironmentDefaultConfigWithSecrets(
 					testName,
-					map[string]string{
-						"key1": "value1",
-						"key2": "value2",
+					[]environmentSecret{
+						{key: "key1", value: "value1"},
+						{key: "key2", value: "value2"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -248,8 +283,8 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 			{
 				Config: testAccEnvironmentDefaultConfigWithSecrets(
 					testName,
-					map[string]string{
-						"key2": "value2",
+					[]environmentSecret{
+						{key: "key2", value: "value2"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -410,7 +445,7 @@ resource "qovery_environment" "test" {
 	)
 }
 
-func testAccEnvironmentDefaultConfigWithEnvironmentVariables(testName string, environmentVariables map[string]string) string {
+func testAccEnvironmentDefaultConfigWithEnvironmentVariables(testName string, environmentVariables []environmentVariable) string {
 	return fmt.Sprintf(`
 %s
 
@@ -424,7 +459,7 @@ resource "qovery_environment" "test" {
 	)
 }
 
-func testAccEnvironmentDefaultConfigWithSecrets(testName string, secrets map[string]string) string {
+func testAccEnvironmentDefaultConfigWithSecrets(testName string, secrets []environmentSecret) string {
 	return fmt.Sprintf(`
 %s
 
@@ -434,6 +469,6 @@ resource "qovery_environment" "test" {
   name = "%s"
   secrets = %s
 }
-`, testAccProjectDefaultConfig(testName), getTestClusterID(), generateTestName(testName), convertEnvVarsToString(secrets),
+`, testAccProjectDefaultConfig(testName), getTestClusterID(), generateTestName(testName), convertEnvSecretsToString(secrets),
 	)
 }

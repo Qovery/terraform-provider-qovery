@@ -27,6 +27,7 @@ func TestAcc_ProjectDataSource(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_project.test", "environment_variables.*", map[string]string{
 						"key":   "MY_TERRAFORM_PROJECT_VARIABLE",
 						"value": "MY_TERRAFORM_PROJECT_VARIABLE_VALUE",
+						"scope": "PROJECT",
 					}),
 					resource.TestCheckNoResourceAttr("data.qovery_project.test", "built_in_environment_variables.0.id"),
 					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_project.test", "secrets.*", map[string]string{

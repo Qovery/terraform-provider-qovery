@@ -16,37 +16,58 @@ func (c *Client) getProjectEnvironmentVariables(ctx context.Context, projectID s
 		return nil, apierrors.NewReadError(apierrors.APIResourceProjectEnvironmentVariable, projectID, res, err)
 	}
 
-	return environmentVariableResponseListToArray(projectVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_PROJECT), nil
+	return environmentVariableResponseListToArray(projectVariables), nil
 }
 
 func (c *Client) updateProjectEnvironmentVariables(ctx context.Context, projectID string, request EnvironmentVariablesDiff) *apierrors.APIError {
 	for _, variable := range request.Delete {
-		res, err := c.api.ProjectEnvironmentVariableApi.
-			DeleteProjectEnvironmentVariable(ctx, projectID, variable.Id).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return apierrors.NewDeleteError(apierrors.APIResourceProjectEnvironmentVariable, variable.Id, res, err)
+		if err := c.deleteProjectEnvironmentVariable(ctx, projectID, variable); err != nil {
+			return err
 		}
 	}
 
 	for _, variable := range request.Update {
-		_, res, err := c.api.ProjectEnvironmentVariableApi.
-			EditProjectEnvironmentVariable(ctx, projectID, variable.Id).
-			EnvironmentVariableEditRequest(variable.EnvironmentVariableEditRequest).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return apierrors.NewUpdateError(apierrors.APIResourceProjectEnvironmentVariable, variable.Id, res, err)
+		if err := c.editProjectEnvironmentVariable(ctx, projectID, variable); err != nil {
+			return err
 		}
 	}
 
 	for _, variable := range request.Create {
-		_, res, err := c.api.ProjectEnvironmentVariableApi.
-			CreateProjectEnvironmentVariable(ctx, projectID).
-			EnvironmentVariableRequest(variable.EnvironmentVariableRequest).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return apierrors.NewCreateError(apierrors.APIResourceProjectEnvironmentVariable, variable.Key, res, err)
+		if err := c.createProjectEnvironmentVariable(ctx, projectID, variable); err != nil {
+			return err
 		}
+	}
+	return nil
+}
+
+func (c *Client) createProjectEnvironmentVariable(ctx context.Context, projectID string, variable EnvironmentVariableCreateRequest) *apierrors.APIError {
+	_, res, err := c.api.ProjectEnvironmentVariableApi.
+		CreateProjectEnvironmentVariable(ctx, projectID).
+		EnvironmentVariableRequest(variable.toRequest()).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return apierrors.NewUpdateError(apierrors.APIResourceProjectEnvironmentVariable, variable.Key, res, err)
+	}
+	return nil
+}
+
+func (c *Client) editProjectEnvironmentVariable(ctx context.Context, projectID string, variable EnvironmentVariableUpdateRequest) *apierrors.APIError {
+	_, res, err := c.api.ProjectEnvironmentVariableApi.
+		EditProjectEnvironmentVariable(ctx, projectID, variable.Id).
+		EnvironmentVariableEditRequest(variable.toRequest()).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return apierrors.NewUpdateError(apierrors.APIResourceProjectEnvironmentVariable, variable.Id, res, err)
+	}
+	return nil
+}
+
+func (c *Client) deleteProjectEnvironmentVariable(ctx context.Context, projectID string, variable EnvironmentVariableDeleteRequest) *apierrors.APIError {
+	res, err := c.api.ProjectEnvironmentVariableApi.
+		DeleteProjectEnvironmentVariable(ctx, projectID, variable.Id).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return apierrors.NewDeleteError(apierrors.APIResourceProjectEnvironmentVariable, variable.Id, res, err)
 	}
 	return nil
 }

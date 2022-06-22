@@ -40,6 +40,17 @@ func TestAcc_ApplicationDataSource(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_application.test", "environment_variables.*", map[string]string{
 						"key":   "MY_TERRAFORM_APPLICATION_VARIABLE",
 						"value": "MY_TERRAFORM_APPLICATION_VARIABLE_VALUE",
+						"scope": "APPLICATION",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_application.test", "environment_variables.*", map[string]string{
+						"key":   "MY_TERRAFORM_ENVIRONMENT_VARIABLE",
+						"value": "MY_TERRAFORM_ENVIRONMENT_VARIABLE_VALUE",
+						"scope": "ENVIRONMENT",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_application.test", "environment_variables.*", map[string]string{
+						"key":   "MY_TERRAFORM_PROJECT_VARIABLE",
+						"value": "MY_TERRAFORM_PROJECT_VARIABLE_VALUE",
+						"scope": "PROJECT",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_application.test", "secrets.*", map[string]string{
 						"key": "MY_TERRAFORM_APPLICATION_SECRET",

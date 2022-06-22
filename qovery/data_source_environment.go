@@ -61,6 +61,11 @@ func (t environmentDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 						Type:        types.StringType,
 						Computed:    true,
 					},
+					"scope": {
+						Description: "Scope of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
 			"environment_variables": {
@@ -80,6 +85,11 @@ func (t environmentDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 					},
 					"value": {
 						Description: "Value of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"scope": {
+						Description: "Scope of the environment variable.",
 						Type:        types.StringType,
 						Computed:    true,
 					},
@@ -141,5 +151,5 @@ func (d environmentDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourc
 	tflog.Trace(ctx, "read environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }

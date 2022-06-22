@@ -29,26 +29,36 @@ func (p Project) SecretList() SecretList {
 	return toSecretList(p.Secrets)
 }
 
-func (p Project) toCreateProjectRequest() client.ProjectUpsertParams {
-	return client.ProjectUpsertParams{
+func (p Project) toCreateProjectRequest() (*client.ProjectUpsertParams, error) {
+	envVarsDiff, err := p.EnvironmentVariableList().diff(nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.ProjectUpsertParams{
 		ProjectRequest: qovery.ProjectRequest{
 			Name:        toString(p.Name),
 			Description: toStringPointer(p.Description),
 		},
-		EnvironmentVariablesDiff: p.EnvironmentVariableList().diff(nil),
+		EnvironmentVariablesDiff: *envVarsDiff,
 		SecretsDiff:              p.SecretList().diff(nil),
-	}
+	}, nil
 }
 
-func (p Project) toUpdateProjectRequest(state Project) client.ProjectUpsertParams {
-	return client.ProjectUpsertParams{
+func (p Project) toUpdateProjectRequest(state Project) (*client.ProjectUpsertParams, error) {
+	envVarsDiff, err := p.EnvironmentVariableList().diff(state.EnvironmentVariableList())
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.ProjectUpsertParams{
 		ProjectRequest: qovery.ProjectRequest{
 			Name:        toString(p.Name),
 			Description: toStringPointer(p.Description),
 		},
-		EnvironmentVariablesDiff: p.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
+		EnvironmentVariablesDiff: *envVarsDiff,
 		SecretsDiff:              p.SecretList().diff(state.SecretList()),
-	}
+	}, nil
 }
 
 func convertResponseToProject(state Project, res *client.ProjectResponse) Project {

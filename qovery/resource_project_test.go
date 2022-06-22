@@ -73,8 +73,8 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 			{
 				Config: testAccProjectDefaultConfigWithEnvironmentVariables(
 					testName,
-					map[string]string{
-						"key1": "value1",
+					[]environmentVariable{
+						{key: "project_key_1", value: "project_value_1", scope: "PROJECT"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -84,8 +84,9 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
-						"key":   "key1",
-						"value": "value1",
+						"key":   "project_key_1",
+						"value": "project_value_1",
+						"scope": "PROJECT",
 					}),
 				),
 			},
@@ -93,8 +94,8 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 			{
 				Config: testAccProjectDefaultConfigWithEnvironmentVariables(
 					testName,
-					map[string]string{
-						"key1": "value1-updated",
+					[]environmentVariable{
+						{key: "project_key_1", value: "project_value_1_updated", scope: "PROJECT"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -104,8 +105,9 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
-						"key":   "key1",
-						"value": "value1-updated",
+						"key":   "project_key_1",
+						"value": "project_value_1_updated",
+						"scope": "PROJECT",
 					}),
 				),
 			},
@@ -113,9 +115,9 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 			{
 				Config: testAccProjectDefaultConfigWithEnvironmentVariables(
 					testName,
-					map[string]string{
-						"key1": "value1",
-						"key2": "value2",
+					[]environmentVariable{
+						{key: "project_key_1", value: "project_value_1", scope: "PROJECT"},
+						{key: "project_key_2", value: "project_value_2", scope: "PROJECT"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -125,12 +127,14 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
-						"key":   "key1",
-						"value": "value1",
+						"key":   "project_key_1",
+						"value": "project_value_1",
+						"scope": "PROJECT",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
-						"key":   "key2",
-						"value": "value2",
+						"key":   "project_key_2",
+						"value": "project_value_2",
+						"scope": "PROJECT",
 					}),
 				),
 			},
@@ -138,8 +142,8 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 			{
 				Config: testAccProjectDefaultConfigWithEnvironmentVariables(
 					testName,
-					map[string]string{
-						"key2": "value2",
+					[]environmentVariable{
+						{key: "project_key_2", value: "project_value_2", scope: "PROJECT"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -149,12 +153,13 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
-						"key":   "key2",
-						"value": "value2",
+						"key":   "project_key_2",
+						"value": "project_value_2",
+						"scope": "PROJECT",
 					}),
 				),
 			},
-			// Check Import
+			//Check Import
 			{
 				ResourceName:      "qovery_project.test",
 				ImportState:       true,
@@ -176,8 +181,8 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 			{
 				Config: testAccProjectDefaultConfigWithSecrets(
 					testName,
-					map[string]string{
-						"key1": "value1",
+					[]environmentSecret{
+						{key: "project_key_1", value: "project_value_1"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -188,8 +193,8 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secrets.*", map[string]string{
-						"key":   "key1",
-						"value": "value1",
+						"key":   "project_key_1",
+						"value": "project_value_1",
 					}),
 				),
 			},
@@ -197,8 +202,8 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 			{
 				Config: testAccProjectDefaultConfigWithSecrets(
 					testName,
-					map[string]string{
-						"key1": "value1-updated",
+					[]environmentSecret{
+						{key: "project_key_1", value: "project_value_1_updated"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -209,8 +214,8 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secrets.*", map[string]string{
-						"key":   "key1",
-						"value": "value1-updated",
+						"key":   "project_key_1",
+						"value": "project_value_1_updated",
 					}),
 				),
 			},
@@ -218,9 +223,9 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 			{
 				Config: testAccProjectDefaultConfigWithSecrets(
 					testName,
-					map[string]string{
-						"key1": "value1",
-						"key2": "value2",
+					[]environmentSecret{
+						{key: "project_key_1", value: "project_value_1"},
+						{key: "project_key_2", value: "project_value_2"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -231,12 +236,12 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secrets.*", map[string]string{
-						"key":   "key1",
-						"value": "value1",
+						"key":   "project_key_1",
+						"value": "project_value_1",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secrets.*", map[string]string{
-						"key":   "key2",
-						"value": "value2",
+						"key":   "project_key_2",
+						"value": "project_value_2",
 					}),
 				),
 			},
@@ -244,8 +249,8 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 			{
 				Config: testAccProjectDefaultConfigWithSecrets(
 					testName,
-					map[string]string{
-						"key2": "value2",
+					[]environmentSecret{
+						{key: "project_key_2", value: "project_value_2"},
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -256,8 +261,8 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secrets.*", map[string]string{
-						"key":   "key2",
-						"value": "value2",
+						"key":   "project_key_2",
+						"value": "project_value_2",
 					}),
 				),
 			},
@@ -360,7 +365,7 @@ resource "qovery_project" "test" {
 	)
 }
 
-func testAccProjectDefaultConfigWithEnvironmentVariables(testName string, environmentVariables map[string]string) string {
+func testAccProjectDefaultConfigWithEnvironmentVariables(testName string, environmentVariables []environmentVariable) string {
 	return fmt.Sprintf(`
 resource "qovery_project" "test" {
   organization_id = "%s"
@@ -371,21 +376,44 @@ resource "qovery_project" "test" {
 	)
 }
 
-func testAccProjectDefaultConfigWithSecrets(testName string, secrets map[string]string) string {
+func testAccProjectDefaultConfigWithSecrets(testName string, secrets []environmentSecret) string {
 	return fmt.Sprintf(`
 resource "qovery_project" "test" {
   organization_id = "%s"
   name = "%s"
   secrets = %s
 }
-`, getTestOrganizationID(), generateTestName(testName), convertEnvVarsToString(secrets),
+`, getTestOrganizationID(), generateTestName(testName), convertEnvSecretsToString(secrets),
 	)
 }
 
-func convertEnvVarsToString(environmentVariables map[string]string) string {
+type environmentVariable struct {
+	key   string
+	value string
+	scope string
+}
+
+func convertEnvVarsToString(environmentVariables []environmentVariable) string {
 	vars := make([]string, 0, len(environmentVariables))
-	for key, value := range environmentVariables {
-		vars = append(vars, fmt.Sprintf(`{key: "%s", value: "%s"}`, key, value))
+	for _, e := range environmentVariables {
+		if e.scope == "" {
+			vars = append(vars, fmt.Sprintf(`{key: "%s", value: "%s"}`, e.key, e.value))
+		} else {
+			vars = append(vars, fmt.Sprintf(`{key: "%s", value: "%s", scope: "%s"}`, e.key, e.value, e.scope))
+		}
+	}
+	return fmt.Sprintf("[%s]", strings.Join(vars, ","))
+}
+
+type environmentSecret struct {
+	key   string
+	value string
+}
+
+func convertEnvSecretsToString(secrets []environmentSecret) string {
+	vars := make([]string, 0, len(secrets))
+	for _, s := range secrets {
+		vars = append(vars, fmt.Sprintf(`{key: "%s", value: "%s"}`, s.key, s.value))
 	}
 	return fmt.Sprintf("[%s]", strings.Join(vars, ","))
 }

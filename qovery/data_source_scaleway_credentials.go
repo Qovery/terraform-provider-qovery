@@ -66,5 +66,5 @@ func (d scalewayCredentialsDataSource) Read(ctx context.Context, req tfsdk.ReadD
 	tflog.Trace(ctx, "read scaleway credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }

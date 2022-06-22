@@ -105,7 +105,7 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, environmentVariablesDiff EnvironmentVariablesDiff, secretsDiff SecretsDiff, desiredState qovery.StateEnum) (*ApplicationResponse, *apierrors.APIError) {
 	forceRestart := !environmentVariablesDiff.IsEmpty()
 	if !environmentVariablesDiff.IsEmpty() {
-		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application.Id, environmentVariablesDiff); apiErr != nil {
+		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application, environmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}

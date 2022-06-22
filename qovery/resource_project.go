@@ -8,8 +8,18 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
+	"github.com/qovery/terraform-provider-qovery/qovery/validators"
+)
+
+var (
+	// Project Environment Variables
+	projectEnvironmentVariableScopes = clientEnumToStringArray([]qovery.EnvironmentVariableScopeEnum{
+		qovery.ENVIRONMENTVARIABLESCOPEENUM_PROJECT,
+	})
 )
 
 type projectResourceType struct{}
@@ -58,6 +68,11 @@ func (r projectResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 						Type:        types.StringType,
 						Computed:    true,
 					},
+					"scope": {
+						Description: "Scope of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
 			"environment_variables": {
@@ -78,6 +93,18 @@ func (r projectResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 						Description: "Value of the environment variable.",
 						Type:        types.StringType,
 						Required:    true,
+					},
+					"scope": {
+						Description: descriptions.NewStringEnumDescription(
+							"Scope of the environment variable.",
+							projectEnvironmentVariableScopes,
+							nil,
+						),
+						Type:     types.StringType,
+						Required: true,
+						Validators: []tfsdk.AttributeValidator{
+							validators.StringEnumValidator{Enum: projectEnvironmentVariableScopes},
+						},
 					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
@@ -128,7 +155,12 @@ func (r projectResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 
 	// Create new project
 
-	project, apiErr := r.client.CreateProject(ctx, plan.OrganizationId.Value, plan.toCreateProjectRequest())
+	request, err := plan.toCreateProjectRequest()
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	project, apiErr := r.client.CreateProject(ctx, plan.OrganizationId.Value, *request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -163,7 +195,7 @@ func (r projectResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 	tflog.Trace(ctx, "read project", map[string]interface{}{"project_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Update qovery project resource
@@ -177,7 +209,12 @@ func (r projectResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	}
 
 	// Update project in the backend
-	project, apiErr := r.client.UpdateProject(ctx, state.Id.Value, plan.toUpdateProjectRequest(state))
+	request, err := plan.toUpdateProjectRequest(state)
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	project, apiErr := r.client.UpdateProject(ctx, state.Id.Value, *request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -188,7 +225,7 @@ func (r projectResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	tflog.Trace(ctx, "updated project", map[string]interface{}{"project_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Delete qovery project resource

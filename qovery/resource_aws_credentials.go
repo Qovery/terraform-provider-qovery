@@ -105,7 +105,7 @@ func (r awsCredentialsResource) Read(ctx context.Context, req tfsdk.ReadResource
 	tflog.Trace(ctx, "read aws credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Update qovery aws credentials resource
@@ -130,7 +130,7 @@ func (r awsCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateReso
 	tflog.Trace(ctx, "updated aws credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Delete qovery aws credentials resource

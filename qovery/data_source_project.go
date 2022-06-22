@@ -56,6 +56,11 @@ func (t projectDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 						Type:        types.StringType,
 						Computed:    true,
 					},
+					"scope": {
+						Description: "Scope of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
 			"environment_variables": {
@@ -71,12 +76,17 @@ func (t projectDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 					"key": {
 						Description: "Key of the environment variable.",
 						Type:        types.StringType,
-						Required:    true,
+						Computed:    true,
 					},
 					"value": {
 						Description: "Value of the environment variable.",
 						Type:        types.StringType,
-						Required:    true,
+						Computed:    true,
+					},
+					"scope": {
+						Description: "Scope of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
 					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
@@ -136,5 +146,5 @@ func (d projectDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceReq
 	tflog.Trace(ctx, "read project", map[string]interface{}{"project_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }

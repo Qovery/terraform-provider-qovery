@@ -111,7 +111,7 @@ func (r scalewayCredentialsResource) Read(ctx context.Context, req tfsdk.ReadRes
 	tflog.Trace(ctx, "read scaleway credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Update qovery scaleway credentials resource
@@ -136,7 +136,7 @@ func (r scalewayCredentialsResource) Update(ctx context.Context, req tfsdk.Updat
 	tflog.Trace(ctx, "updated scaleway credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Delete qovery scaleway credentials resource

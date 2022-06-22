@@ -64,6 +64,13 @@ var (
 	// Application Git Repository
 	applicationGitRepositoryRootPathDefault = "/"
 	applicationGitRepositoryBranchDefault   = "main or master (depending on repository)"
+
+	// Application Environment Variables
+	applicationEnvironmentVariableScopes = clientEnumToStringArray([]qovery.EnvironmentVariableScopeEnum{
+		qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION,
+		qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT,
+		qovery.ENVIRONMENTVARIABLESCOPEENUM_PROJECT,
+	})
 )
 
 type applicationResourceType struct{}
@@ -347,6 +354,11 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:        types.StringType,
 						Computed:    true,
 					},
+					"scope": {
+						Description: "Scope of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
 			"environment_variables": {
@@ -367,6 +379,18 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Description: "Value of the environment variable.",
 						Type:        types.StringType,
 						Required:    true,
+					},
+					"scope": {
+						Description: descriptions.NewStringEnumDescription(
+							"Scope of the environment variable.",
+							applicationEnvironmentVariableScopes,
+							nil,
+						),
+						Type:     types.StringType,
+						Required: true,
+						Validators: []tfsdk.AttributeValidator{
+							validators.StringEnumValidator{Enum: applicationEnvironmentVariableScopes},
+						},
 					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
@@ -502,7 +526,7 @@ func (r applicationResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 	tflog.Trace(ctx, "updated application", map[string]interface{}{"application_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Delete qovery application resource

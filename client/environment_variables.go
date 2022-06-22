@@ -4,6 +4,12 @@ import (
 	"github.com/qovery/qovery-client-go"
 )
 
+type EnvironmentVariable struct {
+	Key   string
+	Value string
+	Scope qovery.EnvironmentVariableScopeEnum
+}
+
 type EnvironmentVariablesDiff struct {
 	Create []EnvironmentVariableCreateRequest
 	Update []EnvironmentVariableUpdateRequest
@@ -17,24 +23,36 @@ func (d EnvironmentVariablesDiff) IsEmpty() bool {
 }
 
 type EnvironmentVariableCreateRequest struct {
-	qovery.EnvironmentVariableRequest
+	EnvironmentVariable
+}
+
+func (e EnvironmentVariableCreateRequest) toRequest() qovery.EnvironmentVariableRequest {
+	return qovery.EnvironmentVariableRequest{
+		Key:   e.Key,
+		Value: e.Value,
+	}
 }
 
 type EnvironmentVariableUpdateRequest struct {
-	qovery.EnvironmentVariableEditRequest
+	EnvironmentVariable
 	Id string
+}
+
+func (e EnvironmentVariableUpdateRequest) toRequest() qovery.EnvironmentVariableEditRequest {
+	return qovery.EnvironmentVariableEditRequest{
+		Key:   e.Key,
+		Value: e.Value,
+	}
 }
 
 type EnvironmentVariableDeleteRequest struct {
+	EnvironmentVariable
 	Id string
 }
 
-func environmentVariableResponseListToArray(list *qovery.EnvironmentVariableResponseList, scope qovery.EnvironmentVariableScopeEnum) []*qovery.EnvironmentVariable {
+func environmentVariableResponseListToArray(list *qovery.EnvironmentVariableResponseList) []*qovery.EnvironmentVariable {
 	vars := make([]*qovery.EnvironmentVariable, 0, len(list.GetResults()))
 	for _, v := range list.GetResults() {
-		if v.Scope != scope && v.Scope != qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN {
-			continue
-		}
 		cpy := v
 		vars = append(vars, &cpy)
 	}

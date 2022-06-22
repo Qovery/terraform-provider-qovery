@@ -73,6 +73,11 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		return nil, err
 	}
 
+	envVarsDiff, err := app.EnvironmentVariableList().diff(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return &client.ApplicationCreateParams{
 		ApplicationRequest: qovery.ApplicationRequest{
 			Name:                toString(app.Name),
@@ -89,7 +94,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			Ports:               ports,
 		},
 		DesiredState:             *desiredState,
-		EnvironmentVariablesDiff: app.EnvironmentVariableList().diff(nil),
+		EnvironmentVariablesDiff: *envVarsDiff,
 		SecretsDiff:              app.SecretList().diff(nil),
 	}, nil
 
@@ -128,6 +133,11 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		return nil, err
 	}
 
+	envVarsDiff, err := app.EnvironmentVariableList().diff(state.EnvironmentVariableList())
+	if err != nil {
+		return nil, err
+	}
+
 	applicationEditRequest := qovery.ApplicationEditRequest{
 		Name:                toStringPointer(app.Name),
 		BuildMode:           buildMode,
@@ -144,7 +154,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:   applicationEditRequest,
-		EnvironmentVariablesDiff: app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
+		EnvironmentVariablesDiff: *envVarsDiff,
 		SecretsDiff:              app.SecretList().diff(state.SecretList()),
 		DesiredState:             *desiredState,
 	}, nil
@@ -169,7 +179,7 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		Ports:                       convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
 		State:                       fromClientEnum(app.ApplicationStatus.State),
 		BuiltInEnvironmentVariables: fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
-		EnvironmentVariables:        fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
+		EnvironmentVariables:        fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT, qovery.ENVIRONMENTVARIABLESCOPEENUM_PROJECT).toTerraformSet(),
 		Secrets:                     fromSecretList(state.SecretList(), app.ApplicationSecrets, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
 	}
 }

@@ -20,6 +20,12 @@ var (
 	// Environment Mode
 	environmentModes       = clientEnumToStringArray(qovery.AllowedEnvironmentModeEnumEnumValues)
 	environmentModeDefault = string(qovery.ENVIRONMENTMODEENUM_DEVELOPMENT)
+
+	// Environment Environment Variables
+	environmentEnvironmentVariableScopes = clientEnumToStringArray([]qovery.EnvironmentVariableScopeEnum{
+		qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT,
+		qovery.ENVIRONMENTVARIABLESCOPEENUM_PROJECT,
+	})
 )
 
 type environmentResourceType struct{}
@@ -83,6 +89,11 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:        types.StringType,
 						Computed:    true,
 					},
+					"scope": {
+						Description: "Scope of the environment variable.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
 			"environment_variables": {
@@ -103,6 +114,18 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Description: "Value of the environment variable.",
 						Type:        types.StringType,
 						Required:    true,
+					},
+					"scope": {
+						Description: descriptions.NewStringEnumDescription(
+							"Scope of the environment variable.",
+							environmentEnvironmentVariableScopes,
+							nil,
+						),
+						Type:     types.StringType,
+						Required: true,
+						Validators: []tfsdk.AttributeValidator{
+							validators.StringEnumValidator{Enum: environmentEnvironmentVariableScopes},
+						},
 					},
 				}, tfsdk.SetNestedAttributesOptions{}),
 			},
@@ -192,7 +215,7 @@ func (r environmentResource) Read(ctx context.Context, req tfsdk.ReadResourceReq
 	tflog.Trace(ctx, "read environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Update qovery environment resource
@@ -206,7 +229,12 @@ func (r environmentResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 	}
 
 	// Update environment in the backend
-	environment, apiErr := r.client.UpdateEnvironment(ctx, state.Id.Value, plan.toUpdateEnvironmentRequest(state))
+	request, err := plan.toUpdateEnvironmentRequest(state)
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	environment, apiErr := r.client.UpdateEnvironment(ctx, state.Id.Value, *request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -217,7 +245,7 @@ func (r environmentResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 	tflog.Trace(ctx, "updated environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Delete qovery environment resource

@@ -131,5 +131,5 @@ func (d databaseDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRe
 	tflog.Trace(ctx, "read database", map[string]interface{}{"database_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }

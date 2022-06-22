@@ -36,7 +36,7 @@ func (c *Client) CreateEnvironment(ctx context.Context, projectID string, params
 	}
 
 	if !params.EnvironmentVariablesDiff.IsEmpty() {
-		if apiErr := c.updateEnvironmentEnvironmentVariables(ctx, environment.Id, params.EnvironmentVariablesDiff); apiErr != nil {
+		if apiErr := c.updateEnvironmentEnvironmentVariables(ctx, environment, params.EnvironmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}
@@ -64,12 +64,20 @@ func (c *Client) CreateEnvironment(ctx context.Context, projectID string, params
 	}, nil
 }
 
-func (c *Client) GetEnvironment(ctx context.Context, environmentID string) (*EnvironmentResponse, *apierrors.APIError) {
+func (c *Client) getEnvironment(ctx context.Context, environmentID string) (*qovery.Environment, *apierrors.APIError) {
 	environment, res, err := c.api.EnvironmentMainCallsApi.
 		GetEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceEnvironment, environmentID, res, err)
+	}
+	return environment, nil
+}
+
+func (c *Client) GetEnvironment(ctx context.Context, environmentID string) (*EnvironmentResponse, *apierrors.APIError) {
+	environment, err := c.getEnvironment(ctx, environmentID)
+	if err != nil {
+		return nil, err
 	}
 
 	environmentVariables, apiErr := c.getEnvironmentEnvironmentVariables(ctx, environment.Id)
@@ -99,7 +107,7 @@ func (c *Client) UpdateEnvironment(ctx context.Context, environmentID string, pa
 	}
 
 	if !params.EnvironmentVariablesDiff.IsEmpty() {
-		if apiErr := c.updateEnvironmentEnvironmentVariables(ctx, environment.Id, params.EnvironmentVariablesDiff); apiErr != nil {
+		if apiErr := c.updateEnvironmentEnvironmentVariables(ctx, environment, params.EnvironmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}

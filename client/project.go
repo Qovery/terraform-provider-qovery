@@ -58,12 +58,20 @@ func (c *Client) CreateProject(ctx context.Context, organizationID string, param
 	}, nil
 }
 
-func (c *Client) GetProject(ctx context.Context, projectID string) (*ProjectResponse, *apierrors.APIError) {
+func (c *Client) getProject(ctx context.Context, projectID string) (*qovery.Project, *apierrors.APIError) {
 	project, res, err := c.api.ProjectMainCallsApi.
 		GetProject(ctx, projectID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceProject, projectID, res, err)
+	}
+	return project, nil
+}
+
+func (c *Client) GetProject(ctx context.Context, projectID string) (*ProjectResponse, *apierrors.APIError) {
+	project, err := c.getProject(ctx, projectID)
+	if err != nil {
+		return nil, err
 	}
 
 	projectVariables, apiErr := c.getProjectEnvironmentVariables(ctx, project.Id)

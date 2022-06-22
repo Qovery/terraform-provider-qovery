@@ -264,7 +264,7 @@ func (r clusterResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Update qovery cluster resource
@@ -293,7 +293,7 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 	tflog.Trace(ctx, "updated cluster", map[string]interface{}{"cluster_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Delete qovery cluster resource

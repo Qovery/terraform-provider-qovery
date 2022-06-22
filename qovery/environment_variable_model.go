@@ -4,6 +4,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
+	"golang.org/x/exp/slices"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 )
@@ -12,6 +13,7 @@ var environmentVariableAttrTypes = map[string]attr.Type{
 	"id":    types.StringType,
 	"key":   types.StringType,
 	"value": types.StringType,
+	"scope": types.StringType,
 }
 
 type EnvironmentVariableList []EnvironmentVariable
@@ -53,7 +55,7 @@ func (vars EnvironmentVariableList) find(key string) *EnvironmentVariable {
 	return nil
 }
 
-func (vars EnvironmentVariableList) diff(old EnvironmentVariableList) client.EnvironmentVariablesDiff {
+func (vars EnvironmentVariableList) diff(old EnvironmentVariableList) (*client.EnvironmentVariablesDiff, error) {
 	diff := client.EnvironmentVariablesDiff{
 		Create: []client.EnvironmentVariableCreateRequest{},
 		Update: []client.EnvironmentVariableUpdateRequest{},
@@ -63,26 +65,39 @@ func (vars EnvironmentVariableList) diff(old EnvironmentVariableList) client.Env
 	for _, e := range old {
 		if updatedVar := vars.find(toString(e.Key)); updatedVar != nil {
 			if updatedVar.Value != e.Value {
-				diff.Update = append(diff.Update, e.toUpdateRequest(*updatedVar))
+				req, err := e.toUpdateRequest(*updatedVar)
+				if err != nil {
+					return nil, err
+				}
+				diff.Update = append(diff.Update, *req)
 			}
 		} else {
-			diff.Delete = append(diff.Delete, e.toDeleteRequest())
+			req, err := e.toDeleteRequest()
+			if err != nil {
+				return nil, err
+			}
+			diff.Delete = append(diff.Delete, *req)
 		}
 	}
 
 	for _, e := range vars {
 		if !old.contains(e) {
-			diff.Create = append(diff.Create, e.toCreateRequest())
+			req, err := e.toCreateRequest()
+			if err != nil {
+				return nil, err
+			}
+			diff.Create = append(diff.Create, *req)
 		}
 	}
 
-	return diff
+	return &diff, nil
 }
 
 type EnvironmentVariable struct {
 	Id    types.String `tfsdk:"id"`
 	Key   types.String `tfsdk:"key"`
 	Value types.String `tfsdk:"value"`
+	Scope types.String `tfsdk:"scope"`
 }
 
 func (e EnvironmentVariable) toTerraformObject() types.Object {
@@ -92,33 +107,56 @@ func (e EnvironmentVariable) toTerraformObject() types.Object {
 			"id":    e.Id,
 			"key":   e.Key,
 			"value": e.Value,
+			"scope": e.Scope,
 		},
 	}
 }
 
-func (e EnvironmentVariable) toCreateRequest() client.EnvironmentVariableCreateRequest {
-	return client.EnvironmentVariableCreateRequest{
-		EnvironmentVariableRequest: qovery.EnvironmentVariableRequest{
+func (e EnvironmentVariable) toCreateRequest() (*client.EnvironmentVariableCreateRequest, error) {
+	scope, err := qovery.NewEnvironmentVariableScopeEnumFromValue(toString(e.Scope))
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.EnvironmentVariableCreateRequest{
+		EnvironmentVariable: client.EnvironmentVariable{
 			Key:   toString(e.Key),
 			Value: toString(e.Value),
+			Scope: *scope,
 		},
-	}
+	}, nil
 }
 
-func (e EnvironmentVariable) toUpdateRequest(new EnvironmentVariable) client.EnvironmentVariableUpdateRequest {
-	return client.EnvironmentVariableUpdateRequest{
+func (e EnvironmentVariable) toUpdateRequest(new EnvironmentVariable) (*client.EnvironmentVariableUpdateRequest, error) {
+	scope, err := qovery.NewEnvironmentVariableScopeEnumFromValue(toString(e.Scope))
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.EnvironmentVariableUpdateRequest{
 		Id: toString(e.Id),
-		EnvironmentVariableEditRequest: qovery.EnvironmentVariableEditRequest{
+		EnvironmentVariable: client.EnvironmentVariable{
 			Key:   toString(e.Key),
 			Value: toString(new.Value),
+			Scope: *scope,
 		},
-	}
+	}, nil
 }
 
-func (e EnvironmentVariable) toDeleteRequest() client.EnvironmentVariableDeleteRequest {
-	return client.EnvironmentVariableDeleteRequest{
-		Id: toString(e.Id),
+func (e EnvironmentVariable) toDeleteRequest() (*client.EnvironmentVariableDeleteRequest, error) {
+	scope, err := qovery.NewEnvironmentVariableScopeEnumFromValue(toString(e.Scope))
+	if err != nil {
+		return nil, err
 	}
+
+	return &client.EnvironmentVariableDeleteRequest{
+		Id: toString(e.Id),
+		EnvironmentVariable: client.EnvironmentVariable{
+			Key:   toString(e.Key),
+			Value: toString(e.Value),
+			Scope: *scope,
+		},
+	}, nil
 }
 
 func fromEnvironmentVariable(v *qovery.EnvironmentVariable) EnvironmentVariable {
@@ -126,13 +164,14 @@ func fromEnvironmentVariable(v *qovery.EnvironmentVariable) EnvironmentVariable 
 		Id:    fromString(v.Id),
 		Key:   fromString(v.Key),
 		Value: fromString(v.Value),
+		Scope: fromString(string(v.Scope)),
 	}
 }
 
-func fromEnvironmentVariableList(vars []*qovery.EnvironmentVariable, scope qovery.EnvironmentVariableScopeEnum) EnvironmentVariableList {
+func fromEnvironmentVariableList(vars []*qovery.EnvironmentVariable, scopes ...qovery.EnvironmentVariableScopeEnum) EnvironmentVariableList {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
-		if v.Scope != scope {
+		if !slices.Contains(scopes, v.Scope) {
 			continue
 		}
 		list = append(list, fromEnvironmentVariable(v))
@@ -149,6 +188,7 @@ func toEnvironmentVariable(v types.Object) EnvironmentVariable {
 		Id:    v.Attrs["id"].(types.String),
 		Key:   v.Attrs["key"].(types.String),
 		Value: v.Attrs["value"].(types.String),
+		Scope: v.Attrs["scope"].(types.String),
 	}
 }
 

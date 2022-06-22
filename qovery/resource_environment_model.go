@@ -36,25 +36,35 @@ func (e Environment) toCreateEnvironmentRequest() (*client.EnvironmentCreatePara
 		return nil, err
 	}
 
+	envVarsDiff, err := e.EnvironmentVariableList().diff(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return &client.EnvironmentCreateParams{
 		EnvironmentRequest: qovery.EnvironmentRequest{
 			Name:    toString(e.Name),
 			Cluster: toStringPointer(e.ClusterId),
 			Mode:    mode,
 		},
-		EnvironmentVariablesDiff: e.EnvironmentVariableList().diff(nil),
+		EnvironmentVariablesDiff: *envVarsDiff,
 		SecretsDiff:              e.SecretList().diff(nil),
 	}, nil
 }
 
-func (e Environment) toUpdateEnvironmentRequest(state Environment) client.EnvironmentUpdateParams {
-	return client.EnvironmentUpdateParams{
+func (e Environment) toUpdateEnvironmentRequest(state Environment) (*client.EnvironmentUpdateParams, error) {
+	envVarsDiff, err := e.EnvironmentVariableList().diff(state.EnvironmentVariableList())
+	if err != nil {
+		return nil, err
+	}
+
+	return &client.EnvironmentUpdateParams{
 		EnvironmentEditRequest: qovery.EnvironmentEditRequest{
 			Name: toStringPointer(e.Name),
 		},
-		EnvironmentVariablesDiff: e.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
+		EnvironmentVariablesDiff: *envVarsDiff,
 		SecretsDiff:              e.SecretList().diff(state.SecretList()),
-	}
+	}, nil
 }
 
 func convertResponseToEnvironment(state Environment, res *client.EnvironmentResponse) Environment {
@@ -65,7 +75,7 @@ func convertResponseToEnvironment(state Environment, res *client.EnvironmentResp
 		Name:                        fromString(res.EnvironmentResponse.Name),
 		Mode:                        fromClientEnum(res.EnvironmentResponse.Mode),
 		BuiltInEnvironmentVariables: fromEnvironmentVariableList(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
-		EnvironmentVariables:        fromEnvironmentVariableList(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT).toTerraformSet(),
+		EnvironmentVariables:        fromEnvironmentVariableList(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT, qovery.ENVIRONMENTVARIABLESCOPEENUM_PROJECT).toTerraformSet(),
 		Secrets:                     fromSecretList(state.SecretList(), res.EnvironmentSecret, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT).toTerraformSet(),
 	}
 }

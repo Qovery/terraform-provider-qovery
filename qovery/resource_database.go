@@ -266,7 +266,7 @@ func (r databaseResource) Read(ctx context.Context, req tfsdk.ReadResourceReques
 	tflog.Trace(ctx, "read database", map[string]interface{}{"database_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Update qovery database resource
@@ -296,7 +296,7 @@ func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRe
 	tflog.Trace(ctx, "updated database", map[string]interface{}{"database_id": state.Id.Value})
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
 // Delete qovery database resource
