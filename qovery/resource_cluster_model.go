@@ -112,18 +112,20 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 	}
 }
 
-func toQoveryClusterFeatures(f types.Object) []qovery.ClusterFeatureRequestFeaturesInner {
+func toQoveryClusterFeatures(f types.Object) *qovery.ClusterRequestFeatures {
 	if f.Null || f.Unknown {
 		return nil
 	}
 
-	features := make([]qovery.ClusterFeatureRequestFeaturesInner, 0, len(f.Attrs))
+	features := make([]qovery.ClusterRequestFeaturesFeaturesInner, 0, len(f.Attrs))
 	if _, ok := f.Attrs[featureKeyVpcSubnet]; ok {
-		features = append(features, qovery.ClusterFeatureRequestFeaturesInner{
+		features = append(features, qovery.ClusterRequestFeaturesFeaturesInner{
 			Id:    stringAsPointer(featureIdVpcSubnet),
 			Value: *qovery.NewNullableString(toStringPointer(f.Attrs[featureKeyVpcSubnet].(types.String))),
 		})
 	}
 
-	return features
+	req := qovery.NewClusterRequestFeatures()
+	req.SetFeatures(features)
+	return req
 }
