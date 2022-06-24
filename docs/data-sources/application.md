@@ -36,6 +36,7 @@ data "qovery_application" "my_application" {
 - `buildpack_language` (String) Buildpack Language framework.
 - `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this application. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `cpu` (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
+- `custom_domains` (Attributes Set) List of custom domains linked to this application. (see [below for nested schema](#nestedatt--custom_domains))
 - `dockerfile_path` (String) Dockerfile Path of the application.
 - `environment_id` (String) Id of the environment.
 - `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
@@ -66,6 +67,17 @@ Read-Only:
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
+
+
+<a id="nestedatt--custom_domains"></a>
+### Nested Schema for `custom_domains`
+
+Read-Only:
+
+- `domain` (String) Your custom domain.
+- `id` (String) Id of the custom domain.
+- `status` (String) Status of the custom domain.
+- `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
 
 
 <a id="nestedatt--environment_variables"></a>

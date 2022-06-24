@@ -15,6 +15,7 @@ type ClientEnum interface {
 	qovery.BuildModeEnum |
 		qovery.BuildPackLanguageEnum |
 		qovery.CloudProviderEnum |
+		qovery.CustomDomainStatusEnum |
 		qovery.DatabaseAccessibilityEnum |
 		qovery.DatabaseModeEnum |
 		qovery.DatabaseTypeEnum |

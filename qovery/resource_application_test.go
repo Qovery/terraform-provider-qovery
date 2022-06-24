@@ -623,6 +623,181 @@ func TestAcc_ApplicationWithSecrets(t *testing.T) {
 	})
 }
 
+func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
+	t.Parallel()
+	testName := "application-with-custom-domains"
+	// NOTE: Run this test with stopped application unless we are in the main branch.
+	// Running it with a STOPPED state will make the test run way faster.
+	state := "STOPPED"
+	if isCIMainBranch() {
+		state = "RUNNING"
+	}
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccApplicationDefaultConfigWithCustomDomains(
+					testName,
+					[]string{"toto.com"},
+					state,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", "main"),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "buildpack_language"),
+					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.internal_port", "8080"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.publicly_accessible", "true"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "secrets.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "custom_domains.*", map[string]string{
+						"domain": "toto.com",
+					}),
+					resource.TestCheckResourceAttr("qovery_application.test", "state", state),
+				),
+			},
+			// Update environment variable
+			{
+				Config: testAccApplicationDefaultConfigWithCustomDomains(
+					testName,
+					[]string{"toto-updated.com"},
+					state,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", "main"),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "buildpack_language"),
+					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.internal_port", "8080"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.publicly_accessible", "true"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "secrets.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "custom_domains.*", map[string]string{
+						"domain": "toto-updated.com",
+					}),
+					resource.TestCheckResourceAttr("qovery_application.test", "state", state),
+				),
+			},
+			// Add environment variable
+			{
+				Config: testAccApplicationDefaultConfigWithCustomDomains(
+					testName,
+					[]string{"toto.com", "tata.com"},
+					state,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", "main"),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "buildpack_language"),
+					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.internal_port", "8080"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.publicly_accessible", "true"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "secrets.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "custom_domains.*", map[string]string{
+						"domain": "toto.com",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "custom_domains.*", map[string]string{
+						"domain": "tata.com",
+					}),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckResourceAttr("qovery_application.test", "state", state),
+				),
+			},
+			// Remove environment variables
+			{
+				Config: testAccApplicationDefaultConfigWithCustomDomains(
+					testName,
+					[]string{"tata.com"},
+					state,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", "main"),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "buildpack_language"),
+					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.internal_port", "8080"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.publicly_accessible", "true"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "secrets.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "custom_domains.*", map[string]string{
+						"domain": "tata.com",
+					}),
+					resource.TestCheckResourceAttr("qovery_application.test", "state", state),
+				),
+			},
+			// Check Import
+			{
+				ResourceName:      "qovery_application.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 // Application should restart when environment env variables are updated.
 func TestAcc_ApplicationRestartOnEnvironmentUpdate(t *testing.T) {
 	t.Parallel()
@@ -1262,6 +1437,34 @@ resource "qovery_application" "test" {
 	)
 }
 
+func testAccApplicationDefaultConfigWithCustomDomains(testName string, customDomains []string, state string) string {
+	ports := []applicationPort{
+		{
+			InternalPort:       8080,
+			PubliclyAccessible: true,
+			ExternalPort:       int64ToPtr(443),
+		},
+	}
+
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_application" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  build_mode = "DOCKER"
+  dockerfile_path = "Dockerfile"
+  git_repository = {
+    url = "%s"
+  }
+  ports = %s
+  custom_domains = %s
+  state = "%s"
+} 
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertPortsToString(ports), convertCustomDomainsToString(customDomains), state,
+	)
+}
+
 func testAccApplicationDefaultConfigWithEnvironmentEnvVariables(testName string, environmentVariables map[string]string) string {
 	return fmt.Sprintf(`
 %s
@@ -1309,8 +1512,15 @@ func convertPortsToString(ports []applicationPort) string {
 	for _, port := range ports {
 		portsStr = append(portsStr, port.String())
 	}
-	fmt.Printf("[%s]", strings.Join(portsStr, ","))
 	return fmt.Sprintf("[%s]", strings.Join(portsStr, ","))
+}
+
+func convertCustomDomainsToString(customDomains []string) string {
+	domains := make([]string, 0, len(customDomains))
+	for _, domain := range customDomains {
+		domains = append(domains, fmt.Sprintf(`{domain: "%s"}`, domain))
+	}
+	return fmt.Sprintf("[%s]", strings.Join(domains, ","))
 }
 
 func stringToPtr(v string) *string {

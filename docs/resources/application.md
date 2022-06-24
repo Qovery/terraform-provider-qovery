@@ -73,6 +73,7 @@ resource "qovery_application" "my_application" {
 - `cpu` (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 250`.
 	- Default: `500`.
+- `custom_domains` (Attributes Set) List of custom domains linked to this application. (see [below for nested schema](#nestedatt--custom_domains))
 - `dockerfile_path` (String) Dockerfile Path of the application.
 	- Required if: `build_mode="DOCKER"`.
 - `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
@@ -107,6 +108,17 @@ Required:
 - `root_path` (String) Root path of the application.
 	- Default: `/`.
 - `url` (String) URL of the git repository.
+
+
+<a id="nestedatt--custom_domains"></a>
+### Nested Schema for `custom_domains`
+
+Optional:
+
+- `domain` (String) Your custom domain.
+- `id` (String) Id of the custom domain.
+- `status` (String) Status of the custom domain.
+- `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
 
 
 <a id="nestedatt--environment_variables"></a>
