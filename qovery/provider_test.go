@@ -86,8 +86,12 @@ func generateTestName(testName string) string {
 	return fmt.Sprintf("%s-%s-%s", testNamePrefix, testName, testNameSuffix)
 }
 
+func isCIMainBranch() bool {
+	return os.Getenv("CI") == "true" && os.Getenv("GITHUB_REF_NAME") == "main"
+}
+
 func skipInCIUnlessMainBranch(t *testing.T) {
-	if os.Getenv("CI") == "true" && os.Getenv("GITHUB_REF_NAME") != "main" {
+	if !isCIMainBranch() {
 		t.SkipNow()
 	}
 }

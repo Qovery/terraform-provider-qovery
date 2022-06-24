@@ -392,6 +392,32 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					},
 				}),
 			},
+			"custom_domains": {
+				Description: "List of custom domains linked to this application.",
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the custom domain.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"domain": {
+						Description: "Your custom domain.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"validation_domain": {
+						Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"status": {
+						Description: "Status of the custom domain.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+				}),
+			},
 			"state": {
 				Description: descriptions.NewStringEnumDescription(
 					"State of the application.",

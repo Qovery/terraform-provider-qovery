@@ -5,6 +5,7 @@ type APIResource string
 const (
 	APIResourceAWSCredentials                 APIResource = "aws credentials"
 	APIResourceApplication                    APIResource = "application"
+	APIResourceApplicationCustomDomain        APIResource = "application custom domain"
 	APIResourceApplicationEnvironmentVariable APIResource = "application environment variable"
 	APIResourceApplicationSecret              APIResource = "application secret"
 	APIResourceApplicationStatus              APIResource = "application status"

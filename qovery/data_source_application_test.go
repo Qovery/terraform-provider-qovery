@@ -35,7 +35,10 @@ func TestAcc_ApplicationDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_application.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "auto_preview", "false"),
 					resource.TestCheckNoResourceAttr("data.qovery_application.test", "storage.0"),
-					resource.TestCheckNoResourceAttr("data.qovery_application.test", "ports.0"),
+					resource.TestCheckResourceAttr("data.qovery_application.test", "ports.0.internal_port", "8080"),
+					resource.TestCheckResourceAttr("data.qovery_application.test", "ports.0.external_port", "443"),
+					resource.TestCheckResourceAttr("data.qovery_application.test", "ports.0.publicly_accessible", "true"),
+					resource.TestCheckResourceAttr("data.qovery_application.test", "ports.0.protocol", "HTTP"),
 					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_application.test", "environment_variables.*", map[string]string{
 						"key":   "MY_TERRAFORM_APPLICATION_VARIABLE",
 						"value": "MY_TERRAFORM_APPLICATION_VARIABLE_VALUE",
@@ -46,6 +49,9 @@ func TestAcc_ApplicationDataSource(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("data.qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckResourceAttr("data.qovery_application.test", "custom_domains.0.domain", "example.com"),
+					resource.TestCheckResourceAttr("data.qovery_application.test", "custom_domains.0.validation_domain", "z6692f029-z90042db1-gtw.oom.sh"),
+					resource.TestCheckResourceAttr("data.qovery_application.test", "custom_domains.0.status", "VALIDATION_PENDING"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "state", "RUNNING"),
 				),
 			},

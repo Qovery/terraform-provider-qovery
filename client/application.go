@@ -13,11 +13,13 @@ type ApplicationResponse struct {
 	ApplicationStatus               *qovery.Status
 	ApplicationEnvironmentVariables []*qovery.EnvironmentVariable
 	ApplicationSecrets              []*qovery.Secret
+	ApplicationCustomDomains        []*qovery.CustomDomain
 }
 
 type ApplicationCreateParams struct {
 	ApplicationRequest       qovery.ApplicationRequest
 	EnvironmentVariablesDiff EnvironmentVariablesDiff
+	CustomDomainsDiff        CustomDomainsDiff
 	SecretsDiff              SecretsDiff
 	DesiredState             qovery.StateEnum
 }
@@ -25,6 +27,7 @@ type ApplicationCreateParams struct {
 type ApplicationUpdateParams struct {
 	ApplicationEditRequest   qovery.ApplicationEditRequest
 	EnvironmentVariablesDiff EnvironmentVariablesDiff
+	CustomDomainsDiff        CustomDomainsDiff
 	SecretsDiff              SecretsDiff
 	DesiredState             qovery.StateEnum
 }
@@ -37,7 +40,7 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, params.ApplicationRequest.Name, res, err)
 	}
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.DesiredState)
+	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.DesiredState)
 }
 
 func (c *Client) GetApplication(ctx context.Context, applicationID string) (*ApplicationResponse, *apierrors.APIError) {
@@ -63,11 +66,17 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		return nil, apiErr
 	}
 
+	customDomains, apiErr := c.getApplicationCustomDomains(ctx, application.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	return &ApplicationResponse{
 		ApplicationResponse:             application,
 		ApplicationStatus:               status,
 		ApplicationEnvironmentVariables: environmentVariables,
 		ApplicationSecrets:              secrets,
+		ApplicationCustomDomains:        customDomains,
 	}, nil
 }
 
@@ -79,7 +88,7 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewUpdateError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.DesiredState)
+	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.DesiredState)
 }
 
 func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *apierrors.APIError {
@@ -102,7 +111,7 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 	return nil
 }
 
-func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, environmentVariablesDiff EnvironmentVariablesDiff, secretsDiff SecretsDiff, desiredState qovery.StateEnum) (*ApplicationResponse, *apierrors.APIError) {
+func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, environmentVariablesDiff EnvironmentVariablesDiff, secretsDiff SecretsDiff, customDomainsDiff CustomDomainsDiff, desiredState qovery.StateEnum) (*ApplicationResponse, *apierrors.APIError) {
 	forceRestart := !environmentVariablesDiff.IsEmpty()
 	if !environmentVariablesDiff.IsEmpty() {
 		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application.Id, environmentVariablesDiff); apiErr != nil {
@@ -112,6 +121,12 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 
 	if !secretsDiff.IsEmpty() {
 		if apiErr := c.updateApplicationSecrets(ctx, application.Id, secretsDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
+	if !customDomainsDiff.IsEmpty() {
+		if apiErr := c.updateApplicationCustomDomains(ctx, application.Id, customDomainsDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}
@@ -131,10 +146,16 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 		return nil, apiErr
 	}
 
+	customDomains, apiErr := c.getApplicationCustomDomains(ctx, application.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	return &ApplicationResponse{
 		ApplicationResponse:             application,
 		ApplicationStatus:               status,
 		ApplicationEnvironmentVariables: environmentVariables,
 		ApplicationSecrets:              secrets,
+		ApplicationCustomDomains:        customDomains,
 	}, nil
 }

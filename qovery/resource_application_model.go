@@ -22,6 +22,7 @@ type Application struct {
 	AutoPreview                 types.Bool                `tfsdk:"auto_preview"`
 	Storage                     []ApplicationStorage      `tfsdk:"storage"`
 	Ports                       []ApplicationPort         `tfsdk:"ports"`
+	CustomDomains               types.Set                 `tfsdk:"custom_domains"`
 	BuiltInEnvironmentVariables types.Set                 `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables        types.Set                 `tfsdk:"environment_variables"`
 	Secrets                     types.Set                 `tfsdk:"secrets"`
@@ -38,6 +39,10 @@ func (app Application) BuiltInEnvironmentVariableList() EnvironmentVariableList 
 
 func (app Application) SecretList() SecretList {
 	return toSecretList(app.Secrets)
+}
+
+func (app Application) CustomDomainsList() CustomDomainList {
+	return toCustomDomainList(app.CustomDomains)
 }
 
 func (app Application) toCreateApplicationRequest() (*client.ApplicationCreateParams, error) {
@@ -91,6 +96,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		DesiredState:             *desiredState,
 		EnvironmentVariablesDiff: app.EnvironmentVariableList().diff(nil),
 		SecretsDiff:              app.SecretList().diff(nil),
+		CustomDomainsDiff:        app.CustomDomainsList().diff(nil),
 	}, nil
 
 }
@@ -146,6 +152,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		ApplicationEditRequest:   applicationEditRequest,
 		EnvironmentVariablesDiff: app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
 		SecretsDiff:              app.SecretList().diff(state.SecretList()),
+		CustomDomainsDiff:        app.CustomDomainsList().diff(state.CustomDomainsList()),
 		DesiredState:             *desiredState,
 	}, nil
 
@@ -171,6 +178,7 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		BuiltInEnvironmentVariables: fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
 		EnvironmentVariables:        fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
 		Secrets:                     fromSecretList(state.SecretList(), app.ApplicationSecrets, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
+		CustomDomains:               fromCustomDomainList(app.ApplicationCustomDomains).toTerraformSet(),
 	}
 }
 
