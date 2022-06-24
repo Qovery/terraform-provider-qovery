@@ -44,6 +44,11 @@ resource "qovery_application" "my_application" {
       value = "SECRET_VALUE"
     }
   ]
+  custom_domains = [
+    {
+      domain = "example.com"
+    }
+  ]
 
   depends_on = [
     qovery_environment.my_environment
