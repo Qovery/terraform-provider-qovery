@@ -34,6 +34,7 @@ data "qovery_cluster" "my_cluster" {
 - `description` (String) Description of the cluster.
 - `features` (Attributes) Features of the cluster. (see [below for nested schema](#nestedatt--features))
 - `instance_type` (String) Instance type of the cluster.
+- `kubernetes_mode` (String) Kubernetes mode of the cluster.
 - `max_running_nodes` (Number) Maximum number of nodes running for the cluster.
 - `min_running_nodes` (Number) Minimum number of nodes running for the cluster.
 - `name` (String) Name of the cluster.

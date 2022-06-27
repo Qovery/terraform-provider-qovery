@@ -52,6 +52,11 @@ func (t clusterDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 				Type:        types.StringType,
 				Computed:    true,
 			},
+			"kubernetes_mode": {
+				Description: "Kubernetes mode of the cluster.",
+				Type:        types.StringType,
+				Computed:    true,
+			},
 			"instance_type": {
 				Description: "Instance type of the cluster.",
 				Type:        types.StringType,
