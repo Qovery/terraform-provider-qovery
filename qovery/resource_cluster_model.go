@@ -21,6 +21,7 @@ type Cluster struct {
 	CloudProvider   types.String `tfsdk:"cloud_provider"`
 	Region          types.String `tfsdk:"region"`
 	Description     types.String `tfsdk:"description"`
+	KubernetesMode  types.String `tfsdk:"kubernetes_mode"`
 	InstanceType    types.String `tfsdk:"instance_type"`
 	MinRunningNodes types.Int64  `tfsdk:"min_running_nodes"`
 	MaxRunningNodes types.Int64  `tfsdk:"max_running_nodes"`
@@ -30,6 +31,11 @@ type Cluster struct {
 
 func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertParams, error) {
 	cloudProvider, err := qovery.NewCloudProviderEnumFromValue(toString(c.CloudProvider))
+	if err != nil {
+		return nil, err
+	}
+
+	kubernetesMode, err := qovery.NewKubernetesEnumFromValue(toString(c.KubernetesMode))
 	if err != nil {
 		return nil, err
 	}
@@ -58,6 +64,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			CloudProvider:   *cloudProvider,
 			Region:          toString(c.Region),
 			Description:     toStringPointer(c.Description),
+			Kubernetes:      kubernetesMode,
 			InstanceType:    toStringPointer(c.InstanceType),
 			MinRunningNodes: toInt32Pointer(c.MinRunningNodes),
 			MaxRunningNodes: toInt32Pointer(c.MaxRunningNodes),
@@ -76,6 +83,7 @@ func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 		CloudProvider:   fromClientEnum(res.ClusterResponse.CloudProvider),
 		Region:          fromString(res.ClusterResponse.Region),
 		Description:     fromStringPointer(res.ClusterResponse.Description),
+		KubernetesMode:  fromClientEnumPointer(res.ClusterResponse.Kubernetes),
 		InstanceType:    fromStringPointer(res.ClusterResponse.InstanceType),
 		MinRunningNodes: fromInt32Pointer(res.ClusterResponse.MinRunningNodes),
 		MaxRunningNodes: fromInt32Pointer(res.ClusterResponse.MaxRunningNodes),

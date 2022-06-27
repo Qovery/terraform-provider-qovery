@@ -36,6 +36,7 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
@@ -59,6 +60,7 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", "cluster description"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
@@ -82,6 +84,7 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
@@ -106,10 +109,57 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_LARGE"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "4"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "11"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "RUNNING"),
+				),
+			},
+			// Check Import
+			// Since this takes too much time to create a cluster, the import test is done here.
+			// TODO: uncomment when ImportStateIdPrefix is fixed
+			//{
+			//	ResourceName:        "qovery_cluster.test",
+			//	ImportState:         true,
+			//	ImportStateVerify:   true,
+			//	ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
+			//},
+		},
+	})
+}
+
+// FIXME: disabled until ttl advanced setting has been implemented for cleaning
+func TestAcc_ClusterWithKubernetesMode(t *testing.T) {
+	t.SkipNow()
+	t.Parallel()
+	testName := "cluster-with-kubernetes-mode"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccClusterDefaultK3SConfig(
+					testName,
+					"AWS",
+					"eu-west-3",
+					"T3A_SMALL",
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAWSCredentialsID()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "K3S"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MT3A_SMALLEDIUM"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "1"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "1"),
+					resource.TestCheckNoResourceAttr("qovery_cluster.test", "features.vpc_subnet"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "RUNNING"),
 				),
 			},
@@ -152,6 +202,7 @@ func TestAcc_ClusterWithVpcSubnet(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
@@ -245,6 +296,23 @@ resource "qovery_cluster" "test" {
   state = "%s"
 }
 `, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, state,
+	)
+}
+
+func testAccClusterDefaultK3SConfig(testName string, cloudProvider string, region string, instanceType string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id = "%s"
+  organization_id = "%s"
+  name = "%s"
+  cloud_provider = "%s"
+  region = "%s"
+  instance_type = "%s"
+  kubernetes_mode = "K3S"
+  min_running_nodes = 1
+  max_running_nodes = 1
+}
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType,
 	)
 }
 

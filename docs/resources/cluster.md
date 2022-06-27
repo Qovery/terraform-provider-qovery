@@ -59,11 +59,14 @@ resource "qovery_cluster" "my_cluster" {
 - `description` (String) Description of the cluster.
 	- Default: ``.
 - `features` (Attributes) Features of the cluster. (see [below for nested schema](#nestedatt--features))
-- `max_running_nodes` (Number) Maximum number of nodes running for the cluster.
-	- Must be: `>= 3`.
+- `kubernetes_mode` (String) Kubernetes mode of the cluster.
+	- Can be: `K3S`, `MANAGED`.
+	- Default: `MANAGED`.
+- `max_running_nodes` (Number) Maximum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters]
+	- Must be: `>= 1`.
 	- Default: `10`.
-- `min_running_nodes` (Number) Minimum number of nodes running for the cluster.
-	- Must be: `>= 3`.
+- `min_running_nodes` (Number) Minimum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters].
+	- Must be: `>= 1`.
 	- Default: `3`.
 - `state` (String) State of the cluster.
 	- Can be: `RUNNING`, `STOPPED`.

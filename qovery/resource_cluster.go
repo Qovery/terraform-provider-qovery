@@ -40,15 +40,22 @@ var (
 	cloudProviders = clientEnumToStringArray(qovery.AllowedCloudProviderEnumEnumValues)
 
 	// Cluster Min Running Nodes
-	clusterMinRunningNodesMin     int64 = 3
+	clusterMinRunningNodesMin     int64 = 1
 	clusterMinRunningNodesDefault int64 = 3
 
 	// Cluster Max Running Nodes
-	clusterMaxRunningNodesMin     int64 = 3
+	clusterMaxRunningNodesMin     int64 = 1
 	clusterMaxRunningNodesDefault int64 = 10
 
 	// Cluster Feature VPC_SUBNET
 	clusterFeatureVpcSubnetDefault = "10.0.0.0/16"
+
+	// Cluster Kubernetes Mode
+	clusterKubernetesModes = clientEnumToStringArray([]qovery.KubernetesEnum{
+		qovery.KUBERNETESENUM_MANAGED,
+		qovery.KUBERNETESENUM_K3_S,
+	})
+	clusterKubernetesModeDefault = string(qovery.KUBERNETESENUM_MANAGED)
 )
 
 type clusterResourceType struct {
@@ -122,6 +129,22 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 					modifiers.NewStringDefaultModifier(clusterDescriptionDefault),
 				},
 			},
+			"kubernetes_mode": {
+				Description: descriptions.NewStringEnumDescription(
+					"Kubernetes mode of the cluster.",
+					clusterKubernetesModes,
+					&clusterKubernetesModeDefault,
+				),
+				Type:     types.StringType,
+				Optional: true,
+				Computed: true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewStringDefaultModifier(clusterKubernetesModeDefault),
+				},
+				Validators: []tfsdk.AttributeValidator{
+					validators.StringEnumValidator{Enum: clusterKubernetesModes},
+				},
+			},
 			"instance_type": {
 				Description: descriptions.NewMapStringArrayEnumDescription(
 					"Instance type of the cluster.",
@@ -136,7 +159,7 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 			},
 			"min_running_nodes": {
 				Description: descriptions.NewInt64MinDescription(
-					"Minimum number of nodes running for the cluster.",
+					"Minimum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters].",
 					clusterMinRunningNodesMin,
 					&clusterMinRunningNodesDefault,
 				),
@@ -152,7 +175,7 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 			},
 			"max_running_nodes": {
 				Description: descriptions.NewInt64MinDescription(
-					"Maximum number of nodes running for the cluster.",
+					"Maximum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters]",
 					clusterMaxRunningNodesMin,
 					&clusterMaxRunningNodesDefault,
 				),

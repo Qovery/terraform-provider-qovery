@@ -20,6 +20,7 @@ type ClientEnum interface {
 		qovery.DatabaseModeEnum |
 		qovery.DatabaseTypeEnum |
 		qovery.EnvironmentModeEnum |
+		qovery.KubernetesEnum |
 		qovery.PlanEnum |
 		qovery.PortProtocolEnum |
 		qovery.StateEnum |
