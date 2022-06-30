@@ -3,6 +3,7 @@ package qovery_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -177,10 +178,10 @@ func TestAcc_ClusterWithKubernetesMode(t *testing.T) {
 }
 
 // FIXME: disabled until ttl advanced setting has been implemented for cleaning
-func TestAcc_ClusterWithVpcSubnet(t *testing.T) {
+func TestAcc_ClusterWithVpcPeering(t *testing.T) {
 	t.SkipNow()
 	t.Parallel()
-	testName := "cluster-with-vpc-subnet"
+	testName := "cluster-with-vpc-peering"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -188,12 +189,15 @@ func TestAcc_ClusterWithVpcSubnet(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccClusterDefaultConfigWithVpcSubnet(
+				Config: testAccClusterDefaultConfigWithVpcPeering(
 					testName,
 					"AWS",
 					"eu-west-3",
 					"T3A_MEDIUM",
 					"10.42.0.0/16",
+					map[string]string{
+						"172.30.0.0/16": "target",
+					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
@@ -207,6 +211,9 @@ func TestAcc_ClusterWithVpcSubnet(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.42.0.0/16"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "routing_table.0.description", "route-0"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "routing_table.0.destination", "172.30.0.0/16"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "routing_table.0.targer", "target"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "RUNNING"),
 				),
 			},
@@ -335,7 +342,7 @@ resource "qovery_cluster" "test" {
 	)
 }
 
-func testAccClusterDefaultConfigWithVpcSubnet(testName string, cloudProvider string, region string, instanceType string, vpcSubnet string) string {
+func testAccClusterDefaultConfigWithVpcPeering(testName string, cloudProvider string, region string, instanceType string, vpcSubnet string, routingTable map[string]string) string {
 	return fmt.Sprintf(`
 resource "qovery_cluster" "test" {
   credentials_id = "%s"
@@ -347,7 +354,18 @@ resource "qovery_cluster" "test" {
   features = {
     vpc_subnet = "%s"
   }
+  routing_table = %s
 }
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, vpcSubnet,
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, vpcSubnet, convertRoutingTableToString(routingTable),
 	)
+}
+
+func convertRoutingTableToString(routingTable map[string]string) string {
+	routes := make([]string, 0, len(routingTable))
+	idx := 0
+	for destination, target := range routingTable {
+		routes = append(routes, fmt.Sprintf(`{description: "%s",  destination: "%s", target: "%s"}`, fmt.Sprintf("route-%d", idx), destination, target))
+		idx++
+	}
+	return fmt.Sprintf("[%s]", strings.Join(routes, ","))
 }

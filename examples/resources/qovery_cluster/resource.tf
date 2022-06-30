@@ -14,6 +14,13 @@ resource "qovery_cluster" "my_cluster" {
   features = {
     vpc_subnet = "10.0.0.0/16"
   }
+  routing_table = [
+    {
+      description = "RDS database peering"
+      destination = "172.30.0.0/16"
+      target      = "pcx-06f8f5512c91e389c"
+    }
+  ]
   state = "RUNNING"
 
   depends_on = [
