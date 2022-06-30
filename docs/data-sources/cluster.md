@@ -39,6 +39,7 @@ data "qovery_cluster" "my_cluster" {
 - `min_running_nodes` (Number) Minimum number of nodes running for the cluster.
 - `name` (String) Name of the cluster.
 - `region` (String) Region of the cluster.
+- `routing_table` (Attributes Set) List of routes of the cluster. (see [below for nested schema](#nestedatt--routing_table))
 - `state` (String) State of the cluster.
 
 <a id="nestedatt--features"></a>
@@ -47,5 +48,15 @@ data "qovery_cluster" "my_cluster" {
 Read-Only:
 
 - `vpc_subnet` (String) Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].
+
+
+<a id="nestedatt--routing_table"></a>
+### Nested Schema for `routing_table`
+
+Read-Only:
+
+- `description` (String) Description of the route.
+- `destination` (String) Destination of the route.
+- `target` (String) Target of the route.
 
 

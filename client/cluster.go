@@ -9,14 +9,17 @@ import (
 )
 
 type ClusterResponse struct {
-	OrganizationID  string
-	ClusterResponse *qovery.Cluster
-	ClusterInfo     *qovery.ClusterCloudProviderInfo
+	OrganizationID      string
+	ClusterResponse     *qovery.Cluster
+	ClusterInfo         *qovery.ClusterCloudProviderInfo
+	ClusterRoutingTable *ClusterRoutingTable
 }
 
 type ClusterUpsertParams struct {
 	ClusterRequest              qovery.ClusterRequest
 	ClusterCloudProviderRequest *qovery.ClusterCloudProviderInfoRequest
+	ClusterRoutingTable         ClusterRoutingTable
+	ForceUpdate                 bool
 	DesiredState                qovery.StateEnum
 }
 
@@ -44,10 +47,16 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 		return nil, apierrors.NewCreateError(apierrors.APIResourceClusterCloudProvider, cluster.Id, res, err)
 	}
 
+	clusterRoutingTable, apiErr := c.getClusterRoutingTable(ctx, organizationID, clusterID)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	return &ClusterResponse{
-		OrganizationID:  organizationID,
-		ClusterResponse: cluster,
-		ClusterInfo:     clusterInfo,
+		OrganizationID:      organizationID,
+		ClusterResponse:     cluster,
+		ClusterRoutingTable: clusterRoutingTable,
+		ClusterInfo:         clusterInfo,
 	}, nil
 }
 
@@ -121,15 +130,25 @@ func (c *Client) updateCluster(ctx context.Context, organizationID string, clust
 		return nil, apierrors.NewReadError(apierrors.APIResourceClusterCloudProvider, cluster.Id, res, err)
 	}
 
-	clusterStatus, apiErr := c.updateClusterStatus(ctx, organizationID, cluster, params.DesiredState)
+	var clusterRoutingTable *ClusterRoutingTable
+	if len(params.ClusterRoutingTable.Routes) > 0 {
+		var apiErr *apierrors.APIError
+		clusterRoutingTable, apiErr = c.editClusterRoutingTable(ctx, organizationID, cluster.Id, params.ClusterRoutingTable)
+		if apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
+	clusterStatus, apiErr := c.updateClusterStatus(ctx, organizationID, cluster, params.DesiredState, params.ForceUpdate)
 	if apiErr != nil {
 		return nil, apiErr
 	}
 	cluster.Status = clusterStatus.Status
 
 	return &ClusterResponse{
-		OrganizationID:  organizationID,
-		ClusterResponse: cluster,
-		ClusterInfo:     clusterInfo,
+		OrganizationID:      organizationID,
+		ClusterResponse:     cluster,
+		ClusterRoutingTable: clusterRoutingTable,
+		ClusterInfo:         clusterInfo,
 	}, nil
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-func (c *Client) deployCluster(ctx context.Context, organizationID string, cluster *qovery.Cluster) (*qovery.ClusterStatus, *apierrors.APIError) {
+func (c *Client) deployCluster(ctx context.Context, organizationID string, cluster *qovery.Cluster) (*qovery.ClusterStatusGet, *apierrors.APIError) {
 	status, apiErr := c.getClusterStatus(ctx, organizationID, cluster.Id)
 	if apiErr != nil {
 		return nil, apiErr
@@ -33,7 +33,7 @@ func (c *Client) deployCluster(ctx context.Context, organizationID string, clust
 	return c.getClusterStatus(ctx, organizationID, cluster.Id)
 }
 
-func (c *Client) stopCluster(ctx context.Context, organizationID string, cluster *qovery.Cluster) (*qovery.ClusterStatus, *apierrors.APIError) {
+func (c *Client) stopCluster(ctx context.Context, organizationID string, cluster *qovery.Cluster) (*qovery.ClusterStatusGet, *apierrors.APIError) {
 	status, apiErr := c.getClusterStatus(ctx, organizationID, cluster.Id)
 	if apiErr != nil {
 		return nil, apiErr

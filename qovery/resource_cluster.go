@@ -208,6 +208,28 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 					},
 				}),
 			},
+			"routing_table": {
+				Description: "List of routes of the cluster.",
+				Optional:    true,
+				Computed:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"description": {
+						Description: "Description of the route.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"destination": {
+						Description: "Destination of the route.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"target": {
+						Description: "Target of the route.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}),
+			},
 			"state": {
 				Description: descriptions.NewStringEnumDescription(
 					"State of the cluster.",

@@ -26,7 +26,62 @@ type Cluster struct {
 	MinRunningNodes types.Int64  `tfsdk:"min_running_nodes"`
 	MaxRunningNodes types.Int64  `tfsdk:"max_running_nodes"`
 	Features        types.Object `tfsdk:"features"`
+	RoutingTables   types.Set    `tfsdk:"routing_table"`
 	State           types.String `tfsdk:"state"`
+}
+
+func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
+	clusterFeatures := toQoveryClusterFeatures(c.Features)
+	if state == nil {
+		return len(clusterFeatures) > 0
+	}
+
+	stateFeature := toQoveryClusterFeatures(state.Features)
+	if len(clusterFeatures) != len(stateFeature) {
+		return true
+	}
+
+	stateFeaturesByID := make(map[string]string)
+	for _, sf := range stateFeature {
+		stateFeaturesByID[sf.GetId()] = sf.GetValue()
+	}
+
+	for _, cf := range clusterFeatures {
+		if stateValue, ok := stateFeaturesByID[cf.GetId()]; !ok || stateValue != cf.GetValue() {
+			return true
+		}
+	}
+	return false
+}
+
+func (c Cluster) hasRoutingTableDiff(state *Cluster) bool {
+	clusterRoutes := toClusterRouteList(c.RoutingTables).toUpsertRequest().Routes
+	if state == nil {
+		return len(clusterRoutes) > 0
+	}
+
+	stateRoutes := toClusterRouteList(state.RoutingTables).toUpsertRequest().Routes
+	if len(clusterRoutes) != len(stateRoutes) {
+		return true
+	}
+
+	stateRoutesByDestination := make(map[string]ClusterRoute)
+	for _, sr := range stateRoutes {
+		stateRoutesByDestination[sr.Destination] = fromClusterRoute(sr)
+	}
+
+	for _, cr := range clusterRoutes {
+		stateRoute, ok := stateRoutesByDestination[cr.Destination]
+		if !ok {
+			return true
+		}
+
+		clusterRoute := fromClusterRoute(cr)
+		if stateRoute.Description != clusterRoute.Description || stateRoute.Destination != clusterRoute.Destination || stateRoute.Target != clusterRoute.Target {
+			return true
+		}
+	}
+	return false
 }
 
 func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertParams, error) {
@@ -40,6 +95,8 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		return nil, err
 	}
 
+	routingTable := toClusterRouteList(c.RoutingTables)
+
 	var clusterCloudProviderRequest *qovery.ClusterCloudProviderInfoRequest
 	if state == nil || c.CredentialsId != state.CredentialsId {
 		clusterCloudProviderRequest = &qovery.ClusterCloudProviderInfoRequest{
@@ -51,6 +108,9 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			},
 		}
 	}
+
+	// NOTE: force update clusters if features or routing table have changed
+	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state)
 
 	desiredState, err := qovery.NewStateEnumFromValue(toString(c.State))
 	if err != nil {
@@ -70,11 +130,15 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			MaxRunningNodes: toInt32Pointer(c.MaxRunningNodes),
 			Features:        toQoveryClusterFeatures(c.Features),
 		},
-		DesiredState: *desiredState,
+		ClusterRoutingTable: routingTable.toUpsertRequest(),
+		ForceUpdate:         forceUpdate,
+		DesiredState:        *desiredState,
 	}, nil
 }
 
 func convertResponseToCluster(res *client.ClusterResponse) Cluster {
+	routingTable := fromClusterRoutingTable(res.ClusterRoutingTable.Routes)
+
 	return Cluster{
 		Id:              fromString(res.ClusterResponse.Id),
 		CredentialsId:   fromStringPointer(res.ClusterInfo.Credentials.Id),
@@ -88,6 +152,7 @@ func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 		MinRunningNodes: fromInt32Pointer(res.ClusterResponse.MinRunningNodes),
 		MaxRunningNodes: fromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
 		Features:        fromQoveryClusterFeatures(res.ClusterResponse.Features),
+		RoutingTables:   routingTable.toTerraformSet(),
 		State:           fromClientEnumPointer(res.ClusterResponse.Status),
 	}
 }
@@ -120,20 +185,18 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 	}
 }
 
-func toQoveryClusterFeatures(f types.Object) *qovery.ClusterRequestFeatures {
+func toQoveryClusterFeatures(f types.Object) []qovery.ClusterRequestFeaturesInner {
 	if f.Null || f.Unknown {
 		return nil
 	}
 
-	features := make([]qovery.ClusterRequestFeaturesFeaturesInner, 0, len(f.Attrs))
+	features := make([]qovery.ClusterRequestFeaturesInner, 0, len(f.Attrs))
 	if _, ok := f.Attrs[featureKeyVpcSubnet]; ok {
-		features = append(features, qovery.ClusterRequestFeaturesFeaturesInner{
+		features = append(features, qovery.ClusterRequestFeaturesInner{
 			Id:    stringAsPointer(featureIdVpcSubnet),
 			Value: *qovery.NewNullableString(toStringPointer(f.Attrs[featureKeyVpcSubnet].(types.String))),
 		})
 	}
 
-	req := qovery.NewClusterRequestFeatures()
-	req.SetFeatures(features)
-	return req
+	return features
 }

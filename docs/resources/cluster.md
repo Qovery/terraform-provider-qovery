@@ -29,6 +29,13 @@ resource "qovery_cluster" "my_cluster" {
   features = {
     vpc_subnet = "10.0.0.0/16"
   }
+  routing_table = [
+    {
+      description = "RDS database peering"
+      destination = "172.30.0.0/16"
+      target      = "pcx-06f8f5512c91e389c"
+    }
+  ]
   state = "RUNNING"
 
   depends_on = [
@@ -68,6 +75,7 @@ resource "qovery_cluster" "my_cluster" {
 - `min_running_nodes` (Number) Minimum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters].
 	- Must be: `>= 1`.
 	- Default: `3`.
+- `routing_table` (Attributes Set) List of routes of the cluster. (see [below for nested schema](#nestedatt--routing_table))
 - `state` (String) State of the cluster.
 	- Can be: `RUNNING`, `STOPPED`.
 	- Default: `RUNNING`.
@@ -83,6 +91,16 @@ Optional:
 
 - `vpc_subnet` (String) Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].
 	- Default: `10.0.0.0/16`.
+
+
+<a id="nestedatt--routing_table"></a>
+### Nested Schema for `routing_table`
+
+Optional:
+
+- `description` (String) Description of the route.
+- `destination` (String) Destination of the route.
+- `target` (String) Target of the route.
 
 ## Import
 
