@@ -137,7 +137,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 }
 
 func convertResponseToCluster(res *client.ClusterResponse) Cluster {
-	routingTable := fromClusterRoutingTable(res.ClusterRoutingTable.Routes)
+	routingTable := fromClusterRoutingTable(res.ClusterRoutingTable)
 
 	return Cluster{
 		Id:              fromString(res.ClusterResponse.Id),

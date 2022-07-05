@@ -79,9 +79,13 @@ func fromClusterRoute(r client.ClusterRoute) ClusterRoute {
 	}
 }
 
-func fromClusterRoutingTable(routes []client.ClusterRoute) ClusterRouteList {
-	list := make([]ClusterRoute, 0, len(routes))
-	for _, v := range routes {
+func fromClusterRoutingTable(routingTable *client.ClusterRoutingTable) ClusterRouteList {
+	if routingTable == nil {
+		return nil
+	}
+
+	list := make([]ClusterRoute, 0, len(routingTable.Routes))
+	for _, v := range routingTable.Routes {
 		list = append(list, fromClusterRoute(v))
 	}
 
