@@ -52,6 +52,8 @@ func TestAcc_ApplicationDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_application.test", "custom_domains.0.domain", "example.com"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "custom_domains.0.validation_domain", "z6692f029-z90042db1-gtw.oom.sh"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "custom_domains.0.status", "VALIDATION_PENDING"),
+					resource.TestCheckResourceAttr("data.qovery_application.test", "external_host", "z6692f029-z90042db1-gtw.oom.sh"),
+					resource.TestCheckResourceAttr("data.qovery_application.test", "internal_host", "app-z4a2d38b1"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "state", "RUNNING"),
 				),
 			},

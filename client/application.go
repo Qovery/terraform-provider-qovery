@@ -2,6 +2,8 @@ package client
 
 import (
 	"context"
+	"fmt"
+	"strings"
 
 	"github.com/qovery/qovery-client-go"
 
@@ -14,6 +16,8 @@ type ApplicationResponse struct {
 	ApplicationEnvironmentVariables []*qovery.EnvironmentVariable
 	ApplicationSecrets              []*qovery.Secret
 	ApplicationCustomDomains        []*qovery.CustomDomain
+	ApplicationExternalHost         *string
+	ApplicationInternalHost         string
 }
 
 type ApplicationCreateParams struct {
@@ -71,12 +75,19 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		return nil, apiErr
 	}
 
+	hosts, apiErr := c.getApplicationHosts(ctx, application, environmentVariables)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	return &ApplicationResponse{
 		ApplicationResponse:             application,
 		ApplicationStatus:               status,
 		ApplicationEnvironmentVariables: environmentVariables,
 		ApplicationSecrets:              secrets,
 		ApplicationCustomDomains:        customDomains,
+		ApplicationExternalHost:         hosts.external,
+		ApplicationInternalHost:         hosts.internal,
 	}, nil
 }
 
@@ -151,11 +162,60 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 		return nil, apiErr
 	}
 
+	hosts, apiErr := c.getApplicationHosts(ctx, application, environmentVariables)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	return &ApplicationResponse{
 		ApplicationResponse:             application,
 		ApplicationStatus:               status,
 		ApplicationEnvironmentVariables: environmentVariables,
 		ApplicationSecrets:              secrets,
 		ApplicationCustomDomains:        customDomains,
+		ApplicationExternalHost:         hosts.external,
+		ApplicationInternalHost:         hosts.internal,
 	}, nil
+}
+
+type applicationHosts struct {
+	internal string
+	external *string
+}
+
+func (c *Client) getApplicationHosts(ctx context.Context, application *qovery.Application, environmentVariables []*qovery.EnvironmentVariable) (*applicationHosts, *apierrors.APIError) {
+	// Get all environment variables associated to this application,
+	// and pick only the elements that I need to construct my struct below
+	// Context: since I need to get the internal host of my application and this information is only available via the environment env vars,
+	// then we list all env vars from the environment where the application is to take it.
+	// FIXME - it's a really bad idea of doing that but I have no choice... If we change the way we structure environment variable backend side, then we will be f***ed up :/
+	hostExternalKey := fmt.Sprintf("QOVERY_APPLICATION_Z%s_HOST_EXTERNAL", strings.ToUpper(strings.Split(application.Id, "-")[0]))
+	hostInternalKey := fmt.Sprintf("QOVERY_APPLICATION_Z%s_HOST_INTERNAL", strings.ToUpper(strings.Split(application.Id, "-")[0]))
+	// Expected host external key syntax is `QOVERY_APPLICATION_Z{APP-ID}_HOST_EXTERNAL`
+	// Expected host internal key syntax is `QOVERY_APPLICATION_Z{APP-ID}_HOST_INTERNAL`
+
+	hostExternal := ""
+	hostInternal := ""
+	for _, env := range environmentVariables {
+		if env.Key == hostExternalKey {
+			hostExternal = env.Value
+			continue
+		}
+		if env.Key == hostInternalKey {
+			hostInternal = env.Value
+			continue
+		}
+		if hostInternal != "" && hostExternal != "" {
+			break
+		}
+	}
+
+	hosts := &applicationHosts{
+		internal: hostInternal,
+	}
+	if hostExternal != "" {
+		hosts.external = &hostExternal
+	}
+
+	return hosts, nil
 }

@@ -40,7 +40,9 @@ data "qovery_application" "my_application" {
 - `dockerfile_path` (String) Dockerfile Path of the application.
 - `environment_id` (String) Id of the environment.
 - `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
+- `external_host` (String) The application external FQDN host [NOTE: only if your application is using a publicly accessible port].
 - `git_repository` (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
+- `internal_host` (String) The application internal host.
 - `max_running_instances` (Number) Maximum number of instances running for the application.
 - `memory` (Number) RAM of the application in MB [1024MB = 1GB].
 - `min_running_instances` (Number) Minimum number of instances running for the application.

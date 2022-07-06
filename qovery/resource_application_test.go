@@ -95,6 +95,8 @@ func TestAcc_Application(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -126,6 +128,8 @@ func TestAcc_Application(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -158,6 +162,8 @@ func TestAcc_Application(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -193,6 +199,8 @@ func TestAcc_Application(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -243,6 +251,8 @@ func TestAcc_ApplicationWithAutoPreview(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -275,6 +285,8 @@ func TestAcc_ApplicationWithAutoPreview(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -307,6 +319,8 @@ func TestAcc_ApplicationWithAutoPreview(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -357,6 +371,8 @@ func TestAcc_ApplicationWithState(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "STOPPED"),
 				),
 			},
@@ -389,6 +405,8 @@ func TestAcc_ApplicationWithState(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -443,6 +461,8 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -480,6 +500,8 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -522,6 +544,8 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -559,6 +583,8 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -614,6 +640,8 @@ func TestAcc_ApplicationWithSecrets(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -651,6 +679,8 @@ func TestAcc_ApplicationWithSecrets(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -693,6 +723,8 @@ func TestAcc_ApplicationWithSecrets(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -730,6 +762,8 @@ func TestAcc_ApplicationWithSecrets(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -785,6 +819,8 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "custom_domains.*", map[string]string{
 						"domain": "toto.com",
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", state),
 				),
 			},
@@ -822,6 +858,8 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "custom_domains.*", map[string]string{
 						"domain": "toto-updated.com",
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", state),
 				),
 			},
@@ -862,6 +900,8 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", state),
 				),
 			},
@@ -899,6 +939,8 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "custom_domains.*", map[string]string{
 						"domain": "tata.com",
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", state),
 				),
 			},
@@ -949,6 +991,8 @@ func TestAcc_ApplicationRestartOnEnvironmentUpdate(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -986,6 +1030,8 @@ func TestAcc_ApplicationRestartOnEnvironmentUpdate(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -1023,6 +1069,8 @@ func TestAcc_ApplicationRestartOnEnvironmentUpdate(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
@@ -1351,6 +1399,8 @@ func TestAcc_ApplicationImport(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},

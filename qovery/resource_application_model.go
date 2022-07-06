@@ -26,6 +26,8 @@ type Application struct {
 	BuiltInEnvironmentVariables types.Set                 `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables        types.Set                 `tfsdk:"environment_variables"`
 	Secrets                     types.Set                 `tfsdk:"secrets"`
+	ExternalHost                types.String              `tfsdk:"external_host"`
+	InternalHost                types.String              `tfsdk:"internal_host"`
 	State                       types.String              `tfsdk:"state"`
 }
 
@@ -179,6 +181,8 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		EnvironmentVariables:        fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
 		Secrets:                     fromSecretList(state.SecretList(), app.ApplicationSecrets, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
 		CustomDomains:               fromCustomDomainList(app.ApplicationCustomDomains).toTerraformSet(),
+		InternalHost:                fromString(app.ApplicationInternalHost),
+		ExternalHost:                fromStringPointer(app.ApplicationExternalHost),
 	}
 }
 
