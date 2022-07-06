@@ -101,7 +101,9 @@ resource "qovery_application" "my_application" {
 ### Read-Only
 
 - `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this application. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `external_host` (String) The application external FQDN host [NOTE: only if your application is using a publicly accessible port].
 - `id` (String) Id of the application.
+- `internal_host` (String) The application internal host.
 
 <a id="nestedatt--git_repository"></a>
 ### Nested Schema for `git_repository`

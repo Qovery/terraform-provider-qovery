@@ -418,6 +418,16 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					},
 				}),
 			},
+			"external_host": {
+				Description: "The application external FQDN host [NOTE: only if your application is using a publicly accessible port].",
+				Type:        types.StringType,
+				Computed:    true,
+			},
+			"internal_host": {
+				Description: "The application internal host.",
+				Type:        types.StringType,
+				Computed:    true,
+			},
 			"state": {
 				Description: descriptions.NewStringEnumDescription(
 					"State of the application.",
