@@ -2,13 +2,18 @@ package qovery
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/api"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
+	"github.com/qovery/terraform-provider-qovery/internal/service"
 )
 
 const APITokenEnvName = "QOVERY_API_TOKEN"
@@ -29,6 +34,9 @@ type provider struct {
 	// client is set at the end of the Configure method.
 	// This is used to make http request to Qovery API.
 	client *client.Client
+
+	// organizationService is a service that handles organization domain logic.
+	organizationService organization.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -70,9 +78,13 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 		return
 	}
 
+	// Initialize qovery client
+	qoveryClient := NewQoveryAPIClient(token, p.version)
+
 	// Create a new Qovery client and set it to the provider client
 	p.configured = true
 	p.client = client.New(token, p.version)
+	p.organizationService = service.NewOrganizationService(api.NewOrganizationAPI(qoveryClient))
 }
 
 // GetResources - Defines provider resources
@@ -125,4 +137,12 @@ func New(version string) func() tfsdk.Provider {
 			version: version,
 		}
 	}
+}
+
+func NewQoveryAPIClient(token string, version string) *qovery.APIClient {
+	cfg := qovery.NewConfiguration()
+	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Token %s", token))
+	cfg.AddDefaultHeader("content-type", "application/json")
+	cfg.UserAgent = fmt.Sprintf("terraform-provider-qovery/%s", version)
+	return qovery.NewAPIClient(cfg)
 }

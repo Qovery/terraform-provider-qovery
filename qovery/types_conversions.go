@@ -5,6 +5,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 )
 
 //
@@ -24,7 +26,8 @@ type ClientEnum interface {
 		qovery.PlanEnum |
 		qovery.PortProtocolEnum |
 		qovery.StateEnum |
-		qovery.StorageTypeEnum
+		qovery.StorageTypeEnum |
+		organization.Plan
 }
 
 func clientEnumToStringArray[T ClientEnum](enum []T) []string {

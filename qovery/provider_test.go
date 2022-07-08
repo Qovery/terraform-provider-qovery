@@ -12,6 +12,8 @@ import (
 	"github.com/sethvargo/go-envconfig"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/api"
+	"github.com/qovery/terraform-provider-qovery/internal/service"
 	"github.com/qovery/terraform-provider-qovery/qovery"
 )
 
@@ -33,7 +35,11 @@ type testEnvironment struct {
 	DatabaseID                    string `env:"TEST_DATABASE_ID,required"`
 }
 
-var apiClient = client.New(os.Getenv(qovery.APITokenEnvName), "test")
+var (
+	apiClient           = client.New(os.Getenv(qovery.APITokenEnvName), "test")
+	qoveryClient        = qovery.NewQoveryAPIClient(os.Getenv(qovery.APITokenEnvName), "test")
+	organizationService = service.NewOrganizationService(api.NewOrganizationAPI(qoveryClient))
+)
 
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
 	"qovery": providerserver.NewProtocol6WithError(qovery.New("test")()),
