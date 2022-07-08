@@ -11,6 +11,8 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.21.0
 	github.com/qovery/qovery-client-go v0.0.0-20220630070011-e2e5d8a4cbde
 	github.com/sethvargo/go-envconfig v0.8.2
+	github.com/stretchr/testify v1.7.2
+	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
 )
 
 require (
@@ -53,6 +55,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
 	github.com/oklog/run v1.0.0 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/posener/complete v1.2.3 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/russross/blackfriday v1.6.0 // indirect
@@ -71,4 +74,5 @@ require (
 	google.golang.org/genproto v0.0.0-20200904004341-0bd0a958aa1d // indirect
 	google.golang.org/grpc v1.48.0 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
