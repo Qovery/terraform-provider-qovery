@@ -10,9 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
 
-	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
@@ -22,7 +21,7 @@ var _ provider.ResourceType = organizationResourceType{}
 var _ resource.Resource = organizationResource{}
 var _ resource.ResourceWithImportState = organizationResource{}
 
-var organizationPlans = clientEnumToStringArray(qovery.AllowedPlanEnumEnumValues)
+var organizationPlans = clientEnumToStringArray(organization.AllowedPlanValues)
 
 type organizationResourceType struct{}
 
@@ -63,41 +62,18 @@ func (r organizationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, di
 
 func (r organizationResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
 	return organizationResource{
-		client: p.(*qProvider).client,
+		organizationService: p.(*qProvider).organizationService,
 	}, nil
 }
 
 type organizationResource struct {
-	client *client.Client
+	organizationService organization.Service
 }
 
 // Create qovery organization resource
+
 func (r organizationResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
-	// Retrieve values from plan
-	var plan Organization
-	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Create new organization
-	request, err := plan.toCreateOrganizationRequest()
-	if err != nil {
-		resp.Diagnostics.AddError(err.Error(), err.Error())
-		return
-	}
-	organization, apiErr := r.client.CreateOrganization(ctx, request)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	// Initialize state values
-	state := convertResponseToOrganization(organization)
-	tflog.Trace(ctx, "created organization", map[string]interface{}{"organization_id": state.Id.Value})
-
-	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
+	resp.Diagnostics.AddError("Error on organization create", "Organization creation is not allowed using terraform.")
 }
 
 // Read qovery organization resource
@@ -110,14 +86,14 @@ func (r organizationResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	// Get organization from API
-	organization, apiErr := r.client.GetOrganization(ctx, state.Id.Value)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	orga, err := r.organizationService.Get(ctx, state.Id.Value)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on organization read", err.Error())
 		return
 	}
 
 	// Refresh state values
-	state = convertResponseToOrganization(organization)
+	state = convertDomainOrganizationToTerraform(orga)
 	tflog.Trace(ctx, "read organization", map[string]interface{}{"organization_id": state.Id.Value})
 
 	// Set state
@@ -135,14 +111,14 @@ func (r organizationResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	// Update organization in backend
-	organization, apiErr := r.client.UpdateOrganization(ctx, state.Id.Value, plan.toUpdateOrganizationRequest())
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	orga, err := r.organizationService.Update(ctx, state.Id.Value, plan.toOrganizationUpdateRequest())
+	if err != nil {
+		resp.Diagnostics.AddError("Error on organization update", err.Error())
 		return
 	}
 
 	// Update state values
-	state = convertResponseToOrganization(organization)
+	state = convertDomainOrganizationToTerraform(orga)
 	tflog.Trace(ctx, "updated organization", map[string]interface{}{"organization_id": state.Id.Value})
 
 	// Set state
@@ -151,24 +127,7 @@ func (r organizationResource) Update(ctx context.Context, req resource.UpdateReq
 
 // Delete qovery organization resource
 func (r organizationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
-	// Get current state
-	var state Organization
-	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	// Delete organization
-	apiErr := r.client.DeleteOrganization(ctx, state.Id.Value)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
-		return
-	}
-
-	tflog.Trace(ctx, "deleted organization", map[string]interface{}{"organization_id": state.Id.Value})
-
-	// Remove organization from state
-	resp.State.RemoveResource(ctx)
+	resp.Diagnostics.AddError("Error on organization delete", "Organization deletion is not allowed using terraform.")
 }
 
 // ImportState imports a qovery organization resource using its id
