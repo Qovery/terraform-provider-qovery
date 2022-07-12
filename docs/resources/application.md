@@ -110,19 +110,25 @@ resource "qovery_application" "my_application" {
 
 Required:
 
+- `url` (String) URL of the git repository.
+
+Optional:
+
 - `branch` (String) Branch of the git repository.
 	- Default: `main or master (depending on repository)`.
 - `root_path` (String) Root path of the application.
 	- Default: `/`.
-- `url` (String) URL of the git repository.
 
 
 <a id="nestedatt--custom_domains"></a>
 ### Nested Schema for `custom_domains`
 
-Optional:
+Required:
 
 - `domain` (String) Your custom domain.
+
+Read-Only:
+
 - `id` (String) Id of the custom domain.
 - `status` (String) Status of the custom domain.
 - `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
@@ -131,52 +137,67 @@ Optional:
 <a id="nestedatt--environment_variables"></a>
 ### Nested Schema for `environment_variables`
 
-Optional:
+Required:
 
-- `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable.
 
 
 <a id="nestedatt--ports"></a>
 ### Nested Schema for `ports`
+
+Required:
+
+- `internal_port` (Number) Internal port of the application.
+	- Must be: `>= 1` and `<= 65535`.
+- `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this application.
 
 Optional:
 
 - `external_port` (Number) External port of the application.
 	- Required if: `ports.publicly_accessible=true`.
 	- Must be: `>= 1` and `<= 65535`.
-- `id` (String) Id of the port.
-- `internal_port` (Number) Internal port of the application.
-	- Must be: `>= 1` and `<= 65535`.
 - `name` (String) Name of the port.
 - `protocol` (String) Protocol used for the port of the application.
 	- Can be: `HTTP`, `HTTPS`, `TCP`, `UDP`.
 	- Default: `HTTP`.
-- `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this application.
+
+Read-Only:
+
+- `id` (String) Id of the port.
 
 
 <a id="nestedatt--secrets"></a>
 ### Nested Schema for `secrets`
 
-Optional:
+Required:
 
-- `id` (String) Id of the secret.
 - `key` (String) Key of the secret.
 - `value` (String, Sensitive) Value of the secret.
+
+Read-Only:
+
+- `id` (String) Id of the secret.
 
 
 <a id="nestedatt--storage"></a>
 ### Nested Schema for `storage`
 
-Optional:
+Required:
 
-- `id` (String) Id of the storage.
 - `mount_point` (String) Mount point of the storage for the application.
 - `size` (Number) Size of the storage for the application in GB [1024MB = 1GB].
 	- Must be: `>= 1`.
 - `type` (String) Type of the storage for the application.
 	- Can be: `FAST_SSD`.
+
+Read-Only:
+
+- `id` (String) Id of the storage.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>

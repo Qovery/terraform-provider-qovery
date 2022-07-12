@@ -40,17 +40,20 @@ data "qovery_project" "my_project" {
 <a id="nestedatt--environment_variables"></a>
 ### Nested Schema for `environment_variables`
 
-Optional:
+Required:
 
-- `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable.
 
 
 <a id="nestedatt--secrets"></a>
 ### Nested Schema for `secrets`
 
-Optional:
+Read-Only:
 
 - `id` (String) Id of the secret.
 - `key` (String) Key of the secret.

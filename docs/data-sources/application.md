@@ -54,7 +54,7 @@ data "qovery_application" "my_application" {
 <a id="nestedatt--secrets"></a>
 ### Nested Schema for `secrets`
 
-Optional:
+Read-Only:
 
 - `id` (String) Id of the secret.
 - `key` (String) Key of the secret.

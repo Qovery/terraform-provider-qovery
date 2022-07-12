@@ -41,7 +41,7 @@ data "qovery_environment" "my_environment" {
 <a id="nestedatt--environment_variables"></a>
 ### Nested Schema for `environment_variables`
 
-Optional:
+Read-Only:
 
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
@@ -51,7 +51,7 @@ Optional:
 <a id="nestedatt--secrets"></a>
 ### Nested Schema for `secrets`
 
-Optional:
+Read-Only:
 
 - `id` (String) Id of the secret.
 - `key` (String) Key of the secret.
