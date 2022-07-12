@@ -96,7 +96,7 @@ Optional:
 <a id="nestedatt--routing_table"></a>
 ### Nested Schema for `routing_table`
 
-Optional:
+Required:
 
 - `description` (String) Description of the route.
 - `destination` (String) Destination of the route.
