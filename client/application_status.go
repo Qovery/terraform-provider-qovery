@@ -41,6 +41,8 @@ func (c *Client) updateApplicationStatus(ctx context.Context, application *qover
 	}
 
 	if status.State != desiredState {
+		// Disable restart if we deployed the app previously or if we want the app to be stopped
+		forceRestart = false
 		switch desiredState {
 		case qovery.STATEENUM_RUNNING:
 			return c.deployApplication(ctx, application)
@@ -50,7 +52,7 @@ func (c *Client) updateApplicationStatus(ctx context.Context, application *qover
 	}
 
 	deploymentStatus := status.ServiceDeploymentStatus.Get()
-	if (deploymentStatus != nil && *deploymentStatus == qovery.SERVICEDEPLOYMENTSTATUSENUM_OUT_OF_DATE) || forceRestart {
+	if (deploymentStatus != nil && *deploymentStatus == qovery.SERVICEDEPLOYMENTSTATUSENUM_OUT_OF_DATE) || (forceRestart && desiredState == qovery.STATEENUM_RUNNING) {
 		return c.restartApplication(ctx, application)
 	}
 
