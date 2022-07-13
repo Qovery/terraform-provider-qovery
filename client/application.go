@@ -123,7 +123,7 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 }
 
 func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, environmentVariablesDiff EnvironmentVariablesDiff, secretsDiff SecretsDiff, customDomainsDiff CustomDomainsDiff, desiredState qovery.StateEnum) (*ApplicationResponse, *apierrors.APIError) {
-	forceRestart := !environmentVariablesDiff.IsEmpty()
+	forceRestart := !environmentVariablesDiff.IsEmpty() || !secretsDiff.IsEmpty() || !customDomainsDiff.IsEmpty()
 	if !environmentVariablesDiff.IsEmpty() {
 		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application.Id, environmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
