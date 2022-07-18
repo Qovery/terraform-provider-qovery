@@ -50,18 +50,25 @@ func wait(ctx context.Context, f waitFunc, timeout *time.Duration) *apierrors.AP
 
 func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, expected qovery.StateEnum) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
-		status, apiErr := client.getApplicationStatus(ctx, applicationID)
-		if apiErr != nil {
-			if apierrors.IsNotFound(apiErr) && expected == qovery.STATEENUM_DELETED {
-				return true, nil
+		maxRetry := 3
+		var status *qovery.Status
+		var apiErr *apierrors.APIError
+		for tryCount := 0; tryCount < maxRetry; tryCount++ {
+			status, apiErr = client.getApplicationStatus(ctx, applicationID)
+			if apiErr != nil {
+				if apierrors.IsNotFound(apiErr) && expected == qovery.STATEENUM_DELETED {
+					return true, nil
+				}
+				return false, apiErr
 			}
-			return false, apiErr
+			isExpectedState := status.State == expected
+			if !isExpectedState && isFinalState(status.State) {
+				time.Sleep(3*time.Second)
+				continue
+			}
+			return status.State == expected, nil
 		}
-		isExpectedState := status.State == expected
-		if !isExpectedState && isFinalState(status.State) {
-			return false, apierrors.NewDeployError(apierrors.APIResourceApplication, applicationID, nil, fmt.Errorf("expected status '%s' but got '%s'", expected, status.State))
-		}
-		return status.State == expected, nil
+		return false, apierrors.NewDeployError(apierrors.APIResourceApplication, applicationID, nil, fmt.Errorf("expected status '%s' but got '%s'", expected, status.State))
 	}
 }
 
