@@ -103,8 +103,13 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 }
 
 func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *apierrors.APIError {
-	finalStateChecker := newApplicationFinalStateCheckerWaitFunc(c, applicationID)
-	if apiErr := wait(ctx, finalStateChecker, nil); apiErr != nil {
+	application, apiErr := c.GetApplication(ctx, applicationID)
+	if apiErr != nil {
+		return apiErr
+	}
+
+	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, application.ApplicationResponse.Environment.Id)
+	if apiErr := wait(ctx, envChecker, nil); apiErr != nil {
 		return apiErr
 	}
 
