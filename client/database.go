@@ -118,8 +118,13 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *
 }
 
 func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierrors.APIError {
-	finalStateChecker := newDatabaseFinalStateCheckerWaitFunc(c, databaseID)
-	if apiErr := wait(ctx, finalStateChecker, nil); apiErr != nil {
+	database, apiErr := c.GetDatabase(ctx, databaseID)
+	if apiErr != nil {
+		return apiErr
+	}
+
+	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, database.DatabaseResponse.Environment.Id)
+	if apiErr := wait(ctx, envChecker, nil); apiErr != nil {
 		return apiErr
 	}
 
