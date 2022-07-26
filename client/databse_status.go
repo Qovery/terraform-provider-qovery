@@ -30,6 +30,11 @@ func (c *Client) updateDatabaseStatus(ctx context.Context, database *qovery.Data
 		return nil, apiErr
 	}
 
+	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, database.Environment.Id)
+	if apiErr := wait(ctx, envChecker, nil); apiErr != nil {
+		return nil, apiErr
+	}
+
 	status, apiErr := c.getDatabaseStatus(ctx, database.Id)
 	if apiErr != nil {
 		return nil, apiErr
