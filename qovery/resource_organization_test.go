@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/qovery/terraform-provider-qovery/internal/api"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 )
 
 // NOTE: skipped because organization creation is not allowed with terraform
@@ -132,7 +132,7 @@ func testAccQoveryOrganizationDestroy(resourceName string) resource.TestCheckFun
 			// return fmt.Errorf("found organization but expected it to have been deleted")
 			return nil
 		}
-		if !api.IsErrNotFound(err) {
+		if !apierrors.IsErrNotFound(err) {
 			return fmt.Errorf("unexpected error checking for deleted organization: %s", err.Error())
 		}
 		return nil
