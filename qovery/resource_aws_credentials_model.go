@@ -2,7 +2,8 @@ package qovery
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/qovery/qovery-client-go"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 )
 
 type AWSCredentials struct {
@@ -19,28 +20,28 @@ type AWSCredentialsDataSource struct {
 	Name           types.String `tfsdk:"name"`
 }
 
-func (creds AWSCredentials) toUpsertAWSCredentialsRequest() qovery.AwsCredentialsRequest {
-	return qovery.AwsCredentialsRequest{
+func (creds AWSCredentials) toUpsertAwsRequest() credentials.UpsertAwsRequest {
+	return credentials.UpsertAwsRequest{
 		Name:            toString(creds.Name),
-		AccessKeyId:     toStringPointer(creds.AccessKeyId),
-		SecretAccessKey: toStringPointer(creds.SecretAccessKey),
+		AccessKeyID:     toString(creds.AccessKeyId),
+		SecretAccessKey: toString(creds.SecretAccessKey),
 	}
 }
 
-func convertResponseToAWSCredentials(creds *qovery.ClusterCredentials, plan AWSCredentials) AWSCredentials {
+func convertDomainCredentialsToAWSCredentials(creds *credentials.Credentials, plan AWSCredentials) AWSCredentials {
 	return AWSCredentials{
-		Id:              fromStringPointer(creds.Id),
-		Name:            fromStringPointer(creds.Name),
-		OrganizationId:  plan.OrganizationId,
+		Id:              fromString(creds.ID),
+		OrganizationId:  fromString(creds.OrganizationID),
+		Name:            fromString(creds.Name),
 		AccessKeyId:     plan.AccessKeyId,
 		SecretAccessKey: plan.SecretAccessKey,
 	}
 }
 
-func convertResponseToAWSCredentialsDataSource(creds *qovery.ClusterCredentials, plan AWSCredentialsDataSource) AWSCredentialsDataSource {
+func convertDomainCredentialsToAWSCredentialsDataSource(creds *credentials.Credentials) AWSCredentialsDataSource {
 	return AWSCredentialsDataSource{
-		Id:             fromStringPointer(creds.Id),
-		Name:           fromStringPointer(creds.Name),
-		OrganizationId: plan.OrganizationId,
+		Id:             fromString(creds.ID),
+		OrganizationId: fromString(creds.OrganizationID),
+		Name:           fromString(creds.Name),
 	}
 }

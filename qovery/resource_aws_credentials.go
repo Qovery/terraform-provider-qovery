@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 )
 
 type awsCredentialsResourceType struct{}
@@ -53,12 +53,12 @@ func (r awsCredentialsResourceType) GetSchema(_ context.Context) (tfsdk.Schema, 
 
 func (r awsCredentialsResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
 	return awsCredentialsResource{
-		client: p.(*provider).client,
+		awsCredentialsService: p.(*provider).awsCredentialsService,
 	}, nil
 }
 
 type awsCredentialsResource struct {
-	client *client.Client
+	awsCredentialsService credentials.AwsService
 }
 
 // Create qovery aws credentials resource
@@ -71,14 +71,14 @@ func (r awsCredentialsResource) Create(ctx context.Context, req tfsdk.CreateReso
 	}
 
 	// Create new credentials
-	credentials, apiErr := r.client.CreateAWSCredentials(ctx, plan.OrganizationId.Value, plan.toUpsertAWSCredentialsRequest())
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	creds, err := r.awsCredentialsService.Create(ctx, plan.OrganizationId.Value, plan.toUpsertAwsRequest())
+	if err != nil {
+		resp.Diagnostics.AddError("Error on aws credentials create", err.Error())
 		return
 	}
 
 	// Initialize state values
-	state := convertResponseToAWSCredentials(credentials, plan)
+	state := convertDomainCredentialsToAWSCredentials(creds, plan)
 	tflog.Trace(ctx, "created aws credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
@@ -95,13 +95,13 @@ func (r awsCredentialsResource) Read(ctx context.Context, req tfsdk.ReadResource
 	}
 
 	// Get credentials from API
-	credentials, apiErr := r.client.GetAWSCredentials(ctx, state.OrganizationId.Value, state.Id.Value)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	creds, err := r.awsCredentialsService.Get(ctx, state.OrganizationId.Value, state.Id.Value)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on aws credentials read", err.Error())
 		return
 	}
 
-	state = convertResponseToAWSCredentials(credentials, state)
+	state = convertDomainCredentialsToAWSCredentials(creds, state)
 	tflog.Trace(ctx, "read aws credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
@@ -119,14 +119,14 @@ func (r awsCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateReso
 	}
 
 	// Update credentials in the backend
-	credentials, apiErr := r.client.UpdateAWSCredentials(ctx, state.OrganizationId.Value, state.Id.Value, plan.toUpsertAWSCredentialsRequest())
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	creds, err := r.awsCredentialsService.Update(ctx, state.OrganizationId.Value, state.Id.Value, plan.toUpsertAwsRequest())
+	if err != nil {
+		resp.Diagnostics.AddError("Error on aws credentials update", err.Error())
 		return
 	}
 
 	// Update state values
-	state = convertResponseToAWSCredentials(credentials, plan)
+	state = convertDomainCredentialsToAWSCredentials(creds, plan)
 	tflog.Trace(ctx, "updated aws credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
@@ -143,9 +143,9 @@ func (r awsCredentialsResource) Delete(ctx context.Context, req tfsdk.DeleteReso
 	}
 
 	// Delete credentials in the backend
-	apiErr := r.client.DeleteAWSCredentials(ctx, state.OrganizationId.Value, state.Id.Value)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	err := r.awsCredentialsService.Delete(ctx, state.OrganizationId.Value, state.Id.Value)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on aws credentials delete", err.Error())
 		return
 	}
 
