@@ -12,9 +12,9 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
-	"github.com/qovery/terraform-provider-qovery/internal/api"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
-	"github.com/qovery/terraform-provider-qovery/internal/service"
+	"github.com/qovery/terraform-provider-qovery/internal/services"
 )
 
 const APITokenEnvName = "QOVERY_API_TOKEN"
@@ -39,8 +39,11 @@ type qProvider struct {
 	// This is used to make http request to Qovery API.
 	client *client.Client
 
-	// organizationService is a service that handles organization domain logic.
+	// organizationService is an instance of an organization.Service that handles the domain logic.
 	organizationService organization.Service
+
+	// awsCredentialsService is an instance of an credentials.AwsService that handles the domain logic.
+	awsCredentialsService credentials.AwsService
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -84,11 +87,20 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 
 	// Initialize qovery client
 	qoveryClient := NewQoveryAPIClient(token, p.version)
+	qoveryServices, err := services.NewQoveryServices(qoveryClient)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to initialize qovery services",
+			err.Error(),
+		)
+		return
+	}
 
 	// Create a new Qovery client and set it to the provider client
 	p.configured = true
 	p.client = client.New(token, p.version)
-	p.organizationService = service.NewOrganizationService(api.NewOrganizationAPI(qoveryClient))
+	p.organizationService = qoveryServices.OrganizationService
+	p.awsCredentialsService = qoveryServices.AwsCredentialsService
 }
 
 // GetResources - Defines provider resources

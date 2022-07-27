@@ -107,7 +107,7 @@ func testAccQoveryOrganizationExists(resourceName string) resource.TestCheckFunc
 			return fmt.Errorf("organization.id not found")
 		}
 
-		_, err := organizationService.Get(context.TODO(), rs.Primary.ID)
+		_, err := qoveryServices.OrganizationService.Get(context.TODO(), rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -126,7 +126,7 @@ func testAccQoveryOrganizationDestroy(resourceName string) resource.TestCheckFun
 			return fmt.Errorf("organization.id not found")
 		}
 
-		_, err := organizationService.Get(context.TODO(), rs.Primary.ID)
+		_, err := qoveryServices.OrganizationService.Get(context.TODO(), rs.Primary.ID)
 		if err == nil {
 			// TODO: handle orga delete properly
 			// return fmt.Errorf("found organization but expected it to have been deleted")
