@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 )
 
 // Ensure provider defined types fully satisfy framework interfaces
@@ -44,12 +44,12 @@ func (t awsCredentialsDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 
 func (t awsCredentialsDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
 	return awsCredentialsDataSource{
-		client: p.(*qProvider).client,
+		awsCredentialsService: p.(*qProvider).awsCredentialsService,
 	}, nil
 }
 
 type awsCredentialsDataSource struct {
-	client *client.Client
+	awsCredentialsService credentials.AwsService
 }
 
 // Read qovery awsCredentials data source
@@ -62,13 +62,13 @@ func (d awsCredentialsDataSource) Read(ctx context.Context, req datasource.ReadR
 	}
 
 	// Get credentials from API
-	credentials, apiErr := d.client.GetAWSCredentials(ctx, data.OrganizationId.Value, data.Id.Value)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	creds, err := d.awsCredentialsService.Get(ctx, data.OrganizationId.Value, data.Id.Value)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on aws credentials read", err.Error())
 		return
 	}
 
-	state := convertResponseToAWSCredentialsDataSource(credentials, data)
+	state := convertDomainCredentialsToAWSCredentialsDataSource(creds)
 	tflog.Trace(ctx, "read aws credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state
