@@ -4,9 +4,9 @@ import (
 	"context"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
@@ -166,5 +166,5 @@ func (r organizationResource) Delete(ctx context.Context, req tfsdk.DeleteResour
 
 // ImportState imports a qovery organization resource using its id
 func (r organizationResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
-	tfsdk.ResourceImportStatePassthroughID(ctx, tftypes.NewAttributePath().WithAttributeName("id"), req, resp)
+	tfsdk.ResourceImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
