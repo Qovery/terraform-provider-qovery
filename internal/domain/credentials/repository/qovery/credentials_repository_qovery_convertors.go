@@ -23,3 +23,13 @@ func convertDomainUpsertAwsRequestToQovery(request credentials.UpsertAwsRequest)
 		SecretAccessKey: &request.SecretAccessKey,
 	}
 }
+
+// convertDomainUpsertScalewayRequestToQovery takes the domain request credentials.UpsertScalewayRequest and turns it into a qovery.ScalewayCredentialsRequest to make the api call.
+func convertDomainUpsertScalewayRequestToQovery(request credentials.UpsertScalewayRequest) qovery.ScalewayCredentialsRequest {
+	return qovery.ScalewayCredentialsRequest{
+		Name:              request.Name,
+		ScalewayProjectId: &request.ScalewayProjectID,
+		ScalewayAccessKey: &request.ScalewayAccessKey,
+		ScalewaySecretKey: &request.ScalewaySecretKey,
+	}
+}

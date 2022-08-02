@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 )
 
 type scalewayCredentialsDataSourceType struct{}
@@ -38,12 +38,12 @@ func (t scalewayCredentialsDataSourceType) GetSchema(_ context.Context) (tfsdk.S
 
 func (t scalewayCredentialsDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return scalewayCredentialsDataSource{
-		client: p.(*provider).client,
+		scalewayCredentialsService: p.(*provider).scalewayCredentialsService,
 	}, nil
 }
 
 type scalewayCredentialsDataSource struct {
-	client *client.Client
+	scalewayCredentialsService credentials.ScalewayService
 }
 
 // Read qovery scalewayCredentials data source
@@ -56,13 +56,13 @@ func (d scalewayCredentialsDataSource) Read(ctx context.Context, req tfsdk.ReadD
 	}
 
 	// Get credentials from API
-	credentials, apiErr := d.client.GetScalewayCredentials(ctx, data.OrganizationId.Value, data.Id.Value)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	creds, err := d.scalewayCredentialsService.Get(ctx, data.OrganizationId.Value, data.Id.Value)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on scaleway credentials read", err.Error())
 		return
 	}
 
-	state := convertResponseToScalewayCredentialsDataSource(credentials, data)
+	state := convertDomainCredentialsToScalewayCredentialsDataSource(creds)
 	tflog.Trace(ctx, "read scaleway credentials", map[string]interface{}{"credentials_id": state.Id.Value})
 
 	// Set state

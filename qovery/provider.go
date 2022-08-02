@@ -38,8 +38,11 @@ type provider struct {
 	// organizationService is an instance of an organization.Service that handles the domain logic.
 	organizationService organization.Service
 
-	// awsCredentialsService is an instance of an credentials.AwsService that handles the domain logic.
+	// awsCredentialsService is an instance of a credentials.AwsService that handles the domain logic.
 	awsCredentialsService credentials.AwsService
+
+	// scalewayCredentialsService is an instance of a credentials.ScalewayService that handles the domain logic.
+	scalewayCredentialsService credentials.ScalewayService
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -97,6 +100,7 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 	p.client = client.New(token, p.version)
 	p.organizationService = qoveryServices.OrganizationService
 	p.awsCredentialsService = qoveryServices.AwsCredentialsService
+	p.scalewayCredentialsService = qoveryServices.ScalewayCredentialsService
 }
 
 // GetResources - Defines provider resources
