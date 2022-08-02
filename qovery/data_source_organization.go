@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 )
 
 type organizationDataSourceType struct{}
@@ -43,12 +43,12 @@ func (t organizationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, 
 
 func (t organizationDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
 	return organizationDataSource{
-		client: p.(*provider).client,
+		organizationService: p.(*provider).organizationService,
 	}, nil
 }
 
 type organizationDataSource struct {
-	client *client.Client
+	organizationService organization.Service
 }
 
 // Read qovery organization data source
@@ -61,13 +61,13 @@ func (d organizationDataSource) Read(ctx context.Context, req tfsdk.ReadDataSour
 	}
 
 	// Get organization from API
-	organization, apiErr := d.client.GetOrganization(ctx, data.Id.Value)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	orga, err := d.organizationService.Get(ctx, data.Id.Value)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on organization read", err.Error())
 		return
 	}
 
-	state := convertResponseToOrganization(organization)
+	state := convertDomainOrganizationToTerraform(orga)
 	tflog.Trace(ctx, "read organization", map[string]interface{}{"organization_id": state.Id.Value})
 
 	// Set state

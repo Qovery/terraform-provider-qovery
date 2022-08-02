@@ -2,13 +2,18 @@ package qovery
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
+	"github.com/qovery/terraform-provider-qovery/internal/services"
 )
 
 const APITokenEnvName = "QOVERY_API_TOKEN"
@@ -29,6 +34,15 @@ type provider struct {
 	// client is set at the end of the Configure method.
 	// This is used to make http request to Qovery API.
 	client *client.Client
+
+	// organizationService is an instance of an organization.Service that handles the domain logic.
+	organizationService organization.Service
+
+	// awsCredentialsService is an instance of a credentials.AwsService that handles the domain logic.
+	awsCredentialsService credentials.AwsService
+
+	// scalewayCredentialsService is an instance of a credentials.ScalewayService that handles the domain logic.
+	scalewayCredentialsService credentials.ScalewayService
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -70,9 +84,23 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 		return
 	}
 
+	// Initialize qovery client
+	qoveryClient := NewQoveryAPIClient(token, p.version)
+	qoveryServices, err := services.NewQoveryServices(qoveryClient)
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to initialize qovery services",
+			err.Error(),
+		)
+		return
+	}
+
 	// Create a new Qovery client and set it to the provider client
 	p.configured = true
 	p.client = client.New(token, p.version)
+	p.organizationService = qoveryServices.OrganizationService
+	p.awsCredentialsService = qoveryServices.AwsCredentialsService
+	p.scalewayCredentialsService = qoveryServices.ScalewayCredentialsService
 }
 
 // GetResources - Defines provider resources
@@ -125,4 +153,12 @@ func New(version string) func() tfsdk.Provider {
 			version: version,
 		}
 	}
+}
+
+func NewQoveryAPIClient(token string, version string) *qovery.APIClient {
+	cfg := qovery.NewConfiguration()
+	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Token %s", token))
+	cfg.AddDefaultHeader("content-type", "application/json")
+	cfg.UserAgent = fmt.Sprintf("terraform-provider-qovery/%s", version)
+	return qovery.NewAPIClient(cfg)
 }

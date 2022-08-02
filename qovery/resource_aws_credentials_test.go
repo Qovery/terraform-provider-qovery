@@ -8,7 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
-	"github.com/qovery/terraform-provider-qovery/client/apierrors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 )
 
 func TestAcc_AWSCredentials(t *testing.T) {
@@ -100,9 +100,9 @@ func testAccQoveryAWSCredentialsExists(resourceName string) resource.TestCheckFu
 			return fmt.Errorf("aws_credentials.id not found")
 		}
 
-		_, apiErr := apiClient.GetAWSCredentials(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
-		if apiErr != nil {
-			return apiErr
+		_, err := qoveryServices.AwsCredentialsService.Get(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
+		if err != nil {
+			return err
 		}
 		return nil
 	}
@@ -119,12 +119,12 @@ func testAccQoveryAWSCredentialsDestroy(resourceName string) resource.TestCheckF
 			return fmt.Errorf("aws_credentials.id not found")
 		}
 
-		_, apiErr := apiClient.GetAWSCredentials(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
-		if apiErr == nil {
+		_, err := qoveryServices.AwsCredentialsService.Get(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
+		if err == nil {
 			return fmt.Errorf("found aws_credentials but expected it to be deleted")
 		}
-		if !apierrors.IsNotFound(apiErr) {
-			return fmt.Errorf("unexpected error checking for deleted aws_credentials: %s", apiErr.Summary())
+		if !apierrors.IsErrNotFound(err) {
+			return fmt.Errorf("unexpected error checking for deleted aws_credentials: %s", err.Error())
 		}
 		return nil
 	}

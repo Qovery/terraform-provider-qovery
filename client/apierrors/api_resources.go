@@ -3,7 +3,6 @@ package apierrors
 type APIResource string
 
 const (
-	APIResourceAWSCredentials                 APIResource = "aws credentials"
 	APIResourceApplication                    APIResource = "application"
 	APIResourceApplicationCustomDomain        APIResource = "application custom domain"
 	APIResourceApplicationEnvironmentVariable APIResource = "application environment variable"
@@ -20,9 +19,7 @@ const (
 	APIResourceEnvironmentEnvironmentVariable APIResource = "environment environment variable"
 	APIResourceEnvironmentSecret              APIResource = "environment secret"
 	APIResourceEnvironmentStatus              APIResource = "environment status"
-	APIResourceOrganization                   APIResource = "organization"
 	APIResourceProject                        APIResource = "project"
 	APIResourceProjectEnvironmentVariable     APIResource = "project environment variable"
 	APIResourceProjectSecret                  APIResource = "project secret"
-	APIResourceScalewayCredentials            APIResource = "scaleway credentials"
 )
