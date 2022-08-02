@@ -48,7 +48,7 @@ func (app Application) CustomDomainsList() CustomDomainList {
 }
 
 func (app Application) toCreateApplicationRequest() (*client.ApplicationCreateParams, error) {
-	storage := make([]qovery.ApplicationStorageRequestStorageInner, 0, len(app.Storage))
+	storage := make([]qovery.ServiceStorageRequestStorageInner, 0, len(app.Storage))
 	for _, store := range app.Storage {
 		s, err := store.toCreateRequest()
 		if err != nil {
@@ -57,7 +57,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		storage = append(storage, *s)
 	}
 
-	ports := make([]qovery.ApplicationPortRequestPortsInner, 0, len(app.Ports))
+	ports := make([]qovery.ServicePortRequestPortsInner, 0, len(app.Ports))
 	for _, port := range app.Ports {
 		p, err := port.toCreateRequest()
 		if err != nil {
@@ -113,7 +113,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		storage = append(storage, *s)
 	}
 
-	ports := make([]qovery.ApplicationPortPortsInner, 0, len(app.Ports))
+	ports := make([]qovery.ServicePortPortsInner, 0, len(app.Ports))
 	for _, port := range app.Ports {
 		p, err := port.toUpdateRequest()
 		if err != nil {
@@ -224,13 +224,13 @@ type ApplicationStorage struct {
 	MountPoint types.String `tfsdk:"mount_point"`
 }
 
-func (store ApplicationStorage) toCreateRequest() (*qovery.ApplicationStorageRequestStorageInner, error) {
+func (store ApplicationStorage) toCreateRequest() (*qovery.ServiceStorageRequestStorageInner, error) {
 	storageType, err := qovery.NewStorageTypeEnumFromValue(toString(store.Type))
 	if err != nil {
 		return nil, err
 	}
 
-	return &qovery.ApplicationStorageRequestStorageInner{
+	return &qovery.ServiceStorageRequestStorageInner{
 		Type:       *storageType,
 		Size:       toInt32(store.Size),
 		MountPoint: toString(store.MountPoint),
@@ -277,13 +277,13 @@ type ApplicationPort struct {
 	Protocol           types.String `tfsdk:"protocol"`
 }
 
-func (port ApplicationPort) toCreateRequest() (*qovery.ApplicationPortRequestPortsInner, error) {
+func (port ApplicationPort) toCreateRequest() (*qovery.ServicePortRequestPortsInner, error) {
 	protocol, err := qovery.NewPortProtocolEnumFromValue(toString(port.Protocol))
 	if err != nil {
 		return nil, err
 	}
 
-	return &qovery.ApplicationPortRequestPortsInner{
+	return &qovery.ServicePortRequestPortsInner{
 		Name:               toNullableString(port.Name),
 		InternalPort:       toInt32(port.InternalPort),
 		ExternalPort:       toInt32Pointer(port.ExternalPort),
@@ -292,13 +292,13 @@ func (port ApplicationPort) toCreateRequest() (*qovery.ApplicationPortRequestPor
 	}, nil
 }
 
-func (port ApplicationPort) toUpdateRequest() (*qovery.ApplicationPortPortsInner, error) {
+func (port ApplicationPort) toUpdateRequest() (*qovery.ServicePortPortsInner, error) {
 	protocol, err := qovery.NewPortProtocolEnumFromValue(toString(port.Protocol))
 	if err != nil {
 		return nil, err
 	}
 
-	return &qovery.ApplicationPortPortsInner{
+	return &qovery.ServicePortPortsInner{
 		Id:                 toStringPointer(port.Id),
 		Name:               toNullableString(port.Name),
 		InternalPort:       toInt32(port.InternalPort),
@@ -308,7 +308,7 @@ func (port ApplicationPort) toUpdateRequest() (*qovery.ApplicationPortPortsInner
 	}, nil
 }
 
-func convertResponseToApplicationPorts(ports []qovery.ApplicationPortPortsInner) []ApplicationPort {
+func convertResponseToApplicationPorts(ports []qovery.ServicePortPortsInner) []ApplicationPort {
 	if len(ports) == 0 {
 		return nil
 	}
