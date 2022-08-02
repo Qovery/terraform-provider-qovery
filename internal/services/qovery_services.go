@@ -14,8 +14,9 @@ import (
 )
 
 type Services struct {
-	AwsCredentialsService credentials.AwsService
-	OrganizationService   organization.Service
+	AwsCredentialsService      credentials.AwsService
+	ScalewayCredentialsService credentials.ScalewayService
+	OrganizationService        organization.Service
 }
 
 func NewQoveryServices(client *qovery.APIClient) (*Services, error) {
@@ -31,9 +32,16 @@ func NewQoveryServices(client *qovery.APIClient) (*Services, error) {
 		return nil, err
 	}
 
+	// Initializing scaleway cluster credentials service
+	scalewayCredsSvc, err := newScalewayCredentialsService(client)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Services{
-		AwsCredentialsService: awsCredsSvc,
-		OrganizationService:   orgaSvc,
+		AwsCredentialsService:      awsCredsSvc,
+		ScalewayCredentialsService: scalewayCredsSvc,
+		OrganizationService:        orgaSvc,
 	}, nil
 }
 
@@ -71,4 +79,18 @@ func newAwsCredentialsService(client *qovery.APIClient) (credentials.AwsService,
 	}
 
 	return awsCredsSvc, nil
+}
+
+func newScalewayCredentialsService(client *qovery.APIClient) (credentials.ScalewayService, error) {
+	scalewayCredsRepo, err := credsQoveryRepository.NewCredentialsScalewayQoveryRepository(client)
+	if err != nil {
+		return nil, err
+	}
+
+	scalewayCredsSvc, err := credsService.NewCredentialsScalewayService(scalewayCredsRepo)
+	if err != nil {
+		return nil, err
+	}
+
+	return scalewayCredsSvc, nil
 }

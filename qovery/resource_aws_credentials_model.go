@@ -30,8 +30,8 @@ func (creds AWSCredentials) toUpsertAwsRequest() credentials.UpsertAwsRequest {
 
 func convertDomainCredentialsToAWSCredentials(creds *credentials.Credentials, plan AWSCredentials) AWSCredentials {
 	return AWSCredentials{
-		Id:              fromString(creds.ID),
-		OrganizationId:  fromString(creds.OrganizationID),
+		Id:              fromString(creds.ID.String()),
+		OrganizationId:  fromString(creds.OrganizationID.String()),
 		Name:            fromString(creds.Name),
 		AccessKeyId:     plan.AccessKeyId,
 		SecretAccessKey: plan.SecretAccessKey,
@@ -40,8 +40,8 @@ func convertDomainCredentialsToAWSCredentials(creds *credentials.Credentials, pl
 
 func convertDomainCredentialsToAWSCredentialsDataSource(creds *credentials.Credentials) AWSCredentialsDataSource {
 	return AWSCredentialsDataSource{
-		Id:             fromString(creds.ID),
-		OrganizationId: fromString(creds.OrganizationID),
+		Id:             fromString(creds.ID.String()),
+		OrganizationId: fromString(creds.OrganizationID.String()),
 		Name:           fromString(creds.Name),
 	}
 }
