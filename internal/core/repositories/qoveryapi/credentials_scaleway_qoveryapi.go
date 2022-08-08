@@ -1,0 +1,89 @@
+package qoveryapi
+
+import (
+	"context"
+
+	"github.com/qovery/qovery-client-go"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/common"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
+)
+
+// credentialsScalewayQoveryAPI implements the interface credentials.ScalewayRepository.
+type credentialsScalewayQoveryAPI struct {
+	client *qovery.APIClient
+}
+
+// NOTE: This forces the implementation of the interface credentials.ScalewayRepository  by credentialsScalewayQoveryAPI at compile time.
+var _ credentials.ScalewayRepository = credentialsScalewayQoveryAPI{}
+
+// newCredentialsScalewayQoveryAPI return a new instance of a credentials.ScalewayRepository that uses Qovery's API.
+func newCredentialsScalewayQoveryAPI(client *qovery.APIClient) (credentials.ScalewayRepository, error) {
+	if client == nil {
+		return nil, common.ErrInvalidQoveryClient
+	}
+
+	return &credentialsScalewayQoveryAPI{
+		client: client,
+	}, nil
+}
+
+// Create calls Qovery's API to create a scaleway cluster credentials on an organization using the given organizationID and request.
+func (c credentialsScalewayQoveryAPI) Create(ctx context.Context, organizationID string, request credentials.UpsertScalewayRequest) (*credentials.Credentials, error) {
+	creds, resp, err := c.client.CloudProviderCredentialsApi.
+		CreateScalewayCredentials(ctx, organizationID).
+		ScalewayCredentialsRequest(newQoveryScalewayCredentialsRequestFromDomain(request)).
+		Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceScalewayCredentials, request.Name, resp, err)
+	}
+
+	return newDomainCredentialsFromQovery(organizationID, creds)
+}
+
+// Get calls Qovery's API to retrieve an scaleway cluster credentials from an organization using the given organizationID and credentialsID.
+func (c credentialsScalewayQoveryAPI) Get(ctx context.Context, organizationID string, credentialsID string) (*credentials.Credentials, error) {
+	credsList, resp, err := c.client.CloudProviderCredentialsApi.
+		ListScalewayCredentials(ctx, organizationID).
+		Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewReadApiError(apierrors.ApiResourceScalewayCredentials, credentialsID, resp, err)
+	}
+
+	for _, creds := range credsList.GetResults() {
+		if credentialsID == *creds.Id {
+			return newDomainCredentialsFromQovery(organizationID, &creds)
+		}
+	}
+
+	// NOTE: Force status 404 since we didn't find the credential.
+	// The status is used to generate the proper error return by the provider.
+	resp.StatusCode = 404
+	return nil, apierrors.NewReadApiError(apierrors.ApiResourceScalewayCredentials, credentialsID, resp, err)
+}
+
+// Update calls Qovery's API to update a scaleway cluster credentials from an organization using the given organizationID, credentialsID and request.
+func (c credentialsScalewayQoveryAPI) Update(ctx context.Context, organizationID string, credentialsID string, request credentials.UpsertScalewayRequest) (*credentials.Credentials, error) {
+	creds, resp, err := c.client.CloudProviderCredentialsApi.
+		EditScalewayCredentials(ctx, organizationID, credentialsID).
+		ScalewayCredentialsRequest(newQoveryScalewayCredentialsRequestFromDomain(request)).
+		Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceScalewayCredentials, credentialsID, resp, err)
+	}
+
+	return newDomainCredentialsFromQovery(organizationID, creds)
+}
+
+// Delete calls Qovery's API to delete a scaleway cluster credentials from an organization using the given organizationID and credentialsID.
+func (c credentialsScalewayQoveryAPI) Delete(ctx context.Context, organizationID string, credentialsID string) error {
+	resp, err := c.client.CloudProviderCredentialsApi.
+		DeleteScalewayCredentials(ctx, credentialsID, organizationID).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return apierrors.NewDeleteApiError(apierrors.ApiResourceScalewayCredentials, credentialsID, resp, err)
+	}
+
+	return nil
+}

@@ -34,6 +34,7 @@ func (v Plan) Validate() error {
 	if slices.Contains(AllowedPlanValues, v) {
 		return nil
 	}
+
 	return fmt.Errorf("invalid value '%v' for Plan: valid values are %v", v, AllowedPlanValues)
 }
 
@@ -46,9 +47,10 @@ func (v Plan) IsValid() bool {
 // It returns an error if the string is not a valid value.
 func NewPlanFromString(v string) (*Plan, error) {
 	ev := Plan(v)
+
 	if err := ev.Validate(); err != nil {
 		return nil, err
 	}
-	return &ev, nil
 
+	return &ev, nil
 }

@@ -6,10 +6,24 @@ vars:
   BINARY_FOLDER: bin
   BINARY_NAME: terraform-provider-qovery
   GOLANGCI_LINT_VERSION: v1.47.3
+  MOCKERY_VERSION: v2.14.0
 
 dotenv: ['.env']
 
 tasks:
+  mocks:
+    desc: Generate mocks for repositories
+    deps:
+      - install-mockery
+    cmds:
+      - go generate ./internal/domain/...
+    sources:
+      - "internal/domain/**/*.go"
+      - go.mod
+      - go.sum
+    generates:
+      - internal/core/repositories/mocks/*.go
+
   build:
     desc: Build the provider binary
     cmds:
@@ -27,16 +41,16 @@ tasks:
       - build
 
   test:
-    desc: Run acceptance tests
+    desc: Run unit tests
     cmds:
-      - go test -v -cover ./... {{.CLI_ARGS}}
+      - go test -tags=unit -v -cover ./...
 
   testacc:
     desc: Run acceptance tests
     env:
       TF_ACC: true
     cmds:
-      - go test -v -cover -timeout 2h ./... {{.CLI_ARGS}}
+      - go test -tags=integration -v -cover -timeout 2h ./...
 
   docs:
     desc: Update the generated documentation
@@ -45,6 +59,7 @@ tasks:
     sources:
       - "main.go"
       - "qovery/**/*.go"
+      - "internal/**/*.go"
       - "examples/**/*.tf"
       - "templates/**/*.tmpl"
       - "qovery/data/cluster_instance_types/*.json"
@@ -67,9 +82,9 @@ tasks:
     deps:
       - install-golangci-lint
     cmds:
-      - golangci-lint run ./...
+      - golangci-lint run ./internal/...
     sources:
-      - "**/*.go"
+      - "internal/**/*.go"
       - go.mod
       - go.sum
       - .golangci.yml
@@ -81,6 +96,14 @@ tasks:
     status:
       - which golangci-lint
       - golangci-lint version | grep {{.GOLANGCI_LINT_VERSION}}
+
+  install-mockery:
+      desc: Install the mockery tool
+      cmds:
+        - go install github.com/vektra/mockery/v2@{{.MOCKERY_VERSION}}
+      status:
+        - which mockery
+        - mockery --version | grep {{.MOCKERY_VERSION}}
 
   install-dev-override:
     desc: Set up an override allowing a local version of the provider to be used

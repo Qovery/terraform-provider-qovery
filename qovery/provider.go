@@ -90,7 +90,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 
 	// Initialize qovery client
 	qoveryClient := NewQoveryAPIClient(token, p.version)
-	qoveryServices, err := services.NewQoveryServices(qoveryClient)
+	qoveryServices, err := services.NewQoveryServices(qoveryClient, token, p.version)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to initialize qovery services",

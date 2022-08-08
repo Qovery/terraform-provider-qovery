@@ -2,6 +2,11 @@ package credentials
 
 import (
 	"github.com/go-playground/validator/v10"
+	"github.com/pkg/errors"
+)
+
+var (
+	ErrInvalidUpsertAwsRequest = errors.New("invalid credentials upsert aws request")
 )
 
 // UpsertAwsRequest represents the parameters needed to create & update AWS Credentials.
@@ -13,7 +18,11 @@ type UpsertAwsRequest struct {
 
 // Validate returns an error to tell whether the UpsertAwsRequest is valid or not.
 func (r UpsertAwsRequest) Validate() error {
-	return validator.New().Struct(r)
+	if err := validator.New().Struct(r); err != nil {
+		return errors.Wrap(err, ErrInvalidUpsertAwsRequest.Error())
+	}
+
+	return nil
 }
 
 // IsValid returns a bool to tell whether the UpsertAwsRequest is valid or not.

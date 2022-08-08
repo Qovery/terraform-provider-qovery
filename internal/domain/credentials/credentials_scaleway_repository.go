@@ -1,5 +1,7 @@
 package credentials
 
+//go:generate mockery --testonly --with-expecter --name=ScalewayRepository --structname=CredentialsScalewayRepository --filename=credentials_scaleway_mock.go --output=../../core/repositories/mocks_test/ --outpkg=mocks_test
+
 import (
 	"context"
 )

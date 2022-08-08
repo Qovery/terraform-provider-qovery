@@ -3,11 +3,12 @@ package services
 import (
 	"log"
 
+	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
+	"github.com/qovery/terraform-provider-qovery/internal/core/repositories"
+	"github.com/qovery/terraform-provider-qovery/internal/core/services"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
-	credsQoveryRepository "github.com/qovery/terraform-provider-qovery/internal/domain/credentials/repository/qovery"
-	credsService "github.com/qovery/terraform-provider-qovery/internal/domain/credentials/service"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	orgaQoveryRepository "github.com/qovery/terraform-provider-qovery/internal/domain/organization/repository/qovery"
 	orgaService "github.com/qovery/terraform-provider-qovery/internal/domain/organization/service"
@@ -19,7 +20,14 @@ type Services struct {
 	OrganizationService        organization.Service
 }
 
-func NewQoveryServices(client *qovery.APIClient) (*Services, error) {
+func NewQoveryServices(client *qovery.APIClient, apiToken string, providerVersion string) (*Services, error) {
+	repos, err := repositories.New(
+		repositories.WithQoveryAPI(apiToken, providerVersion),
+	)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to initialize repositories")
+	}
+
 	// Initializing organization service
 	orgaSvc, err := newOrganizationService(client)
 	if err != nil {
@@ -27,13 +35,13 @@ func NewQoveryServices(client *qovery.APIClient) (*Services, error) {
 	}
 
 	// Initializing aws cluster credentials service
-	awsCredsSvc, err := newAwsCredentialsService(client)
+	awsCredsSvc, err := services.NewCredentialsAwsService(repos.CredentialsAws)
 	if err != nil {
 		return nil, err
 	}
 
 	// Initializing scaleway cluster credentials service
-	scalewayCredsSvc, err := newScalewayCredentialsService(client)
+	scalewayCredsSvc, err := services.NewCredentialsScalewayService(repos.CredentialsScaleway)
 	if err != nil {
 		return nil, err
 	}
@@ -45,8 +53,8 @@ func NewQoveryServices(client *qovery.APIClient) (*Services, error) {
 	}, nil
 }
 
-func MustNewQoveryServices(client *qovery.APIClient) *Services {
-	qoveryServices, err := NewQoveryServices(client)
+func MustNewQoveryServices(client *qovery.APIClient, apiToken string, providerVersion string) *Services {
+	qoveryServices, err := NewQoveryServices(client, apiToken, providerVersion)
 	if err != nil {
 		log.Fatalf(err.Error())
 	}
@@ -65,32 +73,4 @@ func newOrganizationService(client *qovery.APIClient) (organization.Service, err
 	}
 
 	return orgaSvc, nil
-}
-
-func newAwsCredentialsService(client *qovery.APIClient) (credentials.AwsService, error) {
-	awsCredsRepo, err := credsQoveryRepository.NewCredentialsAwsQoveryRepository(client)
-	if err != nil {
-		return nil, err
-	}
-
-	awsCredsSvc, err := credsService.NewCredentialsAwsService(awsCredsRepo)
-	if err != nil {
-		return nil, err
-	}
-
-	return awsCredsSvc, nil
-}
-
-func newScalewayCredentialsService(client *qovery.APIClient) (credentials.ScalewayService, error) {
-	scalewayCredsRepo, err := credsQoveryRepository.NewCredentialsScalewayQoveryRepository(client)
-	if err != nil {
-		return nil, err
-	}
-
-	scalewayCredsSvc, err := credsService.NewCredentialsScalewayService(scalewayCredsRepo)
-	if err != nil {
-		return nil, err
-	}
-
-	return scalewayCredsSvc, nil
 }
