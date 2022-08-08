@@ -1,3 +1,6 @@
+//go:build integration && !unit
+// +build integration,!unit
+
 package qovery_test
 
 import (
@@ -15,7 +18,7 @@ func TestAcc_AWSCredentialsDataSource(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Read testing
 			{
-				Config: testAccAwsCredentialsDataSourceConfig(
+				Config: testAccScalewayCredentialsDataSourceConfig(
 					getTestAWSCredentialsID(),
 					getTestOrganizationID(),
 				),
@@ -29,7 +32,7 @@ func TestAcc_AWSCredentialsDataSource(t *testing.T) {
 	})
 }
 
-func testAccAwsCredentialsDataSourceConfig(credentialsID string, organizationID string) string {
+func testAccScalewayCredentialsDataSourceConfig(credentialsID string, organizationID string) string {
 	return fmt.Sprintf(`
 data "qovery_aws_credentials" "test" {
   id = "%s"

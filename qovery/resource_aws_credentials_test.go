@@ -1,3 +1,6 @@
+//go:build integration && !unit
+// +build integration,!unit
+
 package qovery_test
 
 import (
@@ -7,6 +10,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 )
@@ -123,7 +127,7 @@ func testAccQoveryAWSCredentialsDestroy(resourceName string) resource.TestCheckF
 		if err == nil {
 			return fmt.Errorf("found aws_credentials but expected it to be deleted")
 		}
-		if !apierrors.IsErrNotFound(err) {
+		if !apierrors.IsErrNotFound(errors.Cause(err)) {
 			return fmt.Errorf("unexpected error checking for deleted aws_credentials: %s", err.Error())
 		}
 		return nil

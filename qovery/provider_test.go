@@ -1,3 +1,6 @@
+//go:build integration && !unit
+// +build integration,!unit
+
 package qovery_test
 
 import (
@@ -37,7 +40,7 @@ type testEnvironment struct {
 var (
 	apiClient      = client.New(os.Getenv(qovery.APITokenEnvName), "test")
 	qoveryClient   = qovery.NewQoveryAPIClient(os.Getenv(qovery.APITokenEnvName), "test")
-	qoveryServices = services.MustNewQoveryServices(qoveryClient)
+	qoveryServices = services.MustNewQoveryServices(qoveryClient, os.Getenv(qovery.APITokenEnvName), "test")
 )
 
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
@@ -65,6 +68,22 @@ func getTestAWSCredentialsAccessKeyID() string {
 
 func getTestAWSCredentialsSecretAccessKey() string {
 	return os.Getenv("TEST_AWS_CREDENTIALS_SECRET_ACCESS_KEY")
+}
+
+func getTestScalewayCredentialsID() string {
+	return os.Getenv("TEST_SCALEWAY_CREDENTIALS_ID")
+}
+
+func getTestScalewayCredentialsProjectID() string {
+	return os.Getenv("TEST_SCALEWAY_CREDENTIALS_PROJECT_ID")
+}
+
+func getTestScalewayCredentialsAccessKey() string {
+	return os.Getenv("TEST_SCALEWAY_CREDENTIALS_ACCESS_KEY")
+}
+
+func getTestScalewayCredentialsSecretKey() string {
+	return os.Getenv("TEST_SCALEWAY_CREDENTIALS_SECRET_KEY")
 }
 
 func getTestClusterID() string {
