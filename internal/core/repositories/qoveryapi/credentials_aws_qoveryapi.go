@@ -43,23 +43,14 @@ func (c credentialsAwsQoveryAPI) Create(ctx context.Context, organizationID stri
 
 // Get calls Qovery's API to retrieve an aws cluster credentials from an organization using the given organizationID and credentialsID.
 func (c credentialsAwsQoveryAPI) Get(ctx context.Context, organizationID string, credentialsID string) (*credentials.Credentials, error) {
-	credsList, resp, err := c.client.CloudProviderCredentialsApi.
-		ListAWSCredentials(ctx, organizationID).
+	creds, resp, err := c.client.CloudProviderCredentialsApi.
+		GetAWSCredentials(ctx, organizationID, credentialsID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewReadApiError(apierrors.ApiResourceAWSCredentials, credentialsID, resp, err)
 	}
 
-	for _, creds := range credsList.GetResults() {
-		if credentialsID == *creds.Id {
-			return newDomainCredentialsFromQovery(organizationID, &creds)
-		}
-	}
-
-	// NOTE: Force status 404 since we didn't find the credential.
-	// The status is used to generate the proper error return by the provider.
-	resp.StatusCode = 404
-	return nil, apierrors.NewReadApiError(apierrors.ApiResourceAWSCredentials, credentialsID, resp, credentials.ErrAwsCredentialsNotFound)
+	return newDomainCredentialsFromQovery(organizationID, creds)
 }
 
 // Update calls Qovery's API to update an aws cluster credentials from an organization using the given organizationID, credentialsID and request.

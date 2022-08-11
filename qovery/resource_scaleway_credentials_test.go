@@ -57,6 +57,14 @@ func TestAcc_ScalewayCredentials(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_project_id", getTestScalewayCredentialsProjectID()),
 				),
 			},
+			// Check Import
+			{
+				ResourceName:            "qovery_scaleway_credentials.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
+				ImportStateVerifyIgnore: []string{"scaleway_access_key", "scaleway_secret_key", "scaleway_project_id"},
+			},
 		},
 	})
 }
