@@ -53,45 +53,17 @@ func TestAcc_AWSCredentials(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "secret_access_key", getTestAWSCredentialsSecretAccessKey()),
 				),
 			},
+			// Check Import
+			{
+				ResourceName:            "qovery_aws_credentials.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
+				ImportStateVerifyIgnore: []string{"access_key_id", "secret_access_key"},
+			},
 		},
 	})
 }
-
-// TODO: uncomment when ImportStateIdPrefix is fixed
-//func TestAcc_AWSCredentialsImport(t *testing.T) {
-//	t.Parallel()
-//	testName := "aws-credentials-import"
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:                 func() { testAccPreCheck(t) },
-//		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-//		CheckDestroy:             testAccQoveryAWSCredentialsDestroy("qovery_aws_credentials.test"),
-//		Steps: []resource.TestStep{
-//			// Create and Read testing
-//			{
-//				Config: testAccAWSCredentialsDefaultConfig(
-//					testName,
-//					getTestAWSCredentialsAccessKeyID(),
-//					getTestAWSCredentialsSecretAccessKey(),
-//				),
-//				Check: resource.ComposeAggregateTestCheckFunc(
-//					testAccQoveryAWSCredentialsExists("qovery_aws_credentials.test"),
-//					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "organization_id", getTestOrganizationID()),
-//					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "name", generateTestName(testNamePrefix)),
-//					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "access_key_id", getTestAWSCredentialsAccessKeyID()),
-//					resource.TestCheckResourceAttr("qovery_aws_credentials.test", "secret_access_key", getTestAWSCredentialsSecretAccessKey()),
-//				),
-//			},
-//			// Check Import
-//			{
-//				ResourceName:            "qovery_aws_credentials.test",
-//				ImportState:             true,
-//				ImportStateVerify:       true,
-//				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
-//				ImportStateVerifyIgnore: []string{"access_key_id", "secret_access_key"},
-//			},
-//		},
-//	})
-//}
 
 func testAccQoveryAWSCredentialsExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
