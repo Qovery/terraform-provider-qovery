@@ -5,6 +5,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -15,6 +17,11 @@ import (
 	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
+
+// Ensure provider defined types fully satisfy framework interfaces
+var _ provider.ResourceType = environmentResourceType{}
+var _ resource.Resource = environmentResource{}
+var _ resource.ResourceWithImportState = environmentResource{}
 
 var (
 	// Environment Mode
@@ -132,9 +139,9 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 	}, nil
 }
 
-func (r environmentResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+func (r environmentResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
 	return environmentResource{
-		client: p.(*provider).client,
+		client: p.(*qProvider).client,
 	}, nil
 }
 
@@ -143,7 +150,7 @@ type environmentResource struct {
 }
 
 // Create qovery environment resource
-func (r environmentResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+func (r environmentResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	var plan Environment
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -172,7 +179,7 @@ func (r environmentResource) Create(ctx context.Context, req tfsdk.CreateResourc
 }
 
 // Read qovery environment resource
-func (r environmentResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+func (r environmentResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
 	var state Environment
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -196,7 +203,7 @@ func (r environmentResource) Read(ctx context.Context, req tfsdk.ReadResourceReq
 }
 
 // Update qovery environment resource
-func (r environmentResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+func (r environmentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Get plan and current state
 	var plan, state Environment
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -221,7 +228,7 @@ func (r environmentResource) Update(ctx context.Context, req tfsdk.UpdateResourc
 }
 
 // Delete qovery environment resource
-func (r environmentResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+func (r environmentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Get current state
 	var state Environment
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -243,6 +250,6 @@ func (r environmentResource) Delete(ctx context.Context, req tfsdk.DeleteResourc
 }
 
 // ImportState imports a qovery environment resource using its id
-func (r environmentResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
-	tfsdk.ResourceImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+func (r environmentResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

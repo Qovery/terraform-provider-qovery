@@ -3,13 +3,19 @@ package qovery
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 )
+
+// Ensure provider defined types fully satisfy framework interfaces
+var _ provider.DataSourceType = environmentDataSourceType{}
+var _ datasource.DataSource = environmentDataSource{}
 
 type environmentDataSourceType struct{}
 
@@ -111,9 +117,9 @@ func (t environmentDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 	}, nil
 }
 
-func (t environmentDataSourceType) NewDataSource(_ context.Context, p tfsdk.Provider) (tfsdk.DataSource, diag.Diagnostics) {
+func (t environmentDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
 	return environmentDataSource{
-		client: p.(*provider).client,
+		client: p.(*qProvider).client,
 	}, nil
 }
 
@@ -122,7 +128,7 @@ type environmentDataSource struct {
 }
 
 // Read qovery environment data source
-func (d environmentDataSource) Read(ctx context.Context, req tfsdk.ReadDataSourceRequest, resp *tfsdk.ReadDataSourceResponse) {
+func (d environmentDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
 	// Get current state
 	var data Environment
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)

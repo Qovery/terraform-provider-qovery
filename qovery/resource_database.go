@@ -5,6 +5,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -15,6 +17,11 @@ import (
 	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
+
+// Ensure provider defined types fully satisfy framework interfaces
+var _ provider.ResourceType = databaseResourceType{}
+var _ resource.Resource = databaseResource{}
+var _ resource.ResourceWithImportState = databaseResource{}
 
 var (
 	// Database State
@@ -206,9 +213,9 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 	}, nil
 }
 
-func (r databaseResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+func (r databaseResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
 	return databaseResource{
-		client: p.(*provider).client,
+		client: p.(*qProvider).client,
 	}, nil
 }
 
@@ -217,7 +224,7 @@ type databaseResource struct {
 }
 
 // Create qovery database resource
-func (r databaseResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+func (r databaseResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	var plan Database
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -246,7 +253,7 @@ func (r databaseResource) Create(ctx context.Context, req tfsdk.CreateResourceRe
 }
 
 // Read qovery database resource
-func (r databaseResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+func (r databaseResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
 	var state Database
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -270,7 +277,7 @@ func (r databaseResource) Read(ctx context.Context, req tfsdk.ReadResourceReques
 }
 
 // Update qovery database resource
-func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+func (r databaseResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Get plan and current state
 	var plan, state Database
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -300,7 +307,7 @@ func (r databaseResource) Update(ctx context.Context, req tfsdk.UpdateResourceRe
 }
 
 // Delete qovery database resource
-func (r databaseResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+func (r databaseResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Get current state
 	var state Database
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -322,6 +329,6 @@ func (r databaseResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRe
 }
 
 // ImportState imports a qovery database resource using its id
-func (r databaseResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
-	tfsdk.ResourceImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+func (r databaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }

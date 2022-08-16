@@ -11,6 +11,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -21,6 +23,11 @@ import (
 	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
+
+// Ensure provider defined types fully satisfy framework interfaces
+var _ provider.ResourceType = clusterResourceType{}
+var _ resource.Resource = clusterResource{}
+var _ resource.ResourceWithImportState = clusterResource{}
 
 var (
 	//go:embed data/cluster_instance_types/*.json
@@ -250,9 +257,9 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 	}, nil
 }
 
-func (r clusterResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+func (r clusterResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
 	return clusterResource{
-		client: p.(*provider).client,
+		client: p.(*qProvider).client,
 	}, nil
 }
 
@@ -261,7 +268,7 @@ type clusterResource struct {
 }
 
 // Create qovery cluster resource
-func (r clusterResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+func (r clusterResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	var plan Cluster
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -290,7 +297,7 @@ func (r clusterResource) Create(ctx context.Context, req tfsdk.CreateResourceReq
 }
 
 // Read qovery cluster resource
-func (r clusterResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+func (r clusterResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
 	var state Cluster
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -313,7 +320,7 @@ func (r clusterResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest
 }
 
 // Update qovery cluster resource
-func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+func (r clusterResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Get plan and current state
 	var plan, state Cluster
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -342,7 +349,7 @@ func (r clusterResource) Update(ctx context.Context, req tfsdk.UpdateResourceReq
 }
 
 // Delete qovery cluster resource
-func (r clusterResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+func (r clusterResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Get current state
 	var state Cluster
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -364,7 +371,7 @@ func (r clusterResource) Delete(ctx context.Context, req tfsdk.DeleteResourceReq
 }
 
 // ImportState imports a qovery cluster resource using its id
-func (r clusterResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+func (r clusterResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	idParts := strings.Split(req.ID, ",")
 
 	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {

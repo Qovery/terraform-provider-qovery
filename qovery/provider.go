@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -13,9 +14,12 @@ import (
 
 const APITokenEnvName = "QOVERY_API_TOKEN"
 
-// provider satisfies the tfsdk.Provider interface and usually is included
-// with all organizationResource and DataSource implementations.
-type provider struct {
+// Ensure provider defined types fully satisfy framework interfaces
+var _ provider.Provider = &qProvider{}
+
+// qProvider satisfies the provider.Provider interface and usually is included
+// with all Resource and DataSource implementations.
+type qProvider struct {
 	// configured is set to true at the end of the Configure method.
 	// This can be used in organizationResource and DataSource implementations to verify
 	// that the provider was previously configured.
@@ -36,7 +40,7 @@ type providerData struct {
 	Token types.String `tfsdk:"token"`
 }
 
-func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderRequest, resp *tfsdk.ConfigureProviderResponse) {
+func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
 	// Retrieve provider data from configuration
 	var data providerData
 	diags := req.Config.Get(ctx, &data)
@@ -76,8 +80,8 @@ func (p *provider) Configure(ctx context.Context, req tfsdk.ConfigureProviderReq
 }
 
 // GetResources - Defines provider resources
-func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceType, diag.Diagnostics) {
-	return map[string]tfsdk.ResourceType{
+func (p *qProvider) GetResources(_ context.Context) (map[string]provider.ResourceType, diag.Diagnostics) {
+	return map[string]provider.ResourceType{
 		"qovery_application":          applicationResourceType{},
 		"qovery_aws_credentials":      awsCredentialsResourceType{},
 		"qovery_cluster":              clusterResourceType{client: client.New(os.Getenv(APITokenEnvName), p.version)},
@@ -90,8 +94,8 @@ func (p *provider) GetResources(_ context.Context) (map[string]tfsdk.ResourceTyp
 }
 
 // GetDataSources - Defines provider data sources
-func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourceType, diag.Diagnostics) {
-	return map[string]tfsdk.DataSourceType{
+func (p *qProvider) GetDataSources(_ context.Context) (map[string]provider.DataSourceType, diag.Diagnostics) {
+	return map[string]provider.DataSourceType{
 		"qovery_application":          applicationDataSourceType{},
 		"qovery_aws_credentials":      awsCredentialsDataSourceType{},
 		"qovery_cluster":              clusterDataSourceType{},
@@ -103,7 +107,7 @@ func (p *provider) GetDataSources(_ context.Context) (map[string]tfsdk.DataSourc
 	}, nil
 }
 
-func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func (p *qProvider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Attributes: map[string]tfsdk.Attribute{
 			"token": {
@@ -115,13 +119,13 @@ func (p *provider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics)
 	}, nil
 }
 
-func (p provider) GetClient() *client.Client {
+func (p qProvider) GetClient() *client.Client {
 	return p.client
 }
 
-func New(version string) func() tfsdk.Provider {
-	return func() tfsdk.Provider {
-		return &provider{
+func New(version string) func() provider.Provider {
+	return func() provider.Provider {
+		return &qProvider{
 			version: version,
 		}
 	}
