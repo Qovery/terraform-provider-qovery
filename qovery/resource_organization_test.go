@@ -62,33 +62,6 @@ func TestAcc_Organization(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_organization.test", "description", "this is my description"),
 				),
 			},
-		},
-	})
-}
-
-// NOTE: skipped because organization creation is not allowed with terraform
-func TestAcc_OrganizationImport(t *testing.T) {
-	t.SkipNow()
-	t.Parallel()
-	testName := "organization-import"
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccQoveryOrganizationDestroy("qovery_organization.test"),
-		Steps: []resource.TestStep{
-			// Create and Read testing
-			{
-				Config: testAccOrganizationConfig(
-					testName,
-					"FREE",
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryOrganizationExists("qovery_organization.test"),
-					resource.TestCheckResourceAttr("qovery_organization.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_organization.test", "plan", "FREE"),
-					resource.TestCheckNoResourceAttr("qovery_organization.test", "description"),
-				),
-			},
 			// Check Import
 			{
 				ResourceName:      "qovery_organization.test",
@@ -110,7 +83,7 @@ func testAccQoveryOrganizationExists(resourceName string) resource.TestCheckFunc
 			return fmt.Errorf("organization.id not found")
 		}
 
-		_, err := qoveryServices.OrganizationService.Get(context.TODO(), rs.Primary.ID)
+		_, err := qoveryServices.Organization.Get(context.TODO(), rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -129,7 +102,7 @@ func testAccQoveryOrganizationDestroy(resourceName string) resource.TestCheckFun
 			return fmt.Errorf("organization.id not found")
 		}
 
-		_, err := qoveryServices.OrganizationService.Get(context.TODO(), rs.Primary.ID)
+		_, err := qoveryServices.Organization.Get(context.TODO(), rs.Primary.ID)
 		if err == nil {
 			// TODO: handle orga delete properly
 			// return fmt.Errorf("found organization but expected it to have been deleted")

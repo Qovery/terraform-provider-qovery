@@ -39,12 +39,17 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 	apiClient := qovery.NewAPIClient(cfg)
 
 	// Initialize repositories implementations.
-	credentialsAws, err := newCredentialsAwsQoveryAPI(apiClient)
+	credentialsAwsAPI, err := newCredentialsAwsQoveryAPI(apiClient)
 	if err != nil {
 		return nil, err
 	}
 
-	credentialsScaleway, err := newCredentialsScalewayQoveryAPI(apiClient)
+	credentialsScalewayAPI, err := newCredentialsScalewayQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	organizationAPI, err := newOrganizationQoveryAPI(apiClient)
 	if err != nil {
 		return nil, err
 	}
@@ -52,8 +57,9 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 	// Create a new QoveryAPI instance.
 	qoveryAPI := &QoveryAPI{
 		client:              apiClient,
-		CredentialsAws:      credentialsAws,
-		CredentialsScaleway: credentialsScaleway,
+		CredentialsAws:      credentialsAwsAPI,
+		CredentialsScaleway: credentialsScalewayAPI,
+		Organization:        organizationAPI,
 	}
 
 	// Apply all the configs to the qoveryAPI instance.

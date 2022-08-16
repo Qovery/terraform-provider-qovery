@@ -80,7 +80,7 @@ func testAccQoveryScalewayCredentialsExists(resourceName string) resource.TestCh
 			return fmt.Errorf("scaleway_credentials.id not found")
 		}
 
-		_, err := qoveryServices.ScalewayCredentialsService.Get(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
+		_, err := qoveryServices.CredentialsScaleway.Get(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -99,7 +99,7 @@ func testAccQoveryScalewayCredentialsDestroy(resourceName string) resource.TestC
 			return fmt.Errorf("scaleway_credentials.id not found")
 		}
 
-		_, err := qoveryServices.ScalewayCredentialsService.Get(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
+		_, err := qoveryServices.CredentialsScaleway.Get(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
 		if err == nil {
 			return fmt.Errorf("found scaleway_credentials but expected it to be deleted")
 		}

@@ -22,7 +22,7 @@ func (org Organization) toOrganizationUpdateRequest() organization.UpdateRequest
 
 func convertDomainOrganizationToTerraform(organization *organization.Organization) Organization {
 	return Organization{
-		Id:          fromString(organization.ID),
+		Id:          fromString(organization.ID.String()),
 		Name:        fromString(organization.Name),
 		Plan:        fromClientEnum(organization.Plan),
 		Description: fromStringPointer(organization.Description),

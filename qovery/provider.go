@@ -12,9 +12,9 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/core/services"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
-	"github.com/qovery/terraform-provider-qovery/internal/services"
 )
 
 const APITokenEnvName = "QOVERY_API_TOKEN"
@@ -89,11 +89,10 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	}
 
 	// Initialize qovery client
-	qoveryClient := NewQoveryAPIClient(token, p.version)
-	qoveryServices, err := services.NewQoveryServices(qoveryClient, token, p.version)
+	domainServices, err := services.New(services.WithQoveryRepository(token, p.version))
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Unable to initialize qovery services",
+			"Unable to initialize domain services",
 			err.Error(),
 		)
 		return
@@ -102,9 +101,9 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	// Create a new Qovery client and set it to the provider client
 	p.configured = true
 	p.client = client.New(token, p.version)
-	p.organizationService = qoveryServices.OrganizationService
-	p.awsCredentialsService = qoveryServices.AwsCredentialsService
-	p.scalewayCredentialsService = qoveryServices.ScalewayCredentialsService
+	p.organizationService = domainServices.Organization
+	p.awsCredentialsService = domainServices.CredentialsAws
+	p.scalewayCredentialsService = domainServices.CredentialsScaleway
 }
 
 // GetResources - Defines provider resources

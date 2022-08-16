@@ -17,7 +17,7 @@ var (
 	ErrInvalidCredentialsOrganizationID = errors.New("invalid credentials organization id")
 	// ErrInvalidCredentialsName is returned if a Credentials name is invalid.
 	ErrInvalidCredentialsName = errors.New("invalid credentials name")
-	// ErrInvalidOrganizationIDParam is returned if the credentials name param is invalid.
+	// ErrInvalidOrganizationIDParam is returned if the organization id param is invalid.
 	ErrInvalidOrganizationIDParam = errors.New("invalid organization id param")
 	// ErrInvalidCredentialsIDParam is returned if the credential id param is invalid.
 	ErrInvalidCredentialsIDParam = errors.New("invalid credentials id param")

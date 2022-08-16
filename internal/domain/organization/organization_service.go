@@ -2,6 +2,13 @@ package organization
 
 import (
 	"context"
+
+	"github.com/pkg/errors"
+)
+
+var (
+	ErrFailedToGetOrganization    = errors.New("failed to get organization")
+	ErrFailedToUpdateOrganization = errors.New("failed to update organization")
 )
 
 // Service represents the interface to implement to handle the domain logic of an Organization.

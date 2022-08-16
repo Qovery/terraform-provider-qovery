@@ -14,7 +14,7 @@ type credentialsAwsService struct {
 	credentialsAwsRepository credentials.AwsRepository
 }
 
-// NOTE: This forces the implementation of the interface credentials.AwsService  by credentialsAwsQoveryAPI at compile time.
+// NOTE: This forces the implementation of the interface credentials.AwsService by credentialsAwsService at compile time.
 var _ credentials.AwsService = credentialsAwsService{}
 
 // NewCredentialsAwsService return a new instance of a credentials.AwsService that uses the given credentials.AwsRepository.

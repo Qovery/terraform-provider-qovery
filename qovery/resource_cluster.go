@@ -116,7 +116,7 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Type:     types.StringType,
 				Required: true,
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: cloudProviders},
+					validators.NewStringEnumValidator(cloudProviders),
 				},
 			},
 			"region": {
@@ -149,7 +149,7 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 					modifiers.NewStringDefaultModifier(clusterKubernetesModeDefault),
 				},
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: clusterKubernetesModes},
+					validators.NewStringEnumValidator(clusterKubernetesModes),
 				},
 			},
 			"instance_type": {
@@ -161,7 +161,7 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Type:     types.StringType,
 				Required: true,
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: clusterInstanceTypes},
+					validators.NewStringEnumValidator(clusterInstanceTypes),
 				},
 			},
 			"min_running_nodes": {
@@ -250,7 +250,7 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 					modifiers.NewStringDefaultModifier(clusterStateDefault),
 				},
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: clusterStates},
+					validators.NewStringEnumValidator(clusterStates),
 				},
 			},
 		},
