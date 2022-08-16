@@ -7,12 +7,19 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 )
+
+// Ensure provider defined types fully satisfy framework interfaces
+var _ provider.ResourceType = scalewayCredentialsResourceType{}
+var _ resource.Resource = scalewayCredentialsResource{}
+var _ resource.ResourceWithImportState = scalewayCredentialsResource{}
 
 type scalewayCredentialsResourceType struct{}
 
@@ -57,9 +64,9 @@ func (r scalewayCredentialsResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 	}, nil
 }
 
-func (r scalewayCredentialsResourceType) NewResource(_ context.Context, p tfsdk.Provider) (tfsdk.Resource, diag.Diagnostics) {
+func (r scalewayCredentialsResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
 	return scalewayCredentialsResource{
-		client: p.(*provider).client,
+		client: p.(*qProvider).client,
 	}, nil
 }
 
@@ -68,7 +75,7 @@ type scalewayCredentialsResource struct {
 }
 
 // Create qovery scaleway credentials resource
-func (r scalewayCredentialsResource) Create(ctx context.Context, req tfsdk.CreateResourceRequest, resp *tfsdk.CreateResourceResponse) {
+func (r scalewayCredentialsResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
 	// Retrieve values from plan
 	var plan ScalewayCredentials
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -92,7 +99,7 @@ func (r scalewayCredentialsResource) Create(ctx context.Context, req tfsdk.Creat
 }
 
 // Read qovery scaleway credentials resource
-func (r scalewayCredentialsResource) Read(ctx context.Context, req tfsdk.ReadResourceRequest, resp *tfsdk.ReadResourceResponse) {
+func (r scalewayCredentialsResource) Read(ctx context.Context, req resource.ReadRequest, resp *resource.ReadResponse) {
 	// Get current state
 	var state ScalewayCredentials
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -115,7 +122,7 @@ func (r scalewayCredentialsResource) Read(ctx context.Context, req tfsdk.ReadRes
 }
 
 // Update qovery scaleway credentials resource
-func (r scalewayCredentialsResource) Update(ctx context.Context, req tfsdk.UpdateResourceRequest, resp *tfsdk.UpdateResourceResponse) {
+func (r scalewayCredentialsResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
 	// Get plan and current state
 	var plan, state ScalewayCredentials
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
@@ -140,7 +147,7 @@ func (r scalewayCredentialsResource) Update(ctx context.Context, req tfsdk.Updat
 }
 
 // Delete qovery scaleway credentials resource
-func (r scalewayCredentialsResource) Delete(ctx context.Context, req tfsdk.DeleteResourceRequest, resp *tfsdk.DeleteResourceResponse) {
+func (r scalewayCredentialsResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
 	// Get current state
 	var state ScalewayCredentials
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
@@ -162,7 +169,7 @@ func (r scalewayCredentialsResource) Delete(ctx context.Context, req tfsdk.Delet
 }
 
 // ImportState imports a qovery scaleway credentials resource using its id
-func (r scalewayCredentialsResource) ImportState(ctx context.Context, req tfsdk.ImportResourceStateRequest, resp *tfsdk.ImportResourceStateResponse) {
+func (r scalewayCredentialsResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	idParts := strings.Split(req.ID, ",")
 
 	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
