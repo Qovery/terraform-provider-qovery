@@ -48,7 +48,7 @@ func (r organizationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, di
 				Type:     types.StringType,
 				Required: true,
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: organizationPlans},
+					validators.NewStringEnumValidator(organizationPlans),
 				},
 			},
 			"description": {

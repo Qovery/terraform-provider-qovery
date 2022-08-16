@@ -68,7 +68,7 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					modifiers.NewStringDefaultModifier(environmentModeDefault),
 				},
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: environmentModes},
+					validators.NewStringEnumValidator(environmentModes),
 				},
 			},
 			"built_in_environment_variables": {

@@ -76,7 +76,7 @@ func testAccQoveryAWSCredentialsExists(resourceName string) resource.TestCheckFu
 			return fmt.Errorf("aws_credentials.id not found")
 		}
 
-		_, err := qoveryServices.AwsCredentialsService.Get(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
+		_, err := qoveryServices.CredentialsAws.Get(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -95,7 +95,7 @@ func testAccQoveryAWSCredentialsDestroy(resourceName string) resource.TestCheckF
 			return fmt.Errorf("aws_credentials.id not found")
 		}
 
-		_, err := qoveryServices.AwsCredentialsService.Get(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
+		_, err := qoveryServices.CredentialsAws.Get(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
 		if err == nil {
 			return fmt.Errorf("found aws_credentials but expected it to be deleted")
 		}

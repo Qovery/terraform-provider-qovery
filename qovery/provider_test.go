@@ -15,7 +15,7 @@ import (
 	"github.com/sethvargo/go-envconfig"
 
 	"github.com/qovery/terraform-provider-qovery/client"
-	"github.com/qovery/terraform-provider-qovery/internal/services"
+	"github.com/qovery/terraform-provider-qovery/internal/core/services"
 	"github.com/qovery/terraform-provider-qovery/qovery"
 )
 
@@ -30,6 +30,10 @@ type testEnvironment struct {
 	AwsCredentialsID              string `env:"TEST_AWS_CREDENTIALS_ID,required"`
 	AwsCredentialsAccessKeyID     string `env:"TEST_AWS_CREDENTIALS_ACCESS_KEY_ID,required"`
 	AwsCredentialsSecretAccessKey string `env:"TEST_AWS_CREDENTIALS_SECRET_ACCESS_KEY,required"`
+	ScalewayCredentialsID         string `env:"TEST_SCALEWAY_CREDENTIALS_ID,required"`
+	ScalewayCredentialsProjectID  string `env:"TEST_SCALEWAY_CREDENTIALS_PROJECT_ID,required"`
+	ScalewayCredentialsAccessKey  string `env:"TEST_SCALEWAY_CREDENTIALS_ACCESS_KEY,required"`
+	ScalewayCredentialsSecretKey  string `env:"TEST_SCALEWAY_CREDENTIALS_SECRET_KEY,required"`
 	ClusterID                     string `env:"TEST_CLUSTER_ID,required"`
 	ProjectID                     string `env:"TEST_PROJECT_ID,required"`
 	EnvironmentID                 string `env:"TEST_ENVIRONMENT_ID,required"`
@@ -38,9 +42,8 @@ type testEnvironment struct {
 }
 
 var (
-	apiClient      = client.New(os.Getenv(qovery.APITokenEnvName), "test")
-	qoveryClient   = qovery.NewQoveryAPIClient(os.Getenv(qovery.APITokenEnvName), "test")
-	qoveryServices = services.MustNewQoveryServices(qoveryClient, os.Getenv(qovery.APITokenEnvName), "test")
+	apiClient         = client.New(os.Getenv(qovery.APITokenEnvName), "test")
+	qoveryServices, _ = services.New(services.WithQoveryRepository(os.Getenv(qovery.APITokenEnvName), "test"))
 )
 
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){

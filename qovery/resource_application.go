@@ -140,7 +140,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					modifiers.NewStringDefaultModifier(applicationBuildModeDefault),
 				},
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: applicationBuildModes},
+					validators.NewStringEnumValidator(applicationBuildModes),
 				},
 			},
 			"dockerfile_path": {
@@ -157,7 +157,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Type:     types.StringType,
 				Optional: true,
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: applicationBuildPackLanguages},
+					validators.NewStringEnumValidator(applicationBuildPackLanguages),
 				},
 			},
 			"cpu": {
@@ -254,7 +254,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 						Type:     types.StringType,
 						Required: true,
 						Validators: []tfsdk.AttributeValidator{
-							validators.StringEnumValidator{Enum: applicationStorageTypes},
+							validators.NewStringEnumValidator(applicationStorageTypes),
 						},
 					},
 					"size": {
@@ -449,7 +449,7 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					modifiers.NewStringDefaultModifier(applicationStateDefault),
 				},
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: applicationStates},
+					validators.NewStringEnumValidator(applicationStates),
 				},
 			},
 		},

@@ -84,7 +84,7 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 				Type:     types.StringType,
 				Required: true,
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: databaseTypes},
+					validators.NewStringEnumValidator(databaseTypes),
 				},
 			},
 			"version": {
@@ -101,7 +101,7 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 				Type:     types.StringType,
 				Required: true,
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: databaseModes},
+					validators.NewStringEnumValidator(databaseModes),
 				},
 			},
 			"accessibility": {
@@ -117,7 +117,7 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 					modifiers.NewStringDefaultModifier(databaseAccessibilityDefault),
 				},
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: databaseAccessibilities},
+					validators.NewStringEnumValidator(databaseAccessibilities),
 				},
 			},
 			"cpu": {
@@ -206,7 +206,7 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 					modifiers.NewStringDefaultModifier(databaseStateDefault),
 				},
 				Validators: []tfsdk.AttributeValidator{
-					validators.StringEnumValidator{Enum: databaseStates},
+					validators.NewStringEnumValidator(databaseStates),
 				},
 			},
 		},

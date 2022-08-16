@@ -14,7 +14,7 @@ type credentialsScalewayService struct {
 	credentialsScalewayRepository credentials.ScalewayRepository
 }
 
-// NOTE: This forces the implementation of the interface credentials.ScalewayService  by credentialsScalewayQoveryAPI at compile time.
+// NOTE: This forces the implementation of the interface credentials.ScalewayService by credentialsScalewayService at compile time.
 var _ credentials.ScalewayService = credentialsScalewayService{}
 
 // NewCredentialsScalewayService return a new instance of a credentials.ScalewayService that uses the given credentials.ScalewayRepository.
