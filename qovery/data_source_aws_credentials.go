@@ -13,7 +13,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 )
 
-// Ensure provider defined types fully satisfy framework interfaces
+// Ensure provider defined types fully satisfy terraform framework interfaces.
 var _ provider.DataSourceType = awsCredentialsDataSourceType{}
 var _ datasource.DataSource = awsCredentialsDataSource{}
 

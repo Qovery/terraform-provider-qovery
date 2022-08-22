@@ -18,7 +18,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
-// Ensure provider defined types fully satisfy framework interfaces
+// Ensure provider defined types fully satisfy terraform framework interfaces.
 var _ provider.ResourceType = applicationResourceType{}
 var _ resource.Resource = applicationResource{}
 var _ resource.ResourceWithImportState = applicationResource{}

@@ -16,7 +16,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 )
 
-// Ensure provider defined types fully satisfy framework interfaces
+// Ensure provider defined types fully satisfy terraform framework interfaces.
 var _ provider.ResourceType = scalewayCredentialsResourceType{}
 var _ resource.Resource = scalewayCredentialsResource{}
 var _ resource.ResourceWithImportState = scalewayCredentialsResource{}
