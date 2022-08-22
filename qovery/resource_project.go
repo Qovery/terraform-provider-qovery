@@ -14,7 +14,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client"
 )
 
-// Ensure provider defined types fully satisfy framework interfaces
+// Ensure provider defined types fully satisfy terraform framework interfaces.
 var _ provider.ResourceType = projectResourceType{}
 var _ resource.Resource = projectResource{}
 var _ resource.ResourceWithImportState = projectResource{}

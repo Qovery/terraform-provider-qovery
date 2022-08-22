@@ -13,7 +13,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client"
 )
 
-// Ensure provider defined types fully satisfy framework interfaces
+// Ensure provider defined types fully satisfy terraform framework interfaces.
 var _ provider.DataSourceType = applicationDataSourceType{}
 var _ datasource.DataSource = applicationDataSource{}
 
