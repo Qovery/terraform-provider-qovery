@@ -51,9 +51,9 @@ type CredentialsScalewayRepository_Create_Call struct {
 }
 
 // Create is a helper method to define mock.On call
-//  - ctx context.Context
-//  - organizationID string
-//  - request credentials.UpsertScalewayRequest
+//   - ctx context.Context
+//   - organizationID string
+//   - request credentials.UpsertScalewayRequest
 func (_e *CredentialsScalewayRepository_Expecter) Create(ctx interface{}, organizationID interface{}, request interface{}) *CredentialsScalewayRepository_Create_Call {
 	return &CredentialsScalewayRepository_Create_Call{Call: _e.mock.On("Create", ctx, organizationID, request)}
 }
@@ -90,9 +90,9 @@ type CredentialsScalewayRepository_Delete_Call struct {
 }
 
 // Delete is a helper method to define mock.On call
-//  - ctx context.Context
-//  - organizationID string
-//  - credentialsID string
+//   - ctx context.Context
+//   - organizationID string
+//   - credentialsID string
 func (_e *CredentialsScalewayRepository_Expecter) Delete(ctx interface{}, organizationID interface{}, credentialsID interface{}) *CredentialsScalewayRepository_Delete_Call {
 	return &CredentialsScalewayRepository_Delete_Call{Call: _e.mock.On("Delete", ctx, organizationID, credentialsID)}
 }
@@ -138,9 +138,9 @@ type CredentialsScalewayRepository_Get_Call struct {
 }
 
 // Get is a helper method to define mock.On call
-//  - ctx context.Context
-//  - organizationID string
-//  - credentialsID string
+//   - ctx context.Context
+//   - organizationID string
+//   - credentialsID string
 func (_e *CredentialsScalewayRepository_Expecter) Get(ctx interface{}, organizationID interface{}, credentialsID interface{}) *CredentialsScalewayRepository_Get_Call {
 	return &CredentialsScalewayRepository_Get_Call{Call: _e.mock.On("Get", ctx, organizationID, credentialsID)}
 }
@@ -186,10 +186,10 @@ type CredentialsScalewayRepository_Update_Call struct {
 }
 
 // Update is a helper method to define mock.On call
-//  - ctx context.Context
-//  - organizationID string
-//  - credentialsID string
-//  - request credentials.UpsertScalewayRequest
+//   - ctx context.Context
+//   - organizationID string
+//   - credentialsID string
+//   - request credentials.UpsertScalewayRequest
 func (_e *CredentialsScalewayRepository_Expecter) Update(ctx interface{}, organizationID interface{}, credentialsID interface{}, request interface{}) *CredentialsScalewayRepository_Update_Call {
 	return &CredentialsScalewayRepository_Update_Call{Call: _e.mock.On("Update", ctx, organizationID, credentialsID, request)}
 }

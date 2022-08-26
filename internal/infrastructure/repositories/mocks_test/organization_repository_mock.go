@@ -51,8 +51,8 @@ type OrganizationRepository_Get_Call struct {
 }
 
 // Get is a helper method to define mock.On call
-//  - ctx context.Context
-//  - organizationID string
+//   - ctx context.Context
+//   - organizationID string
 func (_e *OrganizationRepository_Expecter) Get(ctx interface{}, organizationID interface{}) *OrganizationRepository_Get_Call {
 	return &OrganizationRepository_Get_Call{Call: _e.mock.On("Get", ctx, organizationID)}
 }
@@ -98,9 +98,9 @@ type OrganizationRepository_Update_Call struct {
 }
 
 // Update is a helper method to define mock.On call
-//  - ctx context.Context
-//  - organizationID string
-//  - request organization.UpdateRequest
+//   - ctx context.Context
+//   - organizationID string
+//   - request organization.UpdateRequest
 func (_e *OrganizationRepository_Expecter) Update(ctx interface{}, organizationID interface{}, request interface{}) *OrganizationRepository_Update_Call {
 	return &OrganizationRepository_Update_Call{Call: _e.mock.On("Update", ctx, organizationID, request)}
 }

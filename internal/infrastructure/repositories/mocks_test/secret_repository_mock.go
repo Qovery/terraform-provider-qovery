@@ -51,9 +51,9 @@ type SecretRepository_Create_Call struct {
 }
 
 // Create is a helper method to define mock.On call
-//  - ctx context.Context
-//  - scopeResourceID string
-//  - request secret.UpsertRequest
+//   - ctx context.Context
+//   - scopeResourceID string
+//   - request secret.UpsertRequest
 func (_e *SecretRepository_Expecter) Create(ctx interface{}, scopeResourceID interface{}, request interface{}) *SecretRepository_Create_Call {
 	return &SecretRepository_Create_Call{Call: _e.mock.On("Create", ctx, scopeResourceID, request)}
 }
@@ -90,9 +90,9 @@ type SecretRepository_Delete_Call struct {
 }
 
 // Delete is a helper method to define mock.On call
-//  - ctx context.Context
-//  - scopeResourceID string
-//  - secretID string
+//   - ctx context.Context
+//   - scopeResourceID string
+//   - secretID string
 func (_e *SecretRepository_Expecter) Delete(ctx interface{}, scopeResourceID interface{}, secretID interface{}) *SecretRepository_Delete_Call {
 	return &SecretRepository_Delete_Call{Call: _e.mock.On("Delete", ctx, scopeResourceID, secretID)}
 }
@@ -138,8 +138,8 @@ type SecretRepository_List_Call struct {
 }
 
 // List is a helper method to define mock.On call
-//  - ctx context.Context
-//  - scopeResourceID string
+//   - ctx context.Context
+//   - scopeResourceID string
 func (_e *SecretRepository_Expecter) List(ctx interface{}, scopeResourceID interface{}) *SecretRepository_List_Call {
 	return &SecretRepository_List_Call{Call: _e.mock.On("List", ctx, scopeResourceID)}
 }
@@ -185,10 +185,10 @@ type SecretRepository_Update_Call struct {
 }
 
 // Update is a helper method to define mock.On call
-//  - ctx context.Context
-//  - scopeResourceID string
-//  - secretID string
-//  - request secret.UpsertRequest
+//   - ctx context.Context
+//   - scopeResourceID string
+//   - secretID string
+//   - request secret.UpsertRequest
 func (_e *SecretRepository_Expecter) Update(ctx interface{}, scopeResourceID interface{}, secretID interface{}, request interface{}) *SecretRepository_Update_Call {
 	return &SecretRepository_Update_Call{Call: _e.mock.On("Update", ctx, scopeResourceID, secretID, request)}
 }

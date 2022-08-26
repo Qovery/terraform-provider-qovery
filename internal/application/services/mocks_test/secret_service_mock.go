@@ -51,8 +51,8 @@ type SecretService_List_Call struct {
 }
 
 // List is a helper method to define mock.On call
-//  - ctx context.Context
-//  - scopeResourceID string
+//   - ctx context.Context
+//   - scopeResourceID string
 func (_e *SecretService_Expecter) List(ctx interface{}, scopeResourceID interface{}) *SecretService_List_Call {
 	return &SecretService_List_Call{Call: _e.mock.On("List", ctx, scopeResourceID)}
 }
@@ -98,9 +98,9 @@ type SecretService_Update_Call struct {
 }
 
 // Update is a helper method to define mock.On call
-//  - ctx context.Context
-//  - scopeResourceID string
-//  - request secret.DiffRequest
+//   - ctx context.Context
+//   - scopeResourceID string
+//   - request secret.DiffRequest
 func (_e *SecretService_Expecter) Update(ctx interface{}, scopeResourceID interface{}, request interface{}) *SecretService_Update_Call {
 	return &SecretService_Update_Call{Call: _e.mock.On("Update", ctx, scopeResourceID, request)}
 }
