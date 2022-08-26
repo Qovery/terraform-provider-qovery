@@ -11,8 +11,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/pkg/errors"
 
-	"github.com/qovery/terraform-provider-qovery/client/apierrors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 )
 
 func TestAcc_Project(t *testing.T) {
@@ -312,9 +313,9 @@ func testAccQoveryProjectExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("project.id not found")
 		}
 
-		_, apiErr := apiClient.GetProject(context.TODO(), rs.Primary.ID)
-		if apiErr != nil {
-			return apiErr
+		_, err := qoveryServices.Project.Get(context.TODO(), rs.Primary.ID)
+		if err != nil {
+			return err
 		}
 		return nil
 	}
@@ -331,12 +332,12 @@ func testAccQoveryProjectDestroy(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("project.id not found")
 		}
 
-		_, apiErr := apiClient.GetProject(context.TODO(), rs.Primary.ID)
-		if apiErr == nil {
+		_, err := qoveryServices.Project.Get(context.TODO(), rs.Primary.ID)
+		if err == nil {
 			return fmt.Errorf("found project but expected it to be deleted")
 		}
-		if !apierrors.IsNotFound(apiErr) {
-			return fmt.Errorf("unexpected error checking for deleted project: %s", apiErr.Summary())
+		if !apierrors.IsErrNotFound(errors.Cause(err)) {
+			return fmt.Errorf("unexpected error checking for deleted project: %s", err.Error())
 		}
 		return nil
 	}

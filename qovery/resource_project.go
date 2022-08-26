@@ -11,7 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -116,12 +116,12 @@ func (r projectResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 
 func (r projectResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
 	return projectResource{
-		client: p.(*qProvider).client,
+		projectService: p.(*qProvider).projectService,
 	}, nil
 }
 
 type projectResource struct {
-	client *client.Client
+	projectService project.Service
 }
 
 // Create qovery project resource
@@ -135,14 +135,14 @@ func (r projectResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	// Create new project
 
-	project, apiErr := r.client.CreateProject(ctx, plan.OrganizationId.Value, plan.toCreateProjectRequest())
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	proj, err := r.projectService.Create(ctx, plan.OrganizationId.Value, plan.toCreateServiceRequest())
+	if err != nil {
+		resp.Diagnostics.AddError("Error on project create", err.Error())
 		return
 	}
 
 	// Initialize state values
-	state := convertResponseToProject(plan, project)
+	state := convertDomainProjectToProject(plan, proj)
 	tflog.Trace(ctx, "created project", map[string]interface{}{"project_id": state.Id.Value})
 
 	// Set state
@@ -159,14 +159,14 @@ func (r projectResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	// Get project from the API
-	project, apiErr := r.client.GetProject(ctx, state.Id.Value)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	proj, err := r.projectService.Get(ctx, state.Id.Value)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on project read", err.Error())
 		return
 	}
 
 	// Refresh state values
-	state = convertResponseToProject(state, project)
+	state = convertDomainProjectToProject(state, proj)
 	tflog.Trace(ctx, "read project", map[string]interface{}{"project_id": state.Id.Value})
 
 	// Set state
@@ -184,14 +184,14 @@ func (r projectResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	// Update project in the backend
-	project, apiErr := r.client.UpdateProject(ctx, state.Id.Value, plan.toUpdateProjectRequest(state))
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	proj, err := r.projectService.Update(ctx, state.Id.Value, plan.toUpdateServiceRequest(state))
+	if err != nil {
+		resp.Diagnostics.AddError("Error on project update", err.Error())
 		return
 	}
 
 	// Update state values
-	state = convertResponseToProject(plan, project)
+	state = convertDomainProjectToProject(plan, proj)
 	tflog.Trace(ctx, "updated project", map[string]interface{}{"project_id": state.Id.Value})
 
 	// Set state
@@ -208,9 +208,9 @@ func (r projectResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 
 	// Delete project
-	apiErr := r.client.DeleteProject(ctx, state.Id.Value)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	err := r.projectService.Delete(ctx, state.Id.Value)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on project delete", err.Error())
 		return
 	}
 

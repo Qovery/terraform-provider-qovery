@@ -19,7 +19,4 @@ const (
 	APIResourceEnvironmentEnvironmentVariable APIResource = "environment environment variable"
 	APIResourceEnvironmentSecret              APIResource = "environment secret"
 	APIResourceEnvironmentStatus              APIResource = "environment status"
-	APIResourceProject                        APIResource = "project"
-	APIResourceProjectEnvironmentVariable     APIResource = "project environment variable"
-	APIResourceProjectSecret                  APIResource = "project secret"
 )
