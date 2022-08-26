@@ -11,15 +11,17 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
+	"github.com/qovery/terraform-provider-qovery/internal/application/services"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
+
 	"github.com/qovery/terraform-provider-qovery/client"
-	"github.com/qovery/terraform-provider-qovery/internal/core/services"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 )
 
 const APITokenEnvName = "QOVERY_API_TOKEN"
 
-// Ensure provider defined types fully satisfy framework interfaces
+// Ensure provider defined types fully satisfy terraform framework interfaces.
 var _ provider.Provider = &qProvider{}
 
 // qProvider satisfies the provider.Provider interface and usually is included
@@ -47,6 +49,9 @@ type qProvider struct {
 
 	// scalewayCredentialsService is an instance of a credentials.ScalewayService that handles the domain logic.
 	scalewayCredentialsService credentials.ScalewayService
+
+	// projectService is an instance of a project.Service that handles the domain logic.
+	projectService project.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -104,6 +109,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.organizationService = domainServices.Organization
 	p.awsCredentialsService = domainServices.CredentialsAws
 	p.scalewayCredentialsService = domainServices.CredentialsScaleway
+	p.projectService = domainServices.Project
 }
 
 // GetResources - Defines provider resources

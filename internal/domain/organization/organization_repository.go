@@ -1,6 +1,6 @@
 package organization
 
-//go:generate mockery --testonly --with-expecter --name=Repository --structname=OrganizationRepository --filename=organization_mock.go --output=../../core/repositories/mocks_test/ --outpkg=mocks_test
+//go:generate mockery --testonly --with-expecter --name=Repository --structname=OrganizationRepository --filename=organization_repository_mock.go --output=../../infrastructure/repositories/mocks_test/ --outpkg=mocks_test
 
 import (
 	"context"

@@ -17,6 +17,8 @@ var (
 	ErrInvalidNameParam = errors.New("invalid name param")
 	// ErrInvalidPlanParam is returned if the plan param is invalid.
 	ErrInvalidPlanParam = errors.New("invalid plan param")
+	// ErrInvalidUpdateRequest is returned if the organization update request is invalid.
+	ErrInvalidUpdateRequest = errors.New("invalid organization update request")
 )
 
 // Organization represents the domain model for a Qovery organization.
@@ -83,7 +85,11 @@ type UpdateRequest struct {
 
 // Validate returns an error to tell whether the UpdateRequest domain request is valid or not.
 func (r UpdateRequest) Validate() error {
-	return validator.New().Struct(r)
+	if err := validator.New().Struct(r); err != nil {
+		return errors.Wrap(err, ErrInvalidUpdateRequest.Error())
+	}
+
+	return nil
 }
 
 // IsValid returns a bool to tell whether the UpdateRequest domain request is valid or not.

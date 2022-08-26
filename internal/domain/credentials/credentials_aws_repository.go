@@ -1,6 +1,6 @@
 package credentials
 
-//go:generate mockery --testonly --with-expecter --name=AwsRepository --structname=CredentialsAwsRepository --filename=credentials_aws_mock.go --output=../../core/repositories/mocks_test/ --outpkg=mocks_test
+//go:generate mockery --testonly --with-expecter --name=AwsRepository --structname=CredentialsAwsRepository --filename=credentials_aws_repository_mock.go --output=../../infrastructure/repositories/mocks_test/ --outpkg=mocks_test
 
 import (
 	"context"

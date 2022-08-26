@@ -14,6 +14,7 @@ import (
 func TestNewPlanFromString(t *testing.T) {
 	t.Parallel()
 
+	assert.Len(t, organization.AllowedPlanValues, len(qovery.AllowedPlanEnumEnumValues))
 	for _, qoveryPlan := range qovery.AllowedPlanEnumEnumValues {
 		qoveryPlanStr := string(qoveryPlan)
 		t.Run(qoveryPlanStr, func(t *testing.T) {

@@ -99,6 +99,31 @@ jobs:
           git diff --compact-summary --exit-code || \
             (echo; echo "Unexpected difference in directories after code generation. Run 'task docs' command and commit."; exit 1)
 
+  mocks:
+    name: Generate Mocks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up Task
+        uses: arduino/setup-task@v1
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Check out source code
+        uses: actions/checkout@v3
+
+      - name: Generate mocks
+        run: task mocks
+
+      - name: Check git diff
+        run: |
+          git diff --compact-summary --exit-code || \
+            (echo; echo "Unexpected difference in directories after code generation. Run 'task mocks' command and commit."; exit 1)
+
   # Run acceptance tests in a matrix with Terraform CLI versions
   test:
     name: Terraform Provider Acceptance Tests

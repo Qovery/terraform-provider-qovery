@@ -14,8 +14,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/sethvargo/go-envconfig"
 
+	"github.com/qovery/terraform-provider-qovery/internal/application/services"
+
 	"github.com/qovery/terraform-provider-qovery/client"
-	"github.com/qovery/terraform-provider-qovery/internal/core/services"
 	"github.com/qovery/terraform-provider-qovery/qovery"
 )
 
