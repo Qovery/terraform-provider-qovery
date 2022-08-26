@@ -51,9 +51,9 @@ type VariableRepository_Create_Call struct {
 }
 
 // Create is a helper method to define mock.On call
-//  - ctx context.Context
-//  - scopeResourceID string
-//  - request variable.UpsertRequest
+//   - ctx context.Context
+//   - scopeResourceID string
+//   - request variable.UpsertRequest
 func (_e *VariableRepository_Expecter) Create(ctx interface{}, scopeResourceID interface{}, request interface{}) *VariableRepository_Create_Call {
 	return &VariableRepository_Create_Call{Call: _e.mock.On("Create", ctx, scopeResourceID, request)}
 }
@@ -90,9 +90,9 @@ type VariableRepository_Delete_Call struct {
 }
 
 // Delete is a helper method to define mock.On call
-//  - ctx context.Context
-//  - scopeResourceID string
-//  - variableID string
+//   - ctx context.Context
+//   - scopeResourceID string
+//   - variableID string
 func (_e *VariableRepository_Expecter) Delete(ctx interface{}, scopeResourceID interface{}, variableID interface{}) *VariableRepository_Delete_Call {
 	return &VariableRepository_Delete_Call{Call: _e.mock.On("Delete", ctx, scopeResourceID, variableID)}
 }
@@ -138,8 +138,8 @@ type VariableRepository_List_Call struct {
 }
 
 // List is a helper method to define mock.On call
-//  - ctx context.Context
-//  - scopeResourceID string
+//   - ctx context.Context
+//   - scopeResourceID string
 func (_e *VariableRepository_Expecter) List(ctx interface{}, scopeResourceID interface{}) *VariableRepository_List_Call {
 	return &VariableRepository_List_Call{Call: _e.mock.On("List", ctx, scopeResourceID)}
 }
@@ -185,10 +185,10 @@ type VariableRepository_Update_Call struct {
 }
 
 // Update is a helper method to define mock.On call
-//  - ctx context.Context
-//  - scopeResourceID string
-//  - variableID string
-//  - request variable.UpsertRequest
+//   - ctx context.Context
+//   - scopeResourceID string
+//   - variableID string
+//   - request variable.UpsertRequest
 func (_e *VariableRepository_Expecter) Update(ctx interface{}, scopeResourceID interface{}, variableID interface{}, request interface{}) *VariableRepository_Update_Call {
 	return &VariableRepository_Update_Call{Call: _e.mock.On("Update", ctx, scopeResourceID, variableID, request)}
 }

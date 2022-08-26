@@ -51,9 +51,9 @@ type CredentialsAwsRepository_Create_Call struct {
 }
 
 // Create is a helper method to define mock.On call
-//  - ctx context.Context
-//  - organizationID string
-//  - request credentials.UpsertAwsRequest
+//   - ctx context.Context
+//   - organizationID string
+//   - request credentials.UpsertAwsRequest
 func (_e *CredentialsAwsRepository_Expecter) Create(ctx interface{}, organizationID interface{}, request interface{}) *CredentialsAwsRepository_Create_Call {
 	return &CredentialsAwsRepository_Create_Call{Call: _e.mock.On("Create", ctx, organizationID, request)}
 }
@@ -90,9 +90,9 @@ type CredentialsAwsRepository_Delete_Call struct {
 }
 
 // Delete is a helper method to define mock.On call
-//  - ctx context.Context
-//  - organizationID string
-//  - credentialsID string
+//   - ctx context.Context
+//   - organizationID string
+//   - credentialsID string
 func (_e *CredentialsAwsRepository_Expecter) Delete(ctx interface{}, organizationID interface{}, credentialsID interface{}) *CredentialsAwsRepository_Delete_Call {
 	return &CredentialsAwsRepository_Delete_Call{Call: _e.mock.On("Delete", ctx, organizationID, credentialsID)}
 }
@@ -138,9 +138,9 @@ type CredentialsAwsRepository_Get_Call struct {
 }
 
 // Get is a helper method to define mock.On call
-//  - ctx context.Context
-//  - organizationID string
-//  - credentialsID string
+//   - ctx context.Context
+//   - organizationID string
+//   - credentialsID string
 func (_e *CredentialsAwsRepository_Expecter) Get(ctx interface{}, organizationID interface{}, credentialsID interface{}) *CredentialsAwsRepository_Get_Call {
 	return &CredentialsAwsRepository_Get_Call{Call: _e.mock.On("Get", ctx, organizationID, credentialsID)}
 }
@@ -186,10 +186,10 @@ type CredentialsAwsRepository_Update_Call struct {
 }
 
 // Update is a helper method to define mock.On call
-//  - ctx context.Context
-//  - organizationID string
-//  - credentialsID string
-//  - request credentials.UpsertAwsRequest
+//   - ctx context.Context
+//   - organizationID string
+//   - credentialsID string
+//   - request credentials.UpsertAwsRequest
 func (_e *CredentialsAwsRepository_Expecter) Update(ctx interface{}, organizationID interface{}, credentialsID interface{}, request interface{}) *CredentialsAwsRepository_Update_Call {
 	return &CredentialsAwsRepository_Update_Call{Call: _e.mock.On("Update", ctx, organizationID, credentialsID, request)}
 }

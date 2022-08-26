@@ -51,9 +51,9 @@ type ProjectRepository_Create_Call struct {
 }
 
 // Create is a helper method to define mock.On call
-//  - ctx context.Context
-//  - organizationID string
-//  - request project.UpsertRepositoryRequest
+//   - ctx context.Context
+//   - organizationID string
+//   - request project.UpsertRepositoryRequest
 func (_e *ProjectRepository_Expecter) Create(ctx interface{}, organizationID interface{}, request interface{}) *ProjectRepository_Create_Call {
 	return &ProjectRepository_Create_Call{Call: _e.mock.On("Create", ctx, organizationID, request)}
 }
@@ -90,8 +90,8 @@ type ProjectRepository_Delete_Call struct {
 }
 
 // Delete is a helper method to define mock.On call
-//  - ctx context.Context
-//  - projectID string
+//   - ctx context.Context
+//   - projectID string
 func (_e *ProjectRepository_Expecter) Delete(ctx interface{}, projectID interface{}) *ProjectRepository_Delete_Call {
 	return &ProjectRepository_Delete_Call{Call: _e.mock.On("Delete", ctx, projectID)}
 }
@@ -137,8 +137,8 @@ type ProjectRepository_Get_Call struct {
 }
 
 // Get is a helper method to define mock.On call
-//  - ctx context.Context
-//  - projectID string
+//   - ctx context.Context
+//   - projectID string
 func (_e *ProjectRepository_Expecter) Get(ctx interface{}, projectID interface{}) *ProjectRepository_Get_Call {
 	return &ProjectRepository_Get_Call{Call: _e.mock.On("Get", ctx, projectID)}
 }
@@ -184,9 +184,9 @@ type ProjectRepository_Update_Call struct {
 }
 
 // Update is a helper method to define mock.On call
-//  - ctx context.Context
-//  - projectID string
-//  - request project.UpsertRepositoryRequest
+//   - ctx context.Context
+//   - projectID string
+//   - request project.UpsertRepositoryRequest
 func (_e *ProjectRepository_Expecter) Update(ctx interface{}, projectID interface{}, request interface{}) *ProjectRepository_Update_Call {
 	return &ProjectRepository_Update_Call{Call: _e.mock.On("Update", ctx, projectID, request)}
 }

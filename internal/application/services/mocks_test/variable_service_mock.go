@@ -51,8 +51,8 @@ type VariableService_List_Call struct {
 }
 
 // List is a helper method to define mock.On call
-//  - ctx context.Context
-//  - scopeResourceID string
+//   - ctx context.Context
+//   - scopeResourceID string
 func (_e *VariableService_Expecter) List(ctx interface{}, scopeResourceID interface{}) *VariableService_List_Call {
 	return &VariableService_List_Call{Call: _e.mock.On("List", ctx, scopeResourceID)}
 }
@@ -98,9 +98,9 @@ type VariableService_Update_Call struct {
 }
 
 // Update is a helper method to define mock.On call
-//  - ctx context.Context
-//  - scopeResourceID string
-//  - request variable.DiffRequest
+//   - ctx context.Context
+//   - scopeResourceID string
+//   - request variable.DiffRequest
 func (_e *VariableService_Expecter) Update(ctx interface{}, scopeResourceID interface{}, request interface{}) *VariableService_Update_Call {
 	return &VariableService_Update_Call{Call: _e.mock.On("Update", ctx, scopeResourceID, request)}
 }
