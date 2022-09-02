@@ -16,7 +16,7 @@ require (
 	github.com/qovery/qovery-client-go v0.0.0-20220811140935-a4da4bfd3927
 	github.com/schollz/progressbar/v3 v3.9.0
 	github.com/sethvargo/go-envconfig v0.8.2
-	github.com/stretchr/testify v1.7.2
+	github.com/stretchr/testify v1.8.0
 	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
 )
 
@@ -71,7 +71,7 @@ require (
 	github.com/russross/blackfriday v1.6.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	github.com/stretchr/objx v0.1.1 // indirect
+	github.com/stretchr/objx v0.4.0 // indirect
 	github.com/vmihailenco/msgpack v4.0.4+incompatible // indirect
 	github.com/vmihailenco/msgpack/v4 v4.3.12 // indirect
 	github.com/vmihailenco/tagparser v0.1.1 // indirect
