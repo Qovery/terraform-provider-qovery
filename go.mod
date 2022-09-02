@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.21.0
 	github.com/pkg/errors v0.9.1
 	github.com/qovery/qovery-client-go v0.0.0-20220811140935-a4da4bfd3927
-	github.com/schollz/progressbar/v3 v3.9.0
+	github.com/schollz/progressbar/v3 v3.10.0
 	github.com/sethvargo/go-envconfig v0.8.2
 	github.com/stretchr/testify v1.7.2
 	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
@@ -55,7 +55,7 @@ require (
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
+	github.com/mattn/go-isatty v0.0.16 // indirect
 	github.com/mattn/go-runewidth v0.0.13 // indirect
 	github.com/mitchellh/cli v1.1.4 // indirect
 	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
@@ -79,7 +79,7 @@ require (
 	golang.org/x/crypto v0.0.0-20220722155217-630584e8d5aa // indirect
 	golang.org/x/net v0.0.0-20220809184613-07c6da5e1ced // indirect
 	golang.org/x/oauth2 v0.0.0-20220808172628-8227340efae7 // indirect
-	golang.org/x/sys v0.0.0-20220811171246-fbc7d0a398ab // indirect
+	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
 	golang.org/x/term v0.0.0-20220722155259-a9ba230a4035 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
