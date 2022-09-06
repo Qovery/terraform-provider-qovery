@@ -44,6 +44,7 @@ func TestNew(t *testing.T) {
 			assert.NotNil(t, svc.CredentialsAws)
 			assert.NotNil(t, svc.CredentialsScaleway)
 			assert.NotNil(t, svc.Project)
+			assert.NotNil(t, svc.ContainerRegistry)
 		})
 	}
 }

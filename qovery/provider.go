@@ -13,6 +13,7 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/application/services"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
@@ -52,6 +53,9 @@ type qProvider struct {
 
 	// projectService is an instance of a project.Service that handles the domain logic.
 	projectService project.Service
+
+	// containerRegistryService is an instance of a registry.Service that handles the domain logic.
+	containerRegistryService registry.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -110,6 +114,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.awsCredentialsService = domainServices.CredentialsAws
 	p.scalewayCredentialsService = domainServices.CredentialsScaleway
 	p.projectService = domainServices.Project
+	p.containerRegistryService = domainServices.ContainerRegistry
 }
 
 // GetResources - Defines provider resources
@@ -123,6 +128,7 @@ func (p *qProvider) GetResources(_ context.Context) (map[string]provider.Resourc
 		"qovery_organization":         organizationResourceType{},
 		"qovery_project":              projectResourceType{},
 		"qovery_scaleway_credentials": scalewayCredentialsResourceType{},
+		"qovery_container_registry":   containerRegistryResourceType{},
 	}, nil
 }
 
@@ -137,6 +143,7 @@ func (p *qProvider) GetDataSources(_ context.Context) (map[string]provider.DataS
 		"qovery_organization":         organizationDataSourceType{},
 		"qovery_project":              projectDataSourceType{},
 		"qovery_scaleway_credentials": scalewayCredentialsDataSourceType{},
+		"qovery_container_registry":   containerRegistryDataSourceType{},
 	}, nil
 }
 

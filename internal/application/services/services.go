@@ -6,6 +6,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 	"github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories"
 )
 
@@ -26,6 +27,7 @@ type Services struct {
 	CredentialsScaleway credentials.ScalewayService
 	Organization        organization.Service
 	Project             project.Service
+	ContainerRegistry   registry.Service
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -77,10 +79,16 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
+	containerRegistryService, err := NewContainerRegistryService(services.repos.ContainerRegistry)
+	if err != nil {
+		return nil, err
+	}
+
 	services.CredentialsAws = credentialsAwsService
 	services.CredentialsScaleway = credentialsScalewayService
 	services.Organization = organizationService
 	services.Project = projectService
+	services.ContainerRegistry = containerRegistryService
 
 	return services, nil
 }

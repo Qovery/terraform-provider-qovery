@@ -9,6 +9,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
@@ -35,6 +36,7 @@ type QoveryAPI struct {
 	Project                    project.Repository
 	ProjectEnvironmentVariable variable.Repository
 	ProjectSecret              secret.Repository
+	ContainerRegistry          registry.Repository
 }
 
 // New returns a new instance of QoveryAPI and applies the given configs.
@@ -75,6 +77,11 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	containerRegistryAPI, err := newContainerRegistryQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create a new QoveryAPI instance.
 	qoveryAPI := &QoveryAPI{
 		client:                     apiClient,
@@ -84,6 +91,7 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		Project:                    projectAPI,
 		ProjectEnvironmentVariable: projectEnvironmentVariableAPI,
 		ProjectSecret:              projectSecretAPI,
+		ContainerRegistry:          containerRegistryAPI,
 	}
 
 	// Apply all the configs to the qoveryAPI instance.

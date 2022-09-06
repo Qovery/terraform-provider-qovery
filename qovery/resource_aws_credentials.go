@@ -169,7 +169,7 @@ func (r awsCredentialsResource) ImportState(ctx context.Context, req resource.Im
 	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
 		resp.Diagnostics.AddError(
 			"Unexpected Import Identifier",
-			fmt.Sprintf("Expected import identifier with format: aws_credentials_id,organization_id. Got: %q", req.ID),
+			fmt.Sprintf("Expected import identifier with format: organization_id,aws_credentials_id. Got: %q", req.ID),
 		)
 		return
 	}

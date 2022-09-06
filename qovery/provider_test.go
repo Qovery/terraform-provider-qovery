@@ -40,6 +40,7 @@ type testEnvironment struct {
 	EnvironmentID                 string `env:"TEST_ENVIRONMENT_ID,required"`
 	ApplicationID                 string `env:"TEST_APPLICATION_ID,required"`
 	DatabaseID                    string `env:"TEST_DATABASE_ID,required"`
+	ContainerRegistryID           string `env:"TEST_CONTAINER_REGISTRY_ID,required"`
 }
 
 var (
@@ -108,6 +109,10 @@ func getTestApplicationID() string {
 
 func getTestDatabaseID() string {
 	return os.Getenv("TEST_DATABASE_ID")
+}
+
+func getTestContainerRegistryID() string {
+	return os.Getenv("TEST_CONTAINER_REGISTRY_ID")
 }
 
 func generateTestName(testName string) string {
