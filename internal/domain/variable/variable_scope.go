@@ -6,7 +6,7 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// Scope is an enum that contains all the valid values of an organization plan.
+// Scope is an enum that contains all the valid values of a variable scope.
 type Scope string
 
 const (

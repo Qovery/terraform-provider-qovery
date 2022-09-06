@@ -7,6 +7,7 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 )
 
 //
@@ -27,7 +28,8 @@ type ClientEnum interface {
 		qovery.PortProtocolEnum |
 		qovery.StateEnum |
 		qovery.StorageTypeEnum |
-		organization.Plan
+		organization.Plan |
+		registry.Kind
 }
 
 func clientEnumToStringArray[T ClientEnum](enum []T) []string {
@@ -112,6 +114,14 @@ func toInt32Pointer(v types.Int64) *int32 {
 	}
 	i := int32(v.Value)
 	return &i
+}
+
+func toMapStringString(v types.Map) map[string]string {
+	ret := make(map[string]string, len(v.Elems))
+	for k, v := range v.Elems {
+		ret[k] = v.String()
+	}
+	return ret
 }
 
 //
