@@ -46,12 +46,25 @@ resource "qovery_container_registry" "my_container_registry" {
 
 ### Optional
 
-- `config` (Map of String) Configuration needed to authenticate the container registry.
+- `config` (Attributes) Configuration needed to authenticate the container registry. (see [below for nested schema](#nestedatt--config))
 - `description` (String) Description of the container registry.
 
 ### Read-Only
 
 - `id` (String) Id of the container registry.
+
+<a id="nestedatt--config"></a>
+### Nested Schema for `config`
+
+Optional:
+
+- `access_key_id` (String) Required if kind is `ECR` or `PUBLIC_ECR`.
+- `password` (String) Required if kind is `DOCKER_HUB`.
+- `region` (String) Required if kind is `ECR` or `SCALEWAY_CR`.
+- `scaleway_access_key` (String) Required if kind is `SCALEWAY_CR`.
+- `scaleway_secret_key` (String) Required if kind is `SCALEWAY_CR`.
+- `secret_access_key` (String) Required if kind is `ECR` or `PUBLIC_ECR`.
+- `username` (String) Required if kind is `DOCKER_HUB`.
 
 ## Import
 

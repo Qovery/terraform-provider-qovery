@@ -7,13 +7,23 @@ import (
 )
 
 type ContainerRegistry struct {
-	Id             types.String `tfsdk:"id"`
-	OrganizationId types.String `tfsdk:"organization_id"`
-	Name           types.String `tfsdk:"name"`
-	Kind           types.String `tfsdk:"kind"`
-	URL            types.String `tfsdk:"url"`
-	Description    types.String `tfsdk:"description"`
-	Config         types.Map    `tfsdk:"config"`
+	Id             types.String             `tfsdk:"id"`
+	OrganizationId types.String             `tfsdk:"organization_id"`
+	Name           types.String             `tfsdk:"name"`
+	Kind           types.String             `tfsdk:"kind"`
+	URL            types.String             `tfsdk:"url"`
+	Description    types.String             `tfsdk:"description"`
+	Config         *ContainerRegistryConfig `tfsdk:"config"`
+}
+
+type ContainerRegistryConfig struct {
+	AccessKeyID       types.String `tfsdk:"access_key_id"`
+	SecretAccessKey   types.String `tfsdk:"secret_access_key"`
+	Region            types.String `tfsdk:"region"`
+	ScalewayAccessKey types.String `tfsdk:"scaleway_access_key"`
+	ScalewaySecretKey types.String `tfsdk:"scaleway_secret_key"`
+	Username          types.String `tfsdk:"username"`
+	Password          types.String `tfsdk:"password"`
 }
 
 type ContainerRegistryDataSource struct {
@@ -31,7 +41,15 @@ func (p ContainerRegistry) toUpsertRequest() registry.UpsertRequest {
 		Kind:        toString(p.Kind),
 		URL:         toString(p.URL),
 		Description: toStringPointer(p.Description),
-		Config:      toMapStringString(p.Config),
+		Config: registry.UpsertRequestConfig{
+			AccessKeyID:       toStringPointer(p.Config.AccessKeyID),
+			SecretAccessKey:   toStringPointer(p.Config.SecretAccessKey),
+			Region:            toStringPointer(p.Config.Region),
+			ScalewayAccessKey: toStringPointer(p.Config.ScalewayAccessKey),
+			ScalewaySecretKey: toStringPointer(p.Config.ScalewaySecretKey),
+			Username:          toStringPointer(p.Config.Username),
+			Password:          toStringPointer(p.Config.Password),
+		},
 	}
 }
 

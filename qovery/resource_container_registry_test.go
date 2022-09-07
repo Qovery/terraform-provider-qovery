@@ -65,9 +65,11 @@ func TestAcc_ContainerRegistry(t *testing.T) {
 			},
 			// Check Import
 			{
-				ResourceName:      "qovery_container_registry.test",
-				ImportState:       true,
-				ImportStateVerify: true,
+				ResourceName:            "qovery_container_registry.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
+				ImportStateVerifyIgnore: []string{"config"},
 			},
 		},
 	})
@@ -84,7 +86,7 @@ func testAccQoveryContainerRegistryExists(resourceName string) resource.TestChec
 			return fmt.Errorf("container_registry.id not found")
 		}
 
-		_, err := qoveryServices.Project.Get(context.TODO(), rs.Primary.ID)
+		_, err := qoveryServices.ContainerRegistry.Get(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
 		if err != nil {
 			return err
 		}
@@ -103,7 +105,7 @@ func testAccQoveryContainerRegistryDestroy(resourceName string) resource.TestChe
 			return fmt.Errorf("container_registry.id not found")
 		}
 
-		_, err := qoveryServices.Project.Get(context.TODO(), rs.Primary.ID)
+		_, err := qoveryServices.ContainerRegistry.Get(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
 		if err == nil {
 			return fmt.Errorf("found container registry but expected it to be deleted")
 		}
