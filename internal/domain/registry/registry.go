@@ -109,7 +109,17 @@ type UpsertRequest struct {
 	URL  string `validate:"required"`
 
 	Description *string
-	Config      map[string]string
+	Config      UpsertRequestConfig
+}
+
+type UpsertRequestConfig struct {
+	AccessKeyID       *string
+	SecretAccessKey   *string
+	Region            *string
+	ScalewayAccessKey *string
+	ScalewaySecretKey *string
+	Username          *string
+	Password          *string
 }
 
 // Validate returns an error to tell whether the UpsertRequest is valid or not.

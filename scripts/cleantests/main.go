@@ -27,6 +27,11 @@ type credentials struct {
 	Name string
 }
 
+type registry struct {
+	ID   string
+	Name string
+}
+
 const testPrefix = "testacc"
 
 func main() {
@@ -51,6 +56,10 @@ func main() {
 	}
 
 	if err := cleanProjects(ctx, apiClient, env.TestOrganizationID); err != nil {
+		log.Fatalf(err.Error())
+	}
+
+	if err := cleanContainerRegistry(ctx, apiClient, env.TestOrganizationID); err != nil {
 		log.Fatalf(err.Error())
 	}
 }
@@ -143,6 +152,36 @@ func cleanScalewayCredentials(ctx context.Context, apiClient *qovery.APIClient, 
 	return nil
 }
 
+func cleanContainerRegistry(ctx context.Context, apiClient *qovery.APIClient, organizationID string) error {
+	registries, err := getContainerRegitriesToDelete(ctx, apiClient, organizationID)
+	if err != nil {
+		return err
+	}
+
+	bar := progressbar.Default(int64(len(registries)))
+	fmt.Printf("Deleting %d container registries...\n", len(registries))
+	for _, reg := range registries {
+		if strings.Contains(reg.Name, testPrefix) {
+			maxSize := len(reg.Name)
+			if maxSize > 50 {
+				maxSize = 50
+			}
+			bar.Describe(fmt.Sprintf("%s...", reg.Name[0:maxSize]))
+
+			_, err := apiClient.ContainerRegistriesApi.
+				DeleteContainerRegistry(ctx, organizationID, reg.ID).
+				Execute()
+			if err != nil {
+				return err
+			}
+
+			bar.Add(1)
+		}
+	}
+
+	return nil
+}
+
 func getProjectsToDelete(ctx context.Context, apiClient *qovery.APIClient, organizationID string) ([]project, error) {
 	projects, _, err := apiClient.ProjectsApi.
 		ListProject(ctx, organizationID).
@@ -206,4 +245,26 @@ func getScalewayCredentialsToDelete(ctx context.Context, apiClient *qovery.APICl
 	}
 
 	return scalewayCredsToDelete, nil
+}
+
+func getContainerRegitriesToDelete(ctx context.Context, apiClient *qovery.APIClient, organizationID string) ([]registry, error) {
+	registries, _, err := apiClient.ContainerRegistriesApi.
+		ListContainerRegistry(ctx, organizationID).
+		Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	registriesToDelete := make([]registry, 0, len(registries.GetResults()))
+	for _, c := range registries.GetResults() {
+		regName := strings.ToLower(c.GetName())
+		if strings.Contains(regName, testPrefix) {
+			registriesToDelete = append(registriesToDelete, registry{
+				ID:   c.GetId(),
+				Name: c.GetName(),
+			})
+		}
+	}
+
+	return registriesToDelete, nil
 }

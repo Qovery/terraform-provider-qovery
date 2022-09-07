@@ -72,9 +72,43 @@ func (r containerRegistryResourceType) GetSchema(_ context.Context) (tfsdk.Schem
 			"config": {
 				Description: "Configuration needed to authenticate the container registry.",
 				Optional:    true,
-				Type: types.MapType{
-					ElemType: types.StringType,
-				},
+				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
+					"access_key_id": {
+						Description: "Required if kind is `ECR` or `PUBLIC_ECR`.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"secret_access_key": {
+						Description: "Required if kind is `ECR` or `PUBLIC_ECR`.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"region": {
+						Description: "Required if kind is `ECR` or `SCALEWAY_CR`.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"scaleway_access_key": {
+						Description: "Required if kind is `SCALEWAY_CR`.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"scaleway_secret_key": {
+						Description: "Required if kind is `SCALEWAY_CR`.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"username": {
+						Description: "Required if kind is `DOCKER_HUB`.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+					"password": {
+						Description: "Required if kind is `DOCKER_HUB`.",
+						Type:        types.StringType,
+						Optional:    true,
+					},
+				}),
 			},
 		},
 	}, nil

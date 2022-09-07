@@ -68,7 +68,7 @@ func (c containerRegistryQoveryAPI) Update(ctx context.Context, organizationID s
 	}
 
 	reg, resp, err := c.client.ContainerRegistriesApi.
-		EditContainerRegistry(ctx, registryID).
+		EditContainerRegistry(ctx, organizationID, registryID).
 		ContainerRegistryRequest(*req).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
@@ -81,7 +81,7 @@ func (c containerRegistryQoveryAPI) Update(ctx context.Context, organizationID s
 // Delete calls Qovery's API to deletes a registry using the given registryID.
 func (c containerRegistryQoveryAPI) Delete(ctx context.Context, organizationID string, registryID string) error {
 	resp, err := c.client.ContainerRegistriesApi.
-		DeleteContainerRegistry(ctx, registryID).
+		DeleteContainerRegistry(ctx, organizationID, registryID).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
 		return apierrors.NewDeleteApiError(apierrors.ApiResourceContainerRegistry, registryID, resp, err)

@@ -34,6 +34,14 @@ func newQoveryContainerRegistryRequestFromDomain(request registry.UpsertRequest)
 		Kind:        *kind,
 		Url:         request.URL,
 		Description: request.Description,
-		Config:      request.Config,
+		Config: qovery.ContainerRegistryRequestConfig{
+			AccessKeyId:       request.Config.AccessKeyID,
+			SecretAccessKey:   request.Config.SecretAccessKey,
+			Region:            request.Config.Region,
+			ScalewayAccessKey: request.Config.ScalewayAccessKey,
+			ScalewaySecretKey: request.Config.ScalewaySecretKey,
+			Username:          request.Config.Username,
+			Password:          request.Config.Password,
+		},
 	}, nil
 }
