@@ -89,6 +89,8 @@ resource "qovery_cluster" "my_cluster" {
 
 Optional:
 
+- `static_ip` (Boolean) Static IP (AWS only) [NOTE: can't be updated after creation].
+	- Default: `false`.
 - `vpc_subnet` (String) Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].
 	- Default: `10.0.0.0/16`.
 
