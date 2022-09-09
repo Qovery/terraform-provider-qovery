@@ -15,7 +15,7 @@ func (c *Client) getEnvironmentEnvironmentVariables(ctx context.Context, environ
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceEnvironmentEnvironmentVariable, environmentID, res, err)
 	}
-	return environmentVariableResponseListToArray(vars, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT), nil
+	return environmentVariableResponseListToArray(vars, qovery.APIVARIABLESCOPEENUM_ENVIRONMENT), nil
 }
 
 func (c *Client) getEnvironmentBuiltInEnvironmentVariables(ctx context.Context, environmentID string) ([]*qovery.EnvironmentVariable, *apierrors.APIError) {
@@ -25,7 +25,7 @@ func (c *Client) getEnvironmentBuiltInEnvironmentVariables(ctx context.Context, 
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceEnvironmentEnvironmentVariable, environmentID, res, err)
 	}
-	return environmentVariableResponseListToArray(vars, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN), nil
+	return environmentVariableResponseListToArray(vars, qovery.APIVARIABLESCOPEENUM_BUILT_IN), nil
 }
 
 func (c *Client) updateEnvironmentEnvironmentVariables(ctx context.Context, environmentID string, request EnvironmentVariablesDiff) *apierrors.APIError {

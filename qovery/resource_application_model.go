@@ -104,7 +104,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 }
 
 func (app Application) toUpdateApplicationRequest(state Application) (*client.ApplicationUpdateParams, error) {
-	storage := make([]qovery.ApplicationStorageStorageInner, 0, len(app.Storage))
+	storage := make([]qovery.ServiceStorageRequestStorageInner, 0, len(app.Storage))
 	for _, store := range app.Storage {
 		s, err := store.toUpdateRequest()
 		if err != nil {
@@ -113,7 +113,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		storage = append(storage, *s)
 	}
 
-	ports := make([]qovery.ServicePortPortsInner, 0, len(app.Ports))
+	ports := make([]qovery.ServicePort, 0, len(app.Ports))
 	for _, port := range app.Ports {
 		p, err := port.toUpdateRequest()
 		if err != nil {
@@ -148,7 +148,9 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		AutoPreview:         toBoolPointer(app.AutoPreview),
 		GitRepository:       app.GitRepository.toUpdateRequest(),
 		Storage:             storage,
-		Ports:               ports,
+		Ports: &qovery.ServicePortResponseList{
+			Results: ports,
+		},
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:   applicationEditRequest,
@@ -177,9 +179,9 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		Storage:                     convertResponseToApplicationStorage(app.ApplicationResponse.Storage),
 		Ports:                       convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
 		State:                       fromClientEnum(app.ApplicationStatus.State),
-		BuiltInEnvironmentVariables: fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
-		EnvironmentVariables:        fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
-		Secrets:                     fromSecretList(state.SecretList(), app.ApplicationSecrets, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
+		BuiltInEnvironmentVariables: fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
+		EnvironmentVariables:        fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
+		Secrets:                     fromSecretList(state.SecretList(), app.ApplicationSecrets, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
 		CustomDomains:               fromCustomDomainList(app.ApplicationCustomDomains).toTerraformSet(),
 		InternalHost:                fromString(app.ApplicationInternalHost),
 		ExternalHost:                fromStringPointer(app.ApplicationExternalHost),
@@ -237,13 +239,13 @@ func (store ApplicationStorage) toCreateRequest() (*qovery.ServiceStorageRequest
 	}, nil
 }
 
-func (store ApplicationStorage) toUpdateRequest() (*qovery.ApplicationStorageStorageInner, error) {
+func (store ApplicationStorage) toUpdateRequest() (*qovery.ServiceStorageRequestStorageInner, error) {
 	storageType, err := qovery.NewStorageTypeEnumFromValue(toString(store.Type))
 	if err != nil {
 		return nil, err
 	}
 
-	return &qovery.ApplicationStorageStorageInner{
+	return &qovery.ServiceStorageRequestStorageInner{
 		Id:         toStringPointer(store.Id),
 		Type:       *storageType,
 		Size:       toInt32(store.Size),
@@ -251,7 +253,7 @@ func (store ApplicationStorage) toUpdateRequest() (*qovery.ApplicationStorageSto
 	}, nil
 }
 
-func convertResponseToApplicationStorage(storage []qovery.ApplicationStorageStorageInner) []ApplicationStorage {
+func convertResponseToApplicationStorage(storage []qovery.ServiceStorageStorageInner) []ApplicationStorage {
 	if len(storage) == 0 {
 		return nil
 	}
@@ -259,7 +261,7 @@ func convertResponseToApplicationStorage(storage []qovery.ApplicationStorageStor
 	list := make([]ApplicationStorage, 0, len(storage))
 	for _, s := range storage {
 		list = append(list, ApplicationStorage{
-			Id:         fromStringPointer(s.Id),
+			Id:         fromString(s.Id),
 			Type:       fromClientEnum(s.Type),
 			Size:       fromInt32(s.Size),
 			MountPoint: fromString(s.MountPoint),
@@ -284,7 +286,7 @@ func (port ApplicationPort) toCreateRequest() (*qovery.ServicePortRequestPortsIn
 	}
 
 	return &qovery.ServicePortRequestPortsInner{
-		Name:               toNullableString(port.Name),
+		Name:               toStringPointer(port.Name),
 		InternalPort:       toInt32(port.InternalPort),
 		ExternalPort:       toInt32Pointer(port.ExternalPort),
 		Protocol:           protocol,
@@ -292,35 +294,35 @@ func (port ApplicationPort) toCreateRequest() (*qovery.ServicePortRequestPortsIn
 	}, nil
 }
 
-func (port ApplicationPort) toUpdateRequest() (*qovery.ServicePortPortsInner, error) {
+func (port ApplicationPort) toUpdateRequest() (*qovery.ServicePort, error) {
 	protocol, err := qovery.NewPortProtocolEnumFromValue(toString(port.Protocol))
 	if err != nil {
 		return nil, err
 	}
 
-	return &qovery.ServicePortPortsInner{
-		Id:                 toStringPointer(port.Id),
-		Name:               toNullableString(port.Name),
+	return &qovery.ServicePort{
+		Id:                 toString(port.Id),
+		Name:               toStringPointer(port.Name),
 		InternalPort:       toInt32(port.InternalPort),
 		ExternalPort:       toInt32Pointer(port.ExternalPort),
-		Protocol:           protocol,
+		Protocol:           *protocol,
 		PubliclyAccessible: toBool(port.PubliclyAccessible),
 	}, nil
 }
 
-func convertResponseToApplicationPorts(ports []qovery.ServicePortPortsInner) []ApplicationPort {
-	if len(ports) == 0 {
+func convertResponseToApplicationPorts(ports *qovery.ServicePortResponseList) []ApplicationPort {
+	if len(ports.GetResults()) == 0 {
 		return nil
 	}
 
-	list := make([]ApplicationPort, 0, len(ports))
-	for _, p := range ports {
+	list := make([]ApplicationPort, 0, len(ports.GetResults()))
+	for _, p := range ports.GetResults() {
 		list = append(list, ApplicationPort{
-			Id:                 fromStringPointer(p.Id),
-			Name:               fromNullableString(p.Name),
+			Id:                 fromString(p.Id),
+			Name:               fromStringPointer(p.Name),
 			InternalPort:       fromInt32(p.InternalPort),
 			ExternalPort:       fromInt32Pointer(p.ExternalPort),
-			Protocol:           fromClientEnumPointer(p.Protocol),
+			Protocol:           fromClientEnum(p.Protocol),
 			PubliclyAccessible: fromBool(p.PubliclyAccessible),
 		})
 	}

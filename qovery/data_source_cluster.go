@@ -87,6 +87,11 @@ func (t clusterDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 						Type:        types.StringType,
 						Computed:    true,
 					},
+					"static_ip": {
+						Description: "Static IP (AWS only) [NOTE: can't be updated after creation].",
+						Type:        types.BoolType,
+						Computed:    true,
+					},
 				}),
 			},
 			"routing_table": {

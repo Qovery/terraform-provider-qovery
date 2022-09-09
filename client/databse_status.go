@@ -49,8 +49,7 @@ func (c *Client) updateDatabaseStatus(ctx context.Context, database *qovery.Data
 		}
 	}
 
-	deploymentStatus := status.ServiceDeploymentStatus.Get()
-	if deploymentStatus != nil && *deploymentStatus == qovery.SERVICEDEPLOYMENTSTATUSENUM_OUT_OF_DATE {
+	if status.ServiceDeploymentStatus == qovery.SERVICEDEPLOYMENTSTATUSENUM_OUT_OF_DATE {
 		return c.restartDatabase(ctx, database.Id)
 	}
 

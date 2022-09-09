@@ -146,8 +146,8 @@ func (s Secret) toUpdateRequest(new Secret) client.SecretUpdateRequest {
 	return client.SecretUpdateRequest{
 		Id: toString(s.Id),
 		SecretEditRequest: qovery.SecretEditRequest{
-			Key:   toStringPointer(s.Key),
-			Value: toStringPointer(new.Value),
+			Key:   toString(s.Key),
+			Value: toString(new.Value),
 		},
 	}
 }
@@ -175,17 +175,17 @@ func (s Secret) toDiffDeleteRequest() secret.DiffDeleteRequest {
 }
 
 func fromSecret(v *qovery.Secret, state *Secret) Secret {
-	secret := Secret{
+	sec := Secret{
 		Id:  fromString(v.Id),
-		Key: fromStringPointer(v.Key),
+		Key: fromString(v.Key),
 	}
 	if state != nil {
-		secret.Value = state.Value
+		sec.Value = state.Value
 	}
-	return secret
+	return sec
 }
 
-func fromSecretList(state SecretList, secrets []*qovery.Secret, scope qovery.EnvironmentVariableScopeEnum) SecretList {
+func fromSecretList(state SecretList, secrets []*qovery.Secret, scope qovery.APIVariableScopeEnum) SecretList {
 	stateByKey := make(map[string]Secret)
 	for _, s := range state {
 		stateByKey[toString(s.Key)] = s

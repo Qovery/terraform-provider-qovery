@@ -29,10 +29,10 @@ type SecretDeleteRequest struct {
 	Id string
 }
 
-func secretResponseListToArray(list *qovery.SecretResponseList, scope qovery.EnvironmentVariableScopeEnum) []*qovery.Secret {
+func secretResponseListToArray(list *qovery.SecretResponseList, scope qovery.APIVariableScopeEnum) []*qovery.Secret {
 	vars := make([]*qovery.Secret, 0, len(list.GetResults()))
 	for _, v := range list.GetResults() {
-		if v.Scope != scope && v.Scope != qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN {
+		if v.Scope != scope && v.Scope != qovery.APIVARIABLESCOPEENUM_BUILT_IN {
 			continue
 		}
 		cpy := v

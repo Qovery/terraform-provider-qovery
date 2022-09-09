@@ -1,7 +1,6 @@
 package qoveryapi
 
 import (
-	"github.com/AlekSi/pointer"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
@@ -46,7 +45,7 @@ func newQoverySecretRequestFromDomain(request secret.UpsertRequest) qovery.Secre
 // newQoverySecretEditRequestFromDomain takes the domain request secret.UpsertRequest and turns it into a qovery.SecretEditRequest to make the api call.
 func newQoverySecretEditRequestFromDomain(request secret.UpsertRequest) qovery.SecretEditRequest {
 	return qovery.SecretEditRequest{
-		Key:   pointer.ToString(request.Key),
-		Value: pointer.ToString(request.Value),
+		Key:   request.Key,
+		Value: request.Value,
 	}
 }

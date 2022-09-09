@@ -15,7 +15,7 @@ type EnvironmentResponse struct {
 }
 
 type EnvironmentCreateParams struct {
-	EnvironmentRequest       qovery.EnvironmentRequest
+	EnvironmentRequest       qovery.CreateEnvironmentRequest
 	EnvironmentVariablesDiff EnvironmentVariablesDiff
 	SecretsDiff              SecretsDiff
 }
@@ -29,7 +29,7 @@ type EnvironmentUpdateParams struct {
 func (c *Client) CreateEnvironment(ctx context.Context, projectID string, params *EnvironmentCreateParams) (*EnvironmentResponse, *apierrors.APIError) {
 	environment, res, err := c.api.EnvironmentsApi.
 		CreateEnvironment(ctx, projectID).
-		EnvironmentRequest(params.EnvironmentRequest).
+		CreateEnvironmentRequest(params.EnvironmentRequest).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewCreateError(apierrors.APIResourceEnvironment, params.EnvironmentRequest.Name, res, err)

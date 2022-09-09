@@ -9,13 +9,13 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
-// TestNewScopeFromString validate that the scopes qovery.EnvironmentVariableScopeEnum defined in Qovery's API Client are valid.
+// TestNewScopeFromString validate that the scopes qovery.APIVariableScopeEnum defined in Qovery's API Client are valid.
 // This is useful to make sure the variable.Scope stays up to date.
 func TestNewScopeFromString(t *testing.T) {
 	t.Parallel()
 
-	assert.Len(t, variable.AllowedScopeValues, len(qovery.AllowedEnvironmentVariableScopeEnumEnumValues))
-	for _, variableScope := range qovery.AllowedEnvironmentVariableScopeEnumEnumValues {
+	assert.Len(t, variable.AllowedScopeValues, len(qovery.AllowedAPIVariableScopeEnumEnumValues))
+	for _, variableScope := range qovery.AllowedAPIVariableScopeEnumEnumValues {
 		variableScopeStr := string(variableScope)
 		t.Run(variableScopeStr, func(t *testing.T) {
 			scope, err := variable.NewScopeFromString(variableScopeStr)

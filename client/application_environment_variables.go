@@ -15,7 +15,7 @@ func (c *Client) getApplicationEnvironmentVariables(ctx context.Context, applica
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplicationEnvironmentVariable, applicationID, res, err)
 	}
-	return environmentVariableResponseListToArray(applicationVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_APPLICATION), nil
+	return environmentVariableResponseListToArray(applicationVariables, qovery.APIVARIABLESCOPEENUM_APPLICATION), nil
 }
 
 func (c *Client) updateApplicationEnvironmentVariables(ctx context.Context, applicationID string, request EnvironmentVariablesDiff) *apierrors.APIError {

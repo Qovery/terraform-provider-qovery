@@ -224,6 +224,43 @@ func TestAcc_ClusterWithVpcPeering(t *testing.T) {
 	})
 }
 
+func TestAcc_ClusterWithStaticIP(t *testing.T) {
+	t.SkipNow()
+	t.Parallel()
+	testName := "cluster-with-static-ip"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccClusterDefaultConfigWithStaticIP(
+					testName,
+					"AWS",
+					"eu-west-3",
+					"T3A_MEDIUM",
+					true,
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAWSCredentialsID()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "true"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "RUNNING"),
+				),
+			},
+		},
+	})
+}
+
 func testAccQoveryClusterExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
@@ -360,6 +397,23 @@ resource "qovery_cluster" "test" {
   routing_table = %s
 }
 `, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, vpcSubnet, convertRoutingTableToString(routingTable),
+	)
+}
+
+func testAccClusterDefaultConfigWithStaticIP(testName string, cloudProvider string, region string, instanceType string, staticIP bool) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id = "%s"
+  organization_id = "%s"
+  name = "%s"
+  cloud_provider = "%s"
+  region = "%s"
+  instance_type = "%s"
+  features = {
+    static_ip = %t
+  }
+}
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, staticIP,
 	)
 }
 

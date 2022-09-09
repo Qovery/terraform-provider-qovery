@@ -57,6 +57,9 @@ var (
 	// Cluster Feature VPC_SUBNET
 	clusterFeatureVpcSubnetDefault = "10.0.0.0/16"
 
+	// Cluster Feature STATIC_IP
+	clusterFeatureStaticIPDefault = false
+
 	// Cluster Kubernetes Mode
 	clusterKubernetesModes = clientEnumToStringArray([]qovery.KubernetesEnum{
 		qovery.KUBERNETESENUM_MANAGED,
@@ -211,6 +214,18 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 						Computed: true,
 						PlanModifiers: tfsdk.AttributePlanModifiers{
 							modifiers.NewStringDefaultModifier(clusterFeatureVpcSubnetDefault),
+						},
+					},
+					"static_ip": {
+						Description: descriptions.NewBoolDefaultDescription(
+							"Static IP (AWS only) [NOTE: can't be updated after creation].",
+							clusterFeatureStaticIPDefault,
+						),
+						Type:     types.BoolType,
+						Optional: true,
+						Computed: true,
+						PlanModifiers: tfsdk.AttributePlanModifiers{
+							modifiers.NewBoolDefaultModifier(clusterFeatureStaticIPDefault),
 						},
 					},
 				}),
