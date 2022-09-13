@@ -57,7 +57,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		storage = append(storage, *s)
 	}
 
-	ports := make([]qovery.ServicePortRequestPortsInner, 0, len(app.Ports))
+	ports := make([]qovery.ServicePort, 0, len(app.Ports))
 	for _, port := range app.Ports {
 		p, err := port.toCreateRequest()
 		if err != nil {
@@ -148,9 +148,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		AutoPreview:         toBoolPointer(app.AutoPreview),
 		GitRepository:       app.GitRepository.toUpdateRequest(),
 		Storage:             storage,
-		Ports: &qovery.ServicePortResponseList{
-			Results: ports,
-		},
+		Ports:               ports,
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:   applicationEditRequest,
@@ -279,17 +277,17 @@ type ApplicationPort struct {
 	Protocol           types.String `tfsdk:"protocol"`
 }
 
-func (port ApplicationPort) toCreateRequest() (*qovery.ServicePortRequestPortsInner, error) {
+func (port ApplicationPort) toCreateRequest() (*qovery.ServicePort, error) {
 	protocol, err := qovery.NewPortProtocolEnumFromValue(toString(port.Protocol))
 	if err != nil {
 		return nil, err
 	}
 
-	return &qovery.ServicePortRequestPortsInner{
+	return &qovery.ServicePort{
 		Name:               toStringPointer(port.Name),
 		InternalPort:       toInt32(port.InternalPort),
 		ExternalPort:       toInt32Pointer(port.ExternalPort),
-		Protocol:           protocol,
+		Protocol:           *protocol,
 		PubliclyAccessible: toBool(port.PubliclyAccessible),
 	}, nil
 }
@@ -310,13 +308,13 @@ func (port ApplicationPort) toUpdateRequest() (*qovery.ServicePort, error) {
 	}, nil
 }
 
-func convertResponseToApplicationPorts(ports *qovery.ServicePortResponseList) []ApplicationPort {
-	if len(ports.GetResults()) == 0 {
+func convertResponseToApplicationPorts(ports []qovery.ServicePort) []ApplicationPort {
+	if len(ports) == 0 {
 		return nil
 	}
 
-	list := make([]ApplicationPort, 0, len(ports.GetResults()))
-	for _, p := range ports.GetResults() {
+	list := make([]ApplicationPort, 0, len(ports))
+	for _, p := range ports {
 		list = append(list, ApplicationPort{
 			Id:                 fromString(p.Id),
 			Name:               fromStringPointer(p.Name),
