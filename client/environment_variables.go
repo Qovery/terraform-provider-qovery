@@ -29,10 +29,10 @@ type EnvironmentVariableDeleteRequest struct {
 	Id string
 }
 
-func environmentVariableResponseListToArray(list *qovery.EnvironmentVariableResponseList, scope qovery.EnvironmentVariableScopeEnum) []*qovery.EnvironmentVariable {
+func environmentVariableResponseListToArray(list *qovery.EnvironmentVariableResponseList, scope qovery.APIVariableScopeEnum) []*qovery.EnvironmentVariable {
 	vars := make([]*qovery.EnvironmentVariable, 0, len(list.GetResults()))
 	for _, v := range list.GetResults() {
-		if v.Scope != scope && v.Scope != qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN {
+		if v.Scope != scope && v.Scope != qovery.APIVARIABLESCOPEENUM_BUILT_IN {
 			continue
 		}
 		cpy := v

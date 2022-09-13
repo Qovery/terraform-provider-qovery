@@ -15,7 +15,7 @@ func (c *Client) getEnvironmentSecrets(ctx context.Context, environmentID string
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceEnvironmentSecret, environmentID, res, err)
 	}
-	return secretResponseListToArray(vars, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT), nil
+	return secretResponseListToArray(vars, qovery.APIVARIABLESCOPEENUM_ENVIRONMENT), nil
 }
 
 func (c *Client) updateEnvironmentSecrets(ctx context.Context, environmentID string, request SecretsDiff) *apierrors.APIError {

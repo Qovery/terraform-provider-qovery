@@ -11,6 +11,8 @@ import (
 const (
 	featureKeyVpcSubnet = "vpc_subnet"
 	featureIdVpcSubnet  = "VPC_SUBNET"
+	featureKeyStaticIP  = "static_ip"
+	featureIdStaticIP   = "STATIC_IP"
 )
 
 type Cluster struct {
@@ -41,13 +43,15 @@ func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
 		return true
 	}
 
-	stateFeaturesByID := make(map[string]string)
+	stateFeaturesByID := make(map[string]interface{})
 	for _, sf := range stateFeature {
-		stateFeaturesByID[sf.GetId()] = sf.GetValue()
+		value := sf.GetValue()
+		stateFeaturesByID[sf.GetId()] = value.GetActualInstance()
 	}
 
 	for _, cf := range clusterFeatures {
-		if stateValue, ok := stateFeaturesByID[cf.GetId()]; !ok || stateValue != cf.GetValue() {
+		value := cf.GetValue()
+		if stateValue, ok := stateFeaturesByID[cf.GetId()]; !ok || stateValue != value.GetActualInstance() {
 			return true
 		}
 	}
@@ -172,6 +176,9 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 		case featureIdVpcSubnet:
 			attrs[featureKeyVpcSubnet] = fromStringPointer(f.GetValue().String)
 			attrTypes[featureKeyVpcSubnet] = types.StringType
+		case featureIdStaticIP:
+			attrs[featureKeyStaticIP] = fromBoolPointer(f.GetValue().Bool)
+			attrTypes[featureKeyStaticIP] = types.BoolType
 		}
 	}
 
@@ -192,9 +199,24 @@ func toQoveryClusterFeatures(f types.Object) []qovery.ClusterRequestFeaturesInne
 
 	features := make([]qovery.ClusterRequestFeaturesInner, 0, len(f.Attrs))
 	if _, ok := f.Attrs[featureKeyVpcSubnet]; ok {
+		value := qovery.NewNullableClusterFeatureValue(&qovery.ClusterFeatureValue{
+			String: toStringPointer(f.Attrs[featureKeyVpcSubnet].(types.String)),
+		})
+
 		features = append(features, qovery.ClusterRequestFeaturesInner{
 			Id:    stringAsPointer(featureIdVpcSubnet),
-			Value: *qovery.NewNullableString(toStringPointer(f.Attrs[featureKeyVpcSubnet].(types.String))),
+			Value: *value,
+		})
+	}
+
+	if _, ok := f.Attrs[featureKeyStaticIP]; ok {
+		value := qovery.NewNullableClusterFeatureValue(&qovery.ClusterFeatureValue{
+			Bool: toBoolPointer(f.Attrs[featureKeyStaticIP].(types.Bool)),
+		})
+
+		features = append(features, qovery.ClusterRequestFeaturesInner{
+			Id:    stringAsPointer(featureIdStaticIP),
+			Value: *value,
 		})
 	}
 

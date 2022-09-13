@@ -51,8 +51,7 @@ func (c *Client) updateApplicationStatus(ctx context.Context, application *qover
 		}
 	}
 
-	deploymentStatus := status.ServiceDeploymentStatus.Get()
-	if (deploymentStatus != nil && *deploymentStatus == qovery.SERVICEDEPLOYMENTSTATUSENUM_OUT_OF_DATE) || (forceRestart && desiredState == qovery.STATEENUM_RUNNING) {
+	if (status.ServiceDeploymentStatus == qovery.SERVICEDEPLOYMENTSTATUSENUM_OUT_OF_DATE) || (forceRestart && desiredState == qovery.STATEENUM_RUNNING) {
 		return c.restartApplication(ctx, application)
 	}
 

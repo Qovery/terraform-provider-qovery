@@ -181,7 +181,7 @@ func fromEnvironmentVariable(v *qovery.EnvironmentVariable) EnvironmentVariable 
 	}
 }
 
-func fromEnvironmentVariableList(vars []*qovery.EnvironmentVariable, scope qovery.EnvironmentVariableScopeEnum) EnvironmentVariableList {
+func fromEnvironmentVariableList(vars []*qovery.EnvironmentVariable, scope qovery.APIVariableScopeEnum) EnvironmentVariableList {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
 		if v.Scope != scope {

@@ -47,6 +47,7 @@ data "qovery_cluster" "my_cluster" {
 
 Read-Only:
 
+- `static_ip` (Boolean) Static IP (AWS only) [NOTE: can't be updated after creation].
 - `vpc_subnet` (String) Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].
 
 

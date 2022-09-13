@@ -241,9 +241,15 @@ func (ts *ProjectServiceTestSuite) TestCreate_Success() {
 	ts.variableService.EXPECT().
 		Update(mock.Anything, expectedProject.ID.String(), mock.Anything).
 		Return(expectedVariables, nil)
+	ts.variableService.EXPECT().
+		List(mock.Anything, expectedProject.ID.String()).
+		Return(expectedVariables, nil)
 
 	ts.secretService.EXPECT().
 		Update(mock.Anything, expectedProject.ID.String(), mock.Anything).
+		Return(expectedSecrets, nil)
+	ts.secretService.EXPECT().
+		List(mock.Anything, expectedProject.ID.String()).
 		Return(expectedSecrets, nil)
 
 	proj, err := ts.projectService.Create(context.Background(), expectedProject.OrganizationID.String(), assertNewProjectUpsertServiceRequest(t))
@@ -507,9 +513,15 @@ func (ts *ProjectServiceTestSuite) TestUpdate_Success() {
 	ts.variableService.EXPECT().
 		Update(mock.Anything, expectedProject.ID.String(), mock.Anything).
 		Return(expectedVariables, nil)
+	ts.variableService.EXPECT().
+		List(mock.Anything, expectedProject.ID.String()).
+		Return(expectedVariables, nil)
 
 	ts.secretService.EXPECT().
 		Update(mock.Anything, expectedProject.ID.String(), mock.Anything).
+		Return(expectedSecrets, nil)
+	ts.secretService.EXPECT().
+		List(mock.Anything, expectedProject.ID.String()).
 		Return(expectedSecrets, nil)
 
 	proj, err := ts.projectService.Update(context.Background(), expectedProject.ID.String(), assertNewProjectUpsertServiceRequest(t))

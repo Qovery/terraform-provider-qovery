@@ -12,6 +12,7 @@ type Scope string
 const (
 	ScopeApplication Scope = "APPLICATION"
 	ScopeBuiltIn     Scope = "BUILT_IN"
+	ScopeContainer   Scope = "CONTAINER"
 	ScopeEnvironment Scope = "ENVIRONMENT"
 	ScopeProject     Scope = "PROJECT"
 )
@@ -20,6 +21,7 @@ const (
 var AllowedScopeValues = []Scope{
 	ScopeApplication,
 	ScopeBuiltIn,
+	ScopeContainer,
 	ScopeEnvironment,
 	ScopeProject,
 }

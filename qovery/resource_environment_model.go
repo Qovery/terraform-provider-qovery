@@ -31,13 +31,13 @@ func (e Environment) SecretList() SecretList {
 }
 
 func (e Environment) toCreateEnvironmentRequest() (*client.EnvironmentCreateParams, error) {
-	mode, err := qovery.NewEnvironmentModeEnumFromValue(toString(e.Mode))
+	mode, err := qovery.NewCreateEnvironmentModeEnumFromValue(toString(e.Mode))
 	if err != nil {
 		return nil, err
 	}
 
 	return &client.EnvironmentCreateParams{
-		EnvironmentRequest: qovery.EnvironmentRequest{
+		EnvironmentRequest: qovery.CreateEnvironmentRequest{
 			Name:    toString(e.Name),
 			Cluster: toStringPointer(e.ClusterId),
 			Mode:    mode,
@@ -64,8 +64,8 @@ func convertResponseToEnvironment(state Environment, res *client.EnvironmentResp
 		ClusterId:                   fromString(res.EnvironmentResponse.ClusterId),
 		Name:                        fromString(res.EnvironmentResponse.Name),
 		Mode:                        fromClientEnum(res.EnvironmentResponse.Mode),
-		BuiltInEnvironmentVariables: fromEnvironmentVariableList(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
-		EnvironmentVariables:        fromEnvironmentVariableList(res.EnvironmentEnvironmentVariables, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT).toTerraformSet(),
-		Secrets:                     fromSecretList(state.SecretList(), res.EnvironmentSecret, qovery.ENVIRONMENTVARIABLESCOPEENUM_ENVIRONMENT).toTerraformSet(),
+		BuiltInEnvironmentVariables: fromEnvironmentVariableList(res.EnvironmentEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
+		EnvironmentVariables:        fromEnvironmentVariableList(res.EnvironmentEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_ENVIRONMENT).toTerraformSet(),
+		Secrets:                     fromSecretList(state.SecretList(), res.EnvironmentSecret, qovery.APIVARIABLESCOPEENUM_ENVIRONMENT).toTerraformSet(),
 	}
 }

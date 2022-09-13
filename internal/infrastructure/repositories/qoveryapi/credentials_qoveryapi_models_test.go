@@ -3,7 +3,6 @@ package qoveryapi
 import (
 	"testing"
 
-	"github.com/AlekSi/pointer"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
@@ -30,8 +29,8 @@ func TestNewDomainCredentialsFromQovery(t *testing.T) {
 			TestName:       "fail_with_empty_organization_id",
 			OrganizationID: "",
 			Credentials: &qovery.ClusterCredentials{
-				Id:   pointer.ToString(gofakeit.UUID()),
-				Name: pointer.ToString(gofakeit.Name()),
+				Id:   gofakeit.UUID(),
+				Name: gofakeit.Name(),
 			},
 			ExpectedError: credentials.ErrInvalidCredentialsOrganizationID,
 		},
@@ -39,8 +38,8 @@ func TestNewDomainCredentialsFromQovery(t *testing.T) {
 			TestName:       "success",
 			OrganizationID: gofakeit.UUID(),
 			Credentials: &qovery.ClusterCredentials{
-				Id:   pointer.ToString(gofakeit.UUID()),
-				Name: pointer.ToString(gofakeit.Name()),
+				Id:   gofakeit.UUID(),
+				Name: gofakeit.Name(),
 			},
 		},
 	}
@@ -59,8 +58,8 @@ func TestNewDomainCredentialsFromQovery(t *testing.T) {
 			assert.NotNil(t, creds)
 			assert.True(t, creds.IsValid())
 			assert.Equal(t, tc.OrganizationID, creds.OrganizationID.String())
-			assert.Equal(t, *tc.Credentials.Id, creds.ID.String())
-			assert.Equal(t, *tc.Credentials.Name, creds.Name)
+			assert.Equal(t, tc.Credentials.Id, creds.ID.String())
+			assert.Equal(t, tc.Credentials.Name, creds.Name)
 		})
 	}
 }
