@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brianvoe/gofakeit/v6"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
@@ -780,6 +781,9 @@ func TestAcc_ApplicationWithSecrets(t *testing.T) {
 func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 	t.Parallel()
 	testName := "application-with-custom-domains"
+	customDomain := gofakeit.DomainName()
+	updatedCustomDomain := gofakeit.DomainName()
+
 	// NOTE: Run this test with stopped application unless we are in the main branch.
 	// Running it with a STOPPED state will make the test run way faster.
 	state := "STOPPED"
@@ -795,7 +799,7 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 			{
 				Config: testAccApplicationDefaultConfigWithCustomDomains(
 					testName,
-					[]string{"toto.com"},
+					[]string{customDomain},
 					state,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -823,7 +827,7 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "custom_domains.*", map[string]string{
-						"domain": "toto.com",
+						"domain": customDomain,
 					}),
 					resource.TestCheckResourceAttrSet("qovery_application.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
@@ -834,7 +838,7 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 			{
 				Config: testAccApplicationDefaultConfigWithCustomDomains(
 					testName,
-					[]string{"toto-updated.com"},
+					[]string{updatedCustomDomain},
 					state,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -862,7 +866,7 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "custom_domains.*", map[string]string{
-						"domain": "toto-updated.com",
+						"domain": updatedCustomDomain,
 					}),
 					resource.TestCheckResourceAttrSet("qovery_application.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
@@ -873,7 +877,7 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 			{
 				Config: testAccApplicationDefaultConfigWithCustomDomains(
 					testName,
-					[]string{"toto.com", "tata.com"},
+					[]string{customDomain, updatedCustomDomain},
 					state,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -898,10 +902,10 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "secrets.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "custom_domains.*", map[string]string{
-						"domain": "toto.com",
+						"domain": customDomain,
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "custom_domains.*", map[string]string{
-						"domain": "tata.com",
+						"domain": updatedCustomDomain,
 					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
@@ -915,7 +919,7 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 			{
 				Config: testAccApplicationDefaultConfigWithCustomDomains(
 					testName,
-					[]string{"tata.com"},
+					[]string{customDomain},
 					state,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -943,7 +947,7 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "custom_domains.*", map[string]string{
-						"domain": "tata.com",
+						"domain": customDomain,
 					}),
 					resource.TestCheckResourceAttrSet("qovery_application.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
