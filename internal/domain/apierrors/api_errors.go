@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+
+	"github.com/pkg/errors"
 )
 
 // apiErrorPayload represents the error payload that comes from Qovery's API client.
@@ -172,4 +174,11 @@ func NewRestartApiError(resource ApiResource, resourceID string, resp *http.Resp
 // NewDeployApiError returns a new instance of ApiError for a `deploy` action with the given parameters.
 func NewDeployApiError(resource ApiResource, resourceID string, resp *http.Response, err error) *ApiError {
 	return NewApiError(ApiActionDeploy, resource, resourceID, resp, err)
+}
+
+// NewNotFoundApiError returns a new instance of ApiError for a `not_found` resource with the given parameters.
+func NewNotFoundApiError(resource ApiResource, resourceID string) *ApiError {
+	return NewApiError(ApiActionRead, resource, resourceID, &http.Response{
+		StatusCode: http.StatusNotFound,
+	}, errors.New("resource not found"))
 }

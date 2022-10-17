@@ -15,6 +15,7 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/application/services"
 	mock_service "github.com/qovery/terraform-provider-qovery/internal/application/services/mocks_test"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
@@ -254,13 +255,38 @@ func (ts *ContainerServiceTestSuite) TestCreate_FailedToDeploy() {
 		Update(mock.Anything, expectedContainer.ID.String(), createRequest.Secrets).
 		Return(assertCreateSecrets(t), nil)
 	ts.deploymentService.EXPECT().
-		Deploy(mock.Anything, expectedContainer.ID.String(), expectedContainer.Tag).
+		UpdateState(mock.Anything, expectedContainer.ID.String(), createRequest.DesiredState, expectedContainer.Tag).
 		Return(nil, deployment.ErrFailedToDeploy)
 
 	cont, err := ts.service.Create(context.Background(), expectedContainer.EnvironmentID.String(), createRequest)
 	assert.Nil(t, cont)
 	assert.ErrorContains(t, err, container.ErrFailedToCreateContainer.Error())
 	assert.ErrorContains(t, err, deployment.ErrFailedToDeploy.Error())
+}
+
+func (ts *ContainerServiceTestSuite) TestCreate_FailedToStop() {
+	t := ts.T()
+
+	createRequest := assertNewContainerUpsertServiceRequest(t)
+	expectedContainer := assertCreateContainer(t)
+
+	ts.repository.EXPECT().
+		Create(mock.Anything, expectedContainer.EnvironmentID.String(), createRequest.ContainerUpsertRequest).
+		Return(expectedContainer, nil)
+	ts.variableService.EXPECT().
+		Update(mock.Anything, expectedContainer.ID.String(), createRequest.EnvironmentVariables).
+		Return(assertCreateVariables(t), nil)
+	ts.secretService.EXPECT().
+		Update(mock.Anything, expectedContainer.ID.String(), createRequest.Secrets).
+		Return(assertCreateSecrets(t), nil)
+	ts.deploymentService.EXPECT().
+		UpdateState(mock.Anything, expectedContainer.ID.String(), createRequest.DesiredState, expectedContainer.Tag).
+		Return(nil, deployment.ErrFailedToStop)
+
+	cont, err := ts.service.Create(context.Background(), expectedContainer.EnvironmentID.String(), createRequest)
+	assert.Nil(t, cont)
+	assert.ErrorContains(t, err, container.ErrFailedToCreateContainer.Error())
+	assert.ErrorContains(t, err, deployment.ErrFailedToStop.Error())
 }
 
 func (ts *ContainerServiceTestSuite) TestCreate_Success() {
@@ -299,7 +325,7 @@ func (ts *ContainerServiceTestSuite) TestCreate_Success() {
 		Return(expectedSecrets, nil)
 
 	ts.deploymentService.EXPECT().
-		Deploy(mock.Anything, expectedContainer.ID.String(), expectedContainer.Tag).
+		UpdateState(mock.Anything, expectedContainer.ID.String(), createRequest.DesiredState, expectedContainer.Tag).
 		Return(expectedStatus, nil)
 	ts.deploymentService.EXPECT().
 		GetStatus(mock.Anything, expectedContainer.ID.String()).
@@ -522,13 +548,38 @@ func (ts *ContainerServiceTestSuite) TestUpdate_FailedToDeploy() {
 		Update(mock.Anything, expectedContainer.ID.String(), updateRequest.Secrets).
 		Return(assertCreateSecrets(t), nil)
 	ts.deploymentService.EXPECT().
-		Deploy(mock.Anything, expectedContainer.ID.String(), expectedContainer.Tag).
+		UpdateState(mock.Anything, expectedContainer.ID.String(), updateRequest.DesiredState, expectedContainer.Tag).
 		Return(nil, deployment.ErrFailedToDeploy)
 
 	cont, err := ts.service.Update(context.Background(), expectedContainer.ID.String(), updateRequest)
 	assert.Nil(t, cont)
 	assert.ErrorContains(t, err, container.ErrFailedToUpdateContainer.Error())
 	assert.ErrorContains(t, err, deployment.ErrFailedToDeploy.Error())
+}
+
+func (ts *ContainerServiceTestSuite) TestUpdate_FailedToStop() {
+	t := ts.T()
+
+	updateRequest := assertNewContainerUpsertServiceRequest(t)
+	expectedContainer := assertCreateContainer(t)
+
+	ts.repository.EXPECT().
+		Update(mock.Anything, expectedContainer.ID.String(), updateRequest.ContainerUpsertRequest).
+		Return(expectedContainer, nil)
+	ts.variableService.EXPECT().
+		Update(mock.Anything, expectedContainer.ID.String(), updateRequest.EnvironmentVariables).
+		Return(assertCreateVariables(t), nil)
+	ts.secretService.EXPECT().
+		Update(mock.Anything, expectedContainer.ID.String(), updateRequest.Secrets).
+		Return(assertCreateSecrets(t), nil)
+	ts.deploymentService.EXPECT().
+		UpdateState(mock.Anything, expectedContainer.ID.String(), updateRequest.DesiredState, expectedContainer.Tag).
+		Return(nil, deployment.ErrFailedToStop)
+
+	cont, err := ts.service.Update(context.Background(), expectedContainer.ID.String(), updateRequest)
+	assert.Nil(t, cont)
+	assert.ErrorContains(t, err, container.ErrFailedToUpdateContainer.Error())
+	assert.ErrorContains(t, err, deployment.ErrFailedToStop.Error())
 }
 
 func (ts *ContainerServiceTestSuite) TestUpdate_Success() {
@@ -567,7 +618,7 @@ func (ts *ContainerServiceTestSuite) TestUpdate_Success() {
 		Return(expectedSecrets, nil)
 
 	ts.deploymentService.EXPECT().
-		Deploy(mock.Anything, expectedContainer.ID.String(), expectedContainer.Tag).
+		UpdateState(mock.Anything, expectedContainer.ID.String(), updateRequest.DesiredState, expectedContainer.Tag).
 		Return(expectedStatus, nil)
 	ts.deploymentService.EXPECT().
 		GetStatus(mock.Anything, expectedContainer.ID.String()).
@@ -625,7 +676,7 @@ func (ts *ContainerServiceTestSuite) TestDelete_FailToGetContainerStatus() {
 
 	ts.repository.EXPECT().
 		Delete(mock.Anything, fakeID).
-		Return(container.ErrInvalidContainer)
+		Return(nil)
 
 	ts.deploymentService.EXPECT().
 		GetStatus(mock.Anything, fakeID).
@@ -646,7 +697,7 @@ func (ts *ContainerServiceTestSuite) TestDelete_Success() {
 		Return(nil)
 	ts.deploymentService.EXPECT().
 		GetStatus(mock.Anything, expectedContainer.ID.String()).
-		Return(nil, container.ErrInvalidContainer)
+		Return(nil, apierrors.NewNotFoundApiError(apierrors.ApiResourceContainer, expectedContainer.ID.String()))
 
 	err := ts.service.Delete(context.Background(), expectedContainer.ID.String())
 	assert.Nil(t, err)
