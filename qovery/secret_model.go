@@ -249,10 +249,10 @@ func toSecretList(vars types.Set) SecretList {
 		return []Secret{}
 	}
 
-	environmentVariables := make([]Secret, 0, len(vars.Elems))
+	secrets := make([]Secret, 0, len(vars.Elems))
 	for _, elem := range vars.Elems {
-		environmentVariables = append(environmentVariables, toSecret(elem.(types.Object)))
+		secrets = append(secrets, toSecret(elem.(types.Object)))
 	}
 
-	return environmentVariables
+	return secrets
 }
