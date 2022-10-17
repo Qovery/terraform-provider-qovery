@@ -24,6 +24,8 @@ var (
 	ErrInvalidProjectNameParam = errors.New("invalid project name param")
 	// ErrInvalidProjectEnvironmentVariablesParam is returned if the environment variables param is invalid.
 	ErrInvalidProjectEnvironmentVariablesParam = errors.New("invalid project environment variables param")
+	// ErrInvalidProjectSecretsParam is returned if the secrets param is invalid.
+	ErrInvalidProjectSecretsParam = errors.New("invalid project secrets param")
 	// ErrInvalidUpsertRequest is returned if the upsert request is invalid.
 	ErrInvalidUpsertRequest = errors.New("invalid project upsert request")
 )
@@ -70,10 +72,6 @@ func NewProject(params NewProjectParams) (*Project, error) {
 		return nil, errors.Wrap(err, ErrInvalidProjectOrganizationIDParam.Error())
 	}
 
-	if err := params.EnvironmentVariables.Validate(); err != nil {
-		return nil, errors.Wrap(err, ErrInvalidProjectEnvironmentVariablesParam.Error())
-	}
-
 	if params.Name == "" {
 		return nil, ErrInvalidProjectNameParam
 	}
@@ -85,8 +83,13 @@ func NewProject(params NewProjectParams) (*Project, error) {
 		Description:    params.Description,
 	}
 
-	v.SetEnvironmentVariables(params.EnvironmentVariables)
-	v.SetSecrets(params.Secrets)
+	if err := v.SetEnvironmentVariables(params.EnvironmentVariables); err != nil {
+		return nil, errors.Wrap(err, ErrInvalidProjectEnvironmentVariablesParam.Error())
+	}
+
+	if err := v.SetSecrets(params.Secrets); err != nil {
+		return nil, errors.Wrap(err, ErrInvalidProjectSecretsParam.Error())
+	}
 
 	if err := v.Validate(); err != nil {
 		return nil, errors.Wrap(err, ErrInvalidProject.Error())
