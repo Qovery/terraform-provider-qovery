@@ -7,7 +7,10 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
 )
 
 //
@@ -16,20 +19,23 @@ import (
 
 type ClientEnum interface {
 	qovery.BuildModeEnum |
-		qovery.BuildPackLanguageEnum |
-		qovery.CloudProviderEnum |
-		qovery.CustomDomainStatusEnum |
-		qovery.DatabaseAccessibilityEnum |
-		qovery.DatabaseModeEnum |
-		qovery.DatabaseTypeEnum |
-		qovery.EnvironmentModeEnum |
-		qovery.KubernetesEnum |
-		qovery.PlanEnum |
-		qovery.PortProtocolEnum |
-		qovery.StateEnum |
-		qovery.StorageTypeEnum |
-		organization.Plan |
-		registry.Kind
+	qovery.BuildPackLanguageEnum |
+	qovery.CloudProviderEnum |
+	qovery.CustomDomainStatusEnum |
+	qovery.DatabaseAccessibilityEnum |
+	qovery.DatabaseModeEnum |
+	qovery.DatabaseTypeEnum |
+	qovery.EnvironmentModeEnum |
+	qovery.KubernetesEnum |
+	qovery.PlanEnum |
+	qovery.PortProtocolEnum |
+	qovery.StateEnum |
+	qovery.StorageTypeEnum |
+	organization.Plan |
+	port.Protocol |
+	registry.Kind |
+	status.State |
+	storage.Type
 }
 
 func clientEnumToStringArray[T ClientEnum](enum []T) []string {
@@ -109,6 +115,18 @@ func toInt32(v types.Int64) int32 {
 }
 
 func toInt32Pointer(v types.Int64) *int32 {
+	if v.Null || v.Unknown {
+		return nil
+	}
+	i := int32(v.Value)
+	return &i
+}
+
+func toInt64(v types.Int64) int32 {
+	return int32(v.Value)
+}
+
+func toInt64Pointer(v types.Int64) *int32 {
 	if v.Null || v.Unknown {
 		return nil
 	}

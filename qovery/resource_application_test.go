@@ -22,13 +22,13 @@ const (
 	applicationBranch        = "master"
 )
 
-type applicationStorage struct {
+type serviceStorage struct {
 	Type       string
 	Size       int64
 	MountPoint string
 }
 
-func (s applicationStorage) String() string {
+func (s serviceStorage) String() string {
 	return fmt.Sprintf(`
 {
   type = "%s"
@@ -38,7 +38,7 @@ func (s applicationStorage) String() string {
 `, s.Type, s.Size, s.MountPoint)
 }
 
-type applicationPort struct {
+type servicePort struct {
 	InternalPort       int64
 	PubliclyAccessible bool
 	Name               *string
@@ -46,7 +46,7 @@ type applicationPort struct {
 	Protocol           *string
 }
 
-func (p applicationPort) String() string {
+func (p servicePort) String() string {
 
 	str := fmt.Sprintf(`
 {
@@ -1107,7 +1107,7 @@ func TestAcc_ApplicationRestartOnEnvironmentUpdate(t *testing.T) {
 //			{
 //				Config: testAccApplicationDefaultConfigWithStorage(
 //					testName,
-//					[]applicationStorage{
+//					[]serviceStorage{
 //						{
 //							Type:       "FAST_SSD",
 //							Size:       1,
@@ -1146,7 +1146,7 @@ func TestAcc_ApplicationRestartOnEnvironmentUpdate(t *testing.T) {
 //			{
 //				Config: testAccApplicationDefaultConfigWithStorage(
 //					testName,
-//					[]applicationStorage{
+//					[]serviceStorage{
 //						{
 //							Type:       "FAST_SSD",
 //							Size:       1,
@@ -1193,7 +1193,7 @@ func TestAcc_ApplicationRestartOnEnvironmentUpdate(t *testing.T) {
 //			{
 //				Config: testAccApplicationDefaultConfigWithStorage(
 //					testName,
-//					[]applicationStorage{
+//					[]serviceStorage{
 //						{
 //							Type:       "FAST_SSD",
 //							Size:       1,
@@ -1245,7 +1245,7 @@ func TestAcc_ApplicationRestartOnEnvironmentUpdate(t *testing.T) {
 //			{
 //				Config: testAccApplicationDefaultConfigWithPorts(
 //					testName,
-//					[]applicationPort{
+//					[]servicePort{
 //						{
 //							InternalPort:       80,
 //							PubliclyAccessible: false,
@@ -1282,7 +1282,7 @@ func TestAcc_ApplicationRestartOnEnvironmentUpdate(t *testing.T) {
 //			{
 //				Config: testAccApplicationDefaultConfigWithPorts(
 //					testName,
-//					[]applicationPort{
+//					[]servicePort{
 //						{
 //							InternalPort:       80,
 //							PubliclyAccessible: false,
@@ -1331,7 +1331,7 @@ func TestAcc_ApplicationRestartOnEnvironmentUpdate(t *testing.T) {
 //			{
 //				Config: testAccApplicationDefaultConfigWithPorts(
 //					testName,
-//					[]applicationPort{
+//					[]servicePort{
 //						{
 //							Name:               stringToPtr("external port"),
 //							InternalPort:       81,
@@ -1539,7 +1539,7 @@ resource "qovery_application" "test" {
 	)
 }
 
-func testAccApplicationDefaultConfigWithStorage(testName string, storages []applicationStorage) string {
+func testAccApplicationDefaultConfigWithStorage(testName string, storages []serviceStorage) string {
 	return fmt.Sprintf(`
 %s
 
@@ -1557,7 +1557,7 @@ resource "qovery_application" "test" {
 	)
 }
 
-func testAccApplicationDefaultConfigWithPorts(testName string, ports []applicationPort) string {
+func testAccApplicationDefaultConfigWithPorts(testName string, ports []servicePort) string {
 	return fmt.Sprintf(`
 %s
 
@@ -1612,7 +1612,7 @@ resource "qovery_application" "test" {
 }
 
 func testAccApplicationDefaultConfigWithCustomDomains(testName string, customDomains []string, state string) string {
-	ports := []applicationPort{
+	ports := []servicePort{
 		{
 			InternalPort:       8000,
 			PubliclyAccessible: true,
@@ -1673,7 +1673,7 @@ resource "qovery_application" "test" {
 	)
 }
 
-func convertStoragesToString(storages []applicationStorage) string {
+func convertStoragesToString(storages []serviceStorage) string {
 	storagesStr := make([]string, 0, len(storages))
 	for _, storage := range storages {
 		storagesStr = append(storagesStr, storage.String())
@@ -1681,11 +1681,13 @@ func convertStoragesToString(storages []applicationStorage) string {
 	return fmt.Sprintf("[%s]", strings.Join(storagesStr, ","))
 }
 
-func convertPortsToString(ports []applicationPort) string {
+func convertPortsToString(ports []servicePort) string {
 	portsStr := make([]string, 0, len(ports))
 	for _, port := range ports {
 		portsStr = append(portsStr, port.String())
 	}
+	ret := fmt.Sprintf("[%s]", strings.Join(portsStr, ","))
+	fmt.Println(ret)
 	return fmt.Sprintf("[%s]", strings.Join(portsStr, ","))
 }
 

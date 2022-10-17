@@ -57,7 +57,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		storage = append(storage, *s)
 	}
 
-	ports := make([]qovery.ServicePort, 0, len(app.Ports))
+	ports := make([]qovery.ServicePortRequestPortsInner, 0, len(app.Ports))
 	for _, port := range app.Ports {
 		p, err := port.toCreateRequest()
 		if err != nil {
@@ -277,17 +277,17 @@ type ApplicationPort struct {
 	Protocol           types.String `tfsdk:"protocol"`
 }
 
-func (port ApplicationPort) toCreateRequest() (*qovery.ServicePort, error) {
+func (port ApplicationPort) toCreateRequest() (*qovery.ServicePortRequestPortsInner, error) {
 	protocol, err := qovery.NewPortProtocolEnumFromValue(toString(port.Protocol))
 	if err != nil {
 		return nil, err
 	}
 
-	return &qovery.ServicePort{
+	return &qovery.ServicePortRequestPortsInner{
 		Name:               toStringPointer(port.Name),
 		InternalPort:       toInt32(port.InternalPort),
 		ExternalPort:       toInt32Pointer(port.ExternalPort),
-		Protocol:           *protocol,
+		Protocol:           protocol,
 		PubliclyAccessible: toBool(port.PubliclyAccessible),
 	}, nil
 }
