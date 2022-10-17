@@ -59,6 +59,7 @@ func newDomainPortsFromQovery(list []qovery.ServicePort) (port.Ports, error) {
 
 func newDomainPortFromQovery(qoveryPort qovery.ServicePort) (*port.Port, error) {
 	return port.NewPort(port.NewPortParams{
+		PortID:             qoveryPort.Id,
 		Name:               qoveryPort.Name,
 		PubliclyAccessible: qoveryPort.PubliclyAccessible,
 		Protocol:           string(qoveryPort.Protocol),

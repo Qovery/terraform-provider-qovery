@@ -19,6 +19,8 @@ var (
 	ErrInvalidPort = errors.New("invalid port")
 	// ErrInvalidPorts is the error return if a Ports is invalid.
 	ErrInvalidPorts = errors.New("invalid ports")
+	// ErrInvalidPortIDParam is the error return if the port id param is invalid.
+	ErrInvalidPortIDParam = errors.New("invalid port id params")
 	// ErrInvalidInternalPortParam is returned if the internal port param is invalid.
 	ErrInvalidInternalPortParam = errors.New("invalid internal port param")
 	// ErrInvalidExternalPortParam is returned if the external port param is invalid.
@@ -73,6 +75,7 @@ func (s Port) IsValid() bool {
 
 // NewPortParams represents the arguments needed to create a Port.
 type NewPortParams struct {
+	PortID             string
 	InternalPort       int32
 	PubliclyAccessible bool
 	Protocol           string
@@ -83,6 +86,11 @@ type NewPortParams struct {
 
 // NewPort returns a new instance of a Port domain model.
 func NewPort(params NewPortParams) (*Port, error) {
+	portUUID, err := uuid.Parse(params.PortID)
+	if err != nil {
+		return nil, errors.Wrap(err, ErrInvalidPortIDParam.Error())
+	}
+
 	portProtocol, err := NewProtocolFromString(params.Protocol)
 	if err != nil {
 		return nil, errors.Wrap(err, ErrInvalidProtocolParam.Error())
@@ -101,6 +109,7 @@ func NewPort(params NewPortParams) (*Port, error) {
 	}
 
 	v := &Port{
+		ID:                 portUUID,
 		InternalPort:       params.InternalPort,
 		PubliclyAccessible: params.PubliclyAccessible,
 		Protocol:           portProtocol,

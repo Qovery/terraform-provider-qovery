@@ -17,8 +17,8 @@ var (
 	ErrInvalidSecrets = errors.New("invalid secrets")
 	// ErrInvalidResourceIDParam is returned if the resource id param is invalid.
 	ErrInvalidResourceIDParam = errors.New("invalid resource id param")
-	// ErrInvalidSecretsIDParam is returned if the secret id param is invalid.
-	ErrInvalidSecretsIDParam = errors.New("invalid secrets id param")
+	// ErrInvalidSecretIDParam is returned if the secret id param is invalid.
+	ErrInvalidSecretIDParam = errors.New("invalid secrets id param")
 	// ErrInvalidKeyParam is returned if the key param is invalid.
 	ErrInvalidKeyParam = errors.New("invalid key param")
 	// ErrInvalidScopeParam is returned if the scope param is invalid.
@@ -82,7 +82,7 @@ type NewSecretParams struct {
 func NewSecret(params NewSecretParams) (*Secret, error) {
 	secretsUUID, err := uuid.Parse(params.SecretID)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrInvalidSecretsIDParam.Error())
+		return nil, errors.Wrap(err, ErrInvalidSecretIDParam.Error())
 	}
 
 	scope, err := variable.NewScopeFromString(params.Scope)

@@ -51,7 +51,7 @@ type Variable struct {
 	ID    uuid.UUID `validate:"required"`
 	Scope Scope     `validate:"required"`
 	Key   string    `validate:"required"`
-	Value string    `validate:"required"`
+	Value string
 }
 
 // Validate returns an error to tell whether the Variable domain model is valid or not.
@@ -86,10 +86,6 @@ func NewVariable(params NewVariableParams) (*Variable, error) {
 
 	if params.Key == "" {
 		return nil, ErrInvalidKeyParam
-	}
-
-	if params.Value == "" {
-		return nil, ErrInvalidValueParam
 	}
 
 	v := &Variable{
