@@ -7,11 +7,7 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
-
-// Ensure projectQoveryAPI defined types fully satisfy the project.Repository interface.
-var _ variable.Repository = projectEnvironmentVariablesQoveryAPI{}
 
 // projectQoveryAPI implements the interface project.Repository.
 type projectQoveryAPI struct {

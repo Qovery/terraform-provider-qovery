@@ -6,7 +6,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
@@ -30,13 +32,17 @@ type Configuration func(qoveryAPI *QoveryAPI) error
 type QoveryAPI struct {
 	client *qovery.APIClient
 
-	CredentialsAws             credentials.AwsRepository
-	CredentialsScaleway        credentials.ScalewayRepository
-	Organization               organization.Repository
-	Project                    project.Repository
-	ProjectEnvironmentVariable variable.Repository
-	ProjectSecret              secret.Repository
-	ContainerRegistry          registry.Repository
+	CredentialsAws               credentials.AwsRepository
+	CredentialsScaleway          credentials.ScalewayRepository
+	Organization                 organization.Repository
+	Project                      project.Repository
+	ProjectEnvironmentVariable   variable.Repository
+	ProjectSecret                secret.Repository
+	Container                    container.Repository
+	ContainerDeployment          deployment.Repository
+	ContainerEnvironmentVariable variable.Repository
+	ContainerSecret              secret.Repository
+	ContainerRegistry            registry.Repository
 }
 
 // New returns a new instance of QoveryAPI and applies the given configs.
@@ -77,6 +83,26 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	containerAPI, err := newContainerQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	containerDeploymentAPI, err := newContainerDeploymentQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	containerEnvironmentVariableAPI, err := newContainerEnvironmentVariablesQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	containerSecretAPI, err := newContainerSecretsQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
 	containerRegistryAPI, err := newContainerRegistryQoveryAPI(apiClient)
 	if err != nil {
 		return nil, err
@@ -84,14 +110,18 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 
 	// Create a new QoveryAPI instance.
 	qoveryAPI := &QoveryAPI{
-		client:                     apiClient,
-		CredentialsAws:             credentialsAwsAPI,
-		CredentialsScaleway:        credentialsScalewayAPI,
-		Organization:               organizationAPI,
-		Project:                    projectAPI,
-		ProjectEnvironmentVariable: projectEnvironmentVariableAPI,
-		ProjectSecret:              projectSecretAPI,
-		ContainerRegistry:          containerRegistryAPI,
+		client:                       apiClient,
+		CredentialsAws:               credentialsAwsAPI,
+		CredentialsScaleway:          credentialsScalewayAPI,
+		Organization:                 organizationAPI,
+		Project:                      projectAPI,
+		ProjectEnvironmentVariable:   projectEnvironmentVariableAPI,
+		ProjectSecret:                projectSecretAPI,
+		Container:                    containerAPI,
+		ContainerDeployment:          containerDeploymentAPI,
+		ContainerEnvironmentVariable: containerEnvironmentVariableAPI,
+		ContainerSecret:              containerSecretAPI,
+		ContainerRegistry:            containerRegistryAPI,
 	}
 
 	// Apply all the configs to the qoveryAPI instance.

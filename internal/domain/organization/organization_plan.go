@@ -10,18 +10,20 @@ import (
 type Plan string
 
 const (
-	PlanFree         Plan = "FREE"
-	PlanProfessional Plan = "PROFESSIONAL"
-	PlanBusiness     Plan = "BUSINESS"
-	PlanEnterprise   Plan = "ENTERPRISE"
+	PlanFree             Plan = "FREE"
+	PlanTeam             Plan = "TEAM"
+	PlanTTeamYearly      Plan = "TEAM_YEARLY"
+	PlanEnterprise       Plan = "ENTERPRISE"
+	PlanEnterpriseYearly Plan = "ENTERPRISE_YEARLY"
 )
 
 // AllowedPlanValues contains all the valid values of a Plan.
 var AllowedPlanValues = []Plan{
 	PlanFree,
-	PlanProfessional,
-	PlanBusiness,
+	PlanTeam,
+	PlanTTeamYearly,
 	PlanEnterprise,
+	PlanEnterpriseYearly,
 }
 
 // String returns the string value of a Plan.
