@@ -3,6 +3,7 @@ package services
 import (
 	"github.com/pkg/errors"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
@@ -27,6 +28,7 @@ type Services struct {
 	CredentialsScaleway credentials.ScalewayService
 	Organization        organization.Service
 	Project             project.Service
+	Container           container.Service
 	ContainerRegistry   registry.Service
 }
 
@@ -64,7 +66,7 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
-	projectEnvironmentVariablesService, err := NewVariableService(services.repos.ProjectEnvironmentVariable)
+	projectEnvironmentVariableService, err := NewVariableService(services.repos.ProjectEnvironmentVariable)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +76,27 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
-	projectService, err := NewProjectService(services.repos.Project, projectEnvironmentVariablesService, projectSecretService)
+	projectService, err := NewProjectService(services.repos.Project, projectEnvironmentVariableService, projectSecretService)
+	if err != nil {
+		return nil, err
+	}
+
+	containerDeploymentService, err := NewDeploymentService(services.repos.ContainerDeployment)
+	if err != nil {
+		return nil, err
+	}
+
+	containerEnvironmentVariableService, err := NewVariableService(services.repos.ContainerEnvironmentVariable)
+	if err != nil {
+		return nil, err
+	}
+
+	containerSecretService, err := NewSecretService(services.repos.ContainerSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	containerService, err := NewContainerService(services.repos.Container, containerDeploymentService, containerEnvironmentVariableService, containerSecretService)
 	if err != nil {
 		return nil, err
 	}
@@ -88,6 +110,7 @@ func New(configs ...Configuration) (*Services, error) {
 	services.CredentialsScaleway = credentialsScalewayService
 	services.Organization = organizationService
 	services.Project = projectService
+	services.Container = containerService
 	services.ContainerRegistry = containerRegistryService
 
 	return services, nil
