@@ -45,7 +45,7 @@ jobs:
 
       - name: Conditional build matrix
         id: set-matrix
-        uses: JoshuaTheMiller/conditional-build-matrix@0.1.0
+        uses: JoshuaTheMiller/conditional-build-matrix@v1.0.1
         with:
           # The simple branch name can be used in the filter now!
           filter: '[?runOnBranch==`${{ env.BRANCH_NAME }}` || runOnBranch==`always`]'
