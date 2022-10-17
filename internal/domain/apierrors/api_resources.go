@@ -16,6 +16,11 @@ const (
 	ApiResourceClusterInstanceType            ApiResource = "cluster instance type"
 	ApiResourceClusterRoutingTable            ApiResource = "cluster routing table"
 	ApiResourceClusterStatus                  ApiResource = "cluster status"
+	ApiResourceContainer                      ApiResource = "container"
+	ApiResourceContainerEnvironmentVariable   ApiResource = "container environment variable"
+	ApiResourceContainerRegistry              ApiResource = "container registry"
+	ApiResourceContainerSecret                ApiResource = "container secret"
+	ApiResourceContainerStatus                ApiResource = "container status"
 	ApiResourceDatabase                       ApiResource = "database"
 	ApiResourceDatabaseStatus                 ApiResource = "database status"
 	ApiResourceEnvironment                    ApiResource = "environment"
@@ -27,5 +32,4 @@ const (
 	ApiResourceProjectEnvironmentVariable     ApiResource = "project environment variable"
 	ApiResourceProjectSecret                  ApiResource = "project secret"
 	ApiResourceScalewayCredentials            ApiResource = "scaleway credentials"
-	ApiResourceContainerRegistry              ApiResource = "container registry"
 )
