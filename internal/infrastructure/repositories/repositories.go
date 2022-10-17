@@ -5,7 +5,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
@@ -22,13 +24,17 @@ var (
 type Configuration func(repos *Repositories) error
 
 type Repositories struct {
-	CredentialsAws             credentials.AwsRepository
-	CredentialsScaleway        credentials.ScalewayRepository
-	Organization               organization.Repository
-	Project                    project.Repository
-	ProjectEnvironmentVariable variable.Repository
-	ProjectSecret              secret.Repository
-	ContainerRegistry          registry.Repository
+	CredentialsAws               credentials.AwsRepository
+	CredentialsScaleway          credentials.ScalewayRepository
+	Organization                 organization.Repository
+	Project                      project.Repository
+	ProjectEnvironmentVariable   variable.Repository
+	ProjectSecret                secret.Repository
+	Container                    container.Repository
+	ContainerDeployment          deployment.Repository
+	ContainerEnvironmentVariable variable.Repository
+	ContainerSecret              secret.Repository
+	ContainerRegistry            registry.Repository
 }
 
 func New(configs ...Configuration) (*Repositories, error) {
@@ -64,6 +70,10 @@ func WithQoveryAPI(apiToken string, providerVersion string) Configuration {
 		repos.Project = qoveryAPI.Project
 		repos.ProjectEnvironmentVariable = qoveryAPI.ProjectEnvironmentVariable
 		repos.ProjectSecret = qoveryAPI.ProjectSecret
+		repos.Container = qoveryAPI.Container
+		repos.ContainerDeployment = qoveryAPI.ContainerDeployment
+		repos.ContainerEnvironmentVariable = qoveryAPI.ContainerEnvironmentVariable
+		repos.ContainerSecret = qoveryAPI.ContainerSecret
 		repos.ContainerRegistry = qoveryAPI.ContainerRegistry
 
 		return nil

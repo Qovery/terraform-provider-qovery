@@ -95,7 +95,7 @@ func TestNewQoveryRegistryEditRequestFromDomain(t *testing.T) {
 
 			assert.Equal(t, tc.Request.Name, req.Name)
 			assert.Equal(t, tc.Request.Kind, string(req.Kind))
-			assert.Equal(t, tc.Request.URL, req.Url)
+			assert.Equal(t, tc.Request.URL, *req.Url)
 			assert.Equal(t, tc.Request.Description, req.Description)
 		})
 	}
