@@ -17,7 +17,6 @@ import (
 
 const (
 	awsECRRegion = "eu-west-3"
-	awsECRURL    = "https://default.com"
 )
 
 func TestAcc_ContainerRegistry(t *testing.T) {
@@ -38,7 +37,7 @@ func TestAcc_ContainerRegistry(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "organization_id", getTestOrganizationID()),
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "kind", "ECR"),
-					resource.TestCheckResourceAttr("qovery_container_registry.test", "url", awsECRURL),
+					resource.TestCheckResourceAttr("qovery_container_registry.test", "url", getTestAwsEcrURL()),
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "description", ""),
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "config.region", awsECRRegion),
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "config.access_key_id", getTestAWSCredentialsAccessKeyID()),
@@ -56,7 +55,7 @@ func TestAcc_ContainerRegistry(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "organization_id", getTestOrganizationID()),
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "kind", "ECR"),
-					resource.TestCheckResourceAttr("qovery_container_registry.test", "url", awsECRURL),
+					resource.TestCheckResourceAttr("qovery_container_registry.test", "url", getTestAwsEcrURL()),
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "description", "this is a description"),
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "config.region", awsECRRegion),
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "config.access_key_id", getTestAWSCredentialsAccessKeyID()),
@@ -129,7 +128,7 @@ resource "qovery_container_registry" "test" {
     secret_access_key = "%s"
   }
 }
-`, getTestOrganizationID(), generateTestName(testName), awsECRURL, awsECRRegion, getTestAWSCredentialsAccessKeyID(), getTestAWSCredentialsSecretAccessKey(),
+`, getTestOrganizationID(), generateTestName(testName), getTestAwsEcrURL(), awsECRRegion, getTestAWSCredentialsAccessKeyID(), getTestAWSCredentialsSecretAccessKey(),
 	)
 }
 
@@ -147,6 +146,6 @@ resource "qovery_container_registry" "test" {
   }
   description = "%s"
 }
-`, getTestOrganizationID(), generateTestName(testName), awsECRURL, awsECRRegion, getTestAWSCredentialsAccessKeyID(), getTestAWSCredentialsSecretAccessKey(), description,
+`, getTestOrganizationID(), generateTestName(testName), getTestAwsEcrURL(), awsECRRegion, getTestAWSCredentialsAccessKeyID(), getTestAWSCredentialsSecretAccessKey(), description,
 	)
 }

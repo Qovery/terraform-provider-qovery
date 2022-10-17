@@ -12,6 +12,7 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/application/services"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 
@@ -53,6 +54,9 @@ type qProvider struct {
 
 	// projectService is an instance of a project.Service that handles the domain logic.
 	projectService project.Service
+
+	// containerRegistryService is an instance of a registry.Service that handles the domain logic.
+	containerService container.Service
 
 	// containerRegistryService is an instance of a registry.Service that handles the domain logic.
 	containerRegistryService registry.Service
@@ -114,6 +118,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.awsCredentialsService = domainServices.CredentialsAws
 	p.scalewayCredentialsService = domainServices.CredentialsScaleway
 	p.projectService = domainServices.Project
+	p.containerService = domainServices.Container
 	p.containerRegistryService = domainServices.ContainerRegistry
 }
 
@@ -128,6 +133,7 @@ func (p *qProvider) GetResources(_ context.Context) (map[string]provider.Resourc
 		"qovery_organization":         organizationResourceType{},
 		"qovery_project":              projectResourceType{},
 		"qovery_scaleway_credentials": scalewayCredentialsResourceType{},
+		"qovery_container":            containerResourceType{},
 		"qovery_container_registry":   containerRegistryResourceType{},
 	}, nil
 }
@@ -143,6 +149,7 @@ func (p *qProvider) GetDataSources(_ context.Context) (map[string]provider.DataS
 		"qovery_organization":         organizationDataSourceType{},
 		"qovery_project":              projectDataSourceType{},
 		"qovery_scaleway_credentials": scalewayCredentialsDataSourceType{},
+		"qovery_container":            containerDataSourceType{},
 		"qovery_container_registry":   containerRegistryDataSourceType{},
 	}, nil
 }
