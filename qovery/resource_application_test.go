@@ -1686,8 +1686,6 @@ func convertPortsToString(ports []servicePort) string {
 	for _, port := range ports {
 		portsStr = append(portsStr, port.String())
 	}
-	ret := fmt.Sprintf("[%s]", strings.Join(portsStr, ","))
-	fmt.Println(ret)
 	return fmt.Sprintf("[%s]", strings.Join(portsStr, ","))
 }
 

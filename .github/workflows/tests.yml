@@ -173,4 +173,7 @@ jobs:
           TEST_ENVIRONMENT_ID: ${{ secrets.TEST_ENVIRONMENT_ID }}
           TEST_APPLICATION_ID: ${{ secrets.TEST_APPLICATION_ID }}
           TEST_DATABASE_ID: ${{ secrets.TEST_DATABASE_ID }}
+          TEST_CONTAINER_REGISTRY_ID: ${{ secrets.TEST_CONTAINER_REGISTRY_ID }}
+          TEST_CONTAINER_ID: ${{ secrets.TEST_CONTAINER_ID }}
+          TEST_AWS_ECR_URL: ${{ secrets.TEST_AWS_ECR_URL }}
         run: task testacc
