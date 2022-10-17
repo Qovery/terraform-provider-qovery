@@ -6,60 +6,48 @@ import (
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
-func TestNewVariable(t *testing.T) {
+func TestNewSecret(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
 		TestName      string
-		Params        variable.NewVariableParams
+		Params        secret.NewSecretParams
 		ExpectedError error
 	}{
 		{
-			TestName: "fail_with_invalid_variable_id",
-			Params: variable.NewVariableParams{
+			TestName: "fail_with_invalid_secret_id",
+			Params: secret.NewSecretParams{
 				Scope: variable.ScopeApplication.String(),
 				Key:   gofakeit.Name(),
-				Value: gofakeit.Name(),
 			},
-			ExpectedError: variable.ErrInvalidVariableIDParam,
+			ExpectedError: secret.ErrInvalidSecretIDParam,
 		},
 		{
 			TestName: "fail_with_invalid_key",
-			Params: variable.NewVariableParams{
-				VariableID: gofakeit.UUID(),
-				Scope:      variable.ScopeApplication.String(),
-				Value:      gofakeit.Name(),
+			Params: secret.NewSecretParams{
+				SecretID: gofakeit.UUID(),
+				Scope:    variable.ScopeApplication.String(),
 			},
-			ExpectedError: variable.ErrInvalidKeyParam,
-		},
-		{
-			TestName: "fail_with_invalid_value",
-			Params: variable.NewVariableParams{
-				VariableID: gofakeit.UUID(),
-				Scope:      variable.ScopeApplication.String(),
-				Key:        gofakeit.Name(),
-			},
-			ExpectedError: variable.ErrInvalidValueParam,
+			ExpectedError: secret.ErrInvalidKeyParam,
 		},
 		{
 			TestName: "fail_with_invalid_scope",
-			Params: variable.NewVariableParams{
-				VariableID: gofakeit.UUID(),
-				Key:        gofakeit.Name(),
-				Value:      gofakeit.Name(),
+			Params: secret.NewSecretParams{
+				SecretID: gofakeit.UUID(),
+				Key:      gofakeit.Name(),
 			},
-			ExpectedError: variable.ErrInvalidScopeParam,
+			ExpectedError: secret.ErrInvalidScopeParam,
 		},
 		{
 			TestName: "success",
-			Params: variable.NewVariableParams{
-				VariableID: gofakeit.UUID(),
-				Scope:      variable.ScopeApplication.String(),
-				Key:        gofakeit.Name(),
-				Value:      gofakeit.Name(),
+			Params: secret.NewSecretParams{
+				SecretID: gofakeit.UUID(),
+				Scope:    variable.ScopeApplication.String(),
+				Key:      gofakeit.Name(),
 			},
 		},
 	}
@@ -67,7 +55,7 @@ func TestNewVariable(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
-			v, err := variable.NewVariable(tc.Params)
+			v, err := secret.NewSecret(tc.Params)
 			if tc.ExpectedError != nil {
 				assert.ErrorContains(t, err, tc.ExpectedError.Error())
 				assert.Nil(t, v)
@@ -77,9 +65,8 @@ func TestNewVariable(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, v)
 			assert.True(t, v.IsValid())
-			assert.Equal(t, tc.Params.VariableID, v.ID.String())
+			assert.Equal(t, tc.Params.SecretID, v.ID.String())
 			assert.Equal(t, tc.Params.Key, v.Key)
-			assert.Equal(t, tc.Params.Value, v.Value)
 		})
 	}
 }

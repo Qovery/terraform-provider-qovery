@@ -36,15 +36,6 @@ func TestNewVariable(t *testing.T) {
 			ExpectedError: variable.ErrInvalidKeyParam,
 		},
 		{
-			TestName: "fail_with_invalid_value",
-			Params: variable.NewVariableParams{
-				VariableID: gofakeit.UUID(),
-				Scope:      variable.ScopeApplication.String(),
-				Key:        gofakeit.Name(),
-			},
-			ExpectedError: variable.ErrInvalidValueParam,
-		},
-		{
 			TestName: "fail_with_invalid_scope",
 			Params: variable.NewVariableParams{
 				VariableID: gofakeit.UUID(),
@@ -52,6 +43,14 @@ func TestNewVariable(t *testing.T) {
 				Value:      gofakeit.Name(),
 			},
 			ExpectedError: variable.ErrInvalidScopeParam,
+		},
+		{
+			TestName: "success_with_empty_value",
+			Params: variable.NewVariableParams{
+				VariableID: gofakeit.UUID(),
+				Scope:      variable.ScopeApplication.String(),
+				Key:        gofakeit.Name(),
+			},
 		},
 		{
 			TestName: "success",
