@@ -302,6 +302,13 @@ func (r containerResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 					},
 				}),
 			},
+			"arguments": {
+				Description: "List of arguments of this container.",
+				Optional:    true,
+				Type: types.SetType{
+					ElemType: types.StringType,
+				},
+			},
 			//"custom_domains": {
 			//	Description: "List of custom domains linked to this container.",
 			//	Computed:    true,

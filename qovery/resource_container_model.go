@@ -29,7 +29,7 @@ type Container struct {
 	Storages                    types.Set    `tfsdk:"storage"`
 	Ports                       types.Set    `tfsdk:"ports"`
 	//CustomDomains               types.Set    `tfsdk:"custom_domains"`
-	//Arguments                       types.Set    `tfsdk:"ports"`
+	Arguments    types.Set    `tfsdk:"arguments"`
 	ExternalHost types.String `tfsdk:"external_host"`
 	InternalHost types.String `tfsdk:"internal_host"`
 	State        types.String `tfsdk:"state"`
@@ -55,9 +55,9 @@ func (cont Container) PortList() PortList {
 	return toPortList(cont.Ports)
 }
 
-//func (cont Container) ArgumentList() PortList {
-//	return toStringList(cont.Arguments)
-//}
+func (cont Container) ArgumentList() []string {
+	return toStringArray(cont.Arguments)
+}
 
 //func (cont Container) CustomDomainsList() CustomDomainList {
 //	return toCustomDomainList(cont.CustomDomains)
@@ -79,11 +79,17 @@ func (cont Container) toUpsertServiceRequest(state *Container) (*container.Upser
 		stateSecrets = state.SecretList()
 	}
 
+	//var stateCustomDomains CustomDomainList
+	//if state != nil {
+	//	stateCustomDomains = state.CustomDomainsList()
+	//}
+
 	return &container.UpsertServiceRequest{
 		ContainerUpsertRequest: cont.toUpsertRepositoryRequest(),
 		EnvironmentVariables:   cont.EnvironmentVariableList().diffRequest(stateEnvironmentVariables),
 		Secrets:                cont.SecretList().diffRequest(stateSecrets),
-		DesiredState:           *desiredState,
+		//CustomDomains:          cont.CustomDomainsList().diff(stateCustomDomains),
+		DesiredState: *desiredState,
 	}, nil
 }
 
@@ -111,6 +117,7 @@ func (cont Container) toUpsertRepositoryRequest() container.UpsertRepositoryRequ
 		Memory:              toInt32Pointer(cont.Memory),
 		MinRunningInstances: toInt32Pointer(cont.MinRunningInstances),
 		MaxRunningInstances: toInt32Pointer(cont.MaxRunningInstances),
+		Arguments:           cont.ArgumentList(),
 		Storages:            storages,
 		Ports:               ports,
 	}
@@ -129,6 +136,7 @@ func convertDomainContainerToContainer(state Container, cont *container.Containe
 		MinRunningInstances:         fromInt32(cont.MinRunningInstances),
 		MaxRunningInstances:         fromInt32(cont.MaxRunningInstances),
 		AutoPreview:                 fromBool(cont.AutoPreview),
+		Arguments:                   fromStringArray(cont.Arguments),
 		Storages:                    convertDomainStoragesToStorageList(cont.Storages).toTerraformSet(),
 		Ports:                       convertDomainPortsToPortList(cont.Ports).toTerraformSet(),
 		State:                       fromClientEnum(cont.State),

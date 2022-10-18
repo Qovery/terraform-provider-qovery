@@ -3,6 +3,7 @@ package qovery
 import (
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
@@ -19,23 +20,23 @@ import (
 
 type ClientEnum interface {
 	qovery.BuildModeEnum |
-	qovery.BuildPackLanguageEnum |
-	qovery.CloudProviderEnum |
-	qovery.CustomDomainStatusEnum |
-	qovery.DatabaseAccessibilityEnum |
-	qovery.DatabaseModeEnum |
-	qovery.DatabaseTypeEnum |
-	qovery.EnvironmentModeEnum |
-	qovery.KubernetesEnum |
-	qovery.PlanEnum |
-	qovery.PortProtocolEnum |
-	qovery.StateEnum |
-	qovery.StorageTypeEnum |
-	organization.Plan |
-	port.Protocol |
-	registry.Kind |
-	status.State |
-	storage.Type
+		qovery.BuildPackLanguageEnum |
+		qovery.CloudProviderEnum |
+		qovery.CustomDomainStatusEnum |
+		qovery.DatabaseAccessibilityEnum |
+		qovery.DatabaseModeEnum |
+		qovery.DatabaseTypeEnum |
+		qovery.EnvironmentModeEnum |
+		qovery.KubernetesEnum |
+		qovery.PlanEnum |
+		qovery.PortProtocolEnum |
+		qovery.StateEnum |
+		qovery.StorageTypeEnum |
+		organization.Plan |
+		port.Protocol |
+		registry.Kind |
+		status.State |
+		storage.Type
 }
 
 func clientEnumToStringArray[T ClientEnum](enum []T) []string {
@@ -142,6 +143,19 @@ func toMapStringString(v types.Map) map[string]string {
 	return ret
 }
 
+func toStringArray(set types.Set) []string {
+	if set.Null || set.Unknown {
+		return []string{}
+	}
+
+	array := make([]string, 0, len(set.Elems))
+	for _, elem := range set.Elems {
+		array = append(array, toString(elem.(types.String)))
+	}
+
+	return array
+}
+
 //
 // Convert Go types to Terraform types
 //
@@ -195,4 +209,21 @@ func fromBoolPointer(v *bool) types.Bool {
 		return types.Bool{Null: true}
 	}
 	return fromBool(*v)
+}
+
+func fromStringArray(array []string) types.Set {
+	set := types.Set{
+		ElemType: types.StringType,
+	}
+
+	if array == nil {
+		set.Null = true
+		return set
+	}
+
+	set.Elems = make([]attr.Value, 0, len(array))
+	for _, v := range array {
+		set.Elems = append(set.Elems, fromString(v))
+	}
+	return set
 }

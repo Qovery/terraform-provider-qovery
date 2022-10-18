@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -47,6 +48,7 @@ func TestAcc_Container(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
@@ -78,6 +80,122 @@ func TestAcc_Container(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
+				),
+			},
+			// Check Import
+			{
+				ResourceName:      "qovery_container.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAcc_ContainerWithArguments(t *testing.T) {
+	t.Parallel()
+	testName := "container-with-arguments"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryContainerDestroy("qovery_container.test"),
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccContainerDefaultConfigWithArguments(
+					testName,
+					[]string{"arg1"},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
+					resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
+					resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckResourceAttr("qovery_container.test", "arguments.0", "arg1"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
+				),
+			},
+			// Add argument
+			{
+				Config: testAccContainerDefaultConfigWithArguments(
+					testName,
+					[]string{"arg1", "arg2"},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
+					resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
+					resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckResourceAttr("qovery_container.test", "arguments.0", "arg1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "arguments.1", "arg2"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
+				),
+			},
+			// Remove argument
+			{
+				Config: testAccContainerDefaultConfigWithArguments(
+					testName,
+					[]string{"arg2"},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
+					resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
+					resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckResourceAttr("qovery_container.test", "arguments.0", "arg2"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
@@ -127,6 +245,7 @@ func TestAcc_ContainerWithAutoPreview(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "true"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
@@ -158,6 +277,7 @@ func TestAcc_ContainerWithAutoPreview(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
@@ -210,6 +330,7 @@ func TestAcc_ContainerWithResources(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "2"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "3"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
@@ -244,6 +365,7 @@ func TestAcc_ContainerWithResources(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "4"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "6"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
@@ -293,6 +415,7 @@ func TestAcc_ContainerWithState(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
@@ -324,6 +447,7 @@ func TestAcc_ContainerWithState(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
@@ -375,6 +499,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variables.*", map[string]string{
@@ -411,6 +536,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variables.*", map[string]string{
@@ -448,6 +574,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variables.*", map[string]string{
@@ -488,6 +615,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variables.*", map[string]string{
@@ -542,6 +670,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
@@ -578,6 +707,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
@@ -615,6 +745,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
@@ -655,6 +786,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
@@ -1022,6 +1154,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 //					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "storage.0.type", "FAST_SSD"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "storage.0.size", "1"),
@@ -1066,6 +1199,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "storage.0.type", "FAST_SSD"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "storage.0.size", "1"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "storage.0.mount_point", "/toto"),
@@ -1108,6 +1242,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "storage.0.type", "FAST_SSD"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "storage.0.size", "1"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "storage.0.mount_point", "/toto"),
@@ -1159,6 +1294,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
 //					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "ports.0.internal_port", "80"),
 //					resource.TestCheckResourceAttr("qovery_container.test", "ports.0.publicly_accessible", "false"),
@@ -1172,104 +1308,106 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 //				),
 //			},
-//			//// Add another port
-//			//{
-//			//	Config: testAccContainerDefaultConfigWithPorts(
-//			//		testName,
-//			//		[]servicePort{
-//			//			{
-//			//				InternalPort:       80,
-//			//				PubliclyAccessible: false,
-//			//			},
-//			//			{
-//			//				Name:               pointer.ToString("external port"),
-//			//				InternalPort:       81,
-//			//				ExternalPort:       int64ToPtr(443),
-//			//				PubliclyAccessible: true,
-//			//				Protocol:           pointer.ToString("HTTP"),
-//			//			},
-//			//		},
-//			//	),
-//			//	Check: resource.ComposeAggregateTestCheckFunc(
-//			//		testAccQoveryProjectExists("qovery_project.test"),
-//			//		testAccQoveryEnvironmentExists("qovery_environment.test"),
-//			//		testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
-//			//		testAccQoveryContainerExists("qovery_container.test"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
-//			//		resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "ports.0.internal_port", "80"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "ports.0.publicly_accessible", "false"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "ports.1.name", "external port"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "ports.1.internal_port", "81"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "ports.1.external_port", "443"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "ports.1.publicly_accessible", "true"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "ports.1.protocol", "HTTP"),
-//			//		resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
-//			//		resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
-//			//		resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-//			//			"key": regexp.MustCompile(`^QOVERY_`),
-//			//		}),
-//			//		resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-//			//		resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
-//			//	),
-//			//},
-//			//// Remove first port
-//			//{
-//			//	Config: testAccContainerDefaultConfigWithPorts(
-//			//		testName,
-//			//		[]servicePort{
-//			//			{
-//			//				Name:               pointer.ToString("external port"),
-//			//				InternalPort:       81,
-//			//				ExternalPort:       int64ToPtr(443),
-//			//				PubliclyAccessible: true,
-//			//				Protocol:           pointer.ToString("HTTP"),
-//			//			},
-//			//		},
-//			//	),
-//			//	Check: resource.ComposeAggregateTestCheckFunc(
-//			//		testAccQoveryProjectExists("qovery_project.test"),
-//			//		testAccQoveryEnvironmentExists("qovery_environment.test"),
-//			//		testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
-//			//		testAccQoveryContainerExists("qovery_container.test"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
-//			//		resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "ports.0.name", "external port"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "ports.0.internal_port", "81"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "ports.0.external_port", "443"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "ports.0.publicly_accessible", "true"),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "ports.0.protocol", "HTTP"),
-//			//		resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
-//			//		resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
-//			//		resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-//			//			"key": regexp.MustCompile(`^QOVERY_`),
-//			//		}),
-//			//		resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-//			//		resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-//			//		resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
-//			//	),
-//			//},
-//			//// Check Import
-//			//{
-//			//	ResourceName:      "qovery_container.test",
-//			//	ImportState:       true,
-//			//	ImportStateVerify: true,
-//			//},
+//			// Add another port
+//			{
+//				Config: testAccContainerDefaultConfigWithPorts(
+//					testName,
+//					[]servicePort{
+//						{
+//							InternalPort:       80,
+//							PubliclyAccessible: false,
+//						},
+//						{
+//							Name:               pointer.ToString("external port"),
+//							InternalPort:       81,
+//							ExternalPort:       int64ToPtr(443),
+//							PubliclyAccessible: true,
+//							Protocol:           pointer.ToString("HTTP"),
+//						},
+//					},
+//				),
+//				Check: resource.ComposeAggregateTestCheckFunc(
+//					testAccQoveryProjectExists("qovery_project.test"),
+//					testAccQoveryEnvironmentExists("qovery_environment.test"),
+//					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+//					testAccQoveryContainerExists("qovery_container.test"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+//					resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
+//					resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
+//					resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "ports.0.internal_port", "80"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "ports.0.publicly_accessible", "false"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "ports.1.name", "external port"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "ports.1.internal_port", "81"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "ports.1.external_port", "443"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "ports.1.publicly_accessible", "true"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "ports.1.protocol", "HTTP"),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
+//					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+//						"key": regexp.MustCompile(`^QOVERY_`),
+//					}),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
+//					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+//					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
+//				),
+//			},
+//			// Remove first port
+//			{
+//				Config: testAccContainerDefaultConfigWithPorts(
+//					testName,
+//					[]servicePort{
+//						{
+//							Name:               pointer.ToString("external port"),
+//							InternalPort:       81,
+//							ExternalPort:       int64ToPtr(443),
+//							PubliclyAccessible: true,
+//							Protocol:           pointer.ToString("HTTP"),
+//						},
+//					},
+//				),
+//				Check: resource.ComposeAggregateTestCheckFunc(
+//					testAccQoveryProjectExists("qovery_project.test"),
+//					testAccQoveryEnvironmentExists("qovery_environment.test"),
+//					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+//					testAccQoveryContainerExists("qovery_container.test"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+//					resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
+//					resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
+//					resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "ports.0.name", "external port"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "ports.0.internal_port", "81"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "ports.0.external_port", "443"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "ports.0.publicly_accessible", "true"),
+//					resource.TestCheckResourceAttr("qovery_container.test", "ports.0.protocol", "HTTP"),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
+//					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+//						"key": regexp.MustCompile(`^QOVERY_`),
+//					}),
+//					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
+//					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+//					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
+//				),
+//			},
+//			// Check Import
+//			{
+//				ResourceName:      "qovery_container.test",
+//				ImportState:       true,
+//				ImportStateVerify: true,
+//			},
 //		},
 //	})
 //}
@@ -1348,6 +1486,25 @@ resource "qovery_container" "test" {
   state = "RUNNING"
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), name, containerImageName, containerTag,
+	)
+}
+
+func testAccContainerDefaultConfigWithArguments(testName string, arguments []string) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_container" "test" {
+  environment_id = qovery_environment.test.id
+  registry_id = qovery_container_registry.test.id
+  name = "%s"
+  image_name = "%s"
+  tag = "%s"
+  arguments = %s
+  state = "RUNNING"
+}
+`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, convertStringArrayToString(arguments),
 	)
 }
 
@@ -1549,3 +1706,7 @@ resource "qovery_container" "test" {
 //`, testAccDatabaseDefaultConfig(testName, redisContainer), generateTestName(testName), containerRepositoryURL,
 //	)
 //}
+
+func convertStringArrayToString(array []string) string {
+	return fmt.Sprintf("[\"%s\"]", strings.Join(array, "\",\""))
+}
