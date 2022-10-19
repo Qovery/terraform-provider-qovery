@@ -34,7 +34,7 @@ func TestAcc_ContainerDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_container.test", "min_running_instances", "1"),
 					resource.TestCheckResourceAttr("data.qovery_container.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("data.qovery_container.test", "auto_preview", "false"),
-					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
+					resource.TestCheckNoResourceAttr("data.qovery_container.test", "arguments.0"),
 					resource.TestCheckResourceAttr("data.qovery_container.test", "storage.0.id", "c176ee2a-de9a-418c-9856-39071772fcba"),
 					resource.TestCheckResourceAttr("data.qovery_container.test", "storage.0.type", "FAST_SSD"),
 					resource.TestCheckResourceAttr("data.qovery_container.test", "storage.0.size", "1"),
