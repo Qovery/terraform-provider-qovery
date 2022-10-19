@@ -209,6 +209,13 @@ func (t containerDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 					},
 				}),
 			},
+			"arguments": {
+				Description: "List of arguments of this container.",
+				Computed:    true,
+				Type: types.SetType{
+					ElemType: types.StringType,
+				},
+			},
 			//"custom_domains": {
 			//	Description: "List of custom domains linked to this container.",
 			//	Computed:    true,
