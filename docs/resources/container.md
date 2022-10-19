@@ -62,6 +62,7 @@ resource "qovery_container_registry" "my_container_registry" {
 
 ### Optional
 
+- `arguments` (Set of String) List of arguments of this container.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this container.
 - `cpu` (Number) CPU of the container in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 250`.
