@@ -305,8 +305,12 @@ func (r containerResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 			"arguments": {
 				Description: "List of arguments of this container.",
 				Optional:    true,
+				Computed:    true,
 				Type: types.SetType{
 					ElemType: types.StringType,
+				},
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewStringSliceDefaultModifier([]string{}),
 				},
 			},
 			//"custom_domains": {
