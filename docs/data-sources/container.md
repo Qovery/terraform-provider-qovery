@@ -31,6 +31,7 @@ data "qovery_container" "my_container" {
 
 ### Read-Only
 
+- `arguments` (Set of String) List of arguments of this container.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this container.
 - `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this container. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `cpu` (Number) CPU of the container in millicores (m) [1000m = 1 CPU].
