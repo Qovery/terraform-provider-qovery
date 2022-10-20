@@ -13,7 +13,7 @@ import (
 )
 
 const (
-	minContainerInt32Range = 0
+	minContainerInt32Range = 1
 	maxContainerInt32Range = 100.000
 )
 

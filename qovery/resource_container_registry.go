@@ -18,7 +18,7 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.Resource = containerRegistryResource{}
+var _ resource.ResourceWithConfigure = &containerRegistryResource{}
 var _ resource.ResourceWithImportState = containerRegistryResource{}
 
 var registryKinds = clientEnumToStringArray(registry.AllowedKindValues)
@@ -27,16 +27,30 @@ type containerRegistryResource struct {
 	containerRegistryService registry.Service
 }
 
-func NewContainerRegistryResource(service registry.Service) func() resource.Resource {
-	return func() resource.Resource {
-		return containerRegistryResource{
-			containerRegistryService: service,
-		}
-	}
+func newContainerRegistryResource() resource.Resource {
+	return &containerRegistryResource{}
 }
 
 func (r containerRegistryResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_container_registry"
+}
+
+func (r *containerRegistryResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
+
+	provider, ok := req.ProviderData.(*qProvider)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *qProvider, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	r.containerRegistryService = provider.containerRegistryService
 }
 
 func (r containerRegistryResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
