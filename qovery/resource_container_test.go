@@ -302,7 +302,7 @@ func TestAcc_ContainerWithAutoPreview(t *testing.T) {
 
 func TestAcc_ContainerWithResources(t *testing.T) {
 	t.Parallel()
-	testName := "container-with-auto-preview"
+	testName := "container-with-resources"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
