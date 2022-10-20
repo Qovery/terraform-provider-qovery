@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/pkg/errors"
 )
@@ -36,8 +37,9 @@ func (e ApiError) IsNotFound() bool {
 		return false
 	}
 
-	// NOTE: consider 403 Forbidden as a 404 NotFound until the api is fixed
-	return e.resp.StatusCode == http.StatusNotFound ||
+	// NOTE: consider 400 Bad Request, 403 Forbidden as a 404 NotFound until the api is fixed
+	return (e.resp.StatusCode == http.StatusBadRequest && strings.Contains(e.Detail(), "exist")) ||
+		e.resp.StatusCode == http.StatusNotFound ||
 		e.resp.StatusCode == http.StatusForbidden
 }
 
