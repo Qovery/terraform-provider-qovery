@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -14,12 +13,25 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.DataSourceType = organizationDataSourceType{}
 var _ datasource.DataSource = organizationDataSource{}
 
-type organizationDataSourceType struct{}
+type organizationDataSource struct {
+	organizationService organization.Service
+}
 
-func (t organizationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewOrganizationDataSource(service organization.Service) func() datasource.DataSource {
+	return func() datasource.DataSource {
+		return organizationDataSource{
+			organizationService: service,
+		}
+	}
+}
+
+func (d organizationDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_organization"
+}
+
+func (d organizationDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Use this data source to retrieve information about an existing organization.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -45,16 +57,6 @@ func (t organizationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, 
 			},
 		},
 	}, nil
-}
-
-func (t organizationDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
-	return organizationDataSource{
-		organizationService: p.(*qProvider).organizationService,
-	}, nil
-}
-
-type organizationDataSource struct {
-	organizationService organization.Service
 }
 
 // Read qovery organization data source

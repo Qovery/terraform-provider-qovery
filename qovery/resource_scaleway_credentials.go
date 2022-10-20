@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -17,13 +16,26 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.ResourceType = scalewayCredentialsResourceType{}
 var _ resource.Resource = scalewayCredentialsResource{}
 var _ resource.ResourceWithImportState = scalewayCredentialsResource{}
 
-type scalewayCredentialsResourceType struct{}
+type scalewayCredentialsResource struct {
+	scalewayCredentialsService credentials.ScalewayService
+}
 
-func (r scalewayCredentialsResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewScalewayCredentialsResource(service credentials.ScalewayService) func() resource.Resource {
+	return func() resource.Resource {
+		return scalewayCredentialsResource{
+			scalewayCredentialsService: service,
+		}
+	}
+}
+
+func (r scalewayCredentialsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_scaleway_credentials"
+}
+
+func (r scalewayCredentialsResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Provides a Qovery SCALEWAY credentials resource. This can be used to create and manage Qovery SCALEWAY credentials.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -62,16 +74,6 @@ func (r scalewayCredentialsResourceType) GetSchema(_ context.Context) (tfsdk.Sch
 			},
 		},
 	}, nil
-}
-
-func (r scalewayCredentialsResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
-	return scalewayCredentialsResource{
-		scalewayCredentialsService: p.(*qProvider).scalewayCredentialsService,
-	}, nil
-}
-
-type scalewayCredentialsResource struct {
-	scalewayCredentialsService credentials.ScalewayService
 }
 
 // Create qovery scaleway credentials resource

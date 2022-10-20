@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -14,12 +13,25 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.DataSourceType = containerDataSourceType{}
 var _ datasource.DataSource = containerDataSource{}
 
-type containerDataSourceType struct{}
+type containerDataSource struct {
+	containerService container.Service
+}
 
-func (t containerDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewContainerDataSource(service container.Service) func() datasource.DataSource {
+	return func() datasource.DataSource {
+		return containerDataSource{
+			containerService: service,
+		}
+	}
+}
+
+func (d containerDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_container"
+}
+
+func (d containerDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Use this data source to retrieve information about an existing container.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -259,16 +271,6 @@ func (t containerDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 			},
 		},
 	}, nil
-}
-
-func (t containerDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
-	return containerDataSource{
-		containerService: p.(*qProvider).containerService,
-	}, nil
-}
-
-type containerDataSource struct {
-	containerService container.Service
 }
 
 // Read qovery container data source

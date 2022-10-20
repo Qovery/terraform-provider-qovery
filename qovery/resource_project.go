@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -15,13 +14,26 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.ResourceType = projectResourceType{}
 var _ resource.Resource = projectResource{}
 var _ resource.ResourceWithImportState = projectResource{}
 
-type projectResourceType struct{}
+type projectResource struct {
+	projectService project.Service
+}
 
-func (r projectResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewProjectResource(service project.Service) func() resource.Resource {
+	return func() resource.Resource {
+		return projectResource{
+			projectService: service,
+		}
+	}
+}
+
+func (r projectResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_project"
+}
+
+func (r projectResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Provides a Qovery project resource. This can be used to create and manage Qovery projects.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -112,16 +124,6 @@ func (r projectResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 			},
 		},
 	}, nil
-}
-
-func (r projectResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
-	return projectResource{
-		projectService: p.(*qProvider).projectService,
-	}, nil
-}
-
-type projectResource struct {
-	projectService project.Service
 }
 
 // Create qovery project resource

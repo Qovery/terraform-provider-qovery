@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -19,7 +18,6 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.ResourceType = applicationResourceType{}
 var _ resource.Resource = applicationResource{}
 var _ resource.ResourceWithImportState = applicationResource{}
 
@@ -74,9 +72,23 @@ var (
 	applicationGitRepositoryBranchDefault   = "main or master (depending on repository)"
 )
 
-type applicationResourceType struct{}
+type applicationResource struct {
+	client *client.Client
+}
 
-func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewApplicationResource(apiClient *client.Client) func() resource.Resource {
+	return func() resource.Resource {
+		return applicationResource{
+			client: apiClient,
+		}
+	}
+}
+
+func (r applicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_application"
+}
+
+func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Provides a Qovery application resource. This can be used to create and manage Qovery applications.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -454,16 +466,6 @@ func (r applicationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 			},
 		},
 	}, nil
-}
-
-func (r applicationResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
-	return applicationResource{
-		client: p.(*qProvider).client,
-	}, nil
-}
-
-type applicationResource struct {
-	client *client.Client
 }
 
 // Create qovery application resource
