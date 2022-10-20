@@ -15,6 +15,8 @@ const (
 	PlanTTeamYearly      Plan = "TEAM_YEARLY"
 	PlanEnterprise       Plan = "ENTERPRISE"
 	PlanEnterpriseYearly Plan = "ENTERPRISE_YEARLY"
+	PlanProfessional     Plan = "PROFESSIONAL"
+	PlanBusiness         Plan = "BUSINESS"
 )
 
 // AllowedPlanValues contains all the valid values of a Plan.
@@ -24,6 +26,8 @@ var AllowedPlanValues = []Plan{
 	PlanTTeamYearly,
 	PlanEnterprise,
 	PlanEnterpriseYearly,
+	PlanProfessional,
+	PlanBusiness,
 }
 
 // String returns the string value of a Plan.
