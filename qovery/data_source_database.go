@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -14,12 +13,25 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.DataSourceType = databaseDataSourceType{}
 var _ datasource.DataSource = databaseDataSource{}
 
-type databaseDataSourceType struct{}
+type databaseDataSource struct {
+	client *client.Client
+}
 
-func (t databaseDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewDatabaseDataSource(apiClient *client.Client) func() datasource.DataSource {
+	return func() datasource.DataSource {
+		return databaseDataSource{
+			client: apiClient,
+		}
+	}
+}
+
+func (d databaseDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_database"
+}
+
+func (d databaseDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Use this data source to retrieve information about an existing database.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -106,16 +118,6 @@ func (t databaseDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag
 			},
 		},
 	}, nil
-}
-
-func (t databaseDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
-	return databaseDataSource{
-		client: p.(*qProvider).client,
-	}, nil
-}
-
-type databaseDataSource struct {
-	client *client.Client
 }
 
 // Read qovery database data source

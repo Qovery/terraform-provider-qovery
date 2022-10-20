@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -19,7 +18,6 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.ResourceType = databaseResourceType{}
 var _ resource.Resource = databaseResource{}
 var _ resource.ResourceWithImportState = databaseResource{}
 
@@ -54,9 +52,23 @@ var (
 	databaseStorageDefault int64 = 10
 )
 
-type databaseResourceType struct{}
+type databaseResource struct {
+	client *client.Client
+}
 
-func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewDatabaseResource(apiClient *client.Client) func() resource.Resource {
+	return func() resource.Resource {
+		return databaseResource{
+			client: apiClient,
+		}
+	}
+}
+
+func (r databaseResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_database"
+}
+
+func (r databaseResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Provides a Qovery database resource. This can be used to create and manage Qovery databases.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -211,16 +223,6 @@ func (r databaseResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 			},
 		},
 	}, nil
-}
-
-func (r databaseResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
-	return databaseResource{
-		client: p.(*qProvider).client,
-	}, nil
-}
-
-type databaseResource struct {
-	client *client.Client
 }
 
 // Create qovery database resource

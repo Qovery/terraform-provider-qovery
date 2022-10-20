@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
@@ -25,6 +27,7 @@ const APITokenEnvName = "QOVERY_API_TOKEN"
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
 var _ provider.Provider = &qProvider{}
+var _ provider.ProviderWithMetadata = &qProvider{}
 
 // qProvider satisfies the provider.Provider interface and usually is included
 // with all Resource and DataSource implementations.
@@ -65,6 +68,11 @@ type qProvider struct {
 // providerData can be used to store data from the Terraform configuration.
 type providerData struct {
 	Token types.String `tfsdk:"token"`
+}
+
+func (p *qProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
+	resp.TypeName = "qovery"
+	resp.Version = p.version
 }
 
 func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest, resp *provider.ConfigureResponse) {
@@ -122,36 +130,34 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.containerRegistryService = domainServices.ContainerRegistry
 }
 
-// GetResources - Defines provider resources
-func (p *qProvider) GetResources(_ context.Context) (map[string]provider.ResourceType, diag.Diagnostics) {
-	return map[string]provider.ResourceType{
-		"qovery_application":          applicationResourceType{},
-		"qovery_aws_credentials":      awsCredentialsResourceType{},
-		"qovery_cluster":              clusterResourceType{client: client.New(os.Getenv(APITokenEnvName), p.version)},
-		"qovery_database":             databaseResourceType{},
-		"qovery_environment":          environmentResourceType{},
-		"qovery_organization":         organizationResourceType{},
-		"qovery_project":              projectResourceType{},
-		"qovery_scaleway_credentials": scalewayCredentialsResourceType{},
-		"qovery_container":            containerResourceType{},
-		"qovery_container_registry":   containerRegistryResourceType{},
-	}, nil
+func (p *qProvider) Resources(ctx context.Context) []func() resource.Resource {
+	return []func() resource.Resource{
+		NewApplicationResource(p.client),
+		NewAwsCredentialsResource(p.awsCredentialsService),
+		NewClusterResource(p.client),
+		NewDatabaseResource(p.client),
+		NewEnvironmentResource(p.client),
+		NewOrganizationResource(p.organizationService),
+		NewProjectResource(p.projectService),
+		NewScalewayCredentialsResource(p.scalewayCredentialsService),
+		NewContainerResource(p.containerService),
+		NewContainerRegistryResource(p.containerRegistryService),
+	}
 }
 
-// GetDataSources - Defines provider data sources
-func (p *qProvider) GetDataSources(_ context.Context) (map[string]provider.DataSourceType, diag.Diagnostics) {
-	return map[string]provider.DataSourceType{
-		"qovery_application":          applicationDataSourceType{},
-		"qovery_aws_credentials":      awsCredentialsDataSourceType{},
-		"qovery_cluster":              clusterDataSourceType{},
-		"qovery_database":             databaseDataSourceType{},
-		"qovery_environment":          environmentDataSourceType{},
-		"qovery_organization":         organizationDataSourceType{},
-		"qovery_project":              projectDataSourceType{},
-		"qovery_scaleway_credentials": scalewayCredentialsDataSourceType{},
-		"qovery_container":            containerDataSourceType{},
-		"qovery_container_registry":   containerRegistryDataSourceType{},
-	}, nil
+func (p *qProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+	return []func() datasource.DataSource{
+		NewApplicationDataSource(p.client),
+		NewAwsCredentialsDataSource(p.awsCredentialsService),
+		NewClusterDataSource(p.client),
+		NewContainerDataSource(p.containerService),
+		NewContainerRegistryDataSource(p.containerRegistryService),
+		NewDatabaseDataSource(p.client),
+		NewEnvironmentDataSource(p.client),
+		NewOrganizationDataSource(p.organizationService),
+		NewProjectDataSource(p.projectService),
+		NewScalewayCredentialsDataSource(p.scalewayCredentialsService),
+	}
 }
 
 func (p *qProvider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {

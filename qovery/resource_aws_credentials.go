@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -17,13 +16,26 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.ResourceType = awsCredentialsResourceType{}
 var _ resource.Resource = awsCredentialsResource{}
 var _ resource.ResourceWithImportState = awsCredentialsResource{}
 
-type awsCredentialsResourceType struct{}
+type awsCredentialsResource struct {
+	awsCredentialsService credentials.AwsService
+}
 
-func (r awsCredentialsResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewAwsCredentialsResource(service credentials.AwsService) func() resource.Resource {
+	return func() resource.Resource {
+		return awsCredentialsResource{
+			awsCredentialsService: service,
+		}
+	}
+}
+
+func (r awsCredentialsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_aws_credentials"
+}
+
+func (r awsCredentialsResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Provides a Qovery AWS credentials resource. This can be used to create and manage Qovery AWS credentials.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -56,16 +68,6 @@ func (r awsCredentialsResourceType) GetSchema(_ context.Context) (tfsdk.Schema, 
 			},
 		},
 	}, nil
-}
-
-func (r awsCredentialsResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
-	return awsCredentialsResource{
-		awsCredentialsService: p.(*qProvider).awsCredentialsService,
-	}, nil
-}
-
-type awsCredentialsResource struct {
-	awsCredentialsService credentials.AwsService
 }
 
 // Create qovery aws credentials resource

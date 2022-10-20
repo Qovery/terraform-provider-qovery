@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -14,12 +13,25 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.DataSourceType = clusterDataSourceType{}
 var _ datasource.DataSource = clusterDataSource{}
 
-type clusterDataSourceType struct{}
+type clusterDataSource struct {
+	client *client.Client
+}
 
-func (t clusterDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewClusterDataSource(apiClient *client.Client) func() datasource.DataSource {
+	return func() datasource.DataSource {
+		return clusterDataSource{
+			client: apiClient,
+		}
+	}
+}
+
+func (d clusterDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_cluster"
+}
+
+func (d clusterDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Use this data source to retrieve information about an existing cluster.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -122,16 +134,6 @@ func (t clusterDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 			},
 		},
 	}, nil
-}
-
-func (t clusterDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
-	return clusterDataSource{
-		client: p.(*qProvider).client,
-	}, nil
-}
-
-type clusterDataSource struct {
-	client *client.Client
 }
 
 // Read qovery cluster data source

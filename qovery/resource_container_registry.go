@@ -7,7 +7,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -19,15 +18,28 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.ResourceType = containerRegistryResourceType{}
 var _ resource.Resource = containerRegistryResource{}
 var _ resource.ResourceWithImportState = containerRegistryResource{}
 
 var registryKinds = clientEnumToStringArray(registry.AllowedKindValues)
 
-type containerRegistryResourceType struct{}
+type containerRegistryResource struct {
+	containerRegistryService registry.Service
+}
 
-func (r containerRegistryResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewContainerRegistryResource(service registry.Service) func() resource.Resource {
+	return func() resource.Resource {
+		return containerRegistryResource{
+			containerRegistryService: service,
+		}
+	}
+}
+
+func (r containerRegistryResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_container_registry"
+}
+
+func (r containerRegistryResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Provides a Qovery container registry resource. This can be used to create and manage Qovery container registry.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -112,16 +124,6 @@ func (r containerRegistryResourceType) GetSchema(_ context.Context) (tfsdk.Schem
 			},
 		},
 	}, nil
-}
-
-func (r containerRegistryResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
-	return containerRegistryResource{
-		containerRegistryService: p.(*qProvider).containerRegistryService,
-	}, nil
-}
-
-type containerRegistryResource struct {
-	containerRegistryService registry.Service
 }
 
 // Create qovery container registry resource

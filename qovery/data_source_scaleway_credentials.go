@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -14,12 +13,25 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.DataSourceType = scalewayCredentialsDataSourceType{}
 var _ datasource.DataSource = scalewayCredentialsDataSource{}
 
-type scalewayCredentialsDataSourceType struct{}
+type scalewayCredentialsDataSource struct {
+	scalewayCredentialsService credentials.ScalewayService
+}
 
-func (t scalewayCredentialsDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewScalewayCredentialsDataSource(service credentials.ScalewayService) func() datasource.DataSource {
+	return func() datasource.DataSource {
+		return scalewayCredentialsDataSource{
+			scalewayCredentialsService: service,
+		}
+	}
+}
+
+func (d scalewayCredentialsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_scaleway_credentials"
+}
+
+func (d scalewayCredentialsDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Use this data source to retrieve information about an existing Scaleway credentials.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -40,16 +52,6 @@ func (t scalewayCredentialsDataSourceType) GetSchema(_ context.Context) (tfsdk.S
 			},
 		},
 	}, nil
-}
-
-func (t scalewayCredentialsDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
-	return scalewayCredentialsDataSource{
-		scalewayCredentialsService: p.(*qProvider).scalewayCredentialsService,
-	}, nil
-}
-
-type scalewayCredentialsDataSource struct {
-	scalewayCredentialsService credentials.ScalewayService
 }
 
 // Read qovery scalewayCredentials data source

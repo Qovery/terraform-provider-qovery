@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -14,12 +13,25 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.DataSourceType = projectDataSourceType{}
 var _ datasource.DataSource = projectDataSource{}
 
-type projectDataSourceType struct{}
+type projectDataSource struct {
+	projectService project.Service
+}
 
-func (t projectDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewProjectDataSource(service project.Service) func() datasource.DataSource {
+	return func() datasource.DataSource {
+		return projectDataSource{
+			projectService: service,
+		}
+	}
+}
+
+func (d projectDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_project"
+}
+
+func (d projectDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Use this data source to retrieve information about an existing project.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -110,16 +122,6 @@ func (t projectDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 			},
 		},
 	}, nil
-}
-
-func (t projectDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
-	return projectDataSource{
-		projectService: p.(*qProvider).projectService,
-	}, nil
-}
-
-type projectDataSource struct {
-	projectService project.Service
 }
 
 // Read qovery project data source

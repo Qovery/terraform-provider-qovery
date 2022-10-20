@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -14,12 +13,25 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.DataSourceType = awsCredentialsDataSourceType{}
 var _ datasource.DataSource = awsCredentialsDataSource{}
 
-type awsCredentialsDataSourceType struct{}
+type awsCredentialsDataSource struct {
+	awsCredentialsService credentials.AwsService
+}
 
-func (t awsCredentialsDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewAwsCredentialsDataSource(service credentials.AwsService) func() datasource.DataSource {
+	return func() datasource.DataSource {
+		return awsCredentialsDataSource{
+			awsCredentialsService: service,
+		}
+	}
+}
+
+func (d awsCredentialsDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_aws_credentials"
+}
+
+func (d awsCredentialsDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Use this data source to retrieve information about an existing aws credentials.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -40,16 +52,6 @@ func (t awsCredentialsDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema
 			},
 		},
 	}, nil
-}
-
-func (t awsCredentialsDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
-	return awsCredentialsDataSource{
-		awsCredentialsService: p.(*qProvider).awsCredentialsService,
-	}, nil
-}
-
-type awsCredentialsDataSource struct {
-	awsCredentialsService credentials.AwsService
 }
 
 // Read qovery awsCredentials data source

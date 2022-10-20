@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -14,12 +13,25 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.DataSourceType = environmentDataSourceType{}
 var _ datasource.DataSource = environmentDataSource{}
 
-type environmentDataSourceType struct{}
+type environmentDataSource struct {
+	client *client.Client
+}
 
-func (t environmentDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewEnvironmentDataSource(apiClient *client.Client) func() datasource.DataSource {
+	return func() datasource.DataSource {
+		return environmentDataSource{
+			client: apiClient,
+		}
+	}
+}
+
+func (d environmentDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_environment"
+}
+
+func (d environmentDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Use this data source to retrieve information about an existing environment.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -115,16 +127,6 @@ func (t environmentDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 			},
 		},
 	}, nil
-}
-
-func (t environmentDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
-	return environmentDataSource{
-		client: p.(*qProvider).client,
-	}, nil
-}
-
-type environmentDataSource struct {
-	client *client.Client
 }
 
 // Read qovery environment data source

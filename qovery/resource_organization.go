@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -17,15 +16,28 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.ResourceType = organizationResourceType{}
 var _ resource.Resource = organizationResource{}
 var _ resource.ResourceWithImportState = organizationResource{}
 
 var organizationPlans = clientEnumToStringArray(organization.AllowedPlanValues)
 
-type organizationResourceType struct{}
+type organizationResource struct {
+	organizationService organization.Service
+}
 
-func (r organizationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewOrganizationResource(service organization.Service) func() resource.Resource {
+	return func() resource.Resource {
+		return organizationResource{
+			organizationService: service,
+		}
+	}
+}
+
+func (r organizationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_organization"
+}
+
+func (r organizationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Provides a Qovery organization resource. This can be used to create and manage Qovery organizations.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -58,16 +70,6 @@ func (r organizationResourceType) GetSchema(_ context.Context) (tfsdk.Schema, di
 			},
 		},
 	}, nil
-}
-
-func (r organizationResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
-	return organizationResource{
-		organizationService: p.(*qProvider).organizationService,
-	}, nil
-}
-
-type organizationResource struct {
-	organizationService organization.Service
 }
 
 // Create qovery organization resource
