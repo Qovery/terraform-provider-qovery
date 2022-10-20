@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -14,12 +13,25 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.DataSourceType = applicationDataSourceType{}
 var _ datasource.DataSource = applicationDataSource{}
 
-type applicationDataSourceType struct{}
+type applicationDataSource struct {
+	client *client.Client
+}
 
-func (t applicationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewApplicationDataSource(apiClient *client.Client) func() datasource.DataSource {
+	return func() datasource.DataSource {
+		return applicationDataSource{
+			client: apiClient,
+		}
+	}
+}
+
+func (d applicationDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_application"
+}
+
+func (d applicationDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Use this data source to retrieve information about an existing application.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -268,16 +280,6 @@ func (t applicationDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, d
 			},
 		},
 	}, nil
-}
-
-func (t applicationDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
-	return applicationDataSource{
-		client: p.(*qProvider).client,
-	}, nil
-}
-
-type applicationDataSource struct {
-	client *client.Client
 }
 
 // Read qovery application data source

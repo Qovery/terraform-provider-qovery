@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -19,7 +18,6 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.ResourceType = environmentResourceType{}
 var _ resource.Resource = environmentResource{}
 var _ resource.ResourceWithImportState = environmentResource{}
 
@@ -29,9 +27,23 @@ var (
 	environmentModeDefault = string(qovery.ENVIRONMENTMODEENUM_DEVELOPMENT)
 )
 
-type environmentResourceType struct{}
+type environmentResource struct {
+	client *client.Client
+}
 
-func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewEnvironmentResource(apiClient *client.Client) func() resource.Resource {
+	return func() resource.Resource {
+		return environmentResource{
+			client: apiClient,
+		}
+	}
+}
+
+func (r environmentResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_environment"
+}
+
+func (r environmentResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Provides a Qovery environment resource. This can be used to create and manage Qovery environments.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -137,16 +149,6 @@ func (r environmentResourceType) GetSchema(_ context.Context) (tfsdk.Schema, dia
 			},
 		},
 	}, nil
-}
-
-func (r environmentResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
-	return environmentResource{
-		client: p.(*qProvider).client,
-	}, nil
-}
-
-type environmentResource struct {
-	client *client.Client
 }
 
 // Create qovery environment resource

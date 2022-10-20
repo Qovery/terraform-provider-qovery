@@ -11,7 +11,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -25,7 +24,6 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.ResourceType = clusterResourceType{}
 var _ resource.Resource = clusterResource{}
 var _ resource.ResourceWithImportState = clusterResource{}
 
@@ -68,11 +66,23 @@ var (
 	clusterKubernetesModeDefault = string(qovery.KUBERNETESENUM_MANAGED)
 )
 
-type clusterResourceType struct {
+type clusterResource struct {
 	client *client.Client
 }
 
-func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewClusterResource(apiClient *client.Client) func() resource.Resource {
+	return func() resource.Resource {
+		return clusterResource{
+			client: apiClient,
+		}
+	}
+}
+
+func (r clusterResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_cluster"
+}
+
+func (r clusterResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	// Read cluster instance type for documentation from embedded files
 	clusterInstanceTypesByProvider, err := readInstanceTypes()
 	if err != nil {
@@ -270,16 +280,6 @@ func (r clusterResourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 			},
 		},
 	}, nil
-}
-
-func (r clusterResourceType) NewResource(_ context.Context, p provider.Provider) (resource.Resource, diag.Diagnostics) {
-	return clusterResource{
-		client: p.(*qProvider).client,
-	}, nil
-}
-
-type clusterResource struct {
-	client *client.Client
 }
 
 // Create qovery cluster resource

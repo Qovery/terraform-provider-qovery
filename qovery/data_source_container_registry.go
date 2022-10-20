@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -14,12 +13,24 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ provider.DataSourceType = containerRegistryDataSourceType{}
 var _ datasource.DataSource = containerRegistryDataSource{}
 
-type containerRegistryDataSourceType struct{}
+type containerRegistryDataSource struct {
+	containerRegistryService registry.Service
+}
 
-func (t containerRegistryDataSourceType) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+func NewContainerRegistryDataSource(service registry.Service) func() datasource.DataSource {
+	return func() datasource.DataSource {
+		return containerRegistryDataSource{
+			containerRegistryService: service,
+		}
+	}
+}
+func (d containerRegistryDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
+	resp.TypeName = req.ProviderTypeName + "_container_registry"
+}
+
+func (d containerRegistryDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
 		Description: "Use this data source to retrieve information about an existing container registry.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -54,16 +65,6 @@ func (t containerRegistryDataSourceType) GetSchema(_ context.Context) (tfsdk.Sch
 			},
 		},
 	}, nil
-}
-
-func (t containerRegistryDataSourceType) NewDataSource(_ context.Context, p provider.Provider) (datasource.DataSource, diag.Diagnostics) {
-	return containerRegistryDataSource{
-		containerRegistryService: p.(*qProvider).containerRegistryService,
-	}, nil
-}
-
-type containerRegistryDataSource struct {
-	containerRegistryService registry.Service
 }
 
 // Read qovery container registry data source
