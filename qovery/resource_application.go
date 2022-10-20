@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -18,7 +19,7 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.Resource = applicationResource{}
+var _ resource.ResourceWithConfigure = &applicationResource{}
 var _ resource.ResourceWithImportState = applicationResource{}
 
 var (
@@ -76,16 +77,30 @@ type applicationResource struct {
 	client *client.Client
 }
 
-func NewApplicationResource(apiClient *client.Client) func() resource.Resource {
-	return func() resource.Resource {
-		return applicationResource{
-			client: apiClient,
-		}
-	}
+func newApplicationResource() resource.Resource {
+	return &applicationResource{}
 }
 
 func (r applicationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_application"
+}
+
+func (r *applicationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
+
+	provider, ok := req.ProviderData.(*qProvider)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *qProvider, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	r.client = provider.client
 }
 
 func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {

@@ -128,35 +128,38 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.projectService = domainServices.Project
 	p.containerService = domainServices.Container
 	p.containerRegistryService = domainServices.ContainerRegistry
+
+	resp.DataSourceData = p
+	resp.ResourceData = p
 }
 
-func (p *qProvider) Resources(ctx context.Context) []func() resource.Resource {
+func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
-		NewApplicationResource(p.client),
-		NewAwsCredentialsResource(p.awsCredentialsService),
-		NewClusterResource(p.client),
-		NewDatabaseResource(p.client),
-		NewEnvironmentResource(p.client),
-		NewOrganizationResource(p.organizationService),
-		NewProjectResource(p.projectService),
-		NewScalewayCredentialsResource(p.scalewayCredentialsService),
-		NewContainerResource(p.containerService),
-		NewContainerRegistryResource(p.containerRegistryService),
+		newApplicationResource,
+		newAwsCredentialsResource,
+		newClusterResource,
+		newDatabaseResource,
+		newEnvironmentResource,
+		newOrganizationResource,
+		newProjectResource,
+		newScalewayCredentialsResource,
+		newContainerResource,
+		newContainerRegistryResource,
 	}
 }
 
-func (p *qProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
+func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSource {
 	return []func() datasource.DataSource{
-		NewApplicationDataSource(p.client),
-		NewAwsCredentialsDataSource(p.awsCredentialsService),
-		NewClusterDataSource(p.client),
-		NewContainerDataSource(p.containerService),
-		NewContainerRegistryDataSource(p.containerRegistryService),
-		NewDatabaseDataSource(p.client),
-		NewEnvironmentDataSource(p.client),
-		NewOrganizationDataSource(p.organizationService),
-		NewProjectDataSource(p.projectService),
-		NewScalewayCredentialsDataSource(p.scalewayCredentialsService),
+		newApplicationDataSource,
+		newAwsCredentialsDataSource,
+		newClusterDataSource,
+		newContainerDataSource,
+		newContainerRegistryDataSource,
+		newDatabaseDataSource,
+		newEnvironmentDataSource,
+		newOrganizationDataSource,
+		newProjectDataSource,
+		newScalewayCredentialsDataSource,
 	}
 }
 

@@ -16,23 +16,37 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.Resource = scalewayCredentialsResource{}
+var _ resource.ResourceWithConfigure = &scalewayCredentialsResource{}
 var _ resource.ResourceWithImportState = scalewayCredentialsResource{}
 
 type scalewayCredentialsResource struct {
 	scalewayCredentialsService credentials.ScalewayService
 }
 
-func NewScalewayCredentialsResource(service credentials.ScalewayService) func() resource.Resource {
-	return func() resource.Resource {
-		return scalewayCredentialsResource{
-			scalewayCredentialsService: service,
-		}
-	}
+func newScalewayCredentialsResource() resource.Resource {
+	return &scalewayCredentialsResource{}
 }
 
 func (r scalewayCredentialsResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_scaleway_credentials"
+}
+
+func (r *scalewayCredentialsResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
+
+	provider, ok := req.ProviderData.(*qProvider)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *qProvider, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	r.scalewayCredentialsService = provider.scalewayCredentialsService
 }
 
 func (r scalewayCredentialsResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {

@@ -24,7 +24,7 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.Resource = clusterResource{}
+var _ resource.ResourceWithConfigure = &clusterResource{}
 var _ resource.ResourceWithImportState = clusterResource{}
 
 var (
@@ -70,16 +70,30 @@ type clusterResource struct {
 	client *client.Client
 }
 
-func NewClusterResource(apiClient *client.Client) func() resource.Resource {
-	return func() resource.Resource {
-		return clusterResource{
-			client: apiClient,
-		}
-	}
+func newClusterResource() resource.Resource {
+	return &clusterResource{}
 }
 
 func (r clusterResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_cluster"
+}
+
+func (r *clusterResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
+
+	provider, ok := req.ProviderData.(*qProvider)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *qProvider, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	r.client = provider.client
 }
 
 func (r clusterResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {

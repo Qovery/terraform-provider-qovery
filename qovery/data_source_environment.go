@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -13,22 +14,36 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ datasource.DataSource = environmentDataSource{}
+var _ datasource.DataSourceWithConfigure = &environmentDataSource{}
 
 type environmentDataSource struct {
 	client *client.Client
 }
 
-func NewEnvironmentDataSource(apiClient *client.Client) func() datasource.DataSource {
-	return func() datasource.DataSource {
-		return environmentDataSource{
-			client: apiClient,
-		}
-	}
+func newEnvironmentDataSource() datasource.DataSource {
+	return &environmentDataSource{}
 }
 
 func (d environmentDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_environment"
+}
+
+func (d *environmentDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
+
+	provider, ok := req.ProviderData.(*qProvider)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Data Source Configure Type",
+			fmt.Sprintf("Expected *qProvider, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	d.client = provider.client
 }
 
 func (d environmentDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {

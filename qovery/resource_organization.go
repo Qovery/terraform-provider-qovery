@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -16,7 +17,7 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.Resource = organizationResource{}
+var _ resource.ResourceWithConfigure = &organizationResource{}
 var _ resource.ResourceWithImportState = organizationResource{}
 
 var organizationPlans = clientEnumToStringArray(organization.AllowedPlanValues)
@@ -25,16 +26,30 @@ type organizationResource struct {
 	organizationService organization.Service
 }
 
-func NewOrganizationResource(service organization.Service) func() resource.Resource {
-	return func() resource.Resource {
-		return organizationResource{
-			organizationService: service,
-		}
-	}
+func newOrganizationResource() resource.Resource {
+	return &organizationResource{}
 }
 
 func (r organizationResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_organization"
+}
+
+func (r *organizationResource) Configure(_ context.Context, req resource.ConfigureRequest, resp *resource.ConfigureResponse) {
+	// Prevent panic if the provider has not been configured.
+	if req.ProviderData == nil {
+		return
+	}
+
+	provider, ok := req.ProviderData.(*qProvider)
+	if !ok {
+		resp.Diagnostics.AddError(
+			"Unexpected Resource Configure Type",
+			fmt.Sprintf("Expected *qProvider, got: %T. Please report this issue to the provider developers.", req.ProviderData),
+		)
+		return
+	}
+
+	r.organizationService = provider.organizationService
 }
 
 func (r organizationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
