@@ -10,14 +10,14 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
-	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
 var _ datasource.DataSourceWithConfigure = &environmentDataSource{}
 
 type environmentDataSource struct {
-	client *client.Client
+	environmentService environment.Service
 }
 
 func newEnvironmentDataSource() datasource.DataSource {
@@ -43,7 +43,7 @@ func (d *environmentDataSource) Configure(_ context.Context, req datasource.Conf
 		return
 	}
 
-	d.client = provider.client
+	d.environmentService = provider.environmentService
 }
 
 func (d environmentDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
@@ -154,13 +154,13 @@ func (d environmentDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	// Get environment from API
-	environment, apiErr := d.client.GetEnvironment(ctx, data.Id.Value)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	env, err := d.environmentService.Get(ctx, data.Id.Value)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on environment read", err.Error())
 		return
 	}
 
-	state := convertResponseToEnvironment(data, environment)
+	state := convertDomainEnvironmentToEnvironment(data, env)
 	tflog.Trace(ctx, "read environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state

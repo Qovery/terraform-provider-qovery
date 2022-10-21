@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
@@ -19,24 +20,24 @@ import (
 //
 
 type ClientEnum interface {
-	qovery.BuildModeEnum |
+	environment.Mode |
+		organization.Plan |
+		port.Protocol |
 		qovery.BuildPackLanguageEnum |
 		qovery.CloudProviderEnum |
 		qovery.CustomDomainStatusEnum |
 		qovery.DatabaseAccessibilityEnum |
 		qovery.DatabaseModeEnum |
 		qovery.DatabaseTypeEnum |
-		qovery.EnvironmentModeEnum |
 		qovery.KubernetesEnum |
 		qovery.PlanEnum |
 		qovery.PortProtocolEnum |
 		qovery.StateEnum |
 		qovery.StorageTypeEnum |
-		organization.Plan |
-		port.Protocol |
 		registry.Kind |
 		status.State |
-		storage.Type
+		storage.Type |
+		qovery.BuildModeEnum
 }
 
 func clientEnumToStringArray[T ClientEnum](enum []T) []string {
