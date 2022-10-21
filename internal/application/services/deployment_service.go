@@ -107,7 +107,7 @@ func (c deploymentService) Restart(ctx context.Context, resourceID string) (*sta
 
 	currentStatus, err := c.GetStatus(ctx, resourceID)
 	if err != nil {
-		return nil, errors.Wrap(err, deployment.ErrFailedToDeploy.Error())
+		return nil, errors.Wrap(err, deployment.ErrFailedToRestart.Error())
 	}
 
 	switch currentStatus.State {

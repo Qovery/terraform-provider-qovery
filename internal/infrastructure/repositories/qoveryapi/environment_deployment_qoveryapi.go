@@ -55,14 +55,14 @@ func (c environmentDeploymentQoveryAPI) Deploy(ctx context.Context, environmentI
 
 // Restart calls Qovery's API to restart an environment using the given environmentID.
 func (c environmentDeploymentQoveryAPI) Restart(ctx context.Context, environmentID string) (*status.Status, error) {
-	environmentStatus, resp, err := c.client.EnvironmentActionsApi.
+	_, resp, err := c.client.EnvironmentActionsApi.
 		RestartEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewRestartApiError(apierrors.ApiResourceEnvironment, environmentID, resp, err)
 	}
 
-	return newDomainStatusFromQovery(environmentStatus)
+	return c.GetStatus(ctx, environmentID)
 }
 
 // Stop calls Qovery's API to stop an environment using the given environmentID.
