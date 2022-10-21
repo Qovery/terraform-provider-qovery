@@ -54,9 +54,16 @@ func (r DiffRequest) Validate() error {
 	return nil
 }
 
-// IsValid returns a bool to tell whether the UpsertServiceRequest is valid or not.
+// IsValid returns a bool to tell whether the DiffRequest is valid or not.
 func (r DiffRequest) IsValid() bool {
 	return r.Validate() == nil
+}
+
+// IsEmpty returns a bool to tell whether the DiffRequest is empty or not.
+func (r DiffRequest) IsEmpty() bool {
+	return len(r.Create) == 0 &&
+		len(r.Update) == 0 &&
+		len(r.Delete) == 0
 }
 
 type DiffCreateRequest struct {
