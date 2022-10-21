@@ -2,9 +2,9 @@ package qovery
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/qovery/qovery-client-go"
 
-	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
 type Environment struct {
@@ -30,42 +30,52 @@ func (e Environment) SecretList() SecretList {
 	return toSecretList(e.Secrets)
 }
 
-func (e Environment) toCreateEnvironmentRequest() (*client.EnvironmentCreateParams, error) {
-	mode, err := qovery.NewCreateEnvironmentModeEnumFromValue(toString(e.Mode))
+func (e Environment) toCreateEnvironmentRequest() (*environment.CreateServiceRequest, error) {
+	mode, err := environment.NewModeFromString(toString(e.Mode))
 	if err != nil {
 		return nil, err
 	}
 
-	return &client.EnvironmentCreateParams{
-		EnvironmentRequest: qovery.CreateEnvironmentRequest{
-			Name:    toString(e.Name),
-			Cluster: toStringPointer(e.ClusterId),
-			Mode:    mode,
+	return &environment.CreateServiceRequest{
+		EnvironmentCreateRequest: environment.CreateRepositoryRequest{
+			Name:      toString(e.Name),
+			ClusterID: toStringPointer(e.ClusterId),
+			Mode:      mode,
 		},
-		EnvironmentVariablesDiff: e.EnvironmentVariableList().diff(nil),
-		SecretsDiff:              e.SecretList().diff(nil),
+		EnvironmentVariables: e.EnvironmentVariableList().diffRequest(nil),
+		Secrets:              e.SecretList().diffRequest(nil),
 	}, nil
 }
 
-func (e Environment) toUpdateEnvironmentRequest(state Environment) client.EnvironmentUpdateParams {
-	return client.EnvironmentUpdateParams{
-		EnvironmentEditRequest: qovery.EnvironmentEditRequest{
-			Name: toStringPointer(e.Name),
-		},
-		EnvironmentVariablesDiff: e.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
-		SecretsDiff:              e.SecretList().diff(state.SecretList()),
+func (e Environment) toUpdateEnvironmentRequest(state Environment) (*environment.UpdateServiceRequest, error) {
+	var mode *environment.Mode
+	if !e.Mode.IsNull() {
+		m, err := environment.NewModeFromString(toString(e.Mode))
+		if err != nil {
+			return nil, err
+		}
+		mode = m
 	}
+
+	return &environment.UpdateServiceRequest{
+		EnvironmentUpdateRequest: environment.UpdateRepositoryRequest{
+			Name: toStringPointer(e.Name),
+			Mode: mode,
+		},
+		EnvironmentVariables: e.EnvironmentVariableList().diffRequest(state.EnvironmentVariableList()),
+		Secrets:              e.SecretList().diffRequest(state.SecretList()),
+	}, nil
 }
 
-func convertResponseToEnvironment(state Environment, res *client.EnvironmentResponse) Environment {
+func convertDomainEnvironmentToEnvironment(state Environment, env *environment.Environment) Environment {
 	return Environment{
-		Id:                          fromString(res.EnvironmentResponse.Id),
-		ProjectId:                   fromString(res.EnvironmentResponse.Project.Id),
-		ClusterId:                   fromString(res.EnvironmentResponse.ClusterId),
-		Name:                        fromString(res.EnvironmentResponse.Name),
-		Mode:                        fromClientEnum(res.EnvironmentResponse.Mode),
-		BuiltInEnvironmentVariables: fromEnvironmentVariableList(res.EnvironmentEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
-		EnvironmentVariables:        fromEnvironmentVariableList(res.EnvironmentEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_ENVIRONMENT).toTerraformSet(),
-		Secrets:                     fromSecretList(state.SecretList(), res.EnvironmentSecret, qovery.APIVARIABLESCOPEENUM_ENVIRONMENT).toTerraformSet(),
+		Id:                          fromString(env.ID.String()),
+		ProjectId:                   fromString(env.ProjectID.String()),
+		ClusterId:                   fromString(env.ClusterID.String()),
+		Name:                        fromString(env.Name),
+		Mode:                        fromClientEnum(env.Mode),
+		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(env.EnvironmentVariables, variable.ScopeEnvironment).toTerraformSet(),
+		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(env.BuiltInEnvironmentVariables, variable.ScopeBuiltIn).toTerraformSet(),
+		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), env.Secrets, variable.ScopeEnvironment).toTerraformSet(),
 	}
 }

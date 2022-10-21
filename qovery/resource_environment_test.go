@@ -11,8 +11,9 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/pkg/errors"
 
-	"github.com/qovery/terraform-provider-qovery/client/apierrors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 )
 
 func TestAcc_Environment(t *testing.T) {
@@ -270,6 +271,12 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 					}),
 				),
 			},
+			{
+				ResourceName:            "qovery_environment.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secrets"},
+			},
 		},
 	})
 }
@@ -310,41 +317,6 @@ func TestAcc_EnvironmentWithMode(t *testing.T) {
 	})
 }
 
-func TestAcc_EnvironmentImport(t *testing.T) {
-	t.Parallel()
-	testName := "environment-import"
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccQoveryEnvironmentDestroy("qovery_environment.test"),
-		Steps: []resource.TestStep{
-			// Create and Read testing
-			{
-				Config: testAccEnvironmentDefaultConfig(
-					testName,
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryProjectExists("qovery_project.test"),
-					testAccQoveryEnvironmentExists("qovery_environment.test"),
-					resource.TestCheckResourceAttr("qovery_environment.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_environment.test", "mode", "DEVELOPMENT"),
-					resource.TestCheckNoResourceAttr("qovery_environment.test", "environment_variables.0"),
-					resource.TestCheckNoResourceAttr("qovery_environment.test", "secrets.0"),
-					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-						"key": regexp.MustCompile(`^QOVERY_`),
-					}),
-				),
-			},
-			// Check Import
-			{
-				ResourceName:      "qovery_environment.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
-}
-
 func testAccQoveryEnvironmentExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
@@ -356,9 +328,9 @@ func testAccQoveryEnvironmentExists(resourceName string) resource.TestCheckFunc 
 			return fmt.Errorf("environment.id not found")
 		}
 
-		_, apiErr := apiClient.GetEnvironment(context.TODO(), rs.Primary.ID)
-		if apiErr != nil {
-			return apiErr
+		_, err := qoveryServices.Environment.Get(context.TODO(), rs.Primary.ID)
+		if err != nil {
+			return err
 		}
 		return nil
 	}
@@ -375,12 +347,12 @@ func testAccQoveryEnvironmentDestroy(resourceName string) resource.TestCheckFunc
 			return fmt.Errorf("environment.id not found")
 		}
 
-		_, apiErr := apiClient.GetEnvironment(context.TODO(), rs.Primary.ID)
-		if apiErr == nil {
+		_, err := qoveryServices.Environment.Get(context.TODO(), rs.Primary.ID)
+		if err == nil {
 			return fmt.Errorf("found environment but expected it to be deleted")
 		}
-		if !apierrors.IsNotFound(apiErr) {
-			return fmt.Errorf("unexpected error checking for deleted environment: %s", apiErr.Summary())
+		if !apierrors.IsErrNotFound(errors.Cause(err)) {
+			return fmt.Errorf("unexpected error checking for deleted environment: %s", err.Error())
 		}
 		return nil
 	}

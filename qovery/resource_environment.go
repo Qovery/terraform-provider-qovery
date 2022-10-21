@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	"github.com/qovery/qovery-client-go"
 
-	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
@@ -22,14 +22,8 @@ import (
 var _ resource.ResourceWithConfigure = &environmentResource{}
 var _ resource.ResourceWithImportState = environmentResource{}
 
-var (
-	// Environment Mode
-	environmentModes       = clientEnumToStringArray(qovery.AllowedEnvironmentModeEnumEnumValues)
-	environmentModeDefault = string(qovery.ENVIRONMENTMODEENUM_DEVELOPMENT)
-)
-
 type environmentResource struct {
-	client *client.Client
+	environmentService environment.Service
 }
 
 func newEnvironmentResource() resource.Resource {
@@ -55,7 +49,7 @@ func (r *environmentResource) Configure(_ context.Context, req resource.Configur
 		return
 	}
 
-	r.client = provider.client
+	r.environmentService = provider.environmentService
 }
 
 func (r environmentResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
@@ -85,17 +79,17 @@ func (r environmentResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 			"mode": {
 				Description: descriptions.NewStringEnumDescription(
 					"Mode of the environment [NOTE: can't be updated after creation].",
-					environmentModes,
-					&environmentModeDefault,
+					clientEnumToStringArray(environment.AllowedModeValues),
+					pointer.ToString(environment.DefaultMode.String()),
 				),
 				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
 				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringDefaultModifier(environmentModeDefault),
+					modifiers.NewStringDefaultModifier(environment.DefaultMode.String()),
 				},
 				Validators: []tfsdk.AttributeValidator{
-					validators.NewStringEnumValidator(environmentModes),
+					validators.NewStringEnumValidator(clientEnumToStringArray(environment.AllowedModeValues)),
 				},
 			},
 			"built_in_environment_variables": {
@@ -181,14 +175,15 @@ func (r environmentResource) Create(ctx context.Context, req resource.CreateRequ
 		resp.Diagnostics.AddError(err.Error(), err.Error())
 		return
 	}
-	environment, apiErr := r.client.CreateEnvironment(ctx, plan.ProjectId.Value, request)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+
+	env, err := r.environmentService.Create(ctx, plan.ProjectId.Value, *request)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on environment create", err.Error())
 		return
 	}
 
 	// Initialize state values
-	state := convertResponseToEnvironment(plan, environment)
+	state := convertDomainEnvironmentToEnvironment(plan, env)
 	tflog.Trace(ctx, "created environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
@@ -205,14 +200,14 @@ func (r environmentResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	// Get environment from the API
-	environment, apiErr := r.client.GetEnvironment(ctx, state.Id.Value)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	env, err := r.environmentService.Get(ctx, state.Id.Value)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on environment read", err.Error())
 		return
 	}
 
 	// Refresh state values
-	state = convertResponseToEnvironment(state, environment)
+	state = convertDomainEnvironmentToEnvironment(state, env)
 	tflog.Trace(ctx, "read environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
@@ -229,15 +224,21 @@ func (r environmentResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
+	request, err := plan.toUpdateEnvironmentRequest(state)
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+
 	// Update environment in the backend
-	environment, apiErr := r.client.UpdateEnvironment(ctx, state.Id.Value, plan.toUpdateEnvironmentRequest(state))
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	env, err := r.environmentService.Update(ctx, state.Id.Value, *request)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on environment update", err.Error())
 		return
 	}
 
 	// Update state values
-	state = convertResponseToEnvironment(plan, environment)
+	state = convertDomainEnvironmentToEnvironment(plan, env)
 	tflog.Trace(ctx, "updated environment", map[string]interface{}{"environment_id": state.Id.Value})
 
 	// Set state
@@ -254,9 +255,9 @@ func (r environmentResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 
 	// Delete environment
-	apiErr := r.client.DeleteEnvironment(ctx, state.Id.Value)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	err := r.environmentService.Delete(ctx, state.Id.Value)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on environment delete", err.Error())
 		return
 	}
 

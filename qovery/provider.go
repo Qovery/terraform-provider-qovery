@@ -15,6 +15,7 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/application/services"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 
@@ -63,6 +64,9 @@ type qProvider struct {
 
 	// containerRegistryService is an instance of a registry.Service that handles the domain logic.
 	containerRegistryService registry.Service
+
+	// environmentService is an instance of an environment.Service that handles the domain logic.
+	environmentService environment.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -128,6 +132,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.projectService = domainServices.Project
 	p.containerService = domainServices.Container
 	p.containerRegistryService = domainServices.ContainerRegistry
+	p.environmentService = domainServices.Environment
 
 	resp.DataSourceData = p
 	resp.ResourceData = p
