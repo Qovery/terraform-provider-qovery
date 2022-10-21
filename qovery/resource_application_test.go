@@ -774,6 +774,12 @@ func TestAcc_ApplicationWithSecrets(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
 				),
 			},
+			{
+				ResourceName:            "qovery_application.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secrets"},
+			},
 		},
 	})
 }
@@ -1373,56 +1379,6 @@ func TestAcc_ApplicationRestartOnEnvironmentUpdate(t *testing.T) {
 //		},
 //	})
 //}
-
-func TestAcc_ApplicationImport(t *testing.T) {
-	t.Parallel()
-	testName := "application-import"
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
-		Steps: []resource.TestStep{
-			// Create and Read testing
-			{
-				Config: testAccApplicationDefaultConfig(
-					testName,
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryProjectExists("qovery_project.test"),
-					testAccQoveryEnvironmentExists("qovery_environment.test"),
-					testAccQoveryApplicationExists("qovery_application.test"),
-					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
-					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", applicationBranch),
-					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
-					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
-					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
-					resource.TestCheckNoResourceAttr("qovery_application.test", "buildpack_language"),
-					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
-					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
-					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
-					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
-					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
-					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
-					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
-					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
-					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-						"key": regexp.MustCompile(`^QOVERY_`),
-					}),
-					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
-					resource.TestCheckResourceAttr("qovery_application.test", "state", "RUNNING"),
-				),
-			},
-			// Check Import
-			{
-				ResourceName:      "qovery_application.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
-}
 
 func testAccQoveryApplicationExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
