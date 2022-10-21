@@ -41,7 +41,7 @@ func (p projectEnvironmentVariablesQoveryAPI) Create(ctx context.Context, projec
 	return newDomainVariableFromQovery(v)
 }
 
-// List calls Qovery's API to retrieve a environment variables from a project using the given projectID and variableID.
+// List calls Qovery's API to retrieve an environment variables from a project using the given projectID and variableID.
 func (p projectEnvironmentVariablesQoveryAPI) List(ctx context.Context, projectID string) (variable.Variables, error) {
 	vars, resp, err := p.client.ProjectEnvironmentVariableApi.
 		ListProjectEnvironmentVariable(ctx, projectID).

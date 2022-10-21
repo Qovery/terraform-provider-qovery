@@ -41,7 +41,7 @@ func (p containerSecretsQoveryAPI) Create(ctx context.Context, containerID strin
 	return newDomainSecretFromQovery(v)
 }
 
-// List calls Qovery's API to retrieve a environment secrets from a container using the given containerID and secretID.
+// List calls Qovery's API to retrieve an environment secrets from a container using the given containerID and secretID.
 func (p containerSecretsQoveryAPI) List(ctx context.Context, containerID string) (secret.Secrets, error) {
 	vars, resp, err := p.client.ContainerSecretApi.
 		ListContainerSecrets(ctx, containerID).

@@ -9,6 +9,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
@@ -32,17 +33,21 @@ type Configuration func(qoveryAPI *QoveryAPI) error
 type QoveryAPI struct {
 	client *qovery.APIClient
 
-	CredentialsAws               credentials.AwsRepository
-	CredentialsScaleway          credentials.ScalewayRepository
-	Organization                 organization.Repository
-	Project                      project.Repository
-	ProjectEnvironmentVariable   variable.Repository
-	ProjectSecret                secret.Repository
-	Container                    container.Repository
-	ContainerDeployment          deployment.Repository
-	ContainerEnvironmentVariable variable.Repository
-	ContainerSecret              secret.Repository
-	ContainerRegistry            registry.Repository
+	CredentialsAws                 credentials.AwsRepository
+	CredentialsScaleway            credentials.ScalewayRepository
+	Organization                   organization.Repository
+	Project                        project.Repository
+	ProjectEnvironmentVariable     variable.Repository
+	ProjectSecret                  secret.Repository
+	Container                      container.Repository
+	ContainerDeployment            deployment.Repository
+	ContainerEnvironmentVariable   variable.Repository
+	ContainerSecret                secret.Repository
+	ContainerRegistry              registry.Repository
+	Environment                    environment.Repository
+	EnvironmentDeployment          deployment.Repository
+	EnvironmentEnvironmentVariable variable.Repository
+	EnvironmentSecret              secret.Repository
 }
 
 // New returns a new instance of QoveryAPI and applies the given configs.
@@ -108,20 +113,44 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	environmentAPI, err := newEnvironmentQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	environmentDeploymentAPI, err := newEnvironmentDeploymentQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	environmentEnvironmentVariableAPI, err := newEnvironmentEnvironmentVariablesQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	environmentSecretAPI, err := newEnvironmentSecretsQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create a new QoveryAPI instance.
 	qoveryAPI := &QoveryAPI{
-		client:                       apiClient,
-		CredentialsAws:               credentialsAwsAPI,
-		CredentialsScaleway:          credentialsScalewayAPI,
-		Organization:                 organizationAPI,
-		Project:                      projectAPI,
-		ProjectEnvironmentVariable:   projectEnvironmentVariableAPI,
-		ProjectSecret:                projectSecretAPI,
-		Container:                    containerAPI,
-		ContainerDeployment:          containerDeploymentAPI,
-		ContainerEnvironmentVariable: containerEnvironmentVariableAPI,
-		ContainerSecret:              containerSecretAPI,
-		ContainerRegistry:            containerRegistryAPI,
+		client:                         apiClient,
+		CredentialsAws:                 credentialsAwsAPI,
+		CredentialsScaleway:            credentialsScalewayAPI,
+		Organization:                   organizationAPI,
+		Project:                        projectAPI,
+		ProjectEnvironmentVariable:     projectEnvironmentVariableAPI,
+		ProjectSecret:                  projectSecretAPI,
+		Container:                      containerAPI,
+		ContainerDeployment:            containerDeploymentAPI,
+		ContainerEnvironmentVariable:   containerEnvironmentVariableAPI,
+		ContainerSecret:                containerSecretAPI,
+		ContainerRegistry:              containerRegistryAPI,
+		Environment:                    environmentAPI,
+		EnvironmentDeployment:          environmentDeploymentAPI,
+		EnvironmentEnvironmentVariable: environmentEnvironmentVariableAPI,
+		EnvironmentSecret:              environmentSecretAPI,
 	}
 
 	// Apply all the configs to the qoveryAPI instance.
