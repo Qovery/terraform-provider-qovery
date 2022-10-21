@@ -105,8 +105,19 @@ func (c deploymentService) Restart(ctx context.Context, resourceID string) (*sta
 		return nil, errors.Wrap(err, deployment.ErrFailedToRestart.Error())
 	}
 
-	if _, err := c.deploymentRepository.Restart(ctx, resourceID); err != nil {
-		return nil, errors.Wrap(err, deployment.ErrFailedToRestart.Error())
+	currentStatus, err := c.GetStatus(ctx, resourceID)
+	if err != nil {
+		return nil, errors.Wrap(err, deployment.ErrFailedToDeploy.Error())
+	}
+
+	switch currentStatus.State {
+	case status.StateReady:
+		return currentStatus, nil
+	default:
+		_, err := c.deploymentRepository.Restart(ctx, resourceID)
+		if err != nil {
+			return nil, errors.Wrap(err, deployment.ErrFailedToRestart.Error())
+		}
 	}
 
 	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateRunning), nil); err != nil {
@@ -211,8 +222,12 @@ func (c deploymentService) waitDesiredStateFunc(resourceID string, desiredState 
 }
 
 func (c deploymentService) waitFinalStateFunc(resourceID string) waitFunc {
+	return waitFinalStateFunc(c.deploymentRepository, resourceID)
+}
+
+func waitFinalStateFunc(deploymentRepository deployment.Repository, resourceID string) waitFunc {
 	return func(ctx context.Context) (bool, error) {
-		currentStatus, err := c.deploymentRepository.GetStatus(ctx, resourceID)
+		currentStatus, err := deploymentRepository.GetStatus(ctx, resourceID)
 		if err != nil {
 			return false, err
 		}
