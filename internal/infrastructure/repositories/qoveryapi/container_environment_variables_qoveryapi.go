@@ -41,7 +41,7 @@ func (p containerEnvironmentVariablesQoveryAPI) Create(ctx context.Context, cont
 	return newDomainVariableFromQovery(v)
 }
 
-// List calls Qovery's API to retrieve a environment variables from a container using the given containerID and variableID.
+// List calls Qovery's API to retrieve an environment variables from a container using the given containerID and variableID.
 func (p containerEnvironmentVariablesQoveryAPI) List(ctx context.Context, containerID string) (variable.Variables, error) {
 	vars, resp, err := p.client.ContainerEnvironmentVariableApi.
 		ListContainerEnvironmentVariable(ctx, containerID).

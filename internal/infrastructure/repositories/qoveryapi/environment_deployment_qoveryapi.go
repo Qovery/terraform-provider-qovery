@@ -10,72 +10,69 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
 )
 
-// Ensure containerDeploymentQoveryAPI defined types fully satisfy the deployment.Repository interface.
-var _ deployment.Repository = containerDeploymentQoveryAPI{}
+// Ensure environmentDeploymentQoveryAPI defined types fully satisfy the deployment.Repository interface.
+var _ deployment.Repository = environmentDeploymentQoveryAPI{}
 
-// containerDeploymentQoveryAPI implements the interface deployment.Repository.
-type containerDeploymentQoveryAPI struct {
+// environmentDeploymentQoveryAPI implements the interface deployment.Repository.
+type environmentDeploymentQoveryAPI struct {
 	client *qovery.APIClient
 }
 
-// newContainerDeploymentQoveryAPI return a new instance of a deployment.Repository that uses Qovery's API.
-func newContainerDeploymentQoveryAPI(client *qovery.APIClient) (deployment.Repository, error) {
+// newEnvironmentDeploymentQoveryAPI return a new instance of a deployment.Repository that uses Qovery's API.
+func newEnvironmentDeploymentQoveryAPI(client *qovery.APIClient) (deployment.Repository, error) {
 	if client == nil {
 		return nil, ErrInvalidQoveryAPIClient
 	}
 
-	return &containerDeploymentQoveryAPI{
+	return &environmentDeploymentQoveryAPI{
 		client: client,
 	}, nil
 }
 
-// GetStatus calls Qovery's API to get the status of a container using the given containerID.
-func (c containerDeploymentQoveryAPI) GetStatus(ctx context.Context, containerID string) (*status.Status, error) {
-	containerStatus, resp, err := c.client.ContainerMainCallsApi.
-		GetContainerStatus(ctx, containerID).
+// GetStatus calls Qovery's API to get the status of an environment using the given environmentID.
+func (c environmentDeploymentQoveryAPI) GetStatus(ctx context.Context, environmentID string) (*status.Status, error) {
+	environmentStatus, resp, err := c.client.EnvironmentMainCallsApi.
+		GetEnvironmentStatus(ctx, environmentID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadApiError(apierrors.ApiResourceContainerStatus, containerID, resp, err)
+		return nil, apierrors.NewReadApiError(apierrors.ApiResourceEnvironmentStatus, environmentID, resp, err)
 	}
 
-	return newDomainStatusFromQovery(containerStatus)
+	return newDomainStatusFromQovery(environmentStatus)
 }
 
-// Deploy calls Qovery's API to deploy a container using the given containerID.
-func (c containerDeploymentQoveryAPI) Deploy(ctx context.Context, containerID string, imageTag string) (*status.Status, error) {
-	containerStatus, resp, err := c.client.ContainerActionsApi.
-		DeployContainer(ctx, containerID).
-		ContainerDeployRequest(qovery.ContainerDeployRequest{
-			ImageTag: imageTag,
-		}).
+// Deploy calls Qovery's API to deploy an environment using the given environmentID.
+func (c environmentDeploymentQoveryAPI) Deploy(ctx context.Context, environmentID string, imageTag string) (*status.Status, error) {
+	environmentStatus, resp, err := c.client.EnvironmentActionsApi.
+		DeployEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewDeployApiError(apierrors.ApiResourceContainer, containerID, resp, err)
+		return nil, apierrors.NewDeployApiError(apierrors.ApiResourceEnvironment, environmentID, resp, err)
 	}
 
-	return newDomainStatusFromQovery(containerStatus)
+	return newDomainStatusFromQovery(environmentStatus)
 }
 
-// Restart calls Qovery's API to restart a container using the given containerID.
-func (c containerDeploymentQoveryAPI) Restart(ctx context.Context, containerID string) (*status.Status, error) {
-	containerStatus, resp, err := c.client.ContainerActionsApi.
-		RestartContainer(ctx, containerID).
+// Restart calls Qovery's API to restart an environment using the given environmentID.
+func (c environmentDeploymentQoveryAPI) Restart(ctx context.Context, environmentID string) (*status.Status, error) {
+	environmentStatus, resp, err := c.client.EnvironmentActionsApi.
+		RestartEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewRestartApiError(apierrors.ApiResourceContainer, containerID, resp, err)
+		return nil, apierrors.NewRestartApiError(apierrors.ApiResourceEnvironment, environmentID, resp, err)
 	}
 
-	return newDomainStatusFromQovery(containerStatus)
+	return newDomainStatusFromQovery(environmentStatus)
 }
 
-// Stop calls Qovery's API to stop a container using the given containerID.
-func (c containerDeploymentQoveryAPI) Stop(ctx context.Context, containerID string) (*status.Status, error) {
-	containerStatus, resp, err := c.client.ContainerActionsApi.
-		StopContainer(ctx, containerID).
+// Stop calls Qovery's API to stop an environment using the given environmentID.
+func (c environmentDeploymentQoveryAPI) Stop(ctx context.Context, environmentID string) (*status.Status, error) {
+	environmentStatus, resp, err := c.client.EnvironmentActionsApi.
+		StopEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewStopApiError(apierrors.ApiResourceContainer, containerID, resp, err)
+		return nil, apierrors.NewStopApiError(apierrors.ApiResourceEnvironment, environmentID, resp, err)
 	}
 
-	return newDomainStatusFromQovery(containerStatus)
+	return newDomainStatusFromQovery(environmentStatus)
 }

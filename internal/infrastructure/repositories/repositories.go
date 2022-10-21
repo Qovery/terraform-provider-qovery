@@ -8,6 +8,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
@@ -24,17 +25,21 @@ var (
 type Configuration func(repos *Repositories) error
 
 type Repositories struct {
-	CredentialsAws               credentials.AwsRepository
-	CredentialsScaleway          credentials.ScalewayRepository
-	Organization                 organization.Repository
-	Project                      project.Repository
-	ProjectEnvironmentVariable   variable.Repository
-	ProjectSecret                secret.Repository
-	Container                    container.Repository
-	ContainerDeployment          deployment.Repository
-	ContainerEnvironmentVariable variable.Repository
-	ContainerSecret              secret.Repository
-	ContainerRegistry            registry.Repository
+	CredentialsAws                 credentials.AwsRepository
+	CredentialsScaleway            credentials.ScalewayRepository
+	Organization                   organization.Repository
+	Project                        project.Repository
+	ProjectEnvironmentVariable     variable.Repository
+	ProjectSecret                  secret.Repository
+	Container                      container.Repository
+	ContainerDeployment            deployment.Repository
+	ContainerEnvironmentVariable   variable.Repository
+	ContainerSecret                secret.Repository
+	ContainerRegistry              registry.Repository
+	Environment                    environment.Repository
+	EnvironmentDeployment          deployment.Repository
+	EnvironmentEnvironmentVariable variable.Repository
+	EnvironmentSecret              secret.Repository
 }
 
 func New(configs ...Configuration) (*Repositories, error) {
@@ -75,6 +80,10 @@ func WithQoveryAPI(apiToken string, providerVersion string) Configuration {
 		repos.ContainerEnvironmentVariable = qoveryAPI.ContainerEnvironmentVariable
 		repos.ContainerSecret = qoveryAPI.ContainerSecret
 		repos.ContainerRegistry = qoveryAPI.ContainerRegistry
+		repos.Environment = qoveryAPI.Environment
+		repos.EnvironmentDeployment = qoveryAPI.EnvironmentDeployment
+		repos.EnvironmentEnvironmentVariable = qoveryAPI.EnvironmentEnvironmentVariable
+		repos.EnvironmentSecret = qoveryAPI.EnvironmentSecret
 
 		return nil
 	}
