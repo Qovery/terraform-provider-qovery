@@ -167,9 +167,7 @@ func newEnvironmentFinalStateCheckerWaitFunc(client *Client, environmentID strin
 }
 
 func isFinalState(state qovery.StateEnum) bool {
-	return state != qovery.STATEENUM_DEPLOYING &&
-		state != qovery.STATEENUM_DELETING &&
-		state != qovery.STATEENUM_STOPPING &&
+	return !isProcessingState(state) &&
 		!isWaitingState(state) &&
 		!isQueuedState(state)
 }
@@ -178,12 +176,16 @@ func isStatusError(state qovery.StateEnum) bool {
 	return strings.HasSuffix(string(state), "_ERROR")
 }
 
+func isProcessingState(state qovery.StateEnum) bool {
+	return strings.HasSuffix(string(state), "ING") && state != qovery.STATEENUM_RUNNING
+}
+
 func isWaitingState(state qovery.StateEnum) bool {
-	return strings.Contains(string(state), "WAITING")
+	return strings.Contains(string(state), "_WAITING")
 }
 
 func isQueuedState(state qovery.StateEnum) bool {
-	return strings.Contains(string(state), "QUEUED")
+	return strings.Contains(string(state), "_QUEUED")
 }
 
 func toDurationPointer(d time.Duration) *time.Duration {
