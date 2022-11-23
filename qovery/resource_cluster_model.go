@@ -182,13 +182,23 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 		}
 	}
 
+	// The object should be fill even if no feature is present, but will be mark as Null
+	// (e.g SCW clusters don't have any feature)
+	isNull := false
 	if len(attrs) == 0 && len(attrTypes) == 0 {
-		return types.Object{Unknown: true}
+		isNull = true
+		defaultFeatureKeyVpcSubnet := ""
+		defaultFeatureKeyStaticIP := false
+		attrs[featureKeyVpcSubnet] = fromStringPointer(&defaultFeatureKeyVpcSubnet)
+		attrTypes[featureKeyVpcSubnet] = types.StringType
+		attrs[featureKeyStaticIP] = fromBoolPointer(&defaultFeatureKeyStaticIP)
+		attrTypes[featureKeyStaticIP] = types.BoolType
 	}
 
 	return types.Object{
 		Attrs:     attrs,
 		AttrTypes: attrTypes,
+		Null:      isNull,
 	}
 }
 
