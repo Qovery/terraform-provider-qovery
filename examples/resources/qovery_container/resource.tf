@@ -1,4 +1,4 @@
-resource "qovery_container_registry" "my_container_registry" {
+resource "qovery_container" "my_container" {
   # Required
   environment_id = qovery_environment.my_environment.id
   registry_id    = qovery_container_registry.my_container_registry.id
