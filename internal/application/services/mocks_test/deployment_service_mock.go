@@ -118,8 +118,8 @@ func (_c *DeploymentService_GetStatus_Call) Return(_a0 *status.Status, _a1 error
 	return _c
 }
 
-// Restart provides a mock function with given fields: ctx, resourceID
-func (_m *DeploymentService) Restart(ctx context.Context, resourceID string) (*status.Status, error) {
+// Redeploy provides a mock function with given fields: ctx, resourceID
+func (_m *DeploymentService) Redeploy(ctx context.Context, resourceID string) (*status.Status, error) {
 	ret := _m.Called(ctx, resourceID)
 
 	var r0 *status.Status
@@ -141,26 +141,26 @@ func (_m *DeploymentService) Restart(ctx context.Context, resourceID string) (*s
 	return r0, r1
 }
 
-// DeploymentService_Restart_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Restart'
-type DeploymentService_Restart_Call struct {
+// DeploymentService_Redeploy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Redeploy'
+type DeploymentService_Redeploy_Call struct {
 	*mock.Call
 }
 
-// Restart is a helper method to define mock.On call
+// Redeploy is a helper method to define mock.On call
 //   - ctx context.Context
 //   - resourceID string
-func (_e *DeploymentService_Expecter) Restart(ctx interface{}, resourceID interface{}) *DeploymentService_Restart_Call {
-	return &DeploymentService_Restart_Call{Call: _e.mock.On("Restart", ctx, resourceID)}
+func (_e *DeploymentService_Expecter) Redeploy(ctx interface{}, resourceID interface{}) *DeploymentService_Redeploy_Call {
+	return &DeploymentService_Redeploy_Call{Call: _e.mock.On("Redeploy", ctx, resourceID)}
 }
 
-func (_c *DeploymentService_Restart_Call) Run(run func(ctx context.Context, resourceID string)) *DeploymentService_Restart_Call {
+func (_c *DeploymentService_Redeploy_Call) Run(run func(ctx context.Context, resourceID string)) *DeploymentService_Redeploy_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
 
-func (_c *DeploymentService_Restart_Call) Return(_a0 *status.Status, _a1 error) *DeploymentService_Restart_Call {
+func (_c *DeploymentService_Redeploy_Call) Return(_a0 *status.Status, _a1 error) *DeploymentService_Redeploy_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }

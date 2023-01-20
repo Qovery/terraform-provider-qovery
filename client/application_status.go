@@ -23,7 +23,7 @@ func (c *Client) getApplicationStatus(ctx context.Context, applicationID string)
 	return status, nil
 }
 
-func (c *Client) updateApplicationStatus(ctx context.Context, application *qovery.Application, desiredState qovery.StateEnum, forceRestart bool) (*qovery.Status, *apierrors.APIError) {
+func (c *Client) updateApplicationStatus(ctx context.Context, application *qovery.Application, desiredState qovery.StateEnum, forceRedeploy bool) (*qovery.Status, *apierrors.APIError) {
 	// wait until we can stop the application - otherwise it will fail
 	checker := newApplicationFinalStateCheckerWaitFunc(c, application.Id)
 	if apiErr := wait(ctx, checker, nil); apiErr != nil {
@@ -41,8 +41,8 @@ func (c *Client) updateApplicationStatus(ctx context.Context, application *qover
 	}
 
 	if status.State != desiredState {
-		// Disable restart if we deployed the app previously or if we want the app to be stopped
-		forceRestart = false
+		// Disable redeploy if we deployed the app previously or if we want the app to be stopped
+		forceRedeploy = false
 		switch desiredState {
 		case qovery.STATEENUM_RUNNING:
 			return c.deployApplication(ctx, application)
@@ -51,8 +51,8 @@ func (c *Client) updateApplicationStatus(ctx context.Context, application *qover
 		}
 	}
 
-	if (status.ServiceDeploymentStatus == qovery.SERVICEDEPLOYMENTSTATUSENUM_OUT_OF_DATE) || (forceRestart && desiredState == qovery.STATEENUM_RUNNING) {
-		return c.restartApplication(ctx, application)
+	if (status.ServiceDeploymentStatus == qovery.SERVICEDEPLOYMENTSTATUSENUM_OUT_OF_DATE) || (forceRedeploy && desiredState == qovery.STATEENUM_RUNNING) {
+		return c.redeployApplication(ctx, application)
 	}
 
 	return status, nil

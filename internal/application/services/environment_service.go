@@ -127,7 +127,7 @@ func (s environmentService) Update(ctx context.Context, environmentID string, re
 	}
 
 	if !request.EnvironmentVariables.IsEmpty() || !request.Secrets.IsEmpty() {
-		_, err := s.environmentDeploymentService.Restart(ctx, environmentID)
+		_, err := s.environmentDeploymentService.Redeploy(ctx, environmentID)
 		if err != nil {
 			return nil, errors.Wrap(err, environment.ErrFailedToUpdateEnvironment.Error())
 		}

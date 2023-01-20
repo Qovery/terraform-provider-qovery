@@ -5,11 +5,11 @@ package apierrors
 type ApiAction string
 
 const (
-	ApiActionCreate  ApiAction = "create"
-	ApiActionRead    ApiAction = "read"
-	ApiActionUpdate  ApiAction = "update"
-	ApiActionDelete  ApiAction = "delete"
-	ApiActionDeploy  ApiAction = "deploy"
-	ApiActionStop    ApiAction = "stop"
-	ApiActionRestart ApiAction = "restart"
+	ApiActionCreate   ApiAction = "create"
+	ApiActionRead     ApiAction = "read"
+	ApiActionUpdate   ApiAction = "update"
+	ApiActionDelete   ApiAction = "delete"
+	ApiActionDeploy   ApiAction = "deploy"
+	ApiActionStop     ApiAction = "stop"
+	ApiActionRedeploy ApiAction = "redeploy"
 )

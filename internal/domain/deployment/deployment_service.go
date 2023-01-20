@@ -15,8 +15,8 @@ var (
 	ErrFailedToGetStatus      = errors.New("failed to get status")
 	ErrFailedToUpdateState    = errors.New("failed to update state")
 	ErrFailedToDeploy         = errors.New("failed to deploy")
-	ErrFailedToRestart        = errors.New("failed to stop")
-	ErrFailedToStop           = errors.New("failed to restart")
+	ErrFailedToRedeploy       = errors.New("failed to redeploy")
+	ErrFailedToStop           = errors.New("failed to stop")
 )
 
 // Service represents the interface to implement to handle the domain logic of a deployment.
@@ -24,6 +24,6 @@ type Service interface {
 	GetStatus(ctx context.Context, resourceID string) (*status.Status, error)
 	UpdateState(ctx context.Context, resourceID string, desiredState status.State, version string) (*status.Status, error)
 	Deploy(ctx context.Context, resourceID string, version string) (*status.Status, error)
-	Restart(ctx context.Context, resourceID string) (*status.Status, error)
+	Redeploy(ctx context.Context, resourceID string) (*status.Status, error)
 	Stop(ctx context.Context, resourceID string) (*status.Status, error)
 }

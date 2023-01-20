@@ -34,8 +34,8 @@ func NewStopError(resource APIResource, resourceID string, res *http.Response, e
 	return NewError(APIActionStop, resource, resourceID, res, err)
 }
 
-func NewRestartError(resource APIResource, resourceID string, res *http.Response, err error) *APIError {
-	return NewError(APIActionRestart, resource, resourceID, res, err)
+func NewRedeployError(resource APIResource, resourceID string, res *http.Response, err error) *APIError {
+	return NewError(APIActionRedeploy, resource, resourceID, res, err)
 }
 
 func NewDeployError(resource APIResource, resourceID string, res *http.Response, err error) *APIError {

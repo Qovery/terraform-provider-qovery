@@ -113,7 +113,7 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewUpdateError(apierrors.APIResourceDatabase, databaseID, res, err)
 	}
-	// FIXME restart the database if the configuration has changed
+	// FIXME redeploy the database if the configuration has changed
 	return c.updateDatabase(ctx, database, params.DesiredState)
 }
 
@@ -176,7 +176,7 @@ func (c *Client) deployDatabase(ctx context.Context, databaseID string) (*qovery
 	case qovery.STATEENUM_RUNNING:
 		return status, nil
 	case qovery.STATEENUM_DEPLOYMENT_ERROR:
-		return c.restartDatabase(ctx, databaseID)
+		return c.redeployDatabase(ctx, databaseID)
 	default:
 		_, res, err := c.api.DatabaseActionsApi.
 			DeployDatabase(ctx, databaseID).
@@ -218,17 +218,17 @@ func (c *Client) stopDatabase(ctx context.Context, databaseID string) (*qovery.S
 	return c.getDatabaseStatus(ctx, databaseID)
 }
 
-func (c *Client) restartDatabase(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
+func (c *Client) redeployDatabase(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
 	finalStateChecker := newDatabaseFinalStateCheckerWaitFunc(c, databaseID)
 	if apiErr := wait(ctx, finalStateChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
 
 	_, res, err := c.api.DatabaseActionsApi.
-		RestartDatabase(ctx, databaseID).
+		RedeployDatabase(ctx, databaseID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
-		return nil, apierrors.NewRestartError(apierrors.APIResourceDatabase, databaseID, res, err)
+		return nil, apierrors.NewRedeployError(apierrors.APIResourceDatabase, databaseID, res, err)
 	}
 
 	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_RUNNING)
