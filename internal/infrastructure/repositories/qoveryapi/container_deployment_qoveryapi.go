@@ -56,13 +56,13 @@ func (c containerDeploymentQoveryAPI) Deploy(ctx context.Context, containerID st
 	return newDomainStatusFromQovery(containerStatus)
 }
 
-// Restart calls Qovery's API to restart a container using the given containerID.
-func (c containerDeploymentQoveryAPI) Restart(ctx context.Context, containerID string) (*status.Status, error) {
+// Redeploy calls Qovery's API to redeploy a container using the given containerID.
+func (c containerDeploymentQoveryAPI) Redeploy(ctx context.Context, containerID string) (*status.Status, error) {
 	containerStatus, resp, err := c.client.ContainerActionsApi.
-		RestartContainer(ctx, containerID).
+		RedeployContainer(ctx, containerID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewRestartApiError(apierrors.ApiResourceContainer, containerID, resp, err)
+		return nil, apierrors.NewRedeployApiError(apierrors.ApiResourceContainer, containerID, resp, err)
 	}
 
 	return newDomainStatusFromQovery(containerStatus)

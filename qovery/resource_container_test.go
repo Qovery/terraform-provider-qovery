@@ -990,10 +990,10 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //	})
 //}
 //
-//// Container should restart when environment env variables are updated.
-//func TestAcc_ContainerRestartOnEnvironmentUpdate(t *testing.T) {
+//// Container should redeploy when environment env variables are updated.
+//func TestAcc_ContainerRedeployOnEnvironmentUpdate(t *testing.T) {
 //	t.Parallel()
-//	testName := "container-restart"
+//	testName := "container-redeploy"
 //	resource.Test(t, resource.TestCase{
 //		PreCheck:                 func() { testAccPreCheck(t) },
 //		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

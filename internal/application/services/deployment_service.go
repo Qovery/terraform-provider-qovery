@@ -80,7 +80,7 @@ func (c deploymentService) Deploy(ctx context.Context, resourceID string, versio
 	case status.StateRunning:
 		return currentStatus, nil
 	case status.StateDeploymentError:
-		return c.Restart(ctx, resourceID)
+		return c.Redeploy(ctx, resourceID)
 	default:
 		_, err := c.deploymentRepository.Deploy(ctx, resourceID, version)
 		if err != nil {
@@ -95,33 +95,33 @@ func (c deploymentService) Deploy(ctx context.Context, resourceID string, versio
 	return c.GetStatus(ctx, resourceID)
 }
 
-// Restart handles the domain logic to restart a resource.
-func (c deploymentService) Restart(ctx context.Context, resourceID string) (*status.Status, error) {
+// Redeploy handles the domain logic to redeploy a resource.
+func (c deploymentService) Redeploy(ctx context.Context, resourceID string) (*status.Status, error) {
 	if err := c.checkResourceID(resourceID); err != nil {
-		return nil, errors.Wrap(err, deployment.ErrFailedToRestart.Error())
+		return nil, errors.Wrap(err, deployment.ErrFailedToRedeploy.Error())
 	}
 
 	if err := c.wait(ctx, c.waitFinalStateFunc(resourceID), nil); err != nil {
-		return nil, errors.Wrap(err, deployment.ErrFailedToRestart.Error())
+		return nil, errors.Wrap(err, deployment.ErrFailedToRedeploy.Error())
 	}
 
 	currentStatus, err := c.GetStatus(ctx, resourceID)
 	if err != nil {
-		return nil, errors.Wrap(err, deployment.ErrFailedToRestart.Error())
+		return nil, errors.Wrap(err, deployment.ErrFailedToRedeploy.Error())
 	}
 
 	switch currentStatus.State {
 	case status.StateReady:
 		return currentStatus, nil
 	default:
-		_, err := c.deploymentRepository.Restart(ctx, resourceID)
+		_, err := c.deploymentRepository.Redeploy(ctx, resourceID)
 		if err != nil {
-			return nil, errors.Wrap(err, deployment.ErrFailedToRestart.Error())
+			return nil, errors.Wrap(err, deployment.ErrFailedToRedeploy.Error())
 		}
 	}
 
 	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateRunning), nil); err != nil {
-		return nil, errors.Wrap(err, deployment.ErrFailedToRestart.Error())
+		return nil, errors.Wrap(err, deployment.ErrFailedToRedeploy.Error())
 	}
 
 	return c.GetStatus(ctx, resourceID)

@@ -12,6 +12,6 @@ import (
 type Repository interface {
 	GetStatus(ctx context.Context, resourceID string) (*status.Status, error)
 	Deploy(ctx context.Context, resourceID string, version string) (*status.Status, error)
-	Restart(ctx context.Context, resourceID string) (*status.Status, error)
+	Redeploy(ctx context.Context, resourceID string) (*status.Status, error)
 	Stop(ctx context.Context, resourceID string) (*status.Status, error)
 }

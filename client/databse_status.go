@@ -50,7 +50,7 @@ func (c *Client) updateDatabaseStatus(ctx context.Context, database *qovery.Data
 	}
 
 	if status.ServiceDeploymentStatus == qovery.SERVICEDEPLOYMENTSTATUSENUM_OUT_OF_DATE {
-		return c.restartDatabase(ctx, database.Id)
+		return c.redeployDatabase(ctx, database.Id)
 	}
 
 	return status, nil

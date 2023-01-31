@@ -53,13 +53,13 @@ func (c environmentDeploymentQoveryAPI) Deploy(ctx context.Context, environmentI
 	return newDomainStatusFromQovery(environmentStatus)
 }
 
-// Restart calls Qovery's API to restart an environment using the given environmentID.
-func (c environmentDeploymentQoveryAPI) Restart(ctx context.Context, environmentID string) (*status.Status, error) {
+// Redeploy calls Qovery's API to redeploy an environment using the given environmentID.
+func (c environmentDeploymentQoveryAPI) Redeploy(ctx context.Context, environmentID string) (*status.Status, error) {
 	_, resp, err := c.client.EnvironmentActionsApi.
-		RestartEnvironment(ctx, environmentID).
+		RedeployEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewRestartApiError(apierrors.ApiResourceEnvironment, environmentID, resp, err)
+		return nil, apierrors.NewRedeployApiError(apierrors.ApiResourceEnvironment, environmentID, resp, err)
 	}
 
 	return c.GetStatus(ctx, environmentID)

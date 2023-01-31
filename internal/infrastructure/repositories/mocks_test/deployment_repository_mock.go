@@ -118,8 +118,8 @@ func (_c *DeploymentRepository_GetStatus_Call) Return(_a0 *status.Status, _a1 er
 	return _c
 }
 
-// Restart provides a mock function with given fields: ctx, resourceID
-func (_m *DeploymentRepository) Restart(ctx context.Context, resourceID string) (*status.Status, error) {
+// Redeploy provides a mock function with given fields: ctx, resourceID
+func (_m *DeploymentRepository) Redeploy(ctx context.Context, resourceID string) (*status.Status, error) {
 	ret := _m.Called(ctx, resourceID)
 
 	var r0 *status.Status
@@ -141,26 +141,26 @@ func (_m *DeploymentRepository) Restart(ctx context.Context, resourceID string) 
 	return r0, r1
 }
 
-// DeploymentRepository_Restart_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Restart'
-type DeploymentRepository_Restart_Call struct {
+// DeploymentRepository_Redeploy_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Redeploy'
+type DeploymentRepository_Redeploy_Call struct {
 	*mock.Call
 }
 
-// Restart is a helper method to define mock.On call
+// Redeploy is a helper method to define mock.On call
 //   - ctx context.Context
 //   - resourceID string
-func (_e *DeploymentRepository_Expecter) Restart(ctx interface{}, resourceID interface{}) *DeploymentRepository_Restart_Call {
-	return &DeploymentRepository_Restart_Call{Call: _e.mock.On("Restart", ctx, resourceID)}
+func (_e *DeploymentRepository_Expecter) Redeploy(ctx interface{}, resourceID interface{}) *DeploymentRepository_Redeploy_Call {
+	return &DeploymentRepository_Redeploy_Call{Call: _e.mock.On("Redeploy", ctx, resourceID)}
 }
 
-func (_c *DeploymentRepository_Restart_Call) Run(run func(ctx context.Context, resourceID string)) *DeploymentRepository_Restart_Call {
+func (_c *DeploymentRepository_Redeploy_Call) Run(run func(ctx context.Context, resourceID string)) *DeploymentRepository_Redeploy_Call {
 	_c.Call.Run(func(args mock.Arguments) {
 		run(args[0].(context.Context), args[1].(string))
 	})
 	return _c
 }
 
-func (_c *DeploymentRepository_Restart_Call) Return(_a0 *status.Status, _a1 error) *DeploymentRepository_Restart_Call {
+func (_c *DeploymentRepository_Redeploy_Call) Return(_a0 *status.Status, _a1 error) *DeploymentRepository_Redeploy_Call {
 	_c.Call.Return(_a0, _a1)
 	return _c
 }

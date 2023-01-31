@@ -970,10 +970,10 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 	})
 }
 
-// Application should restart when environment env variables are updated.
-func TestAcc_ApplicationRestartOnEnvironmentUpdate(t *testing.T) {
+// Application should redeploy when environment env variables are updated.
+func TestAcc_ApplicationRedeployOnEnvironmentUpdate(t *testing.T) {
 	t.Parallel()
-	testName := "application-restart"
+	testName := "application-redeploy"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,

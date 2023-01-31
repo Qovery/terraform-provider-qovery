@@ -18,7 +18,7 @@ func (c *Client) deployApplication(ctx context.Context, application *qovery.Appl
 	case qovery.STATEENUM_RUNNING:
 		return status, nil
 	case qovery.STATEENUM_DEPLOYMENT_ERROR:
-		return c.restartApplication(ctx, application)
+		return c.redeployApplication(ctx, application)
 	default:
 		_, res, err := c.api.ApplicationActionsApi.
 			DeployApplication(ctx, application.Id).
@@ -63,7 +63,7 @@ func (c *Client) stopApplication(ctx context.Context, application *qovery.Applic
 	return c.getApplicationStatus(ctx, application.Id)
 }
 
-func (c *Client) restartApplication(ctx context.Context, application *qovery.Application) (*qovery.Status, *apierrors.APIError) {
+func (c *Client) redeployApplication(ctx context.Context, application *qovery.Application) (*qovery.Status, *apierrors.APIError) {
 	appFinalStateChecker := newApplicationFinalStateCheckerWaitFunc(c, application.Id)
 	if apiErr := wait(ctx, appFinalStateChecker, nil); apiErr != nil {
 		return nil, apiErr
@@ -75,10 +75,10 @@ func (c *Client) restartApplication(ctx context.Context, application *qovery.App
 	}
 
 	_, res, err := c.api.ApplicationActionsApi.
-		RestartApplication(ctx, application.Id).
+		RedeployApplication(ctx, application.Id).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
-		return nil, apierrors.NewRestartError(apierrors.APIResourceApplication, application.Id, res, err)
+		return nil, apierrors.NewRedeployError(apierrors.APIResourceApplication, application.Id, res, err)
 	}
 
 	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, qovery.STATEENUM_RUNNING)

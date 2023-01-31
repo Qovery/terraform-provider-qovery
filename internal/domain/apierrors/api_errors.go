@@ -168,9 +168,9 @@ func NewStopApiError(resource ApiResource, resourceID string, resp *http.Respons
 	return NewApiError(ApiActionStop, resource, resourceID, resp, err)
 }
 
-// NewRestartApiError returns a new instance of ApiError for a `restart` action with the given parameters.
-func NewRestartApiError(resource ApiResource, resourceID string, resp *http.Response, err error) *ApiError {
-	return NewApiError(ApiActionRestart, resource, resourceID, resp, err)
+// NewRedeployApiError returns a new instance of ApiError for a `redeploy` action with the given parameters.
+func NewRedeployApiError(resource ApiResource, resourceID string, resp *http.Response, err error) *ApiError {
+	return NewApiError(ApiActionRedeploy, resource, resourceID, resp, err)
 }
 
 // NewDeployApiError returns a new instance of ApiError for a `deploy` action with the given parameters.
