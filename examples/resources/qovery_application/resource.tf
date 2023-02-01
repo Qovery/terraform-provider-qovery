@@ -17,6 +17,8 @@ resource "qovery_application" "my_application" {
   memory                = 512
   min_running_instances = 1
   max_running_instances = 1
+  entrypoint            = "/bin/sh"
+  arguments             = ["arg"]
   environment_variables = [
     {
       key   = "ENV_VAR_KEY"

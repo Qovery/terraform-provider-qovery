@@ -263,6 +263,23 @@ func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 					modifiers.NewBoolDefaultModifier(applicationAutoPreviewDefault),
 				},
 			},
+			"entrypoint": {
+				Description: "Entrypoint of the application.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
+			"arguments": {
+				Description: "List of arguments of this application.",
+				Optional:    true,
+				Computed:    true,
+				Type: types.SetType{
+					ElemType: types.StringType,
+				},
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewStringSliceDefaultModifier([]string{}),
+				},
+			},
 			"storage": {
 				Description: "List of storages linked to this application.",
 				Optional:    true,
