@@ -28,6 +28,10 @@ const (
 	StateStopping         State = "STOPPING"
 	StateStopError        State = "STOP_ERROR"
 	StateStopQueued       State = "STOP_QUEUED"
+	StateRestarting       State = "RESTARTING"
+	StateRestarted        State = "RESTARTED"
+	StateRestartError     State = "RESTART_ERROR"
+	StateRestartQueued    State = "RESTART_QUEUED"
 )
 
 // AllowedStateValues contains all the valid values of a State.
@@ -50,6 +54,10 @@ var AllowedStateValues = []State{
 	StateStopping,
 	StateStopError,
 	StateStopQueued,
+	StateRestarting,
+	StateRestarted,
+	StateRestartError,
+	StateRestartQueued,
 }
 
 var AllowedDesiredStateValues = []State{
