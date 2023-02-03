@@ -32,6 +32,8 @@ resource "qovery_application" "my_application" {
   memory                = 512
   min_running_instances = 1
   max_running_instances = 1
+  entrypoint            = "/bin/sh"
+  arguments             = ["arg"]
   environment_variables = [
     {
       key   = "ENV_VAR_KEY"
@@ -67,6 +69,7 @@ resource "qovery_application" "my_application" {
 
 ### Optional
 
+- `arguments` (Set of String) List of arguments of this application.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
 	- Default: `false`.
 - `build_mode` (String) Build Mode of the application.
@@ -81,6 +84,7 @@ resource "qovery_application" "my_application" {
 - `custom_domains` (Attributes Set) List of custom domains linked to this application. (see [below for nested schema](#nestedatt--custom_domains))
 - `dockerfile_path` (String) Dockerfile Path of the application.
 	- Required if: `build_mode="DOCKER"`.
+- `entrypoint` (String) Entrypoint of the application.
 - `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
 - `max_running_instances` (Number) Maximum number of instances running for the application.
 	- Must be: `>= -1`.

@@ -1487,6 +1487,8 @@ resource "qovery_application" "test" {
   memory = "%s"
   min_running_instances = "%s"
   max_running_instances = "%s"
+  entrypoint            = ""
+  arguments             = []
   git_repository = {
     url = "%s"
   }

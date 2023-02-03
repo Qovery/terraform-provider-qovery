@@ -126,6 +126,18 @@ func (d applicationDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 				Type:        types.BoolType,
 				Computed:    true,
 			},
+			"entrypoint": {
+				Description: "Entrypoint of the application.",
+				Type:        types.StringType,
+				Computed:    true,
+			},
+			"arguments": {
+				Description: "List of arguments of this container.",
+				Computed:    true,
+				Type: types.SetType{
+					ElemType: types.StringType,
+				},
+			},
 			"storage": {
 				Description: "List of storages linked to this application.",
 				Computed:    true,

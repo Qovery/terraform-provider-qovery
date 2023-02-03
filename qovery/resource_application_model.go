@@ -29,6 +29,8 @@ type Application struct {
 	ExternalHost                types.String              `tfsdk:"external_host"`
 	InternalHost                types.String              `tfsdk:"internal_host"`
 	State                       types.String              `tfsdk:"state"`
+	Entrypoint                  types.String              `tfsdk:"entrypoint"`
+	Arguments                   types.Set                 `tfsdk:"arguments"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
@@ -94,6 +96,8 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			GitRepository:       app.GitRepository.toCreateRequest(),
 			Storage:             storage,
 			Ports:               ports,
+			Entrypoint:          toStringPointer(app.Entrypoint),
+			Arguments:           toStringArray(app.Arguments),
 		},
 		DesiredState:             *desiredState,
 		EnvironmentVariablesDiff: app.EnvironmentVariableList().diff(nil),
@@ -149,6 +153,8 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		GitRepository:       app.GitRepository.toUpdateRequest(),
 		Storage:             storage,
 		Ports:               ports,
+		Entrypoint:          toStringPointer(app.Entrypoint),
+		Arguments:           toStringArray(app.Arguments),
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:   applicationEditRequest,
@@ -183,6 +189,8 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		CustomDomains:               fromCustomDomainList(app.ApplicationCustomDomains).toTerraformSet(),
 		InternalHost:                fromString(app.ApplicationInternalHost),
 		ExternalHost:                fromStringPointer(app.ApplicationExternalHost),
+		Entrypoint:                  fromStringPointer(app.ApplicationResponse.Entrypoint),
+		Arguments:                   fromStringArray(app.ApplicationResponse.Arguments),
 	}
 }
 
