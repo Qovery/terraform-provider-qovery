@@ -16,16 +16,19 @@ Provides a Qovery container registry resource. This can be used to create and ma
 resource "qovery_container_registry" "my_container_registry" {
   # Required
   organization_id = qovery_organization.my_organization.id
-  name            = "my_aws_creds"
-  kind            = "DOCKER_HUB"
-  url             = "https://docker.io"
+  name            = "my_aws_registry"
+  kind            = "ECR"
+  url             = "https://my-ecr-url.com"
+
+  # Optional for DockerHub
   config = {
-    username = "<my_username>"
-    password = "<my_password>"
+    region            = "eu-west-3"
+    access_key_id     = "<my_access_key_id>"
+    secret_access_key = "<my_access_key>"
   }
 
   # Optional
-  description = "My Docker Hub Registry"
+  description = "My AWS Registry"
 
   depends_on = [
     qovery_organization.my_organization
