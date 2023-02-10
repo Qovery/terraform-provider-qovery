@@ -108,13 +108,29 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 }
 
 func (app Application) toUpdateApplicationRequest(state Application) (*client.ApplicationUpdateParams, error) {
-	storage := make([]qovery.ServiceStorageRequestStorageInner, 0, len(app.Storage))
-	for _, store := range app.Storage {
-		s, err := store.toUpdateRequest()
+	// Create a hashmap containing current terraform state ApplicationStorage by MountPoint
+	// MountPoint is unique with an application
+	stateApplicationStoragesByMountPoint := make(map[string]ApplicationStorage)
+	for _, existingStorage := range state.Storage {
+		stateApplicationStoragesByMountPoint[existingStorage.MountPoint.String()] = existingStorage
+	}
+
+	applicationStorageRequest := make([]qovery.ServiceStorageRequestStorageInner, 0, len(app.Storage))
+	for _, storage := range app.Storage {
+		// The storage id can be:
+		// - nil if a new storage is declared in the application resource
+		// - set if it already exists
+		var storageId string
+		value, exists := stateApplicationStoragesByMountPoint[storage.MountPoint.String()]
+		if exists {
+			storageId = toString(value.Id)
+		}
+
+		s, err := storage.toUpdateRequest(storageId)
 		if err != nil {
 			return nil, err
 		}
-		storage = append(storage, *s)
+		applicationStorageRequest = append(applicationStorageRequest, *s)
 	}
 
 	ports := make([]qovery.ServicePort, 0, len(app.Ports))
@@ -151,7 +167,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		MaxRunningInstances: toInt32Pointer(app.MaxRunningInstances),
 		AutoPreview:         toBoolPointer(app.AutoPreview),
 		GitRepository:       app.GitRepository.toUpdateRequest(),
-		Storage:             storage,
+		Storage:             applicationStorageRequest,
 		Ports:               ports,
 		Entrypoint:          toStringPointer(app.Entrypoint),
 		Arguments:           toStringArray(app.Arguments),
@@ -245,14 +261,14 @@ func (store ApplicationStorage) toCreateRequest() (*qovery.ServiceStorageRequest
 	}, nil
 }
 
-func (store ApplicationStorage) toUpdateRequest() (*qovery.ServiceStorageRequestStorageInner, error) {
+func (store ApplicationStorage) toUpdateRequest(id string) (*qovery.ServiceStorageRequestStorageInner, error) {
 	storageType, err := qovery.NewStorageTypeEnumFromValue(toString(store.Type))
 	if err != nil {
 		return nil, err
 	}
 
 	return &qovery.ServiceStorageRequestStorageInner{
-		Id:         toStringPointer(store.Id),
+		Id:         &id,
 		Type:       *storageType,
 		Size:       toInt32(store.Size),
 		MountPoint: toString(store.MountPoint),
