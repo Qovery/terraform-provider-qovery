@@ -40,7 +40,8 @@ func (c *Client) updateApplicationStatus(ctx context.Context, application *qover
 		return nil, apiErr
 	}
 
-	if status.State != desiredState {
+	// Do not redeploy if desired state is "STOPPED"
+	if desiredState == qovery.STATEENUM_STOPPED || status.State != desiredState {
 		// Disable redeploy if we deployed the app previously or if we want the app to be stopped
 		forceRedeploy = false
 		switch desiredState {

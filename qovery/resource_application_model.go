@@ -91,7 +91,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			Cpu:                 toInt32Pointer(app.CPU),
 			Memory:              toInt32Pointer(app.Memory),
 			MinRunningInstances: toInt32Pointer(app.MinRunningInstances),
-			MaxRunningInstances: toInt32Pointer(app.MinRunningInstances),
+			MaxRunningInstances: toInt32Pointer(app.MaxRunningInstances),
 			AutoPreview:         toBoolPointer(app.AutoPreview),
 			GitRepository:       app.GitRepository.toCreateRequest(),
 			Storage:             storage,

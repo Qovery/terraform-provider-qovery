@@ -120,7 +120,7 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 		return apierrors.NewDeleteError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
 
-	checker := newApplicationStatusCheckerWaitFunc(c, applicationID, "DELETED")
+	checker := newApplicationStatusCheckerWaitFunc(c, applicationID, qovery.STATEENUM_DELETED)
 	if apiErr := wait(ctx, checker, nil); apiErr != nil {
 		return apiErr
 	}
