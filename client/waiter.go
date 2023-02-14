@@ -11,7 +11,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-const defaultWaitTimeout = 30 * time.Minute
+const defaultWaitTimeout = 4 * time.Hour
 
 type waitFunc func(ctx context.Context) (bool, *apierrors.APIError)
 
