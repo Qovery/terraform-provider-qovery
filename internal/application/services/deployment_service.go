@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	defaultWaitTimeout    = 30 * time.Minute
+	defaultWaitTimeout    = 1 * time.Hour
 	defaultWaitMaxRetries = 5
 )
 
