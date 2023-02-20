@@ -150,7 +150,6 @@ func (r containerRegistryResource) Create(ctx context.Context, req resource.Crea
 	}
 
 	// Create new container registry
-
 	reg, err := r.containerRegistryService.Create(ctx, plan.OrganizationId.Value, plan.toUpsertRequest())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container registry create", err.Error())
