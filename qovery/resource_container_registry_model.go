@@ -36,12 +36,11 @@ type ContainerRegistryDataSource struct {
 }
 
 func (p ContainerRegistry) toUpsertRequest() registry.UpsertRequest {
-	return registry.UpsertRequest{
-		Name:        toString(p.Name),
-		Kind:        toString(p.Kind),
-		URL:         toString(p.URL),
-		Description: toStringPointer(p.Description),
-		Config: registry.UpsertRequestConfig{
+	var configRequest registry.UpsertRequestConfig
+	if p.Config == nil {
+		configRequest = registry.UpsertRequestConfig{}
+	} else {
+		configRequest = registry.UpsertRequestConfig{
 			AccessKeyID:       toStringPointer(p.Config.AccessKeyID),
 			SecretAccessKey:   toStringPointer(p.Config.SecretAccessKey),
 			Region:            toStringPointer(p.Config.Region),
@@ -49,7 +48,14 @@ func (p ContainerRegistry) toUpsertRequest() registry.UpsertRequest {
 			ScalewaySecretKey: toStringPointer(p.Config.ScalewaySecretKey),
 			Username:          toStringPointer(p.Config.Username),
 			Password:          toStringPointer(p.Config.Password),
-		},
+		}
+	}
+	return registry.UpsertRequest{
+		Name:        toString(p.Name),
+		Kind:        toString(p.Kind),
+		URL:         toString(p.URL),
+		Description: toStringPointer(p.Description),
+		Config:      configRequest,
 	}
 }
 
