@@ -57,7 +57,7 @@ func (r *containerResource) Configure(_ context.Context, req resource.ConfigureR
 
 func (r containerResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
-		Description: "Use this data source to retrieve information about an existing container.",
+		Description: "Provides a Qovery container resource. This can be used to create and manage Qovery container registry.",
 		Attributes: map[string]tfsdk.Attribute{
 			"id": {
 				Description: "Id of the container.",
