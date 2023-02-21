@@ -3,12 +3,12 @@
 page_title: "qovery_container Resource - terraform-provider-qovery"
 subcategory: ""
 description: |-
-  Use this data source to retrieve information about an existing container.
+  Provides a Qovery container resource. This can be used to create and manage Qovery container registry.
 ---
 
 # qovery_container (Resource)
 
-Use this data source to retrieve information about an existing container.
+Provides a Qovery container resource. This can be used to create and manage Qovery container registry.
 
 ## Example Usage
 
