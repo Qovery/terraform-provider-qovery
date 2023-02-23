@@ -9,6 +9,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
@@ -48,6 +49,7 @@ type QoveryAPI struct {
 	EnvironmentDeployment          deployment.Repository
 	EnvironmentEnvironmentVariable variable.Repository
 	EnvironmentSecret              secret.Repository
+	DeploymentStage                deploymentstage.Repository
 }
 
 // New returns a new instance of QoveryAPI and applies the given configs.
@@ -133,6 +135,11 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	deploymentStageAPI, err := newDeploymentStageQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create a new QoveryAPI instance.
 	qoveryAPI := &QoveryAPI{
 		client:                         apiClient,
@@ -151,6 +158,7 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		EnvironmentDeployment:          environmentDeploymentAPI,
 		EnvironmentEnvironmentVariable: environmentEnvironmentVariableAPI,
 		EnvironmentSecret:              environmentSecretAPI,
+		DeploymentStage:                deploymentStageAPI,
 	}
 
 	// Apply all the configs to the qoveryAPI instance.

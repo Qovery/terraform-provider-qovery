@@ -8,6 +8,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
@@ -40,6 +41,7 @@ type Repositories struct {
 	EnvironmentDeployment          deployment.Repository
 	EnvironmentEnvironmentVariable variable.Repository
 	EnvironmentSecret              secret.Repository
+	DeploymentStage                deploymentstage.Repository
 }
 
 func New(configs ...Configuration) (*Repositories, error) {
@@ -84,6 +86,7 @@ func WithQoveryAPI(apiToken string, providerVersion string) Configuration {
 		repos.EnvironmentDeployment = qoveryAPI.EnvironmentDeployment
 		repos.EnvironmentEnvironmentVariable = qoveryAPI.EnvironmentEnvironmentVariable
 		repos.EnvironmentSecret = qoveryAPI.EnvironmentSecret
+		repos.DeploymentStage = qoveryAPI.DeploymentStage
 
 		return nil
 	}
