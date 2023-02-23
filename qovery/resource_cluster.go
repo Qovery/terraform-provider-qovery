@@ -1,11 +1,8 @@
 package qovery
 
 import (
-	"bytes"
 	"context"
-	"embed"
 	_ "embed"
-	"encoding/json"
 	"fmt"
 	"strings"
 
@@ -28,9 +25,6 @@ var _ resource.ResourceWithConfigure = &clusterResource{}
 var _ resource.ResourceWithImportState = clusterResource{}
 
 var (
-	//go:embed data/cluster_instance_types/*.json
-	instanceTypes embed.FS
-
 	// Cluster State
 	clusterStates = clientEnumToStringArray([]qovery.StateEnum{
 		qovery.STATEENUM_RUNNING,
@@ -97,20 +91,6 @@ func (r *clusterResource) Configure(_ context.Context, req resource.ConfigureReq
 }
 
 func (r clusterResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	// Read cluster instance type for documentation from embedded files
-	clusterInstanceTypesByProvider, err := readInstanceTypes()
-	if err != nil {
-		return tfsdk.Schema{}, []diag.Diagnostic{
-			diag.NewErrorDiagnostic("Unable to fetch cluster instance types", err.Error()),
-		}
-	}
-	var clusterInstanceTypes []string
-	for _, tt := range clusterInstanceTypesByProvider {
-		for _, t := range tt {
-			clusterInstanceTypes = append(clusterInstanceTypes, t)
-		}
-	}
-
 	return tfsdk.Schema{
 		Description: "Provides a Qovery cluster resource. This can be used to create and manage Qovery cluster.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -180,16 +160,9 @@ func (r clusterResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagno
 				},
 			},
 			"instance_type": {
-				Description: descriptions.NewMapStringArrayEnumDescription(
-					"Instance type of the cluster.",
-					clusterInstanceTypesByProvider,
-					nil,
-				),
-				Type:     types.StringType,
-				Required: true,
-				Validators: []tfsdk.AttributeValidator{
-					validators.NewStringEnumValidator(clusterInstanceTypes),
-				},
+				Description: "Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`",
+				Type:        types.StringType,
+				Required:    true,
 			},
 			"min_running_nodes": {
 				Description: descriptions.NewInt64MinDescription(
@@ -413,30 +386,4 @@ func (r clusterResource) ImportState(ctx context.Context, req resource.ImportSta
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idParts[1])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("organization_id"), idParts[0])...)
-}
-
-func readInstanceTypes() (map[string][]string, error) {
-	dir := "data/cluster_instance_types"
-	files, err := instanceTypes.ReadDir(dir)
-	if err != nil {
-		return nil, err
-	}
-
-	instanceTypesByProvider := map[string][]string{}
-	for _, f := range files {
-		byteArray, err := instanceTypes.ReadFile(fmt.Sprintf("%s/%s", dir, f.Name()))
-		if err != nil {
-			return nil, err
-		}
-
-		var data []string
-		if err := json.NewDecoder(bytes.NewBuffer(byteArray)).Decode(&data); err != nil {
-			return nil, err
-		}
-
-		provider := strings.Split(f.Name(), ".")[0]
-		instanceTypesByProvider[strings.ToUpper(provider)] = data
-	}
-
-	return instanceTypesByProvider, nil
 }

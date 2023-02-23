@@ -31,7 +31,7 @@ func TestAcc_ClusterDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "region", "eu-west-3"),
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "kubernetes_mode", "MANAGED"),
-					resource.TestCheckResourceAttr("data.qovery_cluster.test", "instance_type", "T3_XLARGE"),
+					resource.TestCheckResourceAttr("data.qovery_cluster.test", "instance_type", "t3.xlarge"),
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "max_running_nodes", "10"),
 					resource.TestCheckNoResourceAttr("data.qovery_cluster.test", "routing_table.0"),
