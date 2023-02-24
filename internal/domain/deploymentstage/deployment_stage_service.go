@@ -24,7 +24,6 @@ type Service interface {
 // UpsertServiceRequest represents the parameters needed to create & update a Deployment Stage
 type UpsertServiceRequest struct {
 	DeploymentStageUpsertRequest UpsertRepositoryRequest
-	// TODO (mzo) put services here ?
 }
 
 // Validate returns an error to tell whether the UpsertServiceRequest is valid or not.

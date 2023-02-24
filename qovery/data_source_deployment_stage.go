@@ -70,6 +70,13 @@ func (d deploymentStageDataSource) GetSchema(_ context.Context) (tfsdk.Schema, d
 				Type:        types.StringType,
 				Computed:    true,
 			},
+			"service_ids": {
+				Description: "Services associated with the deployment stage",
+				Computed:    true,
+				Type: types.SetType{
+					ElemType: types.StringType,
+				},
+			},
 		},
 	}, nil
 }
