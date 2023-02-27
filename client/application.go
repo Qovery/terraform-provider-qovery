@@ -12,6 +12,7 @@ import (
 
 type ApplicationResponse struct {
 	ApplicationResponse             *qovery.Application
+	ApplicationDeploymentStageId    string
 	ApplicationStatus               *qovery.Status
 	ApplicationEnvironmentVariables []*qovery.EnvironmentVariable
 	ApplicationSecrets              []*qovery.Secret
@@ -21,19 +22,21 @@ type ApplicationResponse struct {
 }
 
 type ApplicationCreateParams struct {
-	ApplicationRequest       qovery.ApplicationRequest
-	EnvironmentVariablesDiff EnvironmentVariablesDiff
-	CustomDomainsDiff        CustomDomainsDiff
-	SecretsDiff              SecretsDiff
-	DesiredState             qovery.StateEnum
+	ApplicationRequest           qovery.ApplicationRequest
+	ApplicationDeploymentStageId string
+	EnvironmentVariablesDiff     EnvironmentVariablesDiff
+	CustomDomainsDiff            CustomDomainsDiff
+	SecretsDiff                  SecretsDiff
+	DesiredState                 qovery.StateEnum
 }
 
 type ApplicationUpdateParams struct {
-	ApplicationEditRequest   qovery.ApplicationEditRequest
-	EnvironmentVariablesDiff EnvironmentVariablesDiff
-	CustomDomainsDiff        CustomDomainsDiff
-	SecretsDiff              SecretsDiff
-	DesiredState             qovery.StateEnum
+	ApplicationEditRequest       qovery.ApplicationEditRequest
+	ApplicationDeploymentStageId string
+	EnvironmentVariablesDiff     EnvironmentVariablesDiff
+	CustomDomainsDiff            CustomDomainsDiff
+	SecretsDiff                  SecretsDiff
+	DesiredState                 qovery.StateEnum
 }
 
 func (c *Client) CreateApplication(ctx context.Context, environmentID string, params *ApplicationCreateParams) (*ApplicationResponse, *apierrors.APIError) {
@@ -44,7 +47,18 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, params.ApplicationRequest.Name, res, err)
 	}
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.DesiredState)
+
+	// Attach service to deployment stage
+	if len(params.ApplicationDeploymentStageId) > 0 {
+		_, resp, err := c.api.DeploymentStageMainCallsApi.
+			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageId, application.Id).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, apierrors.NewCreateError(apierrors.APIResourceUpdateDeploymentStage, application.Id, resp, err)
+		}
+	}
+
+	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.DesiredState, params.ApplicationDeploymentStageId)
 }
 
 func (c *Client) GetApplication(ctx context.Context, applicationID string) (*ApplicationResponse, *apierrors.APIError) {
@@ -80,8 +94,25 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		return nil, apiErr
 	}
 
+	// TODO (mzo) use deployment_stage_id available in ApplicationResponse when it is merged
+	deploymentStages, response, err := c.api.DeploymentStageMainCallsApi.ListEnvironmentDeploymentStage(ctx, application.Environment.Id).Execute()
+	if err != nil || response.StatusCode >= 400 {
+		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
+	}
+	var deploymentStageId = ""
+	for _, deploymentStage := range deploymentStages.GetResults() {
+		for _, deploymentStageService := range deploymentStage.Services {
+			if deploymentStageService.ServiceId == &applicationID {
+				deploymentStageId = deploymentStage.Id
+				break
+			}
+		}
+	}
+	// END TODO (mzo)
+
 	return &ApplicationResponse{
 		ApplicationResponse:             application,
+		ApplicationDeploymentStageId:    deploymentStageId,
 		ApplicationStatus:               status,
 		ApplicationEnvironmentVariables: environmentVariables,
 		ApplicationSecrets:              secrets,
@@ -99,7 +130,18 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewUpdateError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.DesiredState)
+
+	// Attach service to deployment stage
+	if len(params.ApplicationDeploymentStageId) > 0 {
+		_, resp, err := c.api.DeploymentStageMainCallsApi.
+			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageId, applicationID).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, apierrors.NewUpdateError(apierrors.APIResourceUpdateDeploymentStage, applicationID, resp, err)
+		}
+	}
+
+	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.DesiredState, params.ApplicationDeploymentStageId)
 }
 
 func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *apierrors.APIError {
@@ -127,7 +169,7 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 	return nil
 }
 
-func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, environmentVariablesDiff EnvironmentVariablesDiff, secretsDiff SecretsDiff, customDomainsDiff CustomDomainsDiff, desiredState qovery.StateEnum) (*ApplicationResponse, *apierrors.APIError) {
+func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, environmentVariablesDiff EnvironmentVariablesDiff, secretsDiff SecretsDiff, customDomainsDiff CustomDomainsDiff, desiredState qovery.StateEnum, deploymentStageId string) (*ApplicationResponse, *apierrors.APIError) {
 	forceRedeploy := !environmentVariablesDiff.IsEmpty() || !secretsDiff.IsEmpty() || !customDomainsDiff.IsEmpty()
 	if !environmentVariablesDiff.IsEmpty() {
 		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application.Id, environmentVariablesDiff); apiErr != nil {
@@ -180,6 +222,7 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 		ApplicationCustomDomains:        customDomains,
 		ApplicationExternalHost:         hosts.external,
 		ApplicationInternalHost:         hosts.internal,
+		ApplicationDeploymentStageId:    deploymentStageId,
 	}, nil
 }
 

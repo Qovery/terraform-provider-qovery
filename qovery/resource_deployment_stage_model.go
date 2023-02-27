@@ -11,7 +11,6 @@ type DeploymentStage struct {
 	EnvironmentId types.String `tfsdk:"environment_id"`
 	Name          types.String `tfsdk:"name"`
 	Description   types.String `tfsdk:"description"`
-	ServiceIds    types.Set    `tfsdk:"service_ids"`
 }
 
 func (p DeploymentStage) toCreateServiceRequest() deploymentstage.UpsertServiceRequest {
@@ -19,7 +18,6 @@ func (p DeploymentStage) toCreateServiceRequest() deploymentstage.UpsertServiceR
 		DeploymentStageUpsertRequest: deploymentstage.UpsertRepositoryRequest{
 			Name:        toString(p.Name),
 			Description: toStringPointer(p.Description),
-			ServiceIds:  toStringArray(p.ServiceIds),
 		},
 	}
 }
@@ -29,7 +27,6 @@ func (p DeploymentStage) toUpdateServiceRequest() deploymentstage.UpsertServiceR
 		DeploymentStageUpsertRequest: deploymentstage.UpsertRepositoryRequest{
 			Name:        toString(p.Name),
 			Description: toStringPointer(p.Description),
-			ServiceIds:  toStringArray(p.ServiceIds),
 		},
 	}
 }
@@ -40,6 +37,5 @@ func convertDomainDeploymentStageToDeploymentStage(deploymentStageDomain *deploy
 		EnvironmentId: fromString(deploymentStageDomain.EnvironmentID.String()),
 		Name:          fromString(deploymentStageDomain.Name),
 		Description:   fromString(deploymentStageDomain.Description),
-		ServiceIds:    fromStringArray(deploymentStageDomain.ServiceIds),
 	}
 }

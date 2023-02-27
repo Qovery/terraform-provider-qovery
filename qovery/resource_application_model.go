@@ -31,6 +31,7 @@ type Application struct {
 	State                       types.String              `tfsdk:"state"`
 	Entrypoint                  types.String              `tfsdk:"entrypoint"`
 	Arguments                   types.List                `tfsdk:"arguments"`
+	DeploymentStageId           types.String              `tfsdk:"deployment_stage_id"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
@@ -99,10 +100,11 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			Entrypoint:          toStringPointer(app.Entrypoint),
 			Arguments:           toStringArray(app.Arguments),
 		},
-		DesiredState:             *desiredState,
-		EnvironmentVariablesDiff: app.EnvironmentVariableList().diff(nil),
-		SecretsDiff:              app.SecretList().diff(nil),
-		CustomDomainsDiff:        app.CustomDomainsList().diff(nil),
+		DesiredState:                 *desiredState,
+		EnvironmentVariablesDiff:     app.EnvironmentVariableList().diff(nil),
+		SecretsDiff:                  app.SecretList().diff(nil),
+		CustomDomainsDiff:            app.CustomDomainsList().diff(nil),
+		ApplicationDeploymentStageId: toString(app.DeploymentStageId),
 	}, nil
 
 }
@@ -173,11 +175,12 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		Arguments:           toStringArray(app.Arguments),
 	}
 	return &client.ApplicationUpdateParams{
-		ApplicationEditRequest:   applicationEditRequest,
-		EnvironmentVariablesDiff: app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
-		SecretsDiff:              app.SecretList().diff(state.SecretList()),
-		CustomDomainsDiff:        app.CustomDomainsList().diff(state.CustomDomainsList()),
-		DesiredState:             *desiredState,
+		ApplicationEditRequest:       applicationEditRequest,
+		EnvironmentVariablesDiff:     app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
+		SecretsDiff:                  app.SecretList().diff(state.SecretList()),
+		CustomDomainsDiff:            app.CustomDomainsList().diff(state.CustomDomainsList()),
+		DesiredState:                 *desiredState,
+		ApplicationDeploymentStageId: toString(app.DeploymentStageId),
 	}, nil
 
 }
@@ -207,6 +210,7 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		ExternalHost:                fromStringPointer(app.ApplicationExternalHost),
 		Entrypoint:                  fromStringPointer(app.ApplicationResponse.Entrypoint),
 		Arguments:                   fromStringArray(app.ApplicationResponse.Arguments),
+		DeploymentStageId:           fromString(app.ApplicationDeploymentStageId),
 	}
 }
 

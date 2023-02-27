@@ -496,6 +496,12 @@ func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 					validators.NewStringEnumValidator(applicationStates),
 				},
 			},
+			"deployment_stage_id": {
+				Description: "Id of the deployment stage.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
 		},
 	}, nil
 }

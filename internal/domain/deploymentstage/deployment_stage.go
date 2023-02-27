@@ -11,8 +11,6 @@ var (
 	ErrInvalidDeploymentStageIDParam = errors.New("invalid deployment stage ID")
 	// ErrInvalidEnvironmentIDParam is returned if the environment ID indicated is not valid
 	ErrInvalidEnvironmentIDParam = errors.New("invalid environment ID")
-	// ErrInvalidServiceIDParam is returned if any service ID associated is not valid
-	ErrInvalidServiceIDParam = errors.New("invalid service ID")
 	// ErrInvalidDeploymentStageNameParam is returned if the deployment stage name indicated is not valid
 	ErrInvalidDeploymentStageNameParam = errors.New("invalid deployment stage name")
 	// ErrInvalidDeploymentStage is returned if the validation fails
@@ -26,7 +24,6 @@ type DeploymentStage struct {
 	EnvironmentID uuid.UUID
 	Name          string
 	Description   string
-	ServiceIds    []string
 }
 
 // NewDeploymentStageParams represents the arguments needed to create a DeploymentStage.
@@ -35,7 +32,6 @@ type NewDeploymentStageParams struct {
 	EnvironmentID     string
 	Name              string
 	Description       string
-	ServiceIds        []string
 }
 
 // Validate returns an error to tell whether the DeploymentStage domain model is valid or not.
@@ -55,13 +51,6 @@ func NewDeploymentStage(params NewDeploymentStageParams) (*DeploymentStage, erro
 		return nil, errors.Wrap(err, ErrInvalidEnvironmentIDParam.Error())
 	}
 
-	for _, serviceId := range params.ServiceIds {
-		_, err := uuid.Parse(serviceId)
-		if err != nil {
-			return nil, errors.Wrap(err, ErrInvalidServiceIDParam.Error())
-		}
-	}
-
 	if params.Name == "" {
 		return nil, ErrInvalidDeploymentStageNameParam
 	}
@@ -71,7 +60,6 @@ func NewDeploymentStage(params NewDeploymentStageParams) (*DeploymentStage, erro
 		EnvironmentID: environmentUuid,
 		Name:          params.Name,
 		Description:   params.Description,
-		ServiceIds:    params.ServiceIds,
 	}
 
 	if err := v.Validate(); err != nil {

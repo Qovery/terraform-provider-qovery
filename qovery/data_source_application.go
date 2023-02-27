@@ -305,6 +305,11 @@ func (d applicationDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 				Type:        types.StringType,
 				Computed:    true,
 			},
+			"deployment_stage_id": {
+				Description: "Id of the deployment stage.",
+				Type:        types.StringType,
+				Optional:    true,
+			},
 		},
 	}, nil
 }

@@ -73,14 +73,6 @@ func (r deploymentStageResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Optional:    true,
 				Computed:    true,
 			},
-			"service_ids": {
-				Description: "Services associated with the deployment stage",
-				Type: types.SetType{
-					ElemType: types.StringType,
-				},
-				Optional: true,
-				Computed: true,
-			},
 		},
 	}, nil
 }

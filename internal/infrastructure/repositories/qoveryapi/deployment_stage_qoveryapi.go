@@ -35,22 +35,11 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentId stri
 		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeploymentStage, request.Name, resp, err)
 	}
 
-	// Attach services
-	for _, serviceId := range request.ServiceIds {
-		_, resp, err := c.client.DeploymentStageMainCallsApi.
-			AttachServiceToDeploymentStage(ctx, deploymentStageCreated.Id, serviceId).
-			Execute()
-		if err != nil || resp.StatusCode >= 400 {
-			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeploymentStage, deploymentStageCreated.Id, resp, err)
-		}
-	}
-
 	return deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
 		DeploymentStageID: deploymentStageCreated.Id,
 		EnvironmentID:     deploymentStageCreated.Environment.Id,
 		Name:              *deploymentStageCreated.Name,
 		Description:       *deploymentStageCreated.Description,
-		ServiceIds:        request.ServiceIds,
 	})
 }
 
@@ -80,22 +69,11 @@ func (c deploymentStageQoveryAPI) Update(ctx context.Context, deploymentStageID 
 		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceDeploymentStage, deploymentStageID, resp, err)
 	}
 
-	// Attach services
-	for _, serviceId := range request.ServiceIds {
-		_, resp, err := c.client.DeploymentStageMainCallsApi.
-			AttachServiceToDeploymentStage(ctx, deploymentStageID, serviceId).
-			Execute()
-		if err != nil || resp.StatusCode >= 400 {
-			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeploymentStage, deploymentStageID, resp, err)
-		}
-	}
-
 	return deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
 		DeploymentStageID: deploymentStage.Id,
 		EnvironmentID:     deploymentStage.Environment.Id,
 		Name:              *deploymentStage.Name,
 		Description:       *deploymentStage.Description,
-		ServiceIds:        request.ServiceIds,
 	})
 }
 
