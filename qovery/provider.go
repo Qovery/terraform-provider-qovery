@@ -17,6 +17,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 
@@ -71,6 +72,9 @@ type qProvider struct {
 
 	// deploymentStageService is an instance of an deploymentstage.Service that handles the domain logic.
 	deploymentStageService deploymentstage.Service
+
+	// deploymentService is an instance of a newdeployment.Service that handles the domain logic.
+	deploymentService newdeployment.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -138,6 +142,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.containerRegistryService = domainServices.ContainerRegistry
 	p.environmentService = domainServices.Environment
 	p.deploymentStageService = domainServices.DeploymentStage
+	p.deploymentService = domainServices.Deployment
 
 	resp.DataSourceData = p
 	resp.ResourceData = p
@@ -156,6 +161,7 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newContainerResource,
 		newContainerRegistryResource,
 		newDeploymentStageResource,
+		newDeploymentResource,
 	}
 }
 
@@ -172,6 +178,7 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 		newProjectDataSource,
 		newScalewayCredentialsDataSource,
 		newDeploymentStageDataSource,
+		newDeploymentDataSource,
 	}
 }
 

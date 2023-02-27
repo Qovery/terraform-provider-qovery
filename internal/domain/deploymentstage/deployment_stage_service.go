@@ -21,7 +21,7 @@ type Service interface {
 	Delete(ctx context.Context, deploymentStageId string) error
 }
 
-// UpsertServiceRequest represents the parameters needed to create & update a Deployment Stage
+// UpsertServiceRequest represents the parameters needed to create & update a DeploymentEnvironment Stage
 type UpsertServiceRequest struct {
 	DeploymentStageUpsertRequest UpsertRepositoryRequest
 }
