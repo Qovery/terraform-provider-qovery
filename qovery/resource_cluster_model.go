@@ -33,12 +33,12 @@ type Cluster struct {
 }
 
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
-	clusterFeatures := toQoveryClusterFeatures(c.Features)
+	clusterFeatures := toQoveryClusterFeatures(c.Features, c.KubernetesMode.String())
 	if state == nil {
 		return len(clusterFeatures) > 0
 	}
 
-	stateFeature := toQoveryClusterFeatures(state.Features)
+	stateFeature := toQoveryClusterFeatures(state.Features, c.KubernetesMode.String())
 	if len(clusterFeatures) != len(stateFeature) {
 		return true
 	}
@@ -132,7 +132,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			InstanceType:    toStringPointer(c.InstanceType),
 			MinRunningNodes: toInt32Pointer(c.MinRunningNodes),
 			MaxRunningNodes: toInt32Pointer(c.MaxRunningNodes),
-			Features:        toQoveryClusterFeatures(c.Features),
+			Features:        toQoveryClusterFeatures(c.Features, c.KubernetesMode.String()),
 		},
 		ClusterRoutingTable: routingTable.toUpsertRequest(),
 		ForceUpdate:         forceUpdate,
@@ -202,8 +202,8 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 	}
 }
 
-func toQoveryClusterFeatures(f types.Object) []qovery.ClusterRequestFeaturesInner {
-	if f.Null || f.Unknown {
+func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterRequestFeaturesInner {
+	if f.Null || f.Unknown || mode == "K3S" {
 		return nil
 	}
 
