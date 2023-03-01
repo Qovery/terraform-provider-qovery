@@ -17,7 +17,7 @@ func (p DeploymentStage) toCreateServiceRequest() deploymentstage.UpsertServiceR
 	return deploymentstage.UpsertServiceRequest{
 		DeploymentStageUpsertRequest: deploymentstage.UpsertRepositoryRequest{
 			Name:        toString(p.Name),
-			Description: toStringPointer(p.Description),
+			Description: toString(p.Description),
 		},
 	}
 }
@@ -26,7 +26,7 @@ func (p DeploymentStage) toUpdateServiceRequest() deploymentstage.UpsertServiceR
 	return deploymentstage.UpsertServiceRequest{
 		DeploymentStageUpsertRequest: deploymentstage.UpsertRepositoryRequest{
 			Name:        toString(p.Name),
-			Description: toStringPointer(p.Description),
+			Description: toString(p.Description),
 		},
 	}
 }

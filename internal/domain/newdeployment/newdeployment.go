@@ -34,56 +34,48 @@ func fromString(desiredStateStr string) (*DeploymentDesiredState, error) {
 	return nil, ErrInvalidDeploymentDesiredState
 }
 
-type Deployment struct {
-	EnvironmentId *uuid.UUID
-	ServiceIds    []uuid.UUID
-	DesiredState  DeploymentDesiredState
+func (c DeploymentDesiredState) String() string {
+	switch c {
+	case RUNNING:
+		return "RUNNING"
+	case STOPPED:
+		return "STOPPED"
+	case RESTARTED:
+		return "RESTARTED"
+	case DELETED:
+		return "DELETED"
+	}
+
+	return "UNDEFINED"
 }
 
-func (d Deployment) HasServiceIds() bool {
-	if d.ServiceIds == nil {
-		return false
-	}
-	return len(d.ServiceIds) > 0
+type Deployment struct {
+	EnvironmentId *uuid.UUID
+	DesiredState  DeploymentDesiredState
+	ForceTrigger  string
 }
 
 type NewDeploymentParams struct {
 	EnvironmentId string
-	ServiceIds    []string
 	DesiredState  string
+	ForceTrigger  string
 }
 
 func NewDeployment(params NewDeploymentParams) (*Deployment, error) {
-	serviceIdsIsDefined := len(params.ServiceIds) > 0
-
 	// Check desired state
 	desiredState, err := fromString(params.DesiredState)
 	if err != nil {
 		return nil, err
 	}
 
-	// If environment id is defined, then validate uuid and create Environment DeploymentEnvironment
 	environmentUuid, err := uuid.Parse(params.EnvironmentId)
 	if err != nil {
 		return nil, errors.Wrap(err, ErrInvalidEnvironmentIdParam.Error())
 	}
 
-	// If service ids are defined, then validate uuids
-	var serviceUuids []uuid.UUID = nil
-	if serviceIdsIsDefined {
-		serviceUuids = make([]uuid.UUID, 0, len(params.ServiceIds))
-		for _, serviceId := range params.ServiceIds {
-			serviceUuid, err := uuid.Parse(serviceId)
-			if err != nil {
-				return nil, errors.Wrap(err, ErrInvalidServiceIdParam.Error())
-			}
-			serviceUuids = append(serviceUuids, serviceUuid)
-		}
-	}
-
 	return &Deployment{
 		EnvironmentId: &environmentUuid,
-		ServiceIds:    serviceUuids,
 		DesiredState:  *desiredState,
+		ForceTrigger:  params.ForceTrigger,
 	}, nil
 }

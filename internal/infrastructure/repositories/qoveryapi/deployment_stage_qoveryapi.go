@@ -28,7 +28,7 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentId stri
 		CreateEnvironmentDeploymentStage(ctx, environmentId).
 		DeploymentStageRequest(qovery.DeploymentStageRequest{
 			Name:        request.Name,
-			Description: *qovery.NewNullableString(request.Description),
+			Description: *qovery.NewNullableString(&request.Description),
 		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
@@ -62,7 +62,7 @@ func (c deploymentStageQoveryAPI) Update(ctx context.Context, deploymentStageID 
 		EditDeploymentStage(ctx, deploymentStageID).
 		DeploymentStageRequest(qovery.DeploymentStageRequest{
 			Name:        request.Name,
-			Description: *qovery.NewNullableString(request.Description),
+			Description: *qovery.NewNullableString(&request.Description),
 		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {

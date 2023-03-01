@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
-	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -53,22 +52,16 @@ func (d deploymentDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 			"environment_id": {
 				Description: "Id of the environment to deploy.",
 				Type:        types.StringType,
-				Optional:    true,
-			},
-			"service_ids": {
-				Description: "List of service ids to apply to the deployment.",
-				Optional:    true,
-				Computed:    true,
-				Type: types.SetType{
-					ElemType: types.StringType,
-				},
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringSliceDefaultModifier([]string{}),
-				},
+				Required:    true,
 			},
 			"desired_state": {
 				Description: "Desired state of the deployment.",
 				Type:        types.StringType,
+				Optional:    true,
+			},
+			"force_trigger": {
+				Description: "Force trigger the deployment even when `desired_state` doesn't change",
+				Type:        types.BoolType,
 				Optional:    true,
 			},
 		},
@@ -86,16 +79,14 @@ func (d deploymentDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	// Get deployment from API
 	_, err := d.deploymentService.Get(ctx, newdeployment.NewDeploymentParams{
-		EnvironmentId: data.EnvironmentId,
-		ServiceIds:    data.ServiceIds,
-		DesiredState:  data.DesiredState,
+		EnvironmentId: toString(data.EnvironmentId),
+		DesiredState:  toString(data.DesiredState),
+		ForceTrigger:  toString(data.ForceTrigger),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment read", err.Error())
 		return
 	}
-
-	//state := convertDomainDeploymentToDeployment(deploymentDomain)
 
 	// state is not recomputed
 	state := data

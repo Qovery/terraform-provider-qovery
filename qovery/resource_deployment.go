@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
-	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -26,9 +25,17 @@ func newDeploymentResource() resource.Resource {
 }
 
 type NewDeploymentTerraform struct {
-	EnvironmentId string   `tfsdk:"environment_id"`
-	ServiceIds    []string `tfsdk:"service_ids"`
-	DesiredState  string   `tfsdk:"desired_state"`
+	EnvironmentId types.String `tfsdk:"environment_id"`
+	DesiredState  types.String `tfsdk:"desired_state"`
+	ForceTrigger  types.String `tfsdk:"force_trigger"`
+}
+
+func newDeploymentTerraformFromDomain(domain *newdeployment.Deployment) NewDeploymentTerraform {
+	return NewDeploymentTerraform{
+		EnvironmentId: fromString(domain.EnvironmentId.String()),
+		DesiredState:  fromString(domain.DesiredState.String()),
+		ForceTrigger:  fromString(domain.ForceTrigger),
+	}
 }
 
 func (r deploymentResource) Metadata(_ context.Context, req resource.MetadataRequest, resp *resource.MetadataResponse) {
@@ -62,19 +69,13 @@ func (r deploymentResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Dia
 				Type:        types.StringType,
 				Required:    true,
 			},
-			"service_ids": {
-				Description: "List of service ids to apply to the deployment.",
-				Optional:    true,
-				Computed:    true,
-				Type: types.SetType{
-					ElemType: types.StringType,
-				},
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringSliceDefaultModifier([]string{}),
-				},
-			},
 			"desired_state": {
 				Description: "Desired state of the deployment.",
+				Type:        types.StringType,
+				Optional:    true,
+			},
+			"force_trigger": {
+				Description: "Force trigger the deployment even when `desired_state` doesn't change",
 				Type:        types.StringType,
 				Optional:    true,
 			},
@@ -92,18 +93,20 @@ func (r deploymentResource) Create(ctx context.Context, req resource.CreateReque
 	}
 
 	// Create new deployment stage
-	_, err := r.deploymentService.Create(ctx, newdeployment.NewDeploymentParams{
-		EnvironmentId: plan.EnvironmentId,
-		ServiceIds:    plan.ServiceIds,
-		DesiredState:  plan.DesiredState,
+	deployment, err := r.deploymentService.Create(ctx, newdeployment.NewDeploymentParams{
+		EnvironmentId: toString(plan.EnvironmentId),
+		DesiredState:  toString(plan.DesiredState),
+		ForceTrigger:  toString(plan.ForceTrigger),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment create", err.Error())
 		return
 	}
 
+	newState := newDeploymentTerraformFromDomain(deployment)
+
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, plan)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, newState)...)
 }
 
 // Read qovery deployment tage resource
@@ -115,18 +118,20 @@ func (r deploymentResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	_, err := r.deploymentService.Get(ctx, newdeployment.NewDeploymentParams{
-		EnvironmentId: state.EnvironmentId,
-		ServiceIds:    state.ServiceIds,
-		DesiredState:  state.DesiredState,
+	deployment, err := r.deploymentService.Get(ctx, newdeployment.NewDeploymentParams{
+		EnvironmentId: toString(state.EnvironmentId),
+		DesiredState:  toString(state.DesiredState),
+		ForceTrigger:  toString(state.ForceTrigger),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment read", err.Error())
 		return
 	}
 
+	newState := newDeploymentTerraformFromDomain(deployment)
+
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
 }
 
 func (r deploymentResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -138,18 +143,19 @@ func (r deploymentResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	_, err := r.deploymentService.Update(ctx, newdeployment.NewDeploymentParams{
-		EnvironmentId: plan.EnvironmentId,
-		ServiceIds:    plan.ServiceIds,
-		DesiredState:  plan.DesiredState,
+	deployment, err := r.deploymentService.Update(ctx, newdeployment.NewDeploymentParams{
+		EnvironmentId: toString(plan.EnvironmentId),
+		DesiredState:  toString(plan.DesiredState),
+		ForceTrigger:  toString(plan.ForceTrigger),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment update", err.Error())
 		return
 	}
+	newState := newDeploymentTerraformFromDomain(deployment)
 
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &plan)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
 }
 
 func (r deploymentResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
@@ -161,8 +167,7 @@ func (r deploymentResource) Delete(ctx context.Context, req resource.DeleteReque
 	}
 
 	err := r.deploymentService.Delete(ctx, newdeployment.NewDeploymentParams{
-		EnvironmentId: state.EnvironmentId,
-		ServiceIds:    state.ServiceIds,
+		EnvironmentId: toString(state.EnvironmentId),
 		// When terraform destroys, the desired state will be "DELETED"
 		DesiredState: "DELETED",
 	})

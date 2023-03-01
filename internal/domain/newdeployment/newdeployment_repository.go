@@ -4,11 +4,6 @@ import (
 	"context"
 
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
-)
-
-var (
-	ErrFailedToGetEnvironmentStatus = errors.New("Failed to get environment status")
 )
 
 type EnvironmentRepository interface {
@@ -17,15 +12,8 @@ type EnvironmentRepository interface {
 	Stop(ctx context.Context, newDeployment Deployment) (*Deployment, error)
 	Restart(ctx context.Context, newDeployment Deployment) (*Deployment, error)
 	Delete(ctx context.Context, newDeployment Deployment) (*Deployment, error)
-}
-
-type ServicesRepository interface {
-	Deploy(ctx context.Context, newDeployment Deployment) (*Deployment, error)
-	ReDeploy(ctx context.Context, newDeployment Deployment) (*Deployment, error)
-	Stop(ctx context.Context, newDeployment Deployment) (*Deployment, error)
-	Restart(ctx context.Context, newDeployment Deployment) (*Deployment, error)
-	Get(ctx context.Context, newDeployment Deployment) (*Deployment, error)
-	Delete(ctx context.Context, newDeployment Deployment) (*Deployment, error)
+	GetLastDeploymentId(ctx context.Context, environmentId uuid.UUID) (*string, error)
+	GetNextDeploymentId(ctx context.Context, environmentId uuid.UUID) (*string, error)
 }
 
 type DeploymentStatusRepository interface {

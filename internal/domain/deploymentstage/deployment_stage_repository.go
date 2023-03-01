@@ -18,7 +18,7 @@ type Repository interface {
 // UpsertRepositoryRequest represents the parameters needed to create & update a DeploymentStage
 type UpsertRepositoryRequest struct {
 	Name        string `validate:"required"`
-	Description *string
+	Description string
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.

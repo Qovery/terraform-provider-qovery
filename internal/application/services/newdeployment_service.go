@@ -40,34 +40,48 @@ func (s newdeploymentService) Create(ctx context.Context, params newdeployment.N
 		return nil, newdeployment.ErrDesiredStateForbiddenAtCreation
 	}
 
-	if deployment.HasServiceIds() {
-
-	} else {
-		switch deployment.DesiredState {
-		case newdeployment.RUNNING:
-			_, err = s.newDeploymentEnvironmentRepository.Deploy(ctx, *deployment)
-			if err != nil {
-				return nil, errors.Wrap(err, newdeployment.ErrFailedToCreateDeployment.Error())
-			}
-			err = s.deploymentStatusRepository.WaitForExpectedDesiredState(ctx, *deployment)
-			if err != nil {
-				return nil, errors.Wrap(err, newdeployment.ErrFailedToCheckDeploymentStatus.Error())
-			}
-			break
-		case newdeployment.STOPPED:
-			// Do nothing: no need to stop environment as it has just been created
-			break
+	switch deployment.DesiredState {
+	case newdeployment.RUNNING:
+		_, err = s.newDeploymentEnvironmentRepository.Deploy(ctx, *deployment)
+		if err != nil {
+			return nil, errors.Wrap(err, newdeployment.ErrFailedToCreateDeployment.Error())
 		}
+		err = s.deploymentStatusRepository.WaitForExpectedDesiredState(ctx, *deployment)
+		if err != nil {
+			return nil, errors.Wrap(err, newdeployment.ErrFailedToCheckDeploymentStatus.Error())
+		}
+		break
+	case newdeployment.STOPPED:
+		// Do nothing: no need to stop environment as it has just been created
+		break
 	}
 
+	// Set new deployment id
+	//_, err := s.newDeploymentEnvironmentRepository.GetLastDeploymentId(ctx, *deployment.EnvironmentId)
+	//if err != nil {
+	//	return nil, errors.Wrap(err, newdeployment.ErrFailedToGetDeployment.Error())
+	//}
 	return deployment, nil
 }
 
-func (s newdeploymentService) Get(_ context.Context, params newdeployment.NewDeploymentParams) (*newdeployment.Deployment, error) {
+func (s newdeploymentService) Get(ctx context.Context, params newdeployment.NewDeploymentParams) (*newdeployment.Deployment, error) {
 	deployment, err := newdeployment.NewDeployment(params)
 	if err != nil {
 		return nil, errors.Wrap(err, newdeployment.ErrFailedToGetDeployment.Error())
 	}
+
+	// Return current deployment if ForceTrigger is disabled
+	//if params.ForceTrigger == false {
+	//	return deployment, nil
+	//}
+
+	// Look for next deployment id to trigger the deployment
+	//nextDeploymentId, err := s.newDeploymentEnvironmentRepository.GetNextDeploymentId(ctx, *deployment.EnvironmentId)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//deployment.Id = *nextDeploymentId
 	return deployment, nil
 }
 
@@ -82,33 +96,25 @@ func (s newdeploymentService) Update(ctx context.Context, params newdeployment.N
 		return nil, errors.Wrap(err, newdeployment.ErrFailedToCheckDeploymentStatus.Error())
 	}
 
-	if deployment.HasServiceIds() {
-
-	} else {
-		if deployment.HasServiceIds() {
-
-		} else {
-			switch deployment.DesiredState {
-			case newdeployment.RUNNING:
-				_, err = s.newDeploymentEnvironmentRepository.ReDeploy(ctx, *deployment)
-				if err != nil {
-					return nil, errors.Wrap(err, newdeployment.ErrFailedToCreateDeployment.Error())
-				}
-				break
-			case newdeployment.STOPPED:
-				_, err = s.newDeploymentEnvironmentRepository.Stop(ctx, *deployment)
-				if err != nil {
-					return nil, errors.Wrap(err, newdeployment.ErrFailedToCreateDeployment.Error())
-				}
-				break
-			case newdeployment.RESTARTED:
-				_, err = s.newDeploymentEnvironmentRepository.Restart(ctx, *deployment)
-				if err != nil {
-					return nil, errors.Wrap(err, newdeployment.ErrFailedToCreateDeployment.Error())
-				}
-				break
-			}
+	switch deployment.DesiredState {
+	case newdeployment.RUNNING:
+		_, err = s.newDeploymentEnvironmentRepository.ReDeploy(ctx, *deployment)
+		if err != nil {
+			return nil, errors.Wrap(err, newdeployment.ErrFailedToCreateDeployment.Error())
 		}
+		break
+	case newdeployment.STOPPED:
+		_, err = s.newDeploymentEnvironmentRepository.Stop(ctx, *deployment)
+		if err != nil {
+			return nil, errors.Wrap(err, newdeployment.ErrFailedToCreateDeployment.Error())
+		}
+		break
+	case newdeployment.RESTARTED:
+		_, err = s.newDeploymentEnvironmentRepository.Restart(ctx, *deployment)
+		if err != nil {
+			return nil, errors.Wrap(err, newdeployment.ErrFailedToCreateDeployment.Error())
+		}
+		break
 	}
 
 	err = s.deploymentStatusRepository.WaitForExpectedDesiredState(ctx, *deployment)
@@ -116,6 +122,12 @@ func (s newdeploymentService) Update(ctx context.Context, params newdeployment.N
 		return nil, errors.Wrap(err, newdeployment.ErrFailedToCheckDeploymentStatus.Error())
 	}
 
+	//// Set new deployment id
+	//newDeploymentId, err := s.newDeploymentEnvironmentRepository.GetLastDeploymentId(ctx, *deployment.EnvironmentId)
+	//if err != nil {
+	//	return nil, errors.Wrap(err, newdeployment.ErrFailedToGetNextDeploymentId.Error())
+	//}
+	//deployment.Id = *newDeploymentId
 	return deployment, nil
 }
 
@@ -130,13 +142,9 @@ func (s newdeploymentService) Delete(ctx context.Context, params newdeployment.N
 		return errors.Wrap(err, newdeployment.ErrFailedToCheckDeploymentStatus.Error())
 	}
 
-	if deployment.HasServiceIds() {
-
-	} else {
-		_, err = s.newDeploymentEnvironmentRepository.Delete(ctx, *deployment)
-		if err != nil {
-			return errors.Wrap(err, newdeployment.ErrFailedToDeleteDeployment.Error())
-		}
+	_, err = s.newDeploymentEnvironmentRepository.Delete(ctx, *deployment)
+	if err != nil {
+		return errors.Wrap(err, newdeployment.ErrFailedToDeleteDeployment.Error())
 	}
 
 	err = s.deploymentStatusRepository.WaitForExpectedDesiredState(ctx, *deployment)
