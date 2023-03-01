@@ -36,6 +36,7 @@ type UpsertRepositoryRequest struct {
 	Arguments           []string
 	Storages            []storage.UpsertRequest
 	Ports               []port.UpsertRequest
+	DeploymentStageId   string
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.

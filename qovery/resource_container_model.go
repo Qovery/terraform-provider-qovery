@@ -5,7 +5,6 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
@@ -29,10 +28,11 @@ type Container struct {
 	Storages                    types.Set    `tfsdk:"storage"`
 	Ports                       types.Set    `tfsdk:"ports"`
 	//CustomDomains               types.Set    `tfsdk:"custom_domains"`
-	Arguments    types.List   `tfsdk:"arguments"`
-	ExternalHost types.String `tfsdk:"external_host"`
-	InternalHost types.String `tfsdk:"internal_host"`
-	State        types.String `tfsdk:"state"`
+	Arguments                   types.List    `tfsdk:"arguments"`
+	ExternalHost                types.String `tfsdk:"external_host"`
+	InternalHost                types.String `tfsdk:"internal_host"`
+	State                       types.String `tfsdk:"state"`
+	DeploymentStageId           types.String `tfsdk:"deployment_stage_id"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
@@ -64,11 +64,6 @@ func (cont Container) ArgumentList() []string {
 //}
 
 func (cont Container) toUpsertServiceRequest(state *Container) (*container.UpsertServiceRequest, error) {
-	desiredState, err := status.NewStateFromString(toString(cont.State))
-	if err != nil {
-		return nil, err
-	}
-
 	var stateEnvironmentVariables EnvironmentVariableList
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
@@ -89,7 +84,6 @@ func (cont Container) toUpsertServiceRequest(state *Container) (*container.Upser
 		EnvironmentVariables:   cont.EnvironmentVariableList().diffRequest(stateEnvironmentVariables),
 		Secrets:                cont.SecretList().diffRequest(stateSecrets),
 		//CustomDomains:          cont.CustomDomainsList().diff(stateCustomDomains),
-		DesiredState: *desiredState,
 	}, nil
 }
 
@@ -120,30 +114,31 @@ func (cont Container) toUpsertRepositoryRequest() container.UpsertRepositoryRequ
 		Arguments:           cont.ArgumentList(),
 		Storages:            storages,
 		Ports:               ports,
+		DeploymentStageId:   toString(cont.DeploymentStageId),
 	}
 }
 
-func convertDomainContainerToContainer(state Container, cont *container.Container) Container {
+func convertDomainContainerToContainer(state Container, container *container.Container) Container {
 	return Container{
-		ID:                          fromString(cont.ID.String()),
-		EnvironmentID:               fromString(cont.EnvironmentID.String()),
-		RegistryID:                  fromString(cont.RegistryID.String()),
-		Name:                        fromString(cont.Name),
-		ImageName:                   fromString(cont.ImageName),
-		Tag:                         fromString(cont.Tag),
-		CPU:                         fromInt32(cont.CPU),
-		Memory:                      fromInt32(cont.Memory),
-		MinRunningInstances:         fromInt32(cont.MinRunningInstances),
-		MaxRunningInstances:         fromInt32(cont.MaxRunningInstances),
-		AutoPreview:                 fromBool(cont.AutoPreview),
-		Arguments:                   fromStringArray(cont.Arguments),
-		Storages:                    convertDomainStoragesToStorageList(cont.Storages).toTerraformSet(),
-		Ports:                       convertDomainPortsToPortList(cont.Ports).toTerraformSet(),
-		State:                       fromClientEnum(cont.State),
-		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(cont.EnvironmentVariables, variable.ScopeContainer).toTerraformSet(),
-		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(cont.BuiltInEnvironmentVariables, variable.ScopeBuiltIn).toTerraformSet(),
-		InternalHost:                fromStringPointer(cont.InternalHost),
-		ExternalHost:                fromStringPointer(cont.ExternalHost),
-		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), cont.Secrets, variable.ScopeContainer).toTerraformSet(),
+		ID:                          fromString(container.ID.String()),
+		EnvironmentID:               fromString(container.EnvironmentID.String()),
+		RegistryID:                  fromString(container.RegistryID.String()),
+		Name:                        fromString(container.Name),
+		ImageName:                   fromString(container.ImageName),
+		Tag:                         fromString(container.Tag),
+		CPU:                         fromInt32(container.CPU),
+		Memory:                      fromInt32(container.Memory),
+		MinRunningInstances:         fromInt32(container.MinRunningInstances),
+		MaxRunningInstances:         fromInt32(container.MaxRunningInstances),
+		AutoPreview:                 fromBool(container.AutoPreview),
+		Arguments:                   fromStringArray(container.Arguments),
+		Storages:                    convertDomainStoragesToStorageList(container.Storages).toTerraformSet(),
+		Ports:                       convertDomainPortsToPortList(container.Ports).toTerraformSet(),
+		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(container.EnvironmentVariables, variable.ScopeContainer).toTerraformSet(),
+		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn).toTerraformSet(),
+		InternalHost:                fromStringPointer(container.InternalHost),
+		ExternalHost:                fromStringPointer(container.ExternalHost),
+		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), container.Secrets, variable.ScopeContainer).toTerraformSet(),
+		DeploymentStageId:           fromString(container.DeploymentStageId),
 	}
 }

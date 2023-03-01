@@ -74,11 +74,6 @@ func (s containerService) Create(ctx context.Context, environmentID string, requ
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
-	_, err = s.containerDeploymentService.UpdateState(ctx, cont.ID.String(), request.DesiredState, cont.Tag)
-	if err != nil {
-		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
-	}
-
 	cont, err = s.refreshContainer(ctx, *cont)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
@@ -127,11 +122,6 @@ func (s containerService) Update(ctx context.Context, containerID string, reques
 	}
 
 	_, err = s.secretService.Update(ctx, cont.ID.String(), request.Secrets)
-	if err != nil {
-		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
-	}
-
-	_, err = s.containerDeploymentService.UpdateState(ctx, cont.ID.String(), request.DesiredState, cont.Tag)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
 	}

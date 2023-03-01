@@ -13,7 +13,6 @@ import (
 type ApplicationResponse struct {
 	ApplicationResponse             *qovery.Application
 	ApplicationDeploymentStageId    string
-	ApplicationStatus               *qovery.Status
 	ApplicationEnvironmentVariables []*qovery.EnvironmentVariable
 	ApplicationSecrets              []*qovery.Secret
 	ApplicationCustomDomains        []*qovery.CustomDomain
@@ -27,7 +26,6 @@ type ApplicationCreateParams struct {
 	EnvironmentVariablesDiff     EnvironmentVariablesDiff
 	CustomDomainsDiff            CustomDomainsDiff
 	SecretsDiff                  SecretsDiff
-	DesiredState                 qovery.StateEnum
 }
 
 type ApplicationUpdateParams struct {
@@ -36,7 +34,6 @@ type ApplicationUpdateParams struct {
 	EnvironmentVariablesDiff     EnvironmentVariablesDiff
 	CustomDomainsDiff            CustomDomainsDiff
 	SecretsDiff                  SecretsDiff
-	DesiredState                 qovery.StateEnum
 }
 
 func (c *Client) CreateApplication(ctx context.Context, environmentID string, params *ApplicationCreateParams) (*ApplicationResponse, *apierrors.APIError) {
@@ -48,17 +45,23 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, params.ApplicationRequest.Name, res, err)
 	}
 
-	// Attach service to deployment stage
+	// Attach application to deployment stage
 	if len(params.ApplicationDeploymentStageId) > 0 {
 		_, resp, err := c.api.DeploymentStageMainCallsApi.
 			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageId, application.Id).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
-			return nil, apierrors.NewCreateError(apierrors.APIResourceUpdateDeploymentStage, application.Id, resp, err)
+			return nil, apierrors.NewCreateError(apierrors.APIResourceUpdateDeploymentStage, params.ApplicationDeploymentStageId, resp, err)
 		}
 	}
 
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.DesiredState, params.ApplicationDeploymentStageId)
+	// Get application deployment stage
+	applicationDeploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, application.Id).Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, application.Id, resp, err)
+	}
+
+	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, applicationDeploymentStage.Id)
 }
 
 func (c *Client) GetApplication(ctx context.Context, applicationID string) (*ApplicationResponse, *apierrors.APIError) {
@@ -67,11 +70,6 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
-	}
-
-	status, apiErr := c.getApplicationStatus(ctx, applicationID)
-	if apiErr != nil {
-		return nil, apiErr
 	}
 
 	environmentVariables, apiErr := c.getApplicationEnvironmentVariables(ctx, application.Id)
@@ -94,26 +92,14 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		return nil, apiErr
 	}
 
-	// TODO (mzo) use deployment_stage_id available in ApplicationResponse when it is merged
-	deploymentStages, response, err := c.api.DeploymentStageMainCallsApi.ListEnvironmentDeploymentStage(ctx, application.Environment.Id).Execute()
-	if err != nil || response.StatusCode >= 400 {
+	deploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, application.Id).Execute()
+	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
-	var deploymentStageId = ""
-	for _, deploymentStage := range deploymentStages.GetResults() {
-		for _, deploymentStageService := range deploymentStage.Services {
-			if deploymentStageService.ServiceId == &applicationID {
-				deploymentStageId = deploymentStage.Id
-				break
-			}
-		}
-	}
-	// END TODO (mzo)
 
 	return &ApplicationResponse{
 		ApplicationResponse:             application,
-		ApplicationDeploymentStageId:    deploymentStageId,
-		ApplicationStatus:               status,
+		ApplicationDeploymentStageId:    deploymentStage.Id,
 		ApplicationEnvironmentVariables: environmentVariables,
 		ApplicationSecrets:              secrets,
 		ApplicationCustomDomains:        customDomains,
@@ -141,7 +127,7 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 		}
 	}
 
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.DesiredState, params.ApplicationDeploymentStageId)
+	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.ApplicationDeploymentStageId)
 }
 
 func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *apierrors.APIError {
@@ -169,8 +155,7 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 	return nil
 }
 
-func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, environmentVariablesDiff EnvironmentVariablesDiff, secretsDiff SecretsDiff, customDomainsDiff CustomDomainsDiff, desiredState qovery.StateEnum, deploymentStageId string) (*ApplicationResponse, *apierrors.APIError) {
-	forceRedeploy := !environmentVariablesDiff.IsEmpty() || !secretsDiff.IsEmpty() || !customDomainsDiff.IsEmpty()
+func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, environmentVariablesDiff EnvironmentVariablesDiff, secretsDiff SecretsDiff, customDomainsDiff CustomDomainsDiff, deploymentStageId string) (*ApplicationResponse, *apierrors.APIError) {
 	if !environmentVariablesDiff.IsEmpty() {
 		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application.Id, environmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
@@ -187,11 +172,6 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 		if apiErr := c.updateApplicationCustomDomains(ctx, application.Id, customDomainsDiff); apiErr != nil {
 			return nil, apiErr
 		}
-	}
-
-	status, apiErr := c.updateApplicationStatus(ctx, application, desiredState, forceRedeploy)
-	if apiErr != nil {
-		return nil, apiErr
 	}
 
 	environmentVariables, apiErr := c.getApplicationEnvironmentVariables(ctx, application.Id)
@@ -216,7 +196,6 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 
 	return &ApplicationResponse{
 		ApplicationResponse:             application,
-		ApplicationStatus:               status,
 		ApplicationEnvironmentVariables: environmentVariables,
 		ApplicationSecrets:              secrets,
 		ApplicationCustomDomains:        customDomains,

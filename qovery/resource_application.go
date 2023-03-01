@@ -24,13 +24,6 @@ var _ resource.ResourceWithImportState = applicationResource{}
 
 var (
 
-	// Application State
-	applicationStates = clientEnumToStringArray([]qovery.StateEnum{
-		qovery.STATEENUM_RUNNING,
-		qovery.STATEENUM_STOPPED,
-	})
-	applicationStateDefault = string(qovery.STATEENUM_RUNNING)
-
 	// Application Build Mode
 	applicationBuildModes       = clientEnumToStringArray(qovery.AllowedBuildModeEnumEnumValues)
 	applicationBuildModeDefault = string(qovery.BUILDMODEENUM_BUILDPACKS)
@@ -479,22 +472,6 @@ func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Description: "The application internal host.",
 				Type:        types.StringType,
 				Computed:    true,
-			},
-			"state": {
-				Description: descriptions.NewStringEnumDescription(
-					"State of the application.",
-					applicationStates,
-					&applicationStateDefault,
-				),
-				Type:     types.StringType,
-				Optional: true,
-				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringDefaultModifier(applicationStateDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
-					validators.NewStringEnumValidator(applicationStates),
-				},
 			},
 			"deployment_stage_id": {
 				Description: "Id of the deployment stage.",

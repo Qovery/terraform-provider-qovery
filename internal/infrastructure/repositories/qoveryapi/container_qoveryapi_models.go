@@ -11,7 +11,7 @@ import (
 )
 
 // newDomainCredentialsFromQovery takes a qovery.EnvironmentVariable returned by the API client and turns it into the domain model variable.Variable.
-func newDomainContainerFromQovery(c *qovery.ContainerResponse) (*container.Container, error) {
+func newDomainContainerFromQovery(c *qovery.ContainerResponse, deploymentStageId string) (*container.Container, error) {
 	if c == nil {
 		return nil, variable.ErrNilVariable
 	}
@@ -42,6 +42,7 @@ func newDomainContainerFromQovery(c *qovery.ContainerResponse) (*container.Conta
 		Arguments:           c.Arguments,
 		Ports:               ports,
 		Storages:            storages,
+		DeploymentStageId:   deploymentStageId,
 	})
 }
 
