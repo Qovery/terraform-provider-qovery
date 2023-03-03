@@ -9,16 +9,18 @@ import (
 )
 
 type ClusterResponse struct {
-	OrganizationID      string
-	ClusterResponse     *qovery.Cluster
-	ClusterInfo         *qovery.ClusterCloudProviderInfo
-	ClusterRoutingTable *ClusterRoutingTable
+	OrganizationID         string
+	ClusterResponse        *qovery.Cluster
+	ClusterInfo            *qovery.ClusterCloudProviderInfo
+	ClusterRoutingTable    *ClusterRoutingTable
+	ClusterAdvancedSetting *map[string]interface{}
 }
 
 type ClusterUpsertParams struct {
 	ClusterRequest              qovery.ClusterRequest
 	ClusterCloudProviderRequest *qovery.ClusterCloudProviderInfoRequest
 	ClusterRoutingTable         ClusterRoutingTable
+	ClusterAdvancedSettings     map[string]interface{}
 	ForceUpdate                 bool
 	DesiredState                qovery.StateEnum
 }
@@ -52,11 +54,17 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 		return nil, apiErr
 	}
 
+	clusterSettings, apiErr := c.getClusterAdvancedSettings(ctx, organizationID, clusterID)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	return &ClusterResponse{
-		OrganizationID:      organizationID,
-		ClusterResponse:     cluster,
-		ClusterRoutingTable: clusterRoutingTable,
-		ClusterInfo:         clusterInfo,
+		OrganizationID:         organizationID,
+		ClusterResponse:        cluster,
+		ClusterRoutingTable:    clusterRoutingTable,
+		ClusterInfo:            clusterInfo,
+		ClusterAdvancedSetting: clusterSettings,
 	}, nil
 }
 
@@ -139,6 +147,17 @@ func (c *Client) updateCluster(ctx context.Context, organizationID string, clust
 		}
 	}
 
+	var advSettings *map[string]interface{}
+	var apiErr *apierrors.APIError
+	if len(params.ClusterAdvancedSettings) > 0 {
+		advSettings, apiErr = c.editClusterAdvancedSettings(ctx, organizationID, cluster.Id, params.ClusterAdvancedSettings)
+	} else {
+		advSettings, apiErr = c.getClusterAdvancedSettings(ctx, organizationID, cluster.Id)
+	}
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	clusterStatus, apiErr := c.updateClusterStatus(ctx, organizationID, cluster, params.DesiredState, params.ForceUpdate)
 	if apiErr != nil {
 		return nil, apiErr
@@ -146,9 +165,10 @@ func (c *Client) updateCluster(ctx context.Context, organizationID string, clust
 	cluster.Status = clusterStatus.Status
 
 	return &ClusterResponse{
-		OrganizationID:      organizationID,
-		ClusterResponse:     cluster,
-		ClusterRoutingTable: clusterRoutingTable,
-		ClusterInfo:         clusterInfo,
+		OrganizationID:         organizationID,
+		ClusterResponse:        cluster,
+		ClusterRoutingTable:    clusterRoutingTable,
+		ClusterInfo:            clusterInfo,
+		ClusterAdvancedSetting: advSettings,
 	}, nil
 }

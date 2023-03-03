@@ -46,6 +46,7 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "RUNNING"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "advanced_settings", "{ loki.log_retention_in_week = 1 }"),
 				),
 			},
 			// Add description
@@ -311,6 +312,7 @@ resource "qovery_cluster" "test" {
   cloud_provider = "%s"
   region = "%s"
   instance_type = "%s"
+  advanced_settings = { loki.log_retention_in_week = 1 }
 }
 `, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType,
 	)

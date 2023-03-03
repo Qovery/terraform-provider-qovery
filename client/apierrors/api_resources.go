@@ -19,4 +19,5 @@ const (
 	APIResourceEnvironmentEnvironmentVariable APIResource = "environment environment variable"
 	APIResourceEnvironmentSecret              APIResource = "environment secret"
 	APIResourceEnvironmentStatus              APIResource = "environment status"
+	APIResourceClusterAdvancedSettings        APIResource = "cluster advanced settings"
 )

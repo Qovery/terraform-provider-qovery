@@ -28,6 +28,7 @@ tasks:
   build:
     desc: Build the provider binary
     cmds:
+      - go get github.com/qovery/qovery-client-go
       - go build -v -o {{.BINARY_FOLDER}}/{{.BINARY_NAME}}
     sources:
       - "**/*.go"

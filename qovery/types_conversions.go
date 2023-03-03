@@ -1,7 +1,12 @@
 package qovery
 
 import (
+	"context"
+	"encoding/json"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"strconv"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -136,12 +141,16 @@ func toInt64Pointer(v types.Int64) *int32 {
 	return &i
 }
 
-func toMapStringString(v types.Map) map[string]string {
-	ret := make(map[string]string, len(v.Elems))
-	for k, v := range v.Elems {
-		ret[k] = v.String()
+func toMapStringString(obj types.Object) (map[string]interface{}, error) {
+	ret := make(map[string]interface{}, len(obj.Attrs))
+	for k, v := range obj.Attrs {
+		value, err := fromTfValueToGoValue(v)
+		if err != nil {
+			return nil, err
+		}
+		ret[k] = value
 	}
-	return ret
+	return ret, nil
 }
 
 func toStringArray(set types.List) []string {
@@ -227,4 +236,81 @@ func fromStringArray(array []string) types.List {
 		set.Elems = append(set.Elems, fromString(v))
 	}
 	return set
+}
+
+func fromGoValueToTfValue(value interface{}, _type attr.Type) (attr.Value, error) {
+	switch _type {
+	case types.StringType:
+		return types.String{Value: value.(string)}, nil
+	case types.BoolType:
+		return types.Bool{Value: value.(bool)}, nil
+	case types.Int64Type:
+		return types.Int64{Value: int64(value.(float64))}, nil
+	case types.SetType{ElemType: types.StringType}:
+		var elems []attr.Value
+		for _, v := range value.([]interface{}) {
+			elems = append(elems, types.String{Value: strings.TrimSpace(v.(string))})
+		}
+		return types.Set{ElemType: types.StringType, Elems: elems}, nil
+	case types.MapType{ElemType: types.StringType}:
+		elems := make(map[string]attr.Value)
+		for k, v := range value.(map[string]interface{}) {
+			elems[k] = types.String{Value: v.(string)}
+		}
+		return types.Map{ElemType: types.StringType, Elems: elems}, nil
+	}
+
+	return types.Object{Null: true}, fmt.Errorf("unable to parse %s as %s", value, _type.String())
+}
+
+func fromTfValueToGoValue(v attr.Value) (interface{}, error) {
+	switch v.Type(context.Background()) {
+	case types.StringType:
+		value := strings.Trim(v.String(), "\"")
+		return value, nil
+	case types.Int64Type:
+		value, err := strconv.ParseInt(v.String(), 10, 64)
+		return value, err
+	case types.BoolType:
+		value, err := strconv.ParseBool(v.String())
+		return value, err
+	case types.SetType{ElemType: types.StringType}:
+		var elems []string
+		jsonErr := json.Unmarshal([]byte(v.String()), &elems)
+		return elems, jsonErr
+	case types.MapType{ElemType: types.StringType}:
+		elems := make(map[string]string)
+		jsonErr := json.Unmarshal([]byte(v.String()), &elems)
+		return elems, jsonErr
+	}
+
+	return nil, fmt.Errorf("unable to parse %s as Go value", v.String())
+}
+
+func fromStringMap(value *map[string]interface{}) types.Object {
+	if value == nil || len(*value) == 0 {
+		return types.Object{Null: true}
+	}
+
+	attrs := make(map[string]attr.Value)
+	attrTypes := make(map[string]attr.Type)
+	for k, f := range advancedSettingsDefault {
+		attrTypes[k] = f._type
+	}
+
+	for k, f := range *value {
+		attribute, err := fromGoValueToTfValue(f, attrTypes[k])
+
+		if err != nil {
+			tflog.Warn(context.Background(), "Unable to parse attribute, using default value.", map[string]interface{}{"error": err.Error()})
+			attribute = advancedSettingsDefault[k].defaultValue
+		}
+
+		attrs[k] = attribute
+	}
+
+	return types.Object{
+		Attrs:     attrs,
+		AttrTypes: attrTypes,
+	}
 }
