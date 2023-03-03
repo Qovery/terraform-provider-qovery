@@ -154,17 +154,23 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *
 }
 
 func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierrors.APIError {
-	database, apiErr := c.GetDatabase(ctx, databaseID)
-	if apiErr != nil {
-		return apiErr
+	database, res, err := c.api.DatabaseMainCallsApi.
+		GetDatabase(ctx, databaseID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		if res.StatusCode == 404 {
+			// if the database is not found, then it has already been deleted
+			return nil
+		}
+		return apierrors.NewDeleteError(apierrors.APIResourceDatabase, databaseID, res, err)
 	}
 
-	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, database.DatabaseResponse.Environment.Id)
+	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, database.Environment.Id)
 	if apiErr := wait(ctx, envChecker, nil); apiErr != nil {
 		return apiErr
 	}
 
-	res, err := c.api.DatabaseMainCallsApi.
+	res, err = c.api.DatabaseMainCallsApi.
 		DeleteDatabase(ctx, databaseID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {

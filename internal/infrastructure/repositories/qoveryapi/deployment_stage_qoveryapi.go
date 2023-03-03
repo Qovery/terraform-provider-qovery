@@ -78,7 +78,16 @@ func (c deploymentStageQoveryAPI) Update(ctx context.Context, deploymentStageID 
 }
 
 func (c deploymentStageQoveryAPI) Delete(ctx context.Context, deploymentStageID string) error {
-	resp, err := c.client.DeploymentStageMainCallsApi.
+	_, resp, err := c.client.DeploymentStageMainCallsApi.GetDeploymentStage(ctx, deploymentStageID).Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		if resp.StatusCode == 404 {
+			// if the deployment stage is not found, then it has already been deleted
+			return nil
+		}
+		return apierrors.NewReadApiError(apierrors.ApiResourceDeploymentStage, deploymentStageID, resp, err)
+	}
+
+	resp, err = c.client.DeploymentStageMainCallsApi.
 		DeleteDeploymentStage(ctx, deploymentStageID).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {

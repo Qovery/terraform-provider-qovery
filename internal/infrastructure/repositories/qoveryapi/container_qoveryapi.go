@@ -113,7 +113,18 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 
 // Delete calls Qovery's API to deletes a container using the given containerID.
 func (c containerQoveryAPI) Delete(ctx context.Context, containerID string) error {
-	resp, err := c.client.ContainerMainCallsApi.
+	_, resp, err := c.client.ContainerMainCallsApi.
+		GetContainer(ctx, containerID).
+		Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		if resp.StatusCode == 404 {
+			// if the container is not found, then it has already been deleted
+			return nil
+		}
+		return apierrors.NewDeleteApiError(apierrors.ApiResourceContainer, containerID, resp, err)
+	}
+
+	resp, err = c.client.ContainerMainCallsApi.
 		DeleteContainer(ctx, containerID).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {

@@ -15,6 +15,7 @@ type Repository interface {
 	Get(ctx context.Context, environmentID string) (*Environment, error)
 	Update(ctx context.Context, environmentID string, request UpdateRepositoryRequest) (*Environment, error)
 	Delete(ctx context.Context, environmentID string) error
+	Exists(ctx context.Context, environmentId string) bool
 }
 
 // CreateRepositoryRequest represents the parameters needed to create an Environment.

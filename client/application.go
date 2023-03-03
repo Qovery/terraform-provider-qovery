@@ -131,17 +131,23 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 }
 
 func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *apierrors.APIError {
-	application, apiErr := c.GetApplication(ctx, applicationID)
-	if apiErr != nil {
-		return apiErr
+	application, res, err := c.api.ApplicationMainCallsApi.
+		GetApplication(ctx, applicationID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		if res.StatusCode == 404 {
+			// if the application is not found, then it has already been deleted
+			return nil
+		}
+		return apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
 
-	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, application.ApplicationResponse.Environment.Id)
+	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, application.Environment.Id)
 	if apiErr := wait(ctx, envChecker, nil); apiErr != nil {
 		return apiErr
 	}
 
-	res, err := c.api.ApplicationMainCallsApi.
+	res, err = c.api.ApplicationMainCallsApi.
 		DeleteApplication(ctx, applicationID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {
