@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	// ErrInvalidURLParamdNameParam is returned if the URL param is invalid.
+	// ErrInvalidURLParam is returned if the URL param is invalid.
 	ErrInvalidURLParam = errors.New("invalid URL param")
 )
 
