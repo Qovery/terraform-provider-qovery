@@ -5,6 +5,7 @@ import (
 
 	"github.com/AlekSi/pointer"
 	"github.com/brianvoe/gofakeit/v6"
+	"github.com/google/uuid"
 	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
 
@@ -61,7 +62,8 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
-			cont, err := newDomainContainerFromQovery(tc.Container)
+			fakeDeploymentStageId := uuid.NewString()
+			cont, err := newDomainContainerFromQovery(tc.Container, fakeDeploymentStageId)
 			if tc.ExpectedError != nil {
 				assert.ErrorContains(t, err, tc.ExpectedError.Error())
 				assert.Nil(t, cont)
@@ -83,6 +85,7 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 			assert.Equal(t, tc.Container.MaxRunningInstances, cont.MaxRunningInstances)
 			assert.Equal(t, tc.Container.AutoPreview, cont.AutoPreview)
 			assert.Equal(t, tc.Container.Entrypoint, cont.Entrypoint)
+			assert.Equal(t, fakeDeploymentStageId, cont.DeploymentStageId)
 
 			assert.Len(t, tc.Container.Ports, len(cont.Ports))
 			for idx, p := range cont.Ports {

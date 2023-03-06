@@ -32,7 +32,6 @@ func TestAcc_DatabaseDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("data.qovery_database.test", "memory", "100"),
 					resource.TestCheckResourceAttr("data.qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("data.qovery_database.test", "state", "STOPPED"),
 					resource.TestCheckResourceAttr("data.qovery_database.test", "port", "6379"),
 					resource.TestCheckResourceAttr("data.qovery_database.test", "login", ""),
 					resource.TestCheckResourceAttr("data.qovery_database.test", "external_host", "zfe74ad34-redis.zc531a994.rustrocks.cloud"),

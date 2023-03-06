@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
+	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -78,6 +79,10 @@ func (r deploymentResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Dia
 				Description: "Force trigger the deployment even when `desired_state` doesn't change",
 				Type:        types.StringType,
 				Optional:    true,
+				PlanModifiers: tfsdk.AttributePlanModifiers{
+					modifiers.NewStringDefaultModifier(""),
+				},
+				Computed: true,
 			},
 		},
 	}, nil

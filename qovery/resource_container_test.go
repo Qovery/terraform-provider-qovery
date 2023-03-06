@@ -58,7 +58,6 @@ func TestAcc_Container(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Update name
@@ -90,7 +89,6 @@ func TestAcc_Container(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Check Import
@@ -140,7 +138,6 @@ func TestAcc_ContainerWithArguments(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Add argument
@@ -173,7 +170,6 @@ func TestAcc_ContainerWithArguments(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Remove argument
@@ -205,7 +201,6 @@ func TestAcc_ContainerWithArguments(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Check Import
@@ -255,7 +250,6 @@ func TestAcc_ContainerWithAutoPreview(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Update auto_preview
@@ -287,7 +281,6 @@ func TestAcc_ContainerWithAutoPreview(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Check Import
@@ -340,7 +333,6 @@ func TestAcc_ContainerWithResources(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Update auto_preview
@@ -375,89 +367,6 @@ func TestAcc_ContainerWithResources(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
-				),
-			},
-			// Check Import
-			{
-				ResourceName:      "qovery_container.test",
-				ImportState:       true,
-				ImportStateVerify: true,
-			},
-		},
-	})
-}
-
-func TestAcc_ContainerWithState(t *testing.T) {
-	t.Parallel()
-	testName := "container-with-state"
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccQoveryContainerDestroy("qovery_container.test"),
-		Steps: []resource.TestStep{
-			// Create and Read testing
-			{
-				Config: testAccContainerDefaultConfigWithState(
-					testName,
-					"STOPPED",
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryProjectExists("qovery_project.test"),
-					testAccQoveryEnvironmentExists("qovery_environment.test"),
-					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
-					testAccQoveryContainerExists("qovery_container.test"),
-					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
-					resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
-					resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
-					resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
-					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
-					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
-					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
-					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
-					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
-					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
-					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
-					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
-					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-						"key": regexp.MustCompile(`^QOVERY_`),
-					}),
-					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "STOPPED"),
-				),
-			},
-			// Update state
-			{
-				Config: testAccContainerDefaultConfigWithState(
-					testName,
-					"RUNNING",
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryProjectExists("qovery_project.test"),
-					testAccQoveryEnvironmentExists("qovery_environment.test"),
-					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
-					testAccQoveryContainerExists("qovery_container.test"),
-					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
-					resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
-					resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
-					resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
-					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
-					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
-					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
-					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
-					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
-					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
-					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
-					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
-					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-						"key": regexp.MustCompile(`^QOVERY_`),
-					}),
-					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Check Import
@@ -512,7 +421,6 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Update environment variable
@@ -549,7 +457,6 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Add environment variable
@@ -591,7 +498,6 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Remove environment variables
@@ -628,7 +534,6 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Check Import
@@ -683,7 +588,6 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Update secret
@@ -720,7 +624,6 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Add secret
@@ -762,7 +665,6 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 			// Remove secret
@@ -799,7 +701,6 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 				),
 			},
 		},
@@ -857,7 +758,6 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //					}),
 //					resource.TestCheckResourceAttrSet("qovery_container.test", "external_host"),
 //					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
-//					resource.TestCheckResourceAttr("qovery_container.test", "state", state),
 //				),
 //			},
 //			// Update environment variable
@@ -896,7 +796,6 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //					}),
 //					resource.TestCheckResourceAttrSet("qovery_container.test", "external_host"),
 //					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
-//					resource.TestCheckResourceAttr("qovery_container.test", "state", state),
 //				),
 //			},
 //			// Add environment variable
@@ -938,7 +837,6 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //					}),
 //					resource.TestCheckResourceAttrSet("qovery_container.test", "external_host"),
 //					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
-//					resource.TestCheckResourceAttr("qovery_container.test", "state", state),
 //				),
 //			},
 //			// Remove environment variables
@@ -977,7 +875,6 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //					}),
 //					resource.TestCheckResourceAttrSet("qovery_container.test", "external_host"),
 //					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
-//					resource.TestCheckResourceAttr("qovery_container.test", "state", state),
 //				),
 //			},
 //			// Check Import
@@ -1029,7 +926,6 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //					}),
 //					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 //					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
-//					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 //				),
 //			},
 //			// Update environment env variables
@@ -1068,7 +964,6 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //					}),
 //					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 //					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
-//					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 //				),
 //			},
 //			// Update environment variables
@@ -1107,7 +1002,6 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //					}),
 //					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 //					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
-//					resource.TestCheckResourceAttr("qovery_container.test", "state", "RUNNING"),
 //				),
 //			},
 //			// Check Import
@@ -1168,7 +1062,6 @@ func TestAcc_ContainerWithStorage(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "STOPPED"),
 				),
 			},
 			// Add another storage
@@ -1220,7 +1113,6 @@ func TestAcc_ContainerWithStorage(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "STOPPED"),
 				),
 			},
 			// Remove first storage
@@ -1262,7 +1154,6 @@ func TestAcc_ContainerWithStorage(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "STOPPED"),
 				),
 			},
 			{
@@ -1274,7 +1165,6 @@ func TestAcc_ContainerWithStorage(t *testing.T) {
 	})
 }
 
-// TODO: change the state from STOPPED to RUNNING
 func TestAcc_ContainerWithPorts(t *testing.T) {
 	t.Parallel()
 	testName := "container-with-ports"
@@ -1320,7 +1210,6 @@ func TestAcc_ContainerWithPorts(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-					resource.TestCheckResourceAttr("qovery_container.test", "state", "STOPPED"),
 				),
 			},
 			//// Add another port
@@ -1374,7 +1263,6 @@ func TestAcc_ContainerWithPorts(t *testing.T) {
 			//		}),
 			//		resource.TestMatchResourceAttr("qovery_container.test", "external_host", regexp.MustCompile(`^z`)),
 			//		resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "state", "STOPPED"),
 			//	),
 			//},
 			//// Remove first port
@@ -1420,7 +1308,6 @@ func TestAcc_ContainerWithPorts(t *testing.T) {
 			//		}),
 			//		resource.TestMatchResourceAttr("qovery_container.test", "external_host", regexp.MustCompile(`^z`)),
 			//		resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "state", "STOPPED"),
 			//	),
 			//},
 			// Check Import
@@ -1486,7 +1373,6 @@ resource "qovery_container" "test" {
   name = "%s"
   image_name = "%s"
   tag = "%s"
-  state = "RUNNING"
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag,
 	)
@@ -1504,7 +1390,6 @@ resource "qovery_container" "test" {
   name = "%s"
   image_name = "%s"
   tag = "%s"
-  state = "RUNNING"
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), name, containerImageName, containerTag,
 	)
@@ -1523,7 +1408,6 @@ resource "qovery_container" "test" {
   image_name = "%s"
   tag = "%s"
   arguments = %s
-  state = "RUNNING"
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, convertStringArrayToString(arguments),
 	)
@@ -1542,27 +1426,8 @@ resource "qovery_container" "test" {
   image_name = "%s"
   tag = "%s"
   auto_preview = "%s"
-  state = "RUNNING"
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, autoPreview,
-	)
-}
-
-func testAccContainerDefaultConfigWithState(testName string, state string) string {
-	return fmt.Sprintf(`
-%s
-
-%s
-
-resource "qovery_container" "test" {
-  environment_id = qovery_environment.test.id
-  registry_id = qovery_container_registry.test.id
-  name = "%s"
-  image_name = "%s"
-  tag = "%s"
-  state = "%s"
-}
-`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, state,
 	)
 }
 
@@ -1582,7 +1447,6 @@ resource "qovery_container" "test" {
   memory = "%s"
   min_running_instances = "%s"
   max_running_instances = "%s"
-  state = "RUNNING"
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, cpu, memory, minRunningInstances, maxRunningInstances,
 	)
@@ -1601,7 +1465,6 @@ resource "qovery_container" "test" {
   image_name = "%s"
   tag = "%s"
   storage = %s
-  state = "STOPPED"
 }
 
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, convertStoragesToString(storages),
@@ -1620,7 +1483,6 @@ resource "qovery_container" "test" {
   image_name = "%s"
   tag = "%s"
   ports = %s
-  state = "STOPPED"
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, convertPortsToString(ports),
 	)
@@ -1639,7 +1501,6 @@ resource "qovery_container" "test" {
   image_name = "%s"
   tag = "%s"
   environment_variables = %s
-  state = "RUNNING"
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, convertEnvVarsToString(environmentVariables),
 	)
@@ -1658,7 +1519,6 @@ resource "qovery_container" "test" {
   image_name = "%s"
   tag = "%s"
   secrets = %s
-  state = "RUNNING"
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, convertEnvVarsToString(secrets),
 	)
