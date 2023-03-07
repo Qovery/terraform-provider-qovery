@@ -63,8 +63,8 @@ type Job struct {
 	MaxDurationSeconds uint32    `validate:"required"`
 	AutoPreview        bool
 
-	Source   JobSource `validate:"required"`
-	Schedule Schedule  `validate:"required"`
+	Source   JobSource   `validate:"required"`
+	Schedule JobSchedule `validate:"required"`
 
 	Ports                       port.Ports
 	EnvironmentVariables        variable.Variables
@@ -112,7 +112,7 @@ type NewJobParams struct {
 	MaxDurationSeconds uint32
 	AutoPreview        bool
 	Source             NewJobSourceParams
-	Schedule           Schedule // TODO(benjaminch): maybe use / introduce ScheduleParams?
+	Schedule           NewJobScheduleParams
 
 	State                *string
 	Ports                port.Ports         // TODO(benjaminch): maybe use / introduce port.PortsParams?
@@ -137,8 +137,9 @@ func NewJob(params NewJobParams) (*Job, error) {
 		return nil, errors.Wrap(err, ErrInvalidJobSourceParam.Error())
 	}
 
-	if err := params.Schedule.Validate(); err != nil {
-		return nil, ErrInvalidScheduleParam
+	jobSchedule, err := NewJobSchedule(params.Schedule)
+	if err != nil {
+		return nil, errors.Wrap(err, ErrInvalidJobSourceParam.Error())
 	}
 
 	if params.Name == "" {
@@ -154,7 +155,7 @@ func NewJob(params NewJobParams) (*Job, error) {
 		Memory:             params.Memory,
 		MaxNbRestart:       params.MaxNbRestart,
 		MaxDurationSeconds: params.MaxDurationSeconds,
-		Schedule:           params.Schedule,
+		Schedule:           *jobSchedule,
 		Source:             *jobSource,
 		Ports:              params.Ports,
 	}

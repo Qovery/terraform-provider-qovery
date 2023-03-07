@@ -6,21 +6,20 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/execution_command"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/execution_command/test_helper"
 )
 
 func TestExecutionCommandValidate(t *testing.T) {
 	// setup:
-	defaultArguments := []string{"./app", "run"}
-	defaultEntrypoint := "/"
 	testCases := []struct {
 		description   string
 		entrypoint    *string
 		arguments     []string
 		expectedError error
 	}{
-		{description: "case 1: entrypoint is nil", entrypoint: nil, arguments: defaultArguments, expectedError: nil},
-		{description: "case 2: arguments is empty", entrypoint: &defaultEntrypoint, arguments: make([]string, 0), expectedError: execution_command.ErrInvalidArgumentsParam},
-		{description: "case 3: all fields are set", entrypoint: &defaultEntrypoint, arguments: defaultArguments, expectedError: nil},
+		{description: "case 1: entrypoint is nil", entrypoint: nil, arguments: test_helper.DefaultArguments, expectedError: nil},
+		{description: "case 2: arguments is empty", entrypoint: &test_helper.DefaultEntrypoint, arguments: make([]string, 0), expectedError: execution_command.ErrInvalidArgumentsParam},
+		{description: "case 3: all fields are set", entrypoint: &test_helper.DefaultEntrypoint, arguments: test_helper.DefaultArguments, expectedError: nil},
 	}
 
 	t.Parallel()
@@ -40,8 +39,6 @@ func TestExecutionCommandValidate(t *testing.T) {
 
 func TestNewExecutionCommand(t *testing.T) {
 	// setup:
-	defaultArguments := []string{"./app", "run"}
-	defaultEntrypoint := "/"
 	testCases := []struct {
 		description    string
 		params         execution_command.NewExecutionCommandParams
@@ -61,18 +58,18 @@ func TestNewExecutionCommand(t *testing.T) {
 			description: "case 2: entrypoint is nil",
 			params: execution_command.NewExecutionCommandParams{
 				Entrypoint: nil,
-				Arguments:  defaultArguments,
+				Arguments:  test_helper.DefaultArguments,
 			},
 			expectedError: nil,
 			expectedResult: &execution_command.ExecutionCommand{
 				Entrypoint: nil,
-				Arguments:  defaultArguments,
+				Arguments:  test_helper.DefaultArguments,
 			},
 		},
 		{
 			description: "case 3: arguments is empty",
 			params: execution_command.NewExecutionCommandParams{
-				Entrypoint: &defaultEntrypoint,
+				Entrypoint: &test_helper.DefaultEntrypoint,
 				Arguments:  make([]string, 0),
 			},
 			expectedError:  execution_command.ErrInvalidArgumentsParam,
@@ -81,13 +78,13 @@ func TestNewExecutionCommand(t *testing.T) {
 		{
 			description: "case 5: all properly set",
 			params: execution_command.NewExecutionCommandParams{
-				Entrypoint: &defaultEntrypoint,
-				Arguments:  defaultArguments,
+				Entrypoint: &test_helper.DefaultEntrypoint,
+				Arguments:  test_helper.DefaultArguments,
 			},
 			expectedError: nil,
 			expectedResult: &execution_command.ExecutionCommand{
-				Entrypoint: &defaultEntrypoint,
-				Arguments:  defaultArguments,
+				Entrypoint: &test_helper.DefaultEntrypoint,
+				Arguments:  test_helper.DefaultArguments,
 			},
 		},
 	}

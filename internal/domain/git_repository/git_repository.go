@@ -10,7 +10,7 @@ var (
 )
 
 type GitRepository struct {
-	Url      string `validate:"required"`
+	Url      string
 	Branch   *string
 	RootPath *string
 }

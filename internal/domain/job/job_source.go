@@ -1,0 +1,80 @@
+package job
+
+import (
+	"github.com/pkg/errors"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/image"
+)
+
+var (
+	ErrInvalidJobSourceImageParam                 = errors.New("invalid image param")
+	ErrInvalidJobSourceDockerParam                = errors.New("invalid docker param")
+	ErrInvalidJobSourceDockerAndImageAreBothSet   = errors.New("invalid job source: either `Docker` or `Image` should be set, not both")
+	ErrInvalidJobSourceNoneOfDockerAndImageAreSet = errors.New("invalid job source: either `Docker` or `Image` should be set")
+)
+
+type JobSource struct {
+	Image  *image.Image
+	Docker *docker.Docker
+}
+
+func (s JobSource) Validate() error {
+	if s.Docker == nil && s.Image == nil {
+		return ErrInvalidJobSourceNoneOfDockerAndImageAreSet
+	}
+
+	if s.Docker != nil && s.Image != nil {
+		return ErrInvalidJobSourceDockerAndImageAreBothSet
+	}
+
+	if s.Docker != nil {
+		if err := s.Docker.Validate(); err != nil {
+			return errors.Wrap(err, ErrInvalidJobSourceDockerParam.Error())
+		}
+	}
+
+	if s.Image != nil {
+		if err := s.Image.Validate(); err != nil {
+			return errors.Wrap(err, ErrInvalidJobSourceImageParam.Error())
+		}
+	}
+
+	return nil
+}
+
+type NewJobSourceParams struct {
+	Image  *image.NewImageParams
+	Docker *docker.NewDockerParams
+}
+
+func NewJobSource(params NewJobSourceParams) (*JobSource, error) {
+	var err error = nil
+
+	var img *image.Image = nil
+	if params.Image != nil {
+		img, err = image.NewImage(*params.Image)
+		if err != nil {
+			return nil, errors.Wrap(err, ErrInvalidJobSourceImageParam.Error())
+		}
+	}
+
+	var dckr *docker.Docker = nil
+	if params.Docker != nil {
+		dckr, err = docker.NewDocker(*params.Docker)
+		if err != nil {
+			return nil, errors.Wrap(err, ErrInvalidJobSourceDockerParam.Error())
+		}
+	}
+
+	newSource := &JobSource{
+		Image:  img,
+		Docker: dckr,
+	}
+
+	if err := newSource.Validate(); err != nil {
+		return nil, err
+	}
+
+	return newSource, nil
+}
