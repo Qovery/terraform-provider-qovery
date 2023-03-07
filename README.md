@@ -85,7 +85,11 @@ task testacc -- -run 'TestAcc_Organization*'
 
 ### Using Intellij IDEA Debugger
 
-To be able to add breakpoints in you code and use the debugger provided by Intellij IDEA, you'll need to use the plugin [EnvFile](https://plugins.jetbrains.com/plugin/7861-envfile) that will load your `.env` file before starting the tests.
+To be able to add breakpoints in you code and use the debugger provided by Intellij IDEA, you'll need to add `--debug` in `Program arguments` field in Idea configuration.
+
+Once you run the project in debug mod, you'll find a line in terminal looking like `TF_REATTACH_PROVIDERS='{"registry.terraform.io/Qovery/qovery":{"Protocol":"grpc","ProtocolVersion":6,"Pid":591078,"Test":true,"Addr":{"Network":"unix","String":"/tmp/plugin1516819738"}}}'`
+
+Copy and export this environment variable in the terminal you use to run Terraform Commands. Use any Terraform command in this terminal and Idea will listen to it and stop on breakpoints you set.
 
 ## Generating The Provider Documentation
 
