@@ -31,7 +31,7 @@ data "qovery_application" "my_application" {
 
 ### Read-Only
 
-- `arguments` (Set of String) List of arguments of this container.
+- `arguments` (List of String) List of arguments of this container.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
 - `build_mode` (String) Build Mode of the application.
 - `buildpack_language` (String) Buildpack Language framework.
