@@ -123,10 +123,10 @@ type NewContainerParams struct {
 	State                *string
 	Entrypoint           *string
 	Arguments            []string
-	Storages             storage.Storages
-	Ports                port.Ports
-	EnvironmentVariables variable.Variables
-	Secrets              secret.Secrets
+	Storages             storage.Storages   // TODO(benjaminch): use param struct instead `storage.NewStoragesParam`
+	Ports                port.Ports         // TODO(benjaminch): use param struct instead `storage.NewPortsParam`
+	EnvironmentVariables variable.Variables // TODO(benjaminch): use param struct instead `storage.NewVariablesParam`
+	Secrets              secret.Secrets     // TODO(benjaminch): use param struct instead `storage.NewSecretsParam`
 	DeploymentStageID    string
 }
 

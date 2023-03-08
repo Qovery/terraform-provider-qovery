@@ -11,7 +11,7 @@ var (
 
 type ExecutionCommand struct {
 	Entrypoint *string
-	Arguments  []string `validate:"required"`
+	Arguments  []string
 }
 
 func (e ExecutionCommand) Validate() error {

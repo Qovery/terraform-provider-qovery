@@ -43,6 +43,8 @@ var (
 	ErrInvalidSourceParam = errors.New("invalid source param")
 	// ErrInvalidScheduleParam is returned if the schedule param is invalid.
 	ErrInvalidScheduleParam = errors.New("invalid schedule param")
+	// ErrInvalidPortParam is returned if the port param is invalid.
+	ErrInvalidPortParam = errors.New("invalid port param")
 	// ErrInvalidUpsertRequest is returned if the upsert request is invalid.
 	ErrInvalidUpsertRequest = errors.New("invalid job upsert request")
 	// ErrInvalidJobEnvironmentVariablesParam is returned if the environment variables param is invalid.
@@ -115,9 +117,9 @@ type NewJobParams struct {
 	Schedule           NewJobScheduleParams
 
 	State                *string
-	Ports                port.Ports         // TODO(benjaminch): maybe use / introduce port.PortsParams?
-	EnvironmentVariables variable.Variables // TODO(benjaminch): maybe use / introduce variable.VariablesParams?
-	Secrets              secret.Secrets     // TODO(benjaminch): maybe use / introduce secrets.SecretsParams?
+	Ports                port.NewPortsParams
+	EnvironmentVariables variable.NewVariablesParams
+	Secrets              secret.NewSecretsParams
 }
 
 // NewJob returns a new instance of a Job domain model.
@@ -142,11 +144,20 @@ func NewJob(params NewJobParams) (*Job, error) {
 		return nil, errors.Wrap(err, ErrInvalidJobSourceParam.Error())
 	}
 
+	ports := make(port.Ports, len(params.Ports))
+	for idx, p := range params.Ports {
+		port, err := port.NewPort(p)
+		ports[idx] = *port
+		if err != nil {
+			return nil, errors.Wrap(err, ErrInvalidPortParam.Error())
+		}
+	}
+
 	if params.Name == "" {
 		return nil, ErrInvalidNameParam
 	}
 
-	c := &Job{
+	j := &Job{
 		ID:                 jobUUID,
 		EnvironmentID:      environmentUUID,
 		Name:               params.Name,
@@ -157,14 +168,30 @@ func NewJob(params NewJobParams) (*Job, error) {
 		MaxDurationSeconds: params.MaxDurationSeconds,
 		Schedule:           *jobSchedule,
 		Source:             *jobSource,
-		Ports:              params.Ports,
+		Ports:              ports,
 	}
 
-	if err := c.SetEnvironmentVariables(params.EnvironmentVariables); err != nil {
+	environmentVariables := make(variable.Variables, len(params.EnvironmentVariables))
+	for idx, ev := range params.EnvironmentVariables {
+		environmentVariable, err := variable.NewVariable(ev)
+		environmentVariables[idx] = *environmentVariable
+		if err != nil {
+			return nil, errors.Wrap(err, ErrInvalidJobEnvironmentVariablesParam.Error())
+		}
+	}
+	if err := j.SetEnvironmentVariables(environmentVariables); err != nil {
 		return nil, errors.Wrap(err, ErrInvalidJobEnvironmentVariablesParam.Error())
 	}
 
-	if err := c.SetSecrets(params.Secrets); err != nil {
+	secrets := make(secret.Secrets, len(params.Secrets))
+	for idx, s := range params.Secrets {
+		secret, err := secret.NewSecret(s)
+		secrets[idx] = *secret
+		if err != nil {
+			return nil, errors.Wrap(err, ErrInvalidJobSecretsParam.Error())
+		}
+	}
+	if err := j.SetSecrets(secrets); err != nil {
 		return nil, errors.Wrap(err, ErrInvalidJobSecretsParam.Error())
 	}
 
@@ -174,16 +201,16 @@ func NewJob(params NewJobParams) (*Job, error) {
 			return nil, errors.Wrap(err, ErrInvalidStateParam.Error())
 		}
 
-		if err := c.SetState(*jobState); err != nil {
+		if err := j.SetState(*jobState); err != nil {
 			return nil, errors.Wrap(err, ErrInvalidStateParam.Error())
 		}
 	}
 
-	if err := c.Validate(); err != nil {
+	if err := j.Validate(); err != nil {
 		return nil, err
 	}
 
-	return c, nil
+	return j, nil
 }
 
 // SetEnvironmentVariables takes a variable.Variables and sets the attributes EnvironmentVariables & BuiltInEnvironmentVariables by splitting the variable with the `BUILT_IN` scope from the others.

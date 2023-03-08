@@ -72,6 +72,7 @@ func (s Secret) IsValid() bool {
 }
 
 // NewSecretParams represents the arguments needed to create a Secret.
+type NewSecretsParams = []NewSecretParams
 type NewSecretParams struct {
 	SecretID string
 	Scope    string

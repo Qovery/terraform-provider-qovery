@@ -74,6 +74,7 @@ func (s Port) IsValid() bool {
 }
 
 // NewPortParams represents the arguments needed to create a Port.
+type NewPortsParams = []NewPortParams
 type NewPortParams struct {
 	PortID             string
 	InternalPort       int32

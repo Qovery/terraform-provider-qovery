@@ -65,6 +65,7 @@ func (v Variable) IsValid() bool {
 }
 
 // NewVariableParams represents the arguments needed to create a Variable.
+type NewVariablesParams = []NewVariableParams
 type NewVariableParams struct {
 	VariableID string
 	Scope      string
