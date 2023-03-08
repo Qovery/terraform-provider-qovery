@@ -240,7 +240,7 @@ func (d containerDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 			"arguments": {
 				Description: "List of arguments of this container.",
 				Computed:    true,
-				Type: types.SetType{
+				Type: types.ListType{
 					ElemType: types.StringType,
 				},
 			},

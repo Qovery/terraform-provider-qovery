@@ -30,7 +30,7 @@ type Application struct {
 	InternalHost                types.String              `tfsdk:"internal_host"`
 	State                       types.String              `tfsdk:"state"`
 	Entrypoint                  types.String              `tfsdk:"entrypoint"`
-	Arguments                   types.Set                 `tfsdk:"arguments"`
+	Arguments                   types.List                `tfsdk:"arguments"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {

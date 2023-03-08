@@ -144,7 +144,7 @@ func toMapStringString(v types.Map) map[string]string {
 	return ret
 }
 
-func toStringArray(set types.Set) []string {
+func toStringArray(set types.List) []string {
 	if set.Null || set.Unknown {
 		return []string{}
 	}
@@ -212,8 +212,8 @@ func fromBoolPointer(v *bool) types.Bool {
 	return fromBool(*v)
 }
 
-func fromStringArray(array []string) types.Set {
-	set := types.Set{
+func fromStringArray(array []string) types.List {
+	set := types.List{
 		ElemType: types.StringType,
 	}
 
