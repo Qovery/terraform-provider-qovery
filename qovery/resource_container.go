@@ -333,7 +333,7 @@ func (r containerResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diag
 				Description: "List of arguments of this container.",
 				Optional:    true,
 				Computed:    true,
-				Type: types.SetType{
+				Type: types.ListType{
 					ElemType: types.StringType,
 				},
 				PlanModifiers: tfsdk.AttributePlanModifiers{

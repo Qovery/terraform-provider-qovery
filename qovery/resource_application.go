@@ -273,7 +273,7 @@ func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Description: "List of arguments of this application.",
 				Optional:    true,
 				Computed:    true,
-				Type: types.SetType{
+				Type: types.ListType{
 					ElemType: types.StringType,
 				},
 				PlanModifiers: tfsdk.AttributePlanModifiers{

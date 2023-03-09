@@ -39,7 +39,7 @@ func (m StringSliceDefaultModifier) MarkdownDescription(_ context.Context) strin
 // `resp` contains fields for updating the planned value, triggering resource
 // replacement, and returning diagnostics.
 func (m StringSliceDefaultModifier) Modify(ctx context.Context, req tfsdk.ModifyAttributePlanRequest, resp *tfsdk.ModifyAttributePlanResponse) {
-	var attribute types.Set
+	var attribute types.List
 	resp.Diagnostics.Append(tfsdk.ValueAs(ctx, req.AttributePlan, &attribute)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -49,7 +49,7 @@ func (m StringSliceDefaultModifier) Modify(ctx context.Context, req tfsdk.Modify
 		return
 	}
 
-	set := types.Set{
+	set := types.List{
 		ElemType: types.StringType,
 	}
 
