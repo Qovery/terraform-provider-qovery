@@ -15,14 +15,16 @@ func TestGitRepositoryValidate(t *testing.T) {
 		description   string
 		url           string
 		branch        *string
+		commitID      *string
 		rootPath      *string
 		expectedError error
 	}{
-		{description: "case 1: url is blank", url: "", branch: &test_helper.DefaultBranchName, rootPath: &test_helper.DefaultRootPath, expectedError: git_repository.ErrInvalidURLParam},
-		{description: "case 2: branch is nil", url: "https://github.com/Qovery/terraform-provider-qovery.git", branch: nil, rootPath: &test_helper.DefaultRootPath, expectedError: nil},
-		{description: "case 3: rootPath is nil", url: "https://github.com/Qovery/terraform-provider-qovery.git", branch: &test_helper.DefaultBranchName, rootPath: nil, expectedError: nil},
-		{description: "case 4: all fields are set", url: "https://github.com/Qovery/terraform-provider-qovery.git", branch: &test_helper.DefaultBranchName, rootPath: &test_helper.DefaultRootPath, expectedError: nil},
-		{description: "case 5: url only is set", url: "https://github.com/Qovery/terraform-provider-qovery.git", branch: nil, rootPath: nil, expectedError: nil},
+		{description: "case 1: url is blank", url: "", branch: &test_helper.DefaultBranchName, commitID: &test_helper.DefaultCommitID, rootPath: &test_helper.DefaultRootPath, expectedError: git_repository.ErrInvalidURLParam},
+		{description: "case 2: branch is nil", url: "https://github.com/Qovery/terraform-provider-qovery.git", branch: nil, commitID: &test_helper.DefaultCommitID, rootPath: &test_helper.DefaultRootPath, expectedError: nil},
+		{description: "case 2: commit ID is nil", url: "https://github.com/Qovery/terraform-provider-qovery.git", branch: &test_helper.DefaultBranchName, commitID: nil, rootPath: &test_helper.DefaultRootPath, expectedError: nil},
+		{description: "case 4: rootPath is nil", url: "https://github.com/Qovery/terraform-provider-qovery.git", branch: &test_helper.DefaultBranchName, commitID: &test_helper.DefaultCommitID, rootPath: nil, expectedError: nil},
+		{description: "case 5: all fields are set", url: "https://github.com/Qovery/terraform-provider-qovery.git", branch: &test_helper.DefaultBranchName, commitID: &test_helper.DefaultCommitID, rootPath: &test_helper.DefaultRootPath, expectedError: nil},
+		{description: "case 6: url only is set", url: "https://github.com/Qovery/terraform-provider-qovery.git", branch: nil, commitID: nil, rootPath: nil, expectedError: nil},
 	}
 
 	t.Parallel()
@@ -32,11 +34,16 @@ func TestGitRepositoryValidate(t *testing.T) {
 			i := git_repository.GitRepository{
 				Url:      tc.url,
 				Branch:   tc.branch,
+				CommitID: tc.commitID,
 				RootPath: tc.rootPath,
 			}
 
 			// verify:
-			assert.Equal(t, tc.expectedError, i.Validate())
+			if err := i.Validate(); err != nil {
+				assert.Equal(t, tc.expectedError.Error(), i.Validate().Error())
+			} else {
+				assert.Equal(t, tc.expectedError, i.Validate()) // <- should be nil
+			}
 		})
 	}
 }
@@ -54,6 +61,7 @@ func TestNewGitRepository(t *testing.T) {
 			params: git_repository.NewGitRepositoryParams{
 				Url:      "",
 				Branch:   nil,
+				CommitID: nil,
 				RootPath: nil,
 			},
 			expectedError:  git_repository.ErrInvalidURLParam,
@@ -64,6 +72,7 @@ func TestNewGitRepository(t *testing.T) {
 			params: git_repository.NewGitRepositoryParams{
 				Url:      "",
 				Branch:   &test_helper.DefaultBranchName,
+				CommitID: &test_helper.DefaultCommitID,
 				RootPath: &test_helper.DefaultRootPath,
 			},
 			expectedError:  git_repository.ErrInvalidURLParam,
@@ -74,57 +83,80 @@ func TestNewGitRepository(t *testing.T) {
 			params: git_repository.NewGitRepositoryParams{
 				Url:      test_helper.DefaultUrl,
 				Branch:   nil,
+				CommitID: &test_helper.DefaultCommitID,
 				RootPath: &test_helper.DefaultRootPath,
 			},
 			expectedError: nil,
 			expectedResult: &git_repository.GitRepository{
 				Url:      test_helper.DefaultUrl,
 				Branch:   nil,
+				CommitID: &test_helper.DefaultCommitID,
 				RootPath: &test_helper.DefaultRootPath,
 			},
 		},
 		{
-			description: "case 4: root path is blank",
+			description: "case 4: commit ID is blank",
 			params: git_repository.NewGitRepositoryParams{
 				Url:      test_helper.DefaultUrl,
 				Branch:   &test_helper.DefaultBranchName,
-				RootPath: nil,
-			},
-			expectedError: nil,
-			expectedResult: &git_repository.GitRepository{
-				Url:      test_helper.DefaultUrl,
-				Branch:   &test_helper.DefaultBranchName,
-				RootPath: nil,
-			},
-		},
-		{
-			description: "case 5: all properly set",
-			params: git_repository.NewGitRepositoryParams{
-				Url:      test_helper.DefaultUrl,
-				Branch:   &test_helper.DefaultBranchName,
+				CommitID: nil,
 				RootPath: &test_helper.DefaultRootPath,
 			},
 			expectedError: nil,
 			expectedResult: &git_repository.GitRepository{
 				Url:      test_helper.DefaultUrl,
 				Branch:   &test_helper.DefaultBranchName,
+				CommitID: nil,
 				RootPath: &test_helper.DefaultRootPath,
 			},
 		},
 		{
-			description: "case 6: test default valid new git repository params object (making sure it breaks if not true anymore)",
-			params: test_helper.DefaultValidNewGitRepositoryParams,
+			description: "case 5: root path is blank",
+			params: git_repository.NewGitRepositoryParams{
+				Url:      test_helper.DefaultUrl,
+				Branch:   &test_helper.DefaultBranchName,
+				CommitID: &test_helper.DefaultCommitID,
+				RootPath: nil,
+			},
+			expectedError: nil,
+			expectedResult: &git_repository.GitRepository{
+				Url:      test_helper.DefaultUrl,
+				Branch:   &test_helper.DefaultBranchName,
+				CommitID: &test_helper.DefaultCommitID,
+				RootPath: nil,
+			},
+		},
+		{
+			description: "case 6: all properly set",
+			params: git_repository.NewGitRepositoryParams{
+				Url:      test_helper.DefaultUrl,
+				Branch:   &test_helper.DefaultBranchName,
+				CommitID: &test_helper.DefaultCommitID,
+				RootPath: &test_helper.DefaultRootPath,
+			},
+			expectedError: nil,
+			expectedResult: &git_repository.GitRepository{
+				Url:      test_helper.DefaultUrl,
+				Branch:   &test_helper.DefaultBranchName,
+				CommitID: &test_helper.DefaultCommitID,
+				RootPath: &test_helper.DefaultRootPath,
+			},
+		},
+		{
+			description:   "case 7: test default valid new git repository params object (making sure it breaks if not true anymore)",
+			params:        test_helper.DefaultValidNewGitRepositoryParams,
 			expectedError: nil,
 			expectedResult: &git_repository.GitRepository{
 				Url:      test_helper.DefaultValidNewGitRepositoryParams.Url,
 				Branch:   test_helper.DefaultValidNewGitRepositoryParams.Branch,
+				CommitID: test_helper.DefaultValidNewGitRepositoryParams.CommitID,
 				RootPath: test_helper.DefaultValidNewGitRepositoryParams.RootPath,
 			},
 		},
 		{
-			description: "case 7: test default invalid new git repository params object (making sure it breaks if not true anymore)",
-			params: test_helper.DefaultInvalidNewGitRepositoryParams,
-			expectedError: git_repository.ErrInvalidURLParam,
+			description:    "case 8: test default invalid new git repository params object (making sure it breaks if not true anymore)",
+			params:         test_helper.DefaultInvalidNewGitRepositoryParams,
+			expectedError:  git_repository.ErrInvalidURLParam,
 			expectedResult: nil,
 		},
 	}

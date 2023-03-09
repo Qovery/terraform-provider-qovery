@@ -12,16 +12,16 @@ import (
 )
 
 const (
-	DefaultState               = status.StateRunning
-	DefaultCPU                 = 500
-	MinCPU                     = 250
-	DefaultMemory              = 512
-	MinMemory                  = 1
-	DefaultMinRunningInstances = 1
-	MinMinRunningInstances     = 1
-	DefaultMaxRunningInstances = 1
-	MinMaxRunningInstances     = -1
-	MinStorageSize             = 1
+	DefaultState           = status.StateRunning
+	DefaultCPU             = 500
+	MinCPU                 = 250
+	DefaultMemory          = 512
+	MinMemory              = 1
+	MinNbRestart           = 0
+	DefaultMaxNbRestart    = 3
+	MinDurationSeconds     = 15
+	DefaultDurationSeconds = 30
+	MinStorageSize         = 1
 )
 
 var (
@@ -78,20 +78,20 @@ type Job struct {
 }
 
 // Validate returns an error to tell whether the Job domain model is valid or not.
-func (c Job) Validate() error {
-	if err := c.Source.Validate(); err != nil {
+func (j Job) Validate() error {
+	if err := j.Source.Validate(); err != nil {
 		return errors.Wrap(err, ErrInvalidJob.Error())
 	}
 
-	if err := c.Schedule.Validate(); err != nil {
+	if err := j.Schedule.Validate(); err != nil {
 		return errors.Wrap(err, ErrInvalidJob.Error())
 	}
 
-	if err := c.Ports.Validate(); err != nil {
+	if err := j.Ports.Validate(); err != nil {
 		return errors.Wrap(err, ErrInvalidJob.Error())
 	}
 
-	if err := validator.New().Struct(c); err != nil {
+	if err := validator.New().Struct(j); err != nil {
 		return errors.Wrap(err, ErrInvalidJob.Error())
 	}
 
@@ -99,8 +99,8 @@ func (c Job) Validate() error {
 }
 
 // IsValid returns a bool to tell whether the Job domain model is valid or not.
-func (c Job) IsValid() bool {
-	return c.Validate() == nil
+func (j Job) IsValid() bool {
+	return j.Validate() == nil
 }
 
 // NewJobParams represents the arguments needed to create a Container.

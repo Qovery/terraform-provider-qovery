@@ -20,9 +20,9 @@ func TestDockerValidate(t *testing.T) {
 		dockerFilePath *string
 		expectedError  error
 	}{
-		{description: "case 1: git repository is not valid", gitRepository: git_repository_test_helper.DefaultInvalidGitRepository, dockerFilePath: &docker_test_helper.DefaultDockerFilePath, expectedError: git_repository_test_helper.DefaultInvalidNewGitRepositoryParamsError},
+		{description: "case 1: git repository is not valid", gitRepository: git_repository_test_helper.DefaultInvalidGitRepository, dockerFilePath: &docker_test_helper.DefaultDockerFilePath, expectedError: errors.Wrap(git_repository_test_helper.DefaultInvalidNewGitRepositoryParamsError, docker.ErrInvalidGitRepositoryParam.Error())},
 		{description: "case 2: dockerfile path is nil", gitRepository: git_repository_test_helper.DefaultValidGitRepository, dockerFilePath: nil, expectedError: nil},
-		{description: "case 4: all fields are set", gitRepository: git_repository_test_helper.DefaultValidGitRepository, dockerFilePath: &docker_test_helper.DefaultDockerFilePath, expectedError: nil},
+		{description: "case 3: all fields are set", gitRepository: git_repository_test_helper.DefaultValidGitRepository, dockerFilePath: &docker_test_helper.DefaultDockerFilePath, expectedError: nil},
 	}
 
 	t.Parallel()
@@ -35,7 +35,11 @@ func TestDockerValidate(t *testing.T) {
 			}
 
 			// verify:
-			assert.Equal(t, tc.expectedError, i.Validate())
+			if err := i.Validate(); err != nil {
+				assert.Equal(t, tc.expectedError.Error(), i.Validate().Error())
+			} else {
+				assert.Equal(t, tc.expectedError, i.Validate()) // <- should be nil
+			}
 		})
 	}
 }

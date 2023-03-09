@@ -43,6 +43,33 @@ func (s JobSource) Validate() error {
 	return nil
 }
 
+// Tag returns a string representing job unique tag, will be gather from job source.
+func (s JobSource) Tag() *string {
+	if err := s.Validate(); err != nil {
+		// Should not happen, condition checked uppon creation
+		return nil
+	}
+
+	if s.Docker != nil && s.Docker.GitRepository.CommitID != nil {
+		return s.Docker.GitRepository.CommitID
+	}
+
+	if s.Image != nil {
+		return &s.Image.Tag
+	}
+
+	return nil
+}
+
+// TagOrEmpty returns a string representing job unique tag or empty if doesn't exist.
+func (s JobSource) TagOrEmpty() string {
+	if s.Tag() != nil {
+		return *s.Tag()
+	}
+
+	return ""
+}
+
 type NewJobSourceParams struct {
 	Image  *image.NewImageParams
 	Docker *docker.NewDockerParams
