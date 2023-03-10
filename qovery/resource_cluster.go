@@ -78,25 +78,25 @@ var (
 			modifiers.NewStringMapDefaultModifier(map[string]string{}),
 		}, types.Map{ElemType: types.StringType, Elems: map[string]attr.Value{}}},
 		"database.mongodb.allowed_cidrs": {"List of allowed CIDRS", types.SetType{ElemType: types.StringType}, tfsdk.AttributePlanModifiers{
-			modifiers.NewStringSliceDefaultModifier([]string{"0.0.0.0/0"}),
+			modifiers.NewStringSetDefaultModifier([]string{"0.0.0.0/0"}),
 		}, types.Set{ElemType: types.StringType, Elems: []attr.Value{types.String{Value: "0.0.0.0/0"}}}},
 		"database.mongodb.deny_public_access": {"Deny public access to all MongoDB databases", types.BoolType, tfsdk.AttributePlanModifiers{
 			modifiers.NewBoolDefaultModifier(false),
 		}, types.Bool{Value: false}},
 		"database.mysql.allowed_cidrs": {"List of allowed CIDRS", types.SetType{ElemType: types.StringType}, tfsdk.AttributePlanModifiers{
-			modifiers.NewStringSliceDefaultModifier([]string{"0.0.0.0/0"}),
+			modifiers.NewStringSetDefaultModifier([]string{"0.0.0.0/0"}),
 		}, types.Set{ElemType: types.StringType, Elems: []attr.Value{types.String{Value: "0.0.0.0/0"}}}},
 		"database.mysql.deny_public_access": {"Deny public access to all MySQL databases", types.BoolType, tfsdk.AttributePlanModifiers{
 			modifiers.NewBoolDefaultModifier(false),
 		}, types.Bool{Value: false}},
 		"database.postgresql.allowed_cidrs": {"List of allowed CIDRS", types.SetType{ElemType: types.StringType}, tfsdk.AttributePlanModifiers{
-			modifiers.NewStringSliceDefaultModifier([]string{"0.0.0.0/0"}),
+			modifiers.NewStringSetDefaultModifier([]string{"0.0.0.0/0"}),
 		}, types.Set{ElemType: types.StringType, Elems: []attr.Value{types.String{Value: "0.0.0.0/0"}}}},
 		"database.postgresql.deny_public_access": {"Deny public access to all PostgreSQL databases", types.BoolType, tfsdk.AttributePlanModifiers{
 			modifiers.NewBoolDefaultModifier(false),
 		}, types.Bool{Value: false}},
 		"database.redis.allowed_cidrs": {"List of allowed CIDRS", types.SetType{ElemType: types.StringType}, tfsdk.AttributePlanModifiers{
-			modifiers.NewStringSliceDefaultModifier([]string{"0.0.0.0/0"}),
+			modifiers.NewStringSetDefaultModifier([]string{"0.0.0.0/0"}),
 		}, types.Set{ElemType: types.StringType, Elems: []attr.Value{types.String{Value: "0.0.0.0/0"}}}},
 		"database.redis.deny_public_access": {"Deny public access to all Redis databases", types.BoolType, tfsdk.AttributePlanModifiers{
 			modifiers.NewBoolDefaultModifier(false),
