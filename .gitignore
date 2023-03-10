@@ -8,6 +8,7 @@ bin
 .task
 .vscode
 *.iml
+.internal
 
 # Local .terraform directories
 **/.terraform/*

@@ -16,7 +16,7 @@ func newDomainOrganizationFromQovery(orga *qovery.Organization) (*organization.O
 		OrganizationID: orga.GetId(),
 		Name:           orga.GetName(),
 		Plan:           string(orga.Plan),
-		Description:    orga.Description,
+		Description:    orga.Description.Get(),
 	})
 }
 

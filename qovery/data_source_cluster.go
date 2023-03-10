@@ -47,6 +47,15 @@ func (d *clusterDataSource) Configure(_ context.Context, req datasource.Configur
 }
 
 func (d clusterDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	advSettings := map[string]tfsdk.Attribute{}
+	for k, v := range advancedSettingsDefault {
+		advSettings[k] = tfsdk.Attribute{
+			Description: v.description,
+			Computed:    true,
+			Type:        v._type,
+		}
+	}
+
 	return tfsdk.Schema{
 		Description: "Use this data source to retrieve information about an existing cluster.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -146,6 +155,11 @@ func (d clusterDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diag
 				Description: "State of the cluster.",
 				Type:        types.StringType,
 				Computed:    true,
+			},
+			"advanced_settings": {
+				Description: "Advanced settings of the cluster.",
+				Computed:    true,
+				Attributes:  tfsdk.SingleNestedAttributes(advSettings),
 			},
 		},
 	}, nil

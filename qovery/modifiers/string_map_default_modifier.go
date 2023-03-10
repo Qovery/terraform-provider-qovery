@@ -9,28 +9,28 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-func NewStringSliceDefaultModifier(defaultValue []string) StringSliceDefaultModifier {
-	return StringSliceDefaultModifier{
+func NewStringMapDefaultModifier(defaultValue map[string]string) StringMapDefaultModifier {
+	return StringMapDefaultModifier{
 		Default: defaultValue,
 	}
 }
 
-// StringSliceDefaultModifier is a plan modifier that sets a default value for a
-// types.ListType attribute with types.StringType elements when it is not configured. The attribute must be
+// StringMapDefaultModifier is a plan modifier that sets a default value for a
+// types.MapType attribute with types.StringType elements when it is not configured. The attribute must be
 // marked as Optional and Computed. When setting the state during the resource
 // Create, Read, or Update methods, this default value must also be included or
 // the Terraform CLI will generate an error.
-type StringSliceDefaultModifier struct {
-	Default []string
+type StringMapDefaultModifier struct {
+	Default map[string]string
 }
 
 // Description returns a plain text description of the validator's behavior, suitable for a practitioner to understand its impact.
-func (m StringSliceDefaultModifier) Description(_ context.Context) string {
+func (m StringMapDefaultModifier) Description(_ context.Context) string {
 	return fmt.Sprintf("If value is not configured, defaults to %s", m.Default)
 }
 
 // MarkdownDescription returns a markdown formatted description of the validator's behavior, suitable for a practitioner to understand its impact.
-func (m StringSliceDefaultModifier) MarkdownDescription(_ context.Context) string {
+func (m StringMapDefaultModifier) MarkdownDescription(_ context.Context) string {
 	return fmt.Sprintf("If value is not configured, defaults to `%s`", m.Default)
 }
 
@@ -38,8 +38,8 @@ func (m StringSliceDefaultModifier) MarkdownDescription(_ context.Context) strin
 // Access to the configuration, plan, and state is available in `req`, while
 // `resp` contains fields for updating the planned value, triggering resource
 // replacement, and returning diagnostics.
-func (m StringSliceDefaultModifier) Modify(ctx context.Context, req tfsdk.ModifyAttributePlanRequest, resp *tfsdk.ModifyAttributePlanResponse) {
-	var attribute types.List
+func (m StringMapDefaultModifier) Modify(ctx context.Context, req tfsdk.ModifyAttributePlanRequest, resp *tfsdk.ModifyAttributePlanResponse) {
+	var attribute types.Map
 	resp.Diagnostics.Append(tfsdk.ValueAs(ctx, req.AttributePlan, &attribute)...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -49,14 +49,12 @@ func (m StringSliceDefaultModifier) Modify(ctx context.Context, req tfsdk.Modify
 		return
 	}
 
-	list := types.List{
-		ElemType: types.StringType,
+	_map := types.Map{ElemType: types.StringType}
+	_map.Elems = make(map[string]attr.Value)
+
+	for k, v := range m.Default {
+		_map.Elems[k] = types.String{Value: v}
 	}
 
-	list.Elems = make([]attr.Value, 0, len(m.Default))
-	for _, v := range m.Default {
-		list.Elems = append(list.Elems, types.String{Value: v})
-	}
-
-	resp.AttributePlan = list
+	resp.AttributePlan = _map
 }
