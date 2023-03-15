@@ -82,6 +82,7 @@ resource "qovery_application" "my_application" {
 	- Must be: `>= 250`.
 	- Default: `500`.
 - `custom_domains` (Attributes Set) List of custom domains linked to this application. (see [below for nested schema](#nestedatt--custom_domains))
+- `deployment_stage_id` (String) Id of the deployment stage.
 - `dockerfile_path` (String) Dockerfile Path of the application.
 	- Required if: `build_mode="DOCKER"`.
 - `entrypoint` (String) Entrypoint of the application.
@@ -97,9 +98,6 @@ resource "qovery_application" "my_application" {
 	- Default: `1`.
 - `ports` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
 - `secrets` (Attributes Set) List of secrets linked to this application. (see [below for nested schema](#nestedatt--secrets))
-- `state` (String) State of the application.
-	- Can be: `RUNNING`, `STOPPED`.
-	- Default: `RUNNING`.
 - `storage` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
 
 ### Read-Only

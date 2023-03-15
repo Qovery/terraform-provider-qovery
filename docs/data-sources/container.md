@@ -27,6 +27,7 @@ data "qovery_container" "my_container" {
 
 ### Optional
 
+- `deployment_stage_id` (String) Id of the deployment stage.
 - `secrets` (Attributes Set) List of secrets linked to this container. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
@@ -47,7 +48,6 @@ data "qovery_container" "my_container" {
 - `name` (String) Name of the container.
 - `ports` (Attributes Set) List of storages linked to this container. (see [below for nested schema](#nestedatt--ports))
 - `registry_id` (String) Id of the registry.
-- `state` (String) State of the container.
 - `storage` (Attributes Set) List of storages linked to this container. (see [below for nested schema](#nestedatt--storage))
 - `tag` (String) Tag of the container image.
 

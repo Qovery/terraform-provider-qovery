@@ -22,7 +22,7 @@ Use this data source to retrieve information about an existing deployment stage.
 ### Read-Only
 
 - `description` (String) Description of the deployment stage.
-- `environment_id` (String) Id of the organization.
+- `environment_id` (String) Id of the environment.
 - `name` (String) Name of the deployment stage.
 
 

@@ -67,6 +67,7 @@ resource "qovery_container" "my_container" {
 - `cpu` (Number) CPU of the container in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 250`.
 	- Default: `500`.
+- `deployment_stage_id` (String) Id of the deployment stage.
 - `entrypoint` (String) Entrypoint of the container.
 - `environment_variables` (Attributes Set) List of environment variables linked to this container. (see [below for nested schema](#nestedatt--environment_variables))
 - `max_running_instances` (Number) Maximum number of instances running for the container.
@@ -80,9 +81,6 @@ resource "qovery_container" "my_container" {
 	- Default: `1`.
 - `ports` (Attributes Set) List of storages linked to this container. (see [below for nested schema](#nestedatt--ports))
 - `secrets` (Attributes Set) List of secrets linked to this container. (see [below for nested schema](#nestedatt--secrets))
-- `state` (String) State of the container.
-	- Can be: `RUNNING`, `STOPPED`.
-	- Default: `RUNNING`.
 - `storage` (Attributes Set) List of storages linked to this container. (see [below for nested schema](#nestedatt--storage))
 
 ### Read-Only
