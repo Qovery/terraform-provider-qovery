@@ -56,11 +56,6 @@ func (s newdeploymentService) Create(ctx context.Context, params newdeployment.N
 		break
 	}
 
-	// Set new deployment id
-	//_, err := s.newDeploymentEnvironmentRepository.GetLastDeploymentId(ctx, *deployment.EnvironmentId)
-	//if err != nil {
-	//	return nil, errors.Wrap(err, newdeployment.ErrFailedToGetDeployment.Error())
-	//}
 	return deployment, nil
 }
 
@@ -70,18 +65,6 @@ func (s newdeploymentService) Get(ctx context.Context, params newdeployment.NewD
 		return nil, errors.Wrap(err, newdeployment.ErrFailedToGetDeployment.Error())
 	}
 
-	// Return current deployment if ForceTrigger is disabled
-	//if params.ForceTrigger == false {
-	//	return deployment, nil
-	//}
-
-	// Look for next deployment id to trigger the deployment
-	//nextDeploymentId, err := s.newDeploymentEnvironmentRepository.GetNextDeploymentId(ctx, *deployment.EnvironmentId)
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//deployment.Id = *nextDeploymentId
 	return deployment, nil
 }
 
@@ -122,12 +105,6 @@ func (s newdeploymentService) Update(ctx context.Context, params newdeployment.N
 		return nil, errors.Wrap(err, newdeployment.ErrFailedToCheckDeploymentStatus.Error())
 	}
 
-	//// Set new deployment id
-	//newDeploymentId, err := s.newDeploymentEnvironmentRepository.GetLastDeploymentId(ctx, *deployment.EnvironmentId)
-	//if err != nil {
-	//	return nil, errors.Wrap(err, newdeployment.ErrFailedToGetNextDeploymentId.Error())
-	//}
-	//deployment.Id = *newDeploymentId
 	return deployment, nil
 }
 

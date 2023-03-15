@@ -73,6 +73,16 @@ func (r deploymentStageResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Optional:    true,
 				Computed:    true,
 			},
+			"move_after": {
+				Description: "Move the current deployment stage after the target deployment stage",
+				Type:        types.StringType,
+				Optional:    true,
+			},
+			"move_before": {
+				Description: "Move the current deployment stage before the target deployment stage",
+				Type:        types.StringType,
+				Optional:    true,
+			},
 		},
 	}, nil
 }

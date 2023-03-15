@@ -49,19 +49,26 @@ func (d deploymentDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 	return tfsdk.Schema{
 		Description: "Use this data source to retrieve information about an existing deployment.",
 		Attributes: map[string]tfsdk.Attribute{
+			"id": {
+				Description: "Id of the deployment",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
 			"environment_id": {
 				Description: "Id of the environment to deploy.",
 				Type:        types.StringType,
 				Required:    true,
 			},
+			"version": {
+				Description: "Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'RUNNING' state)",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    false,
+			},
 			"desired_state": {
 				Description: "Desired state of the deployment.",
 				Type:        types.StringType,
-				Optional:    true,
-			},
-			"force_trigger": {
-				Description: "Force trigger the deployment even when `desired_state` doesn't change",
-				Type:        types.BoolType,
 				Optional:    true,
 			},
 		},
@@ -79,9 +86,10 @@ func (d deploymentDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	// Get deployment from API
 	_, err := d.deploymentService.Get(ctx, newdeployment.NewDeploymentParams{
+		Id:            toStringPointer(data.Id),
 		EnvironmentId: toString(data.EnvironmentId),
+		Version:       toStringPointer(data.Version),
 		DesiredState:  toString(data.DesiredState),
-		ForceTrigger:  toString(data.ForceTrigger),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment read", err.Error())

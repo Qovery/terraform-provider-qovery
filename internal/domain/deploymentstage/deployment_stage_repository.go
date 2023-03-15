@@ -19,6 +19,8 @@ type Repository interface {
 type UpsertRepositoryRequest struct {
 	Name        string `validate:"required"`
 	Description string
+	MoveAfter   *string
+	MoveBefore  *string
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.

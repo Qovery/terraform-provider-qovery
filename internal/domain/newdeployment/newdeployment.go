@@ -6,10 +6,12 @@ import (
 )
 
 var (
+	// ErrInvalidIdParam is returned if the id indicated is not valid
+	ErrInvalidIdParam = errors.New("invalid Id")
+	// ErrInvalidVersionParam is returned if the version indicated is not valid
+	ErrInvalidVersionParam = errors.New("invalid Version")
 	// ErrInvalidEnvironmentIdParam is returned if the environment id indicated is not valid
 	ErrInvalidEnvironmentIdParam = errors.New("invalid environment Id")
-	// ErrInvalidServiceIdParam is returned if the environment id indicated is not valid
-	ErrInvalidServiceIdParam = errors.New("invalid service Id")
 	// ErrInvalidDeployment is returned if deployment is incoherent
 	ErrInvalidDeployment = errors.New("invalid deployment")
 	// ErrInvalidDeploymentDesiredState is returned if the deployment desired state is incoherent
@@ -50,15 +52,17 @@ func (c DeploymentDesiredState) String() string {
 }
 
 type Deployment struct {
+	Id            *uuid.UUID
 	EnvironmentId *uuid.UUID
+	Version       *uuid.UUID
 	DesiredState  DeploymentDesiredState
-	ForceTrigger  string
 }
 
 type NewDeploymentParams struct {
+	Id            *string
 	EnvironmentId string
+	Version       *string
 	DesiredState  string
-	ForceTrigger  string
 }
 
 func NewDeployment(params NewDeploymentParams) (*Deployment, error) {
@@ -73,9 +77,30 @@ func NewDeployment(params NewDeploymentParams) (*Deployment, error) {
 		return nil, errors.Wrap(err, ErrInvalidEnvironmentIdParam.Error())
 	}
 
+	var id uuid.UUID
+	// If unset, generate a random one
+	if params.Id == nil {
+		id = uuid.New()
+	} else {
+		id, err = uuid.Parse(*params.Id)
+		if err != nil {
+			return nil, errors.Wrap(err, ErrInvalidIdParam.Error())
+		}
+	}
+
+	var version *uuid.UUID = nil
+	if params.Version != nil {
+		newVersion, err := uuid.Parse(*params.Version)
+		if err != nil {
+			return nil, errors.Wrap(err, ErrInvalidVersionParam.Error())
+		}
+		version = &newVersion
+	}
+
 	return &Deployment{
+		Id:            &id,
 		EnvironmentId: &environmentUuid,
+		Version:       version,
 		DesiredState:  *desiredState,
-		ForceTrigger:  params.ForceTrigger,
 	}, nil
 }

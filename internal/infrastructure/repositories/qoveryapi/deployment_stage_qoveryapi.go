@@ -35,11 +35,31 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentId stri
 		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeploymentStage, request.Name, resp, err)
 	}
 
+	if request.MoveAfter != nil {
+		_, resp, err = c.client.DeploymentStageMainCallsApi.
+			MoveAfterDeploymentStage(ctx, deploymentStageCreated.Id, *request.MoveAfter).
+			Execute()
+		if err != nil || resp.StatusCode >= 400 {
+			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeploymentStage, request.Name, resp, err)
+		}
+	}
+
+	if request.MoveBefore != nil {
+		_, resp, err = c.client.DeploymentStageMainCallsApi.
+			MoveBeforeDeploymentStage(ctx, deploymentStageCreated.Id, *request.MoveBefore).
+			Execute()
+		if err != nil || resp.StatusCode >= 400 {
+			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeploymentStage, request.Name, resp, err)
+		}
+	}
+
 	return deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
 		DeploymentStageID: deploymentStageCreated.Id,
 		EnvironmentID:     deploymentStageCreated.Environment.Id,
 		Name:              *deploymentStageCreated.Name,
 		Description:       *deploymentStageCreated.Description,
+		MoveAfter:         request.MoveAfter,
+		MoveBefore:        request.MoveBefore,
 	})
 }
 
@@ -69,11 +89,31 @@ func (c deploymentStageQoveryAPI) Update(ctx context.Context, deploymentStageID 
 		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceDeploymentStage, deploymentStageID, resp, err)
 	}
 
+	if request.MoveAfter != nil {
+		_, resp, err = c.client.DeploymentStageMainCallsApi.
+			MoveAfterDeploymentStage(ctx, deploymentStageID, *request.MoveAfter).
+			Execute()
+		if err != nil || resp.StatusCode >= 400 {
+			return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceDeploymentStage, request.Name, resp, err)
+		}
+	}
+
+	if request.MoveBefore != nil {
+		_, resp, err = c.client.DeploymentStageMainCallsApi.
+			MoveBeforeDeploymentStage(ctx, deploymentStageID, *request.MoveBefore).
+			Execute()
+		if err != nil || resp.StatusCode >= 400 {
+			return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceDeploymentStage, request.Name, resp, err)
+		}
+	}
+
 	return deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
 		DeploymentStageID: deploymentStage.Id,
 		EnvironmentID:     deploymentStage.Environment.Id,
 		Name:              *deploymentStage.Name,
 		Description:       *deploymentStage.Description,
+		MoveAfter:         request.MoveAfter,
+		MoveBefore:        request.MoveBefore,
 	})
 }
 

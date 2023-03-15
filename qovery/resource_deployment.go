@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
-	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -21,21 +20,38 @@ type deploymentResource struct {
 	deploymentService newdeployment.Service
 }
 
+var (
+	// default deployment states
+	deploymentStates = []string{
+		newdeployment.RUNNING.String(),
+		newdeployment.STOPPED.String(),
+		newdeployment.RESTARTED.String(),
+	}
+	deploymentStateDefault = string(newdeployment.STOPPED)
+)
+
 func newDeploymentResource() resource.Resource {
 	return &deploymentResource{}
 }
 
 type NewDeploymentTerraform struct {
+	Id            types.String `tfsdk:"id"`
 	EnvironmentId types.String `tfsdk:"environment_id"`
+	Version       types.String `tfsdk:"version"`
 	DesiredState  types.String `tfsdk:"desired_state"`
-	ForceTrigger  types.String `tfsdk:"force_trigger"`
 }
 
 func newDeploymentTerraformFromDomain(domain *newdeployment.Deployment) NewDeploymentTerraform {
+	var version *string = nil
+	if domain.Version != nil {
+		versionToString := domain.Version.String()
+		version = &versionToString
+	}
 	return NewDeploymentTerraform{
+		Id:            fromString(domain.Id.String()),
 		EnvironmentId: fromString(domain.EnvironmentId.String()),
+		Version:       fromStringPointer(version),
 		DesiredState:  fromString(domain.DesiredState.String()),
-		ForceTrigger:  fromString(domain.ForceTrigger),
 	}
 }
 
@@ -65,24 +81,27 @@ func (r deploymentResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Dia
 	return tfsdk.Schema{
 		Description: "Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.",
 		Attributes: map[string]tfsdk.Attribute{
+			"id": {
+				Description: "Id of the deployment",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
 			"environment_id": {
 				Description: "Id of the environment.",
 				Type:        types.StringType,
 				Required:    true,
 			},
+			"version": {
+				Description: "Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'RUNNING' state)",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    false,
+			},
 			"desired_state": {
 				Description: "Desired state of the deployment.",
 				Type:        types.StringType,
 				Optional:    true,
-			},
-			"force_trigger": {
-				Description: "Force trigger the deployment even when `desired_state` doesn't change",
-				Type:        types.StringType,
-				Optional:    true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringDefaultModifier(""),
-				},
-				Computed: true,
 			},
 		},
 	}, nil
@@ -99,9 +118,10 @@ func (r deploymentResource) Create(ctx context.Context, req resource.CreateReque
 
 	// Create new deployment stage
 	deployment, err := r.deploymentService.Create(ctx, newdeployment.NewDeploymentParams{
+		Id:            toStringPointer(plan.Id),
 		EnvironmentId: toString(plan.EnvironmentId),
+		Version:       toStringPointer(plan.Version),
 		DesiredState:  toString(plan.DesiredState),
-		ForceTrigger:  toString(plan.ForceTrigger),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment create", err.Error())
@@ -124,9 +144,10 @@ func (r deploymentResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	deployment, err := r.deploymentService.Get(ctx, newdeployment.NewDeploymentParams{
+		Id:            toStringPointer(state.Id),
 		EnvironmentId: toString(state.EnvironmentId),
+		Version:       toStringPointer(state.Version),
 		DesiredState:  toString(state.DesiredState),
-		ForceTrigger:  toString(state.ForceTrigger),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment read", err.Error())
@@ -149,9 +170,10 @@ func (r deploymentResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	deployment, err := r.deploymentService.Update(ctx, newdeployment.NewDeploymentParams{
+		Id:            toStringPointer(state.Id),
 		EnvironmentId: toString(plan.EnvironmentId),
+		Version:       toStringPointer(plan.Version),
 		DesiredState:  toString(plan.DesiredState),
-		ForceTrigger:  toString(plan.ForceTrigger),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment update", err.Error())

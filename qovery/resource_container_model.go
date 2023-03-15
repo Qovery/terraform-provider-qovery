@@ -28,11 +28,10 @@ type Container struct {
 	Storages                    types.Set    `tfsdk:"storage"`
 	Ports                       types.Set    `tfsdk:"ports"`
 	//CustomDomains               types.Set    `tfsdk:"custom_domains"`
-	Arguments                   types.List    `tfsdk:"arguments"`
-	ExternalHost                types.String `tfsdk:"external_host"`
-	InternalHost                types.String `tfsdk:"internal_host"`
-	State                       types.String `tfsdk:"state"`
-	DeploymentStageId           types.String `tfsdk:"deployment_stage_id"`
+	Arguments         types.List   `tfsdk:"arguments"`
+	ExternalHost      types.String `tfsdk:"external_host"`
+	InternalHost      types.String `tfsdk:"internal_host"`
+	DeploymentStageId types.String `tfsdk:"deployment_stage_id"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
