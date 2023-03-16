@@ -16,9 +16,9 @@ var (
 // Service represents the interface to implement to handle the domain logic of a DeploymentStage
 type Service interface {
 	Create(ctx context.Context, environmentID string, request UpsertServiceRequest) (*DeploymentStage, error)
-	Get(ctx context.Context, environmentId string, deploymentStageId string) (*DeploymentStage, error)
-	Update(ctx context.Context, deploymentStageId string, request UpsertServiceRequest) (*DeploymentStage, error)
-	Delete(ctx context.Context, deploymentStageId string) error
+	Get(ctx context.Context, environmentID string, deploymentStageID string) (*DeploymentStage, error)
+	Update(ctx context.Context, deploymentStageID string, request UpsertServiceRequest) (*DeploymentStage, error)
+	Delete(ctx context.Context, deploymentStageID string) error
 }
 
 // UpsertServiceRequest represents the parameters needed to create & update a DeploymentEnvironment Stage

@@ -85,7 +85,7 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 			assert.Equal(t, tc.Container.MaxRunningInstances, cont.MaxRunningInstances)
 			assert.Equal(t, tc.Container.AutoPreview, cont.AutoPreview)
 			assert.Equal(t, tc.Container.Entrypoint, cont.Entrypoint)
-			assert.Equal(t, fakeDeploymentStageId, cont.DeploymentStageId)
+			assert.Equal(t, fakeDeploymentStageId, cont.DeploymentStageID)
 
 			assert.Len(t, tc.Container.Ports, len(cont.Ports))
 			for idx, p := range cont.Ports {

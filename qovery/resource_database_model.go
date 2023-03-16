@@ -53,7 +53,7 @@ func (d Database) toCreateDatabaseRequest() (*client.DatabaseCreateParams, error
 			Memory:        toInt32Pointer(d.Memory),
 			Storage:       toInt32Pointer(d.Storage),
 		},
-		DeploymentStageId: toString(d.DeploymentStageId),
+		DeploymentStageID: toString(d.DeploymentStageId),
 	}, nil
 }
 
@@ -92,6 +92,6 @@ func convertResponseToDatabase(res *client.DatabaseResponse) Database {
 		Login:             fromString(res.DatabaseCredentials.Login),
 		Password:          fromString(res.DatabaseCredentials.Password),
 		Storage:           fromInt32Pointer(res.DatabaseResponse.Storage),
-		DeploymentStageId: fromString(res.DeploymentStageId),
+		DeploymentStageId: fromString(res.DeploymentStageID),
 	}
 }

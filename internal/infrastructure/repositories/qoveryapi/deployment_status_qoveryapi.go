@@ -27,8 +27,8 @@ func newDeploymentStatusQoveryAPI(client *qovery.APIClient) (newdeployment.Deplo
 	}, nil
 }
 
-func (d deploymentStatusQoveryAPI) WaitForTerminatedState(ctx context.Context, environmentId uuid.UUID) error {
-	checkEnvironmentStatus := d.newEnvironmentWaitForTerminalStateBeforeDeploying(environmentId)
+func (d deploymentStatusQoveryAPI) WaitForTerminatedState(ctx context.Context, environmentID uuid.UUID) error {
+	checkEnvironmentStatus := d.newEnvironmentWaitForTerminalStateBeforeDeploying(environmentID)
 	err := waitWithDefaultTimeout(ctx, checkEnvironmentStatus)
 	if err != nil {
 		return err
@@ -38,7 +38,7 @@ func (d deploymentStatusQoveryAPI) WaitForTerminatedState(ctx context.Context, e
 }
 
 func (d deploymentStatusQoveryAPI) WaitForExpectedDesiredState(ctx context.Context, newDeployment newdeployment.Deployment) error {
-	checkEnvironmentStatus := d.newEnvironmentWaitForExpectedDesiredState(*newDeployment.EnvironmentId, newDeployment.DesiredState)
+	checkEnvironmentStatus := d.newEnvironmentWaitForExpectedDesiredState(*newDeployment.EnvironmentID, newDeployment.DesiredState)
 	err := waitWithDefaultTimeout(ctx, checkEnvironmentStatus)
 	if err != nil {
 		return err
@@ -83,9 +83,9 @@ func wait(ctx context.Context, f waitFunc, timeout *time.Duration) error {
 	}
 }
 
-func (d deploymentStatusQoveryAPI) newEnvironmentWaitForTerminalStateBeforeDeploying(environmentId uuid.UUID) waitFunc {
+func (d deploymentStatusQoveryAPI) newEnvironmentWaitForTerminalStateBeforeDeploying(environmentID uuid.UUID) waitFunc {
 	return func(ctx context.Context) (bool, error) {
-		status, response, err := d.client.EnvironmentMainCallsApi.GetEnvironmentStatus(ctx, environmentId.String()).Execute()
+		status, response, err := d.client.EnvironmentMainCallsApi.GetEnvironmentStatus(ctx, environmentID.String()).Execute()
 		if err != nil || response.StatusCode >= 400 {
 			return false, err
 		}
@@ -107,9 +107,9 @@ func (d deploymentStatusQoveryAPI) newEnvironmentWaitForTerminalStateBeforeDeplo
 	}
 }
 
-func (d deploymentStatusQoveryAPI) newEnvironmentWaitForExpectedDesiredState(environmentId uuid.UUID, desiredState newdeployment.DeploymentDesiredState) waitFunc {
+func (d deploymentStatusQoveryAPI) newEnvironmentWaitForExpectedDesiredState(environmentID uuid.UUID, desiredState newdeployment.DeploymentDesiredState) waitFunc {
 	return func(ctx context.Context) (bool, error) {
-		status, response, err := d.client.EnvironmentMainCallsApi.GetEnvironmentStatus(ctx, environmentId.String()).Execute()
+		status, response, err := d.client.EnvironmentMainCallsApi.GetEnvironmentStatus(ctx, environmentID.String()).Execute()
 		if err != nil {
 			if response.StatusCode == 404 && desiredState == newdeployment.DELETED {
 				return true, nil

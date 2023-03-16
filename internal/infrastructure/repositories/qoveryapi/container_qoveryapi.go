@@ -45,8 +45,8 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 	}
 
 	// Attach container to deployment stage
-	if len(request.DeploymentStageId) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, request.DeploymentStageId, newContainer.Id).Execute()
+	if len(request.DeploymentStageID) > 0 {
+		_, response, err := c.client.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newContainer.Id).Execute()
 		if err != nil || response.StatusCode >= 400 {
 			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, request.Name, resp, err)
 		}
@@ -95,8 +95,8 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 	}
 
 	// Attach container to deployment stage
-	if len(request.DeploymentStageId) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, request.DeploymentStageId, container.Id).Execute()
+	if len(request.DeploymentStageID) > 0 {
+		_, response, err := c.client.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, container.Id).Execute()
 		if err != nil || response.StatusCode >= 400 {
 			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, request.Name, resp, err)
 		}

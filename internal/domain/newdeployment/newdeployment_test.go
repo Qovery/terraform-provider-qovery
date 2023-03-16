@@ -35,7 +35,7 @@ func TestShouldFailWhenCreatingNewIncoherentDeployment(t *testing.T) {
 		{
 			TestName: "should_fail_with_wrong_environment_id",
 			Params: NewDeploymentParams{
-				EnvironmentId: "WRONG_UUID",
+				EnvironmentID: "WRONG_UUID",
 				DesiredState:  "RUNNING",
 			},
 			ExpectedError:      ErrInvalidEnvironmentIdParam,
@@ -56,17 +56,17 @@ func TestShouldFailWhenCreatingNewIncoherentDeployment(t *testing.T) {
 func TestShouldCreateNewEnvironmentDeployment(t *testing.T) {
 	t.Run("should_create_environment_deployment", func(t *testing.T) {
 		params := NewDeploymentParams{
-			EnvironmentId: uuid.NewString(),
+			EnvironmentID: uuid.NewString(),
 			DesiredState:  "RUNNING",
 		}
 
 		deployment, err := NewDeployment(params)
 
-		expectedEnvironmentId, _ := uuid.Parse(params.EnvironmentId)
+		expectedEnvironmentID, _ := uuid.Parse(params.EnvironmentID)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, deployment)
-		assert.Equal(t, &expectedEnvironmentId, deployment.EnvironmentId)
+		assert.Equal(t, &expectedEnvironmentID, deployment.EnvironmentID)
 		assert.Equal(t, RUNNING, deployment.DesiredState)
 	})
 }

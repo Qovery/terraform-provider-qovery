@@ -8,9 +8,9 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
 )
 
-var _ newdeployment.Service = newdeploymentService{}
+var _ newdeployment.Service = newDeploymentService{}
 
-type newdeploymentService struct {
+type newDeploymentService struct {
 	newDeploymentEnvironmentRepository newdeployment.EnvironmentRepository
 	deploymentStatusRepository         newdeployment.DeploymentStatusRepository
 }
@@ -24,13 +24,13 @@ func NewNewDeploymentService(newDeploymentEnvironmentRepository newdeployment.En
 		return nil, ErrInvalidRepository
 	}
 
-	return &newdeploymentService{
+	return &newDeploymentService{
 		newDeploymentEnvironmentRepository: newDeploymentEnvironmentRepository,
 		deploymentStatusRepository:         deploymentStatusRepository,
 	}, nil
 }
 
-func (s newdeploymentService) Create(ctx context.Context, params newdeployment.NewDeploymentParams) (*newdeployment.Deployment, error) {
+func (s newDeploymentService) Create(ctx context.Context, params newdeployment.NewDeploymentParams) (*newdeployment.Deployment, error) {
 	deployment, err := newdeployment.NewDeployment(params)
 	if err != nil {
 		return nil, err
@@ -59,7 +59,7 @@ func (s newdeploymentService) Create(ctx context.Context, params newdeployment.N
 	return deployment, nil
 }
 
-func (s newdeploymentService) Get(ctx context.Context, params newdeployment.NewDeploymentParams) (*newdeployment.Deployment, error) {
+func (s newDeploymentService) Get(ctx context.Context, params newdeployment.NewDeploymentParams) (*newdeployment.Deployment, error) {
 	deployment, err := newdeployment.NewDeployment(params)
 	if err != nil {
 		return nil, errors.Wrap(err, newdeployment.ErrFailedToGetDeployment.Error())
@@ -68,13 +68,13 @@ func (s newdeploymentService) Get(ctx context.Context, params newdeployment.NewD
 	return deployment, nil
 }
 
-func (s newdeploymentService) Update(ctx context.Context, params newdeployment.NewDeploymentParams) (*newdeployment.Deployment, error) {
+func (s newDeploymentService) Update(ctx context.Context, params newdeployment.NewDeploymentParams) (*newdeployment.Deployment, error) {
 	deployment, err := newdeployment.NewDeployment(params)
 	if err != nil {
 		return nil, err
 	}
 
-	err = s.deploymentStatusRepository.WaitForTerminatedState(ctx, *deployment.EnvironmentId)
+	err = s.deploymentStatusRepository.WaitForTerminatedState(ctx, *deployment.EnvironmentID)
 	if err != nil {
 		return nil, errors.Wrap(err, newdeployment.ErrFailedToCheckDeploymentStatus.Error())
 	}
@@ -108,13 +108,13 @@ func (s newdeploymentService) Update(ctx context.Context, params newdeployment.N
 	return deployment, nil
 }
 
-func (s newdeploymentService) Delete(ctx context.Context, params newdeployment.NewDeploymentParams) error {
+func (s newDeploymentService) Delete(ctx context.Context, params newdeployment.NewDeploymentParams) error {
 	deployment, err := newdeployment.NewDeployment(params)
 	if err != nil {
 		return err
 	}
 
-	err = s.deploymentStatusRepository.WaitForTerminatedState(ctx, *deployment.EnvironmentId)
+	err = s.deploymentStatusRepository.WaitForTerminatedState(ctx, *deployment.EnvironmentID)
 	if err != nil {
 		return errors.Wrap(err, newdeployment.ErrFailedToCheckDeploymentStatus.Error())
 	}

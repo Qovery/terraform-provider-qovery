@@ -48,8 +48,8 @@ func newDeploymentTerraformFromDomain(domain *newdeployment.Deployment) NewDeplo
 		version = &versionToString
 	}
 	return NewDeploymentTerraform{
-		Id:            fromString(domain.Id.String()),
-		EnvironmentId: fromString(domain.EnvironmentId.String()),
+		Id:            fromString(domain.ID.String()),
+		EnvironmentId: fromString(domain.EnvironmentID.String()),
 		Version:       fromStringPointer(version),
 		DesiredState:  fromString(domain.DesiredState.String()),
 	}
@@ -118,8 +118,8 @@ func (r deploymentResource) Create(ctx context.Context, req resource.CreateReque
 
 	// Create new deployment stage
 	deployment, err := r.deploymentService.Create(ctx, newdeployment.NewDeploymentParams{
-		Id:            toStringPointer(plan.Id),
-		EnvironmentId: toString(plan.EnvironmentId),
+		ID:            toStringPointer(plan.Id),
+		EnvironmentID: toString(plan.EnvironmentId),
 		Version:       toStringPointer(plan.Version),
 		DesiredState:  toString(plan.DesiredState),
 	})
@@ -144,8 +144,8 @@ func (r deploymentResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	deployment, err := r.deploymentService.Get(ctx, newdeployment.NewDeploymentParams{
-		Id:            toStringPointer(state.Id),
-		EnvironmentId: toString(state.EnvironmentId),
+		ID:            toStringPointer(state.Id),
+		EnvironmentID: toString(state.EnvironmentId),
 		Version:       toStringPointer(state.Version),
 		DesiredState:  toString(state.DesiredState),
 	})
@@ -170,8 +170,8 @@ func (r deploymentResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	deployment, err := r.deploymentService.Update(ctx, newdeployment.NewDeploymentParams{
-		Id:            toStringPointer(state.Id),
-		EnvironmentId: toString(plan.EnvironmentId),
+		ID:            toStringPointer(state.Id),
+		EnvironmentID: toString(plan.EnvironmentId),
 		Version:       toStringPointer(plan.Version),
 		DesiredState:  toString(plan.DesiredState),
 	})
@@ -194,7 +194,7 @@ func (r deploymentResource) Delete(ctx context.Context, req resource.DeleteReque
 	}
 
 	err := r.deploymentService.Delete(ctx, newdeployment.NewDeploymentParams{
-		EnvironmentId: toString(state.EnvironmentId),
+		EnvironmentID: toString(state.EnvironmentId),
 		// When terraform destroys, the desired state will be "DELETED"
 		DesiredState: "DELETED",
 	})

@@ -81,7 +81,7 @@ type Container struct {
 	InternalHost                *string
 	ExternalHost                *string
 	State                       status.State
-	DeploymentStageId           string
+	DeploymentStageID           string
 }
 
 // Validate returns an error to tell whether the Container domain model is valid or not.
@@ -127,7 +127,7 @@ type NewContainerParams struct {
 	Ports                port.Ports
 	EnvironmentVariables variable.Variables
 	Secrets              secret.Secrets
-	DeploymentStageId    string
+	DeploymentStageID    string
 }
 
 // NewContainer returns a new instance of a Container domain model.
@@ -175,7 +175,7 @@ func NewContainer(params NewContainerParams) (*Container, error) {
 		Arguments:           params.Arguments,
 		Storages:            params.Storages,
 		Ports:               params.Ports,
-		DeploymentStageId:   params.DeploymentStageId,
+		DeploymentStageID:   params.DeploymentStageID,
 	}
 
 	if err := c.SetEnvironmentVariables(params.EnvironmentVariables); err != nil {

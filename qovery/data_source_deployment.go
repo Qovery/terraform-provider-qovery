@@ -86,8 +86,8 @@ func (d deploymentDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	// Get deployment from API
 	_, err := d.deploymentService.Get(ctx, newdeployment.NewDeploymentParams{
-		Id:            toStringPointer(data.Id),
-		EnvironmentId: toString(data.EnvironmentId),
+		ID:            toStringPointer(data.Id),
+		EnvironmentID: toString(data.EnvironmentId),
 		Version:       toStringPointer(data.Version),
 		DesiredState:  toString(data.DesiredState),
 	})

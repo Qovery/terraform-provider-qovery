@@ -38,12 +38,12 @@ func (s deploymentStageService) Create(ctx context.Context, environmentID string
 	return deploymentStageCreated, nil
 }
 
-func (s deploymentStageService) Get(ctx context.Context, environmentId string, deploymentStageId string) (*deploymentstage.DeploymentStage, error) {
-	if err := s.checkDeploymentStageID(deploymentStageId); err != nil {
+func (s deploymentStageService) Get(ctx context.Context, environmentID string, deploymentStageID string) (*deploymentstage.DeploymentStage, error) {
+	if err := s.checkDeploymentStageID(deploymentStageID); err != nil {
 		return nil, errors.Wrap(err, deploymentstage.ErrFailedToGetDeploymentStage.Error())
 	}
 
-	deploymentStage, err := s.deploymentStageRepository.Get(ctx, environmentId, deploymentStageId)
+	deploymentStage, err := s.deploymentStageRepository.Get(ctx, environmentID, deploymentStageID)
 	if err != nil {
 		return nil, errors.Wrap(err, deploymentstage.ErrFailedToGetDeploymentStage.Error())
 	}

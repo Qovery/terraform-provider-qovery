@@ -10,8 +10,8 @@ import (
 // Repository represents the interface to implement to handle the persistence of a DeploymentStage.
 type Repository interface {
 	Create(ctx context.Context, environmentID string, request UpsertRepositoryRequest) (*DeploymentStage, error)
-	Get(ctx context.Context, environmentID string, deploymentStageId string) (*DeploymentStage, error)
-	Update(ctx context.Context, deploymentStageId string, request UpsertRepositoryRequest) (*DeploymentStage, error)
+	Get(ctx context.Context, environmentID string, deploymentStageID string) (*DeploymentStage, error)
+	Update(ctx context.Context, deploymentStageID string, request UpsertRepositoryRequest) (*DeploymentStage, error)
 	Delete(ctx context.Context, deploymentStageID string) error
 }
 

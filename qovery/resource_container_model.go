@@ -113,7 +113,7 @@ func (cont Container) toUpsertRepositoryRequest() container.UpsertRepositoryRequ
 		Arguments:           cont.ArgumentList(),
 		Storages:            storages,
 		Ports:               ports,
-		DeploymentStageId:   toString(cont.DeploymentStageId),
+		DeploymentStageID:   toString(cont.DeploymentStageId),
 	}
 }
 
@@ -138,6 +138,6 @@ func convertDomainContainerToContainer(state Container, container *container.Con
 		InternalHost:                fromStringPointer(container.InternalHost),
 		ExternalHost:                fromStringPointer(container.ExternalHost),
 		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), container.Secrets, variable.ScopeContainer).toTerraformSet(),
-		DeploymentStageId:           fromString(container.DeploymentStageId),
+		DeploymentStageId:           fromString(container.DeploymentStageID),
 	}
 }

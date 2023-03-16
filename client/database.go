@@ -15,17 +15,17 @@ type DatabaseResponse struct {
 	DatabaseStatus       *qovery.Status
 	DatabaseCredentials  *qovery.Credentials
 	DatabaseInternalHost string
-	DeploymentStageId    string
+	DeploymentStageID    string
 }
 
 type DatabaseCreateParams struct {
 	DatabaseRequest   qovery.DatabaseRequest
-	DeploymentStageId string
+	DeploymentStageID string
 }
 
 type DatabaseUpdateParams struct {
 	DatabaseEditRequest qovery.DatabaseEditRequest
-	DeploymentStageId   string
+	DeploymentStageID   string
 }
 
 func (c *Client) CreateDatabase(ctx context.Context, environmentID string, params *DatabaseCreateParams) (*DatabaseResponse, *apierrors.APIError) {
@@ -38,10 +38,10 @@ func (c *Client) CreateDatabase(ctx context.Context, environmentID string, param
 	}
 
 	// Attach database to deployment stage
-	if len(params.DeploymentStageId) > 0 {
-		_, response, err := c.api.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, params.DeploymentStageId, database.Id).Execute()
+	if len(params.DeploymentStageID) > 0 {
+		_, response, err := c.api.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, params.DeploymentStageID, database.Id).Execute()
 		if err != nil || response.StatusCode >= 400 {
-			return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, params.DeploymentStageId, response, err)
+			return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, params.DeploymentStageID, response, err)
 		}
 	}
 
@@ -89,7 +89,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 		DatabaseStatus:       status,
 		DatabaseCredentials:  credentials,
 		DatabaseInternalHost: hostInternal,
-		DeploymentStageId:    deploymentStage.Id,
+		DeploymentStageID:    deploymentStage.Id,
 	}, nil
 }
 
@@ -137,10 +137,10 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *
 		return nil, apierrors.NewUpdateError(apierrors.APIResourceDatabase, databaseID, res, err)
 	}
 	// Attach database to deployment stage
-	if len(params.DeploymentStageId) > 0 {
-		_, response, err := c.api.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, params.DeploymentStageId, database.Id).Execute()
+	if len(params.DeploymentStageID) > 0 {
+		_, response, err := c.api.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, params.DeploymentStageID, database.Id).Execute()
 		if err != nil || response.StatusCode >= 400 {
-			return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, params.DeploymentStageId, response, err)
+			return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, params.DeploymentStageID, response, err)
 		}
 	}
 
@@ -199,7 +199,7 @@ func (c *Client) updateDatabase(ctx context.Context, database *qovery.Database, 
 		DatabaseResponse:     database,
 		DatabaseCredentials:  credentials,
 		DatabaseInternalHost: hostInternal,
-		DeploymentStageId:    deploymentStageId,
+		DeploymentStageID:    deploymentStageId,
 	}, nil
 }
 

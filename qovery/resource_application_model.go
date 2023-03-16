@@ -97,7 +97,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		EnvironmentVariablesDiff:     app.EnvironmentVariableList().diff(nil),
 		SecretsDiff:                  app.SecretList().diff(nil),
 		CustomDomainsDiff:            app.CustomDomainsList().diff(nil),
-		ApplicationDeploymentStageId: toString(app.DeploymentStageId),
+		ApplicationDeploymentStageID: toString(app.DeploymentStageId),
 	}, nil
 
 }
@@ -167,7 +167,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		EnvironmentVariablesDiff:     app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
 		SecretsDiff:                  app.SecretList().diff(state.SecretList()),
 		CustomDomainsDiff:            app.CustomDomainsList().diff(state.CustomDomainsList()),
-		ApplicationDeploymentStageId: toString(app.DeploymentStageId),
+		ApplicationDeploymentStageID: toString(app.DeploymentStageId),
 	}, nil
 
 }
@@ -196,7 +196,7 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		ExternalHost:                fromStringPointer(app.ApplicationExternalHost),
 		Entrypoint:                  fromStringPointer(app.ApplicationResponse.Entrypoint),
 		Arguments:                   fromStringArray(app.ApplicationResponse.Arguments),
-		DeploymentStageId:           fromString(app.ApplicationDeploymentStageId),
+		DeploymentStageId:           fromString(app.ApplicationDeploymentStageID),
 	}
 }
 

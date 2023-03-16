@@ -7,11 +7,11 @@ import (
 
 var (
 	// ErrInvalidIdParam is returned if the id indicated is not valid
-	ErrInvalidIdParam = errors.New("invalid Id")
+	ErrInvalidIdParam = errors.New("invalid ID")
 	// ErrInvalidVersionParam is returned if the version indicated is not valid
 	ErrInvalidVersionParam = errors.New("invalid Version")
 	// ErrInvalidEnvironmentIdParam is returned if the environment id indicated is not valid
-	ErrInvalidEnvironmentIdParam = errors.New("invalid environment Id")
+	ErrInvalidEnvironmentIdParam = errors.New("invalid environment ID")
 	// ErrInvalidDeployment is returned if deployment is incoherent
 	ErrInvalidDeployment = errors.New("invalid deployment")
 	// ErrInvalidDeploymentDesiredState is returned if the deployment desired state is incoherent
@@ -52,15 +52,15 @@ func (c DeploymentDesiredState) String() string {
 }
 
 type Deployment struct {
-	Id            *uuid.UUID
-	EnvironmentId *uuid.UUID
+	ID            *uuid.UUID
+	EnvironmentID *uuid.UUID
 	Version       *uuid.UUID
 	DesiredState  DeploymentDesiredState
 }
 
 type NewDeploymentParams struct {
-	Id            *string
-	EnvironmentId string
+	ID            *string
+	EnvironmentID string
 	Version       *string
 	DesiredState  string
 }
@@ -72,17 +72,17 @@ func NewDeployment(params NewDeploymentParams) (*Deployment, error) {
 		return nil, err
 	}
 
-	environmentUuid, err := uuid.Parse(params.EnvironmentId)
+	environmentUuid, err := uuid.Parse(params.EnvironmentID)
 	if err != nil {
 		return nil, errors.Wrap(err, ErrInvalidEnvironmentIdParam.Error())
 	}
 
 	var id uuid.UUID
 	// If unset, generate a random one
-	if params.Id == nil {
+	if params.ID == nil {
 		id = uuid.New()
 	} else {
-		id, err = uuid.Parse(*params.Id)
+		id, err = uuid.Parse(*params.ID)
 		if err != nil {
 			return nil, errors.Wrap(err, ErrInvalidIdParam.Error())
 		}
@@ -98,8 +98,8 @@ func NewDeployment(params NewDeploymentParams) (*Deployment, error) {
 	}
 
 	return &Deployment{
-		Id:            &id,
-		EnvironmentId: &environmentUuid,
+		ID:            &id,
+		EnvironmentID: &environmentUuid,
 		Version:       version,
 		DesiredState:  *desiredState,
 	}, nil

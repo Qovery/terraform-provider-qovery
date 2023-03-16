@@ -12,7 +12,7 @@ import (
 
 type ApplicationResponse struct {
 	ApplicationResponse             *qovery.Application
-	ApplicationDeploymentStageId    string
+	ApplicationDeploymentStageID    string
 	ApplicationEnvironmentVariables []*qovery.EnvironmentVariable
 	ApplicationSecrets              []*qovery.Secret
 	ApplicationCustomDomains        []*qovery.CustomDomain
@@ -22,7 +22,7 @@ type ApplicationResponse struct {
 
 type ApplicationCreateParams struct {
 	ApplicationRequest           qovery.ApplicationRequest
-	ApplicationDeploymentStageId string
+	ApplicationDeploymentStageID string
 	EnvironmentVariablesDiff     EnvironmentVariablesDiff
 	CustomDomainsDiff            CustomDomainsDiff
 	SecretsDiff                  SecretsDiff
@@ -30,7 +30,7 @@ type ApplicationCreateParams struct {
 
 type ApplicationUpdateParams struct {
 	ApplicationEditRequest       qovery.ApplicationEditRequest
-	ApplicationDeploymentStageId string
+	ApplicationDeploymentStageID string
 	EnvironmentVariablesDiff     EnvironmentVariablesDiff
 	CustomDomainsDiff            CustomDomainsDiff
 	SecretsDiff                  SecretsDiff
@@ -46,12 +46,12 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 	}
 
 	// Attach application to deployment stage
-	if len(params.ApplicationDeploymentStageId) > 0 {
+	if len(params.ApplicationDeploymentStageID) > 0 {
 		_, resp, err := c.api.DeploymentStageMainCallsApi.
-			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageId, application.Id).
+			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageID, application.Id).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
-			return nil, apierrors.NewCreateError(apierrors.APIResourceUpdateDeploymentStage, params.ApplicationDeploymentStageId, resp, err)
+			return nil, apierrors.NewCreateError(apierrors.APIResourceUpdateDeploymentStage, params.ApplicationDeploymentStageID, resp, err)
 		}
 	}
 
@@ -99,7 +99,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 
 	return &ApplicationResponse{
 		ApplicationResponse:             application,
-		ApplicationDeploymentStageId:    deploymentStage.Id,
+		ApplicationDeploymentStageID:    deploymentStage.Id,
 		ApplicationEnvironmentVariables: environmentVariables,
 		ApplicationSecrets:              secrets,
 		ApplicationCustomDomains:        customDomains,
@@ -118,16 +118,16 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 	}
 
 	// Attach service to deployment stage
-	if len(params.ApplicationDeploymentStageId) > 0 {
+	if len(params.ApplicationDeploymentStageID) > 0 {
 		_, resp, err := c.api.DeploymentStageMainCallsApi.
-			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageId, applicationID).
+			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageID, applicationID).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
 			return nil, apierrors.NewUpdateError(apierrors.APIResourceUpdateDeploymentStage, applicationID, resp, err)
 		}
 	}
 
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.ApplicationDeploymentStageId)
+	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.ApplicationDeploymentStageID)
 }
 
 func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *apierrors.APIError {
@@ -207,7 +207,7 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 		ApplicationCustomDomains:        customDomains,
 		ApplicationExternalHost:         hosts.external,
 		ApplicationInternalHost:         hosts.internal,
-		ApplicationDeploymentStageId:    deploymentStageId,
+		ApplicationDeploymentStageID:    deploymentStageId,
 	}, nil
 }
 

@@ -23,9 +23,9 @@ func newDeploymentStageQoveryAPI(client *qovery.APIClient) (deploymentstage.Repo
 	}, nil
 }
 
-func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentId string, request deploymentstage.UpsertRepositoryRequest) (*deploymentstage.DeploymentStage, error) {
+func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentID string, request deploymentstage.UpsertRepositoryRequest) (*deploymentstage.DeploymentStage, error) {
 	deploymentStageCreated, resp, err := c.client.DeploymentStageMainCallsApi.
-		CreateEnvironmentDeploymentStage(ctx, environmentId).
+		CreateEnvironmentDeploymentStage(ctx, environmentID).
 		DeploymentStageRequest(qovery.DeploymentStageRequest{
 			Name:        request.Name,
 			Description: *qovery.NewNullableString(&request.Description),
@@ -63,7 +63,7 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentId stri
 	})
 }
 
-func (c deploymentStageQoveryAPI) Get(ctx context.Context, environmentId string, deploymentStageID string) (*deploymentstage.DeploymentStage, error) {
+func (c deploymentStageQoveryAPI) Get(ctx context.Context, environmentID string, deploymentStageID string) (*deploymentstage.DeploymentStage, error) {
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsApi.GetDeploymentStage(ctx, deploymentStageID).Execute()
 	if deploymentStage == nil {
 		return nil, apierrors.NewReadApiError(apierrors.ApiResourceDeploymentStage, deploymentStageID, resp, err)
