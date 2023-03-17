@@ -10,6 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
+	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -27,7 +29,6 @@ var (
 		newdeployment.STOPPED.String(),
 		newdeployment.RESTARTED.String(),
 	}
-	deploymentStateDefault = string(newdeployment.STOPPED)
 )
 
 func newDeploymentResource() resource.Resource {
@@ -99,9 +100,15 @@ func (r deploymentResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Dia
 				Computed:    false,
 			},
 			"desired_state": {
-				Description: "Desired state of the deployment.",
-				Type:        types.StringType,
-				Optional:    true,
+				Description: descriptions.NewStringEnumDescription(
+					"Desired state of the deployment.",
+					deploymentStates,
+					nil),
+				Type:     types.StringType,
+				Required: true,
+				Validators: []tfsdk.AttributeValidator{
+					validators.NewStringEnumValidator(deploymentStates),
+				},
 			},
 		},
 	}, nil
