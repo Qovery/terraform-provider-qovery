@@ -71,7 +71,6 @@ func (r deploymentStageResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Description: "Description of the deployment stage.",
 				Type:        types.StringType,
 				Optional:    true,
-				Computed:    true,
 			},
 			"move_after": {
 				Description: "Move the current deployment stage after the target deployment stage",
@@ -104,10 +103,9 @@ func (r deploymentStageResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// Initialize state values
-	state := convertDomainDeploymentStageToDeploymentStage(deploymentStage)
+	state := convertDomainDeploymentStageToDeploymentStage(deploymentStage, plan.Description)
 	tflog.Info(ctx, "created deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.Value})
 
-	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -128,11 +126,21 @@ func (r deploymentStageResource) Read(ctx context.Context, req resource.ReadRequ
 	}
 
 	// Refresh state values
-	state = convertDomainDeploymentStageToDeploymentStage(deploymentStage)
+	newState := convertDomainDeploymentStageToDeploymentStage(deploymentStage, state.Description)
 	tflog.Trace(ctx, "read deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.Value})
 
+	// We need to keep the 'MoveAfter' and 'MoveBefore' properties
+	newState = DeploymentStage{
+		Id:            newState.Id,
+		EnvironmentId: newState.EnvironmentId,
+		Name:          newState.Name,
+		Description:   newState.Description,
+		MoveAfter:     state.MoveAfter,
+		MoveBefore:    state.MoveBefore,
+	}
+
 	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &newState)...)
 }
 
 // Update qovery deployment stage resource
@@ -153,7 +161,7 @@ func (r deploymentStageResource) Update(ctx context.Context, req resource.Update
 	}
 
 	// Update state values
-	state = convertDomainDeploymentStageToDeploymentStage(deploymentStage)
+	state = convertDomainDeploymentStageToDeploymentStage(deploymentStage, plan.Description)
 	tflog.Trace(ctx, "updated deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.Value})
 
 	// Set state

@@ -37,7 +37,7 @@ func (p DeploymentStage) toUpdateServiceRequest() deploymentstage.UpsertServiceR
 	}
 }
 
-func convertDomainDeploymentStageToDeploymentStage(deploymentStageDomain *deploymentstage.DeploymentStage) DeploymentStage {
+func convertDomainDeploymentStageToDeploymentStage(deploymentStageDomain *deploymentstage.DeploymentStage, terraformDescription types.String) DeploymentStage {
 	var moveAfterString *string = nil
 	if deploymentStageDomain.MoveAfter != nil {
 		s := deploymentStageDomain.MoveAfter.String()
@@ -48,11 +48,18 @@ func convertDomainDeploymentStageToDeploymentStage(deploymentStageDomain *deploy
 		s := deploymentStageDomain.MoveBefore.String()
 		moveBeforeString = &s
 	}
+
+	// hack to satisfy optional description as the core doesn't accept null value, the description will be always an empty string in case of null
+	var description = &deploymentStageDomain.Description
+	if deploymentStageDomain.Description == "" && terraformDescription.IsNull() {
+		description = nil
+	}
+
 	return DeploymentStage{
 		Id:            fromString(deploymentStageDomain.ID.String()),
 		EnvironmentId: fromString(deploymentStageDomain.EnvironmentID.String()),
 		Name:          fromString(deploymentStageDomain.Name),
-		Description:   fromString(deploymentStageDomain.Description),
+		Description:   fromStringPointer(description),
 		MoveAfter:     fromStringPointer(moveAfterString),
 		MoveBefore:    fromStringPointer(moveBeforeString),
 	}
