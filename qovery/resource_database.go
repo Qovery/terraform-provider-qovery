@@ -220,21 +220,11 @@ func (r databaseResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 				Type:        types.StringType,
 				Computed:    true,
 			},
-			"state": {
-				Description: descriptions.NewStringEnumDescription(
-					"State of the database.",
-					databaseStates,
-					&databaseStateDefault,
-				),
-				Type:     types.StringType,
-				Optional: true,
-				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringDefaultModifier(databaseStateDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
-					validators.NewStringEnumValidator(databaseStates),
-				},
+			"deployment_stage_id": {
+				Description: "Id of the deployment stage.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
 			},
 		},
 	}, nil

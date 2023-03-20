@@ -14,7 +14,6 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
@@ -376,21 +375,11 @@ func (r containerResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diag
 				Type:        types.StringType,
 				Computed:    true,
 			},
-			"state": {
-				Description: descriptions.NewStringEnumDescription(
-					"State of the container.",
-					clientEnumToStringArray(status.AllowedDesiredStateValues),
-					pointer.ToString(container.DefaultState.String()),
-				),
-				Type:     types.StringType,
-				Optional: true,
-				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringDefaultModifier(container.DefaultState.String()),
-				},
-				Validators: []tfsdk.AttributeValidator{
-					validators.NewStringEnumValidator(clientEnumToStringArray(status.AllowedDesiredStateValues)),
-				},
+			"deployment_stage_id": {
+				Description: "Id of the deployment stage.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
 			},
 		},
 	}, nil

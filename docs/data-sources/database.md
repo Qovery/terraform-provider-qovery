@@ -25,6 +25,10 @@ data "qovery_database" "my_database" {
 
 - `id` (String) Id of the database.
 
+### Optional
+
+- `deployment_stage_id` (String) Id of the deployment stage.
+
 ### Read-Only
 
 - `accessibility` (String) Accessibility of the database.
@@ -38,7 +42,6 @@ data "qovery_database" "my_database" {
 - `name` (String) Name of the database.
 - `password` (String) The password to connect to your database
 - `port` (Number) The port to connect to your database
-- `state` (String) State of the database.
 - `storage` (Number) Storage of the database in MB [1024MB = 1GB].
 - `type` (String) Type of the database.
 - `version` (String) Version of the database

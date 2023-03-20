@@ -28,9 +28,9 @@ type Application struct {
 	Secrets                     types.Set                 `tfsdk:"secrets"`
 	ExternalHost                types.String              `tfsdk:"external_host"`
 	InternalHost                types.String              `tfsdk:"internal_host"`
-	State                       types.String              `tfsdk:"state"`
 	Entrypoint                  types.String              `tfsdk:"entrypoint"`
 	Arguments                   types.List                `tfsdk:"arguments"`
+	DeploymentStageId           types.String              `tfsdk:"deployment_stage_id"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
@@ -77,11 +77,6 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		buildMode = bm
 	}
 
-	desiredState, err := qovery.NewStateEnumFromValue(toString(app.State))
-	if err != nil {
-		return nil, err
-	}
-
 	return &client.ApplicationCreateParams{
 		ApplicationRequest: qovery.ApplicationRequest{
 			Name:                toString(app.Name),
@@ -99,10 +94,10 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			Entrypoint:          toStringPointer(app.Entrypoint),
 			Arguments:           toStringArray(app.Arguments),
 		},
-		DesiredState:             *desiredState,
-		EnvironmentVariablesDiff: app.EnvironmentVariableList().diff(nil),
-		SecretsDiff:              app.SecretList().diff(nil),
-		CustomDomainsDiff:        app.CustomDomainsList().diff(nil),
+		EnvironmentVariablesDiff:     app.EnvironmentVariableList().diff(nil),
+		SecretsDiff:                  app.SecretList().diff(nil),
+		CustomDomainsDiff:            app.CustomDomainsList().diff(nil),
+		ApplicationDeploymentStageID: toString(app.DeploymentStageId),
 	}, nil
 
 }
@@ -151,11 +146,6 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		buildMode = bm
 	}
 
-	desiredState, err := qovery.NewStateEnumFromValue(toString(app.State))
-	if err != nil {
-		return nil, err
-	}
-
 	applicationEditRequest := qovery.ApplicationEditRequest{
 		Name:                toStringPointer(app.Name),
 		BuildMode:           buildMode,
@@ -173,11 +163,11 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		Arguments:           toStringArray(app.Arguments),
 	}
 	return &client.ApplicationUpdateParams{
-		ApplicationEditRequest:   applicationEditRequest,
-		EnvironmentVariablesDiff: app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
-		SecretsDiff:              app.SecretList().diff(state.SecretList()),
-		CustomDomainsDiff:        app.CustomDomainsList().diff(state.CustomDomainsList()),
-		DesiredState:             *desiredState,
+		ApplicationEditRequest:       applicationEditRequest,
+		EnvironmentVariablesDiff:     app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
+		SecretsDiff:                  app.SecretList().diff(state.SecretList()),
+		CustomDomainsDiff:            app.CustomDomainsList().diff(state.CustomDomainsList()),
+		ApplicationDeploymentStageID: toString(app.DeploymentStageId),
 	}, nil
 
 }
@@ -198,7 +188,6 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		GitRepository:               convertResponseToApplicationGitRepository(app.ApplicationResponse.GitRepository),
 		Storage:                     convertResponseToApplicationStorage(app.ApplicationResponse.Storage),
 		Ports:                       convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
-		State:                       fromClientEnum(app.ApplicationStatus.State),
 		BuiltInEnvironmentVariables: fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
 		EnvironmentVariables:        fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
 		Secrets:                     fromSecretList(state.SecretList(), app.ApplicationSecrets, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
@@ -207,6 +196,7 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		ExternalHost:                fromStringPointer(app.ApplicationExternalHost),
 		Entrypoint:                  fromStringPointer(app.ApplicationResponse.Entrypoint),
 		Arguments:                   fromStringArray(app.ApplicationResponse.Arguments),
+		DeploymentStageId:           fromString(app.ApplicationDeploymentStageID),
 	}
 }
 

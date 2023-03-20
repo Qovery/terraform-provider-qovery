@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
@@ -31,7 +30,6 @@ type UpsertServiceRequest struct {
 	ContainerUpsertRequest UpsertRepositoryRequest
 	EnvironmentVariables   variable.DiffRequest
 	Secrets                secret.DiffRequest
-	DesiredState           status.State `validate:"required"`
 }
 
 // Validate returns an error to tell whether the UpsertServiceRequest is valid or not.

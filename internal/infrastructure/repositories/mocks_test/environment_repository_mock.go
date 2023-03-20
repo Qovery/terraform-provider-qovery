@@ -108,6 +108,44 @@ func (_c *EnvironmentRepository_Delete_Call) Return(_a0 error) *EnvironmentRepos
 	return _c
 }
 
+// Exists provides a mock function with given fields: ctx, environmentId
+func (_m *EnvironmentRepository) Exists(ctx context.Context, environmentId string) bool {
+	ret := _m.Called(ctx, environmentId)
+
+	var r0 bool
+	if rf, ok := ret.Get(0).(func(context.Context, string) bool); ok {
+		r0 = rf(ctx, environmentId)
+	} else {
+		r0 = ret.Get(0).(bool)
+	}
+
+	return r0
+}
+
+// EnvironmentRepository_Exists_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'Exists'
+type EnvironmentRepository_Exists_Call struct {
+	*mock.Call
+}
+
+// Exists is a helper method to define mock.On call
+//   - ctx context.Context
+//   - environmentId string
+func (_e *EnvironmentRepository_Expecter) Exists(ctx interface{}, environmentId interface{}) *EnvironmentRepository_Exists_Call {
+	return &EnvironmentRepository_Exists_Call{Call: _e.mock.On("Exists", ctx, environmentId)}
+}
+
+func (_c *EnvironmentRepository_Exists_Call) Run(run func(ctx context.Context, environmentId string)) *EnvironmentRepository_Exists_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string))
+	})
+	return _c
+}
+
+func (_c *EnvironmentRepository_Exists_Call) Return(_a0 bool) *EnvironmentRepository_Exists_Call {
+	_c.Call.Return(_a0)
+	return _c
+}
+
 // Get provides a mock function with given fields: ctx, environmentID
 func (_m *EnvironmentRepository) Get(ctx context.Context, environmentID string) (*environment.Environment, error) {
 	ret := _m.Called(ctx, environmentID)

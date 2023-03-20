@@ -55,12 +55,10 @@ resource "qovery_database" "my_database" {
 - `cpu` (Number) CPU of the database in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 250`.
 	- Default: `250`.
+- `deployment_stage_id` (String) Id of the deployment stage.
 - `memory` (Number) RAM of the database in MB [1024MB = 1GB].
 	- Must be: `>= 100`.
 	- Default: `256`.
-- `state` (String) State of the database.
-	- Can be: `RUNNING`, `STOPPED`.
-	- Default: `RUNNING`.
 - `storage` (Number) Storage of the database in GB [1024MB = 1GB] [NOTE: can't be updated after creation].
 	- Must be: `>= 10`.
 	- Default: `10`.

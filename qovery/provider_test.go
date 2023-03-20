@@ -48,6 +48,7 @@ type testEnvironment struct {
 var (
 	apiClient         = client.New(os.Getenv(qovery.APITokenEnvName), "test")
 	qoveryServices, _ = services.New(services.WithQoveryRepository(os.Getenv(qovery.APITokenEnvName), "test"))
+	qoveryApiClient   = client.NewQoveryApiClient(os.Getenv(qovery.APITokenEnvName), "test")
 )
 
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
@@ -127,6 +128,10 @@ func getTestContainerID() string {
 
 func generateTestName(testName string) string {
 	return fmt.Sprintf("%s-%s-%s", testNamePrefix, testName, testNameSuffix)
+}
+
+func generateRandomName(testName string) string {
+	return fmt.Sprintf("%s-%s-%s", testNamePrefix, testName, uuid.NewString())
 }
 
 func isCIMainBranch() bool {

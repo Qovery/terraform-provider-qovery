@@ -5,7 +5,9 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
@@ -32,6 +34,8 @@ type Services struct {
 	Container           container.Service
 	ContainerRegistry   registry.Service
 	Environment         environment.Service
+	DeploymentStage     deploymentstage.Service
+	Deployment          newdeployment.Service
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -128,6 +132,15 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
+	deploymentStageService, err := NewDeploymentStageService(services.repos.DeploymentStage)
+	if err != nil {
+		return nil, err
+	}
+
+	deploymentService, err := NewNewDeploymentService(services.repos.DeploymentEnvironment, services.repos.DeploymentStatus)
+	if err != nil {
+		return nil, err
+	}
 	services.CredentialsAws = credentialsAwsService
 	services.CredentialsScaleway = credentialsScalewayService
 	services.Organization = organizationService
@@ -135,6 +148,8 @@ func New(configs ...Configuration) (*Services, error) {
 	services.Container = containerService
 	services.ContainerRegistry = containerRegistryService
 	services.Environment = environmentService
+	services.DeploymentStage = deploymentStageService
+	services.Deployment = deploymentService
 
 	return services, nil
 }

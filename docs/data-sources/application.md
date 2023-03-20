@@ -27,6 +27,7 @@ data "qovery_application" "my_application" {
 
 ### Optional
 
+- `deployment_stage_id` (String) Id of the deployment stage.
 - `secrets` (Attributes Set) List of secrets linked to this application. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
@@ -50,7 +51,6 @@ data "qovery_application" "my_application" {
 - `min_running_instances` (Number) Minimum number of instances running for the application.
 - `name` (String) Name of the application.
 - `ports` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
-- `state` (String) State of the application.
 - `storage` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
 
 <a id="nestedatt--secrets"></a>

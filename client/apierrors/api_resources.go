@@ -4,6 +4,7 @@ type APIResource string
 
 const (
 	APIResourceApplication                    APIResource = "application"
+	APIResourceUpdateDeploymentStage          APIResource = "deployment stage"
 	APIResourceApplicationCustomDomain        APIResource = "application custom domain"
 	APIResourceApplicationEnvironmentVariable APIResource = "application environment variable"
 	APIResourceApplicationSecret              APIResource = "application secret"

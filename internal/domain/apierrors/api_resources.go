@@ -32,4 +32,6 @@ const (
 	ApiResourceProjectEnvironmentVariable     ApiResource = "project environment variable"
 	ApiResourceProjectSecret                  ApiResource = "project secret"
 	ApiResourceScalewayCredentials            ApiResource = "scaleway credentials"
+	ApiResourceDeploymentStage                ApiResource = "deployment stage"
+	ApiResourceDeployment                     ApiResource = "deployment"
 )

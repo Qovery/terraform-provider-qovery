@@ -15,7 +15,9 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/application/services"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 
@@ -67,6 +69,12 @@ type qProvider struct {
 
 	// environmentService is an instance of an environment.Service that handles the domain logic.
 	environmentService environment.Service
+
+	// deploymentStageService is an instance of an deploymentstage.Service that handles the domain logic.
+	deploymentStageService deploymentstage.Service
+
+	// deploymentService is an instance of a newdeployment.Service that handles the domain logic.
+	deploymentService newdeployment.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -133,6 +141,8 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.containerService = domainServices.Container
 	p.containerRegistryService = domainServices.ContainerRegistry
 	p.environmentService = domainServices.Environment
+	p.deploymentStageService = domainServices.DeploymentStage
+	p.deploymentService = domainServices.Deployment
 
 	resp.DataSourceData = p
 	resp.ResourceData = p
@@ -150,6 +160,8 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newScalewayCredentialsResource,
 		newContainerResource,
 		newContainerRegistryResource,
+		newDeploymentStageResource,
+		newDeploymentResource,
 	}
 }
 
@@ -165,6 +177,8 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 		newOrganizationDataSource,
 		newProjectDataSource,
 		newScalewayCredentialsDataSource,
+		newDeploymentStageDataSource,
+		newDeploymentDataSource,
 	}
 }
 

@@ -58,7 +58,6 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "state", "RUNNING"),
 				),
 			},
 			// Update name
@@ -79,7 +78,6 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "state", "RUNNING"),
 				),
 			},
 			// Update accessibility
@@ -101,7 +99,6 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "state", "RUNNING"),
 				),
 			},
 			// Update resources
@@ -124,7 +121,6 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "500"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "512"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "state", "RUNNING"),
 				),
 			},
 		},
@@ -158,7 +154,6 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "state", "RUNNING"),
 				),
 			},
 			// Update name
@@ -179,7 +174,6 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "state", "RUNNING"),
 				),
 			},
 			// Update accessibility
@@ -201,7 +195,6 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "state", "RUNNING"),
 				),
 			},
 			// Update resources
@@ -224,7 +217,6 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "500"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "512"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "state", "RUNNING"),
 				),
 			},
 			// Update storage
@@ -245,63 +237,6 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "15"),
-					resource.TestCheckResourceAttr("qovery_database.test", "state", "RUNNING"),
-				),
-			},
-		},
-	})
-}
-
-func TestAcc_DatabaseWithState(t *testing.T) {
-	t.Parallel()
-	testName := "database-with-state"
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccQoveryDatabaseDestroy("qovery_database.test"),
-		Steps: []resource.TestStep{
-			// Create and Read testing
-			{
-				Config: testAccDatabaseDefaultConfigWithState(
-					testName,
-					redisContainer,
-					"STOPPED",
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryProjectExists("qovery_project.test"),
-					testAccQoveryEnvironmentExists("qovery_environment.test"),
-					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_database.test", "type", "REDIS"),
-					resource.TestCheckResourceAttr("qovery_database.test", "version", "6"),
-					resource.TestCheckResourceAttr("qovery_database.test", "mode", "CONTAINER"),
-					resource.TestCheckResourceAttr("qovery_database.test", "accessibility", "PUBLIC"),
-					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
-					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
-					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "state", "STOPPED"),
-				),
-			},
-			// Update state
-			{
-				Config: testAccDatabaseDefaultConfigWithState(
-					testName,
-					redisContainer,
-					"RUNNING",
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryProjectExists("qovery_project.test"),
-					testAccQoveryEnvironmentExists("qovery_environment.test"),
-					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_database.test", "type", "REDIS"),
-					resource.TestCheckResourceAttr("qovery_database.test", "version", "6"),
-					resource.TestCheckResourceAttr("qovery_database.test", "mode", "CONTAINER"),
-					resource.TestCheckResourceAttr("qovery_database.test", "accessibility", "PUBLIC"),
-					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
-					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
-					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "state", "RUNNING"),
 				),
 			},
 		},
@@ -334,7 +269,6 @@ func TestAcc_DatabaseImport(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "state", "RUNNING"),
 				),
 			},
 			// Check Import
@@ -449,21 +383,5 @@ resource "qovery_database" "test" {
   storage = %d
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), db.dbType, db.version, db.mode, storage,
-	)
-}
-
-func testAccDatabaseDefaultConfigWithState(testName string, db database, state string) string {
-	return fmt.Sprintf(`
-%s
-
-resource "qovery_database" "test" {
-  environment_id = qovery_environment.test.id
-  name = "%s"
-  type = "%s"
-  version = "%s"
-  mode = "%s"
-  state = "%s"
-}
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), db.dbType, db.version, db.mode, state,
 	)
 }

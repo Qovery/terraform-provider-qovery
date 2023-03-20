@@ -15,16 +15,17 @@ type DatabaseResponse struct {
 	DatabaseStatus       *qovery.Status
 	DatabaseCredentials  *qovery.Credentials
 	DatabaseInternalHost string
+	DeploymentStageID    string
 }
 
 type DatabaseCreateParams struct {
-	DatabaseRequest qovery.DatabaseRequest
-	DesiredState    qovery.StateEnum
+	DatabaseRequest   qovery.DatabaseRequest
+	DeploymentStageID string
 }
 
 type DatabaseUpdateParams struct {
 	DatabaseEditRequest qovery.DatabaseEditRequest
-	DesiredState        qovery.StateEnum
+	DeploymentStageID   string
 }
 
 func (c *Client) CreateDatabase(ctx context.Context, environmentID string, params *DatabaseCreateParams) (*DatabaseResponse, *apierrors.APIError) {
@@ -35,7 +36,22 @@ func (c *Client) CreateDatabase(ctx context.Context, environmentID string, param
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, params.DatabaseRequest.Name, res, err)
 	}
-	return c.updateDatabase(ctx, database, params.DesiredState)
+
+	// Attach database to deployment stage
+	if len(params.DeploymentStageID) > 0 {
+		_, response, err := c.api.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, params.DeploymentStageID, database.Id).Execute()
+		if err != nil || response.StatusCode >= 400 {
+			return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, params.DeploymentStageID, response, err)
+		}
+	}
+
+	// Get database deployment stage
+	deploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, database.Id).Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, database.Id, resp, err)
+	}
+
+	return c.updateDatabase(ctx, database, deploymentStage.Id)
 }
 
 func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseResponse, *apierrors.APIError) {
@@ -62,11 +78,18 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 		return nil, apiErr
 	}
 
+	// Get database deployment stage
+	deploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, database.Id).Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, database.Id, resp, err)
+	}
+
 	return &DatabaseResponse{
 		DatabaseResponse:     database,
 		DatabaseStatus:       status,
 		DatabaseCredentials:  credentials,
 		DatabaseInternalHost: hostInternal,
+		DeploymentStageID:    deploymentStage.Id,
 	}, nil
 }
 
@@ -113,22 +136,41 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewUpdateError(apierrors.APIResourceDatabase, databaseID, res, err)
 	}
-	// FIXME redeploy the database if the configuration has changed
-	return c.updateDatabase(ctx, database, params.DesiredState)
+	// Attach database to deployment stage
+	if len(params.DeploymentStageID) > 0 {
+		_, response, err := c.api.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, params.DeploymentStageID, database.Id).Execute()
+		if err != nil || response.StatusCode >= 400 {
+			return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, params.DeploymentStageID, response, err)
+		}
+	}
+
+	// Get database deployment stage
+	deploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, database.Id).Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, database.Id, resp, err)
+	}
+
+	return c.updateDatabase(ctx, database, deploymentStage.Id)
 }
 
 func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierrors.APIError {
-	database, apiErr := c.GetDatabase(ctx, databaseID)
-	if apiErr != nil {
-		return apiErr
+	database, res, err := c.api.DatabaseMainCallsApi.
+		GetDatabase(ctx, databaseID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		if res.StatusCode == 404 {
+			// if the database is not found, then it has already been deleted
+			return nil
+		}
+		return apierrors.NewDeleteError(apierrors.APIResourceDatabase, databaseID, res, err)
 	}
 
-	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, database.DatabaseResponse.Environment.Id)
+	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, database.Environment.Id)
 	if apiErr := wait(ctx, envChecker, nil); apiErr != nil {
 		return apiErr
 	}
 
-	res, err := c.api.DatabaseMainCallsApi.
+	res, err = c.api.DatabaseMainCallsApi.
 		DeleteDatabase(ctx, databaseID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {
@@ -142,12 +184,7 @@ func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierro
 	return nil
 }
 
-func (c *Client) updateDatabase(ctx context.Context, database *qovery.Database, desiredState qovery.StateEnum) (*DatabaseResponse, *apierrors.APIError) {
-	status, apiErr := c.updateDatabaseStatus(ctx, database, desiredState)
-	if apiErr != nil {
-		return nil, apiErr
-	}
-
+func (c *Client) updateDatabase(ctx context.Context, database *qovery.Database, deploymentStageId string) (*DatabaseResponse, *apierrors.APIError) {
 	credentials, apiErr := c.GetDatabaseCredentials(ctx, database.Id)
 	if apiErr != nil {
 		return nil, apiErr
@@ -160,9 +197,9 @@ func (c *Client) updateDatabase(ctx context.Context, database *qovery.Database, 
 
 	return &DatabaseResponse{
 		DatabaseResponse:     database,
-		DatabaseStatus:       status,
 		DatabaseCredentials:  credentials,
 		DatabaseInternalHost: hostInternal,
+		DeploymentStageID:    deploymentStageId,
 	}, nil
 }
 

@@ -147,6 +147,12 @@ func (s environmentService) Delete(ctx context.Context, environmentID string) er
 		return errors.Wrap(err, environment.ErrFailedToDeleteEnvironment.Error())
 	}
 
+	exists := s.environmentRepository.Exists(ctx, environmentID)
+	if !exists {
+		// if environment is not found, then it has already been deleted
+		return nil
+	}
+
 	if err := wait(ctx, waitFinalStateFunc(s.environmentDeploymentService, environmentID), nil); err != nil {
 		return errors.Wrap(err, environment.ErrFailedToDeleteEnvironment.Error())
 	}

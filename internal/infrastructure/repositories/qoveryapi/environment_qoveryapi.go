@@ -84,3 +84,10 @@ func (c environmentQoveryAPI) Delete(ctx context.Context, environmentID string) 
 
 	return nil
 }
+
+func (c environmentQoveryAPI) Exists(ctx context.Context, environmentID string) bool {
+	_, resp, _ := c.client.EnvironmentMainCallsApi.
+		GetEnvironment(ctx, environmentID).
+		Execute()
+	return !(resp.StatusCode >= 400)
+}

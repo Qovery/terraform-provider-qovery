@@ -126,9 +126,10 @@ func (d databaseDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Dia
 				Type:        types.StringType,
 				Computed:    true,
 			},
-			"state": {
-				Description: "State of the database.",
+			"deployment_stage_id": {
+				Description: "Id of the deployment stage.",
 				Type:        types.StringType,
+				Optional:    true,
 				Computed:    true,
 			},
 		},

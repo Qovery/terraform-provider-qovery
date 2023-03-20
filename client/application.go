@@ -12,7 +12,7 @@ import (
 
 type ApplicationResponse struct {
 	ApplicationResponse             *qovery.Application
-	ApplicationStatus               *qovery.Status
+	ApplicationDeploymentStageID    string
 	ApplicationEnvironmentVariables []*qovery.EnvironmentVariable
 	ApplicationSecrets              []*qovery.Secret
 	ApplicationCustomDomains        []*qovery.CustomDomain
@@ -21,19 +21,19 @@ type ApplicationResponse struct {
 }
 
 type ApplicationCreateParams struct {
-	ApplicationRequest       qovery.ApplicationRequest
-	EnvironmentVariablesDiff EnvironmentVariablesDiff
-	CustomDomainsDiff        CustomDomainsDiff
-	SecretsDiff              SecretsDiff
-	DesiredState             qovery.StateEnum
+	ApplicationRequest           qovery.ApplicationRequest
+	ApplicationDeploymentStageID string
+	EnvironmentVariablesDiff     EnvironmentVariablesDiff
+	CustomDomainsDiff            CustomDomainsDiff
+	SecretsDiff                  SecretsDiff
 }
 
 type ApplicationUpdateParams struct {
-	ApplicationEditRequest   qovery.ApplicationEditRequest
-	EnvironmentVariablesDiff EnvironmentVariablesDiff
-	CustomDomainsDiff        CustomDomainsDiff
-	SecretsDiff              SecretsDiff
-	DesiredState             qovery.StateEnum
+	ApplicationEditRequest       qovery.ApplicationEditRequest
+	ApplicationDeploymentStageID string
+	EnvironmentVariablesDiff     EnvironmentVariablesDiff
+	CustomDomainsDiff            CustomDomainsDiff
+	SecretsDiff                  SecretsDiff
 }
 
 func (c *Client) CreateApplication(ctx context.Context, environmentID string, params *ApplicationCreateParams) (*ApplicationResponse, *apierrors.APIError) {
@@ -44,7 +44,24 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, params.ApplicationRequest.Name, res, err)
 	}
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.DesiredState)
+
+	// Attach application to deployment stage
+	if len(params.ApplicationDeploymentStageID) > 0 {
+		_, resp, err := c.api.DeploymentStageMainCallsApi.
+			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageID, application.Id).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, apierrors.NewCreateError(apierrors.APIResourceUpdateDeploymentStage, params.ApplicationDeploymentStageID, resp, err)
+		}
+	}
+
+	// Get application deployment stage
+	applicationDeploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, application.Id).Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, application.Id, resp, err)
+	}
+
+	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, applicationDeploymentStage.Id)
 }
 
 func (c *Client) GetApplication(ctx context.Context, applicationID string) (*ApplicationResponse, *apierrors.APIError) {
@@ -53,11 +70,6 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
-	}
-
-	status, apiErr := c.getApplicationStatus(ctx, applicationID)
-	if apiErr != nil {
-		return nil, apiErr
 	}
 
 	environmentVariables, apiErr := c.getApplicationEnvironmentVariables(ctx, application.Id)
@@ -80,9 +92,14 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		return nil, apiErr
 	}
 
+	deploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, application.Id).Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
+	}
+
 	return &ApplicationResponse{
 		ApplicationResponse:             application,
-		ApplicationStatus:               status,
+		ApplicationDeploymentStageID:    deploymentStage.Id,
 		ApplicationEnvironmentVariables: environmentVariables,
 		ApplicationSecrets:              secrets,
 		ApplicationCustomDomains:        customDomains,
@@ -99,21 +116,38 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewUpdateError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.DesiredState)
+
+	// Attach service to deployment stage
+	if len(params.ApplicationDeploymentStageID) > 0 {
+		_, resp, err := c.api.DeploymentStageMainCallsApi.
+			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageID, applicationID).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return nil, apierrors.NewUpdateError(apierrors.APIResourceUpdateDeploymentStage, applicationID, resp, err)
+		}
+	}
+
+	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.ApplicationDeploymentStageID)
 }
 
 func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *apierrors.APIError {
-	application, apiErr := c.GetApplication(ctx, applicationID)
-	if apiErr != nil {
-		return apiErr
+	application, res, err := c.api.ApplicationMainCallsApi.
+		GetApplication(ctx, applicationID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		if res.StatusCode == 404 {
+			// if the application is not found, then it has already been deleted
+			return nil
+		}
+		return apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
 
-	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, application.ApplicationResponse.Environment.Id)
+	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, application.Environment.Id)
 	if apiErr := wait(ctx, envChecker, nil); apiErr != nil {
 		return apiErr
 	}
 
-	res, err := c.api.ApplicationMainCallsApi.
+	res, err = c.api.ApplicationMainCallsApi.
 		DeleteApplication(ctx, applicationID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {
@@ -127,8 +161,7 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 	return nil
 }
 
-func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, environmentVariablesDiff EnvironmentVariablesDiff, secretsDiff SecretsDiff, customDomainsDiff CustomDomainsDiff, desiredState qovery.StateEnum) (*ApplicationResponse, *apierrors.APIError) {
-	forceRedeploy := !environmentVariablesDiff.IsEmpty() || !secretsDiff.IsEmpty() || !customDomainsDiff.IsEmpty()
+func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, environmentVariablesDiff EnvironmentVariablesDiff, secretsDiff SecretsDiff, customDomainsDiff CustomDomainsDiff, deploymentStageId string) (*ApplicationResponse, *apierrors.APIError) {
 	if !environmentVariablesDiff.IsEmpty() {
 		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application.Id, environmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
@@ -147,11 +180,6 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 		}
 	}
 
-	status, apiErr := c.updateApplicationStatus(ctx, application, desiredState, forceRedeploy)
-	if apiErr != nil {
-		return nil, apiErr
-	}
-
 	environmentVariables, apiErr := c.getApplicationEnvironmentVariables(ctx, application.Id)
 	if apiErr != nil {
 		return nil, apiErr
@@ -174,12 +202,12 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 
 	return &ApplicationResponse{
 		ApplicationResponse:             application,
-		ApplicationStatus:               status,
 		ApplicationEnvironmentVariables: environmentVariables,
 		ApplicationSecrets:              secrets,
 		ApplicationCustomDomains:        customDomains,
 		ApplicationExternalHost:         hosts.external,
 		ApplicationInternalHost:         hosts.internal,
+		ApplicationDeploymentStageID:    deploymentStageId,
 	}, nil
 }
 
