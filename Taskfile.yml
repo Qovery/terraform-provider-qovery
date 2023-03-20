@@ -6,7 +6,7 @@ vars:
   BINARY_FOLDER: bin
   BINARY_NAME: terraform-provider-qovery
   GOLANGCI_LINT_VERSION: v1.49.0
-  MOCKERY_VERSION: v2.14.0
+  MOCKERY_VERSION: v2.22.1
 
 dotenv: ['.env']
 
@@ -22,7 +22,6 @@ tasks:
       - go.mod
       - go.sum
     generates:
-      - internal/application/services/mocks_test/*.go
       - internal/infrastructure/repositories/mocks_test/*.go
 
   build:
