@@ -1,9 +1,12 @@
 package qovery
 
 import (
+	"context"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
+	"github.com/qovery/terraform-provider-qovery/qovery/model"
 	"reflect"
 
 	"github.com/qovery/terraform-provider-qovery/client"
@@ -149,7 +152,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 
 	advSettings, parseErr := toMapStringString(c.AdvancedSettings)
 	if parseErr != nil {
-		return nil, parseErr
+		tflog.Warn(context.Background(), "Unable to parse advanced settings, some values will be skipped. It could be related to an outdated version of the provider.", map[string]interface{}{"error": err.Error()})
 	}
 
 	return &client.ClusterUpsertParams{
@@ -190,7 +193,7 @@ func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 		Features:         fromQoveryClusterFeatures(res.ClusterResponse.Features),
 		RoutingTables:    routingTable.toTerraformSet(),
 		State:            fromClientEnumPointer(res.ClusterResponse.Status),
-		AdvancedSettings: fromStringMap(res.ClusterAdvancedSetting),
+		AdvancedSettings: fromStringMap(res.ClusterAdvancedSetting, model.GetClusterSettingsDefault()),
 	}
 }
 

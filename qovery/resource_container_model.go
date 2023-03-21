@@ -1,7 +1,10 @@
 package qovery
 
 import (
+	"context"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
+	"github.com/qovery/terraform-provider-qovery/qovery/model"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
@@ -32,6 +35,7 @@ type Container struct {
 	ExternalHost      types.String `tfsdk:"external_host"`
 	InternalHost      types.String `tfsdk:"internal_host"`
 	DeploymentStageId types.String `tfsdk:"deployment_stage_id"`
+	AdvancedSettings  types.Object `tfsdk:"advanced_settings"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
@@ -77,12 +81,21 @@ func (cont Container) toUpsertServiceRequest(state *Container) (*container.Upser
 	//if state != nil {
 	//	stateCustomDomains = state.CustomDomainsList()
 	//}
+	var advSettings map[string]interface{}
+	var err error
+	if state != nil {
+		advSettings, err = toMapStringString(state.AdvancedSettings)
+		if err != nil {
+			tflog.Warn(context.Background(), "Unable to parse advanced settings, some values will be skipped. It could be related to an outdated version of the provider.", map[string]interface{}{"error": err.Error()})
+		}
+	}
 
 	return &container.UpsertServiceRequest{
 		ContainerUpsertRequest: cont.toUpsertRepositoryRequest(),
 		EnvironmentVariables:   cont.EnvironmentVariableList().diffRequest(stateEnvironmentVariables),
 		Secrets:                cont.SecretList().diffRequest(stateSecrets),
 		//CustomDomains:          cont.CustomDomainsList().diff(stateCustomDomains),
+		AdvancedSettings: advSettings,
 	}, nil
 }
 
@@ -139,5 +152,6 @@ func convertDomainContainerToContainer(state Container, container *container.Con
 		ExternalHost:                fromStringPointer(container.ExternalHost),
 		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), container.Secrets, variable.ScopeContainer).toTerraformSet(),
 		DeploymentStageId:           fromString(container.DeploymentStageID),
+		AdvancedSettings:            fromStringMap(container.ContainerAdvancedSettings, model.GetContainerSettingsDefault()),
 	}
 }

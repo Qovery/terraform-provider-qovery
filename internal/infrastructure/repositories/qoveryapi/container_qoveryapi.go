@@ -2,6 +2,8 @@ package qoveryapi
 
 import (
 	"context"
+	"encoding/json"
+	"net/http"
 
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
@@ -58,7 +60,13 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, newContainer.Id, resp, err)
 	}
 
-	return newDomainContainerFromQovery(newContainer, deploymentStage.Id)
+	// Handle container adv settings
+	advSettings, settingsErr := handleContainerAdvSettings(nil, newContainer.Id, ctx, c.client)
+	if settingsErr != nil {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, newContainer.Id, resp, err)
+	}
+
+	return newDomainContainerFromQovery(newContainer, deploymentStage.Id, advSettings)
 }
 
 // Get calls Qovery's API to retrieve a container using the given containerID.
@@ -76,7 +84,13 @@ func (c containerQoveryAPI) Get(ctx context.Context, containerID string) (*conta
 		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, container.Id, resp, err)
 	}
 
-	return newDomainContainerFromQovery(container, deploymentStage.Id)
+	// Get container adv settings
+	advSettings, settingsErr := handleContainerAdvSettings(nil, container.Id, ctx, c.client)
+	if settingsErr != nil {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, container.Id, resp, err)
+	}
+
+	return newDomainContainerFromQovery(container, deploymentStage.Id, advSettings)
 }
 
 // Update calls Qovery's API to update a container using the given containerID and request.
@@ -108,7 +122,13 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, container.Id, resp, err)
 	}
 
-	return newDomainContainerFromQovery(container, deploymentStage.Id)
+	// Handle container adv settings
+	advSettings, settingsErr := handleContainerAdvSettings(nil, container.Id, ctx, c.client)
+	if settingsErr != nil {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, container.Id, resp, err)
+	}
+
+	return newDomainContainerFromQovery(container, deploymentStage.Id, advSettings)
 }
 
 // Delete calls Qovery's API to deletes a container using the given containerID.
@@ -132,4 +152,57 @@ func (c containerQoveryAPI) Delete(ctx context.Context, containerID string) erro
 	}
 
 	return nil
+}
+
+func fromContainerAdvancedSettings(s *qovery.ContainerAdvancedSettings) (map[string]interface{}, error) {
+	resp, marshalErr := json.Marshal(s)
+	if marshalErr != nil {
+		return nil, marshalErr
+	}
+
+	var unmarshal map[string]interface{}
+	if unmarshalErr := json.Unmarshal(resp, &unmarshal); unmarshalErr != nil {
+		return nil, unmarshalErr
+	}
+
+	return unmarshal, nil
+}
+
+func toContainerAdvancedSettings(s map[string]interface{}) (qovery.ContainerAdvancedSettings, error) {
+	resp, marshalErr := json.Marshal(s)
+	if marshalErr != nil {
+		return qovery.ContainerAdvancedSettings{}, marshalErr
+	}
+
+	var result qovery.ContainerAdvancedSettings
+	if unmarshalErr := json.Unmarshal(resp, &result); unmarshalErr != nil {
+		return qovery.ContainerAdvancedSettings{}, unmarshalErr
+	}
+
+	return result, nil
+}
+
+func handleContainerAdvSettings(containerSettings map[string]interface{}, containerId string, ctx context.Context, client *qovery.APIClient) (map[string]interface{}, error) {
+	// Get container adv settings
+	var containerAdvSettings *qovery.ContainerAdvancedSettings
+	var resp *http.Response
+	advSettings, err := toContainerAdvancedSettings(containerSettings)
+	if err != nil {
+		return nil, err
+	}
+	if containerSettings != nil && len(containerSettings) > 0 {
+		containerAdvSettings, resp, err = client.ContainerConfigurationApi.EditContainerAdvancedSettings(ctx, containerId).ContainerAdvancedSettings(advSettings).Execute()
+	} else {
+		containerAdvSettings, resp, err = client.ContainerConfigurationApi.GetContainerAdvancedSettings(ctx, containerId).Execute()
+	}
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewApiErrorFromError(err)
+	}
+
+	mapSettings, mapErr := fromContainerAdvancedSettings(containerAdvSettings)
+	if mapErr != nil {
+		return nil, err
+	}
+
+	return mapSettings, nil
 }

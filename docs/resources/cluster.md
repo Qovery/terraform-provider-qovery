@@ -85,7 +85,7 @@ resource "qovery_cluster" "my_cluster" {
 <a id="nestedatt--advanced_settings"></a>
 ### Nested Schema for `advanced_settings`
 
-Optional:
+Required:
 
 - `aws.cloudwatch.eks_logs_retention_days` (Number) Maximum retention days in Cloudwatch for EKS logs
 - `aws.eks.ec2.metadata_imds` (String) Specify the IMDS version you want to use. Possible values are Required (IMDS v2 only) and Optional (IMDS v1 and V2)

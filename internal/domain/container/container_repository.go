@@ -37,6 +37,7 @@ type UpsertRepositoryRequest struct {
 	Storages            []storage.UpsertRequest
 	Ports               []port.UpsertRequest
 	DeploymentStageID   string
+	AdvancedSettings    map[string]interface{}
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.

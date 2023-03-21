@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/qovery/terraform-provider-qovery/qovery/model"
 	"strconv"
 	"strings"
 
@@ -144,12 +145,18 @@ func toInt64Pointer(v types.Int64) *int32 {
 
 func toMapStringString(obj types.Object) (map[string]interface{}, error) {
 	ret := make(map[string]interface{}, len(obj.Attrs))
+	var errs []error
 	for k, v := range obj.Attrs {
 		value, err := fromTfValueToGoValue(v)
 		if err != nil {
-			return nil, err
+			errs = append(errs, err)
+			continue
 		}
 		ret[k] = value
+	}
+
+	if errs != nil && len(errs) > 0 {
+		return ret, fmt.Errorf("%v", errs)
 	}
 	return ret, nil
 }
@@ -261,7 +268,7 @@ func fromGoValueToTfValue(value interface{}, _type attr.Type) (attr.Value, error
 		return types.Map{ElemType: types.StringType, Elems: elems}, nil
 	}
 
-	return types.Object{Null: true}, fmt.Errorf("unable to parse %s as %s", value, _type.String())
+	return nil, fmt.Errorf("unable to parse %s as %s", value, _type)
 }
 
 func fromTfValueToGoValue(v attr.Value) (interface{}, error) {
@@ -288,23 +295,23 @@ func fromTfValueToGoValue(v attr.Value) (interface{}, error) {
 	return nil, fmt.Errorf("unable to parse %s as Go value", v.String())
 }
 
-func fromStringMap(value *map[string]interface{}) types.Object {
+func fromStringMap(value *map[string]interface{}, defaultSettings map[string]model.AdvSettingAttr) types.Object {
 	if value == nil || len(*value) == 0 {
-		return types.Object{Null: true}
+		return types.Object{Null: true, AttrTypes: nil}
 	}
 
 	attrs := make(map[string]attr.Value)
 	attrTypes := make(map[string]attr.Type)
-	for k, f := range advancedSettingsDefault {
-		attrTypes[k] = f._type
+	for k, f := range defaultSettings {
+		attrTypes[k] = f.Type
 	}
 
 	for k, f := range *value {
 		attribute, err := fromGoValueToTfValue(f, attrTypes[k])
 
 		if err != nil {
-			tflog.Warn(context.Background(), "Unable to parse attribute, using default value.", map[string]interface{}{"error": err.Error()})
-			attribute = advancedSettingsDefault[k].defaultValue
+			tflog.Warn(context.Background(), "Unable to parse attribute, using Null value. It could be related to an outdated version of the provider.", map[string]interface{}{"error": err.Error()})
+			continue
 		}
 
 		attrs[k] = attribute
