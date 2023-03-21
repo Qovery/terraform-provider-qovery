@@ -88,6 +88,7 @@ resource "qovery_cluster" "my_cluster" {
 Optional:
 
 - `aws.cloudwatch.eks_logs_retention_days` (Number) Maximum retention days in Cloudwatch for EKS logs
+- `aws.eks.ec2.metadata_imds` (String) Specify the IMDS version you want to use. Possible values are Required (IMDS v2 only) and Optional (IMDS v1 and V2)
 - `aws.iam.admin_group` (String) Allows you to specify the IAM group name associated to the Qovery user
 - `aws.vpc.enable_s3_flow_logs` (Boolean) Enable flow logs on the cluster VPC and store them in an s3 bucket
 - `aws.vpc.flow_logs_retention_days` (Number) Set the number of retention days for flow logs. Unlimited retention with value

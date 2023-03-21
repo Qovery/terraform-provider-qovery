@@ -4,8 +4,9 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"strings"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -113,6 +114,9 @@ var (
 		"pleco.resources_ttl": {"Deprecated", types.Int64Type, tfsdk.AttributePlanModifiers{
 			modifiers.NewInt64DefaultModifier(-1),
 		}, types.Int64{Value: -1}},
+		"aws.eks.ec2.metadata_imds": {"Specify the IMDS version you want to use. Possible values are Required (IMDS v2 only) and Optional (IMDS v1 and V2)", types.StringType, tfsdk.AttributePlanModifiers{
+			modifiers.NewStringDefaultModifier("Optional"),
+		}, types.String{Value: "Optional"}},
 	}
 )
 
