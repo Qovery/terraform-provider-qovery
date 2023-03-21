@@ -26,7 +26,6 @@ resource "qovery_application" "my_application" {
   # Optional
   build_mode            = "DOCKER"
   dockerfile_path       = "Dockerfile"
-  state                 = "RUNNING"
   auto_preview          = "true"
   cpu                   = 500
   memory                = 512
