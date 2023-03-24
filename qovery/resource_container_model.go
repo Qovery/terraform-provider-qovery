@@ -79,13 +79,10 @@ func (cont Container) toUpsertServiceRequest(plan *Container) (*container.Upsert
 	//if state != nil {
 	//	stateCustomDomains = state.CustomDomainsList()
 	//}
-	var advSettings map[string]interface{}
-	var err error
-	if plan != nil {
-		advSettings, err = toMapStringString(plan.AdvancedSettings)
-		if err != nil {
-			tflog.Warn(context.Background(), "Unable to parse advanced settings, some values will be skipped. It could be related to an outdated version of the provider.", map[string]interface{}{"error": err.Error()})
-		}
+
+	advSettings, err := toMapStringString(cont.AdvancedSettings)
+	if err != nil {
+		tflog.Warn(context.Background(), "Unable to parse advanced settings, some values will be skipped. It could be related to an outdated version of the provider.", map[string]interface{}{"error": err.Error()})
 	}
 
 	return &container.UpsertServiceRequest{

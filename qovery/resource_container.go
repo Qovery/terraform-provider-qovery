@@ -409,7 +409,7 @@ func (r containerResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	// Create new container
-	request, err := plan.toUpsertServiceRequest(&plan)
+	request, err := plan.toUpsertServiceRequest(nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container create", err.Error())
 		return
@@ -463,7 +463,7 @@ func (r containerResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	// Update container in the backend
-	request, err := state.toUpsertServiceRequest(&plan)
+	request, err := plan.toUpsertServiceRequest(&state)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container create", err.Error())
 		return

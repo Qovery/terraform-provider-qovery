@@ -97,7 +97,6 @@ func (r clusterResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagno
 			Description: v.Description,
 			Required:    true,
 			Type:        v.Type,
-			//PlanModifiers: v.PlanModifiers,
 		}
 	}
 	return tfsdk.Schema{
