@@ -3,8 +3,6 @@ package qovery
 import (
 	"context"
 	"fmt"
-	"github.com/qovery/terraform-provider-qovery/qovery/model"
-
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -57,12 +55,11 @@ func (r *containerResource) Configure(_ context.Context, req resource.ConfigureR
 
 func (r containerResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	advSettings := map[string]tfsdk.Attribute{}
-	for k, v := range model.GetContainerSettingsDefault() {
+	for k, v := range GetContainerSettingsDefault() {
 		advSettings[k] = tfsdk.Attribute{
-			Description:   v.Description,
-			Required:      true,
-			Type:          v.Type,
-			PlanModifiers: v.PlanModifiers,
+			Description: v.Description,
+			Required:    true,
+			Type:        v.Type,
 		}
 	}
 
@@ -412,19 +409,12 @@ func (r containerResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	// Create new container
-	request, err := plan.toUpsertServiceRequest(nil)
+	request, err := plan.toUpsertServiceRequest(&plan)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container create", err.Error())
 		return
 	}
 	cont, err := r.containerService.Create(ctx, plan.EnvironmentID.Value, *request)
-	if err != nil {
-		resp.Diagnostics.AddError("Error on container create", err.Error())
-		return
-	}
-
-	// Get container from the API to get post creation fields like advanced settings
-	cont, err = r.containerService.Get(ctx, cont.ID.String())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container create", err.Error())
 		return
@@ -473,7 +463,7 @@ func (r containerResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	// Update container in the backend
-	request, err := plan.toUpsertServiceRequest(&state)
+	request, err := state.toUpsertServiceRequest(&plan)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container create", err.Error())
 		return

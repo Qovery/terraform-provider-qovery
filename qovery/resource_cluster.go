@@ -4,7 +4,6 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
-	"github.com/qovery/terraform-provider-qovery/qovery/model"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -93,12 +92,12 @@ func (r *clusterResource) Configure(_ context.Context, req resource.ConfigureReq
 
 func (r clusterResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	advSettings := map[string]tfsdk.Attribute{}
-	for k, v := range model.GetClusterSettingsDefault() {
+	for k, v := range GetClusterSettingsDefault() {
 		advSettings[k] = tfsdk.Attribute{
-			Description:   v.Description,
-			Required:      true,
-			Type:          v.Type,
-			PlanModifiers: v.PlanModifiers,
+			Description: v.Description,
+			Required:    true,
+			Type:        v.Type,
+			//PlanModifiers: v.PlanModifiers,
 		}
 	}
 	return tfsdk.Schema{

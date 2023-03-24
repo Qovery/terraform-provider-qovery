@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/qovery/terraform-provider-qovery/qovery/model"
 	"strconv"
 	"strings"
 
@@ -295,7 +294,7 @@ func fromTfValueToGoValue(v attr.Value) (interface{}, error) {
 	return nil, fmt.Errorf("unable to parse %s as Go value", v.String())
 }
 
-func fromStringMap(value *map[string]interface{}, defaultSettings map[string]model.AdvSettingAttr) types.Object {
+func fromStringMap(value *map[string]interface{}, defaultSettings map[string]AdvSettingAttr) types.Object {
 	if value == nil || len(*value) == 0 {
 		return types.Object{Null: true, AttrTypes: nil}
 	}

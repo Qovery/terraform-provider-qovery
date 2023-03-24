@@ -3,8 +3,6 @@ package qovery
 import (
 	"context"
 	"fmt"
-	"github.com/qovery/terraform-provider-qovery/qovery/model"
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -49,10 +47,10 @@ func (d *applicationDataSource) Configure(_ context.Context, req datasource.Conf
 
 func (d applicationDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	advSettings := map[string]tfsdk.Attribute{}
-	for k, v := range model.GetApplicationSettingsDefault() {
+	for k, v := range GetApplicationSettingsDefault() {
 		advSettings[k] = tfsdk.Attribute{
 			Description: v.Description,
-			Computed:    true,
+			Required:    true,
 			Type:        v.Type,
 		}
 	}
@@ -318,6 +316,7 @@ func (d applicationDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 			},
 			"advanced_settings": {
 				Description: "Advanced settings of the application.",
+				Optional:    true,
 				Computed:    true,
 				Attributes:  tfsdk.SingleNestedAttributes(advSettings),
 			},

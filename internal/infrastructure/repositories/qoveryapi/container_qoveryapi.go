@@ -32,8 +32,8 @@ func newContainerQoveryAPI(client *qovery.APIClient) (container.Repository, erro
 }
 
 // Create calls Qovery's API to create a container for an organization using the given organizationID and request.
-func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, request container.UpsertRepositoryRequest) (*container.Container, error) {
-	req, err := newQoveryContainerRequestFromDomain(request)
+func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, request container.UpsertServiceRequest) (*container.Container, error) {
+	req, err := newQoveryContainerRequestFromDomain(request.ContainerUpsertRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
 	}
@@ -43,14 +43,14 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 		ContainerRequest(*req).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, request.Name, resp, err)
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, request.ContainerUpsertRequest.Name, resp, err)
 	}
 
 	// Attach container to deployment stage
-	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newContainer.Id).Execute()
+	if len(request.ContainerUpsertRequest.DeploymentStageID) > 0 {
+		_, response, err := c.client.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, request.ContainerUpsertRequest.DeploymentStageID, newContainer.Id).Execute()
 		if err != nil || response.StatusCode >= 400 {
-			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, request.Name, resp, err)
+			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, request.ContainerUpsertRequest.Name, resp, err)
 		}
 	}
 
@@ -61,7 +61,7 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 	}
 
 	// Handle container adv settings
-	advSettings, settingsErr := handleContainerAdvSettings(nil, newContainer.Id, ctx, c.client)
+	advSettings, settingsErr := handleContainerAdvSettings(request.AdvancedSettings, newContainer.Id, ctx, c.client)
 	if settingsErr != nil {
 		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, newContainer.Id, resp, err)
 	}
@@ -94,8 +94,8 @@ func (c containerQoveryAPI) Get(ctx context.Context, containerID string) (*conta
 }
 
 // Update calls Qovery's API to update a container using the given containerID and request.
-func (c containerQoveryAPI) Update(ctx context.Context, containerID string, request container.UpsertRepositoryRequest) (*container.Container, error) {
-	req, err := newQoveryContainerRequestFromDomain(request)
+func (c containerQoveryAPI) Update(ctx context.Context, containerID string, request container.UpsertServiceRequest) (*container.Container, error) {
+	req, err := newQoveryContainerRequestFromDomain(request.ContainerUpsertRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
 	}
@@ -109,10 +109,10 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 	}
 
 	// Attach container to deployment stage
-	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, container.Id).Execute()
+	if len(request.ContainerUpsertRequest.DeploymentStageID) > 0 {
+		_, response, err := c.client.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, request.ContainerUpsertRequest.DeploymentStageID, container.Id).Execute()
 		if err != nil || response.StatusCode >= 400 {
-			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, request.Name, resp, err)
+			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, request.ContainerUpsertRequest.Name, resp, err)
 		}
 	}
 
@@ -123,7 +123,7 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 	}
 
 	// Handle container adv settings
-	advSettings, settingsErr := handleContainerAdvSettings(nil, container.Id, ctx, c.client)
+	advSettings, settingsErr := handleContainerAdvSettings(request.AdvancedSettings, container.Id, ctx, c.client)
 	if settingsErr != nil {
 		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, container.Id, resp, err)
 	}

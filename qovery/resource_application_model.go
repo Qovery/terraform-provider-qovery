@@ -5,8 +5,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
-	"github.com/qovery/terraform-provider-qovery/qovery/model"
-
 	"github.com/qovery/terraform-provider-qovery/client"
 )
 
@@ -214,7 +212,7 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		Entrypoint:                  fromStringPointer(app.ApplicationResponse.Entrypoint),
 		Arguments:                   fromStringArray(app.ApplicationResponse.Arguments),
 		DeploymentStageId:           fromString(app.ApplicationDeploymentStageID),
-		AdvancedSettings:            fromStringMap(app.ApplicationAdvancedSettings, model.GetApplicationSettingsDefault()),
+		AdvancedSettings:            fromStringMap(app.ApplicationAdvancedSettings, GetApplicationSettingsDefault()),
 	}
 }
 

@@ -6,7 +6,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
-	"github.com/qovery/terraform-provider-qovery/qovery/model"
 	"reflect"
 
 	"github.com/qovery/terraform-provider-qovery/client"
@@ -193,7 +192,7 @@ func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 		Features:         fromQoveryClusterFeatures(res.ClusterResponse.Features),
 		RoutingTables:    routingTable.toTerraformSet(),
 		State:            fromClientEnumPointer(res.ClusterResponse.Status),
-		AdvancedSettings: fromStringMap(res.ClusterAdvancedSetting, model.GetClusterSettingsDefault()),
+		AdvancedSettings: fromStringMap(res.ClusterAdvancedSetting, GetClusterSettingsDefault()),
 	}
 }
 

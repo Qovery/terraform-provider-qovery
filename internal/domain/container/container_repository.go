@@ -14,9 +14,9 @@ import (
 
 // Repository represents the interface to implement to handle the persistence of a Container.
 type Repository interface {
-	Create(ctx context.Context, environmentID string, request UpsertRepositoryRequest) (*Container, error)
+	Create(ctx context.Context, environmentID string, request UpsertServiceRequest) (*Container, error)
 	Get(ctx context.Context, containerID string) (*Container, error)
-	Update(ctx context.Context, containerID string, request UpsertRepositoryRequest) (*Container, error)
+	Update(ctx context.Context, containerID string, request UpsertServiceRequest) (*Container, error)
 	Delete(ctx context.Context, containerID string) error
 }
 
@@ -37,7 +37,6 @@ type UpsertRepositoryRequest struct {
 	Storages            []storage.UpsertRequest
 	Ports               []port.UpsertRequest
 	DeploymentStageID   string
-	AdvancedSettings    map[string]interface{}
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.
