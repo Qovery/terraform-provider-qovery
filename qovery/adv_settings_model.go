@@ -95,7 +95,7 @@ func autoScalingSettingsDescription(setting string) string {
 		return "CPU usage autoscaling trigger value"
 	}
 
-	return "No description for this service auto-scaling advanced setting."
+	return noDescription
 }
 
 func deploymentSettingsDescription(setting string) string {

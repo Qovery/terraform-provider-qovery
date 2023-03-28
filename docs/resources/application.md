@@ -127,42 +127,42 @@ Optional:
 
 Required:
 
-- `build.timeout_max_sec` (Number) No description for this service auto-scaling advanced setting.
-- `deployment.custom_domain_check_enabled` (Boolean) No description for this service auto-scaling advanced setting.
-- `deployment.delay_start_time_sec` (Number) No description for this service auto-scaling advanced setting.
-- `deployment.termination_grace_period_seconds` (Number) No description for this service auto-scaling advanced setting.
+- `build.timeout_max_sec` (Number) Interval in seconds after which the application build times out
+- `deployment.custom_domain_check_enabled` (Boolean) Allows you to specify the IAM group name associated to the Qovery user
+- `deployment.delay_start_time_sec` (Number) Deprecated
+- `deployment.termination_grace_period_seconds` (Number) Time in seconds the application is supposed to stop at maximum
 - `hpa.cpu.average_utilization_percent` (Number) CPU usage autoscaling trigger value
-- `liveness_probe.failure_threshold` (Number) No description for this service auto-scaling advanced setting.
-- `liveness_probe.http_get.path` (String) No description for this service auto-scaling advanced setting.
-- `liveness_probe.initial_delay_seconds` (Number) No description for this service auto-scaling advanced setting.
-- `liveness_probe.period_seconds` (Number) No description for this service auto-scaling advanced setting.
-- `liveness_probe.success_threshold` (Number) No description for this service auto-scaling advanced setting.
-- `liveness_probe.timeout_seconds` (Number) No description for this service auto-scaling advanced setting.
-- `liveness_probe.type` (String) No description for this service auto-scaling advanced setting.
-- `network.ingress.basic_auth_env_var` (String) No description for this service auto-scaling advanced setting.
-- `network.ingress.cors_allow_headers` (String) No description for this service auto-scaling advanced setting.
-- `network.ingress.cors_allow_methods` (String) No description for this service auto-scaling advanced setting.
-- `network.ingress.cors_allow_origin` (String) No description for this service auto-scaling advanced setting.
-- `network.ingress.denylist_source_range` (String) No description for this service auto-scaling advanced setting.
-- `network.ingress.enable_cors` (Boolean) No description for this service auto-scaling advanced setting.
-- `network.ingress.enable_sticky_session` (Boolean) No description for this service auto-scaling advanced setting.
-- `network.ingress.keepalive_time_seconds` (Number) No description for this service auto-scaling advanced setting.
-- `network.ingress.keepalive_timeout_seconds` (Number) No description for this service auto-scaling advanced setting.
-- `network.ingress.proxy_body_size_mb` (Number) No description for this service auto-scaling advanced setting.
-- `network.ingress.proxy_buffer_size_kb` (Number) No description for this service auto-scaling advanced setting.
-- `network.ingress.proxy_connect_timeout_seconds` (Number) No description for this service auto-scaling advanced setting.
-- `network.ingress.proxy_read_timeout_seconds` (Number) No description for this service auto-scaling advanced setting.
-- `network.ingress.proxy_send_timeout_seconds` (Number) No description for this service auto-scaling advanced setting.
-- `network.ingress.send_timeout_seconds` (Number) No description for this service auto-scaling advanced setting.
-- `network.ingress.whitelist_source_range` (String) No description for this service auto-scaling advanced setting.
-- `readiness_probe.failure_threshold` (Number) No description for this service auto-scaling advanced setting.
-- `readiness_probe.http_get.path` (String) No description for this service auto-scaling advanced setting.
-- `readiness_probe.initial_delay_seconds` (Number) No description for this service auto-scaling advanced setting.
-- `readiness_probe.period_seconds` (Number) No description for this service auto-scaling advanced setting.
-- `readiness_probe.success_threshold` (Number) No description for this service auto-scaling advanced setting.
-- `readiness_probe.timeout_seconds` (Number) No description for this service auto-scaling advanced setting.
-- `readiness_probe.type` (String) No description for this service auto-scaling advanced setting.
-- `security.service_account_name` (String) No description for this service auto-scaling advanced setting.
+- `liveness_probe.failure_threshold` (Number) Specify how many consecutive failures are needed to be considered failed after having succeeded
+- `liveness_probe.http_get.path` (String) Path to access on the HTTP/HTTPS server to perform the health check
+- `liveness_probe.initial_delay_seconds` (Number) Interval in seconds between the container start and the first check
+- `liveness_probe.period_seconds` (Number) Interval in seconds between each check
+- `liveness_probe.success_threshold` (Number) Specify how many consecutive successes are needed to be considered successful after having failed
+- `liveness_probe.timeout_seconds` (Number) Interval in seconds after the probe times out
+- `liveness_probe.type` (String) Specify the type of probe: TCP, HTTP or NONE
+- `network.ingress.basic_auth_env_var` (String) Set the name of an environment variable to use as a basic authentication (login:crypted_password) from htpasswd command
+- `network.ingress.cors_allow_headers` (String) Specify which set of headers can be present in the client request
+- `network.ingress.cors_allow_methods` (String) Specify which set of methods can be used for the client request
+- `network.ingress.cors_allow_origin` (String) Specify which origin(s) can access a resource
+- `network.ingress.denylist_source_range` (String) Specify which IP ranges are not allowed to access your application (comma-separated list of CIDRs)
+- `network.ingress.enable_cors` (Boolean) Enable Cross-Origin Resource Sharing
+- `network.ingress.enable_sticky_session` (Boolean) Enable Sticky session
+- `network.ingress.keepalive_time_seconds` (Number) Limits the maximum time in seconds during which requests can be processed through one keepalive connection
+- `network.ingress.keepalive_timeout_seconds` (Number) Sets a timeout in seconds during which an idle keepalive connection to an upstream server will stay open
+- `network.ingress.proxy_body_size_mb` (Number) Set in megabytes a maximum size for resources that can be downloaded from your server
+- `network.ingress.proxy_buffer_size_kb` (Number) Set in kilobytes a header buffer size used while reading the response header from upstream
+- `network.ingress.proxy_connect_timeout_seconds` (Number) Defines a timeout in seconds for establishing a connection with a proxied server
+- `network.ingress.proxy_read_timeout_seconds` (Number) Defines a timeout in seconds for reading a response from the proxied server
+- `network.ingress.proxy_send_timeout_seconds` (Number) Sets a timeout in seconds for transmitting a request to the proxied server
+- `network.ingress.send_timeout_seconds` (Number) Sets a timeout in seconds for transmitting a response to the client
+- `network.ingress.whitelist_source_range` (String) Specify which IP ranges are allowed to access your application (comma-separated list of CIDRs)
+- `readiness_probe.failure_threshold` (Number) Specify how many consecutive failures are needed to be considered failed after having succeeded
+- `readiness_probe.http_get.path` (String) Path to access on the HTTP/HTTPS server to perform the health check
+- `readiness_probe.initial_delay_seconds` (Number) Interval in seconds between the container start and the first check
+- `readiness_probe.period_seconds` (Number) Interval in seconds between each check
+- `readiness_probe.success_threshold` (Number) Specify how many consecutive successes are needed to be considered successful after having failed
+- `readiness_probe.timeout_seconds` (Number) Interval in seconds after the probe times out
+- `readiness_probe.type` (String) Specify the type of probe: TCP, HTTP or NONE
+- `security.service_account_name` (String) Set an existing Kubernetes service account name
 
 
 <a id="nestedatt--custom_domains"></a>
