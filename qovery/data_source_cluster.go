@@ -3,13 +3,11 @@ package qovery
 import (
 	"context"
 	"fmt"
-
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 	"github.com/qovery/terraform-provider-qovery/client"
 )
 
@@ -48,11 +46,11 @@ func (d *clusterDataSource) Configure(_ context.Context, req datasource.Configur
 
 func (d clusterDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	advSettings := map[string]tfsdk.Attribute{}
-	for k, v := range advancedSettingsDefault {
+	for k, v := range GetClusterSettingsDefault() {
 		advSettings[k] = tfsdk.Attribute{
-			Description: v.description,
-			Computed:    true,
-			Type:        v._type,
+			Description: v.Description,
+			Required:    true,
+			Type:        v.Type,
 		}
 	}
 
@@ -158,6 +156,7 @@ func (d clusterDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diag
 			},
 			"advanced_settings": {
 				Description: "Advanced settings of the cluster.",
+				Optional:    true,
 				Computed:    true,
 				Attributes:  tfsdk.SingleNestedAttributes(advSettings),
 			},

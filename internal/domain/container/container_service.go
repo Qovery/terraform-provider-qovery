@@ -30,6 +30,7 @@ type UpsertServiceRequest struct {
 	ContainerUpsertRequest UpsertRepositoryRequest
 	EnvironmentVariables   variable.DiffRequest
 	Secrets                secret.DiffRequest
+	AdvancedSettings       map[string]interface{}
 }
 
 // Validate returns an error to tell whether the UpsertServiceRequest is valid or not.

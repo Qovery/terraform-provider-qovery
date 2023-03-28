@@ -3,7 +3,6 @@ package qovery
 import (
 	"context"
 	"fmt"
-
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -97,6 +96,16 @@ func (r *applicationResource) Configure(_ context.Context, req resource.Configur
 }
 
 func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	advSettings := map[string]tfsdk.Attribute{}
+	for k, v := range GetApplicationSettingsDefault() {
+		advSettings[k] = tfsdk.Attribute{
+			Description: v.Description,
+			Type:        v.Type,
+			Required:    true,
+			//PlanModifiers: v.PlanModifiers,
+		}
+	}
+
 	return tfsdk.Schema{
 		Description: "Provides a Qovery application resource. This can be used to create and manage Qovery applications.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -478,6 +487,12 @@ func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+			},
+			"advanced_settings": {
+				Description: "Advanced settings of the application.",
+				Optional:    true,
+				Computed:    true,
+				Attributes:  tfsdk.SingleNestedAttributes(advSettings),
 			},
 		},
 	}, nil
