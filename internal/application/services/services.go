@@ -2,6 +2,7 @@ package services
 
 import (
 	"github.com/pkg/errors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
@@ -32,6 +33,7 @@ type Services struct {
 	Organization        organization.Service
 	Project             project.Service
 	Container           container.Service
+	Job                 job.Service
 	ContainerRegistry   registry.Service
 	Environment         environment.Service
 	DeploymentStage     deploymentstage.Service
@@ -107,6 +109,26 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
+	jobDeploymentService, err := NewDeploymentService(services.repos.JobDeployment)
+	if err != nil {
+		return nil, err
+	}
+
+	jobEnvironmentVariableService, err := NewVariableService(services.repos.JobEnvironmentVariable)
+	if err != nil {
+		return nil, err
+	}
+
+	jobSecretService, err := NewSecretService(services.repos.JobSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	jobService, err := NewJobService(services.repos.Job, jobDeploymentService, jobEnvironmentVariableService, jobSecretService)
+	if err != nil {
+		return nil, err
+	}
+
 	containerRegistryService, err := NewContainerRegistryService(services.repos.ContainerRegistry)
 	if err != nil {
 		return nil, err
@@ -146,6 +168,7 @@ func New(configs ...Configuration) (*Services, error) {
 	services.Organization = organizationService
 	services.Project = projectService
 	services.Container = containerService
+	services.Job = jobService
 	services.ContainerRegistry = containerRegistryService
 	services.Environment = environmentService
 	services.DeploymentStage = deploymentStageService

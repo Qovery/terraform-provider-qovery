@@ -130,6 +130,14 @@ func toInt32Pointer(v types.Int64) *int32 {
 	return &i
 }
 
+func toUInt32Pointer(v types.Int64) *uint32 {
+	if v.Null || v.Unknown {
+		return nil
+	}
+	i := uint32(v.Value)
+	return &i
+}
+
 func toInt64(v types.Int64) int32 {
 	return int32(v.Value)
 }
@@ -200,8 +208,16 @@ func fromInt64(v int64) types.Int64 {
 	return types.Int64{Value: v}
 }
 
+func fromUInt64(v uint64) types.Int64 {
+	return types.Int64{Value: int64(v)}
+}
+
 func fromInt32(v int32) types.Int64 {
 	return fromInt64(int64(v))
+}
+
+func fromUInt32(v uint32) types.Int64 {
+	return fromUInt64(uint64(v))
 }
 
 func fromInt32Pointer(v *int32) types.Int64 {

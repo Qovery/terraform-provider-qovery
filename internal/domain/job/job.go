@@ -1,52 +1,53 @@
 package job
 
 import (
+	"fmt"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
 const (
-	DefaultState           = status.StateRunning
-	DefaultCPU             = 500
-	MinCPU                 = 250
-	DefaultMemory          = 512
-	MinMemory              = 1
-	MinNbRestart           = 0
-	DefaultMaxNbRestart    = 3
-	MinDurationSeconds     = 15
-	DefaultDurationSeconds = 30
-	MinStorageSize         = 1
+	DefaultCPU                uint32 = 500
+	MinCPU                    uint32 = 10
+	DefaultMemory             uint32 = 512
+	MinMemory                 uint32 = 1
+	MinNbRestart              uint32 = 0
+	DefaultMaxNbRestart       uint32 = 0
+	MinDurationSeconds        uint32 = 0
+	DefaultMaxDurationSeconds uint32 = 300
 )
 
 var (
-	// ErrNilJob is returned if a Container is nil.
+	// ErrNilJob is returned if a Job is nil.
 	ErrNilJob = errors.New("variable cannot be nil")
-	// ErrInvalidJob is the error return if a Container is invalid.
+	// ErrInvalidJob is the error return if a Job is invalid.
 	ErrInvalidJob = errors.New("invalid job")
 	// ErrInvalidEnvironmentIDParam is returned if the environment id param is invalid.
-	ErrInvalidEnvironmentIDParam = errors.New("invalid environment id param")
+	ErrInvalidJobEnvironmentIDParam = errors.New("invalid environment id param")
 	// ErrInvalidJobIDParam is returned if the job id param is invalid.
 	ErrInvalidJobIDParam = errors.New("invalid job id param")
 	// ErrInvalidNameParam is returned if the name param is invalid.
-	ErrInvalidNameParam = errors.New("invalid name param")
-	// ErrInvalidJobSourceParam is returned if the name param is invalid.
-	ErrInvalidJobSourceParam = errors.New("invalid job source param")
+	ErrInvalidJobNameParam = errors.New("invalid name param")
+	// ErrInvalidCPUTooLowParam is returned if the CPU param is invalid.
+	ErrInvalidJobCPUTooLowParam = errors.New(fmt.Sprintf("invalid CPU param, CPU must be greater or equal than `%d`", MinCPU))
+	// ErrInvalidMemoryTooLowParam is returned if the CPU param is invalid.
+	ErrInvalidJobMemoryTooLowParam = errors.New(fmt.Sprintf("invalid memory param, memory must be greater or equal than `%d`", MinMemory))
 	// ErrInvalidStateParam is returned if the state param is invalid.
-	ErrInvalidStateParam = errors.New("invalid state param")
+	ErrInvalidJobStateParam = errors.New("invalid state param")
 	// ErrInvalidSourceParam is returned if the source param is invalid.
-	ErrInvalidSourceParam = errors.New("invalid source param")
+	ErrInvalidJobSourceParam = errors.New("invalid job source param")
 	// ErrInvalidScheduleParam is returned if the schedule param is invalid.
-	ErrInvalidScheduleParam = errors.New("invalid schedule param")
+	ErrInvalidJobScheduleParam = errors.New("invalid job schedule param")
 	// ErrInvalidPortParam is returned if the port param is invalid.
-	ErrInvalidPortParam = errors.New("invalid port param")
+	ErrInvalidJobPortParam = errors.New("invalid port param")
 	// ErrInvalidUpsertRequest is returned if the upsert request is invalid.
-	ErrInvalidUpsertRequest = errors.New("invalid job upsert request")
+	ErrInvalidJobUpsertRequest = errors.New("invalid job upsert request")
 	// ErrInvalidJobEnvironmentVariablesParam is returned if the environment variables param is invalid.
 	ErrInvalidJobEnvironmentVariablesParam = errors.New("invalid job environment variables param")
 	// ErrInvalidJobSecretsParam is returned if the secrets param is invalid.
@@ -58,37 +59,64 @@ var (
 type Job struct {
 	ID                 uuid.UUID `validate:"required"`
 	EnvironmentID      uuid.UUID `validate:"required"`
-	Name               string    `validate:"required"`
-	CPU                int32     `validate:"required"`
-	Memory             int32     `validate:"required"`
-	MaxNbRestart       uint32    `validate:"required"`
-	MaxDurationSeconds uint32    `validate:"required"`
+	Name               string
+	CPU                int32
+	Memory             int32
+	MaxNbRestart       uint32
+	MaxDurationSeconds uint32
 	AutoPreview        bool
 
 	Source   JobSource   `validate:"required"`
 	Schedule JobSchedule `validate:"required"`
 
-	Ports                       port.Ports
+	Port                        *port.Port
 	EnvironmentVariables        variable.Variables
 	BuiltInEnvironmentVariables variable.Variables
 	Secrets                     secret.Secrets
 	InternalHost                *string
 	ExternalHost                *string
 	State                       status.State
+	DeploymentStageID           string
 }
 
 // Validate returns an error to tell whether the Job domain model is valid or not.
 func (j Job) Validate() error {
+	if j.Name == "" {
+		return ErrInvalidJobNameParam
+	}
+
+	if uint32(j.CPU) < MinCPU {
+		return ErrInvalidJobCPUTooLowParam
+	}
+
+	if uint32(j.Memory) < MinMemory {
+		return ErrInvalidJobMemoryTooLowParam
+	}
+
+	if j.Port != nil {
+		if err := j.Port.Validate(); err != nil {
+			return errors.Wrap(err, ErrInvalidJobPortParam.Error())
+		}
+	}
+
 	if err := j.Source.Validate(); err != nil {
-		return errors.Wrap(err, ErrInvalidJob.Error())
+		return errors.Wrap(err, ErrInvalidJobSourceParam.Error())
 	}
 
 	if err := j.Schedule.Validate(); err != nil {
-		return errors.Wrap(err, ErrInvalidJob.Error())
+		return errors.Wrap(err, ErrInvalidJobScheduleParam.Error())
 	}
 
-	if err := j.Ports.Validate(); err != nil {
-		return errors.Wrap(err, ErrInvalidJob.Error())
+	for _, ev := range j.EnvironmentVariables {
+		if err := ev.Validate(); err != nil {
+			return errors.Wrap(err, ErrInvalidJobEnvironmentVariablesParam.Error())
+		}
+	}
+
+	for _, sec := range j.Secrets {
+		if err := sec.Validate(); err != nil {
+			return errors.Wrap(err, ErrInvalidJobSecretsParam.Error())
+		}
 	}
 
 	if err := validator.New().Struct(j); err != nil {
@@ -103,23 +131,24 @@ func (j Job) IsValid() bool {
 	return j.Validate() == nil
 }
 
-// NewJobParams represents the arguments needed to create a Container.
+// NewJobParams represents the arguments needed to create a Job.
 type NewJobParams struct {
 	JobID              string
 	EnvironmentID      string
 	Name               string
 	CPU                int32
 	Memory             int32
-	MaxNbRestart       uint32
-	MaxDurationSeconds uint32
+	MaxNbRestart       *uint32
+	MaxDurationSeconds *uint32
 	AutoPreview        bool
 	Source             NewJobSourceParams
 	Schedule           NewJobScheduleParams
 
 	State                *string
-	Ports                port.NewPortsParams
 	EnvironmentVariables variable.NewVariablesParams
 	Secrets              secret.NewSecretsParams
+	DeploymentStageID    string
+	Port                 *port.NewPortParams
 }
 
 // NewJob returns a new instance of a Job domain model.
@@ -131,7 +160,7 @@ func NewJob(params NewJobParams) (*Job, error) {
 
 	environmentUUID, err := uuid.Parse(params.EnvironmentID)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrInvalidEnvironmentIDParam.Error())
+		return nil, errors.Wrap(err, ErrInvalidJobEnvironmentIDParam.Error())
 	}
 
 	jobSource, err := NewJobSource(params.Source)
@@ -141,20 +170,25 @@ func NewJob(params NewJobParams) (*Job, error) {
 
 	jobSchedule, err := NewJobSchedule(params.Schedule)
 	if err != nil {
-		return nil, errors.Wrap(err, ErrInvalidJobSourceParam.Error())
+		return nil, errors.Wrap(err, ErrInvalidJobScheduleParam.Error())
 	}
 
-	ports := make(port.Ports, len(params.Ports))
-	for idx, p := range params.Ports {
-		port, err := port.NewPort(p)
-		ports[idx] = *port
+	var prt *port.Port = nil
+	if params.Port != nil {
+		prt, err = port.NewPort(*params.Port)
 		if err != nil {
-			return nil, errors.Wrap(err, ErrInvalidPortParam.Error())
+			return nil, errors.Wrap(err, ErrInvalidJobPortParam.Error())
 		}
 	}
 
-	if params.Name == "" {
-		return nil, ErrInvalidNameParam
+	var maxNbRestart = DefaultMaxNbRestart
+	if params.MaxNbRestart != nil {
+		maxNbRestart = *params.MaxNbRestart
+	}
+
+	var maxDurationSeconds = DefaultMaxDurationSeconds
+	if params.MaxDurationSeconds != nil {
+		maxDurationSeconds = *params.MaxDurationSeconds
 	}
 
 	j := &Job{
@@ -164,11 +198,12 @@ func NewJob(params NewJobParams) (*Job, error) {
 		AutoPreview:        params.AutoPreview,
 		CPU:                params.CPU,
 		Memory:             params.Memory,
-		MaxNbRestart:       params.MaxNbRestart,
-		MaxDurationSeconds: params.MaxDurationSeconds,
+		MaxNbRestart:       maxNbRestart,
+		MaxDurationSeconds: maxDurationSeconds,
 		Schedule:           *jobSchedule,
 		Source:             *jobSource,
-		Ports:              ports,
+		Port:               prt,
+		DeploymentStageID:  params.DeploymentStageID,
 	}
 
 	environmentVariables := make(variable.Variables, len(params.EnvironmentVariables))
@@ -198,11 +233,11 @@ func NewJob(params NewJobParams) (*Job, error) {
 	if params.State != nil {
 		jobState, err := status.NewStateFromString(*params.State)
 		if err != nil {
-			return nil, errors.Wrap(err, ErrInvalidStateParam.Error())
+			return nil, errors.Wrap(err, ErrInvalidJobStateParam.Error())
 		}
 
 		if err := j.SetState(*jobState); err != nil {
-			return nil, errors.Wrap(err, ErrInvalidStateParam.Error())
+			return nil, errors.Wrap(err, ErrInvalidJobStateParam.Error())
 		}
 	}
 

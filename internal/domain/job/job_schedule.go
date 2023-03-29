@@ -10,27 +10,27 @@ var (
 	ErrInvalidJobScheduleOnStartParam          = errors.New("invalid `on start` param")
 	ErrInvalidJobScheduleOnStopParam           = errors.New("invalid `on stop` param")
 	ErrInvalidJobScheduleOnDeleteParam         = errors.New("invalid `on delete` param")
-	ErrInvalidJobScheduleScheduledAtParam      = errors.New("invalid `scheduled at` param, cannot be blank")
-	ErrInvalidJobScheduleMissingRequiredParams = errors.New("invalid job schedule: at least one of `OnStart`,  `OnStop`, `OnDelete` or `ScheduledAt` should be set")
-	ErrInvalidJobScheduleTooManyParams         = errors.New("invalid job schedule: only one of `OnStart`,  `OnStop`, `OnDelete` or `ScheduledAt` should be set")
+	ErrInvalidJobScheduleCronParam             = errors.New("invalid `cron job` param")
+	ErrInvalidJobScheduleMissingRequiredParams = errors.New("invalid job schedule: at least one of `OnStart`, `OnStop`, `OnDelete` or `CronJob` should be set")
+	ErrInvalidJobScheduleTooManyParams         = errors.New("invalid job schedule: only one of `OnStart`, `OnStop`, `OnDelete` or `CronJob` should be set")
 )
 
 type JobSchedule struct {
-	OnStart     *execution_command.ExecutionCommand
-	OnStop      *execution_command.ExecutionCommand
-	OnDelete    *execution_command.ExecutionCommand
-	ScheduledAt *string
+	OnStart  *execution_command.ExecutionCommand
+	OnStop   *execution_command.ExecutionCommand
+	OnDelete *execution_command.ExecutionCommand
+	CronJob  *JobScheduleCron
 }
 
 func (s JobSchedule) Validate() error {
-	if (s.OnStart != nil && (s.OnStop != nil || s.OnDelete != nil || s.ScheduledAt != nil)) ||
-		(s.OnStop != nil && (s.OnStart != nil || s.OnDelete != nil || s.ScheduledAt != nil)) ||
-		(s.OnDelete != nil && (s.OnStart != nil || s.OnStop != nil || s.ScheduledAt != nil)) ||
-		(s.ScheduledAt != nil && (s.OnStart != nil || s.OnStop != nil || s.OnDelete != nil)) {
+	if (s.OnStart != nil && (s.OnStop != nil || s.OnDelete != nil || s.CronJob != nil)) ||
+		(s.OnStop != nil && (s.OnStart != nil || s.OnDelete != nil || s.CronJob != nil)) ||
+		(s.OnDelete != nil && (s.OnStart != nil || s.OnStop != nil || s.CronJob != nil)) ||
+		(s.CronJob != nil && (s.OnStart != nil || s.OnStop != nil || s.OnDelete != nil)) {
 		return ErrInvalidJobScheduleTooManyParams
 	}
 
-	if s.OnStart == nil && s.OnStop == nil && s.OnDelete == nil && s.ScheduledAt == nil {
+	if s.OnStart == nil && s.OnStop == nil && s.OnDelete == nil && s.CronJob == nil {
 		return ErrInvalidJobScheduleMissingRequiredParams
 	}
 
@@ -52,19 +52,20 @@ func (s JobSchedule) Validate() error {
 		}
 	}
 
-	if s.ScheduledAt != nil && *s.ScheduledAt == "" {
-		// TODO(benjaminch): validate cron format
-		return ErrInvalidJobScheduleScheduledAtParam
+	if s.CronJob != nil {
+		if err := s.CronJob.Validate(); err != nil {
+			return errors.Wrap(err, ErrInvalidJobScheduleCronParam.Error())
+		}
 	}
 
 	return nil
 }
 
 type NewJobScheduleParams struct {
-	OnStart     *execution_command.NewExecutionCommandParams
-	OnStop      *execution_command.NewExecutionCommandParams
-	OnDelete    *execution_command.NewExecutionCommandParams
-	ScheduledAt *string
+	OnStart  *execution_command.NewExecutionCommandParams
+	OnStop   *execution_command.NewExecutionCommandParams
+	OnDelete *execution_command.NewExecutionCommandParams
+	CronJob  *NewJobScheduleCronParams
 }
 
 func NewJobSchedule(params NewJobScheduleParams) (*JobSchedule, error) {
@@ -94,13 +95,19 @@ func NewJobSchedule(params NewJobScheduleParams) (*JobSchedule, error) {
 		}
 	}
 
-	// TODO(benjaminch): validate cron format
+	var cronJob *JobScheduleCron = nil
+	if params.CronJob != nil {
+		cronJob, err = NewJobScheduleCron(*params.CronJob)
+		if err != nil {
+			return nil, errors.Wrap(err, ErrInvalidJobScheduleCronParam.Error())
+		}
+	}
 
 	newSchedule := &JobSchedule{
-		OnStart:     onStart,
-		OnStop:      onStop,
-		OnDelete:    onDelete,
-		ScheduledAt: params.ScheduledAt,
+		OnStart:  onStart,
+		OnStop:   onStop,
+		OnDelete: onDelete,
+		CronJob:  cronJob,
 	}
 
 	if err := newSchedule.Validate(); err != nil {

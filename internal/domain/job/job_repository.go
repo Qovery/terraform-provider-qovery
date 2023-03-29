@@ -8,7 +8,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 
-	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
@@ -23,39 +22,36 @@ type Repository interface {
 
 // UpsertRepositoryRequest represents the parameters needed to create & update a Job.
 type UpsertRepositoryRequest struct {
-	JobID         string `validate:"required"`
-	EnvironmentID string `validate:"required"`
-	Name          string `validate:"required"`
+	Name string `validate:"required"`
 
 	AutoPreview        *bool
 	Entrypoint         *string
 	CPU                *int32
 	Memory             *int32
-	MaxNbRestart       *uint32
-	MaxDurationSeconds *uint32
+	MaxNbRestart       *int32
+	MaxDurationSeconds *int32
 
 	Source               JobSource
 	Schedule             JobSchedule
-	Ports                []port.UpsertRequest
+	Port                 *int32
 	EnvironmentVariables []variable.UpsertRequest
 	Secrets              []secret.UpsertRequest
-
-	State *string
+	DeploymentStageID    string
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.
 func (r UpsertRepositoryRequest) Validate() error {
 
 	if err := r.Schedule.Validate(); err != nil {
-		return errors.Wrap(err, ErrInvalidUpsertRequest.Error())
+		return errors.Wrap(err, ErrInvalidJobUpsertRequest.Error())
 	}
 
 	if err := r.Source.Validate(); err != nil {
-		return errors.Wrap(err, ErrInvalidUpsertRequest.Error())
+		return errors.Wrap(err, ErrInvalidJobUpsertRequest.Error())
 	}
 
 	if err := validator.New().Struct(r); err != nil {
-		return errors.Wrap(err, ErrInvalidUpsertRequest.Error())
+		return errors.Wrap(err, ErrInvalidJobUpsertRequest.Error())
 	}
 
 	return nil

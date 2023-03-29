@@ -1,7 +1,6 @@
 package image
 
 import (
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -15,9 +14,9 @@ var (
 )
 
 type Image struct {
-	RegistryID uuid.UUID `validate:"required"`
-	Name       string    `validate:"required"`
-	Tag        string    `validate:"required"`
+	RegistryID string `validate:"required"`
+	Name       string `validate:"required"`
+	Tag        string `validate:"required"`
 }
 
 func (i Image) Validate() error {
@@ -39,13 +38,8 @@ type NewImageParams struct {
 }
 
 func NewImage(params NewImageParams) (*Image, error) {
-	registryUUID, err := uuid.Parse(params.RegistryID)
-	if err != nil {
-		return nil, errors.Wrap(err, ErrInvalidRegistryIDParam.Error())
-	}
-
 	image := &Image{
-		RegistryID: registryUUID,
+		RegistryID: params.RegistryID,
 		Name:       params.Name,
 		Tag:        params.Tag,
 	}

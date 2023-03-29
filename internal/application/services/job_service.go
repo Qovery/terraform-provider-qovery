@@ -74,11 +74,6 @@ func (s jobService) Create(ctx context.Context, environmentID string, request jo
 		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
 
-	_, err = s.jobDeploymentService.UpdateState(ctx, newJob.ID.String(), request.DesiredState, newJob.Source.TagOrEmpty())
-	if err != nil {
-		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
-	}
-
 	newJob, err = s.refreshJob(ctx, *newJob)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
@@ -127,11 +122,6 @@ func (s jobService) Update(ctx context.Context, jobID string, request job.Upsert
 	}
 
 	_, err = s.secretService.Update(ctx, updateJob.ID.String(), request.Secrets)
-	if err != nil {
-		return nil, errors.Wrap(err, job.ErrFailedToUpdateJob.Error())
-	}
-
-	_, err = s.jobDeploymentService.UpdateState(ctx, updateJob.ID.String(), request.DesiredState, updateJob.Source.TagOrEmpty())
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToUpdateJob.Error())
 	}
@@ -195,11 +185,11 @@ func (s jobService) refreshJob(ctx context.Context, job job.Job) (*job.Job, erro
 // checkEnvironmentID validates that the given environmentID is valid.
 func (s jobService) checkEnvironmentID(environmentID string) error {
 	if environmentID == "" {
-		return job.ErrInvalidEnvironmentIDParam
+		return job.ErrInvalidJobEnvironmentIDParam
 	}
 
 	if _, err := uuid.Parse(environmentID); err != nil {
-		return errors.Wrap(err, job.ErrInvalidEnvironmentIDParam.Error())
+		return errors.Wrap(err, job.ErrInvalidJobEnvironmentIDParam.Error())
 	}
 
 	return nil

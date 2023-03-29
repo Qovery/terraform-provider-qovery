@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
@@ -31,25 +30,24 @@ type UpsertServiceRequest struct {
 	JobUpsertRequest     UpsertRepositoryRequest
 	EnvironmentVariables variable.DiffRequest
 	Secrets              secret.DiffRequest
-	DesiredState         status.State `validate:"required"`
 }
 
 // Validate returns an error to tell whether the UpsertServiceRequest is valid or not.
 func (r UpsertServiceRequest) Validate() error {
 	if err := r.JobUpsertRequest.Validate(); err != nil {
-		return errors.Wrap(err, ErrInvalidUpsertRequest.Error())
+		return errors.Wrap(err, ErrInvalidJobUpsertRequest.Error())
 	}
 
 	if err := r.EnvironmentVariables.Validate(); err != nil {
-		return errors.Wrap(err, ErrInvalidUpsertRequest.Error())
+		return errors.Wrap(err, ErrInvalidJobUpsertRequest.Error())
 	}
 
 	if err := r.Secrets.Validate(); err != nil {
-		return errors.Wrap(err, ErrInvalidUpsertRequest.Error())
+		return errors.Wrap(err, ErrInvalidJobUpsertRequest.Error())
 	}
 
 	if err := validator.New().Struct(r); err != nil {
-		return errors.Wrap(err, ErrInvalidUpsertRequest.Error())
+		return errors.Wrap(err, ErrInvalidJobUpsertRequest.Error())
 	}
 
 	return nil

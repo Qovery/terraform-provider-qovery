@@ -15,10 +15,6 @@ type ExecutionCommand struct {
 }
 
 func (e ExecutionCommand) Validate() error {
-	if len(e.Arguments) == 0 {
-		return ErrInvalidArgumentsParam
-	}
-
 	return nil
 }
 

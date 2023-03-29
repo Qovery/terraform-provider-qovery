@@ -18,7 +18,7 @@ func TestExecutionCommandValidate(t *testing.T) {
 		expectedError error
 	}{
 		{description: "case 1: entrypoint is nil", entrypoint: nil, arguments: test_helper.DefaultArguments, expectedError: nil},
-		{description: "case 2: arguments is empty", entrypoint: &test_helper.DefaultEntrypoint, arguments: make([]string, 0), expectedError: execution_command.ErrInvalidArgumentsParam},
+		{description: "case 2: arguments is empty", entrypoint: &test_helper.DefaultEntrypoint, arguments: make([]string, 0), expectedError: nil},
 		{description: "case 3: all fields are set", entrypoint: &test_helper.DefaultEntrypoint, arguments: test_helper.DefaultArguments, expectedError: nil},
 	}
 
@@ -46,16 +46,7 @@ func TestNewExecutionCommand(t *testing.T) {
 		expectedError  error
 	}{
 		{
-			description: "case 1: all params blanks",
-			params: execution_command.NewExecutionCommandParams{
-				Entrypoint: nil,
-				Arguments:  make([]string, 0),
-			},
-			expectedError:  execution_command.ErrInvalidArgumentsParam,
-			expectedResult: nil,
-		},
-		{
-			description: "case 2: entrypoint is nil",
+			description: "case 1: entrypoint is nil",
 			params: execution_command.NewExecutionCommandParams{
 				Entrypoint: nil,
 				Arguments:  test_helper.DefaultArguments,
@@ -67,16 +58,19 @@ func TestNewExecutionCommand(t *testing.T) {
 			},
 		},
 		{
-			description: "case 3: arguments is empty",
+			description: "case 2: arguments is empty",
 			params: execution_command.NewExecutionCommandParams{
 				Entrypoint: &test_helper.DefaultEntrypoint,
 				Arguments:  make([]string, 0),
 			},
-			expectedError:  execution_command.ErrInvalidArgumentsParam,
-			expectedResult: nil,
+			expectedError: nil,
+			expectedResult: &execution_command.ExecutionCommand{
+				Entrypoint: &test_helper.DefaultEntrypoint,
+				Arguments:  make([]string, 0),
+			},
 		},
 		{
-			description: "case 5: all properly set",
+			description: "case 3: all properly set",
 			params: execution_command.NewExecutionCommandParams{
 				Entrypoint: &test_helper.DefaultEntrypoint,
 				Arguments:  test_helper.DefaultArguments,

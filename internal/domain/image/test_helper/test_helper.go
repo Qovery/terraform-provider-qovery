@@ -7,13 +7,13 @@ import (
 )
 
 var (
-	DefaultRegistryID = uuid.New()
+	DefaultRegistryID = uuid.New().String()
 	DefaultName       = "image-name"
 	DefaultTag        = "latest"
 
 	/// Exposed to tests needing to get such object without having to know internal sauce magic
 	DefaultValidNewImageParams = image.NewImageParams{
-		RegistryID: DefaultRegistryID.String(),
+		RegistryID: DefaultRegistryID,
 		Name:       DefaultName,
 		Tag:        DefaultTag,
 	}
@@ -24,7 +24,7 @@ var (
 	}
 	/// Exposed to tests needing to get such object without having to know internal sauce magic
 	DefaultInvalidNewImageParams = image.NewImageParams{
-		RegistryID: DefaultRegistryID.String(),
+		RegistryID: DefaultRegistryID,
 		Name:       "",
 		Tag:        DefaultTag,
 	}

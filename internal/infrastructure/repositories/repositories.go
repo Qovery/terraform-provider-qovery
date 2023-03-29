@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/pkg/errors"
 
@@ -38,6 +39,10 @@ type Repositories struct {
 	ContainerEnvironmentVariable   variable.Repository
 	ContainerSecret                secret.Repository
 	ContainerRegistry              registry.Repository
+	Job                            job.Repository
+	JobDeployment                  deployment.Repository
+	JobEnvironmentVariable         variable.Repository
+	JobSecret                      secret.Repository
 	Environment                    environment.Repository
 	EnvironmentDeployment          deployment.Repository
 	EnvironmentEnvironmentVariable variable.Repository
@@ -81,6 +86,10 @@ func WithQoveryAPI(apiToken string, providerVersion string) Configuration {
 		repos.ProjectEnvironmentVariable = qoveryAPI.ProjectEnvironmentVariable
 		repos.ProjectSecret = qoveryAPI.ProjectSecret
 		repos.Container = qoveryAPI.Container
+		repos.Job = qoveryAPI.Job
+		repos.JobDeployment = qoveryAPI.JobDeployment
+		repos.JobSecret = qoveryAPI.JobSecret
+		repos.JobEnvironmentVariable = qoveryAPI.JobEnvironmentVariable
 		repos.ContainerDeployment = qoveryAPI.ContainerDeployment
 		repos.ContainerEnvironmentVariable = qoveryAPI.ContainerEnvironmentVariable
 		repos.ContainerSecret = qoveryAPI.ContainerSecret

@@ -2,6 +2,7 @@ package qoveryapi
 
 import (
 	"fmt"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
@@ -46,6 +47,10 @@ type QoveryAPI struct {
 	ContainerEnvironmentVariable   variable.Repository
 	ContainerSecret                secret.Repository
 	ContainerRegistry              registry.Repository
+	Job                            job.Repository
+	JobDeployment                  deployment.Repository
+	JobEnvironmentVariable         variable.Repository
+	JobSecret                      secret.Repository
 	Environment                    environment.Repository
 	EnvironmentDeployment          deployment.Repository
 	EnvironmentEnvironmentVariable variable.Repository
@@ -118,6 +123,26 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	jobAPI, err := newJobQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	jobDeploymentAPI, err := newJobDeploymentQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	jobEnvironmentVariableAPI, err := newJobEnvironmentVariablesQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	jobSecretAPI, err := newJobSecretsQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
 	environmentAPI, err := newEnvironmentQoveryAPI(apiClient)
 	if err != nil {
 		return nil, err
@@ -167,6 +192,10 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		ContainerEnvironmentVariable:   containerEnvironmentVariableAPI,
 		ContainerSecret:                containerSecretAPI,
 		ContainerRegistry:              containerRegistryAPI,
+		Job:                            jobAPI,
+		JobDeployment:                  jobDeploymentAPI,
+		JobEnvironmentVariable:         jobEnvironmentVariableAPI,
+		JobSecret:                      jobSecretAPI,
 		Environment:                    environmentAPI,
 		EnvironmentDeployment:          environmentDeploymentAPI,
 		EnvironmentEnvironmentVariable: environmentEnvironmentVariableAPI,

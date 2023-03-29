@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/image"
@@ -29,7 +28,7 @@ func TestImageValidate(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			// execute:
 			i := image.Image{
-				RegistryID: uuid.New(),
+				RegistryID: uuid.New().String(),
 				Name:       tc.name,
 				Tag:        tc.tag,
 			}
@@ -42,7 +41,7 @@ func TestImageValidate(t *testing.T) {
 
 func TestNewImage(t *testing.T) {
 	// setup:
-	validRegistryID := uuid.New()
+	validRegistryID := uuid.New().String()
 	testCases := []struct {
 		description    string
 		params         image.NewImageParams
@@ -56,21 +55,11 @@ func TestNewImage(t *testing.T) {
 				Name:       "",
 				Tag:        "",
 			},
-			expectedError:  errors.Wrap(errors.New("invalid UUID length: 0"), image.ErrInvalidRegistryIDParam.Error()),
+			expectedError:  image.ErrInvalidNameParam,
 			expectedResult: nil,
 		},
 		{
-			description: "case 2: invalid registry ID",
-			params: image.NewImageParams{
-				RegistryID: "toto",
-				Name:       "",
-				Tag:        "",
-			},
-			expectedError:  errors.Wrap(errors.New("invalid UUID length: 4"), image.ErrInvalidRegistryIDParam.Error()),
-			expectedResult: nil,
-		},
-		{
-			description: "case 3: name is blank",
+			description: "case 2: name is blank",
 			params: image.NewImageParams{
 				RegistryID: uuid.New().String(),
 				Name:       "",
@@ -80,7 +69,7 @@ func TestNewImage(t *testing.T) {
 			expectedResult: nil,
 		},
 		{
-			description: "case 4: tag is blank",
+			description: "case 3: tag is blank",
 			params: image.NewImageParams{
 				RegistryID: uuid.New().String(),
 				Name:       "toto",
@@ -90,9 +79,9 @@ func TestNewImage(t *testing.T) {
 			expectedResult: nil,
 		},
 		{
-			description: "case 5: all properly set",
+			description: "case 4: all properly set",
 			params: image.NewImageParams{
-				RegistryID: validRegistryID.String(),
+				RegistryID: validRegistryID,
 				Name:       "toto",
 				Tag:        "main",
 			},

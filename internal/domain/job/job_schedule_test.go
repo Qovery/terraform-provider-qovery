@@ -9,11 +9,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/execution_command"
 	execution_command_test_helper "github.com/qovery/terraform-provider-qovery/internal/domain/execution_command/test_helper"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
-)
-
-var (
-	DefaultScheduledAt        = "*/30 * * * *"
-	DefaultInvalidScheduledAt = ""
+	job_test_helper "github.com/qovery/terraform-provider-qovery/internal/domain/job/test_helper"
 )
 
 func TestJobScheduleValidate(t *testing.T) {
@@ -23,22 +19,18 @@ func TestJobScheduleValidate(t *testing.T) {
 		onStart       *execution_command.ExecutionCommand
 		onStop        *execution_command.ExecutionCommand
 		onDelete      *execution_command.ExecutionCommand
-		scheduledAt   *string
+		scheduledAt   *job.JobScheduleCron
 		expectedError error
 	}{
 		{description: "case 1: all fields are nil", onStart: nil, onStop: nil, onDelete: nil, scheduledAt: nil, expectedError: job.ErrInvalidJobScheduleMissingRequiredParams},
-		{description: "case 2: all fields are set", onStart: &execution_command_test_helper.DefaultValidExecutionCommand, onStop: &execution_command_test_helper.DefaultValidExecutionCommand, onDelete: &execution_command_test_helper.DefaultValidExecutionCommand, scheduledAt: &DefaultScheduledAt, expectedError: job.ErrInvalidJobScheduleTooManyParams},
-		{description: "case 3: invalid `on start` param", onStart: &execution_command_test_helper.DefaultInvalidExecutionCommand, onStop: nil, onDelete: nil, scheduledAt: nil, expectedError: errors.Wrap(execution_command_test_helper.DefaultInvalidExecutionCommandParamsError, job.ErrInvalidJobScheduleOnStartParam.Error())},
-		{description: "case 4: invalid `on stop` param", onStart: nil, onStop: &execution_command_test_helper.DefaultInvalidExecutionCommand, onDelete: nil, scheduledAt: nil, expectedError: errors.Wrap(execution_command_test_helper.DefaultInvalidExecutionCommandParamsError, job.ErrInvalidJobScheduleOnStopParam.Error())},
-		{description: "case 5: invalid `on delete` param", onStart: nil, onStop: nil, onDelete: &execution_command_test_helper.DefaultInvalidExecutionCommand, scheduledAt: nil, expectedError: errors.Wrap(execution_command_test_helper.DefaultInvalidExecutionCommandParamsError, job.ErrInvalidJobScheduleOnDeleteParam.Error())},
-		{description: "case 6: invalid `scheduled at` param", onStart: nil, onStop: nil, onDelete: nil, scheduledAt: &DefaultInvalidScheduledAt, expectedError: job.ErrInvalidJobScheduleScheduledAtParam},
-		{description: "case 7: valid `on start` param", onStart: &execution_command_test_helper.DefaultValidExecutionCommand, onStop: nil, onDelete: nil, scheduledAt: nil, expectedError: nil},
-		{description: "case 8: valid `on stop` param", onStart: nil, onStop: &execution_command_test_helper.DefaultValidExecutionCommand, onDelete: nil, scheduledAt: nil, expectedError: nil},
-		{description: "case 9: valid `on delete` param", onStart: nil, onStop: nil, onDelete: &execution_command_test_helper.DefaultValidExecutionCommand, scheduledAt: nil, expectedError: nil},
-		{description: "case 10: valid `scheduled at` param", onStart: nil, onStop: nil, onDelete: nil, scheduledAt: &DefaultScheduledAt, expectedError: nil},
-		{description: "case 11: several valid exclusive fields set", onStart: &execution_command_test_helper.DefaultValidExecutionCommand, onStop: nil, onDelete: nil, scheduledAt: &DefaultScheduledAt, expectedError: job.ErrInvalidJobScheduleTooManyParams},
-		{description: "case 12: several invalid exclusive fields set", onStart: &execution_command_test_helper.DefaultInvalidExecutionCommand, onStop: nil, onDelete: nil, scheduledAt: &DefaultInvalidScheduledAt, expectedError: job.ErrInvalidJobScheduleTooManyParams},
-		{description: "case 13: several invalid & valid exclusive fields set", onStart: &execution_command_test_helper.DefaultValidExecutionCommand, onStop: nil, onDelete: nil, scheduledAt: &DefaultInvalidScheduledAt, expectedError: job.ErrInvalidJobScheduleTooManyParams},
+		{description: "case 2: all fields are set", onStart: &execution_command_test_helper.DefaultValidExecutionCommand, onStop: &execution_command_test_helper.DefaultValidExecutionCommand, onDelete: &execution_command_test_helper.DefaultValidExecutionCommand, scheduledAt: &job_test_helper.DefaultValidJobScheduledCronCron, expectedError: job.ErrInvalidJobScheduleTooManyParams},
+		{description: "case 3: invalid `scheduled at` param", onStart: nil, onStop: nil, onDelete: nil, scheduledAt: &job_test_helper.DefaultInvalidJobScheduledCronCron, expectedError: errors.Wrap(job_test_helper.DefaultInvalidNewInvalidJobScheduledCronCronParamsError, job.ErrInvalidJobScheduleCronParam.Error())},
+		{description: "case 4: valid `on start` param", onStart: &execution_command_test_helper.DefaultValidExecutionCommand, onStop: nil, onDelete: nil, scheduledAt: nil, expectedError: nil},
+		{description: "case 5: valid `on stop` param", onStart: nil, onStop: &execution_command_test_helper.DefaultValidExecutionCommand, onDelete: nil, scheduledAt: nil, expectedError: nil},
+		{description: "case 6: valid `on delete` param", onStart: nil, onStop: nil, onDelete: &execution_command_test_helper.DefaultValidExecutionCommand, scheduledAt: nil, expectedError: nil},
+		{description: "case 7: valid `scheduled at` param", onStart: nil, onStop: nil, onDelete: nil, scheduledAt: &job_test_helper.DefaultValidJobScheduledCronCron, expectedError: nil},
+		{description: "case 8: several valid exclusive fields set", onStart: &execution_command_test_helper.DefaultValidExecutionCommand, onStop: nil, onDelete: nil, scheduledAt: &job_test_helper.DefaultValidJobScheduledCronCron, expectedError: job.ErrInvalidJobScheduleTooManyParams},
+		{description: "case 9: several invalid & valid exclusive fields set", onStart: &execution_command_test_helper.DefaultValidExecutionCommand, onStop: nil, onDelete: nil, scheduledAt: &job_test_helper.DefaultInvalidJobScheduledCronCron, expectedError: job.ErrInvalidJobScheduleTooManyParams},
 	}
 
 	t.Parallel()
@@ -46,10 +38,10 @@ func TestJobScheduleValidate(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			// execute:
 			s := job.JobSchedule{
-				OnStart:     tc.onStart,
-				OnStop:      tc.onStop,
-				OnDelete:    tc.onDelete,
-				ScheduledAt: tc.scheduledAt,
+				OnStart:  tc.onStart,
+				OnStop:   tc.onStop,
+				OnDelete: tc.onDelete,
+				CronJob:  tc.scheduledAt,
 			}
 
 			// verify:
@@ -73,10 +65,10 @@ func TestNewJobSchedule(t *testing.T) {
 		{
 			description: "case 1: all fields are nil",
 			params: job.NewJobScheduleParams{
-				OnStart:     nil,
-				OnStop:      nil,
-				OnDelete:    nil,
-				ScheduledAt: nil,
+				OnStart:  nil,
+				OnStop:   nil,
+				OnDelete: nil,
+				CronJob:  nil,
 			},
 			expectedError:  job.ErrInvalidJobScheduleMissingRequiredParams,
 			expectedResult: nil,
@@ -84,150 +76,106 @@ func TestNewJobSchedule(t *testing.T) {
 		{
 			description: "case 2: all fields are set",
 			params: job.NewJobScheduleParams{
-				OnStart:     &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
-				OnStop:      &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
-				OnDelete:    &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
-				ScheduledAt: &DefaultInvalidScheduledAt,
+				OnStart:  &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
+				OnStop:   &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
+				OnDelete: &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
+				CronJob:  &job_test_helper.DefaultValidJobScheduledCronCronParams,
 			},
 			expectedError:  job.ErrInvalidJobScheduleTooManyParams,
 			expectedResult: nil,
 		},
 		{
-			description: "case 3: invalid `on start` param",
+			description: "case 3: invalid `scheduled at` param",
 			params: job.NewJobScheduleParams{
-				OnStart:     &execution_command_test_helper.DefaultInvalidNewExecutionCommandParams,
-				OnStop:      nil,
-				OnDelete:    nil,
-				ScheduledAt: nil,
+				OnStart:  nil,
+				OnStop:   nil,
+				OnDelete: nil,
+				CronJob:  &job_test_helper.DefaultInvalidJobScheduledCronCronParams,
 			},
-			expectedError:  errors.Wrap(execution_command_test_helper.DefaultInvalidExecutionCommandParamsError, job.ErrInvalidJobScheduleOnStartParam.Error()),
+			expectedError:  errors.Wrap(job_test_helper.DefaultInvalidNewInvalidJobScheduledCronCronParamsError, job.ErrInvalidJobScheduleCronParam.Error()),
 			expectedResult: nil,
 		},
 		{
-			description: "case 4: invalid `on stop` param",
+			description: "case 4: valid `on start` param",
 			params: job.NewJobScheduleParams{
-				OnStart:     nil,
-				OnStop:      &execution_command_test_helper.DefaultInvalidNewExecutionCommandParams,
-				OnDelete:    nil,
-				ScheduledAt: nil,
-			},
-			expectedError:  errors.Wrap(execution_command_test_helper.DefaultInvalidExecutionCommandParamsError, job.ErrInvalidJobScheduleOnStopParam.Error()),
-			expectedResult: nil,
-		},
-		{
-			description: "case 5: invalid `on delete` param",
-			params: job.NewJobScheduleParams{
-				OnStart:     nil,
-				OnStop:      nil,
-				OnDelete:    &execution_command_test_helper.DefaultInvalidNewExecutionCommandParams,
-				ScheduledAt: nil,
-			},
-			expectedError:  errors.Wrap(execution_command_test_helper.DefaultInvalidExecutionCommandParamsError, job.ErrInvalidJobScheduleOnDeleteParam.Error()),
-			expectedResult: nil,
-		},
-		{
-			description: "case 6: invalid `scheduled at` param",
-			params: job.NewJobScheduleParams{
-				OnStart:     nil,
-				OnStop:      nil,
-				OnDelete:    nil,
-				ScheduledAt: &DefaultInvalidScheduledAt,
-			},
-			expectedError:  job.ErrInvalidJobScheduleScheduledAtParam,
-			expectedResult: nil,
-		},
-		{
-			description: "case 7: valid `on start` param",
-			params: job.NewJobScheduleParams{
-				OnStart:     &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
-				OnStop:      nil,
-				OnDelete:    nil,
-				ScheduledAt: nil,
+				OnStart:  &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
+				OnStop:   nil,
+				OnDelete: nil,
+				CronJob:  nil,
 			},
 			expectedError: nil,
 			expectedResult: &job.JobSchedule{
-				OnStart:     &execution_command_test_helper.DefaultValidExecutionCommand,
-				OnStop:      nil,
-				OnDelete:    nil,
-				ScheduledAt: nil,
+				OnStart:  &execution_command_test_helper.DefaultValidExecutionCommand,
+				OnStop:   nil,
+				OnDelete: nil,
+				CronJob:  nil,
 			},
 		},
 		{
-			description: "case 8: valid `on stop` param",
+			description: "case 5: valid `on stop` param",
 			params: job.NewJobScheduleParams{
-				OnStart:     nil,
-				OnStop:      &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
-				OnDelete:    nil,
-				ScheduledAt: nil,
+				OnStart:  nil,
+				OnStop:   &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
+				OnDelete: nil,
+				CronJob:  nil,
 			},
 			expectedError: nil,
 			expectedResult: &job.JobSchedule{
-				OnStart:     nil,
-				OnStop:      &execution_command_test_helper.DefaultValidExecutionCommand,
-				OnDelete:    nil,
-				ScheduledAt: nil,
+				OnStart:  nil,
+				OnStop:   &execution_command_test_helper.DefaultValidExecutionCommand,
+				OnDelete: nil,
+				CronJob:  nil,
 			},
 		},
 		{
-			description: "case 9: valid `on delete` param",
+			description: "case 6: valid `on delete` param",
 			params: job.NewJobScheduleParams{
-				OnStart:     nil,
-				OnStop:      nil,
-				OnDelete:    &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
-				ScheduledAt: nil,
+				OnStart:  nil,
+				OnStop:   nil,
+				OnDelete: &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
+				CronJob:  nil,
 			},
 			expectedError: nil,
 			expectedResult: &job.JobSchedule{
-				OnStart:     nil,
-				OnStop:      nil,
-				OnDelete:    &execution_command_test_helper.DefaultValidExecutionCommand,
-				ScheduledAt: nil,
+				OnStart:  nil,
+				OnStop:   nil,
+				OnDelete: &execution_command_test_helper.DefaultValidExecutionCommand,
+				CronJob:  nil,
 			},
 		},
 		{
-			description: "case 10: valid `scheduled at` param",
+			description: "case 7: valid `scheduled at` param",
 			params: job.NewJobScheduleParams{
-				OnStart:     nil,
-				OnStop:      nil,
-				OnDelete:    nil,
-				ScheduledAt: &DefaultScheduledAt,
+				OnStart:  nil,
+				OnStop:   nil,
+				OnDelete: nil,
+				CronJob:  &job_test_helper.DefaultValidJobScheduledCronCronParams,
 			},
 			expectedError: nil,
 			expectedResult: &job.JobSchedule{
-				OnStart:     nil,
-				OnStop:      nil,
-				OnDelete:    nil,
-				ScheduledAt: &DefaultScheduledAt,
+				OnStart:  nil,
+				OnStop:   nil,
+				OnDelete: nil,
+				CronJob:  &job_test_helper.DefaultValidJobScheduledCronCron,
 			},
 		},
 		{
-			description: "case 11: several valid exclusive fields set",
+			description: "case 8: several valid exclusive fields set",
 			params: job.NewJobScheduleParams{
-				OnStart:     &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
-				OnStop:      nil,
-				OnDelete:    nil,
-				ScheduledAt: &DefaultScheduledAt,
+				OnStart:  &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
+				OnStop:   nil,
+				OnDelete: nil,
+				CronJob:  &job_test_helper.DefaultValidJobScheduledCronCronParams,
 			},
 			expectedError:  job.ErrInvalidJobScheduleTooManyParams,
 			expectedResult: nil,
 		},
 		{
-			description: "case 12: several invalid exclusive fields set",
-			params: job.NewJobScheduleParams{
-				OnStart:     &execution_command_test_helper.DefaultInvalidNewExecutionCommandParams,
-				OnStop:      nil,
-				OnDelete:    nil,
-				ScheduledAt: &DefaultInvalidScheduledAt,
-			},
-			expectedError:  errors.Wrap(execution_command_test_helper.DefaultInvalidExecutionCommandParamsError, job.ErrInvalidJobScheduleOnStartParam.Error()),
-			expectedResult: nil,
-		},
-		{
-			description: "case 13: several invalid & valid exclusive fields set", params: job.NewJobScheduleParams{
-				OnStart:     &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
-				OnStop:      nil,
-				OnDelete:    nil,
-				ScheduledAt: &DefaultInvalidScheduledAt,
+			description: "case 9: several invalid & valid exclusive fields set", params: job.NewJobScheduleParams{
+				OnStart:  &execution_command_test_helper.DefaultValidNewExecutionCommandParams,
+				OnStop:   nil,
+				OnDelete: nil,
+				CronJob:  &job_test_helper.DefaultValidJobScheduledCronCronParams,
 			},
 			expectedError:  job.ErrInvalidJobScheduleTooManyParams,
 			expectedResult: nil,
