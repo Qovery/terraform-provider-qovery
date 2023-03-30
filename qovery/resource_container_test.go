@@ -1373,6 +1373,7 @@ resource "qovery_container" "test" {
   name = "%s"
   image_name = "%s"
   tag = "%s"
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag,
 	)
@@ -1390,6 +1391,7 @@ resource "qovery_container" "test" {
   name = "%s"
   image_name = "%s"
   tag = "%s"
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), name, containerImageName, containerTag,
 	)
@@ -1408,6 +1410,7 @@ resource "qovery_container" "test" {
   image_name = "%s"
   tag = "%s"
   arguments = %s
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, convertStringArrayToString(arguments),
 	)
@@ -1426,6 +1429,7 @@ resource "qovery_container" "test" {
   image_name = "%s"
   tag = "%s"
   auto_preview = "%s"
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, autoPreview,
 	)
@@ -1447,6 +1451,7 @@ resource "qovery_container" "test" {
   memory = "%s"
   min_running_instances = "%s"
   max_running_instances = "%s"
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, cpu, memory, minRunningInstances, maxRunningInstances,
 	)
@@ -1465,6 +1470,7 @@ resource "qovery_container" "test" {
   image_name = "%s"
   tag = "%s"
   storage = %s
+  advanced_settings = {}
 }
 
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, convertStoragesToString(storages),
@@ -1483,6 +1489,7 @@ resource "qovery_container" "test" {
   image_name = "%s"
   tag = "%s"
   ports = %s
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, convertPortsToString(ports),
 	)
@@ -1501,6 +1508,7 @@ resource "qovery_container" "test" {
   image_name = "%s"
   tag = "%s"
   environment_variables = %s
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, convertEnvVarsToString(environmentVariables),
 	)
@@ -1519,6 +1527,7 @@ resource "qovery_container" "test" {
   image_name = "%s"
   tag = "%s"
   secrets = %s
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, convertEnvVarsToString(secrets),
 	)

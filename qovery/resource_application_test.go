@@ -1309,6 +1309,7 @@ resource "qovery_application" "test" {
   git_repository = {
     url = "%s"
   }
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL,
 	)
@@ -1327,6 +1328,7 @@ resource "qovery_application" "test" {
   git_repository = {
     url = "%s"
   }
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), autoPreview, applicationRepositoryURL,
 	)
@@ -1350,6 +1352,7 @@ resource "qovery_application" "test" {
   git_repository = {
     url = "%s"
   }
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), cpu, memory, minRunningInstances, maxRunningInstances, applicationRepositoryURL,
 	)
@@ -1368,6 +1371,7 @@ resource "qovery_application" "test" {
     url = "%s"
   }
   storage = %s
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertStoragesToString(storages),
 	)
@@ -1386,6 +1390,7 @@ resource "qovery_application" "test" {
     url = "%s"
   }
   ports = %s
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertPortsToString(ports),
 	)
@@ -1404,6 +1409,7 @@ resource "qovery_application" "test" {
     url = "%s"
   }
   environment_variables = %s
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertEnvVarsToString(environmentVariables),
 	)
@@ -1422,6 +1428,7 @@ resource "qovery_application" "test" {
     url = "%s"
   }
   secrets = %s
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertEnvVarsToString(secrets),
 	)
@@ -1449,6 +1456,7 @@ resource "qovery_application" "test" {
   }
   ports = %s
   custom_domains = %s
+  advanced_settings = {}
 } 
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertPortsToString(ports), convertCustomDomainsToString(customDomains),
 	)
@@ -1466,6 +1474,7 @@ resource "qovery_application" "test" {
   git_repository = {
     url = "%s"
   }
+  advanced_settings = {}
 }
 `, testAccEnvironmentDefaultConfigWithEnvironmentVariables(testName, environmentVariables), generateTestName(testName), applicationRepositoryURL,
 	)
@@ -1483,6 +1492,7 @@ resource "qovery_application" "test" {
   git_repository = {
     url = "%s"
   }
+  advanced_settings = {}
 }
 `, testAccDatabaseDefaultConfig(testName, redisContainer), generateTestName(testName), applicationRepositoryURL,
 	)
