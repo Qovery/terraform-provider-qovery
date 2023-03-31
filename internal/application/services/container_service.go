@@ -59,7 +59,7 @@ func (s containerService) Create(ctx context.Context, environmentID string, requ
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
-	cont, err := s.containerRepository.Create(ctx, environmentID, request)
+	cont, err := s.containerRepository.Create(ctx, environmentID, request.ContainerUpsertRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
@@ -111,7 +111,7 @@ func (s containerService) Update(ctx context.Context, containerID string, reques
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
 	}
 
-	cont, err := s.containerRepository.Update(ctx, containerID, request)
+	cont, err := s.containerRepository.Update(ctx, containerID, request.ContainerUpsertRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
 	}

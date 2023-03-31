@@ -1,9 +1,8 @@
 package qovery
 
 import (
-	"context"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
@@ -33,7 +32,6 @@ type Container struct {
 	ExternalHost      types.String `tfsdk:"external_host"`
 	InternalHost      types.String `tfsdk:"internal_host"`
 	DeploymentStageId types.String `tfsdk:"deployment_stage_id"`
-	AdvancedSettings  types.Object `tfsdk:"advanced_settings"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
@@ -64,15 +62,15 @@ func (cont Container) ArgumentList() []string {
 //	return toCustomDomainList(cont.CustomDomains)
 //}
 
-func (cont Container) toUpsertServiceRequest(plan *Container) (*container.UpsertServiceRequest, error) {
+func (cont Container) toUpsertServiceRequest(state *Container) (*container.UpsertServiceRequest, error) {
 	var stateEnvironmentVariables EnvironmentVariableList
-	if plan != nil {
-		stateEnvironmentVariables = plan.EnvironmentVariableList()
+	if state != nil {
+		stateEnvironmentVariables = state.EnvironmentVariableList()
 	}
 
 	var stateSecrets SecretList
-	if plan != nil {
-		stateSecrets = plan.SecretList()
+	if state != nil {
+		stateSecrets = state.SecretList()
 	}
 
 	//var stateCustomDomains CustomDomainList
@@ -80,17 +78,11 @@ func (cont Container) toUpsertServiceRequest(plan *Container) (*container.Upsert
 	//	stateCustomDomains = state.CustomDomainsList()
 	//}
 
-	advSettings, err := toMapStringString(cont.AdvancedSettings)
-	if err != nil {
-		tflog.Warn(context.Background(), "Unable to parse advanced settings, some values will be skipped. It could be related to an outdated version of the provider.", map[string]interface{}{"error": err.Error()})
-	}
-
 	return &container.UpsertServiceRequest{
 		ContainerUpsertRequest: cont.toUpsertRepositoryRequest(),
 		EnvironmentVariables:   cont.EnvironmentVariableList().diffRequest(stateEnvironmentVariables),
 		Secrets:                cont.SecretList().diffRequest(stateSecrets),
 		//CustomDomains:          cont.CustomDomainsList().diff(stateCustomDomains),
-		AdvancedSettings: advSettings,
 	}, nil
 }
 
@@ -147,6 +139,5 @@ func convertDomainContainerToContainer(state Container, container *container.Con
 		ExternalHost:                fromStringPointer(container.ExternalHost),
 		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), container.Secrets, variable.ScopeContainer).toTerraformSet(),
 		DeploymentStageId:           fromString(container.DeploymentStageID),
-		AdvancedSettings:            fromStringMap(container.ContainerAdvancedSettings, GetContainerSettingsDefault()),
 	}
 }
