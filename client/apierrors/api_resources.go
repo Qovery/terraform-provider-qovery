@@ -21,8 +21,4 @@ const (
 	APIResourceEnvironmentSecret              APIResource = "environment secret"
 	APIResourceEnvironmentStatus              APIResource = "environment status"
 	APIResourceClusterAdvancedSettings        APIResource = "cluster advanced settings"
-	APIResourceApplicationAdvancedSettings    APIResource = "application advanced settings"
-	APIResourceContainerAdvancedSettings      APIResource = "container advanced settings"
-	APIResourceCronJobAdvancedSettings        APIResource = "cron job advanced settings"
-	APIResourceLifecycleJobAdvancedSettings   APIResource = "lifecycle job advanced settings"
 )

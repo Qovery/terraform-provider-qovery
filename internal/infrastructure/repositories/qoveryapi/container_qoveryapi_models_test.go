@@ -63,7 +63,7 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			fakeDeploymentStageId := uuid.NewString()
-			cont, err := newDomainContainerFromQovery(tc.Container, fakeDeploymentStageId, make(map[string]interface{}))
+			cont, err := newDomainContainerFromQovery(tc.Container, fakeDeploymentStageId)
 			if tc.ExpectedError != nil {
 				assert.ErrorContains(t, err, tc.ExpectedError.Error())
 				assert.Nil(t, cont)
