@@ -27,23 +27,23 @@ import (
 
 type ClientEnum interface {
 	environment.Mode |
-		organization.Plan |
-		port.Protocol |
-		qovery.BuildPackLanguageEnum |
-		qovery.CloudProviderEnum |
-		qovery.CustomDomainStatusEnum |
-		qovery.DatabaseAccessibilityEnum |
-		qovery.DatabaseModeEnum |
-		qovery.DatabaseTypeEnum |
-		qovery.KubernetesEnum |
-		qovery.PlanEnum |
-		qovery.PortProtocolEnum |
-		qovery.StateEnum |
-		qovery.StorageTypeEnum |
-		registry.Kind |
-		status.State |
-		storage.Type |
-		qovery.BuildModeEnum
+	organization.Plan |
+	port.Protocol |
+	qovery.BuildPackLanguageEnum |
+	qovery.CloudProviderEnum |
+	qovery.CustomDomainStatusEnum |
+	qovery.DatabaseAccessibilityEnum |
+	qovery.DatabaseModeEnum |
+	qovery.DatabaseTypeEnum |
+	qovery.KubernetesEnum |
+	qovery.PlanEnum |
+	qovery.PortProtocolEnum |
+	qovery.StateEnum |
+	qovery.StorageTypeEnum |
+	registry.Kind |
+	status.State |
+	storage.Type |
+	qovery.BuildModeEnum
 }
 
 func clientEnumToStringArray[T ClientEnum](enum []T) []string {
@@ -295,16 +295,16 @@ func fromTfValueToGoValue(v attr.Value) (interface{}, error) {
 }
 
 func fromStringMap(value *map[string]interface{}, defaultSettings map[string]AdvSettingAttr) types.Object {
-	if value == nil || len(*value) == 0 {
-		return types.Object{Null: true, AttrTypes: nil}
-	}
-
-	attrs := make(map[string]attr.Value)
 	attrTypes := make(map[string]attr.Type)
 	for k, f := range defaultSettings {
 		attrTypes[k] = f.Type
 	}
 
+	if value == nil || len(*value) == 0 {
+		return types.Object{Null: true, AttrTypes: attrTypes}
+	}
+
+	attrs := make(map[string]attr.Value)
 	for k, f := range *value {
 		attribute, err := fromGoValueToTfValue(f, attrTypes[k])
 

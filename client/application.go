@@ -212,8 +212,6 @@ func (c *Client) createApplication(ctx context.Context, application *qovery.Appl
 	var advSettings *map[string]interface{}
 	if len(params.AdvancedSettings) > 0 {
 		advSettings, apiErr = c.editApplicationAdvancedSettings(ctx, application.Id, params.AdvancedSettings)
-	} else {
-		advSettings, apiErr = c.getApplicationAdvancedSettings(ctx, application.Id)
 	}
 	if apiErr != nil {
 		return nil, apiErr
@@ -278,8 +276,6 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 	var advSettings *map[string]interface{}
 	if len(params.AdvancedSettings) > 0 {
 		advSettings, apiErr = c.editApplicationAdvancedSettings(ctx, application.Id, params.AdvancedSettings)
-	} else {
-		advSettings, apiErr = c.getApplicationAdvancedSettings(ctx, application.Id)
 	}
 	if apiErr != nil {
 		return nil, apiErr

@@ -392,7 +392,6 @@ func (r containerResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diag
 			"advanced_settings": {
 				Description: "Advanced settings of the container.",
 				Optional:    true,
-				Computed:    true,
 				Attributes:  tfsdk.SingleNestedAttributes(advSettings),
 			},
 		},

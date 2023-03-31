@@ -85,9 +85,15 @@ func (c containerQoveryAPI) Get(ctx context.Context, containerID string) (*conta
 	}
 
 	// Get container adv settings
-	advSettings, settingsErr := handleContainerAdvSettings(nil, container.Id, ctx, c.client)
-	if settingsErr != nil {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, container.Id, resp, err)
+	var containerAdvSettings *qovery.ContainerAdvancedSettings
+	containerAdvSettings, resp, err = c.client.ContainerConfigurationApi.GetContainerAdvancedSettings(ctx, container.Id).Execute()
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
+		return nil, apierrors.NewApiErrorFromError(err)
+	}
+
+	advSettings, mapErr := fromContainerAdvancedSettings(containerAdvSettings)
+	if mapErr != nil {
+		return nil, err
 	}
 
 	return newDomainContainerFromQovery(container, deploymentStage.Id, advSettings)
@@ -169,6 +175,9 @@ func fromContainerAdvancedSettings(s *qovery.ContainerAdvancedSettings) (map[str
 }
 
 func toContainerAdvancedSettings(s map[string]interface{}) (qovery.ContainerAdvancedSettings, error) {
+	if s == nil {
+		return qovery.ContainerAdvancedSettings{}, nil
+	}
 	resp, marshalErr := json.Marshal(s)
 	if marshalErr != nil {
 		return qovery.ContainerAdvancedSettings{}, marshalErr
@@ -192,10 +201,8 @@ func handleContainerAdvSettings(containerSettings map[string]interface{}, contai
 	}
 	if containerSettings != nil && len(containerSettings) > 0 {
 		containerAdvSettings, resp, err = client.ContainerConfigurationApi.EditContainerAdvancedSettings(ctx, containerId).ContainerAdvancedSettings(advSettings).Execute()
-	} else {
-		containerAdvSettings, resp, err = client.ContainerConfigurationApi.GetContainerAdvancedSettings(ctx, containerId).Execute()
 	}
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewApiErrorFromError(err)
 	}
 

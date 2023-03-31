@@ -276,7 +276,6 @@ func (r clusterResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagno
 			"advanced_settings": {
 				Description: "Advanced settings of the cluster.",
 				Optional:    true,
-				Computed:    true,
 				Attributes:  tfsdk.SingleNestedAttributes(advSettings),
 			},
 		},

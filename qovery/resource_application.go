@@ -491,7 +491,6 @@ func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 			"advanced_settings": {
 				Description: "Advanced settings of the application.",
 				Optional:    true,
-				Computed:    true,
 				Attributes:  tfsdk.SingleNestedAttributes(advSettings),
 			},
 		},

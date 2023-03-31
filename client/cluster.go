@@ -69,6 +69,14 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 }
 
 func (c *Client) UpdateCluster(ctx context.Context, organizationID string, clusterID string, params *ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
+	var apiErr *apierrors.APIError
+	if len(params.ClusterAdvancedSettings) > 0 {
+		_, apiErr = c.editClusterAdvancedSettings(ctx, organizationID, clusterID, params.ClusterAdvancedSettings)
+	}
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	cluster, res, err := c.api.ClustersApi.
 		EditCluster(ctx, organizationID, clusterID).
 		ClusterRequest(params.ClusterRequest).
@@ -150,8 +158,6 @@ func (c *Client) updateCluster(ctx context.Context, organizationID string, clust
 	var advSettings *map[string]interface{}
 	var apiErr *apierrors.APIError
 	if len(params.ClusterAdvancedSettings) > 0 {
-		advSettings, apiErr = c.editClusterAdvancedSettings(ctx, organizationID, cluster.Id, params.ClusterAdvancedSettings)
-	} else {
 		advSettings, apiErr = c.getClusterAdvancedSettings(ctx, organizationID, cluster.Id)
 	}
 	if apiErr != nil {
