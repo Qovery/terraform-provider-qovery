@@ -28,6 +28,7 @@ data "qovery_job" "my_job" {
 ### Optional
 
 - `deployment_stage_id` (String) Id of the deployment stage.
+- `port` (Number) Job's probes port.
 - `secrets` (Attributes Set) List of secrets linked to this job. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
@@ -43,7 +44,6 @@ data "qovery_job" "my_job" {
 - `max_nb_restart` (Number) Job's max number of restarts
 - `memory` (Number) RAM of the job in MB [1024MB = 1GB].
 - `name` (String) Name of the job.
-- `port` (Number) Job's probes port.
 - `schedule` (Attributes) Job's schedule. (see [below for nested schema](#nestedatt--schedule))
 - `source` (Attributes) Job's source. (see [below for nested schema](#nestedatt--source))
 
@@ -155,7 +155,6 @@ Read-Only:
 Read-Only:
 
 - `branch` (String) Job's docker source git repository branch.
-- `commit_id` (String) Job's docker source git repository commit ID.
 - `root_path` (String) Job's docker source git repository root path.
 - `url` (String) Job's docker source git repository URL.
 
