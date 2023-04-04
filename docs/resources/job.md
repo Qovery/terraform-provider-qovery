@@ -19,7 +19,6 @@ resource "qovery_job" "my_job" {
   name           = "test-job"
 
   # Optional
-  state                = "RUNNING"
   auto_preview         = "true"
   cpu                  = 500
   memory               = 512
@@ -45,16 +44,16 @@ resource "qovery_job" "my_job" {
     cronjob = {
       schedule = "*/2 * * * *"
       command = {
-        entrypoint = "/bin/sh -c"
-        arguments  = ["timeout", "15s", "yes"]
+        entrypoint = ""
+        arguments  = ["echo", "'DONE'"]
       }
     }
   }
   source = {
     image = {
       registry_id = qovery_container_registry.my_container_registry.id
-      name        = "postgres"
-      tag         = "11.18-alpine3.17"
+      name        = "debian"
+      tag         = "stable"
     }
   }
 
@@ -206,7 +205,7 @@ Optional:
 
 Required:
 
-- `git_repository` (Attributes Set) Job's docker source git repository. (see [below for nested schema](#nestedatt--source--docker--git_repository))
+- `git_repository` (Attributes) Job's docker source git repository. (see [below for nested schema](#nestedatt--source--docker--git_repository))
 
 Optional:
 
@@ -222,7 +221,6 @@ Required:
 
 Optional:
 
-- `commit_id` (String) Job's docker source git repository commit ID.
 - `root_path` (String) Job's docker source git repository root path.
 
 

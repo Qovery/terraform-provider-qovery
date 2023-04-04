@@ -1,6 +1,7 @@
 package qoveryapi
 
 import (
+	"github.com/google/uuid"
 	"github.com/qovery/qovery-client-go"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/execution_command"
@@ -20,12 +21,13 @@ func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string) (*j
 
 	var prt *port.NewPortParams = nil
 	if j.Port.IsSet() {
-		rawPort := *j.Port.Get()
-		prt = &port.NewPortParams{
-			PortID:             string(rawPort),
-			InternalPort:       rawPort,
-			PubliclyAccessible: false,
-			Protocol:           port.ProtocolHTTP.String(),
+		if rawPort := j.Port.Get(); rawPort != nil {
+			prt = &port.NewPortParams{
+				PortID:             uuid.New().String(),
+				InternalPort:       *rawPort,
+				PubliclyAccessible: false,
+				Protocol:           port.ProtocolHTTP.String(),
+			}
 		}
 	}
 

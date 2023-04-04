@@ -38,7 +38,6 @@ func JobSourceFromDomainJobSource(j job.JobSource) JobSource {
 			GitRepository: GitRepository{
 				Url:      j.Docker.GitRepository.Url,
 				Branch:   j.Docker.GitRepository.Branch,
-				CommitID: j.Docker.GitRepository.CommitID,
 				RootPath: j.Docker.GitRepository.RootPath,
 			},
 			DockerFilePath: j.Docker.DockerFilePath,

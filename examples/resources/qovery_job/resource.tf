@@ -29,16 +29,16 @@ resource "qovery_job" "my_job" {
     cronjob = {
       schedule = "*/2 * * * *"
       command = {
-        entrypoint = "/bin/sh -c"
-        arguments  = ["timeout", "15s", "yes"]
+        entrypoint = ""
+        arguments  = ["echo", "'DONE'"]
       }
     }
   }
   source = {
     image = {
       registry_id = qovery_container_registry.my_container_registry.id
-      name        = "postgres"
-      tag         = "11.18-alpine3.17"
+      name        = "debian"
+      tag         = "stable"
     }
   }
 

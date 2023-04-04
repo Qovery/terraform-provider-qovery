@@ -12,7 +12,7 @@ var (
 	ErrInvalidJobScheduleOnDeleteParam         = errors.New("invalid `on delete` param")
 	ErrInvalidJobScheduleCronParam             = errors.New("invalid `cron job` param")
 	ErrInvalidJobScheduleMissingRequiredParams = errors.New("invalid job schedule: at least one of `OnStart`, `OnStop`, `OnDelete` or `CronJob` should be set")
-	ErrInvalidJobScheduleTooManyParams         = errors.New("invalid job schedule: only one of `OnStart`, `OnStop`, `OnDelete` or `CronJob` should be set")
+	ErrInvalidJobScheduleWrongScheduleParams   = errors.New("invalid job schedule: either `CronJob` OR at least one of `OnStart`, `OnStop`, `OnDelete` or should be set")
 )
 
 type JobSchedule struct {
@@ -23,11 +23,9 @@ type JobSchedule struct {
 }
 
 func (s JobSchedule) Validate() error {
-	if (s.OnStart != nil && (s.OnStop != nil || s.OnDelete != nil || s.CronJob != nil)) ||
-		(s.OnStop != nil && (s.OnStart != nil || s.OnDelete != nil || s.CronJob != nil)) ||
-		(s.OnDelete != nil && (s.OnStart != nil || s.OnStop != nil || s.CronJob != nil)) ||
-		(s.CronJob != nil && (s.OnStart != nil || s.OnStop != nil || s.OnDelete != nil)) {
-		return ErrInvalidJobScheduleTooManyParams
+	// Either CronJob OR at least one of OnStart, OnStop, OnDelete
+	if s.CronJob != nil && (s.OnStart != nil || s.OnStop != nil || s.OnDelete != nil) {
+		return ErrInvalidJobScheduleWrongScheduleParams
 	}
 
 	if s.OnStart == nil && s.OnStop == nil && s.OnDelete == nil && s.CronJob == nil {

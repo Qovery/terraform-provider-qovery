@@ -294,7 +294,7 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 							"git_repository": {
 								Description: "Job's docker source git repository.",
 								Required:    true,
-								Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+								Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
 									"url": {
 										Description: "Job's docker source git repository URL.",
 										Type:        types.StringType,
@@ -305,19 +305,10 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 										Type:        types.StringType,
 										Required:    true,
 									},
-									"commit_id": {
-										Description: "Job's docker source git repository commit ID.",
-										Type:        types.StringType,
-										Optional:    true,
-									},
 									"root_path": {
 										Description: "Job's docker source git repository root path.",
 										Type:        types.StringType,
 										Optional:    true,
-										Computed:    true,
-										PlanModifiers: tfsdk.AttributePlanModifiers{
-											modifiers.NewStringDefaultModifier(applicationGitRepositoryRootPathDefault),
-										},
 									},
 								}),
 							},
