@@ -4,7 +4,6 @@ resource "qovery_job" "my_job" {
   name           = "test-job"
 
   # Optional
-  state                = "RUNNING"
   auto_preview         = "true"
   cpu                  = 500
   memory               = 512
