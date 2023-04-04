@@ -17,8 +17,10 @@ import (
 )
 
 const (
-	jobImageName = "terraform-provider-tests-container"
-	jobImageTag  = "1.0.0"
+	jobImageName                     = "terraform-provider-tests-job"
+	jobImageTag                      = "1.0.0"
+	jobScheduleCronString            = "*/2 * * * *"
+	jobScheduleCronCommandEntrypoint = ""
 )
 
 func TestAcc_Job(t *testing.T) {
@@ -31,45 +33,34 @@ func TestAcc_Job(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccEnvironmentDefaultConfig(
+				Config: testAccJobDefaultConfig(
 					testName,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "id", getTestJobID()),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "environment_id", getTestEnvironmentID()),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "name", "test-job"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "auto_preview", "true"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "cpu", "500"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "memory", "512"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "max_duration_seconds", "23"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "max_nb_restart", "1"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "port", "5432"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "source.image.registry_id", getTestContainerRegistryID()),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "source.image.name", jobImageName),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "source.image.tag", jobImageTag),
-					resource.TestCheckNoResourceAttr("data.qovery_job.test", "schedule.on_start"),
-					resource.TestCheckNoResourceAttr("data.qovery_job.test", "schedule.on_stop"),
-					resource.TestCheckNoResourceAttr("data.qovery_job.test", "schedule.on_delete"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "schedule.cronjob.schedule", "*/2 * * * *"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "schedule.cronjob.schedule.command.entrypoint", "/bin/sh -c"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "schedule.cronjob.schedule.command.arguments.0", "timeout"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "schedule.cronjob.schedule.command.arguments.1", "15s"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "schedule.cronjob.schedule.command.arguments.2", "yes"),
-					resource.TestMatchTypeSetElemNestedAttrs("data.qovery_job.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckResourceAttr("qovery_job.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_job.test", "auto_preview", "false"),
+					resource.TestCheckResourceAttr("qovery_job.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_job.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_job.test", "max_duration_seconds", "300"),
+					resource.TestCheckResourceAttr("qovery_job.test", "max_nb_restart", "0"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "port"),
+					resource.TestCheckResourceAttr("qovery_job.test", "source.image.name", jobImageName),
+					resource.TestCheckResourceAttr("qovery_job.test", "source.image.tag", jobImageTag),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.on_start"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.on_stop"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.on_delete"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.cronjob.schedule", "*/2 * * * *"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.cronjob.schedule.command.entrypoint"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.cronjob.schedule.command.arguments"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_job.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
-					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_job.test", "environment_variables.*", map[string]string{
-						"key":   "MY_TERRAFORM_CONTAINER_VARIABLE",
-						"value": "MY_TERRAFORM_CONTAINER_VARIABLE_VALUE",
-					}),
-					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_job.test", "secrets.*", map[string]string{
-						"key": "MY_TERRAFORM_CONTAINER_SECRET",
-					}),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "external_host", "zc4425337-z92544d94-gtw.zc531a994.rustrocks.cloud"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "internal_host", "job-za7d391bf"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "external_host"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "internal_host"),
 				),
 			},
 			// Update name
@@ -83,43 +74,31 @@ func TestAcc_Job(t *testing.T) {
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
 					testAccQoveryJobExists("qovery_job.test"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "id", getTestJobID()),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "environment_id", getTestEnvironmentID()),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "name", fmt.Sprintf("%s-updated", testName)),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "auto_preview", "true"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "cpu", "500"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "memory", "512"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "max_duration_seconds", "23"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "max_nb_restart", "1"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "port", "5432"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "source.image.registry_id", getTestContainerRegistryID()),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "source.image.name", jobImageName),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "source.image.tag", jobImageTag),
-					resource.TestCheckNoResourceAttr("data.qovery_job.test", "schedule.on_start"),
-					resource.TestCheckNoResourceAttr("data.qovery_job.test", "schedule.on_stop"),
-					resource.TestCheckNoResourceAttr("data.qovery_job.test", "schedule.on_delete"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "schedule.cronjob.schedule", "*/2 * * * *"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "schedule.cronjob.schedule.command.entrypoint", "/bin/sh -c"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "schedule.cronjob.schedule.command.arguments.0", "timeout"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "schedule.cronjob.schedule.command.arguments.1", "15s"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "schedule.cronjob.schedule.command.arguments.2", "yes"),
-					resource.TestMatchTypeSetElemNestedAttrs("data.qovery_job.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+					resource.TestCheckResourceAttr("qovery_job.test", "name", fmt.Sprintf("%s-updated", testName)),
+					resource.TestCheckResourceAttr("qovery_job.test", "auto_preview", "false"),
+					resource.TestCheckResourceAttr("qovery_job.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_job.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_job.test", "max_duration_seconds", "300"),
+					resource.TestCheckResourceAttr("qovery_job.test", "max_nb_restart", "0"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "port"),
+					resource.TestCheckResourceAttr("qovery_job.test", "source.image.name", jobImageName),
+					resource.TestCheckResourceAttr("qovery_job.test", "source.image.tag", jobImageTag),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.on_start"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.on_stop"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.on_delete"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.cronjob.schedule", "*/2 * * * *"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.cronjob.schedule.command.entrypoint"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.cronjob.schedule.command.arguments"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_job.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
-					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_job.test", "environment_variables.*", map[string]string{
-						"key":   "MY_TERRAFORM_CONTAINER_VARIABLE",
-						"value": "MY_TERRAFORM_CONTAINER_VARIABLE_VALUE",
-					}),
-					resource.TestCheckTypeSetElemNestedAttrs("data.qovery_job.test", "secrets.*", map[string]string{
-						"key": "MY_TERRAFORM_CONTAINER_SECRET",
-					}),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "external_host", "zc4425337-z92544d94-gtw.zc531a994.rustrocks.cloud"),
-					resource.TestCheckResourceAttr("data.qovery_job.test", "internal_host", "job-za7d391bf"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "external_host"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "internal_host"),
 				),
 			},
 			// Check Import
 			{
-				ResourceName:      "qovery_environment.test",
+				ResourceName:      "qovery_job.test",
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
@@ -136,9 +115,27 @@ func testAccJobDefaultConfig(testName string) string {
 resource "qovery_job" "test" {
   environment_id = qovery_environment.test.id
   name = "%s"
+
+  source = {
+    image = {
+      registry_id = qovery_container_registry.test.id
+      name = "%s"
+      tag = "%s"
+    }
+  }
+
+  schedule = {
+    cronjob = {
+      schedule = "%s"
+        command = {
+          entrypoint = "%s"
+          arguments = []
+        }
+      }
+    }
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName),
-	)
+		jobImageName, jobImageTag, jobScheduleCronString, jobScheduleCronCommandEntrypoint)
 }
 
 func testAccJobDefaultConfigWithName(testName string, name string) string {
@@ -150,9 +147,27 @@ func testAccJobDefaultConfigWithName(testName string, name string) string {
 resource "qovery_job" "test" {
   environment_id = qovery_environment.test.id
   name = "%s"
+
+  source = {
+    image = {
+      registry_id = qovery_container_registry.test.id
+      name = "%s"
+      tag = "%s"
+    }
+  }
+
+  schedule = {
+    cronjob = {
+      schedule = "%s"
+        command = {
+          entrypoint = "%s"
+          arguments = []
+        }
+      }
+    }
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), name,
-	)
+		jobImageName, jobImageTag, jobScheduleCronString, jobScheduleCronCommandEntrypoint)
 }
 
 func testAccQoveryJobExists(resourceName string) resource.TestCheckFunc {
@@ -178,11 +193,11 @@ func testAccQoveryJobDestroy(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok {
-			return fmt.Errorf("environment not found: %s", resourceName)
+			return fmt.Errorf("job not found: %s", resourceName)
 		}
 
 		if rs.Primary.ID == "" {
-			return fmt.Errorf("environment.id not found")
+			return fmt.Errorf("job.id not found")
 		}
 
 		_, err := qoveryServices.Job.Get(context.TODO(), rs.Primary.ID)

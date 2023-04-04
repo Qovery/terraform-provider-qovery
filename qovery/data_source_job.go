@@ -95,6 +95,7 @@ func (d jobDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnost
 				Description: "Job's probes port.",
 				Type:        types.Int64Type,
 				Computed:    true,
+				Optional:    true,
 			},
 			"schedule": {
 				Description: "Job's schedule.",
@@ -256,11 +257,6 @@ func (d jobDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnost
 									},
 									"branch": {
 										Description: "Job's docker source git repository branch.",
-										Type:        types.StringType,
-										Computed:    true,
-									},
-									"commit_id": {
-										Description: "Job's docker source git repository commit ID.",
 										Type:        types.StringType,
 										Computed:    true,
 									},

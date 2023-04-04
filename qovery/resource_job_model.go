@@ -179,8 +179,8 @@ type Job struct {
 	MaxNbRestart       types.Int64  `tfsdk:"max_nb_restart"`
 	AutoPreview        types.Bool   `tfsdk:"auto_preview"`
 
-	Source   JobSource   `tfsdk:"source"`
-	Schedule JobSchedule `tfsdk:"schedule"`
+	Source   *JobSource   `tfsdk:"source"`
+	Schedule *JobSchedule `tfsdk:"schedule"`
 
 	BuiltInEnvironmentVariables types.Set    `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables        types.Set    `tfsdk:"environment_variables"`
@@ -243,6 +243,9 @@ func convertDomainJobToJob(state Job, job *job.Job) Job {
 		prt = &job.Port.InternalPort
 	}
 
+	source := JobSourceFromDomainJobSource(job.Source)
+	schedule := JobScheduleFromDomainJobSchedule(job.Schedule)
+
 	return Job{
 		ID:                          fromString(job.ID.String()),
 		EnvironmentID:               fromString(job.EnvironmentID.String()),
@@ -253,8 +256,8 @@ func convertDomainJobToJob(state Job, job *job.Job) Job {
 		MaxDurationSeconds:          fromUInt32(job.MaxDurationSeconds),
 		AutoPreview:                 fromBool(job.AutoPreview),
 		Port:                        fromInt32Pointer(prt),
-		Source:                      JobSourceFromDomainJobSource(job.Source),
-		Schedule:                    JobScheduleFromDomainJobSchedule(job.Schedule),
+		Source:                      &source,
+		Schedule:                    &schedule,
 		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(job.EnvironmentVariables, variable.ScopeJob).toTerraformSet(),
 		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(job.BuiltInEnvironmentVariables, variable.ScopeBuiltIn).toTerraformSet(),
 		InternalHost:                fromStringPointer(job.InternalHost),
