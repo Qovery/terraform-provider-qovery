@@ -167,6 +167,7 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 								Description: "Entrypoint of the job.",
 								Type:        types.StringType,
 								Optional:    true,
+								Computed:    true,
 							},
 							"arguments": {
 								Description: "List of arguments of this job.",
@@ -189,6 +190,7 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 								Description: "Entrypoint of the job.",
 								Type:        types.StringType,
 								Optional:    true,
+								Computed:    true,
 							},
 							"arguments": {
 								Description: "List of arguments of this job.",
@@ -211,6 +213,7 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 								Description: "Entrypoint of the job.",
 								Type:        types.StringType,
 								Optional:    true,
+								Computed:    true,
 							},
 							"arguments": {
 								Description: "List of arguments of this job.",
@@ -243,6 +246,7 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 										Description: "Entrypoint of the job.",
 										Type:        types.StringType,
 										Optional:    true,
+										Computed:    true,
 									},
 									"arguments": {
 										Description: "List of arguments of this job.",
