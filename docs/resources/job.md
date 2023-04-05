@@ -132,37 +132,28 @@ Optional:
 <a id="nestedatt--schedule--on_delete"></a>
 ### Nested Schema for `schedule.on_delete`
 
-Required:
-
-- `entrypoint` (String) Entrypoint of the job.
-
 Optional:
 
 - `arguments` (List of String) List of arguments of this job.
+- `entrypoint` (String) Entrypoint of the job.
 
 
 <a id="nestedatt--schedule--on_start"></a>
 ### Nested Schema for `schedule.on_start`
 
-Required:
-
-- `entrypoint` (String) Entrypoint of the job.
-
 Optional:
 
 - `arguments` (List of String) List of arguments of this job.
+- `entrypoint` (String) Entrypoint of the job.
 
 
 <a id="nestedatt--schedule--on_stop"></a>
 ### Nested Schema for `schedule.on_stop`
 
-Required:
-
-- `entrypoint` (String) Entrypoint of the job.
-
 Optional:
 
 - `arguments` (List of String) List of arguments of this job.
+- `entrypoint` (String) Entrypoint of the job.
 
 
 
