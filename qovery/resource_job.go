@@ -166,11 +166,12 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 							"entrypoint": {
 								Description: "Entrypoint of the job.",
 								Type:        types.StringType,
-								Required:    true,
+								Optional:    true,
 							},
 							"arguments": {
 								Description: "List of arguments of this job.",
 								Optional:    true,
+								Computed:    true,
 								Type: types.ListType{
 									ElemType: types.StringType,
 								},
@@ -187,11 +188,12 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 							"entrypoint": {
 								Description: "Entrypoint of the job.",
 								Type:        types.StringType,
-								Required:    true,
+								Optional:    true,
 							},
 							"arguments": {
 								Description: "List of arguments of this job.",
 								Optional:    true,
+								Computed:    true,
 								Type: types.ListType{
 									ElemType: types.StringType,
 								},
@@ -208,11 +210,12 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 							"entrypoint": {
 								Description: "Entrypoint of the job.",
 								Type:        types.StringType,
-								Required:    true,
+								Optional:    true,
 							},
 							"arguments": {
 								Description: "List of arguments of this job.",
 								Optional:    true,
+								Computed:    true,
 								Type: types.ListType{
 									ElemType: types.StringType,
 								},
@@ -244,6 +247,7 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 									"arguments": {
 										Description: "List of arguments of this job.",
 										Optional:    true,
+										Computed:    true,
 										Type: types.ListType{
 											ElemType: types.StringType,
 										},
@@ -309,6 +313,7 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 										Description: "Job's docker source git repository root path.",
 										Type:        types.StringType,
 										Optional:    true,
+										Computed:    true,
 									},
 								}),
 							},
