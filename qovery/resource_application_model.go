@@ -1,9 +1,10 @@
 package qovery
 
 import (
+	"context"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
-
 	"github.com/qovery/terraform-provider-qovery/client"
 )
 
@@ -31,6 +32,7 @@ type Application struct {
 	Entrypoint                  types.String              `tfsdk:"entrypoint"`
 	Arguments                   types.List                `tfsdk:"arguments"`
 	DeploymentStageId           types.String              `tfsdk:"deployment_stage_id"`
+	AdvancedSettings            types.Object              `tfsdk:"advanced_settings"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
@@ -77,6 +79,11 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		buildMode = bm
 	}
 
+	advSettings, err := ToMapStringString(app.AdvancedSettings)
+	if err != nil {
+		tflog.Warn(context.Background(), "Unable to parse advanced settings, some values will be skipped. It could be related to an outdated version of the provider.", map[string]interface{}{"error": err.Error()})
+	}
+
 	return &client.ApplicationCreateParams{
 		ApplicationRequest: qovery.ApplicationRequest{
 			Name:                ToString(app.Name),
@@ -98,6 +105,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		SecretsDiff:                  app.SecretList().diff(nil),
 		CustomDomainsDiff:            app.CustomDomainsList().diff(nil),
 		ApplicationDeploymentStageID: ToString(app.DeploymentStageId),
+		AdvancedSettings:             advSettings,
 	}, nil
 
 }
@@ -162,12 +170,19 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		Entrypoint:          ToStringPointer(app.Entrypoint),
 		Arguments:           ToStringArray(app.Arguments),
 	}
+
+	advSettings, err := ToMapStringString(app.AdvancedSettings)
+	if err != nil {
+		tflog.Warn(context.Background(), "Unable to parse advanced settings, some values will be skipped. It could be related to an outdated version of the provider.", map[string]interface{}{"error": err.Error()})
+	}
+
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:       applicationEditRequest,
 		EnvironmentVariablesDiff:     app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
 		SecretsDiff:                  app.SecretList().diff(state.SecretList()),
 		CustomDomainsDiff:            app.CustomDomainsList().diff(state.CustomDomainsList()),
 		ApplicationDeploymentStageID: ToString(app.DeploymentStageId),
+		AdvancedSettings:             advSettings,
 	}, nil
 
 }
@@ -197,6 +212,7 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		Entrypoint:                  FromStringPointer(app.ApplicationResponse.Entrypoint),
 		Arguments:                   FromStringArray(app.ApplicationResponse.Arguments),
 		DeploymentStageId:           FromString(app.ApplicationDeploymentStageID),
+		AdvancedSettings:            FromStringMap(app.ApplicationAdvancedSettings, GetApplicationSettingsDefault()),
 	}
 }
 

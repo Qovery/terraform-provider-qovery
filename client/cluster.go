@@ -151,8 +151,6 @@ func (c *Client) updateCluster(ctx context.Context, organizationID string, clust
 	var apiErr *apierrors.APIError
 	if len(params.ClusterAdvancedSettings) > 0 {
 		advSettings, apiErr = c.editClusterAdvancedSettings(ctx, organizationID, cluster.Id, params.ClusterAdvancedSettings)
-	} else {
-		advSettings, apiErr = c.getClusterAdvancedSettings(ctx, organizationID, cluster.Id)
 	}
 	if apiErr != nil {
 		return nil, apiErr

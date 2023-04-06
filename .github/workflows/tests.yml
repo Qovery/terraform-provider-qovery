@@ -135,6 +135,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
+      # concurrent jobs make CI fails (probably manipulating same object at the same time). Setting it to 1 job at a time fix the issue
+      max-parallel: 1
+
     steps:
       - name: Set up Go
         uses: actions/setup-go@v3

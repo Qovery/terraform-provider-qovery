@@ -51,6 +51,7 @@ tasks:
     env:
       TF_ACC: true
     cmds:
+      - go clean -testcache
       - go test -tags=integration -v -cover -timeout 2h ./...
 
   docs:

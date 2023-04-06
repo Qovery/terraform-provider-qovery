@@ -2,10 +2,8 @@ package services
 
 import (
 	"context"
-
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
@@ -59,7 +57,7 @@ func (s containerService) Create(ctx context.Context, environmentID string, requ
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
-	cont, err := s.containerRepository.Create(ctx, environmentID, request.ContainerUpsertRequest)
+	cont, err := s.containerRepository.Create(ctx, environmentID, request)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
@@ -111,7 +109,7 @@ func (s containerService) Update(ctx context.Context, containerID string, reques
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
 	}
 
-	cont, err := s.containerRepository.Update(ctx, containerID, request.ContainerUpsertRequest)
+	cont, err := s.containerRepository.Update(ctx, containerID, request)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
 	}

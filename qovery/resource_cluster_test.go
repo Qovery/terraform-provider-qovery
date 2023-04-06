@@ -262,6 +262,43 @@ func TestAcc_ClusterWithStaticIP(t *testing.T) {
 	})
 }
 
+func TestAcc_ClusterWithAdvSettings(t *testing.T) {
+	t.SkipNow()
+	t.Parallel()
+	testName := "cluster-with-adv-settings"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccClusterDefaultConfigWithAdvSettings(
+					testName,
+					"AWS",
+					"eu-west-3",
+					"t3.medium",
+					clusterAdvSettingsString(),
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAWSCredentialsID()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "t3.medium"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "advanced_settings", clusterAdvSettingsString()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "RUNNING"),
+				),
+			},
+		},
+	})
+}
+
 func testAccQoveryClusterExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
@@ -419,6 +456,21 @@ resource "qovery_cluster" "test" {
 	)
 }
 
+func testAccClusterDefaultConfigWithAdvSettings(testName string, cloudProvider string, region string, instanceType string, advSettings string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id = "%s"
+  organization_id = "%s"
+  name = "%s"
+  cloud_provider = "%s"
+  region = "%s"
+  instance_type = "%s"
+  advanced_settings = %s
+}
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, advSettings,
+	)
+}
+
 func convertRoutingTableToString(routingTable map[string]string) string {
 	routes := make([]string, 0, len(routingTable))
 	idx := 0
@@ -427,4 +479,28 @@ func convertRoutingTableToString(routingTable map[string]string) string {
 		idx++
 	}
 	return fmt.Sprintf("[%s]", strings.Join(routes, ","))
+}
+
+func clusterAdvSettingsString() string {
+	return fmt.Sprintf(`  
+{
+    "loki.log_retention_in_week" = 1
+    "aws.cloudwatch.eks_logs_retention_days" = 1
+    "aws.eks.ec2.metadata_imds" = "optional"
+    "aws.iam.admin_group" = "Admins"
+    "aws.vpc.enable_s3_flow_logs" = false
+    "aws.vpc.flow_logs_retention_days" = 1
+    "cloud_provider.container_registry.tags" = {}
+    "database.mongodb.allowed_cidrs" = ["0.0.0.0/0"]
+    "database.mongodb.deny_public_access" = true
+    "database.mysql.allowed_cidrs" = ["0.0.0.0/0"]
+    "database.mysql.deny_public_access" = true
+    "database.postgresql.allowed_cidrs" = ["0.0.0.0/0"]
+    "database.postgresql.deny_public_access" = true
+    "database.redis.allowed_cidrs" = ["0.0.0.0/0"]
+    "database.redis.deny_public_access" = true
+    "load_balancer.size" = "lb-s"
+    "pleco.resources_ttl" = 7200
+    "registry.image_retention_time" = 3600
+}`)
 }

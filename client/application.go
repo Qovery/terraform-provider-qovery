@@ -18,6 +18,7 @@ type ApplicationResponse struct {
 	ApplicationCustomDomains        []*qovery.CustomDomain
 	ApplicationExternalHost         *string
 	ApplicationInternalHost         string
+	ApplicationAdvancedSettings     *map[string]interface{}
 }
 
 type ApplicationCreateParams struct {
@@ -26,6 +27,7 @@ type ApplicationCreateParams struct {
 	EnvironmentVariablesDiff     EnvironmentVariablesDiff
 	CustomDomainsDiff            CustomDomainsDiff
 	SecretsDiff                  SecretsDiff
+	AdvancedSettings             map[string]interface{}
 }
 
 type ApplicationUpdateParams struct {
@@ -34,6 +36,7 @@ type ApplicationUpdateParams struct {
 	EnvironmentVariablesDiff     EnvironmentVariablesDiff
 	CustomDomainsDiff            CustomDomainsDiff
 	SecretsDiff                  SecretsDiff
+	AdvancedSettings             map[string]interface{}
 }
 
 func (c *Client) CreateApplication(ctx context.Context, environmentID string, params *ApplicationCreateParams) (*ApplicationResponse, *apierrors.APIError) {
@@ -61,7 +64,7 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, application.Id, resp, err)
 	}
 
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, applicationDeploymentStage.Id)
+	return c.createApplication(ctx, application, params, applicationDeploymentStage.Id)
 }
 
 func (c *Client) GetApplication(ctx context.Context, applicationID string) (*ApplicationResponse, *apierrors.APIError) {
@@ -92,6 +95,11 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		return nil, apiErr
 	}
 
+	advSettings, apiErr := c.getApplicationAdvancedSettings(ctx, application.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	deploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, application.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
@@ -105,6 +113,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		ApplicationCustomDomains:        customDomains,
 		ApplicationExternalHost:         hosts.external,
 		ApplicationInternalHost:         hosts.internal,
+		ApplicationAdvancedSettings:     advSettings,
 	}, nil
 }
 
@@ -127,7 +136,7 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 		}
 	}
 
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.ApplicationDeploymentStageID)
+	return c.updateApplication(ctx, application, params)
 }
 
 func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *apierrors.APIError {
@@ -161,21 +170,21 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 	return nil
 }
 
-func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, environmentVariablesDiff EnvironmentVariablesDiff, secretsDiff SecretsDiff, customDomainsDiff CustomDomainsDiff, deploymentStageId string) (*ApplicationResponse, *apierrors.APIError) {
-	if !environmentVariablesDiff.IsEmpty() {
-		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application.Id, environmentVariablesDiff); apiErr != nil {
+func (c *Client) createApplication(ctx context.Context, application *qovery.Application, params *ApplicationCreateParams, deploymentStageId string) (*ApplicationResponse, *apierrors.APIError) {
+	if !params.EnvironmentVariablesDiff.IsEmpty() {
+		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application.Id, params.EnvironmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}
 
-	if !secretsDiff.IsEmpty() {
-		if apiErr := c.updateApplicationSecrets(ctx, application.Id, secretsDiff); apiErr != nil {
+	if !params.SecretsDiff.IsEmpty() {
+		if apiErr := c.updateApplicationSecrets(ctx, application.Id, params.SecretsDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}
 
-	if !customDomainsDiff.IsEmpty() {
-		if apiErr := c.updateApplicationCustomDomains(ctx, application.Id, customDomainsDiff); apiErr != nil {
+	if !params.CustomDomainsDiff.IsEmpty() {
+		if apiErr := c.updateApplicationCustomDomains(ctx, application.Id, params.CustomDomainsDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}
@@ -200,6 +209,14 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 		return nil, apiErr
 	}
 
+	var advSettings *map[string]interface{}
+	if len(params.AdvancedSettings) > 0 {
+		advSettings, apiErr = c.editApplicationAdvancedSettings(ctx, application.Id, params.AdvancedSettings)
+	}
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	return &ApplicationResponse{
 		ApplicationResponse:             application,
 		ApplicationEnvironmentVariables: environmentVariables,
@@ -208,6 +225,71 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 		ApplicationExternalHost:         hosts.external,
 		ApplicationInternalHost:         hosts.internal,
 		ApplicationDeploymentStageID:    deploymentStageId,
+		ApplicationAdvancedSettings:     advSettings,
+	}, nil
+}
+
+func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, params *ApplicationUpdateParams) (*ApplicationResponse, *apierrors.APIError) {
+	if !params.EnvironmentVariablesDiff.IsEmpty() {
+		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application.Id, params.EnvironmentVariablesDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
+	if !params.SecretsDiff.IsEmpty() {
+		if apiErr := c.updateApplicationSecrets(ctx, application.Id, params.SecretsDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
+	if !params.CustomDomainsDiff.IsEmpty() {
+		if apiErr := c.updateApplicationCustomDomains(ctx, application.Id, params.CustomDomainsDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
+	environmentVariables, apiErr := c.getApplicationEnvironmentVariables(ctx, application.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	secrets, apiErr := c.getApplicationSecrets(ctx, application.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	customDomains, apiErr := c.getApplicationCustomDomains(ctx, application.Id)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	hosts, apiErr := c.getApplicationHosts(ctx, application, environmentVariables)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	applicationDeploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, application.Id).Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, application.Id, resp, err)
+	}
+
+	var advSettings *map[string]interface{}
+	if len(params.AdvancedSettings) > 0 {
+		advSettings, apiErr = c.editApplicationAdvancedSettings(ctx, application.Id, params.AdvancedSettings)
+	}
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
+	return &ApplicationResponse{
+		ApplicationResponse:             application,
+		ApplicationEnvironmentVariables: environmentVariables,
+		ApplicationSecrets:              secrets,
+		ApplicationCustomDomains:        customDomains,
+		ApplicationExternalHost:         hosts.external,
+		ApplicationInternalHost:         hosts.internal,
+		ApplicationDeploymentStageID:    applicationDeploymentStage.Id,
+		ApplicationAdvancedSettings:     advSettings,
 	}, nil
 }
 

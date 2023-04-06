@@ -3,7 +3,6 @@ package qovery
 import (
 	"context"
 	"fmt"
-
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -55,6 +54,15 @@ func (r *containerResource) Configure(_ context.Context, req resource.ConfigureR
 }
 
 func (r containerResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
+	advSettings := map[string]tfsdk.Attribute{}
+	for k, v := range GetContainerSettingsDefault() {
+		advSettings[k] = tfsdk.Attribute{
+			Description: v.Description,
+			Required:    true,
+			Type:        v.Type,
+		}
+	}
+
 	return tfsdk.Schema{
 		Description: "Provides a Qovery container resource. This can be used to create and manage Qovery container registry.",
 		Attributes: map[string]tfsdk.Attribute{
@@ -380,6 +388,12 @@ func (r containerResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diag
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
+			},
+			"advanced_settings": {
+				Description: "Advanced settings of the container.",
+				Optional:    true,
+				Computed:    true,
+				Attributes:  tfsdk.SingleNestedAttributes(advSettings),
 			},
 		},
 	}, nil

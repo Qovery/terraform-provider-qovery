@@ -1320,6 +1320,150 @@ func TestAcc_ContainerWithPorts(t *testing.T) {
 	})
 }
 
+func TestAcc_ContainerWithAdvSettings(t *testing.T) {
+	t.Parallel()
+	testName := "container-with-adv-settings"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryContainerDestroy("qovery_container.test"),
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccContainerDefaultConfigWithAdvSettings(
+					testName,
+					containerAdvSettingsString(),
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
+					resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
+					resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.deployment.custom_domain_check_enabled", "false"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.deployment.termination_grace_period_seconds", "120"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.hpa.cpu.average_utilization_percent", "70"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.failure_threshold", "9"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.http_get.path", "/"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.initial_delay_seconds", "15"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.period_seconds", "5"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.success_threshold", "3"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.timeout_seconds", "3"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.type", "TCP"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.basic_auth_env_var", ""),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.cors_allow_headers", "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.cors_allow_methods", "GET, PUT, POST, DELETE, PATCH, OPTIONS"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.cors_allow_origin", "*"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.denylist_source_range", ""),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.enable_cors", "true"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.enable_sticky_session", "false"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.keepalive_time_seconds", "1800"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.keepalive_timeout_seconds", "60"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.proxy_body_size_mb", "50"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.proxy_buffer_size_kb", "20"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.proxy_connect_timeout_seconds", "30"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.proxy_read_timeout_seconds", "30"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.proxy_send_timeout_seconds", "30"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.send_timeout_seconds", "30"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.whitelist_source_range", "0.0.0.0/0"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.failure_threshold", "8"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.http_get.path", "/"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.initial_delay_seconds", "15"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.period_seconds", "5"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.success_threshold", "10"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.timeout_seconds", "10"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.type", "TCP"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.security.service_account_name", ""),
+				),
+			},
+			// Update advanced settings
+			{
+				Config: testAccContainerDefaultConfigWithAdvSettings(
+					testName,
+					editedContainerAdvSettingsString(),
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
+					resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
+					resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.deployment.custom_domain_check_enabled", "true"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.deployment.termination_grace_period_seconds", "240"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.hpa.cpu.average_utilization_percent", "80"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.failure_threshold", "12"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.http_get.path", "/"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.initial_delay_seconds", "60"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.period_seconds", "20"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.success_threshold", "2"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.timeout_seconds", "10"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.liveness_probe.type", "TCP"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.basic_auth_env_var", ""),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.cors_allow_headers", "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.cors_allow_methods", "GET, PUT, POST, DELETE, PATCH, OPTIONS"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.cors_allow_origin", "*"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.denylist_source_range", ""),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.enable_cors", "true"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.enable_sticky_session", "false"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.keepalive_time_seconds", "7200"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.keepalive_timeout_seconds", "120"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.proxy_body_size_mb", "200"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.proxy_buffer_size_kb", "3"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.proxy_connect_timeout_seconds", "120"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.proxy_read_timeout_seconds", "120"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.proxy_send_timeout_seconds", "120"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.send_timeout_seconds", "120"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.network.ingress.whitelist_source_range", "127.0.0.1/0"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.failure_threshold", "12"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.http_get.path", "/"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.initial_delay_seconds", "60"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.period_seconds", "20"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.success_threshold", "2"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.timeout_seconds", "2"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.readiness_probe.type", "TCP"),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings.security.service_account_name", ""),
+				),
+			},
+			{
+				ResourceName:      "qovery_container.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func testAccQoveryContainerExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
@@ -1506,6 +1650,24 @@ resource "qovery_container" "test" {
 	)
 }
 
+func testAccContainerDefaultConfigWithAdvSettings(testName string, advSettings string) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_container" "test" {
+  environment_id = qovery_environment.test.id
+  registry_id = qovery_container_registry.test.id
+  name = "%s"
+  image_name = "%s"
+  tag = "%s"
+  advanced_settings = %s
+}
+`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, advSettings,
+	)
+}
+
 func testAccContainerDefaultConfigWithSecrets(testName string, secrets map[string]string) string {
 	return fmt.Sprintf(`
 %s
@@ -1589,4 +1751,82 @@ resource "qovery_container" "test" {
 
 func convertStringArrayToString(array []string) string {
 	return fmt.Sprintf("[\"%s\"]", strings.Join(array, "\",\""))
+}
+
+func containerAdvSettingsString() string {
+	return fmt.Sprintf(`{
+    "deployment.custom_domain_check_enabled" = false
+    "deployment.termination_grace_period_seconds" = 120
+    "hpa.cpu.average_utilization_percent" = 70
+    "liveness_probe.failure_threshold" = 9
+    "liveness_probe.http_get.path" ="/"
+    "liveness_probe.initial_delay_seconds" = 15
+    "liveness_probe.period_seconds" = 5
+    "liveness_probe.success_threshold" = 3
+    "liveness_probe.timeout_seconds" = 3
+    "liveness_probe.type" = "TCP"
+    "network.ingress.basic_auth_env_var" = ""
+    "network.ingress.cors_allow_headers" = "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    "network.ingress.cors_allow_methods" = "GET, PUT, POST, DELETE, PATCH, OPTIONS"
+    "network.ingress.cors_allow_origin" = "*"
+    "network.ingress.denylist_source_range" = ""
+    "network.ingress.enable_cors" = true
+    "network.ingress.enable_sticky_session" = false
+    "network.ingress.keepalive_time_seconds" = 1800
+    "network.ingress.keepalive_timeout_seconds" = 60
+    "network.ingress.proxy_body_size_mb" = 50
+    "network.ingress.proxy_buffer_size_kb" = 20
+    "network.ingress.proxy_connect_timeout_seconds" = 30
+    "network.ingress.proxy_read_timeout_seconds" = 30
+    "network.ingress.proxy_send_timeout_seconds" = 30
+    "network.ingress.send_timeout_seconds" = 30
+    "network.ingress.whitelist_source_range" = "0.0.0.0/0"
+    "readiness_probe.failure_threshold" = 8
+    "readiness_probe.http_get.path" = "/"
+    "readiness_probe.initial_delay_seconds" = 15
+    "readiness_probe.period_seconds" = 5
+    "readiness_probe.success_threshold" = 10
+    "readiness_probe.timeout_seconds" = 10
+    "readiness_probe.type" = "TCP"
+    "security.service_account_name" = ""
+  }`)
+}
+
+func editedContainerAdvSettingsString() string {
+	return fmt.Sprintf(`{
+    "deployment.custom_domain_check_enabled" = true
+    "deployment.termination_grace_period_seconds" = 240
+    "hpa.cpu.average_utilization_percent" = 80
+    "liveness_probe.failure_threshold" = 12
+    "liveness_probe.http_get.path" ="/"
+    "liveness_probe.initial_delay_seconds" = 60
+    "liveness_probe.period_seconds" = 20
+    "liveness_probe.success_threshold" = 2
+    "liveness_probe.timeout_seconds" = 10
+    "liveness_probe.type" = "TCP"
+    "network.ingress.basic_auth_env_var" = ""
+    "network.ingress.cors_allow_headers" = "DNT,Keep-Alive,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range,Authorization"
+    "network.ingress.cors_allow_methods" = "GET, PUT, POST, DELETE, PATCH, OPTIONS"
+    "network.ingress.cors_allow_origin" = "*"
+    "network.ingress.denylist_source_range" = ""
+    "network.ingress.enable_cors" = true
+    "network.ingress.enable_sticky_session" = false
+    "network.ingress.keepalive_time_seconds" = 7200
+    "network.ingress.keepalive_timeout_seconds" = 120
+    "network.ingress.proxy_body_size_mb" = 200
+    "network.ingress.proxy_buffer_size_kb" = 3
+    "network.ingress.proxy_connect_timeout_seconds" = 120
+    "network.ingress.proxy_read_timeout_seconds" = 120
+    "network.ingress.proxy_send_timeout_seconds" = 120
+    "network.ingress.send_timeout_seconds" = 120
+    "network.ingress.whitelist_source_range" = "127.0.0.1/0"
+    "readiness_probe.failure_threshold" = 12
+    "readiness_probe.http_get.path" = "/"
+    "readiness_probe.initial_delay_seconds" = 60
+    "readiness_probe.period_seconds" = 20
+    "readiness_probe.success_threshold" = 2
+    "readiness_probe.timeout_seconds" = 2
+    "readiness_probe.type" = "TCP"
+    "security.service_account_name" = ""
+  }`)
 }

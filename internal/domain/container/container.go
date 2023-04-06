@@ -82,6 +82,7 @@ type Container struct {
 	ExternalHost                *string
 	State                       status.State
 	DeploymentStageID           string
+	ContainerAdvancedSettings   *map[string]interface{}
 }
 
 // Validate returns an error to tell whether the Container domain model is valid or not.
@@ -128,6 +129,7 @@ type NewContainerParams struct {
 	EnvironmentVariables variable.Variables // TODO(benjaminch): use `storage.NewVariablesParam`
 	Secrets              secret.Secrets     // TODO(benjaminch): use `storage.NewSecretsParam`
 	DeploymentStageID    string
+	AdvancedSettings     map[string]interface{}
 }
 
 // NewContainer returns a new instance of a Container domain model.
@@ -160,22 +162,23 @@ func NewContainer(params NewContainerParams) (*Container, error) {
 	}
 
 	c := &Container{
-		ID:                  containerUUID,
-		EnvironmentID:       environmentUUID,
-		RegistryID:          registryUUID,
-		Name:                params.Name,
-		ImageName:           params.ImageName,
-		Tag:                 params.Tag,
-		AutoPreview:         params.AutoPreview,
-		Entrypoint:          params.Entrypoint,
-		CPU:                 params.CPU,
-		Memory:              params.Memory,
-		MinRunningInstances: params.MinRunningInstances,
-		MaxRunningInstances: params.MaxRunningInstances,
-		Arguments:           params.Arguments,
-		Storages:            params.Storages,
-		Ports:               params.Ports,
-		DeploymentStageID:   params.DeploymentStageID,
+		ID:                        containerUUID,
+		EnvironmentID:             environmentUUID,
+		RegistryID:                registryUUID,
+		Name:                      params.Name,
+		ImageName:                 params.ImageName,
+		Tag:                       params.Tag,
+		AutoPreview:               params.AutoPreview,
+		Entrypoint:                params.Entrypoint,
+		CPU:                       params.CPU,
+		Memory:                    params.Memory,
+		MinRunningInstances:       params.MinRunningInstances,
+		MaxRunningInstances:       params.MaxRunningInstances,
+		Arguments:                 params.Arguments,
+		Storages:                  params.Storages,
+		Ports:                     params.Ports,
+		DeploymentStageID:         params.DeploymentStageID,
+		ContainerAdvancedSettings: &params.AdvancedSettings,
 	}
 
 	if err := c.SetEnvironmentVariables(params.EnvironmentVariables); err != nil {

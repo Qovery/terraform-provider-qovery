@@ -57,6 +57,7 @@ func TestAcc_ContainerDataSource(t *testing.T) {
 					}),
 					resource.TestCheckResourceAttr("data.qovery_container.test", "external_host", "zc4425337-z92544d94-gtw.zc531a994.rustrocks.cloud"),
 					resource.TestCheckResourceAttr("data.qovery_container.test", "internal_host", "container-za7d391bf"),
+					resource.TestCheckResourceAttr("data.qovery_container.test", "advanced_settings.%", "34"),
 				),
 			},
 		},
