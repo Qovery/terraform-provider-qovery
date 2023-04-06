@@ -22,17 +22,17 @@ type AWSCredentialsDataSource struct {
 
 func (creds AWSCredentials) toUpsertAwsRequest() credentials.UpsertAwsRequest {
 	return credentials.UpsertAwsRequest{
-		Name:            toString(creds.Name),
-		AccessKeyID:     toString(creds.AccessKeyId),
-		SecretAccessKey: toString(creds.SecretAccessKey),
+		Name:            ToString(creds.Name),
+		AccessKeyID:     ToString(creds.AccessKeyId),
+		SecretAccessKey: ToString(creds.SecretAccessKey),
 	}
 }
 
 func convertDomainCredentialsToAWSCredentials(creds *credentials.Credentials, plan AWSCredentials) AWSCredentials {
 	return AWSCredentials{
-		Id:              fromString(creds.ID.String()),
-		OrganizationId:  fromString(creds.OrganizationID.String()),
-		Name:            fromString(creds.Name),
+		Id:              FromString(creds.ID.String()),
+		OrganizationId:  FromString(creds.OrganizationID.String()),
+		Name:            FromString(creds.Name),
 		AccessKeyId:     plan.AccessKeyId,
 		SecretAccessKey: plan.SecretAccessKey,
 	}
@@ -40,8 +40,8 @@ func convertDomainCredentialsToAWSCredentials(creds *credentials.Credentials, pl
 
 func convertDomainCredentialsToAWSCredentialsDataSource(creds *credentials.Credentials) AWSCredentialsDataSource {
 	return AWSCredentialsDataSource{
-		Id:             fromString(creds.ID.String()),
-		OrganizationId: fromString(creds.OrganizationID.String()),
-		Name:           fromString(creds.Name),
+		Id:             FromString(creds.ID.String()),
+		OrganizationId: FromString(creds.OrganizationID.String()),
+		Name:           FromString(creds.Name),
 	}
 }

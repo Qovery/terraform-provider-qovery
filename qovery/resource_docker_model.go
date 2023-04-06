@@ -1,15 +1,18 @@
 package qovery
 
-import "github.com/qovery/terraform-provider-qovery/internal/domain/docker"
+import (
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
+)
 
 type Docker struct {
 	GitRepository  GitRepository `tfsdk:"git_repository"`
-	DockerFilePath *string       `tfsdk:"dockerfile_path"`
+	DockerFilePath types.String  `tfsdk:"dockerfile_path"`
 }
 
 func (d Docker) toUpsertRequest() *docker.Docker {
 	return &docker.Docker{
 		GitRepository:  d.GitRepository.toUpsertRequest(),
-		DockerFilePath: d.DockerFilePath,
+		DockerFilePath: ToStringPointer(d.DockerFilePath),
 	}
 }

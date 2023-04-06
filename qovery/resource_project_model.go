@@ -32,8 +32,8 @@ func (p Project) SecretList() SecretList {
 func (p Project) toCreateServiceRequest() project.UpsertServiceRequest {
 	return project.UpsertServiceRequest{
 		ProjectUpsertRequest: project.UpsertRepositoryRequest{
-			Name:        toString(p.Name),
-			Description: toStringPointer(p.Description),
+			Name:        ToString(p.Name),
+			Description: ToStringPointer(p.Description),
 		},
 		EnvironmentVariables: p.EnvironmentVariableList().diffRequest(nil),
 		Secrets:              p.SecretList().diffRequest(nil),
@@ -43,8 +43,8 @@ func (p Project) toCreateServiceRequest() project.UpsertServiceRequest {
 func (p Project) toUpdateServiceRequest(state Project) project.UpsertServiceRequest {
 	return project.UpsertServiceRequest{
 		ProjectUpsertRequest: project.UpsertRepositoryRequest{
-			Name:        toString(p.Name),
-			Description: toStringPointer(p.Description),
+			Name:        ToString(p.Name),
+			Description: ToStringPointer(p.Description),
 		},
 		EnvironmentVariables: p.EnvironmentVariableList().diffRequest(state.EnvironmentVariableList()),
 		Secrets:              p.SecretList().diffRequest(state.SecretList()),
@@ -53,10 +53,10 @@ func (p Project) toUpdateServiceRequest(state Project) project.UpsertServiceRequ
 
 func convertDomainProjectToProject(state Project, res *project.Project) Project {
 	return Project{
-		Id:                          fromString(res.ID.String()),
-		OrganizationId:              fromString(res.OrganizationID.String()),
-		Name:                        fromString(res.Name),
-		Description:                 fromStringPointer(res.Description),
+		Id:                          FromString(res.ID.String()),
+		OrganizationId:              FromString(res.OrganizationID.String()),
+		Name:                        FromString(res.Name),
+		Description:                 FromStringPointer(res.Description),
 		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(res.EnvironmentVariables, variable.ScopeProject).toTerraformSet(),
 		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(res.BuiltInEnvironmentVariables, variable.ScopeBuiltIn).toTerraformSet(),
 		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), res.Secrets, variable.ScopeProject).toTerraformSet(),

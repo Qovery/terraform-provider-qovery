@@ -36,20 +36,20 @@ func JobSourceFromDomainJobSource(j job.JobSource) JobSource {
 	if j.Docker != nil {
 		dkr = &Docker{
 			GitRepository: GitRepository{
-				Url:      j.Docker.GitRepository.Url,
-				Branch:   j.Docker.GitRepository.Branch,
-				RootPath: j.Docker.GitRepository.RootPath,
+				Url:      FromString(j.Docker.GitRepository.Url),
+				Branch:   FromStringPointer(j.Docker.GitRepository.Branch),
+				RootPath: FromStringPointer(j.Docker.GitRepository.RootPath),
 			},
-			DockerFilePath: j.Docker.DockerFilePath,
+			DockerFilePath: FromStringPointer(j.Docker.DockerFilePath),
 		}
 	}
 
 	var img *Image = nil
 	if j.Image != nil {
 		img = &Image{
-			RegistryID: fromString(j.Image.RegistryID),
-			Name:       fromString(j.Image.Name),
-			Tag:        fromString(j.Image.Tag),
+			RegistryID: FromString(j.Image.RegistryID),
+			Name:       FromString(j.Image.Name),
+			Tag:        FromString(j.Image.Tag),
 		}
 	}
 
@@ -69,25 +69,37 @@ type JobSchedule struct {
 func (s JobSchedule) toUpsertRequest() job.JobSchedule {
 	var onStart *execution_command.ExecutionCommand = nil
 	if s.OnStart != nil {
+		args := make([]string, len(s.OnStart.Arguments))
+		for i, arg := range s.OnStart.Arguments {
+			args[i] = arg.String()
+		}
 		onStart = &execution_command.ExecutionCommand{
-			Entrypoint: s.OnStart.Entrypoint,
-			Arguments:  s.OnStart.Arguments,
+			Entrypoint: ToStringPointer(s.OnStart.Entrypoint),
+			Arguments:  args,
 		}
 	}
 
 	var onStop *execution_command.ExecutionCommand = nil
 	if s.OnStop != nil {
+		args := make([]string, len(s.OnStop.Arguments))
+		for i, arg := range s.OnStop.Arguments {
+			args[i] = arg.String()
+		}
 		onStop = &execution_command.ExecutionCommand{
-			Entrypoint: s.OnStop.Entrypoint,
-			Arguments:  s.OnStop.Arguments,
+			Entrypoint: ToStringPointer(s.OnStop.Entrypoint),
+			Arguments:  args,
 		}
 	}
 
 	var onDelete *execution_command.ExecutionCommand = nil
 	if s.OnDelete != nil {
+		args := make([]string, len(s.OnDelete.Arguments))
+		for i, arg := range s.OnDelete.Arguments {
+			args[i] = arg.String()
+		}
 		onDelete = &execution_command.ExecutionCommand{
-			Entrypoint: s.OnDelete.Entrypoint,
-			Arguments:  s.OnDelete.Arguments,
+			Entrypoint: ToStringPointer(s.OnDelete.Entrypoint),
+			Arguments:  args,
 		}
 	}
 
@@ -108,25 +120,37 @@ func (s JobSchedule) toUpsertRequest() job.JobSchedule {
 func JobScheduleFromDomainJobSchedule(s job.JobSchedule) JobSchedule {
 	var onStart *ExecutionCommand = nil
 	if s.OnStart != nil {
+		args := make([]types.String, len(s.OnStart.Arguments))
+		for i, arg := range s.OnStart.Arguments {
+			args[i] = FromString(arg)
+		}
 		onStart = &ExecutionCommand{
-			Entrypoint: s.OnStart.Entrypoint,
-			Arguments:  s.OnStart.Arguments,
+			Entrypoint: FromStringPointer(s.OnStart.Entrypoint),
+			Arguments:  args,
 		}
 	}
 
 	var onStop *ExecutionCommand = nil
 	if s.OnStop != nil {
+		args := make([]types.String, len(s.OnStop.Arguments))
+		for i, arg := range s.OnStop.Arguments {
+			args[i] = FromString(arg)
+		}
 		onStop = &ExecutionCommand{
-			Entrypoint: s.OnStop.Entrypoint,
-			Arguments:  s.OnStop.Arguments,
+			Entrypoint: FromStringPointer(s.OnStop.Entrypoint),
+			Arguments:  args,
 		}
 	}
 
 	var onDelete *ExecutionCommand = nil
 	if s.OnDelete != nil {
+		args := make([]types.String, len(s.OnDelete.Arguments))
+		for i, arg := range s.OnDelete.Arguments {
+			args[i] = FromString(arg)
+		}
 		onDelete = &ExecutionCommand{
-			Entrypoint: s.OnDelete.Entrypoint,
-			Arguments:  s.OnDelete.Arguments,
+			Entrypoint: FromStringPointer(s.OnDelete.Entrypoint),
+			Arguments:  args,
 		}
 	}
 
@@ -146,25 +170,35 @@ func JobScheduleFromDomainJobSchedule(s job.JobSchedule) JobSchedule {
 
 type JobScheduleCron struct {
 	Command  ExecutionCommand `tfsdk:"command"`
-	Schedule string           `tfsdk:"schedule"`
+	Schedule types.String     `tfsdk:"schedule"`
 }
 
 func (s JobScheduleCron) toUpsertRequest() job.JobScheduleCron {
+	args := make([]string, len(s.Command.Arguments))
+	for i, arg := range s.Command.Arguments {
+		args[i] = arg.String()
+	}
+
 	return job.JobScheduleCron{
 		Command: execution_command.ExecutionCommand{
-			Entrypoint: s.Command.Entrypoint,
-			Arguments:  s.Command.Arguments,
+			Entrypoint: ToStringPointer(s.Command.Entrypoint),
+			Arguments:  args,
 		},
-		Schedule: s.Schedule,
+		Schedule: s.Schedule.Value,
 	}
 }
 
 func JobScheduleCronFromDomainJobScheduleCron(s job.JobScheduleCron) JobScheduleCron {
+	args := make([]types.String, len(s.Command.Arguments))
+	for i, arg := range s.Command.Arguments {
+		args[i] = FromString(arg)
+	}
+
 	return JobScheduleCron{
-		Schedule: s.Schedule,
+		Schedule: FromString(s.Schedule),
 		Command: ExecutionCommand{
-			Entrypoint: s.Command.Entrypoint,
-			Arguments:  s.Command.Arguments,
+			Entrypoint: FromStringPointer(s.Command.Entrypoint),
+			Arguments:  args,
 		},
 	}
 }
@@ -223,14 +257,14 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 
 func (j Job) toUpsertRepositoryRequest() job.UpsertRepositoryRequest {
 	return job.UpsertRepositoryRequest{
-		Name:               toString(j.Name),
-		AutoPreview:        toBoolPointer(j.AutoPreview),
-		CPU:                toInt32Pointer(j.CPU),
-		Memory:             toInt32Pointer(j.Memory),
-		MaxNbRestart:       toInt32Pointer(j.MaxNbRestart),
-		MaxDurationSeconds: toInt32Pointer(j.MaxDurationSeconds),
-		DeploymentStageID:  toString(j.DeploymentStageId),
-		Port:               toInt64Pointer(j.Port),
+		Name:               ToString(j.Name),
+		AutoPreview:        ToBoolPointer(j.AutoPreview),
+		CPU:                ToInt32Pointer(j.CPU),
+		Memory:             ToInt32Pointer(j.Memory),
+		MaxNbRestart:       ToInt32Pointer(j.MaxNbRestart),
+		MaxDurationSeconds: ToInt32Pointer(j.MaxDurationSeconds),
+		DeploymentStageID:  ToString(j.DeploymentStageId),
+		Port:               ToInt64Pointer(j.Port),
 
 		Source:   j.Source.toUpsertRequest(),
 		Schedule: j.Schedule.toUpsertRequest(),
@@ -247,22 +281,22 @@ func convertDomainJobToJob(state Job, job *job.Job) Job {
 	schedule := JobScheduleFromDomainJobSchedule(job.Schedule)
 
 	return Job{
-		ID:                          fromString(job.ID.String()),
-		EnvironmentID:               fromString(job.EnvironmentID.String()),
-		Name:                        fromString(job.Name),
-		CPU:                         fromInt32(job.CPU),
-		Memory:                      fromInt32(job.Memory),
-		MaxNbRestart:                fromUInt32(job.MaxNbRestart),
-		MaxDurationSeconds:          fromUInt32(job.MaxDurationSeconds),
-		AutoPreview:                 fromBool(job.AutoPreview),
-		Port:                        fromInt32Pointer(prt),
+		ID:                          FromString(job.ID.String()),
+		EnvironmentID:               FromString(job.EnvironmentID.String()),
+		Name:                        FromString(job.Name),
+		CPU:                         FromInt32(job.CPU),
+		Memory:                      FromInt32(job.Memory),
+		MaxNbRestart:                FromUInt32(job.MaxNbRestart),
+		MaxDurationSeconds:          FromUInt32(job.MaxDurationSeconds),
+		AutoPreview:                 FromBool(job.AutoPreview),
+		Port:                        FromInt32Pointer(prt),
 		Source:                      &source,
 		Schedule:                    &schedule,
 		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(job.EnvironmentVariables, variable.ScopeJob).toTerraformSet(),
 		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(job.BuiltInEnvironmentVariables, variable.ScopeBuiltIn).toTerraformSet(),
-		InternalHost:                fromStringPointer(job.InternalHost),
-		ExternalHost:                fromStringPointer(job.ExternalHost),
+		InternalHost:                FromStringPointer(job.InternalHost),
+		ExternalHost:                FromStringPointer(job.ExternalHost),
 		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), job.Secrets, variable.ScopeJob).toTerraformSet(),
-		DeploymentStageId:           fromString(job.DeploymentStageID),
+		DeploymentStageId:           FromString(job.DeploymentStageID),
 	}
 }

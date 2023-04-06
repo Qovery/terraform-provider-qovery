@@ -18,10 +18,10 @@ type DeploymentStage struct {
 func (p DeploymentStage) toCreateServiceRequest() deploymentstage.UpsertServiceRequest {
 	return deploymentstage.UpsertServiceRequest{
 		DeploymentStageUpsertRequest: deploymentstage.UpsertRepositoryRequest{
-			Name:        toString(p.Name),
-			Description: toString(p.Description),
-			MoveAfter:   toStringPointer(p.MoveAfter),
-			MoveBefore:  toStringPointer(p.MoveBefore),
+			Name:        ToString(p.Name),
+			Description: ToString(p.Description),
+			MoveAfter:   ToStringPointer(p.MoveAfter),
+			MoveBefore:  ToStringPointer(p.MoveBefore),
 		},
 	}
 }
@@ -29,10 +29,10 @@ func (p DeploymentStage) toCreateServiceRequest() deploymentstage.UpsertServiceR
 func (p DeploymentStage) toUpdateServiceRequest() deploymentstage.UpsertServiceRequest {
 	return deploymentstage.UpsertServiceRequest{
 		DeploymentStageUpsertRequest: deploymentstage.UpsertRepositoryRequest{
-			Name:        toString(p.Name),
-			Description: toString(p.Description),
-			MoveAfter:   toStringPointer(p.MoveAfter),
-			MoveBefore:  toStringPointer(p.MoveBefore),
+			Name:        ToString(p.Name),
+			Description: ToString(p.Description),
+			MoveAfter:   ToStringPointer(p.MoveAfter),
+			MoveBefore:  ToStringPointer(p.MoveBefore),
 		},
 	}
 }
@@ -56,11 +56,11 @@ func convertDomainDeploymentStageToDeploymentStage(deploymentStageDomain *deploy
 	}
 
 	return DeploymentStage{
-		Id:            fromString(deploymentStageDomain.ID.String()),
-		EnvironmentId: fromString(deploymentStageDomain.EnvironmentID.String()),
-		Name:          fromString(deploymentStageDomain.Name),
-		Description:   fromStringPointer(description),
-		MoveAfter:     fromStringPointer(moveAfterString),
-		MoveBefore:    fromStringPointer(moveBeforeString),
+		Id:            FromString(deploymentStageDomain.ID.String()),
+		EnvironmentId: FromString(deploymentStageDomain.EnvironmentID.String()),
+		Name:          FromString(deploymentStageDomain.Name),
+		Description:   FromStringPointer(description),
+		MoveAfter:     FromStringPointer(moveAfterString),
+		MoveBefore:    FromStringPointer(moveBeforeString),
 	}
 }

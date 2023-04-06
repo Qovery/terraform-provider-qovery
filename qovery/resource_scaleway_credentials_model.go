@@ -23,18 +23,18 @@ type ScalewayCredentialsDataSource struct {
 
 func (creds ScalewayCredentials) toUpsertScalewayRequest() credentials.UpsertScalewayRequest {
 	return credentials.UpsertScalewayRequest{
-		Name:              toString(creds.Name),
-		ScalewayProjectID: toString(creds.ScalewayProjectId),
-		ScalewayAccessKey: toString(creds.ScalewayAccessKey),
-		ScalewaySecretKey: toString(creds.ScalewaySecretKey),
+		Name:              ToString(creds.Name),
+		ScalewayProjectID: ToString(creds.ScalewayProjectId),
+		ScalewayAccessKey: ToString(creds.ScalewayAccessKey),
+		ScalewaySecretKey: ToString(creds.ScalewaySecretKey),
 	}
 }
 
 func convertDomainCredentialsToScalewayCredentials(creds *credentials.Credentials, plan ScalewayCredentials) ScalewayCredentials {
 	return ScalewayCredentials{
-		Id:                fromString(creds.ID.String()),
-		OrganizationId:    fromString(creds.OrganizationID.String()),
-		Name:              fromString(creds.Name),
+		Id:                FromString(creds.ID.String()),
+		OrganizationId:    FromString(creds.OrganizationID.String()),
+		Name:              FromString(creds.Name),
 		ScalewayProjectId: plan.ScalewayProjectId,
 		ScalewayAccessKey: plan.ScalewayAccessKey,
 		ScalewaySecretKey: plan.ScalewaySecretKey,
@@ -43,8 +43,8 @@ func convertDomainCredentialsToScalewayCredentials(creds *credentials.Credential
 
 func convertDomainCredentialsToScalewayCredentialsDataSource(creds *credentials.Credentials) ScalewayCredentialsDataSource {
 	return ScalewayCredentialsDataSource{
-		Id:             fromString(creds.ID.String()),
-		OrganizationId: fromString(creds.OrganizationID.String()),
-		Name:           fromString(creds.Name),
+		Id:             FromString(creds.ID.String()),
+		OrganizationId: FromString(creds.OrganizationID.String()),
+		Name:           FromString(creds.Name),
 	}
 }

@@ -27,71 +27,71 @@ type Database struct {
 }
 
 func (d Database) toCreateDatabaseRequest() (*client.DatabaseCreateParams, error) {
-	dbType, err := qovery.NewDatabaseTypeEnumFromValue(toString(d.Type))
+	dbType, err := qovery.NewDatabaseTypeEnumFromValue(ToString(d.Type))
 	if err != nil {
 		return nil, err
 	}
 
-	mode, err := qovery.NewDatabaseModeEnumFromValue(toString(d.Mode))
+	mode, err := qovery.NewDatabaseModeEnumFromValue(ToString(d.Mode))
 	if err != nil {
 		return nil, err
 	}
 
-	accessibility, err := qovery.NewDatabaseAccessibilityEnumFromValue(toString(d.Accessibility))
+	accessibility, err := qovery.NewDatabaseAccessibilityEnumFromValue(ToString(d.Accessibility))
 	if err != nil {
 		return nil, err
 	}
 
 	return &client.DatabaseCreateParams{
 		DatabaseRequest: qovery.DatabaseRequest{
-			Name:          toString(d.Name),
+			Name:          ToString(d.Name),
 			Type:          *dbType,
-			Version:       toString(d.Version),
+			Version:       ToString(d.Version),
 			Mode:          *mode,
 			Accessibility: accessibility,
-			Cpu:           toInt32Pointer(d.CPU),
-			Memory:        toInt32Pointer(d.Memory),
-			Storage:       toInt32Pointer(d.Storage),
+			Cpu:           ToInt32Pointer(d.CPU),
+			Memory:        ToInt32Pointer(d.Memory),
+			Storage:       ToInt32Pointer(d.Storage),
 		},
-		DeploymentStageID: toString(d.DeploymentStageId),
+		DeploymentStageID: ToString(d.DeploymentStageId),
 	}, nil
 }
 
 func (d Database) toUpdateDatabaseRequest() (*client.DatabaseUpdateParams, error) {
-	accessibility, err := qovery.NewDatabaseAccessibilityEnumFromValue(toString(d.Accessibility))
+	accessibility, err := qovery.NewDatabaseAccessibilityEnumFromValue(ToString(d.Accessibility))
 	if err != nil {
 		return nil, err
 	}
 
 	return &client.DatabaseUpdateParams{
 		DatabaseEditRequest: qovery.DatabaseEditRequest{
-			Name:          toStringPointer(d.Name),
-			Version:       toStringPointer(d.Version),
+			Name:          ToStringPointer(d.Name),
+			Version:       ToStringPointer(d.Version),
 			Accessibility: accessibility,
-			Cpu:           toInt32Pointer(d.CPU),
-			Memory:        toInt32Pointer(d.Memory),
-			Storage:       toInt32Pointer(d.Storage),
+			Cpu:           ToInt32Pointer(d.CPU),
+			Memory:        ToInt32Pointer(d.Memory),
+			Storage:       ToInt32Pointer(d.Storage),
 		},
 	}, nil
 }
 
 func convertResponseToDatabase(res *client.DatabaseResponse) Database {
 	return Database{
-		Id:                fromString(res.DatabaseResponse.Id),
-		EnvironmentId:     fromString(res.DatabaseResponse.Environment.Id),
-		Name:              fromString(res.DatabaseResponse.Name),
+		Id:                FromString(res.DatabaseResponse.Id),
+		EnvironmentId:     FromString(res.DatabaseResponse.Environment.Id),
+		Name:              FromString(res.DatabaseResponse.Name),
 		Type:              fromClientEnum(res.DatabaseResponse.Type),
-		Version:           fromString(res.DatabaseResponse.Version),
+		Version:           FromString(res.DatabaseResponse.Version),
 		Mode:              fromClientEnum(res.DatabaseResponse.Mode),
 		Accessibility:     fromClientEnumPointer(res.DatabaseResponse.Accessibility),
-		CPU:               fromInt32Pointer(res.DatabaseResponse.Cpu),
-		Memory:            fromInt32Pointer(res.DatabaseResponse.Memory),
-		ExternalHost:      fromString(res.DatabaseResponse.GetHost()),
-		InternalHost:      fromString(res.DatabaseInternalHost),
-		Port:              fromInt32Pointer(res.DatabaseResponse.Port),
-		Login:             fromString(res.DatabaseCredentials.Login),
-		Password:          fromString(res.DatabaseCredentials.Password),
-		Storage:           fromInt32Pointer(res.DatabaseResponse.Storage),
-		DeploymentStageId: fromString(res.DeploymentStageID),
+		CPU:               FromInt32Pointer(res.DatabaseResponse.Cpu),
+		Memory:            FromInt32Pointer(res.DatabaseResponse.Memory),
+		ExternalHost:      FromString(res.DatabaseResponse.GetHost()),
+		InternalHost:      FromString(res.DatabaseInternalHost),
+		Port:              FromInt32Pointer(res.DatabaseResponse.Port),
+		Login:             FromString(res.DatabaseCredentials.Login),
+		Password:          FromString(res.DatabaseCredentials.Password),
+		Storage:           FromInt32Pointer(res.DatabaseResponse.Storage),
+		DeploymentStageId: FromString(res.DeploymentStageID),
 	}
 }

@@ -62,22 +62,22 @@ func (p Port) toTerraformObject() types.Object {
 
 func (p Port) toUpsertRequest() port.UpsertRequest {
 	return port.UpsertRequest{
-		Name:               toStringPointer(p.Name),
-		Protocol:           toStringPointer(p.Protocol),
-		InternalPort:       toInt32(p.InternalPort),
-		ExternalPort:       toInt32Pointer(p.ExternalPort),
-		PubliclyAccessible: toBool(p.PubliclyAccessible),
+		Name:               ToStringPointer(p.Name),
+		Protocol:           ToStringPointer(p.Protocol),
+		InternalPort:       ToInt32(p.InternalPort),
+		ExternalPort:       ToInt32Pointer(p.ExternalPort),
+		PubliclyAccessible: ToBool(p.PubliclyAccessible),
 	}
 }
 
 func fromPort(p port.Port) Port {
 	return Port{
-		Id:                 fromString(p.ID.String()),
-		Name:               fromStringPointer(p.Name),
-		Protocol:           fromString(p.Protocol.String()),
-		InternalPort:       fromInt32(p.InternalPort),
-		ExternalPort:       fromInt32Pointer(p.ExternalPort),
-		PubliclyAccessible: fromBool(p.PubliclyAccessible),
+		Id:                 FromString(p.ID.String()),
+		Name:               FromStringPointer(p.Name),
+		Protocol:           FromString(p.Protocol.String()),
+		InternalPort:       FromInt32(p.InternalPort),
+		ExternalPort:       FromInt32Pointer(p.ExternalPort),
+		PubliclyAccessible: FromBool(p.PubliclyAccessible),
 	}
 }
 
@@ -107,12 +107,12 @@ func convertDomainPortsToPortList(ports port.Ports) PortList {
 
 func convertDomainPortToPort(s port.Port) Port {
 	return Port{
-		Id:                 fromString(s.ID.String()),
-		Name:               fromStringPointer(s.Name),
-		Protocol:           fromString(s.Protocol.String()),
-		InternalPort:       fromInt32(s.InternalPort),
-		ExternalPort:       fromInt32Pointer(s.ExternalPort),
-		PubliclyAccessible: fromBool(s.PubliclyAccessible),
+		Id:                 FromString(s.ID.String()),
+		Name:               FromStringPointer(s.Name),
+		Protocol:           FromString(s.Protocol.String()),
+		InternalPort:       FromInt32(s.InternalPort),
+		ExternalPort:       FromInt32Pointer(s.ExternalPort),
+		PubliclyAccessible: FromBool(s.PubliclyAccessible),
 	}
 }
 

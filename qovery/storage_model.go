@@ -56,19 +56,19 @@ func (p Storage) toTerraformObject() types.Object {
 
 func (p Storage) toUpsertRequest() storage.UpsertRequest {
 	return storage.UpsertRequest{
-		ID:         toStringPointer(p.ID),
-		Type:       toString(p.Type),
-		MountPoint: toString(p.MountPoint),
-		Size:       toInt32(p.Size),
+		ID:         ToStringPointer(p.ID),
+		Type:       ToString(p.Type),
+		MountPoint: ToString(p.MountPoint),
+		Size:       ToInt32(p.Size),
 	}
 }
 
 func fromStorage(p storage.Storage) Storage {
 	return Storage{
-		ID:         fromString(p.ID.String()),
-		Type:       fromString(p.Type.String()),
-		MountPoint: fromString(p.MountPoint),
-		Size:       fromInt32(p.Size),
+		ID:         FromString(p.ID.String()),
+		Type:       FromString(p.Type.String()),
+		MountPoint: FromString(p.MountPoint),
+		Size:       FromInt32(p.Size),
 	}
 }
 
@@ -98,10 +98,10 @@ func convertDomainStoragesToStorageList(storages storage.Storages) StorageList {
 
 func convertDomainStorageToStorage(s storage.Storage) Storage {
 	return Storage{
-		ID:         fromString(s.ID.String()),
-		Type:       fromString(s.Type.String()),
-		MountPoint: fromString(s.MountPoint),
-		Size:       fromInt32(s.Size),
+		ID:         FromString(s.ID.String()),
+		Type:       FromString(s.Type.String()),
+		MountPoint: FromString(s.MountPoint),
+		Size:       FromInt32(s.Size),
 	}
 }
 

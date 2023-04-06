@@ -15,16 +15,16 @@ type Organization struct {
 
 func (org Organization) toOrganizationUpdateRequest() organization.UpdateRequest {
 	return organization.UpdateRequest{
-		Name:        toString(org.Name),
-		Description: toStringPointer(org.Description),
+		Name:        ToString(org.Name),
+		Description: ToStringPointer(org.Description),
 	}
 }
 
 func convertDomainOrganizationToTerraform(organization *organization.Organization) Organization {
 	return Organization{
-		Id:          fromString(organization.ID.String()),
-		Name:        fromString(organization.Name),
+		Id:          FromString(organization.ID.String()),
+		Name:        FromString(organization.Name),
 		Plan:        fromClientEnum(organization.Plan),
-		Description: fromStringPointer(organization.Description),
+		Description: FromStringPointer(organization.Description),
 	}
 }

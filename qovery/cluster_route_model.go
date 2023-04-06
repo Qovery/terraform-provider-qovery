@@ -65,17 +65,17 @@ func (r ClusterRoute) toTerraformObject() types.Object {
 
 func (r ClusterRoute) toUpsertRequest() client.ClusterRoute {
 	return client.ClusterRoute{
-		Description: toString(r.Description),
-		Destination: toString(r.Destination),
-		Target:      toString(r.Target),
+		Description: ToString(r.Description),
+		Destination: ToString(r.Destination),
+		Target:      ToString(r.Target),
 	}
 }
 
 func fromClusterRoute(r client.ClusterRoute) ClusterRoute {
 	return ClusterRoute{
-		Description: fromString(r.Description),
-		Destination: fromString(r.Destination),
-		Target:      fromString(r.Target),
+		Description: FromString(r.Description),
+		Destination: FromString(r.Destination),
+		Target:      FromString(r.Target),
 	}
 }
 
