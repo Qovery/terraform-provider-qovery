@@ -72,8 +72,8 @@ func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string) (*j
 			if gitRepositoryFrom.DeployedCommitId != nil {
 				gitRepository.CommitID = gitRepositoryFrom.DeployedCommitId
 			}
-			if gitRepositoryFrom.Url != nil {
-				gitRepository.Url = *gitRepositoryFrom.Url
+			if gitRepositoryFrom.RootPath != nil {
+				gitRepository.RootPath = gitRepositoryFrom.RootPath
 			}
 		}
 
