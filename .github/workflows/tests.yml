@@ -175,5 +175,6 @@ jobs:
           TEST_DATABASE_ID: ${{ secrets.TEST_DATABASE_ID }}
           TEST_CONTAINER_REGISTRY_ID: ${{ secrets.TEST_CONTAINER_REGISTRY_ID }}
           TEST_CONTAINER_ID: ${{ secrets.TEST_CONTAINER_ID }}
+          TEST_JOB_ID: ${{ secrets.TEST_JOB_ID }}
           TEST_AWS_ECR_URL: ${{ secrets.TEST_AWS_ECR_URL }}
         run: task testacc

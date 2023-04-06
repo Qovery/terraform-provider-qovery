@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -61,8 +62,11 @@ type qProvider struct {
 	// projectService is an instance of a project.Service that handles the domain logic.
 	projectService project.Service
 
-	// containerRegistryService is an instance of a registry.Service that handles the domain logic.
+	// containerService is an instance of a container.Service that handles the domain logic.
 	containerService container.Service
+
+	// jobService is an instance of a job.Service that handles the domain logic.
+	jobService job.Service
 
 	// containerRegistryService is an instance of a registry.Service that handles the domain logic.
 	containerRegistryService registry.Service
@@ -139,6 +143,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.scalewayCredentialsService = domainServices.CredentialsScaleway
 	p.projectService = domainServices.Project
 	p.containerService = domainServices.Container
+	p.jobService = domainServices.Job
 	p.containerRegistryService = domainServices.ContainerRegistry
 	p.environmentService = domainServices.Environment
 	p.deploymentStageService = domainServices.DeploymentStage
@@ -160,6 +165,7 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newScalewayCredentialsResource,
 		newContainerResource,
 		newContainerRegistryResource,
+		newJobResource,
 		newDeploymentStageResource,
 		newDeploymentResource,
 	}
@@ -172,6 +178,7 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 		newClusterDataSource,
 		newContainerDataSource,
 		newContainerRegistryDataSource,
+		newJobDataSource,
 		newDatabaseDataSource,
 		newEnvironmentDataSource,
 		newOrganizationDataSource,

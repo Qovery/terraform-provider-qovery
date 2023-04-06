@@ -61,6 +61,19 @@ type Port struct {
 
 // Validate returns an error to tell whether the Port domain model is valid or not.
 func (s Port) Validate() error {
+
+	if s.InternalPort < 0 {
+		return ErrInvalidInternalPortParam
+	}
+
+	if s.ExternalPort != nil && *s.ExternalPort < 0 {
+		return ErrInvalidExternalPortParam
+	}
+
+	if s.Name != nil && *s.Name == "" {
+		return ErrInvalidNameParam
+	}
+
 	if err := validator.New().Struct(s); err != nil {
 		return errors.Wrap(err, ErrInvalidPort.Error())
 	}
@@ -74,6 +87,7 @@ func (s Port) IsValid() bool {
 }
 
 // NewPortParams represents the arguments needed to create a Port.
+type NewPortsParams = []NewPortParams
 type NewPortParams struct {
 	PortID             string
 	InternalPort       int32
@@ -94,18 +108,6 @@ func NewPort(params NewPortParams) (*Port, error) {
 	portProtocol, err := NewProtocolFromString(params.Protocol)
 	if err != nil {
 		return nil, errors.Wrap(err, ErrInvalidProtocolParam.Error())
-	}
-
-	if params.InternalPort < 0 {
-		return nil, ErrInvalidInternalPortParam
-	}
-
-	if params.ExternalPort != nil && *params.ExternalPort < 0 {
-		return nil, ErrInvalidExternalPortParam
-	}
-
-	if params.Name != nil && *params.Name == "" {
-		return nil, ErrInvalidNameParam
 	}
 
 	v := &Port{

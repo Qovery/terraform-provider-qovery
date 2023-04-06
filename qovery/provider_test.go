@@ -43,6 +43,7 @@ type testEnvironment struct {
 	AwsEcrURL                     string `env:"TEST_AWS_ECR_URL"`
 	ContainerRegistryID           string `env:"TEST_CONTAINER_REGISTRY_ID,required"`
 	ContainerID                   string `env:"TEST_CONTAINER_ID,required"`
+	JobID                         string `env:"TEST_JOB_ID,required"`
 }
 
 var (
@@ -124,6 +125,10 @@ func getTestContainerRegistryID() string {
 
 func getTestContainerID() string {
 	return os.Getenv("TEST_CONTAINER_ID")
+}
+
+func getTestJobID() string {
+	return os.Getenv("TEST_JOB_ID")
 }
 
 func generateTestName(testName string) string {
