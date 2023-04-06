@@ -55,7 +55,7 @@ func (r *jobResource) Configure(_ context.Context, req resource.ConfigureRequest
 
 func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
 	return tfsdk.Schema{
-		Description: "Provides a Qovery job resource. This can be used to create and manage Qovery job registry.",
+		Description: "Provides a Qovery job resource. This can be used to create and manage Qovery job registry. [Cron job example](https://github.com/Qovery/terraform-examples/tree/main/examples/deploy-a-cron-job) [Lifecycle job example](https://github.com/Qovery/terraform-examples/tree/main/examples/deploy-a-lifecycle-job)",
 		Attributes: map[string]tfsdk.Attribute{
 			"id": {
 				Description: "Id of the job.",
@@ -267,7 +267,7 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 			},
 			"source": {
 				Description: "Job's source.",
-				Optional:    true,
+				Required:    true,
 				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
 					"image": {
 						Description: "Job's image source.",

@@ -3,63 +3,45 @@
 page_title: "qovery_job Resource - terraform-provider-qovery"
 subcategory: ""
 description: |-
-  Provides a Qovery job resource. This can be used to create and manage Qovery job registry.
+  Provides a Qovery job resource. This can be used to create and manage Qovery job registry. Cron job example https://github.com/Qovery/terraform-examples/tree/main/examples/deploy-a-cron-job Lifecycle job example https://github.com/Qovery/terraform-examples/tree/main/examples/deploy-a-lifecycle-job
 ---
 
 # qovery_job (Resource)
 
-Provides a Qovery job resource. This can be used to create and manage Qovery job registry.
+Provides a Qovery job resource. This can be used to create and manage Qovery job registry. [Cron job example](https://github.com/Qovery/terraform-examples/tree/main/examples/deploy-a-cron-job) [Lifecycle job example](https://github.com/Qovery/terraform-examples/tree/main/examples/deploy-a-lifecycle-job)
 
 ## Example Usage
 
 ```terraform
 resource "qovery_job" "my_job" {
-  # Required
-  environment_id = qovery_environment.my_environment.id
-  name           = "test-job"
+  environment_id = "<my-environment-id>"
+  name           = "<my-job-name>"
 
-  # Optional
-  auto_preview         = "true"
-  cpu                  = 500
-  memory               = 512
-  max_duration_seconds = 23
-  max_nb_restart       = 1
-  port                 = 5432
-  environment_variables = [
-    {
-      key   = "MY_TERRAFORM_CONTAINER_VARIABLE"
-      value = "MY_TERRAFORM_CONTAINER_VARIABLE_VALUE"
-    }
-  ]
-  secrets = [
-    {
-      key   = "MY_TERRAFORM_CONTAINER_SECRET"
-      value = "MY_TERRAFORM_CONTAINER_SECRET_VALUE"
-    }
-  ]
   schedule = {
     on_start  = {}
     on_stop   = {}
     on_delete = {}
     cronjob = {
-      schedule = "*/2 * * * *"
+      schedule = "* * * * *"
       command = {
-        entrypoint = ""
-        arguments  = ["echo", "'DONE'"]
+        entrypoint = "<my-job-entrypoint>"
+        arguments  = ["<my-job-argument-1>", "<my-job-argument-2>"]
       }
     }
   }
+
   source = {
     image = {
-      registry_id = qovery_container_registry.my_container_registry.id
-      name        = "debian"
-      tag         = "stable"
+      registry_id = "<my-Qovery-container-registry-id>"
+      name        = "<my-image-name>"
+      tag         = "<my-image-tag>"
+    }
+    # or
+    docker = {
+      git_repository  = "<my-git-repository-url>"
+      dockerfile_path = "<my-dockerfile-path-in-the-repo>"
     }
   }
-
-  depends_on = [
-    qovery_environment.my_environment,
-  ]
 }
 ```
 
@@ -71,6 +53,7 @@ resource "qovery_job" "my_job" {
 - `environment_id` (String) Id of the environment.
 - `name` (String) Name of the job.
 - `schedule` (Attributes) Job's schedule. (see [below for nested schema](#nestedatt--schedule))
+- `source` (Attributes) Job's source. (see [below for nested schema](#nestedatt--source))
 
 ### Optional
 
@@ -92,7 +75,6 @@ resource "qovery_job" "my_job" {
 - `port` (Number) Job's probes port.
 	- Must be: `>= 1` and `<= 65535`.
 - `secrets` (Attributes Set) List of secrets linked to this job. (see [below for nested schema](#nestedatt--secrets))
-- `source` (Attributes) Job's source. (see [below for nested schema](#nestedatt--source))
 
 ### Read-Only
 
@@ -157,32 +139,6 @@ Optional:
 
 
 
-<a id="nestedatt--environment_variables"></a>
-### Nested Schema for `environment_variables`
-
-Required:
-
-- `key` (String) Key of the environment variable.
-- `value` (String) Value of the environment variable.
-
-Read-Only:
-
-- `id` (String) Id of the environment variable.
-
-
-<a id="nestedatt--secrets"></a>
-### Nested Schema for `secrets`
-
-Required:
-
-- `key` (String) Key of the secret.
-- `value` (String, Sensitive) Value of the secret [NOTE: will always be empty].
-
-Read-Only:
-
-- `id` (String) Id of the secret.
-
-
 <a id="nestedatt--source"></a>
 ### Nested Schema for `source`
 
@@ -225,6 +181,32 @@ Required:
 - `registry_id` (String) Job's image source registry ID.
 - `tag` (String) Job's image source tag.
 
+
+
+<a id="nestedatt--environment_variables"></a>
+### Nested Schema for `environment_variables`
+
+Required:
+
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable.
+
+
+<a id="nestedatt--secrets"></a>
+### Nested Schema for `secrets`
+
+Required:
+
+- `key` (String) Key of the secret.
+- `value` (String, Sensitive) Value of the secret [NOTE: will always be empty].
+
+Read-Only:
+
+- `id` (String) Id of the secret.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>
