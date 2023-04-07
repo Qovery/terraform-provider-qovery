@@ -21,10 +21,9 @@ import (
 )
 
 const (
-	jobImageName                     = "terraform-provider-tests-job"
-	jobImageTag                      = "1.0.0"
-	jobScheduleCronString            = "*/2 * * * *"
-	jobScheduleCronCommandEntrypoint = ""
+	jobImageName          = "terraform-provider-tests-job"
+	jobImageTag           = "1.0.0"
+	jobScheduleCronString = "*/2 * * * *"
 )
 
 func TestAcc_Job(t *testing.T) {
@@ -153,70 +152,6 @@ func TestAcc_Job(t *testing.T) {
 			},
 		},
 	})
-}
-
-func testAccJobDefaultConfig(testName string) string {
-	return fmt.Sprintf(`
-%s
-
-%s
-
-resource "qovery_job" "test" {
-  environment_id = qovery_environment.test.id
-  name = "%s"
-
-  source = {
-    image = {
-      registry_id = qovery_container_registry.test.id
-      name = "%s"
-      tag = "%s"
-    }
-  }
-
-  schedule = {
-    cronjob = {
-      schedule = "%s"
-        command = {
-          entrypoint = "%s"
-          arguments = []
-        }
-      }
-    }
-}
-`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName),
-		jobImageName, jobImageTag, jobScheduleCronString, jobScheduleCronCommandEntrypoint)
-}
-
-func testAccJobDefaultConfigWithName(testName string, name string) string {
-	return fmt.Sprintf(`
-%s
-
-%s
-
-resource "qovery_job" "test" {
-  environment_id = qovery_environment.test.id
-  name = "%s"
-
-  source = {
-    image = {
-      registry_id = qovery_container_registry.test.id
-      name = "%s"
-      tag = "%s"
-    }
-  }
-
-  schedule = {
-    cronjob = {
-      schedule = "%s"
-        command = {
-          entrypoint = "%s"
-          arguments = []
-        }
-      }
-    }
-}
-`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), name,
-		jobImageName, jobImageTag, jobScheduleCronString, jobScheduleCronCommandEntrypoint)
 }
 
 func getJobConfigFromModel(testName string, job qovery.Job) string {
