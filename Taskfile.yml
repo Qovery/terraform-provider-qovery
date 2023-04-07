@@ -62,6 +62,8 @@ tasks:
       - "qovery/**/*.go"
       - "internal/**/*.go"
       - "examples/**/*.tf"
+      - "examples/**/import.sh"
+      - "examples/**/examples.md"
       - "templates/**/*.tmpl"
       - go.mod
       - go.sum

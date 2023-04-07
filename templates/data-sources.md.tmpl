@@ -1,0 +1,14 @@
+# {{ .Name }} ({{ .Type }})
+
+{{ printf "%s" .Description }}
+{{ if .HasExample -}}
+## Example Usage
+{{ tffile .ExampleFile }}
+
+{{ .SchemaMarkdown | trimspace }}
+{{- end }}
+
+{{ if .HasImport -}}
+## Import
+{{ codefile "shell" .ImportFile }}
+{{- end -}}

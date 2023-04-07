@@ -1,0 +1,27 @@
+# {{ .Name }} ({{ .Type }})
+
+{{ printf "%s" .Description }}
+
+{{ with $path := printf "/examples/resources/%s/examples.md" .Name -}}
+{{- with $content := codefile "" $path -}}
+{{- if lt 10 (len (plainmarkdown $content)) -}}
+## Examples
+{{ plainmarkdown $content }}
+
+{{- end -}}
+{{- end -}}
+{{- end -}}
+
+{{ if .HasExample }}
+## Example Usage
+{{ tffile .ExampleFile }}
+
+{{ .SchemaMarkdown | trimspace }}
+{{- end }}
+{{ if .HasImport -}}
+
+## Import
+{{ codefile "shell" .ImportFile }}
+{{- end -}}
+
+
