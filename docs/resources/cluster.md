@@ -2,6 +2,9 @@
 
 Provides a Qovery cluster resource. This can be used to create and manage Qovery cluster.
 
+## Examples
+
+* [Deploy an Application and Database within 3 environments](https://github.com/Qovery/terraform-examples/tree/main/examples/deploy-an-application-within-3-environments)
 
 ## Example Usage
 ```terraform

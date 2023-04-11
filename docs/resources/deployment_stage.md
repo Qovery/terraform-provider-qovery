@@ -2,6 +2,9 @@
 
 Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.
 
+## Examples
+
+* [Deploy services with a specific order](https://github.com/Qovery/terraform-examples/tree/main/examples/deploy-services-with-a-specific-order)
 
 ## Example Usage
 ```terraform
