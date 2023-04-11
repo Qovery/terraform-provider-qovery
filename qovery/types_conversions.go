@@ -47,6 +47,7 @@ type ClientEnum interface {
 }
 
 func clientEnumToStringArray[T ClientEnum](enum []T) []string {
+
 	arr := make([]string, len(enum))
 	for idx, e := range enum {
 		arr[idx] = fmt.Sprintf("%s", e)
@@ -55,7 +56,7 @@ func clientEnumToStringArray[T ClientEnum](enum []T) []string {
 }
 
 func fromClientEnum[T ClientEnum](v T) types.String {
-	return fromString(string(v))
+	return FromString(string(v))
 }
 
 func fromClientEnumPointer[T ClientEnum](v *T) types.String {
@@ -69,7 +70,7 @@ func fromClientEnumPointer[T ClientEnum](v *T) types.String {
 // Convert to pointer
 //
 
-func stringAsPointer(v string) *string {
+func StringAsPointer(v string) *string {
 	return &v
 }
 
@@ -77,7 +78,7 @@ func stringAsPointer(v string) *string {
 // Convert Terraform types to Go types
 //
 
-func toNullableNullableBuildPackLanguageEnum(v types.String) qovery.NullableBuildPackLanguageEnum {
+func ToNullableNullableBuildPackLanguageEnum(v types.String) qovery.NullableBuildPackLanguageEnum {
 	enum, err := qovery.NewBuildPackLanguageEnumFromValue(v.Value)
 	if err != nil || v.Null || v.Unknown {
 		s := qovery.NewNullableBuildPackLanguageEnum(nil)
@@ -87,7 +88,7 @@ func toNullableNullableBuildPackLanguageEnum(v types.String) qovery.NullableBuil
 	return *s
 }
 
-func toNullableString(v types.String) qovery.NullableString {
+func ToNullableString(v types.String) qovery.NullableString {
 	if v.Null || v.Unknown {
 		s := qovery.NewNullableString(nil)
 		return *s
@@ -96,33 +97,33 @@ func toNullableString(v types.String) qovery.NullableString {
 	return *s
 }
 
-func toString(v types.String) string {
+func ToString(v types.String) string {
 	return v.Value
 }
 
-func toStringPointer(v types.String) *string {
+func ToStringPointer(v types.String) *string {
 	if v.Null || v.Unknown {
 		return nil
 	}
 	return &v.Value
 }
 
-func toBool(v types.Bool) bool {
+func ToBool(v types.Bool) bool {
 	return v.Value
 }
 
-func toBoolPointer(v types.Bool) *bool {
+func ToBoolPointer(v types.Bool) *bool {
 	if v.Null || v.Unknown {
 		return nil
 	}
 	return &v.Value
 }
 
-func toInt32(v types.Int64) int32 {
+func ToInt32(v types.Int64) int32 {
 	return int32(v.Value)
 }
 
-func toInt32Pointer(v types.Int64) *int32 {
+func ToInt32Pointer(v types.Int64) *int32 {
 	if v.Null || v.Unknown {
 		return nil
 	}
@@ -130,7 +131,7 @@ func toInt32Pointer(v types.Int64) *int32 {
 	return &i
 }
 
-func toUInt32Pointer(v types.Int64) *uint32 {
+func ToUInt32Pointer(v types.Int64) *uint32 {
 	if v.Null || v.Unknown {
 		return nil
 	}
@@ -138,11 +139,11 @@ func toUInt32Pointer(v types.Int64) *uint32 {
 	return &i
 }
 
-func toInt64(v types.Int64) int32 {
+func ToInt64(v types.Int64) int32 {
 	return int32(v.Value)
 }
 
-func toInt64Pointer(v types.Int64) *int32 {
+func ToInt64Pointer(v types.Int64) *int32 {
 	if v.Null || v.Unknown {
 		return nil
 	}
@@ -150,10 +151,10 @@ func toInt64Pointer(v types.Int64) *int32 {
 	return &i
 }
 
-func toMapStringString(obj types.Object) (map[string]interface{}, error) {
+func ToMapStringString(obj types.Object) (map[string]interface{}, error) {
 	ret := make(map[string]interface{}, len(obj.Attrs))
 	for k, v := range obj.Attrs {
-		value, err := fromTfValueToGoValue(v)
+		value, err := FromTfValueToGoValue(v)
 		if err != nil {
 			return nil, err
 		}
@@ -162,14 +163,14 @@ func toMapStringString(obj types.Object) (map[string]interface{}, error) {
 	return ret, nil
 }
 
-func toStringArray(set types.List) []string {
+func ToStringArray(set types.List) []string {
 	if set.Null || set.Unknown {
 		return []string{}
 	}
 
 	array := make([]string, 0, len(set.Elems))
 	for _, elem := range set.Elems {
-		array = append(array, toString(elem.(types.String)))
+		array = append(array, ToString(elem.(types.String)))
 	}
 
 	return array
@@ -179,66 +180,66 @@ func toStringArray(set types.List) []string {
 // Convert Go types to Terraform types
 //
 
-func fromNullableNullableBuildPackLanguageEnum(v qovery.NullableBuildPackLanguageEnum) types.String {
+func FromNullableNullableBuildPackLanguageEnum(v qovery.NullableBuildPackLanguageEnum) types.String {
 	if v.Get() == nil {
-		return fromStringPointer(nil)
+		return FromStringPointer(nil)
 	}
-	return fromString(string(*v.Get()))
+	return FromString(string(*v.Get()))
 }
 
-func fromString(v string) types.String {
+func FromString(v string) types.String {
 	return types.String{Value: v}
 }
 
-func fromStringPointer(v *string) types.String {
+func FromStringPointer(v *string) types.String {
 	if v == nil {
 		return types.String{Null: true}
 	}
-	return fromString(*v)
+	return FromString(*v)
 }
 
-func fromNullableString(v qovery.NullableString) types.String {
+func FromNullableString(v qovery.NullableString) types.String {
 	if v.Get() == nil {
 		return types.String{Null: true}
 	}
-	return fromString(*v.Get())
+	return FromString(*v.Get())
 }
 
-func fromInt64(v int64) types.Int64 {
+func FromInt64(v int64) types.Int64 {
 	return types.Int64{Value: v}
 }
 
-func fromUInt64(v uint64) types.Int64 {
+func FromUInt64(v uint64) types.Int64 {
 	return types.Int64{Value: int64(v)}
 }
 
-func fromInt32(v int32) types.Int64 {
-	return fromInt64(int64(v))
+func FromInt32(v int32) types.Int64 {
+	return FromInt64(int64(v))
 }
 
-func fromUInt32(v uint32) types.Int64 {
-	return fromUInt64(uint64(v))
+func FromUInt32(v uint32) types.Int64 {
+	return FromUInt64(uint64(v))
 }
 
-func fromInt32Pointer(v *int32) types.Int64 {
+func FromInt32Pointer(v *int32) types.Int64 {
 	if v == nil {
 		return types.Int64{Null: true}
 	}
-	return fromInt32(*v)
+	return FromInt32(*v)
 }
 
-func fromBool(v bool) types.Bool {
+func FromBool(v bool) types.Bool {
 	return types.Bool{Value: v}
 }
 
-func fromBoolPointer(v *bool) types.Bool {
+func FromBoolPointer(v *bool) types.Bool {
 	if v == nil {
 		return types.Bool{Null: true}
 	}
-	return fromBool(*v)
+	return FromBool(*v)
 }
 
-func fromStringArray(array []string) types.List {
+func FromStringArray(array []string) types.List {
 	set := types.List{
 		ElemType: types.StringType,
 	}
@@ -250,12 +251,12 @@ func fromStringArray(array []string) types.List {
 
 	set.Elems = make([]attr.Value, 0, len(array))
 	for _, v := range array {
-		set.Elems = append(set.Elems, fromString(v))
+		set.Elems = append(set.Elems, FromString(v))
 	}
 	return set
 }
 
-func fromGoValueToTfValue(value interface{}, _type attr.Type) (attr.Value, error) {
+func FromGoValueToTfValue(value interface{}, _type attr.Type) (attr.Value, error) {
 	switch _type {
 	case types.StringType:
 		return types.String{Value: value.(string)}, nil
@@ -280,7 +281,7 @@ func fromGoValueToTfValue(value interface{}, _type attr.Type) (attr.Value, error
 	return types.Object{Null: true}, fmt.Errorf("unable to parse %s as %s", value, _type.String())
 }
 
-func fromTfValueToGoValue(v attr.Value) (interface{}, error) {
+func FromTfValueToGoValue(v attr.Value) (interface{}, error) {
 	switch v.Type(context.Background()) {
 	case types.StringType:
 		value := strings.Trim(v.String(), "\"")
@@ -304,7 +305,7 @@ func fromTfValueToGoValue(v attr.Value) (interface{}, error) {
 	return nil, fmt.Errorf("unable to parse %s as Go value", v.String())
 }
 
-func fromStringMap(value *map[string]interface{}) types.Object {
+func FromStringMap(value *map[string]interface{}) types.Object {
 	if value == nil || len(*value) == 0 {
 		return types.Object{Null: true}
 	}
@@ -316,7 +317,7 @@ func fromStringMap(value *map[string]interface{}) types.Object {
 	}
 
 	for k, f := range *value {
-		attribute, err := fromGoValueToTfValue(f, attrTypes[k])
+		attribute, err := FromGoValueToTfValue(f, attrTypes[k])
 
 		if err != nil {
 			tflog.Warn(context.Background(), "Unable to parse attribute, using default value.", map[string]interface{}{"error": err.Error()})

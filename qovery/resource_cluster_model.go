@@ -91,7 +91,7 @@ func (c Cluster) hasRoutingTableDiff(state *Cluster) bool {
 }
 
 func (c Cluster) hasAdvSettingsDiff(state *Cluster) (bool, error) {
-	clusterSettings, clusterErr := toMapStringString(c.AdvancedSettings)
+	clusterSettings, clusterErr := ToMapStringString(c.AdvancedSettings)
 	if clusterErr != nil {
 		return false, clusterErr
 	}
@@ -99,7 +99,7 @@ func (c Cluster) hasAdvSettingsDiff(state *Cluster) (bool, error) {
 		return len(clusterSettings) > 0, nil
 	}
 
-	stateSettings, stateErr := toMapStringString(state.AdvancedSettings)
+	stateSettings, stateErr := ToMapStringString(state.AdvancedSettings)
 	if stateErr != nil {
 		return false, stateErr
 	}
@@ -111,12 +111,12 @@ func (c Cluster) hasAdvSettingsDiff(state *Cluster) (bool, error) {
 }
 
 func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertParams, error) {
-	cloudProvider, err := qovery.NewCloudProviderEnumFromValue(toString(c.CloudProvider))
+	cloudProvider, err := qovery.NewCloudProviderEnumFromValue(ToString(c.CloudProvider))
 	if err != nil {
 		return nil, err
 	}
 
-	kubernetesMode, err := qovery.NewKubernetesEnumFromValue(toString(c.KubernetesMode))
+	kubernetesMode, err := qovery.NewKubernetesEnumFromValue(ToString(c.KubernetesMode))
 	if err != nil {
 		return nil, err
 	}
@@ -127,10 +127,10 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 	if state == nil || c.CredentialsId != state.CredentialsId {
 		clusterCloudProviderRequest = &qovery.ClusterCloudProviderInfoRequest{
 			CloudProvider: cloudProvider,
-			Region:        toStringPointer(c.Region),
+			Region:        ToStringPointer(c.Region),
 			Credentials: &qovery.ClusterCloudProviderInfoCredentials{
-				Id:   toStringPointer(c.CredentialsId),
-				Name: toStringPointer(c.Name),
+				Id:   ToStringPointer(c.CredentialsId),
+				Name: ToStringPointer(c.Name),
 			},
 		}
 	}
@@ -142,12 +142,12 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 	}
 	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || advSettingsDiff
 
-	desiredState, err := qovery.NewStateEnumFromValue(toString(c.State))
+	desiredState, err := qovery.NewStateEnumFromValue(ToString(c.State))
 	if err != nil {
 		return nil, err
 	}
 
-	advSettings, parseErr := toMapStringString(c.AdvancedSettings)
+	advSettings, parseErr := ToMapStringString(c.AdvancedSettings)
 	if parseErr != nil {
 		return nil, parseErr
 	}
@@ -155,14 +155,14 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 	return &client.ClusterUpsertParams{
 		ClusterCloudProviderRequest: clusterCloudProviderRequest,
 		ClusterRequest: qovery.ClusterRequest{
-			Name:            toString(c.Name),
+			Name:            ToString(c.Name),
 			CloudProvider:   *cloudProvider,
-			Region:          toString(c.Region),
-			Description:     toStringPointer(c.Description),
+			Region:          ToString(c.Region),
+			Description:     ToStringPointer(c.Description),
 			Kubernetes:      kubernetesMode,
-			InstanceType:    toStringPointer(c.InstanceType),
-			MinRunningNodes: toInt32Pointer(c.MinRunningNodes),
-			MaxRunningNodes: toInt32Pointer(c.MaxRunningNodes),
+			InstanceType:    ToStringPointer(c.InstanceType),
+			MinRunningNodes: ToInt32Pointer(c.MinRunningNodes),
+			MaxRunningNodes: ToInt32Pointer(c.MaxRunningNodes),
 			Features:        toQoveryClusterFeatures(c.Features, c.KubernetesMode.String()),
 		},
 		ClusterRoutingTable:     routingTable.toUpsertRequest(),
@@ -176,21 +176,21 @@ func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 	routingTable := fromClusterRoutingTable(res.ClusterRoutingTable)
 
 	return Cluster{
-		Id:               fromString(res.ClusterResponse.Id),
-		CredentialsId:    fromStringPointer(res.ClusterInfo.Credentials.Id),
-		OrganizationId:   fromString(res.OrganizationID),
-		Name:             fromString(res.ClusterResponse.Name),
+		Id:               FromString(res.ClusterResponse.Id),
+		CredentialsId:    FromStringPointer(res.ClusterInfo.Credentials.Id),
+		OrganizationId:   FromString(res.OrganizationID),
+		Name:             FromString(res.ClusterResponse.Name),
 		CloudProvider:    fromClientEnum(res.ClusterResponse.CloudProvider),
-		Region:           fromString(res.ClusterResponse.Region),
-		Description:      fromStringPointer(res.ClusterResponse.Description),
+		Region:           FromString(res.ClusterResponse.Region),
+		Description:      FromStringPointer(res.ClusterResponse.Description),
 		KubernetesMode:   fromClientEnumPointer(res.ClusterResponse.Kubernetes),
-		InstanceType:     fromStringPointer(res.ClusterResponse.InstanceType),
-		MinRunningNodes:  fromInt32Pointer(res.ClusterResponse.MinRunningNodes),
-		MaxRunningNodes:  fromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
+		InstanceType:     FromStringPointer(res.ClusterResponse.InstanceType),
+		MinRunningNodes:  FromInt32Pointer(res.ClusterResponse.MinRunningNodes),
+		MaxRunningNodes:  FromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
 		Features:         fromQoveryClusterFeatures(res.ClusterResponse.Features),
 		RoutingTables:    routingTable.toTerraformSet(),
 		State:            fromClientEnumPointer(res.ClusterResponse.Status),
-		AdvancedSettings: fromStringMap(res.ClusterAdvancedSetting),
+		AdvancedSettings: FromStringMap(res.ClusterAdvancedSetting),
 	}
 }
 
@@ -207,10 +207,10 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 		}
 		switch *f.Id {
 		case featureIdVpcSubnet:
-			attrs[featureKeyVpcSubnet] = fromStringPointer(f.GetValue().String)
+			attrs[featureKeyVpcSubnet] = FromStringPointer(f.GetValue().String)
 			attrTypes[featureKeyVpcSubnet] = types.StringType
 		case featureIdStaticIP:
-			attrs[featureKeyStaticIP] = fromBoolPointer(f.GetValue().Bool)
+			attrs[featureKeyStaticIP] = FromBoolPointer(f.GetValue().Bool)
 			attrTypes[featureKeyStaticIP] = types.BoolType
 		}
 	}
@@ -222,9 +222,9 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 		isNull = true
 		defaultFeatureKeyVpcSubnet := ""
 		defaultFeatureKeyStaticIP := false
-		attrs[featureKeyVpcSubnet] = fromStringPointer(&defaultFeatureKeyVpcSubnet)
+		attrs[featureKeyVpcSubnet] = FromStringPointer(&defaultFeatureKeyVpcSubnet)
 		attrTypes[featureKeyVpcSubnet] = types.StringType
-		attrs[featureKeyStaticIP] = fromBoolPointer(&defaultFeatureKeyStaticIP)
+		attrs[featureKeyStaticIP] = FromBoolPointer(&defaultFeatureKeyStaticIP)
 		attrTypes[featureKeyStaticIP] = types.BoolType
 	}
 
@@ -243,22 +243,22 @@ func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterReques
 	features := make([]qovery.ClusterRequestFeaturesInner, 0, len(f.Attrs))
 	if _, ok := f.Attrs[featureKeyVpcSubnet]; ok {
 		value := qovery.NewNullableClusterFeatureValue(&qovery.ClusterFeatureValue{
-			String: toStringPointer(f.Attrs[featureKeyVpcSubnet].(types.String)),
+			String: ToStringPointer(f.Attrs[featureKeyVpcSubnet].(types.String)),
 		})
 
 		features = append(features, qovery.ClusterRequestFeaturesInner{
-			Id:    stringAsPointer(featureIdVpcSubnet),
+			Id:    StringAsPointer(featureIdVpcSubnet),
 			Value: *value,
 		})
 	}
 
 	if _, ok := f.Attrs[featureKeyStaticIP]; ok {
 		value := qovery.NewNullableClusterFeatureValue(&qovery.ClusterFeatureValue{
-			Bool: toBoolPointer(f.Attrs[featureKeyStaticIP].(types.Bool)),
+			Bool: ToBoolPointer(f.Attrs[featureKeyStaticIP].(types.Bool)),
 		})
 
 		features = append(features, qovery.ClusterRequestFeaturesInner{
-			Id:    stringAsPointer(featureIdStaticIP),
+			Id:    StringAsPointer(featureIdStaticIP),
 			Value: *value,
 		})
 	}

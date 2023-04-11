@@ -41,43 +41,43 @@ func (p ContainerRegistry) toUpsertRequest() registry.UpsertRequest {
 		configRequest = registry.UpsertRequestConfig{}
 	} else {
 		configRequest = registry.UpsertRequestConfig{
-			AccessKeyID:       toStringPointer(p.Config.AccessKeyID),
-			SecretAccessKey:   toStringPointer(p.Config.SecretAccessKey),
-			Region:            toStringPointer(p.Config.Region),
-			ScalewayAccessKey: toStringPointer(p.Config.ScalewayAccessKey),
-			ScalewaySecretKey: toStringPointer(p.Config.ScalewaySecretKey),
-			Username:          toStringPointer(p.Config.Username),
-			Password:          toStringPointer(p.Config.Password),
+			AccessKeyID:       ToStringPointer(p.Config.AccessKeyID),
+			SecretAccessKey:   ToStringPointer(p.Config.SecretAccessKey),
+			Region:            ToStringPointer(p.Config.Region),
+			ScalewayAccessKey: ToStringPointer(p.Config.ScalewayAccessKey),
+			ScalewaySecretKey: ToStringPointer(p.Config.ScalewaySecretKey),
+			Username:          ToStringPointer(p.Config.Username),
+			Password:          ToStringPointer(p.Config.Password),
 		}
 	}
 	return registry.UpsertRequest{
-		Name:        toString(p.Name),
-		Kind:        toString(p.Kind),
-		URL:         toString(p.URL),
-		Description: toStringPointer(p.Description),
+		Name:        ToString(p.Name),
+		Kind:        ToString(p.Kind),
+		URL:         ToString(p.URL),
+		Description: ToStringPointer(p.Description),
 		Config:      configRequest,
 	}
 }
 
 func convertDomainRegistryToContainerRegistry(state ContainerRegistry, res *registry.Registry) ContainerRegistry {
 	return ContainerRegistry{
-		Id:             fromString(res.ID.String()),
-		OrganizationId: fromString(res.OrganizationID.String()),
-		Name:           fromString(res.Name),
-		Kind:           fromString(res.Kind.String()),
-		URL:            fromString(res.URL.String()),
-		Description:    fromStringPointer(res.Description),
+		Id:             FromString(res.ID.String()),
+		OrganizationId: FromString(res.OrganizationID.String()),
+		Name:           FromString(res.Name),
+		Kind:           FromString(res.Kind.String()),
+		URL:            FromString(res.URL.String()),
+		Description:    FromStringPointer(res.Description),
 		Config:         state.Config,
 	}
 }
 
 func convertDomainRegistryToContainerRegistryDataSource(res *registry.Registry) ContainerRegistryDataSource {
 	return ContainerRegistryDataSource{
-		Id:             fromString(res.ID.String()),
-		OrganizationId: fromString(res.OrganizationID.String()),
-		Name:           fromString(res.Name),
-		Kind:           fromString(res.Kind.String()),
-		URL:            fromString(res.URL.String()),
-		Description:    fromStringPointer(res.Description),
+		Id:             FromString(res.ID.String()),
+		OrganizationId: FromString(res.OrganizationID.String()),
+		Name:           FromString(res.Name),
+		Kind:           FromString(res.Kind.String()),
+		URL:            FromString(res.URL.String()),
+		Description:    FromStringPointer(res.Description),
 	}
 }

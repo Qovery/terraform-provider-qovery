@@ -13,8 +13,8 @@ type Image struct {
 
 func (i Image) toUpsertRequest() *image.Image {
 	return &image.Image{
-		RegistryID: toString(i.RegistryID),
-		Name:       toString(i.Name),
-		Tag:        toString(i.Tag),
+		RegistryID: ToString(i.RegistryID),
+		Name:       ToString(i.Name),
+		Tag:        ToString(i.Tag),
 	}
 }

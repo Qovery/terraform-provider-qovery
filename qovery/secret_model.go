@@ -48,7 +48,7 @@ func (ss SecretList) contains(e Secret) bool {
 
 func (ss SecretList) find(key string) *Secret {
 	for _, v := range ss {
-		if toString(v.Key) == key {
+		if ToString(v.Key) == key {
 			return &v
 		}
 	}
@@ -63,7 +63,7 @@ func (ss SecretList) diff(old SecretList) client.SecretsDiff {
 	}
 
 	for _, s := range old {
-		if updatedVar := ss.find(toString(s.Key)); updatedVar != nil {
+		if updatedVar := ss.find(ToString(s.Key)); updatedVar != nil {
 			if updatedVar.Value != s.Value {
 				diff.Update = append(diff.Update, s.toUpdateRequest(*updatedVar))
 			}
@@ -89,7 +89,7 @@ func (ss SecretList) diffRequest(old SecretList) secret.DiffRequest {
 	}
 
 	for _, s := range old {
-		if updatedVar := ss.find(toString(s.Key)); updatedVar != nil {
+		if updatedVar := ss.find(ToString(s.Key)); updatedVar != nil {
 			if updatedVar.Value != s.Value {
 				diff.Update = append(diff.Update, s.toDiffUpdateRequest(*updatedVar))
 			}
@@ -127,8 +127,8 @@ func (s Secret) toTerraformObject() types.Object {
 func (s Secret) toCreateRequest() client.SecretCreateRequest {
 	return client.SecretCreateRequest{
 		SecretRequest: qovery.SecretRequest{
-			Key:   toString(s.Key),
-			Value: toString(s.Value),
+			Key:   ToString(s.Key),
+			Value: ToString(s.Value),
 		},
 	}
 }
@@ -136,48 +136,48 @@ func (s Secret) toCreateRequest() client.SecretCreateRequest {
 func (s Secret) toDiffCreateRequest() secret.DiffCreateRequest {
 	return secret.DiffCreateRequest{
 		UpsertRequest: secret.UpsertRequest{
-			Key:   toString(s.Key),
-			Value: toString(s.Value),
+			Key:   ToString(s.Key),
+			Value: ToString(s.Value),
 		},
 	}
 }
 
 func (s Secret) toUpdateRequest(new Secret) client.SecretUpdateRequest {
 	return client.SecretUpdateRequest{
-		Id: toString(s.Id),
+		Id: ToString(s.Id),
 		SecretEditRequest: qovery.SecretEditRequest{
-			Key:   toString(s.Key),
-			Value: toString(new.Value),
+			Key:   ToString(s.Key),
+			Value: ToString(new.Value),
 		},
 	}
 }
 
 func (s Secret) toDiffUpdateRequest(new Secret) secret.DiffUpdateRequest {
 	return secret.DiffUpdateRequest{
-		SecretID: toString(s.Id),
+		SecretID: ToString(s.Id),
 		UpsertRequest: secret.UpsertRequest{
-			Key:   toString(s.Key),
-			Value: toString(new.Value),
+			Key:   ToString(s.Key),
+			Value: ToString(new.Value),
 		},
 	}
 }
 
 func (s Secret) toDeleteRequest() client.SecretDeleteRequest {
 	return client.SecretDeleteRequest{
-		Id: toString(s.Id),
+		Id: ToString(s.Id),
 	}
 }
 
 func (s Secret) toDiffDeleteRequest() secret.DiffDeleteRequest {
 	return secret.DiffDeleteRequest{
-		SecretID: toString(s.Id),
+		SecretID: ToString(s.Id),
 	}
 }
 
 func fromSecret(v *qovery.Secret, state *Secret) Secret {
 	sec := Secret{
-		Id:  fromString(v.Id),
-		Key: fromString(v.Key),
+		Id:  FromString(v.Id),
+		Key: FromString(v.Key),
 	}
 	if state != nil {
 		sec.Value = state.Value
@@ -188,7 +188,7 @@ func fromSecret(v *qovery.Secret, state *Secret) Secret {
 func fromSecretList(state SecretList, secrets []*qovery.Secret, scope qovery.APIVariableScopeEnum) SecretList {
 	stateByKey := make(map[string]Secret)
 	for _, s := range state {
-		stateByKey[toString(s.Key)] = s
+		stateByKey[ToString(s.Key)] = s
 	}
 
 	list := make([]Secret, 0, len(secrets))
@@ -208,7 +208,7 @@ func fromSecretList(state SecretList, secrets []*qovery.Secret, scope qovery.API
 func convertDomainSecretsToSecretList(state SecretList, secrets secret.Secrets, scope variable.Scope) SecretList {
 	stateByKey := make(map[string]Secret)
 	for _, s := range state {
-		stateByKey[toString(s.Key)] = s
+		stateByKey[ToString(s.Key)] = s
 	}
 
 	list := make([]Secret, 0, len(secrets))
@@ -227,8 +227,8 @@ func convertDomainSecretsToSecretList(state SecretList, secrets secret.Secrets, 
 
 func convertDomainSecretToSecret(s secret.Secret, state *Secret) Secret {
 	sec := Secret{
-		Id:  fromString(s.ID.String()),
-		Key: fromString(s.Key),
+		Id:  FromString(s.ID.String()),
+		Key: FromString(s.Key),
 	}
 	if state != nil {
 		sec.Value = state.Value

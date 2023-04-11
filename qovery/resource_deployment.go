@@ -49,10 +49,10 @@ func newDeploymentTerraformFromDomain(domain *newdeployment.Deployment) NewDeplo
 		version = &versionToString
 	}
 	return NewDeploymentTerraform{
-		Id:            fromString(domain.ID.String()),
-		EnvironmentId: fromString(domain.EnvironmentID.String()),
-		Version:       fromStringPointer(version),
-		DesiredState:  fromString(domain.DesiredState.String()),
+		Id:            FromString(domain.ID.String()),
+		EnvironmentId: FromString(domain.EnvironmentID.String()),
+		Version:       FromStringPointer(version),
+		DesiredState:  FromString(domain.DesiredState.String()),
 	}
 }
 
@@ -125,10 +125,10 @@ func (r deploymentResource) Create(ctx context.Context, req resource.CreateReque
 
 	// Create new deployment stage
 	deployment, err := r.deploymentService.Create(ctx, newdeployment.NewDeploymentParams{
-		ID:            toStringPointer(plan.Id),
-		EnvironmentID: toString(plan.EnvironmentId),
-		Version:       toStringPointer(plan.Version),
-		DesiredState:  toString(plan.DesiredState),
+		ID:            ToStringPointer(plan.Id),
+		EnvironmentID: ToString(plan.EnvironmentId),
+		Version:       ToStringPointer(plan.Version),
+		DesiredState:  ToString(plan.DesiredState),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment create", err.Error())
@@ -151,10 +151,10 @@ func (r deploymentResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	deployment, err := r.deploymentService.Get(ctx, newdeployment.NewDeploymentParams{
-		ID:            toStringPointer(state.Id),
-		EnvironmentID: toString(state.EnvironmentId),
-		Version:       toStringPointer(state.Version),
-		DesiredState:  toString(state.DesiredState),
+		ID:            ToStringPointer(state.Id),
+		EnvironmentID: ToString(state.EnvironmentId),
+		Version:       ToStringPointer(state.Version),
+		DesiredState:  ToString(state.DesiredState),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment read", err.Error())
@@ -177,10 +177,10 @@ func (r deploymentResource) Update(ctx context.Context, req resource.UpdateReque
 	}
 
 	deployment, err := r.deploymentService.Update(ctx, newdeployment.NewDeploymentParams{
-		ID:            toStringPointer(state.Id),
-		EnvironmentID: toString(plan.EnvironmentId),
-		Version:       toStringPointer(plan.Version),
-		DesiredState:  toString(plan.DesiredState),
+		ID:            ToStringPointer(state.Id),
+		EnvironmentID: ToString(plan.EnvironmentId),
+		Version:       ToStringPointer(plan.Version),
+		DesiredState:  ToString(plan.DesiredState),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment update", err.Error())
@@ -201,7 +201,7 @@ func (r deploymentResource) Delete(ctx context.Context, req resource.DeleteReque
 	}
 
 	err := r.deploymentService.Delete(ctx, newdeployment.NewDeploymentParams{
-		EnvironmentID: toString(state.EnvironmentId),
+		EnvironmentID: ToString(state.EnvironmentId),
 		// When terraform destroys, the desired state will be "DELETED"
 		DesiredState: "DELETED",
 	})

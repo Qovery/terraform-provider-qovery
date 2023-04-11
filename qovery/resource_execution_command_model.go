@@ -1,6 +1,8 @@
 package qovery
 
+import "github.com/hashicorp/terraform-plugin-framework/types"
+
 type ExecutionCommand struct {
-	Entrypoint *string  `tfsdk:"entrypoint"`
-	Arguments  []string `tfsdk:"arguments"`
+	Entrypoint types.String   `tfsdk:"entrypoint"`
+	Arguments  []types.String `tfsdk:"arguments"`
 }

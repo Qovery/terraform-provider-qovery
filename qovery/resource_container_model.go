@@ -55,7 +55,7 @@ func (cont Container) PortList() PortList {
 }
 
 func (cont Container) ArgumentList() []string {
-	return toStringArray(cont.Arguments)
+	return ToStringArray(cont.Arguments)
 }
 
 //func (cont Container) CustomDomainsList() CustomDomainList {
@@ -100,44 +100,44 @@ func (cont Container) toUpsertRepositoryRequest() container.UpsertRepositoryRequ
 	}
 
 	return container.UpsertRepositoryRequest{
-		RegistryID:          toString(cont.RegistryID),
-		Name:                toString(cont.Name),
-		ImageName:           toString(cont.ImageName),
-		Tag:                 toString(cont.Tag),
-		AutoPreview:         toBoolPointer(cont.AutoPreview),
-		Entrypoint:          toStringPointer(cont.Entrypoint),
-		CPU:                 toInt32Pointer(cont.CPU),
-		Memory:              toInt32Pointer(cont.Memory),
-		MinRunningInstances: toInt32Pointer(cont.MinRunningInstances),
-		MaxRunningInstances: toInt32Pointer(cont.MaxRunningInstances),
+		RegistryID:          ToString(cont.RegistryID),
+		Name:                ToString(cont.Name),
+		ImageName:           ToString(cont.ImageName),
+		Tag:                 ToString(cont.Tag),
+		AutoPreview:         ToBoolPointer(cont.AutoPreview),
+		Entrypoint:          ToStringPointer(cont.Entrypoint),
+		CPU:                 ToInt32Pointer(cont.CPU),
+		Memory:              ToInt32Pointer(cont.Memory),
+		MinRunningInstances: ToInt32Pointer(cont.MinRunningInstances),
+		MaxRunningInstances: ToInt32Pointer(cont.MaxRunningInstances),
 		Arguments:           cont.ArgumentList(),
 		Storages:            storages,
 		Ports:               ports,
-		DeploymentStageID:   toString(cont.DeploymentStageId),
+		DeploymentStageID:   ToString(cont.DeploymentStageId),
 	}
 }
 
 func convertDomainContainerToContainer(state Container, container *container.Container) Container {
 	return Container{
-		ID:                          fromString(container.ID.String()),
-		EnvironmentID:               fromString(container.EnvironmentID.String()),
-		RegistryID:                  fromString(container.RegistryID.String()),
-		Name:                        fromString(container.Name),
-		ImageName:                   fromString(container.ImageName),
-		Tag:                         fromString(container.Tag),
-		CPU:                         fromInt32(container.CPU),
-		Memory:                      fromInt32(container.Memory),
-		MinRunningInstances:         fromInt32(container.MinRunningInstances),
-		MaxRunningInstances:         fromInt32(container.MaxRunningInstances),
-		AutoPreview:                 fromBool(container.AutoPreview),
-		Arguments:                   fromStringArray(container.Arguments),
+		ID:                          FromString(container.ID.String()),
+		EnvironmentID:               FromString(container.EnvironmentID.String()),
+		RegistryID:                  FromString(container.RegistryID.String()),
+		Name:                        FromString(container.Name),
+		ImageName:                   FromString(container.ImageName),
+		Tag:                         FromString(container.Tag),
+		CPU:                         FromInt32(container.CPU),
+		Memory:                      FromInt32(container.Memory),
+		MinRunningInstances:         FromInt32(container.MinRunningInstances),
+		MaxRunningInstances:         FromInt32(container.MaxRunningInstances),
+		AutoPreview:                 FromBool(container.AutoPreview),
+		Arguments:                   FromStringArray(container.Arguments),
 		Storages:                    convertDomainStoragesToStorageList(container.Storages).toTerraformSet(),
 		Ports:                       convertDomainPortsToPortList(container.Ports).toTerraformSet(),
 		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(container.EnvironmentVariables, variable.ScopeContainer).toTerraformSet(),
 		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn).toTerraformSet(),
-		InternalHost:                fromStringPointer(container.InternalHost),
-		ExternalHost:                fromStringPointer(container.ExternalHost),
+		InternalHost:                FromStringPointer(container.InternalHost),
+		ExternalHost:                FromStringPointer(container.ExternalHost),
 		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), container.Secrets, variable.ScopeContainer).toTerraformSet(),
-		DeploymentStageId:           fromString(container.DeploymentStageID),
+		DeploymentStageId:           FromString(container.DeploymentStageID),
 	}
 }

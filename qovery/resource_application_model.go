@@ -70,7 +70,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 
 	var buildMode *qovery.BuildModeEnum
 	if !app.BuildMode.Null && !app.BuildMode.Unknown {
-		bm, err := qovery.NewBuildModeEnumFromValue(toString(app.BuildMode))
+		bm, err := qovery.NewBuildModeEnumFromValue(ToString(app.BuildMode))
 		if err != nil {
 			return nil, err
 		}
@@ -79,25 +79,25 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 
 	return &client.ApplicationCreateParams{
 		ApplicationRequest: qovery.ApplicationRequest{
-			Name:                toString(app.Name),
+			Name:                ToString(app.Name),
 			BuildMode:           buildMode,
-			DockerfilePath:      toNullableString(app.DockerfilePath),
-			BuildpackLanguage:   toNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
-			Cpu:                 toInt32Pointer(app.CPU),
-			Memory:              toInt32Pointer(app.Memory),
-			MinRunningInstances: toInt32Pointer(app.MinRunningInstances),
-			MaxRunningInstances: toInt32Pointer(app.MaxRunningInstances),
-			AutoPreview:         toBoolPointer(app.AutoPreview),
+			DockerfilePath:      ToNullableString(app.DockerfilePath),
+			BuildpackLanguage:   ToNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
+			Cpu:                 ToInt32Pointer(app.CPU),
+			Memory:              ToInt32Pointer(app.Memory),
+			MinRunningInstances: ToInt32Pointer(app.MinRunningInstances),
+			MaxRunningInstances: ToInt32Pointer(app.MaxRunningInstances),
+			AutoPreview:         ToBoolPointer(app.AutoPreview),
 			GitRepository:       app.GitRepository.toCreateRequest(),
 			Storage:             storage,
 			Ports:               ports,
-			Entrypoint:          toStringPointer(app.Entrypoint),
-			Arguments:           toStringArray(app.Arguments),
+			Entrypoint:          ToStringPointer(app.Entrypoint),
+			Arguments:           ToStringArray(app.Arguments),
 		},
 		EnvironmentVariablesDiff:     app.EnvironmentVariableList().diff(nil),
 		SecretsDiff:                  app.SecretList().diff(nil),
 		CustomDomainsDiff:            app.CustomDomainsList().diff(nil),
-		ApplicationDeploymentStageID: toString(app.DeploymentStageId),
+		ApplicationDeploymentStageID: ToString(app.DeploymentStageId),
 	}, nil
 
 }
@@ -118,7 +118,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		var storageId string
 		value, exists := stateApplicationStoragesByMountPoint[storage.MountPoint.String()]
 		if exists {
-			storageId = toString(value.Id)
+			storageId = ToString(value.Id)
 		}
 
 		s, err := storage.toUpdateRequest(storageId)
@@ -139,7 +139,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 
 	var buildMode *qovery.BuildModeEnum
 	if !app.BuildMode.Null && !app.BuildMode.Unknown {
-		bm, err := qovery.NewBuildModeEnumFromValue(toString(app.BuildMode))
+		bm, err := qovery.NewBuildModeEnumFromValue(ToString(app.BuildMode))
 		if err != nil {
 			return nil, err
 		}
@@ -147,44 +147,44 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 	}
 
 	applicationEditRequest := qovery.ApplicationEditRequest{
-		Name:                toStringPointer(app.Name),
+		Name:                ToStringPointer(app.Name),
 		BuildMode:           buildMode,
-		DockerfilePath:      toStringPointer(app.DockerfilePath),
-		BuildpackLanguage:   toNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
-		Cpu:                 toInt32Pointer(app.CPU),
-		Memory:              toInt32Pointer(app.Memory),
-		MinRunningInstances: toInt32Pointer(app.MinRunningInstances),
-		MaxRunningInstances: toInt32Pointer(app.MaxRunningInstances),
-		AutoPreview:         toBoolPointer(app.AutoPreview),
+		DockerfilePath:      ToStringPointer(app.DockerfilePath),
+		BuildpackLanguage:   ToNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
+		Cpu:                 ToInt32Pointer(app.CPU),
+		Memory:              ToInt32Pointer(app.Memory),
+		MinRunningInstances: ToInt32Pointer(app.MinRunningInstances),
+		MaxRunningInstances: ToInt32Pointer(app.MaxRunningInstances),
+		AutoPreview:         ToBoolPointer(app.AutoPreview),
 		GitRepository:       app.GitRepository.toUpdateRequest(),
 		Storage:             applicationStorageRequest,
 		Ports:               ports,
-		Entrypoint:          toStringPointer(app.Entrypoint),
-		Arguments:           toStringArray(app.Arguments),
+		Entrypoint:          ToStringPointer(app.Entrypoint),
+		Arguments:           ToStringArray(app.Arguments),
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:       applicationEditRequest,
 		EnvironmentVariablesDiff:     app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
 		SecretsDiff:                  app.SecretList().diff(state.SecretList()),
 		CustomDomainsDiff:            app.CustomDomainsList().diff(state.CustomDomainsList()),
-		ApplicationDeploymentStageID: toString(app.DeploymentStageId),
+		ApplicationDeploymentStageID: ToString(app.DeploymentStageId),
 	}, nil
 
 }
 
 func convertResponseToApplication(state Application, app *client.ApplicationResponse) Application {
 	return Application{
-		Id:                          fromString(app.ApplicationResponse.Id),
-		EnvironmentId:               fromString(app.ApplicationResponse.Environment.Id),
-		Name:                        fromStringPointer(app.ApplicationResponse.Name),
+		Id:                          FromString(app.ApplicationResponse.Id),
+		EnvironmentId:               FromString(app.ApplicationResponse.Environment.Id),
+		Name:                        FromStringPointer(app.ApplicationResponse.Name),
 		BuildMode:                   fromClientEnumPointer(app.ApplicationResponse.BuildMode),
-		DockerfilePath:              fromNullableString(app.ApplicationResponse.DockerfilePath),
-		BuildpackLanguage:           fromNullableNullableBuildPackLanguageEnum(app.ApplicationResponse.BuildpackLanguage),
-		CPU:                         fromInt32Pointer(app.ApplicationResponse.Cpu),
-		Memory:                      fromInt32Pointer(app.ApplicationResponse.Memory),
-		MinRunningInstances:         fromInt32Pointer(app.ApplicationResponse.MinRunningInstances),
-		MaxRunningInstances:         fromInt32Pointer(app.ApplicationResponse.MaxRunningInstances),
-		AutoPreview:                 fromBoolPointer(app.ApplicationResponse.AutoPreview),
+		DockerfilePath:              FromNullableString(app.ApplicationResponse.DockerfilePath),
+		BuildpackLanguage:           FromNullableNullableBuildPackLanguageEnum(app.ApplicationResponse.BuildpackLanguage),
+		CPU:                         FromInt32Pointer(app.ApplicationResponse.Cpu),
+		Memory:                      FromInt32Pointer(app.ApplicationResponse.Memory),
+		MinRunningInstances:         FromInt32Pointer(app.ApplicationResponse.MinRunningInstances),
+		MaxRunningInstances:         FromInt32Pointer(app.ApplicationResponse.MaxRunningInstances),
+		AutoPreview:                 FromBoolPointer(app.ApplicationResponse.AutoPreview),
 		GitRepository:               convertResponseToApplicationGitRepository(app.ApplicationResponse.GitRepository),
 		Storage:                     convertResponseToApplicationStorage(app.ApplicationResponse.Storage),
 		Ports:                       convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
@@ -192,11 +192,11 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		EnvironmentVariables:        fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
 		Secrets:                     fromSecretList(state.SecretList(), app.ApplicationSecrets, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
 		CustomDomains:               fromCustomDomainList(app.ApplicationCustomDomains).toTerraformSet(),
-		InternalHost:                fromString(app.ApplicationInternalHost),
-		ExternalHost:                fromStringPointer(app.ApplicationExternalHost),
-		Entrypoint:                  fromStringPointer(app.ApplicationResponse.Entrypoint),
-		Arguments:                   fromStringArray(app.ApplicationResponse.Arguments),
-		DeploymentStageId:           fromString(app.ApplicationDeploymentStageID),
+		InternalHost:                FromString(app.ApplicationInternalHost),
+		ExternalHost:                FromStringPointer(app.ApplicationExternalHost),
+		Entrypoint:                  FromStringPointer(app.ApplicationResponse.Entrypoint),
+		Arguments:                   FromStringArray(app.ApplicationResponse.Arguments),
+		DeploymentStageId:           FromString(app.ApplicationDeploymentStageID),
 	}
 }
 
@@ -208,9 +208,9 @@ type ApplicationGitRepository struct {
 
 func (repo ApplicationGitRepository) toCreateRequest() qovery.ApplicationGitRepositoryRequest {
 	return qovery.ApplicationGitRepositoryRequest{
-		Url:      toString(repo.URL),
-		RootPath: toStringPointer(repo.RootPath),
-		Branch:   toStringPointer(repo.Branch),
+		Url:      ToString(repo.URL),
+		RootPath: ToStringPointer(repo.RootPath),
+		Branch:   ToStringPointer(repo.Branch),
 	}
 }
 
@@ -225,9 +225,9 @@ func convertResponseToApplicationGitRepository(gitRepository *qovery.Application
 	}
 
 	return &ApplicationGitRepository{
-		URL:      fromStringPointer(gitRepository.Url),
-		RootPath: fromStringPointer(gitRepository.RootPath),
-		Branch:   fromStringPointer(gitRepository.Branch),
+		URL:      FromStringPointer(gitRepository.Url),
+		RootPath: FromStringPointer(gitRepository.RootPath),
+		Branch:   FromStringPointer(gitRepository.Branch),
 	}
 }
 
@@ -239,20 +239,20 @@ type ApplicationStorage struct {
 }
 
 func (store ApplicationStorage) toCreateRequest() (*qovery.ServiceStorageRequestStorageInner, error) {
-	storageType, err := qovery.NewStorageTypeEnumFromValue(toString(store.Type))
+	storageType, err := qovery.NewStorageTypeEnumFromValue(ToString(store.Type))
 	if err != nil {
 		return nil, err
 	}
 
 	return &qovery.ServiceStorageRequestStorageInner{
 		Type:       *storageType,
-		Size:       toInt32(store.Size),
-		MountPoint: toString(store.MountPoint),
+		Size:       ToInt32(store.Size),
+		MountPoint: ToString(store.MountPoint),
 	}, nil
 }
 
 func (store ApplicationStorage) toUpdateRequest(id string) (*qovery.ServiceStorageRequestStorageInner, error) {
-	storageType, err := qovery.NewStorageTypeEnumFromValue(toString(store.Type))
+	storageType, err := qovery.NewStorageTypeEnumFromValue(ToString(store.Type))
 	if err != nil {
 		return nil, err
 	}
@@ -260,8 +260,8 @@ func (store ApplicationStorage) toUpdateRequest(id string) (*qovery.ServiceStora
 	return &qovery.ServiceStorageRequestStorageInner{
 		Id:         &id,
 		Type:       *storageType,
-		Size:       toInt32(store.Size),
-		MountPoint: toString(store.MountPoint),
+		Size:       ToInt32(store.Size),
+		MountPoint: ToString(store.MountPoint),
 	}, nil
 }
 
@@ -273,10 +273,10 @@ func convertResponseToApplicationStorage(storage []qovery.ServiceStorageStorageI
 	list := make([]ApplicationStorage, 0, len(storage))
 	for _, s := range storage {
 		list = append(list, ApplicationStorage{
-			Id:         fromString(s.Id),
+			Id:         FromString(s.Id),
 			Type:       fromClientEnum(s.Type),
-			Size:       fromInt32(s.Size),
-			MountPoint: fromString(s.MountPoint),
+			Size:       FromInt32(s.Size),
+			MountPoint: FromString(s.MountPoint),
 		})
 	}
 	return list
@@ -292,33 +292,33 @@ type ApplicationPort struct {
 }
 
 func (port ApplicationPort) toCreateRequest() (*qovery.ServicePortRequestPortsInner, error) {
-	protocol, err := qovery.NewPortProtocolEnumFromValue(toString(port.Protocol))
+	protocol, err := qovery.NewPortProtocolEnumFromValue(ToString(port.Protocol))
 	if err != nil {
 		return nil, err
 	}
 
 	return &qovery.ServicePortRequestPortsInner{
-		Name:               toStringPointer(port.Name),
-		InternalPort:       toInt32(port.InternalPort),
-		ExternalPort:       toInt32Pointer(port.ExternalPort),
+		Name:               ToStringPointer(port.Name),
+		InternalPort:       ToInt32(port.InternalPort),
+		ExternalPort:       ToInt32Pointer(port.ExternalPort),
 		Protocol:           protocol,
-		PubliclyAccessible: toBool(port.PubliclyAccessible),
+		PubliclyAccessible: ToBool(port.PubliclyAccessible),
 	}, nil
 }
 
 func (port ApplicationPort) toUpdateRequest() (*qovery.ServicePort, error) {
-	protocol, err := qovery.NewPortProtocolEnumFromValue(toString(port.Protocol))
+	protocol, err := qovery.NewPortProtocolEnumFromValue(ToString(port.Protocol))
 	if err != nil {
 		return nil, err
 	}
 
 	return &qovery.ServicePort{
-		Id:                 toString(port.Id),
-		Name:               toStringPointer(port.Name),
-		InternalPort:       toInt32(port.InternalPort),
-		ExternalPort:       toInt32Pointer(port.ExternalPort),
+		Id:                 ToString(port.Id),
+		Name:               ToStringPointer(port.Name),
+		InternalPort:       ToInt32(port.InternalPort),
+		ExternalPort:       ToInt32Pointer(port.ExternalPort),
 		Protocol:           *protocol,
-		PubliclyAccessible: toBool(port.PubliclyAccessible),
+		PubliclyAccessible: ToBool(port.PubliclyAccessible),
 	}, nil
 }
 
@@ -330,12 +330,12 @@ func convertResponseToApplicationPorts(ports []qovery.ServicePort) []Application
 	list := make([]ApplicationPort, 0, len(ports))
 	for _, p := range ports {
 		list = append(list, ApplicationPort{
-			Id:                 fromString(p.Id),
-			Name:               fromStringPointer(p.Name),
-			InternalPort:       fromInt32(p.InternalPort),
-			ExternalPort:       fromInt32Pointer(p.ExternalPort),
+			Id:                 FromString(p.Id),
+			Name:               FromStringPointer(p.Name),
+			InternalPort:       FromInt32(p.InternalPort),
+			ExternalPort:       FromInt32Pointer(p.ExternalPort),
 			Protocol:           fromClientEnum(p.Protocol),
-			PubliclyAccessible: fromBool(p.PubliclyAccessible),
+			PubliclyAccessible: FromBool(p.PubliclyAccessible),
 		})
 	}
 	return list

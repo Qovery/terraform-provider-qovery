@@ -498,7 +498,7 @@ func (r applicationResource) Create(ctx context.Context, req resource.CreateRequ
 		resp.Diagnostics.AddError(err.Error(), err.Error())
 		return
 	}
-	application, apiErr := r.client.CreateApplication(ctx, toString(plan.EnvironmentId), request)
+	application, apiErr := r.client.CreateApplication(ctx, ToString(plan.EnvironmentId), request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return

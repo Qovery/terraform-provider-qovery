@@ -62,7 +62,7 @@ func (vars EnvironmentVariableList) diffRequest(old EnvironmentVariableList) var
 	}
 
 	for _, e := range old {
-		if updatedVar := vars.find(toString(e.Key)); updatedVar != nil {
+		if updatedVar := vars.find(ToString(e.Key)); updatedVar != nil {
 			if updatedVar.Value != e.Value {
 				diff.Update = append(diff.Update, e.toDiffUpdateRequest(*updatedVar))
 			}
@@ -88,7 +88,7 @@ func (vars EnvironmentVariableList) diff(old EnvironmentVariableList) client.Env
 	}
 
 	for _, e := range old {
-		if updatedVar := vars.find(toString(e.Key)); updatedVar != nil {
+		if updatedVar := vars.find(ToString(e.Key)); updatedVar != nil {
 			if updatedVar.Value != e.Value {
 				diff.Update = append(diff.Update, e.toUpdateRequest(*updatedVar))
 			}
@@ -126,8 +126,8 @@ func (e EnvironmentVariable) toTerraformObject() types.Object {
 func (e EnvironmentVariable) toCreateRequest() client.EnvironmentVariableCreateRequest {
 	return client.EnvironmentVariableCreateRequest{
 		EnvironmentVariableRequest: qovery.EnvironmentVariableRequest{
-			Key:   toString(e.Key),
-			Value: toString(e.Value),
+			Key:   ToString(e.Key),
+			Value: ToString(e.Value),
 		},
 	}
 }
@@ -135,49 +135,49 @@ func (e EnvironmentVariable) toCreateRequest() client.EnvironmentVariableCreateR
 func (e EnvironmentVariable) toDiffCreateRequest() variable.DiffCreateRequest {
 	return variable.DiffCreateRequest{
 		UpsertRequest: variable.UpsertRequest{
-			Key:   toString(e.Key),
-			Value: toString(e.Value),
+			Key:   ToString(e.Key),
+			Value: ToString(e.Value),
 		},
 	}
 }
 
 func (e EnvironmentVariable) toUpdateRequest(new EnvironmentVariable) client.EnvironmentVariableUpdateRequest {
 	return client.EnvironmentVariableUpdateRequest{
-		Id: toString(e.Id),
+		Id: ToString(e.Id),
 		EnvironmentVariableEditRequest: qovery.EnvironmentVariableEditRequest{
-			Key:   toString(e.Key),
-			Value: toString(new.Value),
+			Key:   ToString(e.Key),
+			Value: ToString(new.Value),
 		},
 	}
 }
 
 func (e EnvironmentVariable) toDiffUpdateRequest(new EnvironmentVariable) variable.DiffUpdateRequest {
 	return variable.DiffUpdateRequest{
-		VariableID: toString(e.Id),
+		VariableID: ToString(e.Id),
 		UpsertRequest: variable.UpsertRequest{
-			Key:   toString(e.Key),
-			Value: toString(new.Value),
+			Key:   ToString(e.Key),
+			Value: ToString(new.Value),
 		},
 	}
 }
 
 func (e EnvironmentVariable) toDeleteRequest() client.EnvironmentVariableDeleteRequest {
 	return client.EnvironmentVariableDeleteRequest{
-		Id: toString(e.Id),
+		Id: ToString(e.Id),
 	}
 }
 
 func (e EnvironmentVariable) toDiffDeleteRequest() variable.DiffDeleteRequest {
 	return variable.DiffDeleteRequest{
-		VariableID: toString(e.Id),
+		VariableID: ToString(e.Id),
 	}
 }
 
 func fromEnvironmentVariable(v *qovery.EnvironmentVariable) EnvironmentVariable {
 	return EnvironmentVariable{
-		Id:    fromString(v.Id),
-		Key:   fromString(v.Key),
-		Value: fromString(v.Value),
+		Id:    FromString(v.Id),
+		Key:   FromString(v.Key),
+		Value: FromString(v.Value),
 	}
 }
 
@@ -234,8 +234,8 @@ func convertDomainVariablesToEnvironmentVariableList(vars variable.Variables, sc
 
 func convertDomainVariableToEnvironmentVariable(v variable.Variable) EnvironmentVariable {
 	return EnvironmentVariable{
-		Id:    fromString(v.ID.String()),
-		Key:   fromString(v.Key),
-		Value: fromString(v.Value),
+		Id:    FromString(v.ID.String()),
+		Key:   FromString(v.Key),
+		Value: FromString(v.Value),
 	}
 }

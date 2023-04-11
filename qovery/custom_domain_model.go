@@ -62,7 +62,7 @@ func (domains CustomDomainList) diff(oldDomains CustomDomainList) client.CustomD
 	}
 
 	for _, od := range oldDomains {
-		if found := domains.find(toString(od.Domain)); found == nil {
+		if found := domains.find(ToString(od.Domain)); found == nil {
 			diff.Delete = append(diff.Delete, od.toDeleteRequest())
 		}
 	}
@@ -98,31 +98,31 @@ func (d CustomDomain) toTerraformObject() types.Object {
 func (d CustomDomain) toCreateRequest() client.CustomDomainCreateRequest {
 	return client.CustomDomainCreateRequest{
 		CustomDomainRequest: qovery.CustomDomainRequest{
-			Domain: toString(d.Domain),
+			Domain: ToString(d.Domain),
 		},
 	}
 }
 
 func (d CustomDomain) toUpdateRequest(new CustomDomain) client.CustomDomainUpdateRequest {
 	return client.CustomDomainUpdateRequest{
-		Id: toString(d.Id),
+		Id: ToString(d.Id),
 		CustomDomainRequest: qovery.CustomDomainRequest{
-			Domain: toString(new.Domain),
+			Domain: ToString(new.Domain),
 		},
 	}
 }
 
 func (d CustomDomain) toDeleteRequest() client.CustomDomainDeleteRequest {
 	return client.CustomDomainDeleteRequest{
-		Id: toString(d.Id),
+		Id: ToString(d.Id),
 	}
 }
 
 func fromCustomDomain(d *qovery.CustomDomain) CustomDomain {
 	return CustomDomain{
-		Id:               fromString(d.Id),
-		Domain:           fromString(d.Domain),
-		ValidationDomain: fromStringPointer(d.ValidationDomain),
+		Id:               FromString(d.Id),
+		Domain:           FromString(d.Domain),
+		ValidationDomain: FromStringPointer(d.ValidationDomain),
 		Status:           fromClientEnumPointer(d.Status),
 	}
 }

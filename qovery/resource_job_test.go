@@ -4,23 +4,26 @@
 package qovery_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"regexp"
 	"testing"
+	"text/template"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
+	"github.com/qovery/terraform-provider-qovery/qovery"
 )
 
 const (
-	jobImageName                     = "terraform-provider-tests-job"
-	jobImageTag                      = "1.0.0"
-	jobScheduleCronString            = "*/2 * * * *"
-	jobScheduleCronCommandEntrypoint = ""
+	jobImageName          = "terraform-provider-tests-job"
+	jobImageTag           = "1.0.0"
+	jobScheduleCronString = "*/2 * * * *"
 )
 
 func TestAcc_Job(t *testing.T) {
@@ -33,8 +36,31 @@ func TestAcc_Job(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccJobDefaultConfig(
+				Config: getJobConfigFromModel(
 					testName,
+					qovery.Job{
+						Name:               qovery.FromString(generateTestName(testName)),
+						AutoPreview:        qovery.FromBool(false),
+						CPU:                qovery.FromInt32(500),
+						Memory:             qovery.FromInt32(512),
+						MaxDurationSeconds: qovery.FromUInt32(300),
+						MaxNbRestart:       qovery.FromUInt32(0),
+						Port:               qovery.FromInt32Pointer(nil),
+						Source: &qovery.JobSource{
+							Image: &qovery.Image{
+								Name: qovery.FromString(jobImageName),
+								Tag:  qovery.FromString(jobImageTag),
+							},
+						},
+						Schedule: &qovery.JobSchedule{
+							CronJob: &qovery.JobScheduleCron{
+								Schedule: qovery.FromString(jobScheduleCronString),
+								Command:  qovery.ExecutionCommand{},
+							},
+						},
+						EnvironmentVariables: types.Set{Null: true},
+						Secrets:              types.Set{Null: true},
+					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -65,16 +91,38 @@ func TestAcc_Job(t *testing.T) {
 			},
 			// Update name
 			{
-				Config: testAccJobDefaultConfigWithName(
+				Config: getJobConfigFromModel(
 					testName,
-					fmt.Sprintf("%s-updated", testName),
+					qovery.Job{
+						Name:               qovery.FromString(generateTestName(testName) + "-updated"),
+						AutoPreview:        qovery.FromBool(false),
+						CPU:                qovery.FromInt32(500),
+						Memory:             qovery.FromInt32(512),
+						MaxDurationSeconds: qovery.FromUInt32(300),
+						MaxNbRestart:       qovery.FromUInt32(0),
+						Port:               qovery.FromInt32Pointer(nil),
+						Source: &qovery.JobSource{
+							Image: &qovery.Image{
+								Name: qovery.FromString(jobImageName),
+								Tag:  qovery.FromString(jobImageTag),
+							},
+						},
+						Schedule: &qovery.JobSchedule{
+							CronJob: &qovery.JobScheduleCron{
+								Schedule: qovery.FromString(jobScheduleCronString),
+								Command:  qovery.ExecutionCommand{},
+							},
+						},
+						EnvironmentVariables: types.Set{Null: true},
+						Secrets:              types.Set{Null: true},
+					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
 					testAccQoveryJobExists("qovery_job.test"),
-					resource.TestCheckResourceAttr("qovery_job.test", "name", fmt.Sprintf("%s-updated", testName)),
+					resource.TestCheckResourceAttr("qovery_job.test", "name", fmt.Sprintf("%s-updated", generateTestName(testName))),
 					resource.TestCheckResourceAttr("qovery_job.test", "auto_preview", "false"),
 					resource.TestCheckResourceAttr("qovery_job.test", "cpu", "500"),
 					resource.TestCheckResourceAttr("qovery_job.test", "memory", "512"),
@@ -106,68 +154,122 @@ func TestAcc_Job(t *testing.T) {
 	})
 }
 
-func testAccJobDefaultConfig(testName string) string {
-	return fmt.Sprintf(`
-%s
+func getJobConfigFromModel(testName string, job qovery.Job) string {
+	tmpl_model := struct {
+		EnvironmentStr       string
+		ContainerRegistryStr string
+		Job                  qovery.Job
+	}{
+		EnvironmentStr:       testAccEnvironmentDefaultConfig(testName),
+		ContainerRegistryStr: testAccContainerRegistryDefaultConfig(testName),
+		Job:                  job,
+	}
 
-%s
+	tmpl, err := template.New("getJobConfigFromModel").Parse(`
+{{ .EnvironmentStr }}
 
-resource "qovery_job" "test" {
-  environment_id = qovery_environment.test.id
-  name = "%s"
-
-  source = {
-    image = {
-      registry_id = qovery_container_registry.test.id
-      name = "%s"
-      tag = "%s"
-    }
-  }
-
-  schedule = {
-    cronjob = {
-      schedule = "%s"
-        command = {
-          entrypoint = "%s"
-          arguments = []
-        }
-      }
-    }
-}
-`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName),
-		jobImageName, jobImageTag, jobScheduleCronString, jobScheduleCronCommandEntrypoint)
-}
-
-func testAccJobDefaultConfigWithName(testName string, name string) string {
-	return fmt.Sprintf(`
-%s
-
-%s
+{{ .ContainerRegistryStr }}
 
 resource "qovery_job" "test" {
   environment_id = qovery_environment.test.id
-  name = "%s"
+  name = {{ .Job.Name.String }}
 
+  cpu = {{ .Job.CPU }}
+  memory = {{ .Job.Memory }}
+  max_duration_seconds = {{ .Job.MaxDurationSeconds }}
+  max_nb_restart = {{ .Job.MaxNbRestart }}
+  auto_preview = {{ .Job.AutoPreview }}
+
+  {{ if not .Job.EnvironmentVariables.IsNull }}
+  environment_variables = {{ .Job.EnvironmentVariables.String }}
+  {{ end }}
+
+  {{ if not .Job.Secrets.IsNull }}	
+  secrets = {{ .Job.Secrets.String }}	
+  {{ end }}
+
+  {{ with .Job.Source }}	
   source = {
+	{{ with .Image }}	
     image = {
       registry_id = qovery_container_registry.test.id
-      name = "%s"
-      tag = "%s"
+      name = {{ .Name.String }}
+      tag = {{ .Tag.String }}
     }
-  }
-
-  schedule = {
-    cronjob = {
-      schedule = "%s"
-        command = {
-          entrypoint = "%s"
-          arguments = []
+    {{ end }}
+	{{ with .Docker }}	
+	docker = {
+        {{ with .DockerDockerFilePath }}	
+		dockerfile_path = {{ .String }}
+        {{ end }}
+		{{ with .GitRepository }}
+		git_repository = {
+			{{ with .Url }}
+        	url = {{ .String }}
+			{{ end }}
+			{{ with .Branch }}
+        	branch = {{ .String }}
+			{{ end }}
+			{{ with .RootPath }}	
+        	root_path = {{ .String }}
+			{{ end }}
         }
+		{{ end }}
+	}
+    {{ end }}
+  }
+  {{ end }}
+
+  {{ with .Job.Schedule }}	
+  schedule = {
+	{{ with .OnStart }}
+    on_start = {
+      {{ with .Entrypoint }}
+	  entrypoint = {{ .String }}
+	  {{ end }}
+	  arguments = [{{ range .Arguments }} {{ .String }} {{ end }}]
+    }
+    {{ end }}
+    {{ with .OnStop }}
+    on_stop = {
+      {{ with .Entrypoint }}
+	  entrypoint = {{ .String }}
+	  {{ end }}
+	  arguments = [{{ range .Arguments }} {{ .String }} {{ end }}]
+    }
+    {{ end }}
+    {{ with .OnDelete }}
+    on_delete = {
+      {{ with .Entrypoint }}
+	  entrypoint = {{ .String }}
+	  {{ end }}
+	  arguments = [{{ range .Arguments }} {{ .String }} {{ end }}]
+    }
+    {{ end }}
+	{{ with .CronJob }}	
+    cronjob = {
+      schedule = {{ .Schedule.String }}
+      command = {
+        {{ with .Command.Entrypoint }}
+        entrypoint = {{ .String }}
+        {{ end }}
+        arguments = [{{ range .Command.Arguments }} {{ .String }} {{ end }}]
       }
     }
+    {{ end }}
+  }
+  {{ end }}
 }
-`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), name,
-		jobImageName, jobImageTag, jobScheduleCronString, jobScheduleCronCommandEntrypoint)
+
+`)
+
+	var jobConfigStr bytes.Buffer
+	err = tmpl.Execute(&jobConfigStr, tmpl_model)
+	if err != nil {
+		return ""
+	}
+
+	return jobConfigStr.String()
 }
 
 func testAccQoveryJobExists(resourceName string) resource.TestCheckFunc {

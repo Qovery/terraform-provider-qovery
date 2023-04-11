@@ -86,10 +86,10 @@ func (d deploymentDataSource) Read(ctx context.Context, req datasource.ReadReque
 
 	// Get deployment from API
 	_, err := d.deploymentService.Get(ctx, newdeployment.NewDeploymentParams{
-		ID:            toStringPointer(data.Id),
-		EnvironmentID: toString(data.EnvironmentId),
-		Version:       toStringPointer(data.Version),
-		DesiredState:  toString(data.DesiredState),
+		ID:            ToStringPointer(data.Id),
+		EnvironmentID: ToString(data.EnvironmentId),
+		Version:       ToStringPointer(data.Version),
+		DesiredState:  ToString(data.DesiredState),
 	})
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment read", err.Error())

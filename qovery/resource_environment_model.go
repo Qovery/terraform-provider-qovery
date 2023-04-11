@@ -31,15 +31,15 @@ func (e Environment) SecretList() SecretList {
 }
 
 func (e Environment) toCreateEnvironmentRequest() (*environment.CreateServiceRequest, error) {
-	mode, err := environment.NewModeFromString(toString(e.Mode))
+	mode, err := environment.NewModeFromString(ToString(e.Mode))
 	if err != nil {
 		return nil, err
 	}
 
 	return &environment.CreateServiceRequest{
 		EnvironmentCreateRequest: environment.CreateRepositoryRequest{
-			Name:      toString(e.Name),
-			ClusterID: toStringPointer(e.ClusterId),
+			Name:      ToString(e.Name),
+			ClusterID: ToStringPointer(e.ClusterId),
 			Mode:      mode,
 		},
 		EnvironmentVariables: e.EnvironmentVariableList().diffRequest(nil),
@@ -50,7 +50,7 @@ func (e Environment) toCreateEnvironmentRequest() (*environment.CreateServiceReq
 func (e Environment) toUpdateEnvironmentRequest(state Environment) (*environment.UpdateServiceRequest, error) {
 	var mode *environment.Mode
 	if !e.Mode.IsNull() {
-		m, err := environment.NewModeFromString(toString(e.Mode))
+		m, err := environment.NewModeFromString(ToString(e.Mode))
 		if err != nil {
 			return nil, err
 		}
@@ -59,7 +59,7 @@ func (e Environment) toUpdateEnvironmentRequest(state Environment) (*environment
 
 	return &environment.UpdateServiceRequest{
 		EnvironmentUpdateRequest: environment.UpdateRepositoryRequest{
-			Name: toStringPointer(e.Name),
+			Name: ToStringPointer(e.Name),
 			Mode: mode,
 		},
 		EnvironmentVariables: e.EnvironmentVariableList().diffRequest(state.EnvironmentVariableList()),
@@ -69,10 +69,10 @@ func (e Environment) toUpdateEnvironmentRequest(state Environment) (*environment
 
 func convertDomainEnvironmentToEnvironment(state Environment, env *environment.Environment) Environment {
 	return Environment{
-		Id:                          fromString(env.ID.String()),
-		ProjectId:                   fromString(env.ProjectID.String()),
-		ClusterId:                   fromString(env.ClusterID.String()),
-		Name:                        fromString(env.Name),
+		Id:                          FromString(env.ID.String()),
+		ProjectId:                   FromString(env.ProjectID.String()),
+		ClusterId:                   FromString(env.ClusterID.String()),
+		Name:                        FromString(env.Name),
 		Mode:                        fromClientEnum(env.Mode),
 		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(env.EnvironmentVariables, variable.ScopeEnvironment).toTerraformSet(),
 		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(env.BuiltInEnvironmentVariables, variable.ScopeBuiltIn).toTerraformSet(),
