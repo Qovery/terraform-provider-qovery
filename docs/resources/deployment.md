@@ -3,7 +3,7 @@
 Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.
 
 
-## Example Usage
+## Example
 ```terraform
 resource "qovery_deployment" "my_deployment" {
   # Required

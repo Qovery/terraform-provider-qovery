@@ -3,7 +3,7 @@
 Provides a Qovery SCALEWAY credentials resource. This can be used to create and manage Qovery SCALEWAY credentials.
 
 
-## Example Usage
+## Example
 ```terraform
 resource "qovery_scaleway_credentials" "my_scaleway_creds" {
   # Required

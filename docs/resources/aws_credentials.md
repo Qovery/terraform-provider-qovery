@@ -3,7 +3,7 @@
 Provides a Qovery AWS credentials resource. This can be used to create and manage Qovery AWS credentials.
 
 
-## Example Usage
+## Example
 ```terraform
 resource "qovery_aws_credentials" "my_aws_creds" {
   # Required

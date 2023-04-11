@@ -3,7 +3,7 @@
 Provides a Qovery project resource. This can be used to create and manage Qovery projects.
 
 
-## Example Usage
+## Example
 ```terraform
 resource "qovery_project" "my_project" {
   # Required

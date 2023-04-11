@@ -3,7 +3,7 @@
 Provides a Qovery database resource. This can be used to create and manage Qovery databases.
 
 
-## Example Usage
+## Example
 ```terraform
 resource "qovery_database" "my_database" {
   # Required

@@ -3,7 +3,7 @@
 Provides a Qovery organization resource. This can be used to create and manage Qovery organizations.
 
 
-## Example Usage
+## Example
 ```terraform
 resource "qovery_organization" "my_organization" {
   # Required

@@ -3,7 +3,7 @@
 Provides a Qovery container registry resource. This can be used to create and manage Qovery container registry.
 
 
-## Example Usage
+## Example
 ```terraform
 resource "qovery_container_registry" "my_container_registry" {
   # Required
