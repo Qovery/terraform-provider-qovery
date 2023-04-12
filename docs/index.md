@@ -1,10 +1,3 @@
----
-layout: ""
-page_title: "Provider: Qovery"
-description: |-
-  The Qovery provider allows you to interact with the Qovery API.
----
-
 # Qovery Provider
 
 The [Qovery](https://www.qovery.com/) provider is used to interact with the resources supported by Qovery. 
