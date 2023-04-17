@@ -40,9 +40,9 @@ func TestAcc_Deployment(t *testing.T) {
 				Config: testAccDeploymentDefaultConfigWithDesiredState("RUNNING"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
-					testAccQoveryApplicationHasState("RUNNING"),
-					testAccQoveryContainerHasState("RUNNING"),
-					testAccQoveryDatabaseHasState("RUNNING"),
+					testAccQoveryApplicationHasState("DEPLOYED"),
+					testAccQoveryContainerHasState("DEPLOYED"),
+					testAccQoveryDatabaseHasState("DEPLOYED"),
 				),
 			},
 		},

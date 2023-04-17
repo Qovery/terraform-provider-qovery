@@ -15,7 +15,7 @@ func (c *Client) deployApplication(ctx context.Context, application *qovery.Appl
 	}
 
 	switch status.State {
-	case qovery.STATEENUM_RUNNING:
+	case qovery.STATEENUM_DEPLOYED:
 		return status, nil
 	case qovery.STATEENUM_DEPLOYMENT_ERROR:
 		return c.redeployApplication(ctx, application)
@@ -31,7 +31,7 @@ func (c *Client) deployApplication(ctx context.Context, application *qovery.Appl
 		}
 	}
 
-	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, qovery.STATEENUM_RUNNING)
+	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, qovery.STATEENUM_DEPLOYED)
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
@@ -81,7 +81,7 @@ func (c *Client) redeployApplication(ctx context.Context, application *qovery.Ap
 		return nil, apierrors.NewRedeployError(apierrors.APIResourceApplication, application.Id, res, err)
 	}
 
-	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, qovery.STATEENUM_RUNNING)
+	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, qovery.STATEENUM_DEPLOYED)
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}

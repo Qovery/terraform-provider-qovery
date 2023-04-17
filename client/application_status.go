@@ -45,14 +45,14 @@ func (c *Client) updateApplicationStatus(ctx context.Context, application *qover
 		// Disable redeploy if we deployed the app previously or if we want the app to be stopped
 		forceRedeploy = false
 		switch desiredState {
-		case qovery.STATEENUM_RUNNING:
+		case qovery.STATEENUM_DEPLOYED:
 			return c.deployApplication(ctx, application)
 		case qovery.STATEENUM_STOPPED:
 			return c.stopApplication(ctx, application)
 		}
 	}
 
-	if (status.ServiceDeploymentStatus == qovery.SERVICEDEPLOYMENTSTATUSENUM_OUT_OF_DATE) || (forceRedeploy && desiredState == qovery.STATEENUM_RUNNING) {
+	if (status.ServiceDeploymentStatus == qovery.SERVICEDEPLOYMENTSTATUSENUM_OUT_OF_DATE) || (forceRedeploy && desiredState == qovery.STATEENUM_DEPLOYED) {
 		return c.redeployApplication(ctx, application)
 	}
 

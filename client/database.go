@@ -210,7 +210,7 @@ func (c *Client) deployDatabase(ctx context.Context, databaseID string) (*qovery
 	}
 
 	switch status.State {
-	case qovery.STATEENUM_RUNNING:
+	case qovery.STATEENUM_DEPLOYED:
 		return status, nil
 	case qovery.STATEENUM_DEPLOYMENT_ERROR:
 		return c.redeployDatabase(ctx, databaseID)
@@ -223,7 +223,7 @@ func (c *Client) deployDatabase(ctx context.Context, databaseID string) (*qovery
 		}
 	}
 
-	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_RUNNING)
+	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_DEPLOYED)
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
@@ -268,7 +268,7 @@ func (c *Client) redeployDatabase(ctx context.Context, databaseID string) (*qove
 		return nil, apierrors.NewRedeployError(apierrors.APIResourceDatabase, databaseID, res, err)
 	}
 
-	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_RUNNING)
+	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_DEPLOYED)
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
