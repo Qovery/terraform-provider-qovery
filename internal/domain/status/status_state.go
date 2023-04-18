@@ -11,6 +11,7 @@ type State string
 
 const (
 	StateBuilding         State = "BUILDING"
+	StateBuildError       State = "BUILD_ERROR"
 	StateCanceled         State = "CANCELED"
 	StateCanceling        State = "CANCELING"
 	StateDeleted          State = "DELETED"
@@ -23,7 +24,6 @@ const (
 	StateDeploymentQueued State = "DEPLOYMENT_QUEUED"
 	StateQueued           State = "QUEUED"
 	StateReady            State = "READY"
-	StateRunning          State = "RUNNING"
 	StateStopped          State = "STOPPED"
 	StateStopping         State = "STOPPING"
 	StateStopError        State = "STOP_ERROR"
@@ -37,6 +37,7 @@ const (
 // AllowedStateValues contains all the valid values of a State.
 var AllowedStateValues = []State{
 	StateBuilding,
+	StateBuildError,
 	StateCanceled,
 	StateCanceling,
 	StateDeleted,
@@ -49,7 +50,6 @@ var AllowedStateValues = []State{
 	StateDeploymentQueued,
 	StateQueued,
 	StateReady,
-	StateRunning,
 	StateStopped,
 	StateStopping,
 	StateStopError,
@@ -61,8 +61,9 @@ var AllowedStateValues = []State{
 }
 
 var AllowedDesiredStateValues = []State{
-	StateRunning,
+	StateDeployed,
 	StateStopped,
+	StateRestarted,
 }
 
 // String returns the string value of a State.

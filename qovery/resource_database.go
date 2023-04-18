@@ -25,10 +25,10 @@ var _ resource.ResourceWithImportState = databaseResource{}
 var (
 	// Database State
 	databaseStates = clientEnumToStringArray([]qovery.StateEnum{
-		qovery.STATEENUM_RUNNING,
+		qovery.STATEENUM_DEPLOYED,
 		qovery.STATEENUM_STOPPED,
 	})
-	databaseStateDefault = string(qovery.STATEENUM_RUNNING)
+	databaseStateDefault = string(qovery.STATEENUM_DEPLOYED)
 
 	// Database Type
 	databaseTypes = clientEnumToStringArray(qovery.AllowedDatabaseTypeEnumEnumValues)

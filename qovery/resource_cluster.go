@@ -29,10 +29,10 @@ var _ resource.ResourceWithImportState = clusterResource{}
 var (
 	// Cluster State
 	clusterStates = clientEnumToStringArray([]qovery.StateEnum{
-		qovery.STATEENUM_RUNNING,
+		qovery.STATEENUM_DEPLOYED,
 		qovery.STATEENUM_STOPPED,
 	})
-	clusterStateDefault = string(qovery.STATEENUM_RUNNING)
+	clusterStateDefault = string(qovery.STATEENUM_DEPLOYED)
 
 	// Cluster Description
 	clusterDescriptionDefault = ""

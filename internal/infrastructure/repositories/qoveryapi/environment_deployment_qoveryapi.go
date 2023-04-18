@@ -74,5 +74,5 @@ func (c environmentDeploymentQoveryAPI) Stop(ctx context.Context, environmentID 
 		return nil, apierrors.NewStopApiError(apierrors.ApiResourceEnvironment, environmentID, resp, err)
 	}
 
-	return newDomainStatusFromQovery(environmentStatus)
+	return newDomainEnvironmentStatusFromQovery(environmentStatus)
 }

@@ -42,7 +42,7 @@ func (c *Client) updateDatabaseStatus(ctx context.Context, database *qovery.Data
 
 	if status.State != desiredState {
 		switch desiredState {
-		case qovery.STATEENUM_RUNNING:
+		case qovery.STATEENUM_DEPLOYED:
 			return c.deployDatabase(ctx, database.Id)
 		case qovery.STATEENUM_STOPPED:
 			return c.stopDatabase(ctx, database.Id)

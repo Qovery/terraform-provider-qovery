@@ -26,11 +26,9 @@ func TestNewDomainStatusFromQovery(t *testing.T) {
 		{
 			TestName: "success",
 			Status: &qovery.Status{
-				Id:                      gofakeit.UUID(),
-				ServiceDeploymentStatus: qovery.SERVICEDEPLOYMENTSTATUSENUM_UP_TO_DATE,
-				State:                   qovery.STATEENUM_RUNNING,
-				LastDeploymentDate:      pointer.ToTime(gofakeit.Date()),
-				Message:                 pointer.ToString(gofakeit.Word()),
+				Id:                 gofakeit.UUID(),
+				State:              qovery.STATEENUM_DEPLOYED,
+				LastDeploymentDate: pointer.ToTime(gofakeit.Date()),
 			},
 		},
 	}
@@ -48,10 +46,8 @@ func TestNewDomainStatusFromQovery(t *testing.T) {
 			assert.NoError(t, err)
 			assert.NotNil(t, st)
 			assert.Equal(t, tc.Status.Id, st.ID.String())
-			assert.Equal(t, string(tc.Status.ServiceDeploymentStatus), st.ServiceDeploymentStatus.String())
 			assert.Equal(t, string(tc.Status.State), st.State.String())
 			assert.Equal(t, tc.Status.LastDeploymentDate, st.LastDeploymentDate)
-			assert.Equal(t, tc.Status.Message, st.Message)
 		})
 	}
 }

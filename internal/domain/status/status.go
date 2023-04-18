@@ -22,16 +22,11 @@ var (
 	ErrInvalidServiceDeploymentStatusParam = errors.New("invalid service deployment status param")
 	// ErrInvalidLastDeploymentDateParam is returned if the last deployment date param is invalid.
 	ErrInvalidLastDeploymentDateParam = errors.New("invalid last deployment date param")
-	// ErrInvalidMessageParam is returned if the last deployment date param is invalid.
-	ErrInvalidMessageParam = errors.New("invalid message param")
 )
 
 type Status struct {
-	ID                      uuid.UUID               `validate:"required"`
-	State                   State                   `validate:"required"`
-	ServiceDeploymentStatus ServiceDeploymentStatus `validate:"required"`
-
-	Message            *string
+	ID                 uuid.UUID `validate:"required"`
+	State              State     `validate:"required"`
 	LastDeploymentDate *time.Time
 }
 
@@ -73,7 +68,7 @@ func (s Status) IsQueuedState() bool {
 
 // IsProcessingState returns a bool to tell whether the Status is a processing state or not.
 func (s Status) IsProcessingState() bool {
-	return strings.HasSuffix(s.State.String(), "ING") && s.State != StateRunning
+	return strings.HasSuffix(s.State.String(), "ING")
 }
 
 // NewStatusParams represents the arguments needed to create a Status.
@@ -81,8 +76,14 @@ type NewStatusParams struct {
 	StatusID                string
 	State                   string
 	ServiceDeploymentStatus string
-	Message                 *string
 	LastDeploymentDate      *time.Time
+}
+
+// NewEnvironmentStatusParams represents the arguments needed to create a EnvironmentStatus.
+type NewEnvironmentStatusParams struct {
+	StatusID           string
+	State              string
+	LastDeploymentDate *time.Time
 }
 
 // NewStatus returns a new instance of a Status domain model.
@@ -97,17 +98,8 @@ func NewStatus(params NewStatusParams) (*Status, error) {
 		return nil, errors.Wrap(err, ErrInvalidStateParam.Error())
 	}
 
-	serviceDeploymentStatus, err := NewServiceDeploymentStatusFromString(params.ServiceDeploymentStatus)
 	if err != nil {
 		return nil, errors.Wrap(err, ErrInvalidServiceDeploymentStatusParam.Error())
-	}
-
-	if params.ServiceDeploymentStatus == "" {
-		return nil, ErrInvalidMessageParam
-	}
-
-	if params.Message != nil && *params.Message == "" {
-		return nil, ErrInvalidMessageParam
 	}
 
 	if params.LastDeploymentDate != nil && params.LastDeploymentDate.IsZero() {
@@ -115,11 +107,9 @@ func NewStatus(params NewStatusParams) (*Status, error) {
 	}
 
 	s := &Status{
-		ID:                      statusUUID,
-		State:                   *state,
-		ServiceDeploymentStatus: *serviceDeploymentStatus,
-		Message:                 params.Message,
-		LastDeploymentDate:      params.LastDeploymentDate,
+		ID:                 statusUUID,
+		State:              *state,
+		LastDeploymentDate: params.LastDeploymentDate,
 	}
 
 	if err := s.Validate(); err != nil {

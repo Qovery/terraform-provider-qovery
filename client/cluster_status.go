@@ -30,9 +30,9 @@ func (c *Client) updateClusterStatus(ctx context.Context, organizationID string,
 		return nil, apiErr
 	}
 
-	if status.GetStatus() != desiredState || (status.GetStatus() == qovery.STATEENUM_RUNNING && forceUpdate == true) {
+	if status.GetStatus() != desiredState || (status.GetStatus() == qovery.STATEENUM_DEPLOYED && forceUpdate == true) {
 		switch desiredState {
-		case qovery.STATEENUM_RUNNING:
+		case qovery.STATEENUM_DEPLOYED:
 			return c.deployCluster(ctx, organizationID, cluster)
 		case qovery.STATEENUM_STOPPED:
 			return c.stopCluster(ctx, organizationID, cluster)

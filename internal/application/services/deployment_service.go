@@ -56,7 +56,7 @@ func (c deploymentService) GetStatus(ctx context.Context, resourceID string) (*s
 // UpdateState handles the domain logic to update the state of a resource.
 func (c deploymentService) UpdateState(ctx context.Context, resourceID string, desiredState status.State, version string) (*status.Status, error) {
 	switch desiredState {
-	case status.StateRunning:
+	case status.StateDeployed:
 		return c.Deploy(ctx, resourceID, version)
 	case status.StateStopped:
 		return c.Stop(ctx, resourceID)
@@ -77,7 +77,7 @@ func (c deploymentService) Deploy(ctx context.Context, resourceID string, versio
 	}
 
 	switch currentStatus.State {
-	case status.StateRunning:
+	case status.StateDeployed:
 		return currentStatus, nil
 	case status.StateDeploymentError:
 		return c.Redeploy(ctx, resourceID)
@@ -88,7 +88,7 @@ func (c deploymentService) Deploy(ctx context.Context, resourceID string, versio
 		}
 	}
 
-	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateRunning), nil); err != nil {
+	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateDeployed), nil); err != nil {
 		return nil, errors.Wrap(err, deployment.ErrFailedToDeploy.Error())
 	}
 
@@ -120,7 +120,7 @@ func (c deploymentService) Redeploy(ctx context.Context, resourceID string) (*st
 		}
 	}
 
-	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateRunning), nil); err != nil {
+	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateDeployed), nil); err != nil {
 		return nil, errors.Wrap(err, deployment.ErrFailedToRedeploy.Error())
 	}
 

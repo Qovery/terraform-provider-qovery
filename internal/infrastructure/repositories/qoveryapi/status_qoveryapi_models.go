@@ -16,6 +16,16 @@ func newDomainStatusFromQovery(qoveryStatus *qovery.Status) (*status.Status, err
 		ServiceDeploymentStatus: string(qoveryStatus.ServiceDeploymentStatus),
 		State:                   string(qoveryStatus.State),
 		LastDeploymentDate:      qoveryStatus.LastDeploymentDate,
-		Message:                 qoveryStatus.Message,
+	})
+}
+func newDomainEnvironmentStatusFromQovery(qoveryStatus *qovery.EnvironmentStatus) (*status.Status, error) {
+	if qoveryStatus == nil {
+		return nil, status.ErrNilStatus
+	}
+
+	return status.NewStatus(status.NewStatusParams{
+		StatusID:           qoveryStatus.Id,
+		State:              string(qoveryStatus.State),
+		LastDeploymentDate: qoveryStatus.LastDeploymentDate.Get(),
 	})
 }

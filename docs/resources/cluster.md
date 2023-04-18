@@ -70,8 +70,8 @@ You can find complete examples within these repositories:
 	- Default: `3`.
 - `routing_table` (Attributes Set) List of routes of the cluster. (see [below for nested schema](#nestedatt--routing_table))
 - `state` (String) State of the cluster.
-	- Can be: `RUNNING`, `STOPPED`.
-	- Default: `RUNNING`.
+	- Can be: `DEPLOYED`, `STOPPED`.
+	- Default: `DEPLOYED`.
 
 ### Read-Only
 

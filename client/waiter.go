@@ -177,7 +177,7 @@ func isStatusError(state qovery.StateEnum) bool {
 }
 
 func isProcessingState(state qovery.StateEnum) bool {
-	return strings.HasSuffix(string(state), "ING") && state != qovery.STATEENUM_RUNNING
+	return strings.HasSuffix(string(state), "ING")
 }
 
 func isWaitingState(state qovery.StateEnum) bool {

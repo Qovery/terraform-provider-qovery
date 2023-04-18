@@ -93,12 +93,12 @@ func (d deploymentStatusQoveryAPI) newEnvironmentWaitForTerminalStateBeforeDeplo
 		switch status.State {
 		// In progress
 		case "BUILDING", "CANCELING", "DELETE_QUEUED", "DELETING", "DEPLOYING", "STOPPING",
-			"STOP_QUEUED", "RESTART_QUEUED", "RESTARTING", "DEPLOYMENT_QUEUED", "QUEUED":
+			"STOP_QUEUED", "RESTART_QUEUED", "RESTARTING", "DEPLOYMENT_QUEUED", "QUEUED", "DEPLOYED":
 			tflog.Info(ctx, fmt.Sprintf("Environment deployment in progress with current status %s...", status.State))
 			return false, nil
 		// Finished with error
-		case "READY", "DEPLOYMENT_ERROR", "DELETE_ERROR", "STOP_ERROR", "RESTART_ERROR", "RUNNING",
-			"STOPPED", "DEPLOYED", "DELETED", "RESTARTED", "CANCELED":
+		case "READY", "DEPLOYMENT_ERROR", "DELETE_ERROR", "STOP_ERROR", "RESTART_ERROR",
+			"STOPPED", "DELETED", "RESTARTED", "CANCELED", "BUILD_ERROR":
 			return true, nil
 		}
 
@@ -124,10 +124,10 @@ func (d deploymentStatusQoveryAPI) newEnvironmentWaitForExpectedDesiredState(env
 			tflog.Info(ctx, fmt.Sprintf("Environment deployment in progress with target status %s...", desiredState))
 			return false, nil
 		// Finished with error
-		case "DEPLOYMENT_ERROR", "DELETE_ERROR", "STOP_ERROR", "RESTART_ERROR":
+		case "BUILD_ERROR", "DEPLOYMENT_ERROR", "DELETE_ERROR", "STOP_ERROR", "RESTART_ERROR":
 			return false, errors.New(fmt.Sprintf("Environment deployment failed with final status: %s", status.State))
 		// Finished with success
-		case "RUNNING", "STOPPED", "DEPLOYED", "DELETED", "RESTARTED", "CANCELED":
+		case "STOPPED", "DEPLOYED", "DELETED", "RESTARTED", "CANCELED":
 			return true, nil
 		}
 

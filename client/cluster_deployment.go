@@ -15,7 +15,7 @@ func (c *Client) deployCluster(ctx context.Context, organizationID string, clust
 	}
 
 	switch status.GetStatus() {
-	case qovery.STATEENUM_RUNNING:
+	case qovery.STATEENUM_DEPLOYED:
 		return status, nil
 	default:
 		_, res, err := c.api.ClustersApi.
@@ -26,7 +26,7 @@ func (c *Client) deployCluster(ctx context.Context, organizationID string, clust
 		}
 	}
 
-	statusChecker := newClusterStatusCheckerWaitFunc(c, organizationID, cluster.Id, qovery.STATEENUM_RUNNING)
+	statusChecker := newClusterStatusCheckerWaitFunc(c, organizationID, cluster.Id, qovery.STATEENUM_DEPLOYED)
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
