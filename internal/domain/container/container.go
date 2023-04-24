@@ -19,9 +19,9 @@ import (
 const (
 	DefaultState               = status.StateDeployed
 	DefaultCPU                 = 500
-	MinCPU                     = 250
+	MinCPU                     = 10
 	DefaultMemory              = 512
-	MinMemory                  = 1
+	MinMemory                  = 10
 	DefaultMinRunningInstances = 1
 	MinMinRunningInstances     = 1
 	DefaultMaxRunningInstances = 1
