@@ -21,7 +21,7 @@ var (
 type DeploymentDesiredState string
 
 const (
-	RUNNING   DeploymentDesiredState = "RUNNING"
+	DEPLOYED  DeploymentDesiredState = "DEPLOYED"
 	STOPPED   DeploymentDesiredState = "STOPPED"
 	RESTARTED DeploymentDesiredState = "RESTARTED"
 	DELETED   DeploymentDesiredState = "DELETED"
@@ -30,7 +30,7 @@ const (
 func fromString(desiredStateStr string) (*DeploymentDesiredState, error) {
 	desiredState := DeploymentDesiredState(desiredStateStr)
 	switch desiredState {
-	case RUNNING, STOPPED, RESTARTED, DELETED:
+	case DEPLOYED, STOPPED, RESTARTED, DELETED:
 		return &desiredState, nil
 	}
 	return nil, ErrInvalidDeploymentDesiredState
@@ -38,8 +38,8 @@ func fromString(desiredStateStr string) (*DeploymentDesiredState, error) {
 
 func (c DeploymentDesiredState) String() string {
 	switch c {
-	case RUNNING:
-		return "RUNNING"
+	case DEPLOYED:
+		return "DEPLOYED"
 	case STOPPED:
 		return "STOPPED"
 	case RESTARTED:

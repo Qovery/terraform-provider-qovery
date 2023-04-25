@@ -715,7 +715,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 //	// Running it with a STOPPED state will make the test run way faster.
 //	state := "STOPPED"
 //	if isCIMainBranch() {
-//		state = "RUNNING"
+//		state = "DEPLOYED"
 //	}
 //	resource.Test(t, resource.TestCase{
 //		PreCheck:                 func() { testAccPreCheck(t) },

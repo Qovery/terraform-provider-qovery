@@ -8,7 +8,7 @@ Provides a Qovery deployment stage resource. This can be used to create and mana
 resource "qovery_deployment" "my_deployment" {
   # Required
   environment_id = qovery_environment.my_environment.id
-  desired_state  = "RUNNING"
+  desired_state  = "DEPLOYED"
   version        = "random_uuid_to_force_retrigger_terraform_apply"
 
   depends_on = [
@@ -25,10 +25,10 @@ resource "qovery_deployment" "my_deployment" {
 ### Required
 
 - `desired_state` (String) Desired state of the deployment.
-	- Can be: `RESTARTED`, `RUNNING`, `STOPPED`.
+	- Can be: `DEPLOYED`, `RESTARTED`, `STOPPED`.
 - `environment_id` (String) Id of the environment.
 
 ### Optional
 
 - `id` (String) Id of the deployment
-- `version` (String) Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'RUNNING' state)
+- `version` (String) Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'DEPLOYED' state)
