@@ -93,12 +93,12 @@ func (d deploymentStatusQoveryAPI) newEnvironmentWaitForTerminalStateBeforeDeplo
 		switch status.State {
 		// In progress
 		case "BUILDING", "CANCELING", "DELETE_QUEUED", "DELETING", "DEPLOYING", "STOPPING",
-			"STOP_QUEUED", "RESTART_QUEUED", "RESTARTING", "DEPLOYMENT_QUEUED", "QUEUED", "DEPLOYED":
+			"STOP_QUEUED", "RESTART_QUEUED", "RESTARTING", "DEPLOYMENT_QUEUED", "QUEUED":
 			tflog.Info(ctx, fmt.Sprintf("Environment deployment in progress with current status %s...", status.State))
 			return false, nil
 		// Finished with error
 		case "READY", "DEPLOYMENT_ERROR", "DELETE_ERROR", "STOP_ERROR", "RESTART_ERROR",
-			"STOPPED", "DELETED", "RESTARTED", "CANCELED", "BUILD_ERROR":
+			"STOPPED", "DELETED", "RESTARTED", "CANCELED", "BUILD_ERROR", "DEPLOYED":
 			return true, nil
 		}
 

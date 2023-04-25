@@ -41,7 +41,7 @@ func (s newDeploymentService) Create(ctx context.Context, params newdeployment.N
 	}
 
 	switch deployment.DesiredState {
-	case newdeployment.RUNNING:
+	case newdeployment.DEPLOYED:
 		_, err = s.newDeploymentEnvironmentRepository.Deploy(ctx, *deployment)
 		if err != nil {
 			return nil, errors.Wrap(err, newdeployment.ErrFailedToCreateDeployment.Error())
@@ -80,7 +80,7 @@ func (s newDeploymentService) Update(ctx context.Context, params newdeployment.N
 	}
 
 	switch deployment.DesiredState {
-	case newdeployment.RUNNING:
+	case newdeployment.DEPLOYED:
 		_, err = s.newDeploymentEnvironmentRepository.ReDeploy(ctx, *deployment)
 		if err != nil {
 			return nil, errors.Wrap(err, newdeployment.ErrFailedToCreateDeployment.Error())

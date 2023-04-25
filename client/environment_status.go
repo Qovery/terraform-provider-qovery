@@ -8,7 +8,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-func (c *Client) getEnvironmentStatus(ctx context.Context, environmentID string) (*qovery.Status, *apierrors.APIError) {
+func (c *Client) getEnvironmentStatus(ctx context.Context, environmentID string) (*qovery.EnvironmentStatus, *apierrors.APIError) {
 	status, res, err := c.api.EnvironmentMainCallsApi.
 		GetEnvironmentStatus(ctx, environmentID).
 		Execute()

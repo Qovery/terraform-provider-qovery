@@ -38,7 +38,7 @@ func (c environmentDeploymentQoveryAPI) GetStatus(ctx context.Context, environme
 		return nil, apierrors.NewReadApiError(apierrors.ApiResourceEnvironmentStatus, environmentID, resp, err)
 	}
 
-	return newDomainStatusFromQovery(environmentStatus)
+	return newDomainEnvironmentStatusFromQovery(environmentStatus)
 }
 
 // Deploy calls Qovery's API to deploy an environment using the given environmentID.
