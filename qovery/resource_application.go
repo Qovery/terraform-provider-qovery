@@ -32,7 +32,7 @@ var (
 	applicationBuildPackLanguages = clientEnumToStringArray(qovery.AllowedBuildPackLanguageEnumEnumValues)
 
 	// Application CPU
-	applicationCPUMin     int64 = 250 // in MB
+	applicationCPUMin     int64 = 10  // in MB
 	applicationCPUDefault int64 = 500 // in MB
 
 	// Application Memory

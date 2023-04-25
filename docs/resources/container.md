@@ -56,7 +56,7 @@ resource "qovery_container" "my_container" {
 - `arguments` (List of String) List of arguments of this container.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this container.
 - `cpu` (Number) CPU of the container in millicores (m) [1000m = 1 CPU].
-	- Must be: `>= 250`.
+	- Must be: `>= 10`.
 	- Default: `500`.
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `entrypoint` (String) Entrypoint of the container.
@@ -65,7 +65,7 @@ resource "qovery_container" "my_container" {
 	- Must be: `>= -1`.
 	- Default: `1`.
 - `memory` (Number) RAM of the container in MB [1024MB = 1GB].
-	- Must be: `>= 1`.
+	- Must be: `>= 10`.
 	- Default: `512`.
 - `min_running_instances` (Number) Minimum number of instances running for the container.
 	- Must be: `>= 1`.

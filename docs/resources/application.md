@@ -73,7 +73,7 @@ You can find complete examples within these repositories:
 	- Required if: `build_mode="BUILDPACKS"`.
 	- Can be: `CLOJURE`, `GO`, `GRADLE`, `GRAILS`, `JAVA`, `JVM`, `NODE_JS`, `PHP`, `PLAY`, `PYTHON`, `SCALA`.
 - `cpu` (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
-	- Must be: `>= 250`.
+	- Must be: `>= 10`.
 	- Default: `500`.
 - `custom_domains` (Attributes Set) List of custom domains linked to this application. (see [below for nested schema](#nestedatt--custom_domains))
 - `deployment_stage_id` (String) Id of the deployment stage.
