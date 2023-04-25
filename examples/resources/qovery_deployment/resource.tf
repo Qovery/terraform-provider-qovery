@@ -1,7 +1,7 @@
 resource "qovery_deployment" "my_deployment" {
   # Required
   environment_id = qovery_environment.my_environment.id
-  desired_state  = "DEPLOYED"
+  desired_state  = "RUNNING"
   version        = "random_uuid_to_force_retrigger_terraform_apply"
 
   depends_on = [
