@@ -21,7 +21,7 @@ resource "qovery_cluster" "my_cluster" {
       target      = "pcx-06f8f5512c91e389c"
     }
   ]
-  state = "DEPLOYED"
+  state = "RUNNING"
 
   depends_on = [
     qovery_organization.my_organization,

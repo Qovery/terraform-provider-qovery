@@ -37,7 +37,7 @@ func TestAcc_Deployment(t *testing.T) {
 			},
 			// Apply deployment with RUNNING state
 			{
-				Config: testAccDeploymentDefaultConfigWithDesiredState("DEPLOYED"),
+				Config: testAccDeploymentDefaultConfigWithDesiredState("RUNNING"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryApplicationHasState("DEPLOYED"),

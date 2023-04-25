@@ -25,7 +25,7 @@ type deploymentResource struct {
 var (
 	// default deployment states
 	deploymentStates = []string{
-		newdeployment.DEPLOYED.String(),
+		newdeployment.RUNNING.String(),
 		newdeployment.STOPPED.String(),
 		newdeployment.RESTARTED.String(),
 	}
@@ -94,7 +94,7 @@ func (r deploymentResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Dia
 				Required:    true,
 			},
 			"version": {
-				Description: "Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'DEPLOYED' state)",
+				Description: "Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'RUNNING' state)",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    false,

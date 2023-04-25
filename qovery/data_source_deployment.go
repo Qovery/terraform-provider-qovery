@@ -61,7 +61,7 @@ func (d deploymentDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.D
 				Required:    true,
 			},
 			"version": {
-				Description: "Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'DEPLOYED' state)",
+				Description: "Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'RUNNING' state)",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    false,
