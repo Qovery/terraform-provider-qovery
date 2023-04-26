@@ -55,7 +55,10 @@ func TestAcc_Job(t *testing.T) {
 						Schedule: &qovery.JobSchedule{
 							CronJob: &qovery.JobScheduleCron{
 								Schedule: qovery.FromString(jobScheduleCronString),
-								Command:  qovery.ExecutionCommand{},
+								Command: qovery.ExecutionCommand{
+									Entrypoint: qovery.FromString("test.sh"),
+									Arguments:  []types.String{qovery.FromString("arg1"), qovery.FromString("arg2")},
+								},
 							},
 						},
 						EnvironmentVariables: types.Set{Null: true},
@@ -80,8 +83,9 @@ func TestAcc_Job(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.on_stop"),
 					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.on_delete"),
 					resource.TestCheckResourceAttr("qovery_job.test", "schedule.cronjob.schedule", "*/2 * * * *"),
-					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.cronjob.schedule.command.entrypoint"),
-					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.cronjob.schedule.command.arguments"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.cronjob.command.entrypoint", "test.sh"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.cronjob.command.arguments.0", "arg1"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.cronjob.command.arguments.1", "arg2"),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_job.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
@@ -110,7 +114,10 @@ func TestAcc_Job(t *testing.T) {
 						Schedule: &qovery.JobSchedule{
 							CronJob: &qovery.JobScheduleCron{
 								Schedule: qovery.FromString(jobScheduleCronString),
-								Command:  qovery.ExecutionCommand{},
+								Command: qovery.ExecutionCommand{
+									Entrypoint: qovery.FromString("test.sh"),
+									Arguments:  []types.String{qovery.FromString("arg1"), qovery.FromString("arg2")},
+								},
 							},
 						},
 						EnvironmentVariables: types.Set{Null: true},
@@ -135,8 +142,9 @@ func TestAcc_Job(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.on_stop"),
 					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.on_delete"),
 					resource.TestCheckResourceAttr("qovery_job.test", "schedule.cronjob.schedule", "*/2 * * * *"),
-					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.cronjob.schedule.command.entrypoint"),
-					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.cronjob.schedule.command.arguments"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.cronjob.command.entrypoint", "test.sh"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.cronjob.command.arguments.0", "arg1"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.cronjob.command.arguments.1", "arg2"),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_job.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
@@ -227,7 +235,9 @@ resource "qovery_job" "test" {
       {{ with .Entrypoint }}
 	  entrypoint = {{ .String }}
 	  {{ end }}
-	  arguments = [{{ range .Arguments }} {{ .String }} {{ end }}]
+	  {{ with .Command.Arguments }}
+        arguments = [{{ range $i, $a := . }}{{ if $i }}, {{ end }}{{ $a.String }}{{ end }}]
+	  {{ end }}
     }
     {{ end }}
     {{ with .OnStop }}
@@ -235,7 +245,9 @@ resource "qovery_job" "test" {
       {{ with .Entrypoint }}
 	  entrypoint = {{ .String }}
 	  {{ end }}
-	  arguments = [{{ range .Arguments }} {{ .String }} {{ end }}]
+	  {{ with .Command.Arguments }}
+        arguments = [{{ range $i, $a := . }}{{ if $i }}, {{ end }}{{ $a.String }}{{ end }}]
+	  {{ end }}
     }
     {{ end }}
     {{ with .OnDelete }}
@@ -243,7 +255,9 @@ resource "qovery_job" "test" {
       {{ with .Entrypoint }}
 	  entrypoint = {{ .String }}
 	  {{ end }}
-	  arguments = [{{ range .Arguments }} {{ .String }} {{ end }}]
+	  {{ with .Command.Arguments }}
+        arguments = [{{ range $i, $a := . }}{{ if $i }}, {{ end }}{{ $a.String }}{{ end }}]
+	  {{ end }}
     }
     {{ end }}
 	{{ with .CronJob }}	
@@ -253,14 +267,15 @@ resource "qovery_job" "test" {
         {{ with .Command.Entrypoint }}
         entrypoint = {{ .String }}
         {{ end }}
-        arguments = [{{ range .Command.Arguments }} {{ .String }} {{ end }}]
+		{{ with .Command.Arguments }}
+        arguments = [{{ range $i, $a := . }}{{ if $i }}, {{ end }}{{ $a.String }}{{ end }}]
+        {{ end }}
       }
     }
     {{ end }}
   }
   {{ end }}
 }
-
 `)
 
 	var jobConfigStr bytes.Buffer
