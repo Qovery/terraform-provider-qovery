@@ -14,18 +14,18 @@ type GitRepository struct {
 func (g GitRepository) toUpsertRequest() git_repository.GitRepository {
 	var branch *string = nil
 	if !g.Branch.IsNull() {
-		v := g.Branch.String()
+		v := ToString(g.Branch)
 		branch = &v
 	}
 
 	var rootPath *string = nil
 	if !g.RootPath.IsNull() {
-		v := g.RootPath.String()
+		v := ToString(g.RootPath)
 		rootPath = &v
 	}
 
 	return git_repository.GitRepository{
-		Url:      g.Url.String(),
+		Url:      ToString(g.Url),
 		Branch:   branch,
 		RootPath: rootPath,
 	}

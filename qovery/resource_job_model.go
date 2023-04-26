@@ -71,7 +71,7 @@ func (s JobSchedule) toUpsertRequest() job.JobSchedule {
 	if s.OnStart != nil {
 		args := make([]string, len(s.OnStart.Arguments))
 		for i, arg := range s.OnStart.Arguments {
-			args[i] = arg.String()
+			args[i] = ToString(arg)
 		}
 		onStart = &execution_command.ExecutionCommand{
 			Entrypoint: ToStringPointer(s.OnStart.Entrypoint),
@@ -83,7 +83,7 @@ func (s JobSchedule) toUpsertRequest() job.JobSchedule {
 	if s.OnStop != nil {
 		args := make([]string, len(s.OnStop.Arguments))
 		for i, arg := range s.OnStop.Arguments {
-			args[i] = arg.String()
+			args[i] = ToString(arg)
 		}
 		onStop = &execution_command.ExecutionCommand{
 			Entrypoint: ToStringPointer(s.OnStop.Entrypoint),
@@ -95,7 +95,7 @@ func (s JobSchedule) toUpsertRequest() job.JobSchedule {
 	if s.OnDelete != nil {
 		args := make([]string, len(s.OnDelete.Arguments))
 		for i, arg := range s.OnDelete.Arguments {
-			args[i] = arg.String()
+			args[i] = ToString(arg)
 		}
 		onDelete = &execution_command.ExecutionCommand{
 			Entrypoint: ToStringPointer(s.OnDelete.Entrypoint),
@@ -176,7 +176,7 @@ type JobScheduleCron struct {
 func (s JobScheduleCron) toUpsertRequest() job.JobScheduleCron {
 	args := make([]string, len(s.Command.Arguments))
 	for i, arg := range s.Command.Arguments {
-		args[i] = arg.String()
+		args[i] = ToString(arg)
 	}
 
 	return job.JobScheduleCron{
