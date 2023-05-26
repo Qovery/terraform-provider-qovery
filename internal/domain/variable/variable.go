@@ -106,7 +106,7 @@ func NewVariable(params NewVariableParams) (*Variable, error) {
 // UpsertRequest represents the parameters needed to create & update a Variable.
 type UpsertRequest struct {
 	Key   string `validate:"required"`
-	Value string `validate:"required"`
+	Value string
 }
 
 // Validate returns an error to tell whether the UpsertRequest is valid or not.
