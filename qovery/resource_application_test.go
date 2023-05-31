@@ -15,6 +15,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
+	"github.com/qovery/terraform-provider-qovery/qovery"
 )
 
 const (
@@ -1484,7 +1485,17 @@ resource "qovery_application" "test" {
     url = "%s"
   }
 }
-`, testAccDatabaseDefaultConfig(testName, redisContainer), generateTestName(testName), applicationRepositoryURL,
+`, GetDatabaseConfigFromModel(testName, qovery.Database{
+		Name:          qovery.FromString(generateTestName(testName)),
+		Type:          qovery.FromString("REDIS"),
+		Version:       qovery.FromString("6"),
+		Mode:          qovery.FromString("CONTAINER"),
+		Accessibility: qovery.FromString("PUBLIC"),
+		CPU:           qovery.FromInt32(250),
+		Memory:        qovery.FromInt32(256),
+		Storage:       qovery.FromInt32(10),
+		InstanceType:  qovery.FromStringPointer(nil),
+	}), generateTestName(testName), applicationRepositoryURL,
 	)
 }
 

@@ -18,6 +18,7 @@ data "qovery_database" "my_database" {
 ### Optional
 
 - `deployment_stage_id` (String) Id of the deployment stage.
+- `instance_type` (String) Instance type of the database.
 
 ### Read-Only
 

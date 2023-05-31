@@ -90,7 +90,6 @@ func (d databaseDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Dia
 				Type:        types.Int64Type,
 				Computed:    true,
 			},
-
 			"memory": {
 				Description: "RAM of the database in MB [1024MB = 1GB].",
 				Type:        types.Int64Type,
@@ -100,6 +99,12 @@ func (d databaseDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Dia
 				Description: "Storage of the database in MB [1024MB = 1GB].",
 				Type:        types.Int64Type,
 				Computed:    true,
+			},
+			"instance_type": {
+				Description: "Instance type of the database.",
+				Type:        types.StringType,
+				Computed:    true,
+				Optional:    true,
 			},
 			"external_host": {
 				Description: "The database external FQDN host (only if your database is publicly accessible with ACCESSIBILITY = PUBLIC)",

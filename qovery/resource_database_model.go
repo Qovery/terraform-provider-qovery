@@ -23,6 +23,7 @@ type Database struct {
 	Login             types.String `tfsdk:"login"`
 	Password          types.String `tfsdk:"password"`
 	Storage           types.Int64  `tfsdk:"storage"`
+	InstanceType      types.String `tfsdk:"instance_type"`
 	DeploymentStageId types.String `tfsdk:"deployment_stage_id"`
 }
 
@@ -93,5 +94,6 @@ func convertResponseToDatabase(res *client.DatabaseResponse) Database {
 		Password:          FromString(res.DatabaseCredentials.Password),
 		Storage:           FromInt32Pointer(res.DatabaseResponse.Storage),
 		DeploymentStageId: FromString(res.DeploymentStageID),
+		InstanceType:      FromStringPointer(res.DatabaseResponse.InstanceType),
 	}
 }
