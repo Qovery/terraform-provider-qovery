@@ -70,7 +70,7 @@ resource "qovery_container" "my_container" {
 - `min_running_instances` (Number) Minimum number of instances running for the container.
 	- Must be: `>= 1`.
 	- Default: `1`.
-- `ports` (Attributes Set) List of storages linked to this container. (see [below for nested schema](#nestedatt--ports))
+- `ports` (Attributes Set) List of ports linked to this container. (see [below for nested schema](#nestedatt--ports))
 - `secrets` (Attributes Set) List of secrets linked to this container. (see [below for nested schema](#nestedatt--secrets))
 - `storage` (Attributes Set) List of storages linked to this container. (see [below for nested schema](#nestedatt--storage))
 

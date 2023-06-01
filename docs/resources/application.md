@@ -90,7 +90,7 @@ You can find complete examples within these repositories:
 - `min_running_instances` (Number) Minimum number of instances running for the application.
 	- Must be: `>= 0`.
 	- Default: `1`.
-- `ports` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
+- `ports` (Attributes List) List of ports linked to this application. (see [below for nested schema](#nestedatt--ports))
 - `secrets` (Attributes Set) List of secrets linked to this application. (see [below for nested schema](#nestedatt--secrets))
 - `storage` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
 
