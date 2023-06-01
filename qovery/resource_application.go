@@ -314,7 +314,7 @@ func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				}),
 			},
 			"ports": {
-				Description: "List of storages linked to this application.",
+				Description: "List of ports linked to this application.",
 				Optional:    true,
 				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
 					"id": {
@@ -326,6 +326,7 @@ func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 						Description: "Name of the port.",
 						Type:        types.StringType,
 						Optional:    true,
+						Computed:    true,
 					},
 					"internal_port": {
 						Description: descriptions.NewInt64MinMaxDescription(
