@@ -4,33 +4,18 @@
 package qovery_test
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"testing"
+	"text/template"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
+	"github.com/qovery/terraform-provider-qovery/qovery"
 )
-
-type database struct {
-	dbType  string
-	version string
-	mode    string
-}
-
-var redisContainer = database{
-	dbType:  "REDIS",
-	version: "6",
-	mode:    "CONTAINER",
-}
-
-var psqlManaged = database{
-	dbType:  "POSTGRESQL",
-	version: "13",
-	mode:    "MANAGED",
-}
 
 func TestAcc_DatabaseContainer(t *testing.T) {
 	t.Parallel()
@@ -42,9 +27,19 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccDatabaseDefaultConfig(
+				Config: GetDatabaseConfigFromModel(
 					testName,
-					redisContainer,
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName)),
+						Type:          qovery.FromString("REDIS"),
+						Version:       qovery.FromString("6"),
+						Mode:          qovery.FromString("CONTAINER"),
+						Accessibility: qovery.FromString("PUBLIC"),
+						CPU:           qovery.FromInt32(250),
+						Memory:        qovery.FromInt32(256),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromStringPointer(nil),
+					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -58,19 +53,30 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
+					resource.TestCheckNoResourceAttr("qovery_database.test", "instance_type"), // not set because container
 				),
 			},
 			// Update name
 			{
-				Config: testAccDatabaseDefaultConfig(
-					fmt.Sprintf("%s-updated", testName),
-					redisContainer,
+				Config: GetDatabaseConfigFromModel(
+					testName,
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName) + "-updated"),
+						Type:          qovery.FromString("REDIS"),
+						Version:       qovery.FromString("6"),
+						Mode:          qovery.FromString("CONTAINER"),
+						Accessibility: qovery.FromString("PUBLIC"),
+						CPU:           qovery.FromInt32(250),
+						Memory:        qovery.FromInt32(256),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromStringPointer(nil),
+					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(fmt.Sprintf("%s-updated", testName))),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", fmt.Sprintf("%s-updated", generateTestName(testName))),
 					resource.TestCheckResourceAttr("qovery_database.test", "type", "REDIS"),
 					resource.TestCheckResourceAttr("qovery_database.test", "version", "6"),
 					resource.TestCheckResourceAttr("qovery_database.test", "mode", "CONTAINER"),
@@ -78,14 +84,24 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
+					resource.TestCheckNoResourceAttr("qovery_database.test", "instance_type"), // not set because container
 				),
 			},
 			// Update accessibility
 			{
-				Config: testAccDatabaseDefaultConfigWithAccessibility(
+				Config: GetDatabaseConfigFromModel(
 					testName,
-					redisContainer,
-					"PRIVATE",
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName)),
+						Type:          qovery.FromString("REDIS"),
+						Version:       qovery.FromString("6"),
+						Mode:          qovery.FromString("CONTAINER"),
+						Accessibility: qovery.FromString("PRIVATE"),
+						CPU:           qovery.FromInt32(250),
+						Memory:        qovery.FromInt32(256),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromStringPointer(nil),
+					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -99,15 +115,24 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
+					resource.TestCheckNoResourceAttr("qovery_database.test", "instance_type"), // not set because container
 				),
 			},
 			// Update resources
 			{
-				Config: testAccDatabaseDefaultConfigWithResources(
+				Config: GetDatabaseConfigFromModel(
 					testName,
-					redisContainer,
-					500,
-					512,
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName)),
+						Type:          qovery.FromString("REDIS"),
+						Version:       qovery.FromString("6"),
+						Mode:          qovery.FromString("CONTAINER"),
+						Accessibility: qovery.FromString("PUBLIC"),
+						CPU:           qovery.FromInt32(500),
+						Memory:        qovery.FromInt32(512),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromStringPointer(nil),
+					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -121,6 +146,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "500"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "512"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
+					resource.TestCheckNoResourceAttr("qovery_database.test", "instance_type"), // not set because container
 				),
 			},
 		},
@@ -138,9 +164,19 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccDatabaseDefaultConfig(
+				Config: GetDatabaseConfigFromModel(
 					testName,
-					psqlManaged,
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName)),
+						Type:          qovery.FromString("POSTGRESQL"),
+						Version:       qovery.FromString("13"),
+						Mode:          qovery.FromString("MANAGED"),
+						Accessibility: qovery.FromString("PUBLIC"),
+						CPU:           qovery.FromInt32(250),
+						Memory:        qovery.FromInt32(256),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromString("db.t3.micro"),
+					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -154,19 +190,30 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "db.t3.micro"),
 				),
 			},
 			// Update name
 			{
-				Config: testAccDatabaseDefaultConfig(
-					fmt.Sprintf("%s-updated", testName),
-					psqlManaged,
+				Config: GetDatabaseConfigFromModel(
+					testName,
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName) + "-updated"),
+						Type:          qovery.FromString("POSTGRESQL"),
+						Version:       qovery.FromString("13"),
+						Mode:          qovery.FromString("MANAGED"),
+						Accessibility: qovery.FromString("PUBLIC"),
+						CPU:           qovery.FromInt32(250),
+						Memory:        qovery.FromInt32(256),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromString("db.t3.micro"),
+					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryDatabaseExists("qovery_database.test"),
-					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(fmt.Sprintf("%s-updated", testName))),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", fmt.Sprintf("%s-updated", generateTestName(testName))),
 					resource.TestCheckResourceAttr("qovery_database.test", "type", "POSTGRESQL"),
 					resource.TestCheckResourceAttr("qovery_database.test", "version", "13"),
 					resource.TestCheckResourceAttr("qovery_database.test", "mode", "MANAGED"),
@@ -174,14 +221,24 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "db.t3.micro"),
 				),
 			},
 			// Update accessibility
 			{
-				Config: testAccDatabaseDefaultConfigWithAccessibility(
+				Config: GetDatabaseConfigFromModel(
 					testName,
-					psqlManaged,
-					"PRIVATE",
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName)),
+						Type:          qovery.FromString("POSTGRESQL"),
+						Version:       qovery.FromString("13"),
+						Mode:          qovery.FromString("MANAGED"),
+						Accessibility: qovery.FromString("PRIVATE"),
+						CPU:           qovery.FromInt32(250),
+						Memory:        qovery.FromInt32(256),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromString("db.t3.micro"),
+					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -195,15 +252,24 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "db.t3.micro"),
 				),
 			},
 			// Update resources
 			{
-				Config: testAccDatabaseDefaultConfigWithResources(
+				Config: GetDatabaseConfigFromModel(
 					testName,
-					psqlManaged,
-					500,
-					512,
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName)),
+						Type:          qovery.FromString("POSTGRESQL"),
+						Version:       qovery.FromString("13"),
+						Mode:          qovery.FromString("MANAGED"),
+						Accessibility: qovery.FromString("PUBLIC"),
+						CPU:           qovery.FromInt32(500),
+						Memory:        qovery.FromInt32(512),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromString("db.t3.micro"),
+					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -217,14 +283,24 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "500"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "512"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "db.t3.micro"),
 				),
 			},
 			// Update storage
 			{
-				Config: testAccDatabaseDefaultConfigWithStorage(
+				Config: GetDatabaseConfigFromModel(
 					testName,
-					psqlManaged,
-					15,
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName)),
+						Type:          qovery.FromString("POSTGRESQL"),
+						Version:       qovery.FromString("13"),
+						Mode:          qovery.FromString("MANAGED"),
+						Accessibility: qovery.FromString("PUBLIC"),
+						CPU:           qovery.FromInt32(250),
+						Memory:        qovery.FromInt32(256),
+						Storage:       qovery.FromInt32(15),
+						InstanceType:  qovery.FromString("db.t3.micro"),
+					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -237,6 +313,37 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "15"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "db.t3.micro"),
+				),
+			},
+			// Update instance type
+			{
+				Config: GetDatabaseConfigFromModel(
+					testName,
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName)),
+						Type:          qovery.FromString("POSTGRESQL"),
+						Version:       qovery.FromString("13"),
+						Mode:          qovery.FromString("MANAGED"),
+						Accessibility: qovery.FromString("PUBLIC"),
+						CPU:           qovery.FromInt32(250),
+						Memory:        qovery.FromInt32(256),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromString("db.t3.small"),
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryDatabaseExists("qovery_database.test"),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_database.test", "type", "POSTGRESQL"),
+					resource.TestCheckResourceAttr("qovery_database.test", "version", "13"),
+					resource.TestCheckResourceAttr("qovery_database.test", "mode", "MANAGED"),
+					resource.TestCheckResourceAttr("qovery_database.test", "accessibility", "PUBLIC"),
+					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
+					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
+					resource.TestCheckResourceAttr("qovery_database.test", "storage", "15"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "db.t3.small"),
 				),
 			},
 		},
@@ -253,9 +360,19 @@ func TestAcc_DatabaseImport(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccDatabaseDefaultConfig(
+				Config: GetDatabaseConfigFromModel(
 					testName,
-					redisContainer,
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName)),
+						Type:          qovery.FromString("REDIS"),
+						Version:       qovery.FromString("6"),
+						Mode:          qovery.FromString("CONTAINER"),
+						Accessibility: qovery.FromString("PUBLIC"),
+						CPU:           qovery.FromInt32(250),
+						Memory:        qovery.FromInt32(256),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromStringPointer(nil),
+					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -269,6 +386,7 @@ func TestAcc_DatabaseImport(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
+					resource.TestCheckNoResourceAttr("qovery_database.test", "instance_type"),
 				),
 			},
 			// Check Import
@@ -322,66 +440,50 @@ func testAccQoveryDatabaseDestroy(resourceName string) resource.TestCheckFunc {
 	}
 }
 
-func testAccDatabaseDefaultConfig(testName string, db database) string {
-	return fmt.Sprintf(`
-%s
+func GetDatabaseConfigFromModel(testName string, db qovery.Database) string {
+	tmpl_model := struct {
+		EnvironmentStr string
+		Database       qovery.Database
+	}{
+		EnvironmentStr: testAccEnvironmentDefaultConfig(testName),
+		Database:       db,
+	}
+
+	tmpl, err := template.New("GetDatabaseConfigFromModel").Parse(`
+{{ .EnvironmentStr }}
 
 resource "qovery_database" "test" {
-  environment_id = qovery_environment.test.id
-  name = "%s"
-  type = "%s"
-  version = "%s"
-  mode = "%s"
-}
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), db.dbType, db.version, db.mode,
-	)
-}
+	environment_id = qovery_environment.test.id
+	name = {{ .Database.Name.String }}
+	type = {{ .Database.Type.String }}
+	version = {{ .Database.Version.String }}
+	mode = {{ .Database.Mode.String }}
 
-func testAccDatabaseDefaultConfigWithAccessibility(testName string, db database, accessibility string) string {
-	return fmt.Sprintf(`
-%s
-
-resource "qovery_database" "test" {
-  environment_id = qovery_environment.test.id
-  name = "%s"
-  type = "%s"
-  version = "%s"
-  mode = "%s"
-  accessibility = "%s"
+	{{ with .Database.InstanceType }}
+	{{ if not .Null }}
+	instance_type = {{ .String }}
+	{{ end }}
+	{{ end }}
+	{{ with .Database.Accessibility }}
+	accessibility = {{ .String }}
+	{{ end }}
+	{{ with .Database.CPU }}
+	cpu = {{ . }}
+	{{ end }}
+	{{ with .Database.Memory }}
+	memory = {{ . }}
+	{{ end }}
+	{{ with .Database.Storage }}
+	storage = {{ . }}
+	{{ end }}
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), db.dbType, db.version, db.mode, accessibility,
-	)
-}
+`)
 
-func testAccDatabaseDefaultConfigWithResources(testName string, db database, cpu int64, memory int64) string {
-	return fmt.Sprintf(`
-%s
+	var jobConfigStr bytes.Buffer
+	err = tmpl.Execute(&jobConfigStr, tmpl_model)
+	if err != nil {
+		return ""
+	}
 
-resource "qovery_database" "test" {
-  environment_id = qovery_environment.test.id
-  name = "%s"
-  type = "%s"
-  version = "%s"
-  mode = "%s"
-  cpu = %d
-  memory = %d
-}
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), db.dbType, db.version, db.mode, cpu, memory,
-	)
-}
-
-func testAccDatabaseDefaultConfigWithStorage(testName string, db database, storage int64) string {
-	return fmt.Sprintf(`
-%s
-
-resource "qovery_database" "test" {
-  environment_id = qovery_environment.test.id
-  name = "%s"
-  type = "%s"
-  version = "%s"
-  mode = "%s"
-  storage = %d
-}
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), db.dbType, db.version, db.mode, storage,
-	)
+	return jobConfigStr.String()
 }

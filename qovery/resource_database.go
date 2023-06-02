@@ -51,6 +51,9 @@ var (
 	// Database Storage
 	databaseStorageMin     int64 = 10
 	databaseStorageDefault int64 = 10
+
+	// Database Instance Type
+	databaseInstanceTypeDefault *string = nil
 )
 
 type databaseResource struct {
@@ -146,6 +149,12 @@ func (r databaseResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 				Validators: []tfsdk.AttributeValidator{
 					validators.NewStringEnumValidator(databaseAccessibilities),
 				},
+			},
+			"instance_type": {
+				Description: "Instance type of the database.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
 			},
 			"cpu": {
 				Description: descriptions.NewInt64MinDescription(

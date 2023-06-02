@@ -23,6 +23,7 @@ type Database struct {
 	Login             types.String `tfsdk:"login"`
 	Password          types.String `tfsdk:"password"`
 	Storage           types.Int64  `tfsdk:"storage"`
+	InstanceType      types.String `tfsdk:"instance_type"`
 	DeploymentStageId types.String `tfsdk:"deployment_stage_id"`
 }
 
@@ -52,6 +53,7 @@ func (d Database) toCreateDatabaseRequest() (*client.DatabaseCreateParams, error
 			Cpu:           ToInt32Pointer(d.CPU),
 			Memory:        ToInt32Pointer(d.Memory),
 			Storage:       ToInt32Pointer(d.Storage),
+			InstanceType:  ToStringPointer(d.InstanceType),
 		},
 		DeploymentStageID: ToString(d.DeploymentStageId),
 	}, nil
@@ -71,6 +73,7 @@ func (d Database) toUpdateDatabaseRequest() (*client.DatabaseUpdateParams, error
 			Cpu:           ToInt32Pointer(d.CPU),
 			Memory:        ToInt32Pointer(d.Memory),
 			Storage:       ToInt32Pointer(d.Storage),
+			InstanceType:  ToStringPointer(d.InstanceType),
 		},
 	}, nil
 }
@@ -93,5 +96,6 @@ func convertResponseToDatabase(res *client.DatabaseResponse) Database {
 		Password:          FromString(res.DatabaseCredentials.Password),
 		Storage:           FromInt32Pointer(res.DatabaseResponse.Storage),
 		DeploymentStageId: FromString(res.DeploymentStageID),
+		InstanceType:      FromStringPointer(res.DatabaseResponse.InstanceType),
 	}
 }
