@@ -154,6 +154,7 @@ func (r databaseResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagn
 				Description: "Instance type of the database.",
 				Type:        types.StringType,
 				Optional:    true,
+				Computed:    true,
 			},
 			"cpu": {
 				Description: descriptions.NewInt64MinDescription(

@@ -53,6 +53,7 @@ func (d Database) toCreateDatabaseRequest() (*client.DatabaseCreateParams, error
 			Cpu:           ToInt32Pointer(d.CPU),
 			Memory:        ToInt32Pointer(d.Memory),
 			Storage:       ToInt32Pointer(d.Storage),
+			InstanceType:  ToStringPointer(d.InstanceType),
 		},
 		DeploymentStageID: ToString(d.DeploymentStageId),
 	}, nil
@@ -72,6 +73,7 @@ func (d Database) toUpdateDatabaseRequest() (*client.DatabaseUpdateParams, error
 			Cpu:           ToInt32Pointer(d.CPU),
 			Memory:        ToInt32Pointer(d.Memory),
 			Storage:       ToInt32Pointer(d.Storage),
+			InstanceType:  ToStringPointer(d.InstanceType),
 		},
 	}, nil
 }

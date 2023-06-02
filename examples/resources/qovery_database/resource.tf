@@ -30,8 +30,6 @@ resource "qovery_database" "my_managed_database" {
 
   # Optional
   accessibility = "PRIVATE"
-  cpu           = 250
-  memory        = 256
   storage       = 10
 
   depends_on = [
