@@ -45,6 +45,7 @@ type servicePort struct {
 	Name               *string
 	ExternalPort       *int64
 	Protocol           *string
+	IsDefault          bool
 }
 
 func (p servicePort) String() string {
@@ -53,7 +54,8 @@ func (p servicePort) String() string {
 {
   internal_port = %d
   publicly_accessible = "%t"
-`, p.InternalPort, p.PubliclyAccessible)
+  is_default = "%t"
+`, p.InternalPort, p.PubliclyAccessible, p.IsDefault)
 	if p.Name != nil {
 		str += fmt.Sprintf("  name = \"%s\"\n", *p.Name)
 	}

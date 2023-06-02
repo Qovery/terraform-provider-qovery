@@ -289,6 +289,7 @@ type ApplicationPort struct {
 	ExternalPort       types.Int64  `tfsdk:"external_port"`
 	PubliclyAccessible types.Bool   `tfsdk:"publicly_accessible"`
 	Protocol           types.String `tfsdk:"protocol"`
+	IsDefault          types.Bool   `tfsdk:"is_default"`
 }
 
 func (port ApplicationPort) toCreateRequest() (*qovery.ServicePortRequestPortsInner, error) {
@@ -303,6 +304,7 @@ func (port ApplicationPort) toCreateRequest() (*qovery.ServicePortRequestPortsIn
 		ExternalPort:       ToInt32Pointer(port.ExternalPort),
 		Protocol:           protocol,
 		PubliclyAccessible: ToBool(port.PubliclyAccessible),
+		IsDefault:          ToBoolPointer(port.IsDefault),
 	}, nil
 }
 
@@ -319,6 +321,7 @@ func (port ApplicationPort) toUpdateRequest() (*qovery.ServicePort, error) {
 		ExternalPort:       ToInt32Pointer(port.ExternalPort),
 		Protocol:           *protocol,
 		PubliclyAccessible: ToBool(port.PubliclyAccessible),
+		IsDefault:          ToBoolPointer(port.IsDefault),
 	}, nil
 }
 
@@ -336,6 +339,7 @@ func convertResponseToApplicationPorts(ports []qovery.ServicePort) []Application
 			ExternalPort:       FromInt32Pointer(p.ExternalPort),
 			Protocol:           fromClientEnum(p.Protocol),
 			PubliclyAccessible: FromBool(p.PubliclyAccessible),
+			IsDefault:          FromBoolPointer(p.IsDefault),
 		})
 	}
 	return list

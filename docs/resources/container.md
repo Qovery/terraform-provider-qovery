@@ -101,6 +101,7 @@ Required:
 
 - `internal_port` (Number) Internal port of the container.
 	- Must be: `>= 1` and `<= 65535`.
+- `is_default` (Boolean) If this port will be used for the root domain
 - `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this container.
 
 Optional:
