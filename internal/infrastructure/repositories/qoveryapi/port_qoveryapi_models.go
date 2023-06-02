@@ -41,6 +41,8 @@ func newQoveryPortRequestFromDomain(request port.UpsertRequest) (*qovery.Service
 		InternalPort:       request.InternalPort,
 		ExternalPort:       request.ExternalPort,
 		IsDefault:          pointer.ToBool(request.IsDefault),
+		HasReadinessProbe:  pointer.ToBool(request.HasReadinessProbe),
+		HasLivenessProbe:   pointer.ToBool(request.HasLivenessProbe),
 	}, nil
 
 }
@@ -64,6 +66,16 @@ func newDomainPortFromQovery(qoveryPort qovery.ServicePort) (*port.Port, error) 
 		isDefault = *qoveryPort.IsDefault
 	}
 
+	var hasReadinessProbe = false
+	if qoveryPort.HasReadinessProbe != nil {
+		hasReadinessProbe = *qoveryPort.HasReadinessProbe
+	}
+
+	var hasLivenessProbe = false
+	if qoveryPort.HasLivenessProbe != nil {
+		hasLivenessProbe = *qoveryPort.HasLivenessProbe
+	}
+
 	return port.NewPort(port.NewPortParams{
 		PortID:             qoveryPort.Id,
 		Name:               qoveryPort.Name,
@@ -72,5 +84,7 @@ func newDomainPortFromQovery(qoveryPort qovery.ServicePort) (*port.Port, error) 
 		InternalPort:       qoveryPort.InternalPort,
 		ExternalPort:       qoveryPort.ExternalPort,
 		IsDefault:          isDefault,
+		HasReadinessProbe:  hasReadinessProbe,
+		HasLivenessProbe:   hasLivenessProbe,
 	})
 }

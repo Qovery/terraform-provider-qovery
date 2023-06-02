@@ -158,6 +158,8 @@ Optional:
 - `external_port` (Number) External port of the application.
 	- Required if: `ports.publicly_accessible=true`.
 	- Must be: `>= 1` and `<= 65535`.
+- `has_liveness_probe` (Boolean) If this port will be used to run the liveness probe
+- `has_readiness_probe` (Boolean) If this port will be used to run the readiness probe
 - `name` (String) Name of the port.
 - `protocol` (String) Protocol used for the port of the application.
 	- Can be: `GRPC`, `HTTP`.

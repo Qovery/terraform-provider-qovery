@@ -176,6 +176,18 @@ func (d containerDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 						Type:        types.BoolType,
 						Required:    true,
 					},
+					"has_readiness_probe": {
+						Description: "If this port will be used to run the readiness probe",
+						Type:        types.BoolType,
+						Optional:    true,
+						Computed:    true,
+					},
+					"has_liveness_probe": {
+						Description: "If this port will be used to run the liveness probe",
+						Type:        types.BoolType,
+						Optional:    true,
+						Computed:    true,
+					},
 				}),
 			},
 			"built_in_environment_variables": {

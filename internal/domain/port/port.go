@@ -54,6 +54,8 @@ type Port struct {
 	InternalPort       int32 `validate:"required"`
 	PubliclyAccessible bool
 	IsDefault          bool
+	HasReadinessProbe  bool
+	HasLivenessProbe   bool
 
 	Protocol     *Protocol
 	Name         *string
@@ -95,9 +97,10 @@ type NewPortParams struct {
 	PubliclyAccessible bool
 	Protocol           string
 	IsDefault          bool
-
-	Name         *string
-	ExternalPort *int32
+	HasReadinessProbe  bool
+	HasLivenessProbe   bool
+	Name               *string
+	ExternalPort       *int32
 }
 
 // NewPort returns a new instance of a Port domain model.
@@ -120,6 +123,8 @@ func NewPort(params NewPortParams) (*Port, error) {
 		Name:               params.Name,
 		ExternalPort:       params.ExternalPort,
 		IsDefault:          params.IsDefault,
+		HasReadinessProbe:  params.HasReadinessProbe,
+		HasLivenessProbe:   params.HasLivenessProbe,
 	}
 
 	if err := v.Validate(); err != nil {
@@ -134,10 +139,11 @@ type UpsertRequest struct {
 	InternalPort       int32 `validate:"required"`
 	PubliclyAccessible bool  `validate:"required"`
 	IsDefault          bool  `validate:"required"`
-
-	Protocol     *string
-	Name         *string
-	ExternalPort *int32
+	HasReadinessProbe  bool  `validate:"required"`
+	HasLivenessProbe   bool  `validate:"required"`
+	Protocol           *string
+	Name               *string
+	ExternalPort       *int32
 }
 
 // Validate returns an error to tell whether the UpsertRequest is valid or not.

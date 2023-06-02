@@ -46,6 +46,8 @@ type servicePort struct {
 	ExternalPort       *int64
 	Protocol           *string
 	IsDefault          bool
+	HasReadinessProbe  bool
+	HasLivenessProbe   bool
 }
 
 func (p servicePort) String() string {
@@ -55,7 +57,9 @@ func (p servicePort) String() string {
   internal_port = %d
   publicly_accessible = "%t"
   is_default = "%t"
-`, p.InternalPort, p.PubliclyAccessible, p.IsDefault)
+  has_readiness_probe = "%t"
+  has_liveness_probe = "%t"
+`, p.InternalPort, p.PubliclyAccessible, p.IsDefault, p.HasReadinessProbe, p.HasLivenessProbe)
 	if p.Name != nil {
 		str += fmt.Sprintf("  name = \"%s\"\n", *p.Name)
 	}
@@ -1436,6 +1440,9 @@ func testAccApplicationDefaultConfigWithCustomDomains(testName string, customDom
 			InternalPort:       8000,
 			PubliclyAccessible: true,
 			ExternalPort:       int64ToPtr(443),
+			IsDefault:          true,
+			HasLivenessProbe:   true,
+			HasReadinessProbe:  true,
 		},
 	}
 

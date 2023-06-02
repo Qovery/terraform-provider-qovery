@@ -290,6 +290,8 @@ type ApplicationPort struct {
 	PubliclyAccessible types.Bool   `tfsdk:"publicly_accessible"`
 	Protocol           types.String `tfsdk:"protocol"`
 	IsDefault          types.Bool   `tfsdk:"is_default"`
+	HasReadinessProbe  types.Bool   `tfsdk:"has_readiness_probe"`
+	HasLivenessProbe   types.Bool   `tfsdk:"has_liveness_probe"`
 }
 
 func (port ApplicationPort) toCreateRequest() (*qovery.ServicePortRequestPortsInner, error) {
@@ -305,6 +307,8 @@ func (port ApplicationPort) toCreateRequest() (*qovery.ServicePortRequestPortsIn
 		Protocol:           protocol,
 		PubliclyAccessible: ToBool(port.PubliclyAccessible),
 		IsDefault:          ToBoolPointer(port.IsDefault),
+		HasReadinessProbe:  ToBoolPointer(port.HasReadinessProbe),
+		HasLivenessProbe:   ToBoolPointer(port.HasLivenessProbe),
 	}, nil
 }
 
@@ -322,6 +326,8 @@ func (port ApplicationPort) toUpdateRequest() (*qovery.ServicePort, error) {
 		Protocol:           *protocol,
 		PubliclyAccessible: ToBool(port.PubliclyAccessible),
 		IsDefault:          ToBoolPointer(port.IsDefault),
+		HasReadinessProbe:  ToBoolPointer(port.HasReadinessProbe),
+		HasLivenessProbe:   ToBoolPointer(port.HasLivenessProbe),
 	}, nil
 }
 
@@ -340,6 +346,8 @@ func convertResponseToApplicationPorts(ports []qovery.ServicePort) []Application
 			Protocol:           fromClientEnum(p.Protocol),
 			PubliclyAccessible: FromBool(p.PubliclyAccessible),
 			IsDefault:          FromBoolPointer(p.IsDefault),
+			HasReadinessProbe:  FromBoolPointer(p.HasReadinessProbe),
+			HasLivenessProbe:   FromBoolPointer(p.HasLivenessProbe),
 		})
 	}
 	return list

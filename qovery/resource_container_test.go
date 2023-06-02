@@ -1181,6 +1181,9 @@ func TestAcc_ContainerWithPorts(t *testing.T) {
 						{
 							InternalPort:       80,
 							PubliclyAccessible: false,
+							IsDefault:          true,
+							HasLivenessProbe:   true,
+							HasReadinessProbe:  true,
 						},
 					},
 				),

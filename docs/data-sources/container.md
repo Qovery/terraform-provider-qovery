@@ -78,6 +78,11 @@ Required:
 
 - `is_default` (Boolean) If this port will be used for the root domain
 
+Optional:
+
+- `has_liveness_probe` (Boolean) If this port will be used to run the liveness probe
+- `has_readiness_probe` (Boolean) If this port will be used to run the readiness probe
+
 Read-Only:
 
 - `external_port` (Number) External port of the container.

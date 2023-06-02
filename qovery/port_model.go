@@ -15,6 +15,8 @@ var portAttrTypes = map[string]attr.Type{
 	"external_port":       types.Int64Type,
 	"publicly_accessible": types.BoolType,
 	"is_default":          types.BoolType,
+	"has_readiness_probe": types.BoolType,
+	"has_liveness_probe":  types.BoolType,
 }
 
 type PortList []Port
@@ -46,6 +48,8 @@ type Port struct {
 	ExternalPort       types.Int64  `tfsdk:"external_port"`
 	PubliclyAccessible types.Bool   `tfsdk:"publicly_accessible"`
 	IsDefault          types.Bool   `tfsdk:"is_default"`
+	HasReadinessProbe  types.Bool   `tfsdk:"has_readiness_probe"`
+	HasLivenessProbe   types.Bool   `tfsdk:"has_liveness_probe"`
 }
 
 func (p Port) toTerraformObject() types.Object {
@@ -59,6 +63,8 @@ func (p Port) toTerraformObject() types.Object {
 			"external_port":       p.ExternalPort,
 			"publicly_accessible": p.PubliclyAccessible,
 			"is_default":          p.IsDefault,
+			"has_readiness_probe": p.HasReadinessProbe,
+			"has_liveness_probe":  p.HasLivenessProbe,
 		},
 	}
 }
@@ -71,6 +77,8 @@ func (p Port) toUpsertRequest() port.UpsertRequest {
 		ExternalPort:       ToInt32Pointer(p.ExternalPort),
 		PubliclyAccessible: ToBool(p.PubliclyAccessible),
 		IsDefault:          ToBool(p.IsDefault),
+		HasReadinessProbe:  ToBool(p.HasReadinessProbe),
+		HasLivenessProbe:   ToBool(p.HasLivenessProbe),
 	}
 }
 
@@ -83,6 +91,8 @@ func fromPort(p port.Port) Port {
 		ExternalPort:       FromInt32Pointer(p.ExternalPort),
 		PubliclyAccessible: FromBool(p.PubliclyAccessible),
 		IsDefault:          FromBool(p.IsDefault),
+		HasLivenessProbe:   FromBool(p.HasReadinessProbe),
+		HasReadinessProbe:  FromBool(p.HasLivenessProbe),
 	}
 }
 
@@ -119,6 +129,8 @@ func convertDomainPortToPort(s port.Port) Port {
 		ExternalPort:       FromInt32Pointer(s.ExternalPort),
 		PubliclyAccessible: FromBool(s.PubliclyAccessible),
 		IsDefault:          FromBool(s.IsDefault),
+		HasLivenessProbe:   FromBool(s.HasReadinessProbe),
+		HasReadinessProbe:  FromBool(s.HasLivenessProbe),
 	}
 }
 
@@ -131,6 +143,8 @@ func toPort(v types.Object) Port {
 		ExternalPort:       v.Attrs["external_port"].(types.Int64),
 		PubliclyAccessible: v.Attrs["publicly_accessible"].(types.Bool),
 		IsDefault:          v.Attrs["is_default"].(types.Bool),
+		HasLivenessProbe:   v.Attrs["has_readiness_probe"].(types.Bool),
+		HasReadinessProbe:  v.Attrs["has_liveness_probe"].(types.Bool),
 	}
 }
 

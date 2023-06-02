@@ -263,6 +263,18 @@ func (r containerResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diag
 							modifiers.NewStringDefaultModifier(port.DefaultProtocol.String()),
 						},
 					},
+					"has_readiness_probe": {
+						Description: "If this port will be used to run the readiness probe",
+						Type:        types.BoolType,
+						Optional:    true,
+						Computed:    true,
+					},
+					"has_liveness_probe": {
+						Description: "If this port will be used to run the liveness probe",
+						Type:        types.BoolType,
+						Optional:    true,
+						Computed:    true,
+					},
 					"is_default": {
 						Description: "If this port will be used for the root domain",
 						Type:        types.BoolType,
