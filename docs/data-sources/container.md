@@ -74,6 +74,10 @@ Read-Only:
 <a id="nestedatt--ports"></a>
 ### Nested Schema for `ports`
 
+Required:
+
+- `is_default` (Boolean) If this port will be used for the root domain
+
 Read-Only:
 
 - `external_port` (Number) External port of the container.
