@@ -328,7 +328,7 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 						Accessibility: qovery.FromString("PUBLIC"),
 						CPU:           qovery.FromInt32(250),
 						Memory:        qovery.FromInt32(256),
-						Storage:       qovery.FromInt32(10),
+						Storage:       qovery.FromInt32(15),
 						InstanceType:  qovery.FromString("db.t3.small"),
 					},
 				),
