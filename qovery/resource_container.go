@@ -263,6 +263,11 @@ func (r containerResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diag
 							modifiers.NewStringDefaultModifier(port.DefaultProtocol.String()),
 						},
 					},
+					"is_default": {
+						Description: "If this port will be used for the root domain",
+						Type:        types.BoolType,
+						Required:    true,
+					},
 				}),
 			},
 			"built_in_environment_variables": {
