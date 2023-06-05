@@ -53,6 +53,7 @@ type Port struct {
 	ID                 uuid.UUID
 	InternalPort       int32 `validate:"required"`
 	PubliclyAccessible bool
+	IsDefault          bool
 
 	Protocol     *Protocol
 	Name         *string
@@ -93,6 +94,7 @@ type NewPortParams struct {
 	InternalPort       int32
 	PubliclyAccessible bool
 	Protocol           string
+	IsDefault          bool
 
 	Name         *string
 	ExternalPort *int32
@@ -117,6 +119,7 @@ func NewPort(params NewPortParams) (*Port, error) {
 		Protocol:           portProtocol,
 		Name:               params.Name,
 		ExternalPort:       params.ExternalPort,
+		IsDefault:          params.IsDefault,
 	}
 
 	if err := v.Validate(); err != nil {
@@ -130,6 +133,7 @@ func NewPort(params NewPortParams) (*Port, error) {
 type UpsertRequest struct {
 	InternalPort       int32 `validate:"required"`
 	PubliclyAccessible bool  `validate:"required"`
+	IsDefault          bool  `validate:"required"`
 
 	Protocol     *string
 	Name         *string

@@ -198,6 +198,11 @@ func (d applicationDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 						Type:        types.StringType,
 						Computed:    true,
 					},
+					"is_default": {
+						Description: "If this port will be used for the root domain",
+						Type:        types.BoolType,
+						Required:    true,
+					},
 				}),
 			},
 			"built_in_environment_variables": {

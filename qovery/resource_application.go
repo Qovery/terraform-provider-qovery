@@ -359,6 +359,11 @@ func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 						Type:        types.BoolType,
 						Required:    true,
 					},
+					"is_default": {
+						Description: "If this port will be used for the root domain",
+						Type:        types.BoolType,
+						Required:    true,
+					},
 					"protocol": {
 						Description: descriptions.NewStringEnumDescription(
 							"Protocol used for the port of the application.",

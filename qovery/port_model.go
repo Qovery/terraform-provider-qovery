@@ -14,6 +14,7 @@ var portAttrTypes = map[string]attr.Type{
 	"internal_port":       types.Int64Type,
 	"external_port":       types.Int64Type,
 	"publicly_accessible": types.BoolType,
+	"is_default":          types.BoolType,
 }
 
 type PortList []Port
@@ -44,6 +45,7 @@ type Port struct {
 	InternalPort       types.Int64  `tfsdk:"internal_port"`
 	ExternalPort       types.Int64  `tfsdk:"external_port"`
 	PubliclyAccessible types.Bool   `tfsdk:"publicly_accessible"`
+	IsDefault          types.Bool   `tfsdk:"is_default"`
 }
 
 func (p Port) toTerraformObject() types.Object {
@@ -56,6 +58,7 @@ func (p Port) toTerraformObject() types.Object {
 			"internal_port":       p.InternalPort,
 			"external_port":       p.ExternalPort,
 			"publicly_accessible": p.PubliclyAccessible,
+			"is_default":          p.IsDefault,
 		},
 	}
 }
@@ -67,6 +70,7 @@ func (p Port) toUpsertRequest() port.UpsertRequest {
 		InternalPort:       ToInt32(p.InternalPort),
 		ExternalPort:       ToInt32Pointer(p.ExternalPort),
 		PubliclyAccessible: ToBool(p.PubliclyAccessible),
+		IsDefault:          ToBool(p.IsDefault),
 	}
 }
 
@@ -78,6 +82,7 @@ func fromPort(p port.Port) Port {
 		InternalPort:       FromInt32(p.InternalPort),
 		ExternalPort:       FromInt32Pointer(p.ExternalPort),
 		PubliclyAccessible: FromBool(p.PubliclyAccessible),
+		IsDefault:          FromBool(p.IsDefault),
 	}
 }
 
@@ -113,6 +118,7 @@ func convertDomainPortToPort(s port.Port) Port {
 		InternalPort:       FromInt32(s.InternalPort),
 		ExternalPort:       FromInt32Pointer(s.ExternalPort),
 		PubliclyAccessible: FromBool(s.PubliclyAccessible),
+		IsDefault:          FromBool(s.IsDefault),
 	}
 }
 
@@ -124,6 +130,7 @@ func toPort(v types.Object) Port {
 		InternalPort:       v.Attrs["internal_port"].(types.Int64),
 		ExternalPort:       v.Attrs["external_port"].(types.Int64),
 		PubliclyAccessible: v.Attrs["publicly_accessible"].(types.Bool),
+		IsDefault:          v.Attrs["is_default"].(types.Bool),
 	}
 }
 
