@@ -4,6 +4,7 @@ package container
 
 import (
 	"context"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
@@ -37,6 +38,7 @@ type UpsertRepositoryRequest struct {
 	Storages            []storage.UpsertRequest
 	Ports               []port.UpsertRequest
 	DeploymentStageID   string
+	Healthchecks        *qovery.Healthcheck
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.

@@ -2,6 +2,7 @@ package container
 
 import (
 	"fmt"
+	"github.com/qovery/qovery-client-go"
 	"strings"
 
 	"github.com/AlekSi/pointer"
@@ -82,6 +83,7 @@ type Container struct {
 	ExternalHost                *string
 	State                       status.State
 	DeploymentStageID           string
+	Healthchecks                qovery.Healthcheck
 }
 
 // Validate returns an error to tell whether the Container domain model is valid or not.
@@ -128,6 +130,7 @@ type NewContainerParams struct {
 	EnvironmentVariables variable.Variables // TODO(benjaminch): use `storage.NewVariablesParam`
 	Secrets              secret.Secrets     // TODO(benjaminch): use `storage.NewSecretsParam`
 	DeploymentStageID    string
+	Healthchecks         qovery.Healthcheck
 }
 
 // NewContainer returns a new instance of a Container domain model.
@@ -176,6 +179,7 @@ func NewContainer(params NewContainerParams) (*Container, error) {
 		Storages:            params.Storages,
 		Ports:               params.Ports,
 		DeploymentStageID:   params.DeploymentStageID,
+		Healthchecks:        params.Healthchecks,
 	}
 
 	if err := c.SetEnvironmentVariables(params.EnvironmentVariables); err != nil {

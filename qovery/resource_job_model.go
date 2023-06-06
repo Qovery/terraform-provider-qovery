@@ -213,8 +213,9 @@ type Job struct {
 	MaxNbRestart       types.Int64  `tfsdk:"max_nb_restart"`
 	AutoPreview        types.Bool   `tfsdk:"auto_preview"`
 
-	Source   *JobSource   `tfsdk:"source"`
-	Schedule *JobSchedule `tfsdk:"schedule"`
+	Source       *JobSource    `tfsdk:"source"`
+	Schedule     *JobSchedule  `tfsdk:"schedule"`
+	HealthChecks *HealthChecks `tfsdk:"healthchecks"`
 
 	BuiltInEnvironmentVariables types.Set    `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables        types.Set    `tfsdk:"environment_variables"`
@@ -265,6 +266,7 @@ func (j Job) toUpsertRepositoryRequest() job.UpsertRepositoryRequest {
 		MaxDurationSeconds: ToInt32Pointer(j.MaxDurationSeconds),
 		DeploymentStageID:  ToString(j.DeploymentStageId),
 		Port:               ToInt64Pointer(j.Port),
+		Healthchecks:       *j.HealthChecks.toHealthchecksRequest(),
 
 		Source:   j.Source.toUpsertRequest(),
 		Schedule: j.Schedule.toUpsertRequest(),
@@ -298,5 +300,6 @@ func convertDomainJobToJob(state Job, job *job.Job) Job {
 		ExternalHost:                FromStringPointer(job.ExternalHost),
 		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), job.Secrets, variable.ScopeJob).toTerraformSet(),
 		DeploymentStageId:           FromString(job.DeploymentStageID),
+		HealthChecks:                convertHealthchecksResponseToDomain(&job.HealthChecks),
 	}
 }

@@ -97,6 +97,7 @@ func (d jobDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnost
 				Computed:    true,
 				Optional:    true,
 			},
+			"healthchecks": healthchecksSchemaAttributes(false),
 			"schedule": {
 				Description: "Job's schedule.",
 				Computed:    true,

@@ -295,6 +295,7 @@ func (d applicationDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.
 					},
 				}),
 			},
+			"healthchecks": healthchecksSchemaAttributes(false),
 			"external_host": {
 				Description: "The application external FQDN host [NOTE: only if your application is using a publicly accessible port].",
 				Type:        types.StringType,

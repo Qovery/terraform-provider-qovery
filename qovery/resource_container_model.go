@@ -10,28 +10,28 @@ import (
 )
 
 type Container struct {
-	ID                          types.String `tfsdk:"id"`
-	EnvironmentID               types.String `tfsdk:"environment_id"`
-	RegistryID                  types.String `tfsdk:"registry_id"`
-	Name                        types.String `tfsdk:"name"`
-	ImageName                   types.String `tfsdk:"image_name"`
-	Tag                         types.String `tfsdk:"tag"`
-	Entrypoint                  types.String `tfsdk:"entrypoint"`
-	CPU                         types.Int64  `tfsdk:"cpu"`
-	Memory                      types.Int64  `tfsdk:"memory"`
-	MinRunningInstances         types.Int64  `tfsdk:"min_running_instances"`
-	MaxRunningInstances         types.Int64  `tfsdk:"max_running_instances"`
-	AutoPreview                 types.Bool   `tfsdk:"auto_preview"`
-	BuiltInEnvironmentVariables types.Set    `tfsdk:"built_in_environment_variables"`
-	EnvironmentVariables        types.Set    `tfsdk:"environment_variables"`
-	Secrets                     types.Set    `tfsdk:"secrets"`
-	Storages                    types.Set    `tfsdk:"storage"`
-	Ports                       types.Set    `tfsdk:"ports"`
-	//CustomDomains               types.Set    `tfsdk:"custom_domains"`
-	Arguments         types.List   `tfsdk:"arguments"`
-	ExternalHost      types.String `tfsdk:"external_host"`
-	InternalHost      types.String `tfsdk:"internal_host"`
-	DeploymentStageId types.String `tfsdk:"deployment_stage_id"`
+	ID                          types.String  `tfsdk:"id"`
+	EnvironmentID               types.String  `tfsdk:"environment_id"`
+	RegistryID                  types.String  `tfsdk:"registry_id"`
+	Name                        types.String  `tfsdk:"name"`
+	ImageName                   types.String  `tfsdk:"image_name"`
+	Tag                         types.String  `tfsdk:"tag"`
+	Entrypoint                  types.String  `tfsdk:"entrypoint"`
+	CPU                         types.Int64   `tfsdk:"cpu"`
+	Memory                      types.Int64   `tfsdk:"memory"`
+	MinRunningInstances         types.Int64   `tfsdk:"min_running_instances"`
+	MaxRunningInstances         types.Int64   `tfsdk:"max_running_instances"`
+	AutoPreview                 types.Bool    `tfsdk:"auto_preview"`
+	BuiltInEnvironmentVariables types.Set     `tfsdk:"built_in_environment_variables"`
+	EnvironmentVariables        types.Set     `tfsdk:"environment_variables"`
+	Secrets                     types.Set     `tfsdk:"secrets"`
+	Storages                    types.Set     `tfsdk:"storage"`
+	Ports                       types.Set     `tfsdk:"ports"`
+	Arguments                   types.List    `tfsdk:"arguments"`
+	ExternalHost                types.String  `tfsdk:"external_host"`
+	InternalHost                types.String  `tfsdk:"internal_host"`
+	DeploymentStageId           types.String  `tfsdk:"deployment_stage_id"`
+	Healthchecks                *HealthChecks `tfsdk:"healthchecks"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
@@ -114,6 +114,7 @@ func (cont Container) toUpsertRepositoryRequest() container.UpsertRepositoryRequ
 		Storages:            storages,
 		Ports:               ports,
 		DeploymentStageID:   ToString(cont.DeploymentStageId),
+		Healthchecks:        cont.Healthchecks.toHealthchecksRequest(),
 	}
 }
 
@@ -139,5 +140,6 @@ func convertDomainContainerToContainer(state Container, container *container.Con
 		ExternalHost:                FromStringPointer(container.ExternalHost),
 		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), container.Secrets, variable.ScopeContainer).toTerraformSet(),
 		DeploymentStageId:           FromString(container.DeploymentStageID),
+		Healthchecks:                convertHealthchecksResponseToDomain(&container.Healthchecks),
 	}
 }

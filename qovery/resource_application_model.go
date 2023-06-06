@@ -31,6 +31,7 @@ type Application struct {
 	Entrypoint                  types.String              `tfsdk:"entrypoint"`
 	Arguments                   types.List                `tfsdk:"arguments"`
 	DeploymentStageId           types.String              `tfsdk:"deployment_stage_id"`
+	Healthchecks                *HealthChecks             `tfsdk:"healthchecks"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
@@ -93,6 +94,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			Ports:               ports,
 			Entrypoint:          ToStringPointer(app.Entrypoint),
 			Arguments:           ToStringArray(app.Arguments),
+			Healthchecks:        app.Healthchecks.toHealthchecksRequest(),
 		},
 		EnvironmentVariablesDiff:     app.EnvironmentVariableList().diff(nil),
 		SecretsDiff:                  app.SecretList().diff(nil),
@@ -161,6 +163,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		Ports:               ports,
 		Entrypoint:          ToStringPointer(app.Entrypoint),
 		Arguments:           ToStringArray(app.Arguments),
+		Healthchecks:        app.Healthchecks.toHealthchecksRequest(),
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:       applicationEditRequest,
@@ -197,6 +200,7 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		Entrypoint:                  FromStringPointer(app.ApplicationResponse.Entrypoint),
 		Arguments:                   FromStringArray(app.ApplicationResponse.Arguments),
 		DeploymentStageId:           FromString(app.ApplicationDeploymentStageID),
+		Healthchecks:                convertHealthchecksResponseToDomain(app.ApplicationResponse.Healthchecks),
 	}
 }
 

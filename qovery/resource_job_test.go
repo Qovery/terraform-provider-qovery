@@ -196,6 +196,7 @@ resource "qovery_job" "test" {
   secrets = {{ .Job.Secrets.String }}	
   {{ end }}
 
+  healthchecks = {}
   {{ with .Job.Source }}	
   source = {
 	{{ with .Image }}	

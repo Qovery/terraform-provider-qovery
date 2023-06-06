@@ -4,9 +4,9 @@ package job
 
 import (
 	"context"
-
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
+	qovery2 "github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
@@ -30,6 +30,7 @@ type UpsertRepositoryRequest struct {
 	Memory             *int32
 	MaxNbRestart       *int32
 	MaxDurationSeconds *int32
+	Healthchecks       qovery2.Healthcheck
 
 	Source               JobSource
 	Schedule             JobSchedule
