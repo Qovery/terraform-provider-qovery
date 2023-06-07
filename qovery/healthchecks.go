@@ -1,11 +1,9 @@
 package qovery
 
 import (
-	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
-	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 )
 
 type HealthChecks struct {
@@ -113,9 +111,6 @@ func probeSchemaAttributes() map[string]tfsdk.Attribute {
 							Type:        types.StringType,
 							Optional:    true,
 							Computed:    true,
-							PlanModifiers: tfsdk.AttributePlanModifiers{
-								resource.UseStateForUnknown(),
-							},
 						},
 					}),
 				},
@@ -167,9 +162,6 @@ func probeSchemaAttributes() map[string]tfsdk.Attribute {
 							Required:    true,
 							Type: types.ListType{
 								ElemType: types.StringType,
-							},
-							PlanModifiers: tfsdk.AttributePlanModifiers{
-								modifiers.NewStringSliceDefaultModifier([]string{}),
 							},
 						},
 					}),
