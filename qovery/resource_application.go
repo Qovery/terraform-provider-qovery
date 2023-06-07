@@ -443,6 +443,7 @@ func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 					},
 				}),
 			},
+			"healthchecks": healthchecksSchemaAttributes(true),
 			"custom_domains": {
 				Description: "List of custom domains linked to this application.",
 				Optional:    true,

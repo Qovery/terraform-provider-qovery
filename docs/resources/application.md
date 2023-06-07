@@ -59,6 +59,7 @@ You can find complete examples within these repositories:
 
 - `environment_id` (String) Id of the environment.
 - `git_repository` (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
+- `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
 - `name` (String) Name of the application.
 
 ### Optional
@@ -114,6 +115,153 @@ Optional:
 	- Default: `main or master (depending on repository)`.
 - `root_path` (String) Root path of the application.
 	- Default: `/`.
+
+
+<a id="nestedatt--healthchecks"></a>
+### Nested Schema for `healthchecks`
+
+Optional:
+
+- `liveness_probe` (Attributes) Configuration for the liveness probe, in order to know when your service is working correctly. Failing the probe means your service being killed/ask to be restarted. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe))
+- `readiness_probe` (Attributes) Configuration for the readiness probe, in order to know when your service is ready to receive traffic. Failing the probe means your service will stop receiving traffic. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe))
+
+<a id="nestedatt--healthchecks--liveness_probe"></a>
+### Nested Schema for `healthchecks.liveness_probe`
+
+Required:
+
+- `failure_threshold` (Number) Number of time the an ok probe should fail before declaring it as failed
+- `initial_delay_seconds` (Number) Number of seconds to wait before the first execution of the probe to be trigerred
+- `period_seconds` (Number) Number of seconds before each execution of the probe
+- `success_threshold` (Number) Number of time the probe should success before declaring a failed probe as ok again
+- `timeout_seconds` (Number) Number of seconds within which the check need to respond before declaring it as a failure
+- `type` (Attributes) Kind of check to run for this probe. There can only be one configured at a time (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type))
+
+<a id="nestedatt--healthchecks--liveness_probe--type"></a>
+### Nested Schema for `healthchecks.liveness_probe.type`
+
+Optional:
+
+- `exec` (Attributes) Check that the given command return an exit 0. Binary should be present in the image (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--exec))
+- `grpc` (Attributes) Check that the given port respond to GRPC call (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--grpc))
+- `http` (Attributes) Check that the given port respond to HTTP call (should return a 2xx response code) (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--http))
+- `tcp` (Attributes) Check that the given port accepting connection (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--tcp))
+
+<a id="nestedatt--healthchecks--liveness_probe--type--exec"></a>
+### Nested Schema for `healthchecks.liveness_probe.type.tcp`
+
+Required:
+
+- `command` (List of String) The command and its arguments to exec
+
+
+<a id="nestedatt--healthchecks--liveness_probe--type--grpc"></a>
+### Nested Schema for `healthchecks.liveness_probe.type.tcp`
+
+Required:
+
+- `port` (Number) The port number to try to connect to
+
+Optional:
+
+- `service` (String) The grpc service to connect to. It needs to implement grpc health protocol. https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe
+
+
+<a id="nestedatt--healthchecks--liveness_probe--type--http"></a>
+### Nested Schema for `healthchecks.liveness_probe.type.tcp`
+
+Required:
+
+- `port` (Number) The port number to try to connect to
+
+Optional:
+
+- `path` (String) The path that the HTTP GET request. By default it is `/`
+- `scheme` (String) if the HTTP GET request should be done in HTTP or HTTPS. Default is HTTP
+
+
+<a id="nestedatt--healthchecks--liveness_probe--type--tcp"></a>
+### Nested Schema for `healthchecks.liveness_probe.type.tcp`
+
+Required:
+
+- `port` (Number) The port number to try to connect to
+
+Optional:
+
+- `host` (String) Optional. If the host need to be different than localhost/pod ip
+
+
+
+
+<a id="nestedatt--healthchecks--readiness_probe"></a>
+### Nested Schema for `healthchecks.readiness_probe`
+
+Required:
+
+- `failure_threshold` (Number) Number of time the an ok probe should fail before declaring it as failed
+- `initial_delay_seconds` (Number) Number of seconds to wait before the first execution of the probe to be trigerred
+- `period_seconds` (Number) Number of seconds before each execution of the probe
+- `success_threshold` (Number) Number of time the probe should success before declaring a failed probe as ok again
+- `timeout_seconds` (Number) Number of seconds within which the check need to respond before declaring it as a failure
+- `type` (Attributes) Kind of check to run for this probe. There can only be one configured at a time (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type))
+
+<a id="nestedatt--healthchecks--readiness_probe--type"></a>
+### Nested Schema for `healthchecks.readiness_probe.type`
+
+Optional:
+
+- `exec` (Attributes) Check that the given command return an exit 0. Binary should be present in the image (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--exec))
+- `grpc` (Attributes) Check that the given port respond to GRPC call (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--grpc))
+- `http` (Attributes) Check that the given port respond to HTTP call (should return a 2xx response code) (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--http))
+- `tcp` (Attributes) Check that the given port accepting connection (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--tcp))
+
+<a id="nestedatt--healthchecks--readiness_probe--type--exec"></a>
+### Nested Schema for `healthchecks.readiness_probe.type.tcp`
+
+Required:
+
+- `command` (List of String) The command and its arguments to exec
+
+
+<a id="nestedatt--healthchecks--readiness_probe--type--grpc"></a>
+### Nested Schema for `healthchecks.readiness_probe.type.tcp`
+
+Required:
+
+- `port` (Number) The port number to try to connect to
+
+Optional:
+
+- `service` (String) The grpc service to connect to. It needs to implement grpc health protocol. https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe
+
+
+<a id="nestedatt--healthchecks--readiness_probe--type--http"></a>
+### Nested Schema for `healthchecks.readiness_probe.type.tcp`
+
+Required:
+
+- `port` (Number) The port number to try to connect to
+
+Optional:
+
+- `path` (String) The path that the HTTP GET request. By default it is `/`
+- `scheme` (String) if the HTTP GET request should be done in HTTP or HTTPS. Default is HTTP
+
+
+<a id="nestedatt--healthchecks--readiness_probe--type--tcp"></a>
+### Nested Schema for `healthchecks.readiness_probe.type.tcp`
+
+Required:
+
+- `port` (Number) The port number to try to connect to
+
+Optional:
+
+- `host` (String) Optional. If the host need to be different than localhost/pod ip
+
+
+
 
 
 <a id="nestedatt--custom_domains"></a>

@@ -1312,6 +1312,7 @@ resource "qovery_application" "test" {
   git_repository = {
     url = "%s"
   }
+ healthchecks = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL,
 	)
@@ -1330,6 +1331,7 @@ resource "qovery_application" "test" {
   git_repository = {
     url = "%s"
   }
+ healthchecks = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), autoPreview, applicationRepositoryURL,
 	)
@@ -1353,6 +1355,7 @@ resource "qovery_application" "test" {
   git_repository = {
     url = "%s"
   }
+ healthchecks = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), cpu, memory, minRunningInstances, maxRunningInstances, applicationRepositoryURL,
 	)
@@ -1371,6 +1374,7 @@ resource "qovery_application" "test" {
     url = "%s"
   }
   storage = %s
+  healthchecks = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertStoragesToString(storages),
 	)
@@ -1389,6 +1393,7 @@ resource "qovery_application" "test" {
     url = "%s"
   }
   ports = %s
+  healthchecks = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertPortsToString(ports),
 	)
@@ -1407,6 +1412,7 @@ resource "qovery_application" "test" {
     url = "%s"
   }
   environment_variables = %s
+  healthchecks = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertEnvVarsToString(environmentVariables),
 	)
@@ -1425,6 +1431,7 @@ resource "qovery_application" "test" {
     url = "%s"
   }
   secrets = %s
+  healthchecks = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertEnvVarsToString(secrets),
 	)
@@ -1453,6 +1460,7 @@ resource "qovery_application" "test" {
   }
   ports = %s
   custom_domains = %s
+  healthchecks = {}
 } 
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertPortsToString(ports), convertCustomDomainsToString(customDomains),
 	)
@@ -1470,6 +1478,7 @@ resource "qovery_application" "test" {
   git_repository = {
     url = "%s"
   }
+  healthchecks = {}
 }
 `, testAccEnvironmentDefaultConfigWithEnvironmentVariables(testName, environmentVariables), generateTestName(testName), applicationRepositoryURL,
 	)
@@ -1487,6 +1496,7 @@ resource "qovery_application" "test" {
   git_repository = {
     url = "%s"
   }
+  healthchecks = {}
 }
 `, GetDatabaseConfigFromModel(testName, qovery.Database{
 		Name:          qovery.FromString(generateTestName(testName)),

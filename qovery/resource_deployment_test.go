@@ -183,6 +183,7 @@ resource "qovery_application" "application_test" {
     url = "https://github.com/Qovery/test_http_server.git"
   }
   deployment_stage_id = qovery_deployment_stage.deployment_stage_1.id
+  healthchecks = {}
 }
 
 resource "qovery_container" "container_test" {
@@ -192,6 +193,7 @@ resource "qovery_container" "container_test" {
   image_name = "terraform-provider-tests-container"
   tag = "1.0.0"
   deployment_stage_id = qovery_deployment_stage.deployment_stage_2.id
+  healthchecks = {}
 }
 
 resource "qovery_database" "database_test" {

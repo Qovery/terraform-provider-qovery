@@ -5,8 +5,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	qovery2 "github.com/qovery/qovery-client-go"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
-
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
@@ -77,6 +77,7 @@ type Job struct {
 	ExternalHost                *string
 	State                       status.State
 	DeploymentStageID           string
+	HealthChecks                qovery2.Healthcheck
 }
 
 // Validate returns an error to tell whether the Job domain model is valid or not.
@@ -149,6 +150,7 @@ type NewJobParams struct {
 	Secrets              secret.NewSecretsParams
 	DeploymentStageID    string
 	Port                 *port.NewPortParams
+	Healthchecks         qovery2.Healthcheck
 }
 
 // NewJob returns a new instance of a Job domain model.
@@ -204,6 +206,7 @@ func NewJob(params NewJobParams) (*Job, error) {
 		Source:             *jobSource,
 		Port:               prt,
 		DeploymentStageID:  params.DeploymentStageID,
+		HealthChecks:       params.Healthchecks,
 	}
 
 	environmentVariables := make(variable.Variables, len(params.EnvironmentVariables))

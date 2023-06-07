@@ -155,6 +155,7 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 				Optional:    true,
 				Computed:    true,
 			},
+			"healthchecks": healthchecksSchemaAttributes(true),
 			"schedule": {
 				Description: "Job's schedule.",
 				Required:    true,
