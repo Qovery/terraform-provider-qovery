@@ -42,6 +42,36 @@ resource "qovery_job" "my_job" {
     }
   }
 
+
+  healthchecks = {
+    readiness_probe = {
+      type = {
+        http = {
+          port = 8000
+        }
+      }
+      initial_delay_seconds = 30
+      period_seconds        = 10
+      timeout_seconds       = 10
+      success_threshold     = 1
+      failure_threshold     = 3
+    }
+
+
+    liveness_probe = {
+      type = {
+        http = {
+          port = 8000
+        }
+      }
+      initial_delay_seconds = 30
+      period_seconds        = 10
+      timeout_seconds       = 10
+      success_threshold     = 1
+      failure_threshold     = 3
+    }
+  }
+
   depends_on = [
     qovery_environment.my_environment,
   ]
