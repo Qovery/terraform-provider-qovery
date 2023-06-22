@@ -12,8 +12,8 @@ resource "qovery_deployment_stage" "my_deployment_stage" {
 
   # Optional
   description = ""
-  move_after  = qovery_deployment_stage.first_deployment_stage.id
-  move_before = qovery_deployment_stage.third_deployment_stage.id
+  is_after    = qovery_deployment_stage.first_deployment_stage.id
+  is_before   = qovery_deployment_stage.third_deployment_stage.id
 
   depends_on = [
     qovery_environment.my_environment
@@ -35,8 +35,8 @@ You can find complete examples within these repositories:
 ### Optional
 
 - `description` (String) Description of the deployment stage.
-- `move_after` (String) Move the current deployment stage after the target deployment stage
-- `move_before` (String) Move the current deployment stage before the target deployment stage
+- `is_after` (String) Move the current deployment stage after the target deployment stage
+- `is_before` (String) Move the current deployment stage before the target deployment stage
 
 ### Read-Only
 

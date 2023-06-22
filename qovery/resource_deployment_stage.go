@@ -72,12 +72,12 @@ func (r deploymentStageResource) GetSchema(_ context.Context) (tfsdk.Schema, dia
 				Type:        types.StringType,
 				Optional:    true,
 			},
-			"move_after": {
+			"is_after": {
 				Description: "Move the current deployment stage after the target deployment stage",
 				Type:        types.StringType,
 				Optional:    true,
 			},
-			"move_before": {
+			"is_before": {
 				Description: "Move the current deployment stage before the target deployment stage",
 				Type:        types.StringType,
 				Optional:    true,
@@ -129,14 +129,14 @@ func (r deploymentStageResource) Read(ctx context.Context, req resource.ReadRequ
 	newState := convertDomainDeploymentStageToDeploymentStage(deploymentStage, state.Description)
 	tflog.Trace(ctx, "read deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.Value})
 
-	// We need to keep the 'MoveAfter' and 'MoveBefore' properties
+	// We need to keep the 'IsAfter' and 'IsBefore' properties
 	newState = DeploymentStage{
 		Id:            newState.Id,
 		EnvironmentId: newState.EnvironmentId,
 		Name:          newState.Name,
 		Description:   newState.Description,
-		MoveAfter:     state.MoveAfter,
-		MoveBefore:    state.MoveBefore,
+		IsAfter:       state.IsAfter,
+		IsBefore:      state.IsBefore,
 	}
 
 	// Set state

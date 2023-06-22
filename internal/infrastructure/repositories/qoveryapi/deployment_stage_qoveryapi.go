@@ -35,18 +35,18 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentID stri
 		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeploymentStage, request.Name, resp, err)
 	}
 
-	if request.MoveAfter != nil {
+	if request.IsAfter != nil {
 		_, resp, err = c.client.DeploymentStageMainCallsApi.
-			MoveAfterDeploymentStage(ctx, deploymentStageCreated.Id, *request.MoveAfter).
+			MoveAfterDeploymentStage(ctx, deploymentStageCreated.Id, *request.IsAfter).
 			Execute()
 		if err != nil || resp.StatusCode >= 400 {
 			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeploymentStage, request.Name, resp, err)
 		}
 	}
 
-	if request.MoveBefore != nil {
+	if request.IsBefore != nil {
 		_, resp, err = c.client.DeploymentStageMainCallsApi.
-			MoveBeforeDeploymentStage(ctx, deploymentStageCreated.Id, *request.MoveBefore).
+			MoveBeforeDeploymentStage(ctx, deploymentStageCreated.Id, *request.IsBefore).
 			Execute()
 		if err != nil || resp.StatusCode >= 400 {
 			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeploymentStage, request.Name, resp, err)
@@ -58,8 +58,8 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentID stri
 		EnvironmentID:     deploymentStageCreated.Environment.Id,
 		Name:              *deploymentStageCreated.Name,
 		Description:       *deploymentStageCreated.Description,
-		MoveAfter:         request.MoveAfter,
-		MoveBefore:        request.MoveBefore,
+		IsAfter:           request.IsAfter,
+		IsBefore:          request.IsBefore,
 	})
 }
 
@@ -89,18 +89,18 @@ func (c deploymentStageQoveryAPI) Update(ctx context.Context, deploymentStageID 
 		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceDeploymentStage, deploymentStageID, resp, err)
 	}
 
-	if request.MoveAfter != nil {
+	if request.IsAfter != nil {
 		_, resp, err = c.client.DeploymentStageMainCallsApi.
-			MoveAfterDeploymentStage(ctx, deploymentStageID, *request.MoveAfter).
+			MoveAfterDeploymentStage(ctx, deploymentStageID, *request.IsAfter).
 			Execute()
 		if err != nil || resp.StatusCode >= 400 {
 			return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceDeploymentStage, request.Name, resp, err)
 		}
 	}
 
-	if request.MoveBefore != nil {
+	if request.IsBefore != nil {
 		_, resp, err = c.client.DeploymentStageMainCallsApi.
-			MoveBeforeDeploymentStage(ctx, deploymentStageID, *request.MoveBefore).
+			MoveBeforeDeploymentStage(ctx, deploymentStageID, *request.IsBefore).
 			Execute()
 		if err != nil || resp.StatusCode >= 400 {
 			return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceDeploymentStage, request.Name, resp, err)
@@ -112,8 +112,8 @@ func (c deploymentStageQoveryAPI) Update(ctx context.Context, deploymentStageID 
 		EnvironmentID:     deploymentStage.Environment.Id,
 		Name:              *deploymentStage.Name,
 		Description:       *deploymentStage.Description,
-		MoveAfter:         request.MoveAfter,
-		MoveBefore:        request.MoveBefore,
+		IsAfter:           request.IsAfter,
+		IsBefore:          request.IsBefore,
 	})
 }
 
