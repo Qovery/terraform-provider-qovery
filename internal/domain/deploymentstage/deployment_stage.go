@@ -17,10 +17,10 @@ var (
 	ErrInvalidDeploymentStage = errors.New("invalid deployment stage")
 	// ErrInvalidUpsertRequest is returned if the upsert request is invalid.
 	ErrInvalidUpsertRequest = errors.New("invalid deployment stage upsert request")
-	// ErrInvalidMoveAfterParam is returned if the move_after ID indicated is not valid
-	ErrInvalidMoveAfterParam = errors.New("invalid move_after param")
-	// ErrInvalidMoveBeforeParam is returned if the move_before ID indicated is not valid
-	ErrInvalidMoveBeforeParam = errors.New("invalid move_before param")
+	// ErrInvalidIsAfterParam is returned if the is_after ID indicated is not valid
+	ErrInvalidIsAfterParam = errors.New("invalid is_after param")
+	// ErrInvalidIsBeforeParam is returned if the is_before ID indicated is not valid
+	ErrInvalidIsBeforeParam = errors.New("invalid is_before param")
 )
 
 type DeploymentStage struct {
@@ -28,8 +28,8 @@ type DeploymentStage struct {
 	EnvironmentID uuid.UUID
 	Name          string
 	Description   string
-	MoveAfter     *uuid.UUID
-	MoveBefore    *uuid.UUID
+	IsAfter       *uuid.UUID
+	IsBefore      *uuid.UUID
 }
 
 // NewDeploymentStageParams represents the arguments needed to create a DeploymentStage.
@@ -38,8 +38,8 @@ type NewDeploymentStageParams struct {
 	EnvironmentID     string
 	Name              string
 	Description       string
-	MoveAfter         *string
-	MoveBefore        *string
+	IsAfter           *string
+	IsBefore          *string
 }
 
 // Validate returns an error to tell whether the DeploymentStage domain model is valid or not.
@@ -63,22 +63,22 @@ func NewDeploymentStage(params NewDeploymentStageParams) (*DeploymentStage, erro
 		return nil, ErrInvalidDeploymentStageNameParam
 	}
 
-	var moveAfter *uuid.UUID = nil
-	if params.MoveAfter != nil {
-		newMoveAfter, err := uuid.Parse(*params.MoveAfter)
+	var isAfter *uuid.UUID = nil
+	if params.IsAfter != nil {
+		newIsAfter, err := uuid.Parse(*params.IsAfter)
 		if err != nil {
-			return nil, errors.Wrap(err, ErrInvalidMoveAfterParam.Error())
+			return nil, errors.Wrap(err, ErrInvalidIsAfterParam.Error())
 		}
-		moveAfter = &newMoveAfter
+		isAfter = &newIsAfter
 	}
 
-	var moveBefore *uuid.UUID = nil
-	if params.MoveBefore != nil {
-		newMoveBefore, err := uuid.Parse(*params.MoveBefore)
+	var isBefore *uuid.UUID = nil
+	if params.IsBefore != nil {
+		newIsBefore, err := uuid.Parse(*params.IsBefore)
 		if err != nil {
-			return nil, errors.Wrap(err, ErrInvalidMoveBeforeParam.Error())
+			return nil, errors.Wrap(err, ErrInvalidIsBeforeParam.Error())
 		}
-		moveBefore = &newMoveBefore
+		isBefore = &newIsBefore
 	}
 
 	v := &DeploymentStage{
@@ -86,8 +86,8 @@ func NewDeploymentStage(params NewDeploymentStageParams) (*DeploymentStage, erro
 		EnvironmentID: environmentUuid,
 		Name:          params.Name,
 		Description:   params.Description,
-		MoveAfter:     moveAfter,
-		MoveBefore:    moveBefore,
+		IsAfter:       isAfter,
+		IsBefore:      isBefore,
 	}
 
 	if err := v.Validate(); err != nil {

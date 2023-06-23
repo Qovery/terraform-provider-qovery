@@ -171,7 +171,7 @@ resource "qovery_deployment_stage" "deployment_stage_1" {
 resource "qovery_deployment_stage" "deployment_stage_2" {
   environment_id = qovery_environment.test.id
   name        = "%s"
-  move_after = qovery_deployment_stage.deployment_stage_1.id
+  is_after    = qovery_deployment_stage.deployment_stage_1.id
 }
 
 resource "qovery_application" "application_test" {

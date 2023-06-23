@@ -11,8 +11,8 @@ type DeploymentStage struct {
 	EnvironmentId types.String `tfsdk:"environment_id"`
 	Name          types.String `tfsdk:"name"`
 	Description   types.String `tfsdk:"description"`
-	MoveAfter     types.String `tfsdk:"move_after"`
-	MoveBefore    types.String `tfsdk:"move_before"`
+	IsAfter       types.String `tfsdk:"is_after"`
+	IsBefore      types.String `tfsdk:"is_before"`
 }
 
 func (p DeploymentStage) toCreateServiceRequest() deploymentstage.UpsertServiceRequest {
@@ -20,8 +20,8 @@ func (p DeploymentStage) toCreateServiceRequest() deploymentstage.UpsertServiceR
 		DeploymentStageUpsertRequest: deploymentstage.UpsertRepositoryRequest{
 			Name:        ToString(p.Name),
 			Description: ToString(p.Description),
-			MoveAfter:   ToStringPointer(p.MoveAfter),
-			MoveBefore:  ToStringPointer(p.MoveBefore),
+			IsAfter:     ToStringPointer(p.IsAfter),
+			IsBefore:    ToStringPointer(p.IsBefore),
 		},
 	}
 }
@@ -31,22 +31,22 @@ func (p DeploymentStage) toUpdateServiceRequest() deploymentstage.UpsertServiceR
 		DeploymentStageUpsertRequest: deploymentstage.UpsertRepositoryRequest{
 			Name:        ToString(p.Name),
 			Description: ToString(p.Description),
-			MoveAfter:   ToStringPointer(p.MoveAfter),
-			MoveBefore:  ToStringPointer(p.MoveBefore),
+			IsAfter:     ToStringPointer(p.IsAfter),
+			IsBefore:    ToStringPointer(p.IsBefore),
 		},
 	}
 }
 
 func convertDomainDeploymentStageToDeploymentStage(deploymentStageDomain *deploymentstage.DeploymentStage, terraformDescription types.String) DeploymentStage {
-	var moveAfterString *string = nil
-	if deploymentStageDomain.MoveAfter != nil {
-		s := deploymentStageDomain.MoveAfter.String()
-		moveAfterString = &s
+	var isAfterString *string = nil
+	if deploymentStageDomain.IsAfter != nil {
+		s := deploymentStageDomain.IsAfter.String()
+		isAfterString = &s
 	}
-	var moveBeforeString *string = nil
-	if deploymentStageDomain.MoveBefore != nil {
-		s := deploymentStageDomain.MoveBefore.String()
-		moveBeforeString = &s
+	var isBeforeString *string = nil
+	if deploymentStageDomain.IsBefore != nil {
+		s := deploymentStageDomain.IsBefore.String()
+		isBeforeString = &s
 	}
 
 	// hack to satisfy optional description as the core doesn't accept null value, the description will be always an empty string in case of null
@@ -60,7 +60,7 @@ func convertDomainDeploymentStageToDeploymentStage(deploymentStageDomain *deploy
 		EnvironmentId: FromString(deploymentStageDomain.EnvironmentID.String()),
 		Name:          FromString(deploymentStageDomain.Name),
 		Description:   FromStringPointer(description),
-		MoveAfter:     FromStringPointer(moveAfterString),
-		MoveBefore:    FromStringPointer(moveBeforeString),
+		IsAfter:       FromStringPointer(isAfterString),
+		IsBefore:      FromStringPointer(isBeforeString),
 	}
 }
