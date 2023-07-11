@@ -1501,7 +1501,7 @@ resource "qovery_application" "test" {
 `, GetDatabaseConfigFromModel(testName, qovery.Database{
 		Name:          qovery.FromString(generateTestName(testName)),
 		Type:          qovery.FromString("REDIS"),
-		Version:       qovery.FromString("6"),
+		Version:       qovery.FromString("6.2"),
 		Mode:          qovery.FromString("CONTAINER"),
 		Accessibility: qovery.FromString("PUBLIC"),
 		CPU:           qovery.FromInt32(250),

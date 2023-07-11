@@ -200,7 +200,7 @@ resource "qovery_database" "database_test" {
   environment_id = qovery_environment.test.id
   name = "%s"
   type = "REDIS"
-  version = "6"
+  version = "6.2"
   mode = "CONTAINER"
   deployment_stage_id = qovery_deployment_stage.deployment_stage_1.id
 }

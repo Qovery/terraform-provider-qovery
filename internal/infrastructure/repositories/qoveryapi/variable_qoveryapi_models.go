@@ -27,11 +27,16 @@ func newDomainVariableFromQovery(v *qovery.EnvironmentVariable) (*variable.Varia
 		return nil, variable.ErrNilVariable
 	}
 
+	value := ""
+	if v.Value != nil {
+		value = *v.Value
+	}
+
 	return variable.NewVariable(variable.NewVariableParams{
 		VariableID: v.GetId(),
 		Scope:      string(v.Scope),
 		Key:        v.Key,
-		Value:      v.Value,
+		Value:      value,
 	})
 }
 
@@ -39,7 +44,7 @@ func newDomainVariableFromQovery(v *qovery.EnvironmentVariable) (*variable.Varia
 func newQoveryEnvironmentVariableRequestFromDomain(request variable.UpsertRequest) qovery.EnvironmentVariableRequest {
 	return qovery.EnvironmentVariableRequest{
 		Key:   request.Key,
-		Value: request.Value,
+		Value: &request.Value,
 	}
 }
 

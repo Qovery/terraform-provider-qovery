@@ -230,12 +230,12 @@ func (c *Client) getApplicationHosts(ctx context.Context, application *qovery.Ap
 	hostExternal := ""
 	hostInternal := ""
 	for _, env := range environmentVariables {
-		if env.Key == hostExternalKey {
-			hostExternal = env.Value
+		if env.Key == hostExternalKey && env.Value != nil {
+			hostExternal = *env.Value
 			continue
 		}
-		if env.Key == hostInternalKey {
-			hostInternal = env.Value
+		if env.Key == hostInternalKey && env.Value != nil {
+			hostInternal = *env.Value
 			continue
 		}
 		if hostInternal != "" && hostExternal != "" {

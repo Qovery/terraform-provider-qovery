@@ -127,7 +127,7 @@ func (e EnvironmentVariable) toCreateRequest() client.EnvironmentVariableCreateR
 	return client.EnvironmentVariableCreateRequest{
 		EnvironmentVariableRequest: qovery.EnvironmentVariableRequest{
 			Key:   ToString(e.Key),
-			Value: ToString(e.Value),
+			Value: ToStringPointer(e.Value),
 		},
 	}
 }
@@ -177,7 +177,7 @@ func fromEnvironmentVariable(v *qovery.EnvironmentVariable) EnvironmentVariable 
 	return EnvironmentVariable{
 		Id:    FromString(v.Id),
 		Key:   FromString(v.Key),
-		Value: FromString(v.Value),
+		Value: FromStringPointer(v.Value),
 	}
 }
 

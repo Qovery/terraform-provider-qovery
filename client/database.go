@@ -108,8 +108,8 @@ func (c *Client) getDatabaseHostInternal(ctx context.Context, database *qovery.D
 	// Expected host internal key syntax is `QOVERY_{DB-TYPE}_Z{DB-ID}_HOST_INTERNAL`
 	hostInternal := ""
 	for _, env := range environmentVariables {
-		if env.Key == hostInternalKey {
-			hostInternal = env.Value
+		if env.Key == hostInternalKey && env.Value != nil {
+			hostInternal = *env.Value
 			break
 		}
 	}
