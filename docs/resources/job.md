@@ -101,6 +101,7 @@ You can find complete examples within these repositories:
 
 ### Optional
 
+- `advanced_settings_json` (String) Advanced settings.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this job.
 - `cpu` (Number) CPU of the job in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 10`.

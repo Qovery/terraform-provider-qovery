@@ -84,6 +84,7 @@ resource "qovery_container" "my_container" {
 
 ### Optional
 
+- `advanced_settings_json` (String) Advanced settings.
 - `arguments` (List of String) List of arguments of this container.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this container.
 - `cpu` (Number) CPU of the container in millicores (m) [1000m = 1 CPU].

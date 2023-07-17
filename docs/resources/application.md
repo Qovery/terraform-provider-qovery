@@ -92,6 +92,7 @@ You can find complete examples within these repositories:
 
 ### Optional
 
+- `advanced_settings_json` (String) Advanced settings.
 - `arguments` (List of String) List of arguments of this application.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
 	- Default: `false`.
