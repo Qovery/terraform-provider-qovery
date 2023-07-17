@@ -486,6 +486,12 @@ func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Optional:    true,
 				Computed:    true,
 			},
+			"advanced_settings_json": {
+				Description: "Advanced settings.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
 		},
 	}, nil
 }
