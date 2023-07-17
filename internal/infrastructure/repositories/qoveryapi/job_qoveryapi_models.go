@@ -3,6 +3,7 @@ package qoveryapi
 import (
 	"github.com/google/uuid"
 	"github.com/qovery/qovery-client-go"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/execution_command"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/git_repository"
@@ -14,7 +15,7 @@ import (
 )
 
 // newDomainCredentialsFromQovery takes a qovery.EnvironmentVariable returned by the API client and turns it into the domain model variable.Variable.
-func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string) (*job.Job, error) {
+func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string, advancedSettingsJson string) (*job.Job, error) {
 	if j == nil {
 		return nil, variable.ErrNilVariable
 	}
@@ -140,18 +141,19 @@ func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string) (*j
 	}
 
 	return job.NewJob(job.NewJobParams{
-		JobID:              j.Id,
-		EnvironmentID:      j.Environment.Id,
-		Name:               j.Name,
-		AutoPreview:        j.AutoPreview,
-		CPU:                j.Cpu,
-		Memory:             j.Memory,
-		MaxNbRestart:       &maxNbRestart,
-		MaxDurationSeconds: &maxDurationSeconds,
-		Port:               prt,
-		Source:             jobSource,
-		Schedule:           jobSchedule,
-		DeploymentStageID:  deploymentStageID,
+		JobID:                j.Id,
+		EnvironmentID:        j.Environment.Id,
+		Name:                 j.Name,
+		AutoPreview:          j.AutoPreview,
+		CPU:                  j.Cpu,
+		Memory:               j.Memory,
+		MaxNbRestart:         &maxNbRestart,
+		MaxDurationSeconds:   &maxDurationSeconds,
+		Port:                 prt,
+		Source:               jobSource,
+		Schedule:             jobSchedule,
+		DeploymentStageID:    deploymentStageID,
+		AdvancedSettingsJson: advancedSettingsJson,
 	})
 }
 

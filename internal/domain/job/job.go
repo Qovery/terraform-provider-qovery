@@ -2,10 +2,12 @@ package job
 
 import (
 	"fmt"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	qovery2 "github.com/qovery/qovery-client-go"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
@@ -57,18 +59,16 @@ var (
 )
 
 type Job struct {
-	ID                 uuid.UUID `validate:"required"`
-	EnvironmentID      uuid.UUID `validate:"required"`
-	Name               string
-	CPU                int32
-	Memory             int32
-	MaxNbRestart       uint32
-	MaxDurationSeconds uint32
-	AutoPreview        bool
-
-	Source   JobSource   `validate:"required"`
-	Schedule JobSchedule `validate:"required"`
-
+	ID                          uuid.UUID `validate:"required"`
+	EnvironmentID               uuid.UUID `validate:"required"`
+	Name                        string
+	CPU                         int32
+	Memory                      int32
+	MaxNbRestart                uint32
+	MaxDurationSeconds          uint32
+	AutoPreview                 bool
+	Source                      JobSource   `validate:"required"`
+	Schedule                    JobSchedule `validate:"required"`
 	Port                        *port.Port
 	EnvironmentVariables        variable.Variables
 	BuiltInEnvironmentVariables variable.Variables
@@ -78,6 +78,7 @@ type Job struct {
 	State                       status.State
 	DeploymentStageID           string
 	HealthChecks                qovery2.Healthcheck
+	AdvancedSettingsJson        string
 }
 
 // Validate returns an error to tell whether the Job domain model is valid or not.
@@ -134,23 +135,23 @@ func (j Job) IsValid() bool {
 
 // NewJobParams represents the arguments needed to create a Job.
 type NewJobParams struct {
-	JobID              string
-	EnvironmentID      string
-	Name               string
-	CPU                int32
-	Memory             int32
-	MaxNbRestart       *uint32
-	MaxDurationSeconds *uint32
-	AutoPreview        bool
-	Source             NewJobSourceParams
-	Schedule           NewJobScheduleParams
-
+	JobID                string
+	EnvironmentID        string
+	Name                 string
+	CPU                  int32
+	Memory               int32
+	MaxNbRestart         *uint32
+	MaxDurationSeconds   *uint32
+	AutoPreview          bool
+	Source               NewJobSourceParams
+	Schedule             NewJobScheduleParams
 	State                *string
 	EnvironmentVariables variable.NewVariablesParams
 	Secrets              secret.NewSecretsParams
 	DeploymentStageID    string
 	Port                 *port.NewPortParams
 	Healthchecks         qovery2.Healthcheck
+	AdvancedSettingsJson string
 }
 
 // NewJob returns a new instance of a Job domain model.
@@ -194,19 +195,20 @@ func NewJob(params NewJobParams) (*Job, error) {
 	}
 
 	j := &Job{
-		ID:                 jobUUID,
-		EnvironmentID:      environmentUUID,
-		Name:               params.Name,
-		AutoPreview:        params.AutoPreview,
-		CPU:                params.CPU,
-		Memory:             params.Memory,
-		MaxNbRestart:       maxNbRestart,
-		MaxDurationSeconds: maxDurationSeconds,
-		Schedule:           *jobSchedule,
-		Source:             *jobSource,
-		Port:               prt,
-		DeploymentStageID:  params.DeploymentStageID,
-		HealthChecks:       params.Healthchecks,
+		ID:                   jobUUID,
+		EnvironmentID:        environmentUUID,
+		Name:                 params.Name,
+		AutoPreview:          params.AutoPreview,
+		CPU:                  params.CPU,
+		Memory:               params.Memory,
+		MaxNbRestart:         maxNbRestart,
+		MaxDurationSeconds:   maxDurationSeconds,
+		Schedule:             *jobSchedule,
+		Source:               *jobSource,
+		Port:                 prt,
+		DeploymentStageID:    params.DeploymentStageID,
+		HealthChecks:         params.Healthchecks,
+		AdvancedSettingsJson: params.AdvancedSettingsJson,
 	}
 
 	environmentVariables := make(variable.Variables, len(params.EnvironmentVariables))

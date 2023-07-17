@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 
 	"github.com/AlekSi/pointer"
@@ -402,6 +403,12 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 			},
 			"deployment_stage_id": {
 				Description: "Id of the deployment stage.",
+				Type:        types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
+			"advanced_settings_json": {
+				Description: "Advanced settings.",
 				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,

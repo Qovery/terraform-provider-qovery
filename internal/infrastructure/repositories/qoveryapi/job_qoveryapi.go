@@ -2,9 +2,11 @@ package qoveryapi
 
 import (
 	"context"
+
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 )
@@ -51,13 +53,19 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 		}
 	}
 
+	// Update advanced settings
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.JOB, newJob.Id, request.AdvancedSettingsJson)
+	if err != nil {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJob, request.Name, nil, err)
+	}
+
 	// Get job deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, newJob.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJob, newJob.Id, resp, err)
 	}
 
-	return newDomainJobFromQovery(newJob, deploymentStage.Id)
+	return newDomainJobFromQovery(newJob, deploymentStage.Id, request.AdvancedSettingsJson)
 }
 
 // Get calls Qovery's API to retrieve a job using the given jobID.
@@ -72,10 +80,15 @@ func (c jobQoveryAPI) Get(ctx context.Context, jobID string) (*job.Job, error) {
 	// Get job deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, job.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJob, job.Id, resp, err)
+		return nil, apierrors.NewReadApiError(apierrors.ApiResourceJob, job.Id, resp, err)
 	}
 
-	return newDomainJobFromQovery(job, deploymentStage.Id)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(advanced_settings.JOB, jobID)
+	if err != nil {
+		return nil, apierrors.NewReadApiError(apierrors.ApiResourceJob, job.Id, nil, err)
+	}
+
+	return newDomainJobFromQovery(job, deploymentStage.Id, *advancedSettingsAsJson)
 }
 
 // Update calls Qovery's API to update a job using the given jobID and request.
@@ -101,13 +114,19 @@ func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.Upse
 		}
 	}
 
+	// Update advanced settings
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.JOB, job.Id, request.AdvancedSettingsJson)
+	if err != nil {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJob, request.Name, nil, err)
+	}
+
 	// Get job deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, job.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJob, job.Id, resp, err)
 	}
 
-	return newDomainJobFromQovery(job, deploymentStage.Id)
+	return newDomainJobFromQovery(job, deploymentStage.Id, request.AdvancedSettingsJson)
 }
 
 // Delete calls Qovery's API to deletes a job using the given jobID.
