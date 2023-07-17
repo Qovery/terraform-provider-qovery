@@ -107,6 +107,7 @@ func TestAcc_Application(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
+					resource.TestCheckResourceAttr("qovery_application.test", "advanced_settings_json", "{\"build.timeout_max_sec\":1700}"),
 				),
 			},
 			// Update name
@@ -1312,7 +1313,8 @@ resource "qovery_application" "test" {
   git_repository = {
     url = "%s"
   }
- healthchecks = {}
+  healthchecks = {}
+  advanced_settings_json = jsonencode({"build.timeout_max_sec": 1700})
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL,
 	)

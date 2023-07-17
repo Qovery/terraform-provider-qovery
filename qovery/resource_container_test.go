@@ -58,6 +58,7 @@ func TestAcc_Container(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings_json", "{\"network.ingress.proxy_body_size_mb\":101}"),
 				),
 			},
 			// Update name
@@ -1375,6 +1376,7 @@ resource "qovery_container" "test" {
   image_name = "%s"
   tag = "%s"
   healthchecks = {}
+  advanced_settings_json = jsonencode({"network.ingress.proxy_body_size_mb": 101})
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag,
 	)
