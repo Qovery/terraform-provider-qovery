@@ -11,7 +11,7 @@ import (
 )
 
 // newDomainCredentialsFromQovery takes a qovery.EnvironmentVariable returned by the API client and turns it into the domain model variable.Variable.
-func newDomainContainerFromQovery(c *qovery.ContainerResponse, deploymentStageID string) (*container.Container, error) {
+func newDomainContainerFromQovery(c *qovery.ContainerResponse, deploymentStageID string, advancedSettingsAsJson string) (*container.Container, error) {
 	if c == nil {
 		return nil, variable.ErrNilVariable
 	}
@@ -27,22 +27,23 @@ func newDomainContainerFromQovery(c *qovery.ContainerResponse, deploymentStageID
 	}
 
 	return container.NewContainer(container.NewContainerParams{
-		ContainerID:         c.Id,
-		EnvironmentID:       c.Environment.Id,
-		RegistryID:          c.Registry.Id,
-		Name:                c.Name,
-		ImageName:           c.ImageName,
-		Tag:                 c.Tag,
-		AutoPreview:         c.AutoPreview,
-		CPU:                 c.Cpu,
-		Memory:              c.Memory,
-		MinRunningInstances: c.MinRunningInstances,
-		MaxRunningInstances: c.MaxRunningInstances,
-		Entrypoint:          c.Entrypoint,
-		Arguments:           c.Arguments,
-		Ports:               ports,
-		Storages:            storages,
-		DeploymentStageID:   deploymentStageID,
+		ContainerID:            c.Id,
+		EnvironmentID:          c.Environment.Id,
+		RegistryID:             c.Registry.Id,
+		Name:                   c.Name,
+		ImageName:              c.ImageName,
+		Tag:                    c.Tag,
+		AutoPreview:            c.AutoPreview,
+		CPU:                    c.Cpu,
+		Memory:                 c.Memory,
+		MinRunningInstances:    c.MinRunningInstances,
+		MaxRunningInstances:    c.MaxRunningInstances,
+		Entrypoint:             c.Entrypoint,
+		Arguments:              c.Arguments,
+		Ports:                  ports,
+		Storages:               storages,
+		DeploymentStageID:      deploymentStageID,
+		AdvancedSettingsAsJson: advancedSettingsAsJson,
 	})
 }
 

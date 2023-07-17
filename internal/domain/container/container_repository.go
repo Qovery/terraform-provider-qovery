@@ -4,6 +4,7 @@ package container
 
 import (
 	"context"
+
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/go-playground/validator/v10"
@@ -23,22 +24,22 @@ type Repository interface {
 
 // UpsertRepositoryRequest represents the parameters needed to create & update a Variable.
 type UpsertRepositoryRequest struct {
-	RegistryID string `validate:"required"`
-	Name       string `validate:"required"`
-	ImageName  string `validate:"required"`
-	Tag        string `validate:"required"`
-
-	AutoPreview         *bool
-	Entrypoint          *string
-	CPU                 *int32
-	Memory              *int32
-	MinRunningInstances *int32
-	MaxRunningInstances *int32
-	Arguments           []string
-	Storages            []storage.UpsertRequest
-	Ports               []port.UpsertRequest
-	DeploymentStageID   string
-	Healthchecks        *qovery.Healthcheck
+	RegistryID           string `validate:"required"`
+	Name                 string `validate:"required"`
+	ImageName            string `validate:"required"`
+	Tag                  string `validate:"required"`
+	AutoPreview          *bool
+	Entrypoint           *string
+	CPU                  *int32
+	Memory               *int32
+	MinRunningInstances  *int32
+	MaxRunningInstances  *int32
+	Arguments            []string
+	Storages             []storage.UpsertRequest
+	Ports                []port.UpsertRequest
+	DeploymentStageID    string
+	Healthchecks         *qovery.Healthcheck
+	AdvancedSettingsJson string
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.
