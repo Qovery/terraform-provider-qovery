@@ -312,7 +312,7 @@ resource "qovery_cluster" "test" {
   cloud_provider = "%s"
   region = "%s"
   instance_type = "%s"
-  advanced_settings = { loki.log_retention_in_week = 1 }
+  advanced_settings = jsonencode({ loki.log_retention_in_week = 1 })
 }
 `, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType,
 	)

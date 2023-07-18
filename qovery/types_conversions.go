@@ -7,8 +7,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
@@ -303,32 +301,4 @@ func FromTfValueToGoValue(v attr.Value) (interface{}, error) {
 	}
 
 	return nil, fmt.Errorf("unable to parse %s as Go value", v.String())
-}
-
-func FromStringMap(value *map[string]interface{}) types.Object {
-	if value == nil || len(*value) == 0 {
-		return types.Object{Null: true}
-	}
-
-	attrs := make(map[string]attr.Value)
-	attrTypes := make(map[string]attr.Type)
-	for k, f := range advancedSettingsDefault {
-		attrTypes[k] = f._type
-	}
-
-	for k, f := range *value {
-		attribute, err := FromGoValueToTfValue(f, attrTypes[k])
-
-		if err != nil {
-			tflog.Warn(context.Background(), "Unable to parse attribute, using default value.", map[string]interface{}{"error": err.Error()})
-			attribute = advancedSettingsDefault[k].defaultValue
-		}
-
-		attrs[k] = attribute
-	}
-
-	return types.Object{
-		Attrs:     attrs,
-		AttrTypes: attrTypes,
-	}
 }
