@@ -157,7 +157,7 @@ func (c *Client) updateCluster(ctx context.Context, organizationID string, clust
 	if apiErr != nil {
 		return nil, apiErr
 	}
-	cluster.Status = clusterStatus.Status
+	cluster.Status = clusterStatus
 
 	return &ClusterResponse{
 		OrganizationID:       organizationID,
