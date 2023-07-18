@@ -6,21 +6,22 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 )
 
 type ClusterResponse struct {
-	OrganizationID         string
-	ClusterResponse        *qovery.Cluster
-	ClusterInfo            *qovery.ClusterCloudProviderInfo
-	ClusterRoutingTable    *ClusterRoutingTable
-	ClusterAdvancedSetting *map[string]interface{}
+	OrganizationID       string
+	ClusterResponse      *qovery.Cluster
+	ClusterInfo          *qovery.ClusterCloudProviderInfo
+	ClusterRoutingTable  *ClusterRoutingTable
+	AdvancedSettingsJson string
 }
 
 type ClusterUpsertParams struct {
 	ClusterRequest              qovery.ClusterRequest
 	ClusterCloudProviderRequest *qovery.ClusterCloudProviderInfoRequest
 	ClusterRoutingTable         ClusterRoutingTable
-	ClusterAdvancedSettings     map[string]interface{}
+	AdvancedSettingsJson        string
 	ForceUpdate                 bool
 	DesiredState                qovery.StateEnum
 }
@@ -46,7 +47,7 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 		GetOrganizationCloudProviderInfo(ctx, organizationID, cluster.Id).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
-		return nil, apierrors.NewCreateError(apierrors.APIResourceClusterCloudProvider, cluster.Id, res, err)
+		return nil, apierrors.NewReadError(apierrors.APIResourceClusterCloudProvider, cluster.Id, res, err)
 	}
 
 	clusterRoutingTable, apiErr := c.getClusterRoutingTable(ctx, organizationID, clusterID)
@@ -54,17 +55,17 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 		return nil, apiErr
 	}
 
-	clusterSettings, apiErr := c.getClusterAdvancedSettings(ctx, organizationID, clusterID)
-	if apiErr != nil {
-		return nil, apiErr
+	advancedSettingsJson, err := advanced_settings.NewClusterAdvancedSettingsService(c.api.GetConfig()).ReadClusterAdvancedSettings(organizationID, clusterID)
+	if err != nil {
+		return nil, apierrors.NewReadError(apierrors.APIResourceClusterAdvancedSettings, cluster.Id, nil, err)
 	}
 
 	return &ClusterResponse{
-		OrganizationID:         organizationID,
-		ClusterResponse:        cluster,
-		ClusterRoutingTable:    clusterRoutingTable,
-		ClusterInfo:            clusterInfo,
-		ClusterAdvancedSetting: clusterSettings,
+		OrganizationID:       organizationID,
+		ClusterResponse:      cluster,
+		ClusterRoutingTable:  clusterRoutingTable,
+		ClusterInfo:          clusterInfo,
+		AdvancedSettingsJson: *advancedSettingsJson,
 	}, nil
 }
 
@@ -147,28 +148,22 @@ func (c *Client) updateCluster(ctx context.Context, organizationID string, clust
 		}
 	}
 
-	var advSettings *map[string]interface{}
-	var apiErr *apierrors.APIError
-	if len(params.ClusterAdvancedSettings) > 0 {
-		advSettings, apiErr = c.editClusterAdvancedSettings(ctx, organizationID, cluster.Id, params.ClusterAdvancedSettings)
-	} else {
-		advSettings, apiErr = c.getClusterAdvancedSettings(ctx, organizationID, cluster.Id)
-	}
-	if apiErr != nil {
-		return nil, apiErr
+	err = advanced_settings.NewClusterAdvancedSettingsService(c.api.GetConfig()).UpdateClusterAdvancedSettings(organizationID, cluster.Id, params.AdvancedSettingsJson)
+	if err != nil {
+		return nil, apierrors.NewUpdateError(apierrors.APIResourceClusterAdvancedSettings, cluster.Id, nil, err)
 	}
 
 	clusterStatus, apiErr := c.updateClusterStatus(ctx, organizationID, cluster, params.DesiredState, params.ForceUpdate)
 	if apiErr != nil {
 		return nil, apiErr
 	}
-	cluster.Status = clusterStatus.Status
+	cluster.Status = clusterStatus
 
 	return &ClusterResponse{
-		OrganizationID:         organizationID,
-		ClusterResponse:        cluster,
-		ClusterRoutingTable:    clusterRoutingTable,
-		ClusterInfo:            clusterInfo,
-		ClusterAdvancedSetting: advSettings,
+		OrganizationID:       organizationID,
+		ClusterResponse:      cluster,
+		ClusterRoutingTable:  clusterRoutingTable,
+		ClusterInfo:          clusterInfo,
+		AdvancedSettingsJson: params.AdvancedSettingsJson,
 	}, nil
 }

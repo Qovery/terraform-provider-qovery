@@ -4,7 +4,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
-	"reflect"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 )
@@ -17,21 +16,21 @@ const (
 )
 
 type Cluster struct {
-	Id               types.String `tfsdk:"id"`
-	OrganizationId   types.String `tfsdk:"organization_id"`
-	CredentialsId    types.String `tfsdk:"credentials_id"`
-	Name             types.String `tfsdk:"name"`
-	CloudProvider    types.String `tfsdk:"cloud_provider"`
-	Region           types.String `tfsdk:"region"`
-	Description      types.String `tfsdk:"description"`
-	KubernetesMode   types.String `tfsdk:"kubernetes_mode"`
-	InstanceType     types.String `tfsdk:"instance_type"`
-	MinRunningNodes  types.Int64  `tfsdk:"min_running_nodes"`
-	MaxRunningNodes  types.Int64  `tfsdk:"max_running_nodes"`
-	Features         types.Object `tfsdk:"features"`
-	RoutingTables    types.Set    `tfsdk:"routing_table"`
-	State            types.String `tfsdk:"state"`
-	AdvancedSettings types.Object `tfsdk:"advanced_settings"`
+	Id                   types.String `tfsdk:"id"`
+	OrganizationId       types.String `tfsdk:"organization_id"`
+	CredentialsId        types.String `tfsdk:"credentials_id"`
+	Name                 types.String `tfsdk:"name"`
+	CloudProvider        types.String `tfsdk:"cloud_provider"`
+	Region               types.String `tfsdk:"region"`
+	Description          types.String `tfsdk:"description"`
+	KubernetesMode       types.String `tfsdk:"kubernetes_mode"`
+	InstanceType         types.String `tfsdk:"instance_type"`
+	MinRunningNodes      types.Int64  `tfsdk:"min_running_nodes"`
+	MaxRunningNodes      types.Int64  `tfsdk:"max_running_nodes"`
+	Features             types.Object `tfsdk:"features"`
+	RoutingTables        types.Set    `tfsdk:"routing_table"`
+	State                types.String `tfsdk:"state"`
+	AdvancedSettingsJson types.String `tfsdk:"advanced_settings_json"`
 }
 
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
@@ -90,26 +89,6 @@ func (c Cluster) hasRoutingTableDiff(state *Cluster) bool {
 	return false
 }
 
-func (c Cluster) hasAdvSettingsDiff(state *Cluster) (bool, error) {
-	clusterSettings, clusterErr := ToMapStringString(c.AdvancedSettings)
-	if clusterErr != nil {
-		return false, clusterErr
-	}
-	if state == nil {
-		return len(clusterSettings) > 0, nil
-	}
-
-	stateSettings, stateErr := ToMapStringString(state.AdvancedSettings)
-	if stateErr != nil {
-		return false, stateErr
-	}
-	if len(clusterSettings) != len(stateSettings) {
-		return true, nil
-	}
-
-	return reflect.DeepEqual(clusterSettings, stateSettings), nil
-}
-
 func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertParams, error) {
 	cloudProvider, err := qovery.NewCloudProviderEnumFromValue(ToString(c.CloudProvider))
 	if err != nil {
@@ -135,21 +114,11 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		}
 	}
 
-	// NOTE: force update clusters if features or routing table have changed
-	advSettingsDiff, diffErr := c.hasAdvSettingsDiff(state)
-	if diffErr != nil {
-		return nil, diffErr
-	}
-	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || advSettingsDiff
+	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state)
 
 	desiredState, err := qovery.NewStateEnumFromValue(ToString(c.State))
 	if err != nil {
 		return nil, err
-	}
-
-	advSettings, parseErr := ToMapStringString(c.AdvancedSettings)
-	if parseErr != nil {
-		return nil, parseErr
 	}
 
 	return &client.ClusterUpsertParams{
@@ -165,10 +134,10 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			MaxRunningNodes: ToInt32Pointer(c.MaxRunningNodes),
 			Features:        toQoveryClusterFeatures(c.Features, c.KubernetesMode.String()),
 		},
-		ClusterRoutingTable:     routingTable.toUpsertRequest(),
-		ClusterAdvancedSettings: advSettings,
-		ForceUpdate:             forceUpdate,
-		DesiredState:            *desiredState,
+		ClusterRoutingTable:  routingTable.toUpsertRequest(),
+		AdvancedSettingsJson: ToString(c.AdvancedSettingsJson),
+		ForceUpdate:          forceUpdate,
+		DesiredState:         *desiredState,
 	}, nil
 }
 
@@ -176,21 +145,21 @@ func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 	routingTable := fromClusterRoutingTable(res.ClusterRoutingTable)
 
 	return Cluster{
-		Id:               FromString(res.ClusterResponse.Id),
-		CredentialsId:    FromStringPointer(res.ClusterInfo.Credentials.Id),
-		OrganizationId:   FromString(res.OrganizationID),
-		Name:             FromString(res.ClusterResponse.Name),
-		CloudProvider:    fromClientEnum(res.ClusterResponse.CloudProvider),
-		Region:           FromString(res.ClusterResponse.Region),
-		Description:      FromStringPointer(res.ClusterResponse.Description),
-		KubernetesMode:   fromClientEnumPointer(res.ClusterResponse.Kubernetes),
-		InstanceType:     FromStringPointer(res.ClusterResponse.InstanceType),
-		MinRunningNodes:  FromInt32Pointer(res.ClusterResponse.MinRunningNodes),
-		MaxRunningNodes:  FromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
-		Features:         fromQoveryClusterFeatures(res.ClusterResponse.Features),
-		RoutingTables:    routingTable.toTerraformSet(),
-		State:            fromClientEnumPointer(res.ClusterResponse.Status),
-		AdvancedSettings: FromStringMap(res.ClusterAdvancedSetting),
+		Id:                   FromString(res.ClusterResponse.Id),
+		CredentialsId:        FromStringPointer(res.ClusterInfo.Credentials.Id),
+		OrganizationId:       FromString(res.OrganizationID),
+		Name:                 FromString(res.ClusterResponse.Name),
+		CloudProvider:        fromClientEnum(res.ClusterResponse.CloudProvider),
+		Region:               FromString(res.ClusterResponse.Region),
+		Description:          FromStringPointer(res.ClusterResponse.Description),
+		KubernetesMode:       fromClientEnumPointer(res.ClusterResponse.Kubernetes),
+		InstanceType:         FromStringPointer(res.ClusterResponse.InstanceType),
+		MinRunningNodes:      FromInt32Pointer(res.ClusterResponse.MinRunningNodes),
+		MaxRunningNodes:      FromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
+		Features:             fromQoveryClusterFeatures(res.ClusterResponse.Features),
+		RoutingTables:        routingTable.toTerraformSet(),
+		State:                fromClientEnumPointer(res.ClusterResponse.Status),
+		AdvancedSettingsJson: FromString(res.AdvancedSettingsJson),
 	}
 }
 

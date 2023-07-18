@@ -19,7 +19,7 @@ data "qovery_cluster" "my_cluster" {
 
 ### Read-Only
 
-- `advanced_settings` (Attributes) Advanced settings of the cluster. (see [below for nested schema](#nestedatt--advanced_settings))
+- `advanced_settings_json` (String) Advanced settings of the cluster.
 - `cloud_provider` (String) Cloud provider of the cluster.
 - `credentials_id` (String) Id of the credentials.
 - `description` (String) Description of the cluster.
@@ -32,31 +32,6 @@ data "qovery_cluster" "my_cluster" {
 - `region` (String) Region of the cluster.
 - `routing_table` (Attributes Set) List of routes of the cluster. (see [below for nested schema](#nestedatt--routing_table))
 - `state` (String) State of the cluster.
-
-<a id="nestedatt--advanced_settings"></a>
-### Nested Schema for `advanced_settings`
-
-Read-Only:
-
-- `aws.cloudwatch.eks_logs_retention_days` (Number) Maximum retention days in Cloudwatch for EKS logs
-- `aws.eks.ec2.metadata_imds` (String) Specify the IMDS version you want to use. Possible values are Required (IMDS v2 only) and Optional (IMDS v1 and V2)
-- `aws.iam.admin_group` (String) Allows you to specify the IAM group name associated to the Qovery user
-- `aws.vpc.enable_s3_flow_logs` (Boolean) Enable flow logs on the cluster VPC and store them in an s3 bucket
-- `aws.vpc.flow_logs_retention_days` (Number) Set the number of retention days for flow logs. Unlimited retention with value
-- `cloud_provider.container_registry.tags` (Map of String) Add additional tags on the cluster dedicated registry
-- `database.mongodb.allowed_cidrs` (Set of String) List of allowed CIDRS
-- `database.mongodb.deny_public_access` (Boolean) Deny public access to all MongoDB databases
-- `database.mysql.allowed_cidrs` (Set of String) List of allowed CIDRS
-- `database.mysql.deny_public_access` (Boolean) Deny public access to all MySQL databases
-- `database.postgresql.allowed_cidrs` (Set of String) List of allowed CIDRS
-- `database.postgresql.deny_public_access` (Boolean) Deny public access to all PostgreSQL databases
-- `database.redis.allowed_cidrs` (Set of String) List of allowed CIDRS
-- `database.redis.deny_public_access` (Boolean) Deny public access to all Redis databases
-- `load_balancer.size` (String) Allows you to specify the load balancer size in front of your cluster
-- `loki.log_retention_in_week` (Number) Maximum Kubernetes pods (containers/application/jobs/cronjob) retention logs in weeks
-- `pleco.resources_ttl` (Number) Deprecated
-- `registry.image_retention_time` (Number) Allows you to specify an amount in seconds after which images in the default registry are deleted
-
 
 <a id="nestedatt--features"></a>
 ### Nested Schema for `features`
