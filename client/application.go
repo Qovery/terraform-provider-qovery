@@ -8,6 +8,7 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 )
 
 type ApplicationResponse struct {
@@ -18,6 +19,7 @@ type ApplicationResponse struct {
 	ApplicationCustomDomains        []*qovery.CustomDomain
 	ApplicationExternalHost         *string
 	ApplicationInternalHost         string
+	AdvancedSettingsJson            string
 }
 
 type ApplicationCreateParams struct {
@@ -26,6 +28,7 @@ type ApplicationCreateParams struct {
 	EnvironmentVariablesDiff     EnvironmentVariablesDiff
 	CustomDomainsDiff            CustomDomainsDiff
 	SecretsDiff                  SecretsDiff
+	AdvancedSettingsJson         string
 }
 
 type ApplicationUpdateParams struct {
@@ -34,6 +37,7 @@ type ApplicationUpdateParams struct {
 	EnvironmentVariablesDiff     EnvironmentVariablesDiff
 	CustomDomainsDiff            CustomDomainsDiff
 	SecretsDiff                  SecretsDiff
+	AdvancedSettingsJson         string
 }
 
 func (c *Client) CreateApplication(ctx context.Context, environmentID string, params *ApplicationCreateParams) (*ApplicationResponse, *apierrors.APIError) {
@@ -61,7 +65,7 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, application.Id, resp, err)
 	}
 
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, applicationDeploymentStage.Id)
+	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, applicationDeploymentStage.Id, params.AdvancedSettingsJson)
 }
 
 func (c *Client) GetApplication(ctx context.Context, applicationID string) (*ApplicationResponse, *apierrors.APIError) {
@@ -97,6 +101,11 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
 
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).ReadServiceAdvancedSettings(advanced_settings.APPLICATION, applicationID)
+	if err != nil {
+		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, nil, err)
+	}
+
 	return &ApplicationResponse{
 		ApplicationResponse:             application,
 		ApplicationDeploymentStageID:    deploymentStage.Id,
@@ -105,6 +114,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		ApplicationCustomDomains:        customDomains,
 		ApplicationExternalHost:         hosts.external,
 		ApplicationInternalHost:         hosts.internal,
+		AdvancedSettingsJson:            *advancedSettingsAsJson,
 	}, nil
 }
 
@@ -127,7 +137,7 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 		}
 	}
 
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.ApplicationDeploymentStageID)
+	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.ApplicationDeploymentStageID, params.AdvancedSettingsJson)
 }
 
 func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *apierrors.APIError {
@@ -161,7 +171,15 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 	return nil
 }
 
-func (c *Client) updateApplication(ctx context.Context, application *qovery.Application, environmentVariablesDiff EnvironmentVariablesDiff, secretsDiff SecretsDiff, customDomainsDiff CustomDomainsDiff, deploymentStageId string) (*ApplicationResponse, *apierrors.APIError) {
+func (c *Client) updateApplication(
+	ctx context.Context,
+	application *qovery.Application,
+	environmentVariablesDiff EnvironmentVariablesDiff,
+	secretsDiff SecretsDiff,
+	customDomainsDiff CustomDomainsDiff,
+	deploymentStageId string,
+	advancedSettingsJson string,
+) (*ApplicationResponse, *apierrors.APIError) {
 	if !environmentVariablesDiff.IsEmpty() {
 		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application.Id, environmentVariablesDiff); apiErr != nil {
 			return nil, apiErr
@@ -178,6 +196,11 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 		if apiErr := c.updateApplicationCustomDomains(ctx, application.Id, customDomainsDiff); apiErr != nil {
 			return nil, apiErr
 		}
+	}
+
+	err := advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.APPLICATION, application.Id, advancedSettingsJson)
+	if err != nil {
+		return nil, apierrors.NewUpdateError(apierrors.APIResourceApplication, application.Id, nil, err)
 	}
 
 	environmentVariables, apiErr := c.getApplicationEnvironmentVariables(ctx, application.Id)
@@ -208,6 +231,7 @@ func (c *Client) updateApplication(ctx context.Context, application *qovery.Appl
 		ApplicationExternalHost:         hosts.external,
 		ApplicationInternalHost:         hosts.internal,
 		ApplicationDeploymentStageID:    deploymentStageId,
+		AdvancedSettingsJson:            advancedSettingsJson,
 	}, nil
 }
 

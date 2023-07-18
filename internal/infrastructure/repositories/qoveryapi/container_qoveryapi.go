@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 )
@@ -52,13 +53,19 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 		}
 	}
 
+	// Update advanced settings
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.CONTAINER, newContainer.Id, request.AdvancedSettingsJson)
+	if err != nil {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, newContainer.Id, nil, err)
+	}
+
 	// Get container deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, newContainer.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, newContainer.Id, resp, err)
 	}
 
-	return newDomainContainerFromQovery(newContainer, deploymentStage.Id)
+	return newDomainContainerFromQovery(newContainer, deploymentStage.Id, request.AdvancedSettingsJson)
 }
 
 // Get calls Qovery's API to retrieve a container using the given containerID.
@@ -76,7 +83,13 @@ func (c containerQoveryAPI) Get(ctx context.Context, containerID string) (*conta
 		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, container.Id, resp, err)
 	}
 
-	return newDomainContainerFromQovery(container, deploymentStage.Id)
+	// Get advanced settings
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(advanced_settings.CONTAINER, container.Id)
+	if err != nil {
+		return nil, apierrors.NewReadApiError(apierrors.ApiResourceContainer, containerID, nil, err)
+	}
+
+	return newDomainContainerFromQovery(container, deploymentStage.Id, *advancedSettingsAsJson)
 }
 
 // Update calls Qovery's API to update a container using the given containerID and request.
@@ -98,17 +111,23 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, container.Id).Execute()
 		if err != nil || response.StatusCode >= 400 {
-			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, request.Name, resp, err)
+			return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceContainer, request.Name, resp, err)
 		}
+	}
+
+	// Update advanced settings
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.CONTAINER, container.Id, request.AdvancedSettingsJson)
+	if err != nil {
+		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceContainer, container.Id, nil, err)
 	}
 
 	// Get container deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, container.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainer, container.Id, resp, err)
+		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceContainer, container.Id, resp, err)
 	}
 
-	return newDomainContainerFromQovery(container, deploymentStage.Id)
+	return newDomainContainerFromQovery(container, deploymentStage.Id, request.AdvancedSettingsJson)
 }
 
 // Delete calls Qovery's API to deletes a container using the given containerID.

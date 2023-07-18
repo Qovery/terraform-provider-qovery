@@ -32,6 +32,7 @@ type Container struct {
 	InternalHost                types.String  `tfsdk:"internal_host"`
 	DeploymentStageId           types.String  `tfsdk:"deployment_stage_id"`
 	Healthchecks                *HealthChecks `tfsdk:"healthchecks"`
+	AdvancedSettingsJson        types.String  `tfsdk:"advanced_settings_json"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
@@ -100,21 +101,22 @@ func (cont Container) toUpsertRepositoryRequest() container.UpsertRepositoryRequ
 	}
 
 	return container.UpsertRepositoryRequest{
-		RegistryID:          ToString(cont.RegistryID),
-		Name:                ToString(cont.Name),
-		ImageName:           ToString(cont.ImageName),
-		Tag:                 ToString(cont.Tag),
-		AutoPreview:         ToBoolPointer(cont.AutoPreview),
-		Entrypoint:          ToStringPointer(cont.Entrypoint),
-		CPU:                 ToInt32Pointer(cont.CPU),
-		Memory:              ToInt32Pointer(cont.Memory),
-		MinRunningInstances: ToInt32Pointer(cont.MinRunningInstances),
-		MaxRunningInstances: ToInt32Pointer(cont.MaxRunningInstances),
-		Arguments:           cont.ArgumentList(),
-		Storages:            storages,
-		Ports:               ports,
-		DeploymentStageID:   ToString(cont.DeploymentStageId),
-		Healthchecks:        cont.Healthchecks.toHealthchecksRequest(),
+		RegistryID:           ToString(cont.RegistryID),
+		Name:                 ToString(cont.Name),
+		ImageName:            ToString(cont.ImageName),
+		Tag:                  ToString(cont.Tag),
+		AutoPreview:          ToBoolPointer(cont.AutoPreview),
+		Entrypoint:           ToStringPointer(cont.Entrypoint),
+		CPU:                  ToInt32Pointer(cont.CPU),
+		Memory:               ToInt32Pointer(cont.Memory),
+		MinRunningInstances:  ToInt32Pointer(cont.MinRunningInstances),
+		MaxRunningInstances:  ToInt32Pointer(cont.MaxRunningInstances),
+		Arguments:            cont.ArgumentList(),
+		Storages:             storages,
+		Ports:                ports,
+		DeploymentStageID:    ToString(cont.DeploymentStageId),
+		Healthchecks:         cont.Healthchecks.toHealthchecksRequest(),
+		AdvancedSettingsJson: ToString(cont.AdvancedSettingsJson),
 	}
 }
 
@@ -141,5 +143,6 @@ func convertDomainContainerToContainer(state Container, container *container.Con
 		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), container.Secrets, variable.ScopeContainer).toTerraformSet(),
 		DeploymentStageId:           FromString(container.DeploymentStageID),
 		Healthchecks:                convertHealthchecksResponseToDomain(&container.Healthchecks),
+		AdvancedSettingsJson:        FromString(container.AdvancedSettingsJson),
 	}
 }

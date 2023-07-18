@@ -7,10 +7,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/types"
 	"regexp"
 	"testing"
 	"text/template"
+
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -63,6 +64,7 @@ func TestAcc_Job(t *testing.T) {
 						},
 						EnvironmentVariables: types.Set{Null: true},
 						Secrets:              types.Set{Null: true},
+						AdvancedSettingsJson: qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -91,6 +93,7 @@ func TestAcc_Job(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_job.test", "external_host"),
 					resource.TestCheckNoResourceAttr("qovery_job.test", "internal_host"),
+					resource.TestCheckResourceAttr("qovery_job.test", "advanced_settings_json", "{\"deployment.termination_grace_period_seconds\":61}"),
 				),
 			},
 			// Update name
@@ -122,6 +125,7 @@ func TestAcc_Job(t *testing.T) {
 						},
 						EnvironmentVariables: types.Set{Null: true},
 						Secrets:              types.Set{Null: true},
+						AdvancedSettingsJson: qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -150,6 +154,7 @@ func TestAcc_Job(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_job.test", "external_host"),
 					resource.TestCheckNoResourceAttr("qovery_job.test", "internal_host"),
+					resource.TestCheckResourceAttr("qovery_job.test", "advanced_settings_json", "{\"deployment.termination_grace_period_seconds\":61}"),
 				),
 			},
 			// Check Import
@@ -197,6 +202,11 @@ resource "qovery_job" "test" {
   {{ end }}
 
   healthchecks = {}
+
+  {{ if not .Job.AdvancedSettingsJson.IsNull }}
+  advanced_settings_json = jsonencode({{ .Job.AdvancedSettingsJson.Value }})
+  {{ end }}
+
   {{ with .Job.Source }}	
   source = {
 	{{ with .Image }}	

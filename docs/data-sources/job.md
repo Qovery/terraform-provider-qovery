@@ -17,6 +17,7 @@ data "qovery_job" "my_job" {
 
 ### Optional
 
+- `advanced_settings_json` (String) Advanced settings.
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
 - `port` (Number) Job's probes port.

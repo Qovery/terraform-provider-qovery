@@ -32,6 +32,7 @@ type Application struct {
 	Arguments                   types.List                `tfsdk:"arguments"`
 	DeploymentStageId           types.String              `tfsdk:"deployment_stage_id"`
 	Healthchecks                *HealthChecks             `tfsdk:"healthchecks"`
+	AdvancedSettingsJson        types.String              `tfsdk:"advanced_settings_json"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
@@ -100,6 +101,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		SecretsDiff:                  app.SecretList().diff(nil),
 		CustomDomainsDiff:            app.CustomDomainsList().diff(nil),
 		ApplicationDeploymentStageID: ToString(app.DeploymentStageId),
+		AdvancedSettingsJson:         ToString(app.AdvancedSettingsJson),
 	}, nil
 
 }
@@ -171,6 +173,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		SecretsDiff:                  app.SecretList().diff(state.SecretList()),
 		CustomDomainsDiff:            app.CustomDomainsList().diff(state.CustomDomainsList()),
 		ApplicationDeploymentStageID: ToString(app.DeploymentStageId),
+		AdvancedSettingsJson:         ToString(app.AdvancedSettingsJson),
 	}, nil
 
 }
@@ -201,6 +204,7 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		Arguments:                   FromStringArray(app.ApplicationResponse.Arguments),
 		DeploymentStageId:           FromString(app.ApplicationDeploymentStageID),
 		Healthchecks:                convertHealthchecksResponseToDomain(app.ApplicationResponse.Healthchecks),
+		AdvancedSettingsJson:        FromString(app.AdvancedSettingsJson),
 	}
 }
 

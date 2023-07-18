@@ -17,6 +17,7 @@ data "qovery_application" "my_application" {
 
 ### Optional
 
+- `advanced_settings_json` (String) Advanced settings.
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
 - `secrets` (Attributes Set) List of secrets linked to this application. (see [below for nested schema](#nestedatt--secrets))

@@ -2,8 +2,9 @@ package container
 
 import (
 	"fmt"
-	"github.com/qovery/qovery-client-go"
 	"strings"
+
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/AlekSi/pointer"
 	"github.com/go-playground/validator/v10"
@@ -60,18 +61,17 @@ var (
 )
 
 type Container struct {
-	ID                  uuid.UUID `validate:"required"`
-	EnvironmentID       uuid.UUID `validate:"required"`
-	RegistryID          uuid.UUID `validate:"required"`
-	Name                string    `validate:"required"`
-	ImageName           string    `validate:"required"`
-	Tag                 string    `validate:"required"`
-	CPU                 int32     `validate:"required"`
-	Memory              int32     `validate:"required"`
-	MinRunningInstances int32     `validate:"required"`
-	MaxRunningInstances int32     `validate:"required"`
-	AutoPreview         bool
-
+	ID                          uuid.UUID `validate:"required"`
+	EnvironmentID               uuid.UUID `validate:"required"`
+	RegistryID                  uuid.UUID `validate:"required"`
+	Name                        string    `validate:"required"`
+	ImageName                   string    `validate:"required"`
+	Tag                         string    `validate:"required"`
+	CPU                         int32     `validate:"required"`
+	Memory                      int32     `validate:"required"`
+	MinRunningInstances         int32     `validate:"required"`
+	MaxRunningInstances         int32     `validate:"required"`
+	AutoPreview                 bool
 	Entrypoint                  *string
 	Arguments                   []string
 	Storages                    storage.Storages
@@ -84,6 +84,7 @@ type Container struct {
 	State                       status.State
 	DeploymentStageID           string
 	Healthchecks                qovery.Healthcheck
+	AdvancedSettingsJson        string
 }
 
 // Validate returns an error to tell whether the Container domain model is valid or not.
@@ -110,27 +111,27 @@ func (c Container) IsValid() bool {
 
 // NewContainerParams represents the arguments needed to create a Container.
 type NewContainerParams struct {
-	ContainerID         string
-	EnvironmentID       string
-	RegistryID          string
-	Name                string
-	ImageName           string
-	Tag                 string
-	CPU                 int32
-	Memory              int32
-	MinRunningInstances int32
-	MaxRunningInstances int32
-	AutoPreview         bool
-
-	State                *string
-	Entrypoint           *string
-	Arguments            []string
-	Storages             storage.Storages   // TODO(benjaminch): use `storage.NewStoragesParam`
-	Ports                port.Ports         // TODO(benjaminch): use `storage.NewPortsParam`
-	EnvironmentVariables variable.Variables // TODO(benjaminch): use `storage.NewVariablesParam`
-	Secrets              secret.Secrets     // TODO(benjaminch): use `storage.NewSecretsParam`
-	DeploymentStageID    string
-	Healthchecks         qovery.Healthcheck
+	ContainerID            string
+	EnvironmentID          string
+	RegistryID             string
+	Name                   string
+	ImageName              string
+	Tag                    string
+	CPU                    int32
+	Memory                 int32
+	MinRunningInstances    int32
+	MaxRunningInstances    int32
+	AutoPreview            bool
+	State                  *string
+	Entrypoint             *string
+	Arguments              []string
+	Storages               storage.Storages   // TODO(benjaminch): use `storage.NewStoragesParam`
+	Ports                  port.Ports         // TODO(benjaminch): use `storage.NewPortsParam`
+	EnvironmentVariables   variable.Variables // TODO(benjaminch): use `storage.NewVariablesParam`
+	Secrets                secret.Secrets     // TODO(benjaminch): use `storage.NewSecretsParam`
+	DeploymentStageID      string
+	Healthchecks           qovery.Healthcheck
+	AdvancedSettingsAsJson string
 }
 
 // NewContainer returns a new instance of a Container domain model.
@@ -163,23 +164,24 @@ func NewContainer(params NewContainerParams) (*Container, error) {
 	}
 
 	c := &Container{
-		ID:                  containerUUID,
-		EnvironmentID:       environmentUUID,
-		RegistryID:          registryUUID,
-		Name:                params.Name,
-		ImageName:           params.ImageName,
-		Tag:                 params.Tag,
-		AutoPreview:         params.AutoPreview,
-		Entrypoint:          params.Entrypoint,
-		CPU:                 params.CPU,
-		Memory:              params.Memory,
-		MinRunningInstances: params.MinRunningInstances,
-		MaxRunningInstances: params.MaxRunningInstances,
-		Arguments:           params.Arguments,
-		Storages:            params.Storages,
-		Ports:               params.Ports,
-		DeploymentStageID:   params.DeploymentStageID,
-		Healthchecks:        params.Healthchecks,
+		ID:                   containerUUID,
+		EnvironmentID:        environmentUUID,
+		RegistryID:           registryUUID,
+		Name:                 params.Name,
+		ImageName:            params.ImageName,
+		Tag:                  params.Tag,
+		AutoPreview:          params.AutoPreview,
+		Entrypoint:           params.Entrypoint,
+		CPU:                  params.CPU,
+		Memory:               params.Memory,
+		MinRunningInstances:  params.MinRunningInstances,
+		MaxRunningInstances:  params.MaxRunningInstances,
+		Arguments:            params.Arguments,
+		Storages:             params.Storages,
+		Ports:                params.Ports,
+		DeploymentStageID:    params.DeploymentStageID,
+		Healthchecks:         params.Healthchecks,
+		AdvancedSettingsJson: params.AdvancedSettingsAsJson,
 	}
 
 	if err := c.SetEnvironmentVariables(params.EnvironmentVariables); err != nil {

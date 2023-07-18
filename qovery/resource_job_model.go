@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/execution_command"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/image"
@@ -204,26 +205,25 @@ func JobScheduleCronFromDomainJobScheduleCron(s job.JobScheduleCron) JobSchedule
 }
 
 type Job struct {
-	ID                 types.String `tfsdk:"id"`
-	EnvironmentID      types.String `tfsdk:"environment_id"`
-	Name               types.String `tfsdk:"name"`
-	CPU                types.Int64  `tfsdk:"cpu"`
-	Memory             types.Int64  `tfsdk:"memory"`
-	MaxDurationSeconds types.Int64  `tfsdk:"max_duration_seconds"`
-	MaxNbRestart       types.Int64  `tfsdk:"max_nb_restart"`
-	AutoPreview        types.Bool   `tfsdk:"auto_preview"`
-
-	Source       *JobSource    `tfsdk:"source"`
-	Schedule     *JobSchedule  `tfsdk:"schedule"`
-	HealthChecks *HealthChecks `tfsdk:"healthchecks"`
-
-	BuiltInEnvironmentVariables types.Set    `tfsdk:"built_in_environment_variables"`
-	EnvironmentVariables        types.Set    `tfsdk:"environment_variables"`
-	Secrets                     types.Set    `tfsdk:"secrets"`
-	Port                        types.Int64  `tfsdk:"port"`
-	ExternalHost                types.String `tfsdk:"external_host"`
-	InternalHost                types.String `tfsdk:"internal_host"`
-	DeploymentStageId           types.String `tfsdk:"deployment_stage_id"`
+	ID                          types.String  `tfsdk:"id"`
+	EnvironmentID               types.String  `tfsdk:"environment_id"`
+	Name                        types.String  `tfsdk:"name"`
+	CPU                         types.Int64   `tfsdk:"cpu"`
+	Memory                      types.Int64   `tfsdk:"memory"`
+	MaxDurationSeconds          types.Int64   `tfsdk:"max_duration_seconds"`
+	MaxNbRestart                types.Int64   `tfsdk:"max_nb_restart"`
+	AutoPreview                 types.Bool    `tfsdk:"auto_preview"`
+	Source                      *JobSource    `tfsdk:"source"`
+	Schedule                    *JobSchedule  `tfsdk:"schedule"`
+	HealthChecks                *HealthChecks `tfsdk:"healthchecks"`
+	BuiltInEnvironmentVariables types.Set     `tfsdk:"built_in_environment_variables"`
+	EnvironmentVariables        types.Set     `tfsdk:"environment_variables"`
+	Secrets                     types.Set     `tfsdk:"secrets"`
+	Port                        types.Int64   `tfsdk:"port"`
+	ExternalHost                types.String  `tfsdk:"external_host"`
+	InternalHost                types.String  `tfsdk:"internal_host"`
+	DeploymentStageId           types.String  `tfsdk:"deployment_stage_id"`
+	AdvancedSettingsJson        types.String  `tfsdk:"advanced_settings_json"`
 }
 
 func (j Job) EnvironmentVariableList() EnvironmentVariableList {
@@ -258,18 +258,18 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 
 func (j Job) toUpsertRepositoryRequest() job.UpsertRepositoryRequest {
 	return job.UpsertRepositoryRequest{
-		Name:               ToString(j.Name),
-		AutoPreview:        ToBoolPointer(j.AutoPreview),
-		CPU:                ToInt32Pointer(j.CPU),
-		Memory:             ToInt32Pointer(j.Memory),
-		MaxNbRestart:       ToInt32Pointer(j.MaxNbRestart),
-		MaxDurationSeconds: ToInt32Pointer(j.MaxDurationSeconds),
-		DeploymentStageID:  ToString(j.DeploymentStageId),
-		Port:               ToInt64Pointer(j.Port),
-		Healthchecks:       *j.HealthChecks.toHealthchecksRequest(),
-
-		Source:   j.Source.toUpsertRequest(),
-		Schedule: j.Schedule.toUpsertRequest(),
+		Name:                 ToString(j.Name),
+		AutoPreview:          ToBoolPointer(j.AutoPreview),
+		CPU:                  ToInt32Pointer(j.CPU),
+		Memory:               ToInt32Pointer(j.Memory),
+		MaxNbRestart:         ToInt32Pointer(j.MaxNbRestart),
+		MaxDurationSeconds:   ToInt32Pointer(j.MaxDurationSeconds),
+		DeploymentStageID:    ToString(j.DeploymentStageId),
+		Port:                 ToInt64Pointer(j.Port),
+		Healthchecks:         *j.HealthChecks.toHealthchecksRequest(),
+		Source:               j.Source.toUpsertRequest(),
+		Schedule:             j.Schedule.toUpsertRequest(),
+		AdvancedSettingsJson: ToString(j.AdvancedSettingsJson),
 	}
 }
 
@@ -301,5 +301,6 @@ func convertDomainJobToJob(state Job, job *job.Job) Job {
 		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), job.Secrets, variable.ScopeJob).toTerraformSet(),
 		DeploymentStageId:           FromString(job.DeploymentStageID),
 		HealthChecks:                convertHealthchecksResponseToDomain(&job.HealthChecks),
+		AdvancedSettingsJson:        FromString(job.AdvancedSettingsJson),
 	}
 }

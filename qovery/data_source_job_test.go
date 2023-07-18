@@ -46,6 +46,7 @@ func TestAcc_JobDataSource(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("data.qovery_job.test", "external_host"),
 					resource.TestCheckNoResourceAttr("data.qovery_job.test", "internal_host"),
+					resource.TestCheckResourceAttr("data.qovery_job.test", "advanced_settings_json", "{\"deployment.termination_grace_period_seconds\":61}"),
 				),
 			},
 		},

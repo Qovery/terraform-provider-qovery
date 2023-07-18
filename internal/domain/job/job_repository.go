@@ -4,6 +4,7 @@ package job
 
 import (
 	"context"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 	qovery2 "github.com/qovery/qovery-client-go"
@@ -22,22 +23,21 @@ type Repository interface {
 
 // UpsertRepositoryRequest represents the parameters needed to create & update a Job.
 type UpsertRepositoryRequest struct {
-	Name string `validate:"required"`
-
-	AutoPreview        *bool
-	Entrypoint         *string
-	CPU                *int32
-	Memory             *int32
-	MaxNbRestart       *int32
-	MaxDurationSeconds *int32
-	Healthchecks       qovery2.Healthcheck
-
+	Name                 string `validate:"required"`
+	AutoPreview          *bool
+	Entrypoint           *string
+	CPU                  *int32
+	Memory               *int32
+	MaxNbRestart         *int32
+	MaxDurationSeconds   *int32
+	Healthchecks         qovery2.Healthcheck
 	Source               JobSource
 	Schedule             JobSchedule
 	Port                 *int32
 	EnvironmentVariables []variable.UpsertRequest
 	Secrets              []secret.UpsertRequest
 	DeploymentStageID    string
+	AdvancedSettingsJson string
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.
