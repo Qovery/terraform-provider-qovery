@@ -10,12 +10,12 @@ import (
 	"github.com/qovery/qovery-client-go"
 )
 
-type AdvancedSettingsService struct {
+type ServiceAdvancedSettingsService struct {
 	apiConfig *qovery.Configuration
 }
 
-func NewServiceAdvancedSettingsService(apiConfig *qovery.Configuration) *AdvancedSettingsService {
-	return &AdvancedSettingsService{apiConfig: apiConfig}
+func NewServiceAdvancedSettingsService(apiConfig *qovery.Configuration) *ServiceAdvancedSettingsService {
+	return &ServiceAdvancedSettingsService{apiConfig: apiConfig}
 }
 
 const (
@@ -25,7 +25,7 @@ const (
 )
 
 // Compute the URL to GET or PUT advanced settings for any service type
-func (c AdvancedSettingsService) computeServiceAdvancedSettingsUrl(serviceType int, serviceId string) (*string, error) {
+func (c ServiceAdvancedSettingsService) computeServiceAdvancedSettingsUrl(serviceType int, serviceId string) (*string, error) {
 	var host = c.apiConfig.Servers[0].URL
 	var urlAdvancedSettings string
 
@@ -44,7 +44,7 @@ func (c AdvancedSettingsService) computeServiceAdvancedSettingsUrl(serviceType i
 }
 
 // Compute the URL to GET default advanced settings for any service type
-func (c AdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl(serviceType int) (*string, error) {
+func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl(serviceType int) (*string, error) {
 	var host = c.apiConfig.Servers[0].URL
 	var urlAdvancedSettings string
 
@@ -63,7 +63,7 @@ func (c AdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl(servic
 }
 
 // ReadServiceAdvancedSettings Get only overridden advanced settings
-func (c AdvancedSettingsService) ReadServiceAdvancedSettings(serviceType int, serviceId string) (*string, error) {
+func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType int, serviceId string) (*string, error) {
 	httpClient := &http.Client{}
 	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
 
@@ -152,7 +152,7 @@ func (c AdvancedSettingsService) ReadServiceAdvancedSettings(serviceType int, se
 }
 
 // UpdateServiceAdvancedSettings Update advanced settings by computing the whole http body
-func (c AdvancedSettingsService) UpdateServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsJson string) error {
+func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsJson string) error {
 	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
 	httpClient := &http.Client{}
 
