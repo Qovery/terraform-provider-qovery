@@ -38,7 +38,7 @@ func newDomainSecretFromQovery(v *qovery.Secret) (*secret.Secret, error) {
 func newQoverySecretRequestFromDomain(request secret.UpsertRequest) qovery.SecretRequest {
 	return qovery.SecretRequest{
 		Key:   request.Key,
-		Value: request.Value,
+		Value: &request.Value,
 	}
 }
 
@@ -46,6 +46,6 @@ func newQoverySecretRequestFromDomain(request secret.UpsertRequest) qovery.Secre
 func newQoverySecretEditRequestFromDomain(request secret.UpsertRequest) qovery.SecretEditRequest {
 	return qovery.SecretEditRequest{
 		Key:   request.Key,
-		Value: request.Value,
+		Value: &request.Value,
 	}
 }

@@ -52,6 +52,6 @@ func newQoveryEnvironmentVariableRequestFromDomain(request variable.UpsertReques
 func newQoveryEnvironmentVariableEditRequestFromDomain(request variable.UpsertRequest) qovery.EnvironmentVariableEditRequest {
 	return qovery.EnvironmentVariableEditRequest{
 		Key:   request.Key,
-		Value: request.Value,
+		Value: &request.Value,
 	}
 }

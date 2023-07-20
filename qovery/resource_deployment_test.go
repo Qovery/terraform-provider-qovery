@@ -202,6 +202,7 @@ resource "qovery_database" "database_test" {
   type = "REDIS"
   version = "6.2"
   mode = "CONTAINER"
+  accessibility  = "PRIVATE"
   deployment_stage_id = qovery_deployment_stage.deployment_stage_1.id
 }
 
@@ -212,7 +213,7 @@ resource "qovery_deployment" "deployment_test" {
   depends_on = [
     qovery_application.application_test,
     qovery_container.container_test,
-    qovery_database.database_test,
+    qovery_database.database_test
   ]
 }
 `,

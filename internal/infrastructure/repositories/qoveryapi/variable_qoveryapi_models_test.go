@@ -6,8 +6,8 @@ import (
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
 func TestNewDomainVariablesFromQovery(t *testing.T) {
@@ -122,8 +122,12 @@ func TestNewQoveryEnvironmentVariableEditRequestFromDomain(t *testing.T) {
 		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			req := newQoveryEnvironmentVariableEditRequestFromDomain(tc.Request)
+			value := ""
+			if req.Value != nil {
+				value = *req.Value
+			}
 			assert.Equal(t, tc.Request.Key, req.Key)
-			assert.Equal(t, tc.Request.Value, req.Value)
+			assert.Equal(t, tc.Request.Value, value)
 		})
 	}
 }
