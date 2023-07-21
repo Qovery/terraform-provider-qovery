@@ -79,7 +79,11 @@ func TestNewQoveryEnvironmentSecretRequestFromDomain(t *testing.T) {
 		t.Run(tc.TestName, func(t *testing.T) {
 			req := newQoverySecretRequestFromDomain(tc.Request)
 			assert.Equal(t, tc.Request.Key, req.Key)
-			assert.Equal(t, tc.Request.Value, req.Value)
+			value := ""
+			if req.Value != nil {
+				value = *req.Value
+			}
+			assert.Equal(t, tc.Request.Value, value)
 		})
 	}
 }
@@ -106,7 +110,11 @@ func TestNewQoveryEnvironmentSecretEditRequestFromDomain(t *testing.T) {
 		t.Run(tc.TestName, func(t *testing.T) {
 			req := newQoverySecretEditRequestFromDomain(tc.Request)
 			assert.Equal(t, tc.Request.Key, req.Key)
-			assert.Equal(t, tc.Request.Value, req.Value)
+			value := ""
+			if req.Value != nil {
+				value = *req.Value
+			}
+			assert.Equal(t, tc.Request.Value, value)
 		})
 	}
 }

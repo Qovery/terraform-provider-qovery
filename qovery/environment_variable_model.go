@@ -146,7 +146,7 @@ func (e EnvironmentVariable) toUpdateRequest(new EnvironmentVariable) client.Env
 		Id: ToString(e.Id),
 		EnvironmentVariableEditRequest: qovery.EnvironmentVariableEditRequest{
 			Key:   ToString(e.Key),
-			Value: ToString(new.Value),
+			Value: ToStringPointer(new.Value),
 		},
 	}
 }

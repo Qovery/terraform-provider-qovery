@@ -128,7 +128,7 @@ func (s Secret) toCreateRequest() client.SecretCreateRequest {
 	return client.SecretCreateRequest{
 		SecretRequest: qovery.SecretRequest{
 			Key:   ToString(s.Key),
-			Value: ToString(s.Value),
+			Value: ToStringPointer(s.Value),
 		},
 	}
 }
@@ -147,7 +147,7 @@ func (s Secret) toUpdateRequest(new Secret) client.SecretUpdateRequest {
 		Id: ToString(s.Id),
 		SecretEditRequest: qovery.SecretEditRequest{
 			Key:   ToString(s.Key),
-			Value: ToString(new.Value),
+			Value: ToStringPointer(new.Value),
 		},
 	}
 }
