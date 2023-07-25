@@ -56,6 +56,13 @@ resource "qovery_container" "my_container" {
     }
   ]
 
+  advanced_settings_json = jsonencode({
+    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings
+    # you can only indicate settings that you need to override
+    "network.ingress.proxy_send_timeout_seconds" : 80,
+    "network.ingress.proxy_body_size_mb" : 200,
+  })
+
   depends_on = [
     qovery_environment.my_environment,
     qovery_container_registry.my_container_registry

@@ -28,6 +28,14 @@ resource "qovery_cluster" "my_cluster" {
       target      = "pcx-06f8f5512c91e389c"
     }
   ]
+
+  advanced_settings_json = jsonencode({
+    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings
+    # you can only indicate settings that you need to override
+    "aws.vpc.flow_logs_retention_days" : 100,
+    "aws.vpc.enable_s3_flow_logs" : true
+  })
+
   state = "DEPLOYED"
 
   depends_on = [

@@ -72,6 +72,13 @@ resource "qovery_job" "my_job" {
     }
   }
 
+  advanced_settings_json = jsonencode({
+    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings
+    # you can only indicate settings that you need to override
+    "deployment.termination_grace_period_seconds" : 120,
+    "build.timeout_max_sec" : 120
+  })
+
   depends_on = [
     qovery_environment.my_environment,
   ]
