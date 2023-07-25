@@ -64,6 +64,13 @@ resource "qovery_application" "my_application" {
     }
   ]
 
+  advanced_settings_json = jsonencode({
+    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Applications/operation/getDefaultApplicationAdvancedSettings
+    # you can only indicate settings that you need to override
+    "network.ingress.proxy_buffer_size_kb" : 8,
+    "network.ingress.keepalive_time_seconds" : 1000,
+  })
+
   depends_on = [
     qovery_environment.my_environment
   ]
