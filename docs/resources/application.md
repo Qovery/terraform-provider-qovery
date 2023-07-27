@@ -344,7 +344,7 @@ Optional:
 	- Must be: `>= 1` and `<= 65535`.
 - `name` (String) Name of the port.
 - `protocol` (String) Protocol used for the port of the application.
-	- Can be: `GRPC`, `HTTP`.
+	- Can be: `GRPC`, `HTTP`, `TCP`, `UDP`.
 	- Default: `HTTP`.
 
 Read-Only:
