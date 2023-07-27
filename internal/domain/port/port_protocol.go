@@ -12,12 +12,16 @@ type Protocol string
 const (
 	ProtocolHTTP Protocol = "HTTP"
 	ProtocolGRPC Protocol = "GRPC"
+	ProtocolTCP Protocol = "TCP"
+	ProtocolUDP Protocol = "UDP"
 )
 
 // AllowedProtocolValues contains all the valid values of a Protocol.
 var AllowedProtocolValues = []Protocol{
 	ProtocolHTTP,
 	ProtocolGRPC,
+	ProtocolTCP,
+	ProtocolUDP,
 }
 
 // String returns the string value of a Protocol.
