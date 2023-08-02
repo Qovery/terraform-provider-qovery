@@ -57,7 +57,7 @@ func TestAcc_Container(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings_json", "{\"network.ingress.proxy_body_size_mb\":101}"),
 				),
 			},
@@ -89,7 +89,7 @@ func TestAcc_Container(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Check Import
@@ -138,7 +138,7 @@ func TestAcc_ContainerWithArguments(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Add argument
@@ -170,7 +170,7 @@ func TestAcc_ContainerWithArguments(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Remove argument
@@ -201,7 +201,7 @@ func TestAcc_ContainerWithArguments(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Check Import
@@ -250,7 +250,7 @@ func TestAcc_ContainerWithAutoPreview(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Update auto_preview
@@ -281,7 +281,7 @@ func TestAcc_ContainerWithAutoPreview(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Check Import
@@ -333,7 +333,7 @@ func TestAcc_ContainerWithResources(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Update auto_preview
@@ -367,7 +367,7 @@ func TestAcc_ContainerWithResources(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Check Import
@@ -421,7 +421,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Update environment variable
@@ -457,7 +457,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Add environment variable
@@ -498,7 +498,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Remove environment variables
@@ -534,7 +534,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Check Import
@@ -588,7 +588,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 						"value": "value1",
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Update secret
@@ -624,7 +624,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 						"value": "value1-updated",
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Add secret
@@ -665,7 +665,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 						"value": "value2",
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Remove secret
@@ -701,7 +701,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 						"value": "value2",
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 		},
@@ -1062,7 +1062,7 @@ func TestAcc_ContainerWithStorage(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Add another storage
@@ -1113,7 +1113,7 @@ func TestAcc_ContainerWithStorage(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			// Remove first storage
@@ -1154,7 +1154,7 @@ func TestAcc_ContainerWithStorage(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			{
@@ -1211,7 +1211,7 @@ func TestAcc_ContainerWithPorts(t *testing.T) {
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
-					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
+					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
 			//// Add another port
