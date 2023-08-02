@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"reflect"
 
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
@@ -134,10 +135,9 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 	for k, v := range currentAdvancedSettingsHashMap {
 		defaultValue, _ := defaultAdvancedSettingsHashMap[k]
 		// if the value has been overridden
-		if defaultValue != v {
+		if !reflect.DeepEqual(defaultValue, v) {
 			overriddenAdvancedSettings[k] = v
 		}
-
 	}
 
 	//
