@@ -8,35 +8,47 @@ import (
 )
 
 type Application struct {
-	Id                          types.String              `tfsdk:"id"`
-	EnvironmentId               types.String              `tfsdk:"environment_id"`
-	Name                        types.String              `tfsdk:"name"`
-	GitRepository               *ApplicationGitRepository `tfsdk:"git_repository"`
-	BuildMode                   types.String              `tfsdk:"build_mode"`
-	DockerfilePath              types.String              `tfsdk:"dockerfile_path"`
-	BuildpackLanguage           types.String              `tfsdk:"buildpack_language"`
-	CPU                         types.Int64               `tfsdk:"cpu"`
-	Memory                      types.Int64               `tfsdk:"memory"`
-	MinRunningInstances         types.Int64               `tfsdk:"min_running_instances"`
-	MaxRunningInstances         types.Int64               `tfsdk:"max_running_instances"`
-	AutoPreview                 types.Bool                `tfsdk:"auto_preview"`
-	Storage                     []ApplicationStorage      `tfsdk:"storage"`
-	Ports                       []ApplicationPort         `tfsdk:"ports"`
-	CustomDomains               types.Set                 `tfsdk:"custom_domains"`
-	BuiltInEnvironmentVariables types.Set                 `tfsdk:"built_in_environment_variables"`
-	EnvironmentVariables        types.Set                 `tfsdk:"environment_variables"`
-	Secrets                     types.Set                 `tfsdk:"secrets"`
-	ExternalHost                types.String              `tfsdk:"external_host"`
-	InternalHost                types.String              `tfsdk:"internal_host"`
-	Entrypoint                  types.String              `tfsdk:"entrypoint"`
-	Arguments                   types.List                `tfsdk:"arguments"`
-	DeploymentStageId           types.String              `tfsdk:"deployment_stage_id"`
-	Healthchecks                *HealthChecks             `tfsdk:"healthchecks"`
-	AdvancedSettingsJson        types.String              `tfsdk:"advanced_settings_json"`
+	Id                           types.String              `tfsdk:"id"`
+	EnvironmentId                types.String              `tfsdk:"environment_id"`
+	Name                         types.String              `tfsdk:"name"`
+	GitRepository                *ApplicationGitRepository `tfsdk:"git_repository"`
+	BuildMode                    types.String              `tfsdk:"build_mode"`
+	DockerfilePath               types.String              `tfsdk:"dockerfile_path"`
+	BuildpackLanguage            types.String              `tfsdk:"buildpack_language"`
+	CPU                          types.Int64               `tfsdk:"cpu"`
+	Memory                       types.Int64               `tfsdk:"memory"`
+	MinRunningInstances          types.Int64               `tfsdk:"min_running_instances"`
+	MaxRunningInstances          types.Int64               `tfsdk:"max_running_instances"`
+	AutoPreview                  types.Bool                `tfsdk:"auto_preview"`
+	Storage                      []ApplicationStorage      `tfsdk:"storage"`
+	Ports                        []ApplicationPort         `tfsdk:"ports"`
+	CustomDomains                types.Set                 `tfsdk:"custom_domains"`
+	BuiltInEnvironmentVariables  types.Set                 `tfsdk:"built_in_environment_variables"`
+	EnvironmentVariables         types.Set                 `tfsdk:"environment_variables"`
+	EnvironmentVariableAliases   types.Set                 `tfsdk:"environment_variable_aliases"`
+	EnvironmentVariableOverrides types.Set                 `tfsdk:"environment_variable_overrides"`
+	Secrets                      types.Set                 `tfsdk:"secrets"`
+	SecretVariableAliases        types.Set                 `tfsdk:"secret_aliases"`
+	SecretVariableOverrides      types.Set                 `tfsdk:"secret_overrides"`
+	ExternalHost                 types.String              `tfsdk:"external_host"`
+	InternalHost                 types.String              `tfsdk:"internal_host"`
+	Entrypoint                   types.String              `tfsdk:"entrypoint"`
+	Arguments                    types.List                `tfsdk:"arguments"`
+	DeploymentStageId            types.String              `tfsdk:"deployment_stage_id"`
+	Healthchecks                 *HealthChecks             `tfsdk:"healthchecks"`
+	AdvancedSettingsJson         types.String              `tfsdk:"advanced_settings_json"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
 	return toEnvironmentVariableList(app.EnvironmentVariables)
+}
+
+func (app Application) EnvironmentVariableAliasList() EnvironmentVariableList {
+	return toEnvironmentVariableList(app.EnvironmentVariableAliases)
+}
+
+func (app Application) EnvironmentVariableOverrideList() EnvironmentVariableList {
+	return toEnvironmentVariableList(app.EnvironmentVariableOverrides)
 }
 
 func (app Application) BuiltInEnvironmentVariableList() EnvironmentVariableList {
@@ -45,6 +57,14 @@ func (app Application) BuiltInEnvironmentVariableList() EnvironmentVariableList 
 
 func (app Application) SecretList() SecretList {
 	return toSecretList(app.Secrets)
+}
+
+func (app Application) SecretAliasList() SecretList {
+	return toSecretList(app.SecretVariableAliases)
+}
+
+func (app Application) SecretOverrideList() SecretList {
+	return toSecretList(app.SecretVariableOverrides)
 }
 
 func (app Application) CustomDomainsList() CustomDomainList {
@@ -97,11 +117,15 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			Arguments:           ToStringArray(app.Arguments),
 			Healthchecks:        app.Healthchecks.toHealthchecksRequest(),
 		},
-		EnvironmentVariablesDiff:     app.EnvironmentVariableList().diff(nil),
-		SecretsDiff:                  app.SecretList().diff(nil),
-		CustomDomainsDiff:            app.CustomDomainsList().diff(nil),
-		ApplicationDeploymentStageID: ToString(app.DeploymentStageId),
-		AdvancedSettingsJson:         ToString(app.AdvancedSettingsJson),
+		EnvironmentVariablesDiff:         app.EnvironmentVariableList().diff(nil),
+		EnvironmentVariableAliasesDiff:   app.EnvironmentVariableAliasList().diff(nil),
+		EnvironmentVariableOverridesDiff: app.EnvironmentVariableOverrideList().diff(nil),
+		SecretsDiff:                      app.SecretList().diff(nil),
+		SecretAliasesDiff:                app.SecretAliasList().diff(nil),
+		SecretOverridesDiff:              app.SecretOverrideList().diff(nil),
+		CustomDomainsDiff:                app.CustomDomainsList().diff(nil),
+		ApplicationDeploymentStageID:     ToString(app.DeploymentStageId),
+		AdvancedSettingsJson:             ToString(app.AdvancedSettingsJson),
 	}, nil
 
 }
@@ -168,43 +192,51 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		Healthchecks:        app.Healthchecks.toHealthchecksRequest(),
 	}
 	return &client.ApplicationUpdateParams{
-		ApplicationEditRequest:       applicationEditRequest,
-		EnvironmentVariablesDiff:     app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
-		SecretsDiff:                  app.SecretList().diff(state.SecretList()),
-		CustomDomainsDiff:            app.CustomDomainsList().diff(state.CustomDomainsList()),
-		ApplicationDeploymentStageID: ToString(app.DeploymentStageId),
-		AdvancedSettingsJson:         ToString(app.AdvancedSettingsJson),
+		ApplicationEditRequest:           applicationEditRequest,
+		EnvironmentVariablesDiff:         app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
+		EnvironmentVariableAliasesDiff:   app.EnvironmentVariableAliasList().diff(state.EnvironmentVariableAliasList()),
+		EnvironmentVariableOverridesDiff: app.EnvironmentVariableOverrideList().diff(state.EnvironmentVariableOverrideList()),
+		SecretsDiff:                      app.SecretList().diff(state.SecretList()),
+		SecretAliasesDiff:                app.SecretAliasList().diff(state.SecretAliasList()),
+		SecretOverridesDiff:              app.SecretOverrideList().diff(state.SecretOverrideList()),
+		CustomDomainsDiff:                app.CustomDomainsList().diff(state.CustomDomainsList()),
+		ApplicationDeploymentStageID:     ToString(app.DeploymentStageId),
+		AdvancedSettingsJson:             ToString(app.AdvancedSettingsJson),
 	}, nil
 
 }
 
 func convertResponseToApplication(state Application, app *client.ApplicationResponse) Application {
 	return Application{
-		Id:                          FromString(app.ApplicationResponse.Id),
-		EnvironmentId:               FromString(app.ApplicationResponse.Environment.Id),
-		Name:                        FromStringPointer(app.ApplicationResponse.Name),
-		BuildMode:                   fromClientEnumPointer(app.ApplicationResponse.BuildMode),
-		DockerfilePath:              FromNullableString(app.ApplicationResponse.DockerfilePath),
-		BuildpackLanguage:           FromNullableNullableBuildPackLanguageEnum(app.ApplicationResponse.BuildpackLanguage),
-		CPU:                         FromInt32Pointer(app.ApplicationResponse.Cpu),
-		Memory:                      FromInt32Pointer(app.ApplicationResponse.Memory),
-		MinRunningInstances:         FromInt32Pointer(app.ApplicationResponse.MinRunningInstances),
-		MaxRunningInstances:         FromInt32Pointer(app.ApplicationResponse.MaxRunningInstances),
-		AutoPreview:                 FromBoolPointer(app.ApplicationResponse.AutoPreview),
-		GitRepository:               convertResponseToApplicationGitRepository(app.ApplicationResponse.GitRepository),
-		Storage:                     convertResponseToApplicationStorage(app.ApplicationResponse.Storage),
-		Ports:                       convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
-		BuiltInEnvironmentVariables: fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
-		EnvironmentVariables:        fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
-		Secrets:                     fromSecretList(state.SecretList(), app.ApplicationSecrets, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
-		CustomDomains:               fromCustomDomainList(app.ApplicationCustomDomains).toTerraformSet(),
-		InternalHost:                FromString(app.ApplicationInternalHost),
-		ExternalHost:                FromStringPointer(app.ApplicationExternalHost),
-		Entrypoint:                  FromStringPointer(app.ApplicationResponse.Entrypoint),
-		Arguments:                   FromStringArray(app.ApplicationResponse.Arguments),
-		DeploymentStageId:           FromString(app.ApplicationDeploymentStageID),
-		Healthchecks:                convertHealthchecksResponseToDomain(app.ApplicationResponse.Healthchecks),
-		AdvancedSettingsJson:        FromString(app.AdvancedSettingsJson),
+		Id:                           FromString(app.ApplicationResponse.Id),
+		EnvironmentId:                FromString(app.ApplicationResponse.Environment.Id),
+		Name:                         FromStringPointer(app.ApplicationResponse.Name),
+		BuildMode:                    fromClientEnumPointer(app.ApplicationResponse.BuildMode),
+		DockerfilePath:               FromNullableString(app.ApplicationResponse.DockerfilePath),
+		BuildpackLanguage:            FromNullableNullableBuildPackLanguageEnum(app.ApplicationResponse.BuildpackLanguage),
+		CPU:                          FromInt32Pointer(app.ApplicationResponse.Cpu),
+		Memory:                       FromInt32Pointer(app.ApplicationResponse.Memory),
+		MinRunningInstances:          FromInt32Pointer(app.ApplicationResponse.MinRunningInstances),
+		MaxRunningInstances:          FromInt32Pointer(app.ApplicationResponse.MaxRunningInstances),
+		AutoPreview:                  FromBoolPointer(app.ApplicationResponse.AutoPreview),
+		GitRepository:                convertResponseToApplicationGitRepository(app.ApplicationResponse.GitRepository),
+		Storage:                      convertResponseToApplicationStorage(app.ApplicationResponse.Storage),
+		Ports:                        convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
+		BuiltInEnvironmentVariables:  fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_BUILT_IN).toTerraformSet(),
+		EnvironmentVariables:         fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
+		EnvironmentVariableAliases:   fromEnvironmentVariableList(app.ApplicationEnvironmentVariableAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
+		EnvironmentVariableOverrides: fromEnvironmentVariableList(app.ApplicationEnvironmentVariableOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
+		Secrets:                      fromSecretList(state.SecretList(), app.ApplicationSecrets, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
+		SecretVariableAliases:        fromSecretList(state.SecretAliasList(), app.ApplicationSecretAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
+		SecretVariableOverrides:      fromSecretList(state.SecretOverrideList(), app.ApplicationSecretOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION).toTerraformSet(),
+		CustomDomains:                fromCustomDomainList(app.ApplicationCustomDomains).toTerraformSet(),
+		InternalHost:                 FromString(app.ApplicationInternalHost),
+		ExternalHost:                 FromStringPointer(app.ApplicationExternalHost),
+		Entrypoint:                   FromStringPointer(app.ApplicationResponse.Entrypoint),
+		Arguments:                    FromStringArray(app.ApplicationResponse.Arguments),
+		DeploymentStageId:            FromString(app.ApplicationDeploymentStageID),
+		Healthchecks:                 convertHealthchecksResponseToDomain(app.ApplicationResponse.Healthchecks),
+		AdvancedSettingsJson:         FromString(app.AdvancedSettingsJson),
 	}
 }
 
