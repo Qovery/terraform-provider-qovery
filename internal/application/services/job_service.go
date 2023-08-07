@@ -64,23 +64,12 @@ func (s jobService) Create(ctx context.Context, environmentID string, request jo
 		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
 
-	// TODO (mzo) Temporary when updating common variable service
-	emptyRequest := variable.DiffRequest{
-		Create: []variable.DiffCreateRequest{},
-		Update: []variable.DiffUpdateRequest{},
-		Delete: []variable.DiffDeleteRequest{},
-	}
-	emptySecretRequest := secret.DiffRequest{
-		Create: []secret.DiffCreateRequest{},
-		Update: []secret.DiffUpdateRequest{},
-		Delete: []secret.DiffDeleteRequest{},
-	}
-	_, err = s.variableService.Update(ctx, newJob.ID.String(), request.EnvironmentVariables, emptyRequest, emptyRequest)
+	_, err = s.variableService.Update(ctx, newJob.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, newJob.ID.String(), request.Secrets, emptySecretRequest, emptySecretRequest)
+	_, err = s.secretService.Update(ctx, newJob.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
@@ -127,23 +116,12 @@ func (s jobService) Update(ctx context.Context, jobID string, request job.Upsert
 		return nil, errors.Wrap(err, job.ErrFailedToUpdateJob.Error())
 	}
 
-	// TODO (mzo) Temporary when updating common variable service
-	emptyRequest := variable.DiffRequest{
-		Create: []variable.DiffCreateRequest{},
-		Update: []variable.DiffUpdateRequest{},
-		Delete: []variable.DiffDeleteRequest{},
-	}
-	emptySecretRequest := secret.DiffRequest{
-		Create: []secret.DiffCreateRequest{},
-		Update: []secret.DiffUpdateRequest{},
-		Delete: []secret.DiffDeleteRequest{},
-	}
-	_, err = s.variableService.Update(ctx, updateJob.ID.String(), request.EnvironmentVariables, emptyRequest, emptyRequest)
+	_, err = s.variableService.Update(ctx, updateJob.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToUpdateJob.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, updateJob.ID.String(), request.Secrets, emptySecretRequest, emptySecretRequest)
+	_, err = s.secretService.Update(ctx, updateJob.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToUpdateJob.Error())
 	}
