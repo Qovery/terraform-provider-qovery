@@ -31,6 +31,7 @@ func newDomainSecretFromQovery(v *qovery.Secret) (*secret.Secret, error) {
 		SecretID: v.GetId(),
 		Scope:    string(v.Scope),
 		Key:      v.GetKey(),
+		Type:     string(*v.VariableType),
 	})
 }
 

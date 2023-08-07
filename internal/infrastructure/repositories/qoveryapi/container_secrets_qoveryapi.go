@@ -77,3 +77,27 @@ func (p containerSecretsQoveryAPI) Delete(ctx context.Context, containerID strin
 
 	return nil
 }
+
+func (p containerSecretsQoveryAPI) CreateAlias(ctx context.Context, containerId string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
+	v, resp, err := p.client.ContainerSecretApi.
+		CreateContainerSecretAlias(ctx, containerId, aliasedSecretId).
+		Key(qovery.Key{Key: request.Key}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainerSecret, containerId, resp, err)
+	}
+
+	return newDomainSecretFromQovery(v)
+}
+
+func (p containerSecretsQoveryAPI) CreateOverride(ctx context.Context, containerId string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
+	v, resp, err := p.client.ContainerSecretApi.
+		CreateContainerSecretOverride(ctx, containerId, overriddenSecretId).
+		Value(qovery.Value{Value: &request.Value}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainerSecret, containerId, resp, err)
+	}
+
+	return newDomainSecretFromQovery(v)
+}

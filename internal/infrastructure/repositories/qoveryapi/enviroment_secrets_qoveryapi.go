@@ -77,3 +77,11 @@ func (p environmentSecretsQoveryAPI) Delete(ctx context.Context, environmentID s
 
 	return nil
 }
+
+func (p environmentSecretsQoveryAPI) CreateAlias(ctx context.Context, scopeResourceID string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
+	return nil, nil
+}
+
+func (p environmentSecretsQoveryAPI) CreateOverride(ctx context.Context, scopeResourceID string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
+	return nil, nil
+}

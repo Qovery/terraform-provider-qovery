@@ -27,10 +27,14 @@ type Service interface {
 
 // UpsertServiceRequest represents the parameters needed to create & update a Variable.
 type UpsertServiceRequest struct {
-	ContainerUpsertRequest UpsertRepositoryRequest
-	EnvironmentVariables   variable.DiffRequest
-	Secrets                secret.DiffRequest
-	AdvancedSettingsJson   string
+	ContainerUpsertRequest       UpsertRepositoryRequest
+	EnvironmentVariables         variable.DiffRequest
+	EnvironmentVariableAliases   variable.DiffRequest
+	EnvironmentVariableOverrides variable.DiffRequest
+	Secrets                      secret.DiffRequest
+	SecretAliases                secret.DiffRequest
+	SecretOverrides              secret.DiffRequest
+	AdvancedSettingsJson         string
 }
 
 // Validate returns an error to tell whether the UpsertServiceRequest is valid or not.

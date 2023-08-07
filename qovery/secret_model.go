@@ -205,7 +205,7 @@ func fromSecretList(state SecretList, secrets []*qovery.Secret, scope qovery.API
 	return list
 }
 
-func convertDomainSecretsToSecretList(state SecretList, secrets secret.Secrets, scope variable.Scope) SecretList {
+func convertDomainSecretsToSecretList(state SecretList, secrets secret.Secrets, scope variable.Scope, variableType string) SecretList {
 	stateByKey := make(map[string]Secret)
 	for _, s := range state {
 		stateByKey[ToString(s.Key)] = s
@@ -213,7 +213,7 @@ func convertDomainSecretsToSecretList(state SecretList, secrets secret.Secrets, 
 
 	list := make([]Secret, 0, len(secrets))
 	for _, s := range secrets {
-		if s.Scope != scope {
+		if s.Scope != scope || s.Type != variableType {
 			continue
 		}
 		list = append(list, convertDomainSecretToSecret(s, state.find(s.Key)))

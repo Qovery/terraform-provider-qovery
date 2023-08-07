@@ -17,7 +17,7 @@ var (
 // Service represents the interface to implement to handle the domain logic of a Secret.
 type Service interface {
 	List(ctx context.Context, scopeResourceID string) (Secrets, error)
-	Update(ctx context.Context, scopeResourceID string, request DiffRequest) (Secrets, error)
+	Update(ctx context.Context, scopeResourceID string, secretsRequest DiffRequest, secretAliasesRequest DiffRequest, secretOverridesRequest DiffRequest) (Secrets, error)
 }
 
 // DiffRequest represents the parameters needed to create & update a Secret.

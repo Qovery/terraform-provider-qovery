@@ -10,6 +10,8 @@ import (
 // scopeResourceID can be either a projectID, environmentID, application or containerID
 type Repository interface {
 	Create(ctx context.Context, scopeResourceID string, request UpsertRequest) (*Secret, error)
+	CreateAlias(ctx context.Context, scopeResourceID string, request UpsertRequest, aliasedSecretId string) (*Secret, error)
+	CreateOverride(ctx context.Context, scopeResourceID string, request UpsertRequest, overriddenSecretId string) (*Secret, error)
 	List(ctx context.Context, scopeResourceID string) (Secrets, error)
 	Update(ctx context.Context, scopeResourceID string, secretID string, request UpsertRequest) (*Secret, error)
 	Delete(ctx context.Context, scopeResourceID string, secretID string) error

@@ -78,6 +78,120 @@ func (_c *SecretRepository_Create_Call) RunAndReturn(run func(context.Context, s
 	return _c
 }
 
+// CreateAlias provides a mock function with given fields: ctx, scopeResourceID, request, aliasedSecretId
+func (_m *SecretRepository) CreateAlias(ctx context.Context, scopeResourceID string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
+	ret := _m.Called(ctx, scopeResourceID, request, aliasedSecretId)
+
+	var r0 *secret.Secret
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, secret.UpsertRequest, string) (*secret.Secret, error)); ok {
+		return rf(ctx, scopeResourceID, request, aliasedSecretId)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, secret.UpsertRequest, string) *secret.Secret); ok {
+		r0 = rf(ctx, scopeResourceID, request, aliasedSecretId)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*secret.Secret)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, secret.UpsertRequest, string) error); ok {
+		r1 = rf(ctx, scopeResourceID, request, aliasedSecretId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SecretRepository_CreateAlias_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateAlias'
+type SecretRepository_CreateAlias_Call struct {
+	*mock.Call
+}
+
+// CreateAlias is a helper method to define mock.On call
+//   - ctx context.Context
+//   - scopeResourceID string
+//   - request secret.UpsertRequest
+//   - aliasedSecretId string
+func (_e *SecretRepository_Expecter) CreateAlias(ctx interface{}, scopeResourceID interface{}, request interface{}, aliasedSecretId interface{}) *SecretRepository_CreateAlias_Call {
+	return &SecretRepository_CreateAlias_Call{Call: _e.mock.On("CreateAlias", ctx, scopeResourceID, request, aliasedSecretId)}
+}
+
+func (_c *SecretRepository_CreateAlias_Call) Run(run func(ctx context.Context, scopeResourceID string, request secret.UpsertRequest, aliasedSecretId string)) *SecretRepository_CreateAlias_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(secret.UpsertRequest), args[3].(string))
+	})
+	return _c
+}
+
+func (_c *SecretRepository_CreateAlias_Call) Return(_a0 *secret.Secret, _a1 error) *SecretRepository_CreateAlias_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *SecretRepository_CreateAlias_Call) RunAndReturn(run func(context.Context, string, secret.UpsertRequest, string) (*secret.Secret, error)) *SecretRepository_CreateAlias_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// CreateOverride provides a mock function with given fields: ctx, scopeResourceID, request, overriddenSecretId
+func (_m *SecretRepository) CreateOverride(ctx context.Context, scopeResourceID string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
+	ret := _m.Called(ctx, scopeResourceID, request, overriddenSecretId)
+
+	var r0 *secret.Secret
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, secret.UpsertRequest, string) (*secret.Secret, error)); ok {
+		return rf(ctx, scopeResourceID, request, overriddenSecretId)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, secret.UpsertRequest, string) *secret.Secret); ok {
+		r0 = rf(ctx, scopeResourceID, request, overriddenSecretId)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*secret.Secret)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, secret.UpsertRequest, string) error); ok {
+		r1 = rf(ctx, scopeResourceID, request, overriddenSecretId)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// SecretRepository_CreateOverride_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'CreateOverride'
+type SecretRepository_CreateOverride_Call struct {
+	*mock.Call
+}
+
+// CreateOverride is a helper method to define mock.On call
+//   - ctx context.Context
+//   - scopeResourceID string
+//   - request secret.UpsertRequest
+//   - overriddenSecretId string
+func (_e *SecretRepository_Expecter) CreateOverride(ctx interface{}, scopeResourceID interface{}, request interface{}, overriddenSecretId interface{}) *SecretRepository_CreateOverride_Call {
+	return &SecretRepository_CreateOverride_Call{Call: _e.mock.On("CreateOverride", ctx, scopeResourceID, request, overriddenSecretId)}
+}
+
+func (_c *SecretRepository_CreateOverride_Call) Run(run func(ctx context.Context, scopeResourceID string, request secret.UpsertRequest, overriddenSecretId string)) *SecretRepository_CreateOverride_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(secret.UpsertRequest), args[3].(string))
+	})
+	return _c
+}
+
+func (_c *SecretRepository_CreateOverride_Call) Return(_a0 *secret.Secret, _a1 error) *SecretRepository_CreateOverride_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *SecretRepository_CreateOverride_Call) RunAndReturn(run func(context.Context, string, secret.UpsertRequest, string) (*secret.Secret, error)) *SecretRepository_CreateOverride_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // Delete provides a mock function with given fields: ctx, scopeResourceID, secretID
 func (_m *SecretRepository) Delete(ctx context.Context, scopeResourceID string, secretID string) error {
 	ret := _m.Called(ctx, scopeResourceID, secretID)

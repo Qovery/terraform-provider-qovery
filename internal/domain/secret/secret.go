@@ -51,6 +51,7 @@ type Secret struct {
 	ID    uuid.UUID      `validate:"required"`
 	Scope variable.Scope `validate:"required"`
 	Key   string         `validate:"required"`
+	Type  string
 }
 
 // Validate returns an error to tell whether the Secret domain model is valid or not.
@@ -77,6 +78,7 @@ type NewSecretParams struct {
 	SecretID string
 	Scope    string
 	Key      string
+	Type     string
 }
 
 // NewSecret returns a new instance of a Secret domain model.
@@ -99,6 +101,7 @@ func NewSecret(params NewSecretParams) (*Secret, error) {
 		ID:    secretsUUID,
 		Key:   params.Key,
 		Scope: *scope,
+		Type:  params.Type,
 	}
 
 	if err := v.Validate(); err != nil {

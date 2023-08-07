@@ -13,6 +13,7 @@ import (
 func TestNewDomainVariablesFromQovery(t *testing.T) {
 	t.Parallel()
 
+	variableType := qovery.APIVARIABLETYPEENUM_VALUE
 	testCases := []struct {
 		TestName      string
 		Variables     *qovery.EnvironmentVariableResponseList
@@ -33,6 +34,7 @@ func TestNewDomainVariablesFromQovery(t *testing.T) {
 							v := gofakeit.Word()
 							return &v
 						}(),
+						VariableType: &variableType,
 					},
 					{
 						Id:    gofakeit.UUID(),
@@ -42,6 +44,7 @@ func TestNewDomainVariablesFromQovery(t *testing.T) {
 							v := gofakeit.Word()
 							return &v
 						}(),
+						VariableType: &variableType,
 					},
 				},
 			},
@@ -65,6 +68,7 @@ func TestNewDomainVariablesFromQovery(t *testing.T) {
 					value = *tc.Variables.GetResults()[idx].Value
 				}
 				assert.Equal(t, value, v.Value)
+				assert.Equal(t, string(variableType), v.Type)
 			}
 		})
 	}

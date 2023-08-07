@@ -23,6 +23,7 @@ func TestNewSecret(t *testing.T) {
 			Params: secret.NewSecretParams{
 				Scope: variable.ScopeApplication.String(),
 				Key:   gofakeit.Name(),
+				Type:  "VALUE",
 			},
 			ExpectedError: secret.ErrInvalidSecretIDParam,
 		},
@@ -31,6 +32,7 @@ func TestNewSecret(t *testing.T) {
 			Params: secret.NewSecretParams{
 				SecretID: gofakeit.UUID(),
 				Scope:    variable.ScopeApplication.String(),
+				Type:     "VALUE",
 			},
 			ExpectedError: secret.ErrInvalidKeyParam,
 		},
@@ -39,6 +41,7 @@ func TestNewSecret(t *testing.T) {
 			Params: secret.NewSecretParams{
 				SecretID: gofakeit.UUID(),
 				Key:      gofakeit.Name(),
+				Type:     "VALUE",
 			},
 			ExpectedError: secret.ErrInvalidScopeParam,
 		},
@@ -48,6 +51,7 @@ func TestNewSecret(t *testing.T) {
 				SecretID: gofakeit.UUID(),
 				Scope:    variable.ScopeApplication.String(),
 				Key:      gofakeit.Name(),
+				Type:     "VALUE",
 			},
 		},
 	}
@@ -67,6 +71,7 @@ func TestNewSecret(t *testing.T) {
 			assert.True(t, v.IsValid())
 			assert.Equal(t, tc.Params.SecretID, v.ID.String())
 			assert.Equal(t, tc.Params.Key, v.Key)
+			assert.Equal(t, tc.Params.Type, v.Type)
 		})
 	}
 }

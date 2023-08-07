@@ -13,6 +13,7 @@ import (
 func TestNewDomainSecretsFromQovery(t *testing.T) {
 	t.Parallel()
 
+	variableType := qovery.APIVARIABLETYPEENUM_VALUE
 	testCases := []struct {
 		TestName      string
 		Secrets       *qovery.SecretResponseList
@@ -26,14 +27,16 @@ func TestNewDomainSecretsFromQovery(t *testing.T) {
 			Secrets: &qovery.SecretResponseList{
 				Results: []qovery.Secret{
 					{
-						Id:    gofakeit.UUID(),
-						Scope: qovery.APIVARIABLESCOPEENUM_APPLICATION,
-						Key:   gofakeit.Word(),
+						Id:           gofakeit.UUID(),
+						Scope:        qovery.APIVARIABLESCOPEENUM_APPLICATION,
+						Key:          gofakeit.Word(),
+						VariableType: &variableType,
 					},
 					{
-						Id:    gofakeit.UUID(),
-						Scope: qovery.APIVARIABLESCOPEENUM_ENVIRONMENT,
-						Key:   gofakeit.Word(),
+						Id:           gofakeit.UUID(),
+						Scope:        qovery.APIVARIABLESCOPEENUM_ENVIRONMENT,
+						Key:          gofakeit.Word(),
+						VariableType: &variableType,
 					},
 				},
 			},
@@ -52,6 +55,7 @@ func TestNewDomainSecretsFromQovery(t *testing.T) {
 				assert.Equal(t, tc.Secrets.GetResults()[idx].Id, v.ID.String())
 				assert.Equal(t, string(tc.Secrets.GetResults()[idx].Scope), v.Scope.String())
 				assert.Equal(t, tc.Secrets.GetResults()[idx].Key, v.Key)
+				assert.Equal(t, tc.Secrets.GetResults()[idx].VariableType, &variableType)
 			}
 		})
 	}

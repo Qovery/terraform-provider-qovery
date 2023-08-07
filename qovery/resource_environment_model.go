@@ -74,8 +74,8 @@ func convertDomainEnvironmentToEnvironment(state Environment, env *environment.E
 		ClusterId:                   FromString(env.ClusterID.String()),
 		Name:                        FromString(env.Name),
 		Mode:                        fromClientEnum(env.Mode),
-		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(env.EnvironmentVariables, variable.ScopeEnvironment).toTerraformSet(),
-		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(env.BuiltInEnvironmentVariables, variable.ScopeBuiltIn).toTerraformSet(),
-		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), env.Secrets, variable.ScopeEnvironment).toTerraformSet(),
+		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(env.EnvironmentVariables, variable.ScopeEnvironment, "VALUE").toTerraformSet(),
+		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(env.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(),
+		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), env.Secrets, variable.ScopeEnvironment, "VALUE").toTerraformSet(),
 	}
 }

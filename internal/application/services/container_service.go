@@ -64,12 +64,12 @@ func (s containerService) Create(ctx context.Context, environmentID string, requ
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
-	_, err = s.variableService.Update(ctx, cont.ID.String(), request.EnvironmentVariables)
+	_, err = s.variableService.Update(ctx, cont.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, cont.ID.String(), request.Secrets)
+	_, err = s.secretService.Update(ctx, cont.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
@@ -116,12 +116,12 @@ func (s containerService) Update(ctx context.Context, containerID string, reques
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
 	}
 
-	_, err = s.variableService.Update(ctx, cont.ID.String(), request.EnvironmentVariables)
+	_, err = s.variableService.Update(ctx, cont.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, cont.ID.String(), request.Secrets)
+	_, err = s.secretService.Update(ctx, cont.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
 	}

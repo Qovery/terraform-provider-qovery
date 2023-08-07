@@ -57,8 +57,8 @@ func convertDomainProjectToProject(state Project, res *project.Project) Project 
 		OrganizationId:              FromString(res.OrganizationID.String()),
 		Name:                        FromString(res.Name),
 		Description:                 FromStringPointer(res.Description),
-		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(res.EnvironmentVariables, variable.ScopeProject).toTerraformSet(),
-		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(res.BuiltInEnvironmentVariables, variable.ScopeBuiltIn).toTerraformSet(),
-		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), res.Secrets, variable.ScopeProject).toTerraformSet(),
+		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(res.EnvironmentVariables, variable.ScopeProject, "VALUE").toTerraformSet(),
+		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(res.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(),
+		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), res.Secrets, variable.ScopeProject, "VALUE").toTerraformSet(),
 	}
 }

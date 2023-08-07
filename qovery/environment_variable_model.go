@@ -217,10 +217,10 @@ func toEnvironmentVariableList(vars types.Set) EnvironmentVariableList {
 	return environmentVariables
 }
 
-func convertDomainVariablesToEnvironmentVariableList(vars variable.Variables, scope variable.Scope) EnvironmentVariableList {
+func convertDomainVariablesToEnvironmentVariableList(vars variable.Variables, scope variable.Scope, variableType string) EnvironmentVariableList {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
-		if v.Scope != scope {
+		if v.Scope != scope || v.Type != variableType {
 			continue
 		}
 		list = append(list, convertDomainVariableToEnvironmentVariable(v))

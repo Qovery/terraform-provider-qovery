@@ -57,12 +57,23 @@ func (s projectService) Create(ctx context.Context, organizationID string, reque
 		return nil, errors.Wrap(err, project.ErrFailedToCreateProject.Error())
 	}
 
-	_, err = s.variableService.Update(ctx, proj.ID.String(), request.EnvironmentVariables)
+	// TODO (mzo) Temporary when updating common variable service
+	emptyRequest := variable.DiffRequest{
+		Create: []variable.DiffCreateRequest{},
+		Update: []variable.DiffUpdateRequest{},
+		Delete: []variable.DiffDeleteRequest{},
+	}
+	emptySecretRequest := secret.DiffRequest{
+		Create: []secret.DiffCreateRequest{},
+		Update: []secret.DiffUpdateRequest{},
+		Delete: []secret.DiffDeleteRequest{},
+	}
+	_, err = s.variableService.Update(ctx, proj.ID.String(), request.EnvironmentVariables, emptyRequest, emptyRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, project.ErrFailedToCreateProject.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, proj.ID.String(), request.Secrets)
+	_, err = s.secretService.Update(ctx, proj.ID.String(), request.Secrets, emptySecretRequest, emptySecretRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, project.ErrFailedToCreateProject.Error())
 	}
@@ -109,12 +120,23 @@ func (s projectService) Update(ctx context.Context, projectID string, request pr
 		return nil, errors.Wrap(err, project.ErrFailedToUpdateProject.Error())
 	}
 
-	_, err = s.variableService.Update(ctx, proj.ID.String(), request.EnvironmentVariables)
+	// TODO (mzo) Temporary when updating common variable service
+	emptyRequest := variable.DiffRequest{
+		Create: []variable.DiffCreateRequest{},
+		Update: []variable.DiffUpdateRequest{},
+		Delete: []variable.DiffDeleteRequest{},
+	}
+	emptySecretRequest := secret.DiffRequest{
+		Create: []secret.DiffCreateRequest{},
+		Update: []secret.DiffUpdateRequest{},
+		Delete: []secret.DiffDeleteRequest{},
+	}
+	_, err = s.variableService.Update(ctx, proj.ID.String(), request.EnvironmentVariables, emptyRequest, emptyRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, project.ErrFailedToUpdateProject.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, proj.ID.String(), request.Secrets)
+	_, err = s.secretService.Update(ctx, proj.ID.String(), request.Secrets, emptySecretRequest, emptySecretRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, project.ErrFailedToUpdateProject.Error())
 	}

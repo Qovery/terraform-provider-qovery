@@ -77,3 +77,11 @@ func (p jobSecretsQoveryAPI) Delete(ctx context.Context, jobID string, credentia
 
 	return nil
 }
+
+func (p jobSecretsQoveryAPI) CreateAlias(ctx context.Context, scopeResourceID string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
+	return nil, nil
+}
+
+func (p jobSecretsQoveryAPI) CreateOverride(ctx context.Context, scopeResourceID string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
+	return nil, nil
+}

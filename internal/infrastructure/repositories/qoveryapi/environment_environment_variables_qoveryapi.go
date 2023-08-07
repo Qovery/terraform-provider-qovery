@@ -77,3 +77,10 @@ func (p environmentEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, en
 
 	return nil
 }
+
+func (p environmentEnvironmentVariablesQoveryAPI) CreateAlias(ctx context.Context, scopeResourceID string, request variable.UpsertRequest, aliasedVariableId string) (*variable.Variable, error) {
+	return nil, nil
+}
+func (p environmentEnvironmentVariablesQoveryAPI) CreateOverride(ctx context.Context, scopeResourceID string, request variable.UpsertRequest, overriddenVariableId string) (*variable.Variable, error) {
+	return nil, nil
+}

@@ -64,12 +64,23 @@ func (s environmentService) Create(ctx context.Context, projectID string, reques
 		return nil, errors.Wrap(err, environment.ErrFailedToCreateEnvironment.Error())
 	}
 
-	_, err = s.variableService.Update(ctx, env.ID.String(), request.EnvironmentVariables)
+	// TODO (mzo) Temporary when updating common variable service
+	emptyRequest := variable.DiffRequest{
+		Create: []variable.DiffCreateRequest{},
+		Update: []variable.DiffUpdateRequest{},
+		Delete: []variable.DiffDeleteRequest{},
+	}
+	emptySecretRequest := secret.DiffRequest{
+		Create: []secret.DiffCreateRequest{},
+		Update: []secret.DiffUpdateRequest{},
+		Delete: []secret.DiffDeleteRequest{},
+	}
+	_, err = s.variableService.Update(ctx, env.ID.String(), request.EnvironmentVariables, emptyRequest, emptyRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, environment.ErrFailedToCreateEnvironment.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, env.ID.String(), request.Secrets)
+	_, err = s.secretService.Update(ctx, env.ID.String(), request.Secrets, emptySecretRequest, emptySecretRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, environment.ErrFailedToCreateEnvironment.Error())
 	}
@@ -116,12 +127,23 @@ func (s environmentService) Update(ctx context.Context, environmentID string, re
 		return nil, errors.Wrap(err, environment.ErrFailedToUpdateEnvironment.Error())
 	}
 
-	_, err = s.variableService.Update(ctx, env.ID.String(), request.EnvironmentVariables)
+	// TODO (mzo) Temporary when updating common variable service
+	emptyRequest := variable.DiffRequest{
+		Create: []variable.DiffCreateRequest{},
+		Update: []variable.DiffUpdateRequest{},
+		Delete: []variable.DiffDeleteRequest{},
+	}
+	emptySecretRequest := secret.DiffRequest{
+		Create: []secret.DiffCreateRequest{},
+		Update: []secret.DiffUpdateRequest{},
+		Delete: []secret.DiffDeleteRequest{},
+	}
+	_, err = s.variableService.Update(ctx, env.ID.String(), request.EnvironmentVariables, emptyRequest, emptyRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, environment.ErrFailedToUpdateEnvironment.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, env.ID.String(), request.Secrets)
+	_, err = s.secretService.Update(ctx, env.ID.String(), request.Secrets, emptySecretRequest, emptySecretRequest)
 	if err != nil {
 		return nil, errors.Wrap(err, environment.ErrFailedToUpdateEnvironment.Error())
 	}

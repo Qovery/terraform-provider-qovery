@@ -52,6 +52,7 @@ type Variable struct {
 	Scope Scope     `validate:"required"`
 	Key   string    `validate:"required"`
 	Value string
+	Type  string
 }
 
 // Validate returns an error to tell whether the Variable domain model is valid or not.
@@ -71,6 +72,7 @@ type NewVariableParams struct {
 	Scope      string
 	Key        string
 	Value      string
+	Type       string
 }
 
 // NewVariable returns a new instance of a Variable domain model.
@@ -94,6 +96,7 @@ func NewVariable(params NewVariableParams) (*Variable, error) {
 		Key:   params.Key,
 		Value: params.Value,
 		Scope: *scope,
+		Type:  params.Type,
 	}
 
 	if err := v.Validate(); err != nil {
