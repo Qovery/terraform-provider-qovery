@@ -42,13 +42,28 @@ resource "qovery_project" "my_project" {
 ### Optional
 
 - `description` (String) Description of the project.
+- `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this project. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variables` (Attributes Set) List of environment variables linked to this project. (see [below for nested schema](#nestedatt--environment_variables))
+- `secret_aliases` (Attributes Set) List of secret aliases linked to this project. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secrets` (Attributes Set) List of secrets linked to this project. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
 
 - `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this project. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `id` (String) Id of the project.
+
+<a id="nestedatt--environment_variable_aliases"></a>
+### Nested Schema for `environment_variable_aliases`
+
+Required:
+
+- `key` (String) Name of the environment variable alias.
+- `value` (String) Name of the variable to alias.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable alias.
+
 
 <a id="nestedatt--environment_variables"></a>
 ### Nested Schema for `environment_variables`
@@ -61,6 +76,19 @@ Required:
 Read-Only:
 
 - `id` (String) Id of the environment variable.
+
+
+<a id="nestedatt--secret_aliases"></a>
+### Nested Schema for `secret_aliases`
+
+Required:
+
+- `key` (String) Name of the secret alias.
+- `value` (String) Name of the secret to alias.
+
+Read-Only:
+
+- `id` (String) Id of the secret alias.
 
 
 <a id="nestedatt--secrets"></a>

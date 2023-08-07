@@ -14,11 +14,16 @@ type Project struct {
 	Description                 types.String `tfsdk:"description"`
 	BuiltInEnvironmentVariables types.Set    `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables        types.Set    `tfsdk:"environment_variables"`
+	EnvironmentVariableAliases  types.Set    `tfsdk:"environment_variable_aliases"`
 	Secrets                     types.Set    `tfsdk:"secrets"`
+	SecretAliases               types.Set    `tfsdk:"secret_aliases"`
 }
 
 func (p Project) EnvironmentVariableList() EnvironmentVariableList {
 	return toEnvironmentVariableList(p.EnvironmentVariables)
+}
+func (p Project) EnvironmentVariableAliasesList() EnvironmentVariableList {
+	return toEnvironmentVariableList(p.EnvironmentVariableAliases)
 }
 
 func (p Project) BuiltInEnvironmentVariableList() EnvironmentVariableList {
@@ -28,6 +33,9 @@ func (p Project) BuiltInEnvironmentVariableList() EnvironmentVariableList {
 func (p Project) SecretList() SecretList {
 	return toSecretList(p.Secrets)
 }
+func (p Project) SecretAliasesList() SecretList {
+	return toSecretList(p.SecretAliases)
+}
 
 func (p Project) toCreateServiceRequest() project.UpsertServiceRequest {
 	return project.UpsertServiceRequest{
@@ -35,8 +43,10 @@ func (p Project) toCreateServiceRequest() project.UpsertServiceRequest {
 			Name:        ToString(p.Name),
 			Description: ToStringPointer(p.Description),
 		},
-		EnvironmentVariables: p.EnvironmentVariableList().diffRequest(nil),
-		Secrets:              p.SecretList().diffRequest(nil),
+		EnvironmentVariables:       p.EnvironmentVariableList().diffRequest(nil),
+		EnvironmentVariableAliases: p.EnvironmentVariableAliasesList().diffRequest(nil),
+		Secrets:                    p.SecretList().diffRequest(nil),
+		SecretAliases:              p.SecretAliasesList().diffRequest(nil),
 	}
 }
 
@@ -46,8 +56,10 @@ func (p Project) toUpdateServiceRequest(state Project) project.UpsertServiceRequ
 			Name:        ToString(p.Name),
 			Description: ToStringPointer(p.Description),
 		},
-		EnvironmentVariables: p.EnvironmentVariableList().diffRequest(state.EnvironmentVariableList()),
-		Secrets:              p.SecretList().diffRequest(state.SecretList()),
+		EnvironmentVariables:       p.EnvironmentVariableList().diffRequest(state.EnvironmentVariableList()),
+		EnvironmentVariableAliases: p.EnvironmentVariableAliasesList().diffRequest(state.EnvironmentVariableAliasesList()),
+		Secrets:                    p.SecretList().diffRequest(state.SecretList()),
+		SecretAliases:              p.SecretAliasesList().diffRequest(state.SecretAliasesList()),
 	}
 }
 
@@ -57,8 +69,10 @@ func convertDomainProjectToProject(state Project, res *project.Project) Project 
 		OrganizationId:              FromString(res.OrganizationID.String()),
 		Name:                        FromString(res.Name),
 		Description:                 FromStringPointer(res.Description),
-		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(res.EnvironmentVariables, variable.ScopeProject, "VALUE").toTerraformSet(),
 		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(res.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(),
+		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(res.EnvironmentVariables, variable.ScopeProject, "VALUE").toTerraformSet(),
+		EnvironmentVariableAliases:  convertDomainVariablesToEnvironmentVariableList(res.EnvironmentVariables, variable.ScopeProject, "ALIAS").toTerraformSet(),
 		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), res.Secrets, variable.ScopeProject, "VALUE").toTerraformSet(),
+		SecretAliases:               convertDomainSecretsToSecretList(state.SecretAliasesList(), res.Secrets, variable.ScopeProject, "ALIAS").toTerraformSet(),
 	}
 }

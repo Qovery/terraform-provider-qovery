@@ -78,9 +78,25 @@ func (p projectSecretsQoveryAPI) Delete(ctx context.Context, projectID string, c
 	return nil
 }
 
-func (p projectSecretsQoveryAPI) CreateAlias(ctx context.Context, scopeResourceID string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
-	return nil, nil
+func (p projectSecretsQoveryAPI) CreateAlias(ctx context.Context, projectId string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
+	v, resp, err := p.client.ProjectSecretApi.
+		CreateProjectSecretAlias(ctx, projectId, aliasedSecretId).
+		Key(qovery.Key{Key: request.Key}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceProjectSecret, projectId, resp, err)
+	}
+
+	return newDomainSecretFromQovery(v)
 }
-func (p projectSecretsQoveryAPI) CreateOverride(ctx context.Context, scopeResourceID string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
-	return nil, nil
+func (p projectSecretsQoveryAPI) CreateOverride(ctx context.Context, projectId string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
+	v, resp, err := p.client.ProjectSecretApi.
+		CreateProjectSecretOverride(ctx, projectId, overriddenSecretId).
+		Value(qovery.Value{Value: &request.Value}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceProjectSecret, projectId, resp, err)
+	}
+
+	return newDomainSecretFromQovery(v)
 }
