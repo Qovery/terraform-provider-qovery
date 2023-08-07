@@ -78,10 +78,26 @@ func (p environmentSecretsQoveryAPI) Delete(ctx context.Context, environmentID s
 	return nil
 }
 
-func (p environmentSecretsQoveryAPI) CreateAlias(ctx context.Context, scopeResourceID string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
-	return nil, nil
+func (p environmentSecretsQoveryAPI) CreateAlias(ctx context.Context, environmentId string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
+	v, resp, err := p.client.EnvironmentSecretApi.
+		CreateEnvironmentSecretAlias(ctx, environmentId, aliasedSecretId).
+		Key(qovery.Key{Key: request.Key}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceEnvironmentSecret, environmentId, resp, err)
+	}
+
+	return newDomainSecretFromQovery(v)
 }
 
-func (p environmentSecretsQoveryAPI) CreateOverride(ctx context.Context, scopeResourceID string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
-	return nil, nil
+func (p environmentSecretsQoveryAPI) CreateOverride(ctx context.Context, environmentId string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
+	v, resp, err := p.client.EnvironmentSecretApi.
+		CreateEnvironmentSecretOverride(ctx, environmentId, overriddenSecretId).
+		Value(qovery.Value{Value: &request.Value}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceEnvironmentSecret, environmentId, resp, err)
+	}
+
+	return newDomainSecretFromQovery(v)
 }

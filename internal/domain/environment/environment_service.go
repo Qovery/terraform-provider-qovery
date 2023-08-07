@@ -26,9 +26,13 @@ type Service interface {
 
 // CreateServiceRequest represents the parameters needed to create an Environment.
 type CreateServiceRequest struct {
-	EnvironmentCreateRequest CreateRepositoryRequest
-	EnvironmentVariables     variable.DiffRequest
-	Secrets                  secret.DiffRequest
+	EnvironmentCreateRequest     CreateRepositoryRequest
+	EnvironmentVariables         variable.DiffRequest
+	EnvironmentVariableAliases   variable.DiffRequest
+	EnvironmentVariableOverrides variable.DiffRequest
+	Secrets                      secret.DiffRequest
+	SecretAliases                secret.DiffRequest
+	SecretOverrides              secret.DiffRequest
 }
 
 // Validate returns an error to tell whether the CreateServiceRequest is valid or not.
@@ -55,9 +59,13 @@ func (r CreateServiceRequest) IsValid() bool {
 
 // UpdateServiceRequest represents the parameters needed to update an Environment.
 type UpdateServiceRequest struct {
-	EnvironmentUpdateRequest UpdateRepositoryRequest
-	EnvironmentVariables     variable.DiffRequest
-	Secrets                  secret.DiffRequest
+	EnvironmentUpdateRequest     UpdateRepositoryRequest
+	EnvironmentVariables         variable.DiffRequest
+	EnvironmentVariableAliases   variable.DiffRequest
+	EnvironmentVariableOverrides variable.DiffRequest
+	Secrets                      secret.DiffRequest
+	SecretAliases                secret.DiffRequest
+	SecretOverrides              secret.DiffRequest
 }
 
 // Validate returns an error to tell whether the UpdateServiceRequest is valid or not.

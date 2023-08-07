@@ -78,9 +78,25 @@ func (p environmentEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, en
 	return nil
 }
 
-func (p environmentEnvironmentVariablesQoveryAPI) CreateAlias(ctx context.Context, scopeResourceID string, request variable.UpsertRequest, aliasedVariableId string) (*variable.Variable, error) {
-	return nil, nil
+func (p environmentEnvironmentVariablesQoveryAPI) CreateAlias(ctx context.Context, environmentID string, request variable.UpsertRequest, aliasedVariableId string) (*variable.Variable, error) {
+	v, resp, err := p.client.EnvironmentVariableApi.
+		CreateEnvironmentEnvironmentVariableAlias(ctx, environmentID, aliasedVariableId).
+		Key(qovery.Key{Key: request.Key}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceEnvironmentEnvironmentVariable, environmentID, resp, err)
+	}
+
+	return newDomainVariableFromQovery(v)
 }
-func (p environmentEnvironmentVariablesQoveryAPI) CreateOverride(ctx context.Context, scopeResourceID string, request variable.UpsertRequest, overriddenVariableId string) (*variable.Variable, error) {
-	return nil, nil
+func (p environmentEnvironmentVariablesQoveryAPI) CreateOverride(ctx context.Context, environmentID string, request variable.UpsertRequest, overriddenVariableId string) (*variable.Variable, error) {
+	v, resp, err := p.client.EnvironmentVariableApi.
+		CreateEnvironmentEnvironmentVariableOverride(ctx, environmentID, overriddenVariableId).
+		Value(qovery.Value{Value: &request.Value}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceEnvironmentEnvironmentVariable, environmentID, resp, err)
+	}
+
+	return newDomainVariableFromQovery(v)
 }

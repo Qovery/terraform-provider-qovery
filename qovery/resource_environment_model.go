@@ -8,18 +8,28 @@ import (
 )
 
 type Environment struct {
-	Id                          types.String `tfsdk:"id"`
-	ProjectId                   types.String `tfsdk:"project_id"`
-	ClusterId                   types.String `tfsdk:"cluster_id"`
-	Name                        types.String `tfsdk:"name"`
-	Mode                        types.String `tfsdk:"mode"`
-	BuiltInEnvironmentVariables types.Set    `tfsdk:"built_in_environment_variables"`
-	EnvironmentVariables        types.Set    `tfsdk:"environment_variables"`
-	Secrets                     types.Set    `tfsdk:"secrets"`
+	Id                           types.String `tfsdk:"id"`
+	ProjectId                    types.String `tfsdk:"project_id"`
+	ClusterId                    types.String `tfsdk:"cluster_id"`
+	Name                         types.String `tfsdk:"name"`
+	Mode                         types.String `tfsdk:"mode"`
+	BuiltInEnvironmentVariables  types.Set    `tfsdk:"built_in_environment_variables"`
+	EnvironmentVariables         types.Set    `tfsdk:"environment_variables"`
+	EnvironmentVariableAliases   types.Set    `tfsdk:"environment_variable_aliases"`
+	EnvironmentVariableOverrides types.Set    `tfsdk:"environment_variable_overrides"`
+	Secrets                      types.Set    `tfsdk:"secrets"`
+	SecretAliases                types.Set    `tfsdk:"secret_aliases"`
+	SecretOverrides              types.Set    `tfsdk:"secret_overrides"`
 }
 
 func (e Environment) EnvironmentVariableList() EnvironmentVariableList {
 	return toEnvironmentVariableList(e.EnvironmentVariables)
+}
+func (e Environment) EnvironmentVariableAliasesList() EnvironmentVariableList {
+	return toEnvironmentVariableList(e.EnvironmentVariableAliases)
+}
+func (e Environment) EnvironmentVariableOverridesList() EnvironmentVariableList {
+	return toEnvironmentVariableList(e.EnvironmentVariableOverrides)
 }
 
 func (e Environment) BuiltInEnvironmentVariableList() EnvironmentVariableList {
@@ -28,6 +38,12 @@ func (e Environment) BuiltInEnvironmentVariableList() EnvironmentVariableList {
 
 func (e Environment) SecretList() SecretList {
 	return toSecretList(e.Secrets)
+}
+func (e Environment) SecretAliasesList() SecretList {
+	return toSecretList(e.SecretAliases)
+}
+func (e Environment) SecretOverridesList() SecretList {
+	return toSecretList(e.SecretOverrides)
 }
 
 func (e Environment) toCreateEnvironmentRequest() (*environment.CreateServiceRequest, error) {
@@ -42,8 +58,12 @@ func (e Environment) toCreateEnvironmentRequest() (*environment.CreateServiceReq
 			ClusterID: ToStringPointer(e.ClusterId),
 			Mode:      mode,
 		},
-		EnvironmentVariables: e.EnvironmentVariableList().diffRequest(nil),
-		Secrets:              e.SecretList().diffRequest(nil),
+		EnvironmentVariables:         e.EnvironmentVariableList().diffRequest(nil),
+		EnvironmentVariableAliases:   e.EnvironmentVariableAliasesList().diffRequest(nil),
+		EnvironmentVariableOverrides: e.EnvironmentVariableOverridesList().diffRequest(nil),
+		Secrets:                      e.SecretList().diffRequest(nil),
+		SecretAliases:                e.SecretAliasesList().diffRequest(nil),
+		SecretOverrides:              e.SecretOverridesList().diffRequest(nil),
 	}, nil
 }
 
@@ -62,20 +82,28 @@ func (e Environment) toUpdateEnvironmentRequest(state Environment) (*environment
 			Name: ToStringPointer(e.Name),
 			Mode: mode,
 		},
-		EnvironmentVariables: e.EnvironmentVariableList().diffRequest(state.EnvironmentVariableList()),
-		Secrets:              e.SecretList().diffRequest(state.SecretList()),
+		EnvironmentVariables:         e.EnvironmentVariableList().diffRequest(state.EnvironmentVariableList()),
+		EnvironmentVariableAliases:   e.EnvironmentVariableAliasesList().diffRequest(state.EnvironmentVariableAliasesList()),
+		EnvironmentVariableOverrides: e.EnvironmentVariableOverridesList().diffRequest(state.EnvironmentVariableOverridesList()),
+		Secrets:                      e.SecretList().diffRequest(state.SecretList()),
+		SecretAliases:                e.SecretAliasesList().diffRequest(state.SecretAliasesList()),
+		SecretOverrides:              e.SecretOverridesList().diffRequest(state.SecretOverridesList()),
 	}, nil
 }
 
 func convertDomainEnvironmentToEnvironment(state Environment, env *environment.Environment) Environment {
 	return Environment{
-		Id:                          FromString(env.ID.String()),
-		ProjectId:                   FromString(env.ProjectID.String()),
-		ClusterId:                   FromString(env.ClusterID.String()),
-		Name:                        FromString(env.Name),
-		Mode:                        fromClientEnum(env.Mode),
-		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(env.EnvironmentVariables, variable.ScopeEnvironment, "VALUE").toTerraformSet(),
-		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(env.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(),
-		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), env.Secrets, variable.ScopeEnvironment, "VALUE").toTerraformSet(),
+		Id:                           FromString(env.ID.String()),
+		ProjectId:                    FromString(env.ProjectID.String()),
+		ClusterId:                    FromString(env.ClusterID.String()),
+		Name:                         FromString(env.Name),
+		Mode:                         fromClientEnum(env.Mode),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(env.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(),
+		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableList(env.EnvironmentVariables, variable.ScopeEnvironment, "VALUE").toTerraformSet(),
+		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableList(env.EnvironmentVariables, variable.ScopeEnvironment, "ALIAS").toTerraformSet(),
+		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableList(env.EnvironmentVariables, variable.ScopeEnvironment, "OVERRIDE").toTerraformSet(),
+		Secrets:                      convertDomainSecretsToSecretList(state.SecretList(), env.Secrets, variable.ScopeEnvironment, "VALUE").toTerraformSet(),
+		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliasesList(), env.Secrets, variable.ScopeEnvironment, "ALIAS").toTerraformSet(),
+		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverridesList(), env.Secrets, variable.ScopeEnvironment, "OVERRIDE").toTerraformSet(),
 	}
 }
