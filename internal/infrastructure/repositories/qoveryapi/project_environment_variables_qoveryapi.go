@@ -67,7 +67,7 @@ func (p projectEnvironmentVariablesQoveryAPI) Update(ctx context.Context, projec
 }
 
 // Delete calls Qovery's API to delete an environment variable from a project using the given projectID and credentialsID.
-func (p projectEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, projectID string, credentialsID string) error {
+func (p projectEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, projectID string, credentialsID string) *apierrors.ApiError {
 	resp, err := p.client.ProjectEnvironmentVariableApi.
 		DeleteProjectEnvironmentVariable(ctx, projectID, credentialsID).
 		Execute()

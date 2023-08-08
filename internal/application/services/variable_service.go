@@ -122,7 +122,8 @@ func (c variableService) updateEnvironmentVariableAliases(ctx context.Context, r
 
 	for _, toDelete := range request.Delete {
 		err := c.variableRepository.Delete(ctx, resourceID, toDelete.VariableID)
-		if err != nil {
+		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
+		if err != nil && err.Resp == nil || (err != nil && err.Resp.StatusCode != 404) {
 			return nil, errors.Wrap(err, variable.ErrFailedToUpdateVariables.Error())
 		}
 	}
@@ -130,9 +131,11 @@ func (c variableService) updateEnvironmentVariableAliases(ctx context.Context, r
 	for _, toUpdate := range request.Update {
 		// If the variable alias value has been updated, it means it targets a new aliased variable.
 		// So delete it firstly and re-create it
-		err := c.variableRepository.Delete(ctx, resourceID, toUpdate.VariableID)
-		if err != nil {
-			return nil, errors.Wrap(err, variable.ErrFailedToUpdateVariables.Error())
+		errDelete := c.variableRepository.Delete(ctx, resourceID, toUpdate.VariableID)
+
+		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
+		if errDelete != nil && errDelete.Resp == nil || (errDelete != nil && errDelete.Resp.StatusCode != 404) {
+			return nil, errors.Wrap(errDelete, variable.ErrFailedToUpdateVariables.Error())
 		}
 		// The alias variable value contains the name of the aliased variable
 		aliasedVariableId := environmentVariablesByName[toUpdate.Value].ID
@@ -166,7 +169,8 @@ func (c variableService) updateEnvironmentVariableOverrides(ctx context.Context,
 	overrides := make(variable.Variables, 0, len(request.Create)+len(request.Update))
 	for _, toDelete := range request.Delete {
 		err := c.variableRepository.Delete(ctx, resourceID, toDelete.VariableID)
-		if err != nil {
+		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
+		if err != nil && err.Resp == nil || (err != nil && err.Resp.StatusCode != 404) {
 			return nil, errors.Wrap(err, variable.ErrFailedToUpdateVariables.Error())
 		}
 	}
@@ -174,9 +178,11 @@ func (c variableService) updateEnvironmentVariableOverrides(ctx context.Context,
 	for _, toUpdate := range request.Update {
 		// If the variable override value has been updated, it means it targets a new overridden variable.
 		// So delete it firstly and re-create it
-		err := c.variableRepository.Delete(ctx, resourceID, toUpdate.VariableID)
-		if err != nil {
-			return nil, errors.Wrap(err, variable.ErrFailedToUpdateVariables.Error())
+		errDelete := c.variableRepository.Delete(ctx, resourceID, toUpdate.VariableID)
+
+		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
+		if errDelete != nil && errDelete.Resp == nil || (errDelete != nil && errDelete.Resp.StatusCode != 404) {
+			return nil, errors.Wrap(errDelete, variable.ErrFailedToUpdateVariables.Error())
 		}
 		// The override variable value contains the name of the overridden variable
 		overriddenVariableId := environmentVariablesByName[toUpdate.Key].ID

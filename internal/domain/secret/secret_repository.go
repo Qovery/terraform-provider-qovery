@@ -4,6 +4,8 @@ package secret
 
 import (
 	"context"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 )
 
 // Repository represents the interface to implement to handle the persistence of a Secret.
@@ -14,5 +16,5 @@ type Repository interface {
 	CreateOverride(ctx context.Context, scopeResourceID string, request UpsertRequest, overriddenSecretId string) (*Secret, error)
 	List(ctx context.Context, scopeResourceID string) (Secrets, error)
 	Update(ctx context.Context, scopeResourceID string, secretID string, request UpsertRequest) (*Secret, error)
-	Delete(ctx context.Context, scopeResourceID string, secretID string) error
+	Delete(ctx context.Context, scopeResourceID string, secretID string) *apierrors.ApiError
 }

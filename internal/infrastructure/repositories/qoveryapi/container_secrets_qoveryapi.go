@@ -67,7 +67,7 @@ func (p containerSecretsQoveryAPI) Update(ctx context.Context, containerID strin
 }
 
 // Delete calls Qovery's API to delete an environment secret from a container using the given containerID and credentialsID.
-func (p containerSecretsQoveryAPI) Delete(ctx context.Context, containerID string, credentialsID string) error {
+func (p containerSecretsQoveryAPI) Delete(ctx context.Context, containerID string, credentialsID string) *apierrors.ApiError {
 	resp, err := p.client.ContainerSecretApi.
 		DeleteContainerSecret(ctx, containerID, credentialsID).
 		Execute()

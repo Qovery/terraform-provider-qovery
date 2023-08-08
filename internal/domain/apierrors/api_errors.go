@@ -27,29 +27,29 @@ type ApiError struct {
 	action     ApiAction      // action that produced the api client error.
 	resource   ApiResource    // resource that produced the api client error.
 	resourceID string         // resourceID that produced the api client error. [NOTE: it is replaced by the resource name in some cases (for failed create requests)]
-	resp       *http.Response // resp is the response returned by the api client.
+	Resp       *http.Response // Resp is the response returned by the api client.
 }
 
 // IsNotFound returns weather the error is a 404 or not.
 // NOTE: Since the api returns a 403 when a resource is not found, we also consider those as a 404.
 func (e ApiError) IsNotFound() bool {
-	if e.resp == nil {
+	if e.Resp == nil {
 		return false
 	}
 
 	// NOTE: consider 400 Bad Request, 403 Forbidden as a 404 NotFound until the api is fixed
-	return (e.resp.StatusCode == http.StatusBadRequest && strings.Contains(e.Detail(), "exist")) ||
-		e.resp.StatusCode == http.StatusNotFound ||
-		e.resp.StatusCode == http.StatusForbidden
+	return (e.Resp.StatusCode == http.StatusBadRequest && strings.Contains(e.Detail(), "exist")) ||
+		e.Resp.StatusCode == http.StatusNotFound ||
+		e.Resp.StatusCode == http.StatusForbidden
 }
 
 // IsBadRequest returns weather the error is a 400 or not.
 func (e ApiError) IsBadRequest() bool {
-	if e.resp == nil {
+	if e.Resp == nil {
 		return false
 	}
 
-	return e.resp.StatusCode == http.StatusBadRequest
+	return e.Resp.StatusCode == http.StatusBadRequest
 }
 
 // Error implements the Error interface.
@@ -75,7 +75,7 @@ func (e ApiError) Detail() string {
 			extra = fmt.Sprintf("%s - %s", extra, payload.Message)
 		}
 	} else {
-		extra = fmt.Sprintf("unexpected status code: %d", e.resp.StatusCode)
+		extra = fmt.Sprintf("unexpected status code: %d", e.Resp.StatusCode)
 	}
 
 	return fmt.Sprintf("Could not %s %s '%s', %s", e.action, e.resource, e.resourceID, extra)
@@ -84,11 +84,11 @@ func (e ApiError) Detail() string {
 // errorPayload tries to read the response body to extract the error payload sent by the api client.
 // It returns nil if the body is empty.
 func (e ApiError) errorPayload() *apiErrorPayload {
-	if e.err == nil || e.resp == nil {
+	if e.err == nil || e.Resp == nil {
 		return nil
 	}
 
-	body, err := io.ReadAll(e.resp.Body)
+	body, err := io.ReadAll(e.Resp.Body)
 	if err != nil {
 		return nil
 	}
@@ -139,7 +139,7 @@ func NewApiError(action ApiAction, resource ApiResource, resourceID string, resp
 		action:     action,
 		resource:   resource,
 		resourceID: resourceID,
-		resp:       resp,
+		Resp:       resp,
 	}
 }
 

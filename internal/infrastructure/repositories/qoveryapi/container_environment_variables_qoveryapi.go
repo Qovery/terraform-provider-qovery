@@ -67,7 +67,7 @@ func (p containerEnvironmentVariablesQoveryAPI) Update(ctx context.Context, cont
 }
 
 // Delete calls Qovery's API to delete an environment variable from a container using the given containerID and credentialsID.
-func (p containerEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, containerID string, credentialsID string) error {
+func (p containerEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, containerID string, credentialsID string) *apierrors.ApiError {
 	resp, err := p.client.ContainerEnvironmentVariableApi.
 		DeleteContainerEnvironmentVariable(ctx, containerID, credentialsID).
 		Execute()

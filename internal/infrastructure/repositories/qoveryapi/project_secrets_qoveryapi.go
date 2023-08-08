@@ -67,7 +67,7 @@ func (p projectSecretsQoveryAPI) Update(ctx context.Context, projectID string, c
 }
 
 // Delete calls Qovery's API to delete an environment secret from a project using the given projectID and credentialsID.
-func (p projectSecretsQoveryAPI) Delete(ctx context.Context, projectID string, credentialsID string) error {
+func (p projectSecretsQoveryAPI) Delete(ctx context.Context, projectID string, credentialsID string) *apierrors.ApiError {
 	resp, err := p.client.ProjectSecretApi.
 		DeleteProjectSecret(ctx, projectID, credentialsID).
 		Execute()

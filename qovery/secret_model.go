@@ -185,7 +185,7 @@ func fromSecret(v *qovery.Secret, state *Secret) Secret {
 	return sec
 }
 
-func fromSecretList(state SecretList, secrets []*qovery.Secret, scope qovery.APIVariableScopeEnum) SecretList {
+func fromSecretList(state SecretList, secrets []*qovery.Secret, scope qovery.APIVariableScopeEnum, secretType string) SecretList {
 	stateByKey := make(map[string]Secret)
 	for _, s := range state {
 		stateByKey[ToString(s.Key)] = s
@@ -193,7 +193,7 @@ func fromSecretList(state SecretList, secrets []*qovery.Secret, scope qovery.API
 
 	list := make([]Secret, 0, len(secrets))
 	for _, s := range secrets {
-		if s.Scope != scope {
+		if s.Scope != scope || string(*s.VariableType) != secretType {
 			continue
 		}
 		list = append(list, fromSecret(s, state.find(s.GetKey())))

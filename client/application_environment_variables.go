@@ -61,7 +61,8 @@ func (c *Client) updateApplicationEnvironmentVariableAliases(
 		res, err := c.api.ApplicationEnvironmentVariableApi.
 			DeleteApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			Execute()
-		if err != nil || res.StatusCode >= 400 {
+		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
+		if err != nil && res == nil || (err != nil && res != nil && res.StatusCode >= 400 && res.StatusCode != 404) {
 			return apierrors.NewDeleteError(apierrors.APIResourceApplicationEnvironmentAliasVariable, variable.Id, res, err)
 		}
 	}
@@ -73,7 +74,8 @@ func (c *Client) updateApplicationEnvironmentVariableAliases(
 		res, err := c.api.ApplicationEnvironmentVariableApi.
 			DeleteApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			Execute()
-		if err != nil || res.StatusCode >= 400 {
+		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
+		if err != nil && res == nil || (err != nil && res != nil && res.StatusCode >= 400 && res.StatusCode != 404) {
 			return apierrors.NewDeleteError(apierrors.APIResourceApplicationEnvironmentAliasVariable, variable.Id, res, err)
 		}
 		// The alias variable value contains the name of the aliased variable
@@ -113,7 +115,8 @@ func (c *Client) updateApplicationEnvironmentVariableOverrides(
 		res, err := c.api.ApplicationEnvironmentVariableApi.
 			DeleteApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			Execute()
-		if err != nil || res.StatusCode >= 400 {
+		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
+		if err != nil && res == nil || (err != nil && res.StatusCode >= 400 && res.StatusCode != 404) {
 			return apierrors.NewDeleteError(apierrors.APIResourceApplicationEnvironmentOverrideVariable, variable.Id, res, err)
 		}
 	}
@@ -125,7 +128,8 @@ func (c *Client) updateApplicationEnvironmentVariableOverrides(
 		res, err := c.api.ApplicationEnvironmentVariableApi.
 			DeleteApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			Execute()
-		if err != nil || res.StatusCode >= 400 {
+		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
+		if err != nil && res == nil || (err != nil && res.StatusCode >= 400 && res.StatusCode != 404) {
 			return apierrors.NewDeleteError(apierrors.APIResourceApplicationEnvironmentOverrideVariable, variable.Id, res, err)
 		}
 		// The override variable key contains the name of the overridden variable
@@ -165,7 +169,8 @@ func (c *Client) updateApplicationSecretAliases(
 		res, err := c.api.ApplicationSecretApi.
 			DeleteApplicationSecret(ctx, applicationID, secret.Id).
 			Execute()
-		if err != nil || res.StatusCode >= 400 {
+		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
+		if (err != nil && res == nil) || (err != nil && res.StatusCode >= 400 && res.StatusCode != 404) {
 			return apierrors.NewDeleteError(apierrors.APIResourceApplicationSecretAlias, secret.Id, res, err)
 		}
 	}
@@ -176,7 +181,8 @@ func (c *Client) updateApplicationSecretAliases(
 		res, err := c.api.ApplicationSecretApi.
 			DeleteApplicationSecret(ctx, applicationID, secret.Id).
 			Execute()
-		if err != nil || res.StatusCode >= 400 {
+		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
+		if (err != nil && res == nil) || (err != nil && res.StatusCode >= 400 && res.StatusCode != 404) {
 			return apierrors.NewDeleteError(apierrors.APIResourceApplicationSecretAlias, secret.Id, res, err)
 		}
 	}
@@ -218,7 +224,8 @@ func (c *Client) updateApplicationSecretOverrides(
 		res, err := c.api.ApplicationSecretApi.
 			DeleteApplicationSecret(ctx, applicationID, secret.Id).
 			Execute()
-		if err != nil || res.StatusCode >= 400 {
+		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
+		if err != nil || (res.StatusCode >= 400 && res.StatusCode != 404) {
 			return apierrors.NewDeleteError(apierrors.APIResourceApplicationSecretOverride, secret.Id, res, err)
 		}
 	}
@@ -229,7 +236,8 @@ func (c *Client) updateApplicationSecretOverrides(
 		res, err := c.api.ApplicationSecretApi.
 			DeleteApplicationSecret(ctx, applicationID, secret.Id).
 			Execute()
-		if err != nil || res.StatusCode >= 400 {
+		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
+		if err != nil || (res.StatusCode >= 400 && res.StatusCode != 404) {
 			return apierrors.NewDeleteError(apierrors.APIResourceApplicationSecretOverride, secret.Id, res, err)
 		}
 	}

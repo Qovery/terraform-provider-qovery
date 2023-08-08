@@ -67,7 +67,7 @@ func (p jobEnvironmentVariablesQoveryAPI) Update(ctx context.Context, jobID stri
 }
 
 // Delete calls Qovery's API to delete an environment variable from a job using the given jobID and credentialsID.
-func (p jobEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, jobID string, credentialsID string) error {
+func (p jobEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, jobID string, credentialsID string) *apierrors.ApiError {
 	resp, err := p.client.JobEnvironmentVariableApi.
 		DeleteJobEnvironmentVariable(ctx, jobID, credentialsID).
 		Execute()

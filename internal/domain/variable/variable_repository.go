@@ -4,6 +4,8 @@ package variable
 
 import (
 	"context"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 )
 
 // Repository represents the interface to implement to handle the persistence of a Variable.
@@ -14,5 +16,5 @@ type Repository interface {
 	CreateOverride(ctx context.Context, scopeResourceID string, request UpsertRequest, overriddenVariableId string) (*Variable, error)
 	List(ctx context.Context, scopeResourceID string) (Variables, error)
 	Update(ctx context.Context, scopeResourceID string, variableID string, request UpsertRequest) (*Variable, error)
-	Delete(ctx context.Context, scopeResourceID string, variableID string) error
+	Delete(ctx context.Context, scopeResourceID string, variableID string) *apierrors.ApiError
 }
