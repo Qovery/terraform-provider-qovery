@@ -395,12 +395,8 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					map[string]string{
 						"key1": "value1",
 					},
-					map[string]string{
-						"key1_alias": "key1",
-					},
-					map[string]string{
-						"environment_variable": "override value",
-					},
+					map[string]string{},
+					map[string]string{},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -422,14 +418,6 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 						"key":   "key1",
 						"value": "value1",
 					}),
-					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_aliases.*", map[string]string{
-						"key":   "key1_alias",
-						"value": "key1",
-					}),
-					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_overrides.*", map[string]string{
-						"key":   "environment_variable",
-						"value": "override value",
-					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
@@ -449,7 +437,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 						"key1_alias": "key1",
 					},
 					map[string]string{
-						"environment_variable": "override value update",
+						"environment_variable": "override value",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -478,7 +466,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_overrides.*", map[string]string{
 						"key":   "environment_variable",
-						"value": "override value update",
+						"value": "override value",
 					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
@@ -497,7 +485,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 						"key2": "value2",
 					},
 					map[string]string{
-						"key1_alias": "key1",
+						"key1_alias": "key2",
 					},
 					map[string]string{
 						"environment_variable": "override value update",
@@ -529,7 +517,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_aliases.*", map[string]string{
 						"key":   "key1_alias",
-						"value": "key1",
+						"value": "key2",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_overrides.*", map[string]string{
 						"key":   "environment_variable",
@@ -550,12 +538,8 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					map[string]string{
 						"key2": "value2",
 					},
-					map[string]string{
-						"key1_alias": "key2",
-					},
-					map[string]string{
-						"environment_variable": "override value update",
-					},
+					map[string]string{},
+					map[string]string{},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -577,14 +561,8 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 						"key":   "key2",
 						"value": "value2",
 					}),
-					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_aliases.*", map[string]string{
-						"key":   "key1_alias",
-						"value": "key2",
-					}),
-					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_overrides.*", map[string]string{
-						"key":   "environment_variable",
-						"value": "override value update",
-					}),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variable_aliases.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variable_overrides.0"),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
@@ -618,12 +596,8 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 					map[string]string{
 						"key1": "value1",
 					},
-					map[string]string{
-						"key1_alias": "key1",
-					},
-					map[string]string{
-						"environment_secret": "override value",
-					},
+					map[string]string{},
+					map[string]string{},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -649,14 +623,6 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 						"key":   "key1",
 						"value": "value1",
 					}),
-					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secret_aliases.*", map[string]string{
-						"key":   "key1_alias",
-						"value": "key1",
-					}),
-					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secret_overrides.*", map[string]string{
-						"key":   "environment_secret",
-						"value": "override value",
-					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
@@ -672,7 +638,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 						"key1_alias": "key1",
 					},
 					map[string]string{
-						"environment_secret": "override value updated",
+						"environment_secret": "override value",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -705,7 +671,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secret_overrides.*", map[string]string{
 						"key":   "environment_secret",
-						"value": "override value updated",
+						"value": "override value",
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
@@ -720,7 +686,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 						"key2": "value2",
 					},
 					map[string]string{
-						"key1_alias": "key1",
+						"key1_alias": "key2",
 					},
 					map[string]string{
 						"environment_secret": "override value updated",
@@ -756,7 +722,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secret_aliases.*", map[string]string{
 						"key":   "key1_alias",
-						"value": "key1",
+						"value": "key2",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secret_overrides.*", map[string]string{
 						"key":   "environment_secret",
@@ -773,12 +739,8 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 					map[string]string{
 						"key2": "value2",
 					},
-					map[string]string{
-						"key1_alias": "key2",
-					},
-					map[string]string{
-						"environment_secret": "override value updated",
-					},
+					map[string]string{},
+					map[string]string{},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -804,14 +766,8 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 						"key":   "key2",
 						"value": "value2",
 					}),
-					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secret_aliases.*", map[string]string{
-						"key":   "key1_alias",
-						"value": "key2",
-					}),
-					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secret_overrides.*", map[string]string{
-						"key":   "environment_secret",
-						"value": "override value updated",
-					}),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "secret_aliases.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "secret_overrides.0"),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),

@@ -185,8 +185,10 @@ func fromSecret(v *qovery.Secret, state *Secret) Secret {
 	return sec
 }
 
-func fromSecretList(state SecretList, secrets []*qovery.Secret, scope qovery.APIVariableScopeEnum, secretType string) SecretList {
+func fromSecretList(initialState types.Set, secrets []*qovery.Secret, scope qovery.APIVariableScopeEnum, secretType string) SecretList {
 	stateByKey := make(map[string]Secret)
+	state := ToSecretList(initialState)
+
 	for _, s := range state {
 		stateByKey[ToString(s.Key)] = s
 	}
@@ -199,14 +201,18 @@ func fromSecretList(state SecretList, secrets []*qovery.Secret, scope qovery.API
 		list = append(list, fromSecret(s, state.find(s.GetKey())))
 	}
 
-	if len(list) == 0 {
+	// Return nil only if list is empty and original state list is nil
+	if len(list) == 0 && initialState.IsNull() {
 		return nil
 	}
+	// Otherwise return the list, even empty (`[]` in the terraform file)
 	return list
 }
 
-func convertDomainSecretsToSecretList(state SecretList, secrets secret.Secrets, scope variable.Scope, variableType string) SecretList {
+func convertDomainSecretsToSecretList(initialState types.Set, secrets secret.Secrets, scope variable.Scope, variableType string) SecretList {
 	stateByKey := make(map[string]Secret)
+	state := ToSecretList(initialState)
+
 	for _, s := range state {
 		stateByKey[ToString(s.Key)] = s
 	}
@@ -219,9 +225,11 @@ func convertDomainSecretsToSecretList(state SecretList, secrets secret.Secrets, 
 		list = append(list, convertDomainSecretToSecret(s, state.find(s.Key)))
 	}
 
-	if len(list) == 0 {
+	// Return nil only if list is empty and original state list is nil
+	if len(list) == 0 && initialState.IsNull() {
 		return nil
 	}
+	// Otherwise return the list, even empty (`[]` in the terraform file)
 	return list
 }
 
@@ -244,7 +252,7 @@ func toSecret(v types.Object) Secret {
 	}
 }
 
-func toSecretList(vars types.Set) SecretList {
+func ToSecretList(vars types.Set) SecretList {
 	if vars.Null || vars.Unknown {
 		return []Secret{}
 	}

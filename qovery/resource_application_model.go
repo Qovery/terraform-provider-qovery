@@ -56,15 +56,15 @@ func (app Application) BuiltInEnvironmentVariableList() EnvironmentVariableList 
 }
 
 func (app Application) SecretList() SecretList {
-	return toSecretList(app.Secrets)
+	return ToSecretList(app.Secrets)
 }
 
 func (app Application) SecretAliasList() SecretList {
-	return toSecretList(app.SecretVariableAliases)
+	return ToSecretList(app.SecretVariableAliases)
 }
 
 func (app Application) SecretOverrideList() SecretList {
-	return toSecretList(app.SecretVariableOverrides)
+	return ToSecretList(app.SecretVariableOverrides)
 }
 
 func (app Application) CustomDomainsList() CustomDomainList {
@@ -223,12 +223,12 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		Storage:                      convertResponseToApplicationStorage(app.ApplicationResponse.Storage),
 		Ports:                        convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
 		BuiltInEnvironmentVariables:  fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_BUILT_IN, "BUILT_IN").toTerraformSet(),
-		EnvironmentVariables:         fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(),
-		EnvironmentVariableAliases:   fromEnvironmentVariableList(app.ApplicationEnvironmentVariableAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(),
-		EnvironmentVariableOverrides: fromEnvironmentVariableList(app.ApplicationEnvironmentVariableOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION, "OVERRIDE").toTerraformSet(),
-		Secrets:                      fromSecretList(state.SecretList(), app.ApplicationSecrets, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(),
-		SecretVariableAliases:        fromSecretList(state.SecretAliasList(), app.ApplicationSecretAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(),
-		SecretVariableOverrides:      fromSecretList(state.SecretOverrideList(), app.ApplicationSecretOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION, "OVERRIDE").toTerraformSet(),
+		EnvironmentVariables:         fromEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(),
+		EnvironmentVariableAliases:   fromEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, app.ApplicationEnvironmentVariableAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(),
+		EnvironmentVariableOverrides: fromEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableOverrides, app.ApplicationEnvironmentVariableOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION, "OVERRIDE").toTerraformSet(),
+		Secrets:                      fromSecretList(state.Secrets, app.ApplicationSecrets, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(),
+		SecretVariableAliases:        fromSecretList(state.SecretVariableAliases, app.ApplicationSecretAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(),
+		SecretVariableOverrides:      fromSecretList(state.SecretVariableOverrides, app.ApplicationSecretOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION, "OVERRIDE").toTerraformSet(),
 		CustomDomains:                fromCustomDomainList(app.ApplicationCustomDomains).toTerraformSet(),
 		InternalHost:                 FromString(app.ApplicationInternalHost),
 		ExternalHost:                 FromStringPointer(app.ApplicationExternalHost),

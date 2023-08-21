@@ -80,9 +80,7 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 					map[string]string{
 						"key1": "value1",
 					},
-					map[string]string{
-						"key1_alias": "key1",
-					},
+					map[string]string{},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -93,10 +91,6 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
 						"key":   "key1",
 						"value": "value1",
-					}),
-					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variable_aliases.*", map[string]string{
-						"key":   "key1_alias",
-						"value": "key1",
 					}),
 				),
 			},
@@ -166,9 +160,7 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 					map[string]string{
 						"key2": "value2",
 					},
-					map[string]string{
-						"key1_alias": "key2",
-					},
+					map[string]string{},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
@@ -180,10 +172,7 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 						"key":   "key2",
 						"value": "value2",
 					}),
-					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variable_aliases.*", map[string]string{
-						"key":   "key1_alias",
-						"value": "key2",
-					}),
+					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variable_aliases.0"),
 				),
 			},
 			// Check Import

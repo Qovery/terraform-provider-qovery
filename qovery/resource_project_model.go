@@ -31,10 +31,10 @@ func (p Project) BuiltInEnvironmentVariableList() EnvironmentVariableList {
 }
 
 func (p Project) SecretList() SecretList {
-	return toSecretList(p.Secrets)
+	return ToSecretList(p.Secrets)
 }
 func (p Project) SecretAliasesList() SecretList {
-	return toSecretList(p.SecretAliases)
+	return ToSecretList(p.SecretAliases)
 }
 
 func (p Project) toCreateServiceRequest() project.UpsertServiceRequest {
@@ -70,9 +70,9 @@ func convertDomainProjectToProject(state Project, res *project.Project) Project 
 		Name:                        FromString(res.Name),
 		Description:                 FromStringPointer(res.Description),
 		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(res.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(),
-		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(res.EnvironmentVariables, variable.ScopeProject, "VALUE").toTerraformSet(),
-		EnvironmentVariableAliases:  convertDomainVariablesToEnvironmentVariableList(res.EnvironmentVariables, variable.ScopeProject, "ALIAS").toTerraformSet(),
-		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), res.Secrets, variable.ScopeProject, "VALUE").toTerraformSet(),
-		SecretAliases:               convertDomainSecretsToSecretList(state.SecretAliasesList(), res.Secrets, variable.ScopeProject, "ALIAS").toTerraformSet(),
+		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, res.EnvironmentVariables, variable.ScopeProject, "VALUE").toTerraformSet(),
+		EnvironmentVariableAliases:  convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, res.EnvironmentVariables, variable.ScopeProject, "ALIAS").toTerraformSet(),
+		Secrets:                     convertDomainSecretsToSecretList(state.Secrets, res.Secrets, variable.ScopeProject, "VALUE").toTerraformSet(),
+		SecretAliases:               convertDomainSecretsToSecretList(state.SecretAliases, res.Secrets, variable.ScopeProject, "ALIAS").toTerraformSet(),
 	}
 }
