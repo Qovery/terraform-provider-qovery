@@ -64,12 +64,15 @@ func (s jobService) Create(ctx context.Context, environmentID string, request jo
 		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
 
-	_, err = s.variableService.Update(ctx, newJob.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides)
+	overridesAuthorizedScopes := make(map[variable.Scope]struct{})
+	overridesAuthorizedScopes[variable.ScopeProject] = struct{}{}
+	overridesAuthorizedScopes[variable.ScopeEnvironment] = struct{}{}
+	_, err = s.variableService.Update(ctx, newJob.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, newJob.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides)
+	_, err = s.secretService.Update(ctx, newJob.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
@@ -116,12 +119,15 @@ func (s jobService) Update(ctx context.Context, jobID string, request job.Upsert
 		return nil, errors.Wrap(err, job.ErrFailedToUpdateJob.Error())
 	}
 
-	_, err = s.variableService.Update(ctx, updateJob.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides)
+	overridesAuthorizedScopes := make(map[variable.Scope]struct{})
+	overridesAuthorizedScopes[variable.ScopeProject] = struct{}{}
+	overridesAuthorizedScopes[variable.ScopeEnvironment] = struct{}{}
+	_, err = s.variableService.Update(ctx, updateJob.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToUpdateJob.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, updateJob.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides)
+	_, err = s.secretService.Update(ctx, updateJob.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToUpdateJob.Error())
 	}

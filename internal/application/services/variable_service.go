@@ -43,7 +43,14 @@ func (c variableService) List(ctx context.Context, resourceID string) (variable.
 }
 
 // Update handles the domain logic to update a variable.
-func (c variableService) Update(ctx context.Context, resourceID string, environmentVariablesRequest variable.DiffRequest, environmentVariableAliasesRequest variable.DiffRequest, environmentVariableOverridesRequest variable.DiffRequest) (variable.Variables, error) {
+func (c variableService) Update(
+	ctx context.Context,
+	resourceID string,
+	environmentVariablesRequest variable.DiffRequest,
+	environmentVariableAliasesRequest variable.DiffRequest,
+	environmentVariableOverridesRequest variable.DiffRequest,
+	overrideAuthorizedScopes map[variable.Scope]struct{},
+) (variable.Variables, error) {
 	if err := c.checkResourceID(resourceID); err != nil {
 		return nil, errors.Wrap(err, variable.ErrFailedToUpdateVariables.Error())
 	}
@@ -59,16 +66,24 @@ func (c variableService) Update(ctx context.Context, resourceID string, environm
 		return nil, errors.Wrap(err, variable.ErrFailedToListVariables.Error())
 	}
 	environmentVariablesForCurrentScope, err := c.variableRepository.List(ctx, resourceID)
-	var environmentVariablesByName = make(map[string]variable.Variable)
+	// TODO (mzo) set authorized scopes in current method params (for env & prj)
+	var environmentVariablesByNameForAliases = make(map[string]variable.Variable)
+	var environmentVariablesByNameForOverrides = make(map[string]variable.Variable)
 	for _, environmentVariable := range environmentVariablesForCurrentScope {
-		environmentVariablesByName[environmentVariable.Key] = environmentVariable
+		if environmentVariable.Type == "VALUE" || environmentVariable.Type == "BUILT_IN" {
+			environmentVariablesByNameForAliases[environmentVariable.Key] = environmentVariable
+		}
+		_, authorizedScope := overrideAuthorizedScopes[environmentVariable.Scope]
+		if environmentVariable.Type == "VALUE" && authorizedScope {
+			environmentVariablesByNameForOverrides[environmentVariable.Key] = environmentVariable
+		}
 	}
 
-	environmentVariableAliases, err := c.updateEnvironmentVariableAliases(ctx, resourceID, environmentVariableAliasesRequest, environmentVariablesByName)
+	environmentVariableAliases, err := c.updateEnvironmentVariableAliases(ctx, resourceID, environmentVariableAliasesRequest, environmentVariablesByNameForAliases)
 	if err != nil {
 		return nil, err
 	}
-	environmentVariableOverrides, err := c.updateEnvironmentVariableOverrides(ctx, resourceID, environmentVariableOverridesRequest, environmentVariablesByName)
+	environmentVariableOverrides, err := c.updateEnvironmentVariableOverrides(ctx, resourceID, environmentVariableOverridesRequest, environmentVariablesByNameForOverrides)
 	if err != nil {
 		return nil, err
 	}

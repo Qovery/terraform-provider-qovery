@@ -131,10 +131,11 @@ jobs:
       - matrix_prep
       - build
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 10
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
+      max-parallel: 1
     steps:
       - name: Set up Go
         uses: actions/setup-go@v3

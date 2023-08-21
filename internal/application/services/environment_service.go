@@ -64,12 +64,14 @@ func (s environmentService) Create(ctx context.Context, projectID string, reques
 		return nil, errors.Wrap(err, environment.ErrFailedToCreateEnvironment.Error())
 	}
 
-	_, err = s.variableService.Update(ctx, env.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides)
+	overridesAuthorizedScopes := make(map[variable.Scope]struct{})
+	overridesAuthorizedScopes[variable.ScopeProject] = struct{}{}
+	_, err = s.variableService.Update(ctx, env.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, environment.ErrFailedToCreateEnvironment.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, env.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides)
+	_, err = s.secretService.Update(ctx, env.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, environment.ErrFailedToCreateEnvironment.Error())
 	}
@@ -116,12 +118,14 @@ func (s environmentService) Update(ctx context.Context, environmentID string, re
 		return nil, errors.Wrap(err, environment.ErrFailedToUpdateEnvironment.Error())
 	}
 
-	_, err = s.variableService.Update(ctx, env.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides)
+	overridesAuthorizedScopes := make(map[variable.Scope]struct{})
+	overridesAuthorizedScopes[variable.ScopeProject] = struct{}{}
+	_, err = s.variableService.Update(ctx, env.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, environment.ErrFailedToUpdateEnvironment.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, env.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides)
+	_, err = s.secretService.Update(ctx, env.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, environment.ErrFailedToUpdateEnvironment.Error())
 	}

@@ -234,20 +234,20 @@ func (c *Client) updateApplication(
 
 	if !environmentVariableAliasesDiff.IsEmpty() || !environmentVariableOverridesDiff.IsEmpty() {
 		// For overrides and aliases, we need to retrieve all VALUE secret ids
-		environmentVariablesByName, apiError := c.fetchAllApplicationEnvironmentVariablesByName(ctx, application)
+		variablesByNameForAliases, variablesByNameForOverrides, apiError := c.fetchVariablesForAliasesAndOverrides(ctx, application)
 		if apiError != nil {
 			return nil, apiError
 		}
 		// update aliases
 		if !environmentVariableAliasesDiff.IsEmpty() {
-			if apiErr := c.updateApplicationEnvironmentVariableAliases(ctx, application.Id, environmentVariableAliasesDiff, environmentVariablesByName); apiErr != nil {
+			if apiErr := c.updateApplicationEnvironmentVariableAliases(ctx, application.Id, environmentVariableAliasesDiff, variablesByNameForAliases); apiErr != nil {
 				return nil, apiErr
 			}
 		}
 
 		// update overrides
 		if !environmentVariableOverridesDiff.IsEmpty() {
-			if apiErr := c.updateApplicationEnvironmentVariableOverrides(ctx, application.Id, environmentVariableOverridesDiff, environmentVariablesByName); apiErr != nil {
+			if apiErr := c.updateApplicationEnvironmentVariableOverrides(ctx, application.Id, environmentVariableOverridesDiff, variablesByNameForOverrides); apiErr != nil {
 				return nil, apiErr
 			}
 		}
@@ -261,20 +261,20 @@ func (c *Client) updateApplication(
 
 	if !secretAliasesDiff.IsEmpty() || !secretOverridesDiff.IsEmpty() {
 		// For overrides and aliases, we need to retrieve all VALUE secret ids
-		secretsByName, apiError := c.fetchAllApplicationSecretsByName(ctx, application)
+		secretsByNameForAliases, secretsByNameForOverrides, apiError := c.fetchSecretsForAliasesAndOverrides(ctx, application)
 		if apiError != nil {
 			return nil, apiError
 		}
 		// update aliases
 		if !secretAliasesDiff.IsEmpty() {
-			if apiErr := c.updateApplicationSecretAliases(ctx, application.Id, secretAliasesDiff, secretsByName); apiErr != nil {
+			if apiErr := c.updateApplicationSecretAliases(ctx, application.Id, secretAliasesDiff, secretsByNameForAliases); apiErr != nil {
 				return nil, apiErr
 			}
 		}
 
 		// update overrides
 		if !secretOverridesDiff.IsEmpty() {
-			if apiErr := c.updateApplicationSecretOverrides(ctx, application.Id, secretOverridesDiff, secretsByName); apiErr != nil {
+			if apiErr := c.updateApplicationSecretOverrides(ctx, application.Id, secretOverridesDiff, secretsByNameForOverrides); apiErr != nil {
 				return nil, apiErr
 			}
 		}
@@ -370,40 +370,48 @@ func (c *Client) getApplicationHosts(ctx context.Context, application *qovery.Ap
 	return hosts, nil
 }
 
-// fetchAllVariablesForApplication
-// Get all VALUE & BUILT_IN variables for the given application
-func (c *Client) fetchAllApplicationEnvironmentVariablesByName(ctx context.Context, app *qovery.Application) (map[string]qovery.EnvironmentVariable, *apierrors.APIError) {
+// fetchVariablesForAliasesAndOverrides
+// returns 2 hashmaps used to send requests for variable aliases & overrides
+func (c *Client) fetchVariablesForAliasesAndOverrides(ctx context.Context, app *qovery.Application) (map[string]qovery.EnvironmentVariable, map[string]qovery.EnvironmentVariable, *apierrors.APIError) {
 	applicationVariables, response, err := c.api.ApplicationEnvironmentVariableApi.ListApplicationEnvironmentVariable(ctx, app.Id).Execute()
 	if err != nil || response.StatusCode >= 400 {
-		return nil, apierrors.NewReadError(apierrors.APIResourceApplicationEnvironmentVariable, app.Id, response, err)
+		return nil, nil, apierrors.NewReadError(apierrors.APIResourceApplicationEnvironmentVariable, app.Id, response, err)
 	}
 
-	environmentVariablesByName := make(map[string]qovery.EnvironmentVariable)
+	variablesByNameForAliases := make(map[string]qovery.EnvironmentVariable)
+	variablesByNameForOverrides := make(map[string]qovery.EnvironmentVariable)
 	for _, result := range applicationVariables.Results {
 		if *result.VariableType == qovery.APIVARIABLETYPEENUM_VALUE || *result.VariableType == qovery.APIVARIABLETYPEENUM_BUILT_IN {
-			environmentVariablesByName[result.Key] = result
+			variablesByNameForAliases[result.Key] = result
+		}
+		if *result.VariableType == qovery.APIVARIABLETYPEENUM_VALUE && (result.Scope == qovery.APIVARIABLESCOPEENUM_ENVIRONMENT || result.Scope == qovery.APIVARIABLESCOPEENUM_PROJECT) {
+			variablesByNameForOverrides[result.Key] = result
 		}
 	}
 
-	return environmentVariablesByName, nil
+	return variablesByNameForAliases, variablesByNameForOverrides, nil
 }
 
-// fetchAllApplicationSecretsByName
-// Get all VALUE & BUILT_IN secrets for the given application
-func (c *Client) fetchAllApplicationSecretsByName(ctx context.Context, app *qovery.Application) (map[string]qovery.Secret, *apierrors.APIError) {
+// fetchSecretsForAliasesAndOverrides
+// returns 2 hashmaps used to send requests for secret aliases & overrides
+func (c *Client) fetchSecretsForAliasesAndOverrides(ctx context.Context, app *qovery.Application) (map[string]qovery.Secret, map[string]qovery.Secret, *apierrors.APIError) {
 	applicationVariables, response, err := c.api.ApplicationSecretApi.ListApplicationSecrets(ctx, app.Id).Execute()
 	if err != nil || response.StatusCode >= 400 {
-		return nil, apierrors.NewReadError(apierrors.APIResourceApplicationSecret, app.Id, response, err)
+		return nil, nil, apierrors.NewReadError(apierrors.APIResourceApplicationSecret, app.Id, response, err)
 	}
 
-	secretsByName := make(map[string]qovery.Secret)
+	secretsByNameForAliases := make(map[string]qovery.Secret)
+	secretsByNameForOverrides := make(map[string]qovery.Secret)
 	for _, result := range applicationVariables.Results {
 		if *result.VariableType == qovery.APIVARIABLETYPEENUM_VALUE || *result.VariableType == qovery.APIVARIABLETYPEENUM_BUILT_IN {
-			secretsByName[result.Key] = result
+			secretsByNameForAliases[result.Key] = result
+		}
+		if *result.VariableType == qovery.APIVARIABLETYPEENUM_VALUE && (result.Scope == qovery.APIVARIABLESCOPEENUM_ENVIRONMENT || result.Scope == qovery.APIVARIABLESCOPEENUM_PROJECT) {
+			secretsByNameForOverrides[result.Key] = result
 		}
 	}
 
-	return secretsByName, nil
+	return secretsByNameForAliases, secretsByNameForOverrides, nil
 }
 
 type ValueAliasOverrideApplicationVariable struct {

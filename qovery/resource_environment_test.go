@@ -61,10 +61,16 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariables(
+				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariablesAndAliasesAndOverrides(
 					testName,
 					map[string]string{
 						"key1": "value1",
+					},
+					map[string]string{
+						"key1_alias": "key1",
+					},
+					map[string]string{
+						"environment_variable": "override value",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -77,6 +83,14 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 						"key":   "key1",
 						"value": "value1",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variable_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key1",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variable_overrides.*", map[string]string{
+						"key":   "environment_variable",
+						"value": "override value",
+					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
@@ -84,10 +98,16 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 			},
 			// Update environment variable
 			{
-				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariables(
+				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariablesAndAliasesAndOverrides(
 					testName,
 					map[string]string{
 						"key1": "value1-updated",
+					},
+					map[string]string{
+						"key1_alias": "key1",
+					},
+					map[string]string{
+						"environment_variable": "override value update",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -100,6 +120,14 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 						"key":   "key1",
 						"value": "value1-updated",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variable_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key1",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variable_overrides.*", map[string]string{
+						"key":   "environment_variable",
+						"value": "override value update",
+					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
@@ -107,11 +135,17 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 			},
 			// Add environment variable
 			{
-				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariables(
+				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariablesAndAliasesAndOverrides(
 					testName,
 					map[string]string{
 						"key1": "value1",
 						"key2": "value2",
+					},
+					map[string]string{
+						"key1_alias": "key1",
+					},
+					map[string]string{
+						"environment_variable": "override value update",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -128,6 +162,14 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 						"key":   "key2",
 						"value": "value2",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variable_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key1",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variable_overrides.*", map[string]string{
+						"key":   "environment_variable",
+						"value": "override value update",
+					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
@@ -135,10 +177,16 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 			},
 			// Delete environment variable
 			{
-				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariables(
+				Config: testAccEnvironmentDefaultConfigWithEnvironmentVariablesAndAliasesAndOverrides(
 					testName,
 					map[string]string{
 						"key2": "value2",
+					},
+					map[string]string{
+						"key1_alias": "key2",
+					},
+					map[string]string{
+						"environment_variable": "override value update",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -150,6 +198,10 @@ func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variables.*", map[string]string{
 						"key":   "key2",
 						"value": "value2",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "environment_variable_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key2",
 					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
@@ -176,10 +228,16 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccEnvironmentDefaultConfigWithSecrets(
+				Config: testAccEnvironmentDefaultConfigWithSecretsAndAliasesAndOverrides(
 					testName,
 					map[string]string{
 						"key1": "value1",
+					},
+					map[string]string{
+						"key1_alias": "key1",
+					},
+					map[string]string{
+						"environment_secret": "override value",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -192,6 +250,14 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 						"key":   "key1",
 						"value": "value1",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "secret_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key1",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "secret_overrides.*", map[string]string{
+						"key":   "environment_secret",
+						"value": "override value",
+					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
@@ -199,10 +265,16 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 			},
 			// Update secret
 			{
-				Config: testAccEnvironmentDefaultConfigWithSecrets(
+				Config: testAccEnvironmentDefaultConfigWithSecretsAndAliasesAndOverrides(
 					testName,
 					map[string]string{
 						"key1": "value1-updated",
+					},
+					map[string]string{
+						"key1_alias": "key1",
+					},
+					map[string]string{
+						"environment_secret": "override value updated",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -215,6 +287,14 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 						"key":   "key1",
 						"value": "value1-updated",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "secret_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key1",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "secret_overrides.*", map[string]string{
+						"key":   "environment_secret",
+						"value": "override value updated",
+					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
@@ -222,11 +302,17 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 			},
 			// Add secret
 			{
-				Config: testAccEnvironmentDefaultConfigWithSecrets(
+				Config: testAccEnvironmentDefaultConfigWithSecretsAndAliasesAndOverrides(
 					testName,
 					map[string]string{
 						"key1": "value1",
 						"key2": "value2",
+					},
+					map[string]string{
+						"key1_alias": "key1",
+					},
+					map[string]string{
+						"environment_secret": "override value updated",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -243,6 +329,14 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 						"key":   "key2",
 						"value": "value2",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "secret_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key1",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "secret_overrides.*", map[string]string{
+						"key":   "environment_secret",
+						"value": "override value updated",
+					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
@@ -250,10 +344,16 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 			},
 			// Delete secret
 			{
-				Config: testAccEnvironmentDefaultConfigWithSecrets(
+				Config: testAccEnvironmentDefaultConfigWithSecretsAndAliasesAndOverrides(
 					testName,
 					map[string]string{
 						"key2": "value2",
+					},
+					map[string]string{
+						"key1_alias": "key2",
+					},
+					map[string]string{
+						"environment_secret": "override value updated",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -266,6 +366,10 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 						"key":   "key2",
 						"value": "value2",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_environment.test", "secret_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key2",
+					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_environment.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
@@ -275,7 +379,7 @@ func TestAcc_EnvironmentWithSecrets(t *testing.T) {
 				ResourceName:            "qovery_environment.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"secrets"},
+				ImportStateVerifyIgnore: []string{"secrets", "secret_aliases", "secret_overrides"},
 			},
 		},
 	})
@@ -399,6 +503,33 @@ resource "qovery_environment" "test" {
 	)
 }
 
+func testAccEnvironmentDefaultConfigWithEnvironmentVariablesAndAliasesAndOverrides(
+	testName string,
+	environmentVariables map[string]string,
+	environmentVariableAliases map[string]string,
+	environmentVariableOverrides map[string]string,
+) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_environment" "test" {
+  cluster_id = "%s"
+  project_id = qovery_project.test.id
+  name = "%s"
+  environment_variables = %s
+  environment_variable_aliases = %s
+  environment_variable_overrides = %s
+}
+`,
+		testAccProjectDefaultConfigWithEnvironmentVariables(testName, map[string]string{"environment_variable": "simple value"}),
+		getTestClusterID(),
+		generateTestName(testName),
+		convertEnvVarsToString(environmentVariables),
+		convertEnvVarsToString(environmentVariableAliases),
+		convertEnvVarsToString(environmentVariableOverrides),
+	)
+}
+
 func testAccEnvironmentDefaultConfigWithSecrets(testName string, secrets map[string]string) string {
 	return fmt.Sprintf(`
 %s
@@ -410,5 +541,32 @@ resource "qovery_environment" "test" {
   secrets = %s
 }
 `, testAccProjectDefaultConfig(testName), getTestClusterID(), generateTestName(testName), convertEnvVarsToString(secrets),
+	)
+}
+
+func testAccEnvironmentDefaultConfigWithSecretsAndAliasesAndOverrides(
+	testName string,
+	secrets map[string]string,
+	secretAliases map[string]string,
+	secretOverrides map[string]string,
+) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_environment" "test" {
+  cluster_id = "%s"
+  project_id = qovery_project.test.id
+  name = "%s"
+  secrets = %s
+  secret_aliases = %s
+  secret_overrides = %s
+}
+`,
+		testAccProjectDefaultConfigWithSecrets(testName, map[string]string{"environment_secret": "simple value"}),
+		getTestClusterID(),
+		generateTestName(testName),
+		convertEnvVarsToString(secrets),
+		convertEnvVarsToString(secretAliases),
+		convertEnvVarsToString(secretOverrides),
 	)
 }

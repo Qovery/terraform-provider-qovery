@@ -44,7 +44,14 @@ func (c secretService) List(ctx context.Context, resourceID string) (secret.Secr
 }
 
 // Update handles the domain logic to update a secret.
-func (c secretService) Update(ctx context.Context, resourceID string, secretsRequest secret.DiffRequest, secretAliasesRequest secret.DiffRequest, secretOverridesRequest secret.DiffRequest) (secret.Secrets, error) {
+func (c secretService) Update(
+	ctx context.Context,
+	resourceID string,
+	secretsRequest secret.DiffRequest,
+	secretAliasesRequest secret.DiffRequest,
+	secretOverridesRequest secret.DiffRequest,
+	overrideAuthorizedScopes map[variable.Scope]struct{},
+) (secret.Secrets, error) {
 	if err := c.checkResourceID(resourceID); err != nil {
 		return nil, errors.Wrap(err, secret.ErrFailedToUpdateSecrets.Error())
 	}
@@ -64,16 +71,23 @@ func (c secretService) Update(ctx context.Context, resourceID string, secretsReq
 		return nil, errors.Wrap(err, variable.ErrFailedToListVariables.Error())
 	}
 	secretsForCurrentScope, err := c.secretRepository.List(ctx, resourceID)
-	var secretsByName = make(map[string]secret.Secret)
+	var secretsByNameForAliases = make(map[string]secret.Secret)
+	var secretsByNameForOverrides = make(map[string]secret.Secret)
 	for _, secretForCurrentScope := range secretsForCurrentScope {
-		secretsByName[secretForCurrentScope.Key] = secretForCurrentScope
+		if secretForCurrentScope.Type == "VALUE" || secretForCurrentScope.Type == "BUILT_IN" {
+			secretsByNameForAliases[secretForCurrentScope.Key] = secretForCurrentScope
+		}
+		_, authorizedScope := overrideAuthorizedScopes[secretForCurrentScope.Scope]
+		if secretForCurrentScope.Type == "VALUE" && authorizedScope {
+			secretsByNameForOverrides[secretForCurrentScope.Key] = secretForCurrentScope
+		}
 	}
 
-	secretAliases, err := c.updateSecretAliases(ctx, resourceID, secretAliasesRequest, secretsByName)
+	secretAliases, err := c.updateSecretAliases(ctx, resourceID, secretAliasesRequest, secretsByNameForAliases)
 	if err != nil {
 		return nil, err
 	}
-	secretOverrides, err := c.updateSecretOverrides(ctx, resourceID, secretOverridesRequest, secretsByName)
+	secretOverrides, err := c.updateSecretOverrides(ctx, resourceID, secretOverridesRequest, secretsByNameForOverrides)
 	if err != nil {
 		return nil, err
 	}

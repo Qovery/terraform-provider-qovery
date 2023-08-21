@@ -75,10 +75,13 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccProjectDefaultConfigWithEnvironmentVariables(
+				Config: testAccProjectDefaultConfigWithEnvironmentVariablesAndAliases(
 					testName,
 					map[string]string{
 						"key1": "value1",
+					},
+					map[string]string{
+						"key1_alias": "key1",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -91,14 +94,21 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 						"key":   "key1",
 						"value": "value1",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variable_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key1",
+					}),
 				),
 			},
 			// Update environment variable
 			{
-				Config: testAccProjectDefaultConfigWithEnvironmentVariables(
+				Config: testAccProjectDefaultConfigWithEnvironmentVariablesAndAliases(
 					testName,
 					map[string]string{
 						"key1": "value1-updated",
+					},
+					map[string]string{
+						"key1_alias": "key1",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -111,15 +121,22 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 						"key":   "key1",
 						"value": "value1-updated",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variable_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key1",
+					}),
 				),
 			},
 			// Add environment variable
 			{
-				Config: testAccProjectDefaultConfigWithEnvironmentVariables(
+				Config: testAccProjectDefaultConfigWithEnvironmentVariablesAndAliases(
 					testName,
 					map[string]string{
 						"key1": "value1",
 						"key2": "value2",
+					},
+					map[string]string{
+						"key1_alias": "key1",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -136,14 +153,21 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 						"key":   "key2",
 						"value": "value2",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variable_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key1",
+					}),
 				),
 			},
 			// Remove environment variable
 			{
-				Config: testAccProjectDefaultConfigWithEnvironmentVariables(
+				Config: testAccProjectDefaultConfigWithEnvironmentVariablesAndAliases(
 					testName,
 					map[string]string{
 						"key2": "value2",
+					},
+					map[string]string{
+						"key1_alias": "key2",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -155,6 +179,10 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
 						"key":   "key2",
 						"value": "value2",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variable_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key2",
 					}),
 				),
 			},
@@ -178,10 +206,13 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create and Read testing
 			{
-				Config: testAccProjectDefaultConfigWithSecrets(
+				Config: testAccProjectDefaultConfigWithSecretsAndAliases(
 					testName,
 					map[string]string{
 						"key1": "value1",
+					},
+					map[string]string{
+						"key1_alias": "key1",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -195,14 +226,21 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 						"key":   "key1",
 						"value": "value1",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secret_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key1",
+					}),
 				),
 			},
 			// Update secrets
 			{
-				Config: testAccProjectDefaultConfigWithSecrets(
+				Config: testAccProjectDefaultConfigWithSecretsAndAliases(
 					testName,
 					map[string]string{
 						"key1": "value1-updated",
+					},
+					map[string]string{
+						"key1_alias": "key1",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -216,15 +254,22 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 						"key":   "key1",
 						"value": "value1-updated",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secret_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key1",
+					}),
 				),
 			},
 			// Add secrets
 			{
-				Config: testAccProjectDefaultConfigWithSecrets(
+				Config: testAccProjectDefaultConfigWithSecretsAndAliases(
 					testName,
 					map[string]string{
 						"key1": "value1",
 						"key2": "value2",
+					},
+					map[string]string{
+						"key1_alias": "key1",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -242,14 +287,21 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 						"key":   "key2",
 						"value": "value2",
 					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secret_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key1",
+					}),
 				),
 			},
 			// Remove secrets
 			{
-				Config: testAccProjectDefaultConfigWithSecrets(
+				Config: testAccProjectDefaultConfigWithSecretsAndAliases(
 					testName,
 					map[string]string{
 						"key2": "value2",
+					},
+					map[string]string{
+						"key1_alias": "key2",
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -262,6 +314,10 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secrets.*", map[string]string{
 						"key":   "key2",
 						"value": "value2",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secret_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key2",
 					}),
 				),
 			},
@@ -375,6 +431,26 @@ resource "qovery_project" "test" {
 	)
 }
 
+func testAccProjectDefaultConfigWithEnvironmentVariablesAndAliases(
+	testName string,
+	environmentVariables map[string]string,
+	environmentVariableAliases map[string]string,
+) string {
+	return fmt.Sprintf(`
+resource "qovery_project" "test" {
+  organization_id = "%s"
+  name = "%s"
+  environment_variables = %s
+  environment_variable_aliases = %s
+}
+`,
+		getTestOrganizationID(),
+		generateTestName(testName),
+		convertEnvVarsToString(environmentVariables),
+		convertEnvVarsToString(environmentVariableAliases),
+	)
+}
+
 func testAccProjectDefaultConfigWithSecrets(testName string, secrets map[string]string) string {
 	return fmt.Sprintf(`
 resource "qovery_project" "test" {
@@ -383,6 +459,26 @@ resource "qovery_project" "test" {
   secrets = %s
 }
 `, getTestOrganizationID(), generateTestName(testName), convertEnvVarsToString(secrets),
+	)
+}
+
+func testAccProjectDefaultConfigWithSecretsAndAliases(
+	testName string,
+	secrets map[string]string,
+	secretAliases map[string]string,
+) string {
+	return fmt.Sprintf(`
+resource "qovery_project" "test" {
+  organization_id = "%s"
+  name = "%s"
+  secrets = %s
+  secret_aliases = %s
+}
+`,
+		getTestOrganizationID(),
+		generateTestName(testName),
+		convertEnvVarsToString(secrets),
+		convertEnvVarsToString(secretAliases),
 	)
 }
 
