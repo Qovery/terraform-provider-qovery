@@ -12,32 +12,44 @@ import (
 )
 
 type ApplicationResponse struct {
-	ApplicationResponse             *qovery.Application
-	ApplicationDeploymentStageID    string
-	ApplicationEnvironmentVariables []*qovery.EnvironmentVariable
-	ApplicationSecrets              []*qovery.Secret
-	ApplicationCustomDomains        []*qovery.CustomDomain
-	ApplicationExternalHost         *string
-	ApplicationInternalHost         string
-	AdvancedSettingsJson            string
+	ApplicationResponse                     *qovery.Application
+	ApplicationDeploymentStageID            string
+	ApplicationEnvironmentVariables         []*qovery.EnvironmentVariable
+	ApplicationEnvironmentVariableAliases   []*qovery.EnvironmentVariable
+	ApplicationEnvironmentVariableOverrides []*qovery.EnvironmentVariable
+	ApplicationSecrets                      []*qovery.Secret
+	ApplicationSecretAliases                []*qovery.Secret
+	ApplicationSecretOverrides              []*qovery.Secret
+	ApplicationCustomDomains                []*qovery.CustomDomain
+	ApplicationExternalHost                 *string
+	ApplicationInternalHost                 string
+	AdvancedSettingsJson                    string
 }
 
 type ApplicationCreateParams struct {
-	ApplicationRequest           qovery.ApplicationRequest
-	ApplicationDeploymentStageID string
-	EnvironmentVariablesDiff     EnvironmentVariablesDiff
-	CustomDomainsDiff            CustomDomainsDiff
-	SecretsDiff                  SecretsDiff
-	AdvancedSettingsJson         string
+	ApplicationRequest               qovery.ApplicationRequest
+	ApplicationDeploymentStageID     string
+	EnvironmentVariablesDiff         EnvironmentVariablesDiff
+	EnvironmentVariableAliasesDiff   EnvironmentVariablesDiff
+	EnvironmentVariableOverridesDiff EnvironmentVariablesDiff
+	CustomDomainsDiff                CustomDomainsDiff
+	SecretsDiff                      SecretsDiff
+	SecretAliasesDiff                SecretsDiff
+	SecretOverridesDiff              SecretsDiff
+	AdvancedSettingsJson             string
 }
 
 type ApplicationUpdateParams struct {
-	ApplicationEditRequest       qovery.ApplicationEditRequest
-	ApplicationDeploymentStageID string
-	EnvironmentVariablesDiff     EnvironmentVariablesDiff
-	CustomDomainsDiff            CustomDomainsDiff
-	SecretsDiff                  SecretsDiff
-	AdvancedSettingsJson         string
+	ApplicationEditRequest           qovery.ApplicationEditRequest
+	ApplicationDeploymentStageID     string
+	EnvironmentVariablesDiff         EnvironmentVariablesDiff
+	EnvironmentVariableAliasesDiff   EnvironmentVariablesDiff
+	EnvironmentVariableOverridesDiff EnvironmentVariablesDiff
+	CustomDomainsDiff                CustomDomainsDiff
+	SecretsDiff                      SecretsDiff
+	SecretAliasesDiff                SecretsDiff
+	SecretOverridesDiff              SecretsDiff
+	AdvancedSettingsJson             string
 }
 
 func (c *Client) CreateApplication(ctx context.Context, environmentID string, params *ApplicationCreateParams) (*ApplicationResponse, *apierrors.APIError) {
@@ -65,7 +77,19 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, application.Id, resp, err)
 	}
 
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, applicationDeploymentStage.Id, params.AdvancedSettingsJson)
+	return c.updateApplication(
+		ctx,
+		application,
+		params.EnvironmentVariablesDiff,
+		params.EnvironmentVariableAliasesDiff,
+		params.EnvironmentVariableOverridesDiff,
+		params.SecretsDiff,
+		params.SecretAliasesDiff,
+		params.SecretOverridesDiff,
+		params.CustomDomainsDiff,
+		applicationDeploymentStage.Id,
+		params.AdvancedSettingsJson,
+	)
 }
 
 func (c *Client) GetApplication(ctx context.Context, applicationID string) (*ApplicationResponse, *apierrors.APIError) {
@@ -106,15 +130,21 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, nil, err)
 	}
 
+	variables := computeAliasOverrideValueVariablesAndSecrets(environmentVariables, secrets)
+
 	return &ApplicationResponse{
-		ApplicationResponse:             application,
-		ApplicationDeploymentStageID:    deploymentStage.Id,
-		ApplicationEnvironmentVariables: environmentVariables,
-		ApplicationSecrets:              secrets,
-		ApplicationCustomDomains:        customDomains,
-		ApplicationExternalHost:         hosts.external,
-		ApplicationInternalHost:         hosts.internal,
-		AdvancedSettingsJson:            *advancedSettingsAsJson,
+		ApplicationResponse:                     application,
+		ApplicationDeploymentStageID:            deploymentStage.Id,
+		ApplicationEnvironmentVariables:         variables.variableValues,
+		ApplicationEnvironmentVariableAliases:   variables.variableAliases,
+		ApplicationEnvironmentVariableOverrides: variables.variableOverrides,
+		ApplicationSecrets:                      variables.secretValues,
+		ApplicationSecretAliases:                variables.secretAliases,
+		ApplicationSecretOverrides:              variables.secretOverrides,
+		ApplicationCustomDomains:                customDomains,
+		ApplicationExternalHost:                 hosts.external,
+		ApplicationInternalHost:                 hosts.internal,
+		AdvancedSettingsJson:                    *advancedSettingsAsJson,
 	}, nil
 }
 
@@ -137,7 +167,19 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 		}
 	}
 
-	return c.updateApplication(ctx, application, params.EnvironmentVariablesDiff, params.SecretsDiff, params.CustomDomainsDiff, params.ApplicationDeploymentStageID, params.AdvancedSettingsJson)
+	return c.updateApplication(
+		ctx,
+		application,
+		params.EnvironmentVariablesDiff,
+		params.EnvironmentVariableAliasesDiff,
+		params.EnvironmentVariableOverridesDiff,
+		params.SecretsDiff,
+		params.SecretAliasesDiff,
+		params.SecretOverridesDiff,
+		params.CustomDomainsDiff,
+		params.ApplicationDeploymentStageID,
+		params.AdvancedSettingsJson,
+	)
 }
 
 func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *apierrors.APIError {
@@ -175,7 +217,11 @@ func (c *Client) updateApplication(
 	ctx context.Context,
 	application *qovery.Application,
 	environmentVariablesDiff EnvironmentVariablesDiff,
+	environmentVariableAliasesDiff EnvironmentVariablesDiff,
+	environmentVariableOverridesDiff EnvironmentVariablesDiff,
 	secretsDiff SecretsDiff,
+	secretAliasesDiff SecretsDiff,
+	secretOverridesDiff SecretsDiff,
 	customDomainsDiff CustomDomainsDiff,
 	deploymentStageId string,
 	advancedSettingsJson string,
@@ -186,9 +232,51 @@ func (c *Client) updateApplication(
 		}
 	}
 
+	if !environmentVariableAliasesDiff.IsEmpty() || !environmentVariableOverridesDiff.IsEmpty() {
+		// For overrides and aliases, we need to retrieve all VALUE secret ids
+		variablesByNameForAliases, variablesByNameForOverrides, apiError := c.fetchVariablesForAliasesAndOverrides(ctx, application)
+		if apiError != nil {
+			return nil, apiError
+		}
+		// update aliases
+		if !environmentVariableAliasesDiff.IsEmpty() {
+			if apiErr := c.updateApplicationEnvironmentVariableAliases(ctx, application.Id, environmentVariableAliasesDiff, variablesByNameForAliases); apiErr != nil {
+				return nil, apiErr
+			}
+		}
+
+		// update overrides
+		if !environmentVariableOverridesDiff.IsEmpty() {
+			if apiErr := c.updateApplicationEnvironmentVariableOverrides(ctx, application.Id, environmentVariableOverridesDiff, variablesByNameForOverrides); apiErr != nil {
+				return nil, apiErr
+			}
+		}
+	}
+
 	if !secretsDiff.IsEmpty() {
 		if apiErr := c.updateApplicationSecrets(ctx, application.Id, secretsDiff); apiErr != nil {
 			return nil, apiErr
+		}
+	}
+
+	if !secretAliasesDiff.IsEmpty() || !secretOverridesDiff.IsEmpty() {
+		// For overrides and aliases, we need to retrieve all VALUE secret ids
+		secretsByNameForAliases, secretsByNameForOverrides, apiError := c.fetchSecretsForAliasesAndOverrides(ctx, application)
+		if apiError != nil {
+			return nil, apiError
+		}
+		// update aliases
+		if !secretAliasesDiff.IsEmpty() {
+			if apiErr := c.updateApplicationSecretAliases(ctx, application.Id, secretAliasesDiff, secretsByNameForAliases); apiErr != nil {
+				return nil, apiErr
+			}
+		}
+
+		// update overrides
+		if !secretOverridesDiff.IsEmpty() {
+			if apiErr := c.updateApplicationSecretOverrides(ctx, application.Id, secretOverridesDiff, secretsByNameForOverrides); apiErr != nil {
+				return nil, apiErr
+			}
 		}
 	}
 
@@ -223,15 +311,20 @@ func (c *Client) updateApplication(
 		return nil, apiErr
 	}
 
+	variables := computeAliasOverrideValueVariablesAndSecrets(environmentVariables, secrets)
 	return &ApplicationResponse{
-		ApplicationResponse:             application,
-		ApplicationEnvironmentVariables: environmentVariables,
-		ApplicationSecrets:              secrets,
-		ApplicationCustomDomains:        customDomains,
-		ApplicationExternalHost:         hosts.external,
-		ApplicationInternalHost:         hosts.internal,
-		ApplicationDeploymentStageID:    deploymentStageId,
-		AdvancedSettingsJson:            advancedSettingsJson,
+		ApplicationResponse:                     application,
+		ApplicationEnvironmentVariables:         variables.variableValues,
+		ApplicationEnvironmentVariableAliases:   variables.variableAliases,
+		ApplicationEnvironmentVariableOverrides: variables.variableOverrides,
+		ApplicationSecrets:                      variables.secretValues,
+		ApplicationSecretAliases:                variables.secretAliases,
+		ApplicationSecretOverrides:              variables.secretOverrides,
+		ApplicationCustomDomains:                customDomains,
+		ApplicationExternalHost:                 hosts.external,
+		ApplicationInternalHost:                 hosts.internal,
+		ApplicationDeploymentStageID:            deploymentStageId,
+		AdvancedSettingsJson:                    advancedSettingsJson,
 	}, nil
 }
 
@@ -275,4 +368,105 @@ func (c *Client) getApplicationHosts(ctx context.Context, application *qovery.Ap
 	}
 
 	return hosts, nil
+}
+
+// fetchVariablesForAliasesAndOverrides
+// returns 2 hashmaps used to send requests for variable aliases & overrides
+func (c *Client) fetchVariablesForAliasesAndOverrides(ctx context.Context, app *qovery.Application) (map[string]qovery.EnvironmentVariable, map[string]qovery.EnvironmentVariable, *apierrors.APIError) {
+	applicationVariables, response, err := c.api.ApplicationEnvironmentVariableApi.ListApplicationEnvironmentVariable(ctx, app.Id).Execute()
+	if err != nil || response.StatusCode >= 400 {
+		return nil, nil, apierrors.NewReadError(apierrors.APIResourceApplicationEnvironmentVariable, app.Id, response, err)
+	}
+
+	variablesByNameForAliases := make(map[string]qovery.EnvironmentVariable)
+	variablesByNameForOverrides := make(map[string]qovery.EnvironmentVariable)
+	for _, result := range applicationVariables.Results {
+		if *result.VariableType == qovery.APIVARIABLETYPEENUM_VALUE || *result.VariableType == qovery.APIVARIABLETYPEENUM_BUILT_IN {
+			variablesByNameForAliases[result.Key] = result
+		}
+		if *result.VariableType == qovery.APIVARIABLETYPEENUM_VALUE && (result.Scope == qovery.APIVARIABLESCOPEENUM_ENVIRONMENT || result.Scope == qovery.APIVARIABLESCOPEENUM_PROJECT) {
+			variablesByNameForOverrides[result.Key] = result
+		}
+	}
+
+	return variablesByNameForAliases, variablesByNameForOverrides, nil
+}
+
+// fetchSecretsForAliasesAndOverrides
+// returns 2 hashmaps used to send requests for secret aliases & overrides
+func (c *Client) fetchSecretsForAliasesAndOverrides(ctx context.Context, app *qovery.Application) (map[string]qovery.Secret, map[string]qovery.Secret, *apierrors.APIError) {
+	applicationVariables, response, err := c.api.ApplicationSecretApi.ListApplicationSecrets(ctx, app.Id).Execute()
+	if err != nil || response.StatusCode >= 400 {
+		return nil, nil, apierrors.NewReadError(apierrors.APIResourceApplicationSecret, app.Id, response, err)
+	}
+
+	secretsByNameForAliases := make(map[string]qovery.Secret)
+	secretsByNameForOverrides := make(map[string]qovery.Secret)
+	for _, result := range applicationVariables.Results {
+		if *result.VariableType == qovery.APIVARIABLETYPEENUM_VALUE || *result.VariableType == qovery.APIVARIABLETYPEENUM_BUILT_IN {
+			secretsByNameForAliases[result.Key] = result
+		}
+		if *result.VariableType == qovery.APIVARIABLETYPEENUM_VALUE && (result.Scope == qovery.APIVARIABLESCOPEENUM_ENVIRONMENT || result.Scope == qovery.APIVARIABLESCOPEENUM_PROJECT) {
+			secretsByNameForOverrides[result.Key] = result
+		}
+	}
+
+	return secretsByNameForAliases, secretsByNameForOverrides, nil
+}
+
+type ValueAliasOverrideApplicationVariable struct {
+	variableValues    []*qovery.EnvironmentVariable
+	variableAliases   []*qovery.EnvironmentVariable
+	variableOverrides []*qovery.EnvironmentVariable
+	secretValues      []*qovery.Secret
+	secretAliases     []*qovery.Secret
+	secretOverrides   []*qovery.Secret
+}
+
+func computeAliasOverrideValueVariablesAndSecrets(
+	environmentVariables []*qovery.EnvironmentVariable,
+	secrets []*qovery.Secret,
+) ValueAliasOverrideApplicationVariable {
+	// We need to create 3 different lists from all variables to satisfy terraform attributes: VALUE / ALIAS / OVERRIDE
+	var variableValues []*qovery.EnvironmentVariable
+	var variableAliases []*qovery.EnvironmentVariable
+	var variableOverrides []*qovery.EnvironmentVariable
+
+	for _, variable := range environmentVariables {
+		if *variable.VariableType == qovery.APIVARIABLETYPEENUM_VALUE || *variable.VariableType == qovery.APIVARIABLETYPEENUM_BUILT_IN {
+			variableValues = append(variableValues, variable)
+		}
+		if *variable.VariableType == qovery.APIVARIABLETYPEENUM_ALIAS {
+			variableAliases = append(variableAliases, variable)
+		}
+		if *variable.VariableType == qovery.APIVARIABLETYPEENUM_OVERRIDE {
+			variableOverrides = append(variableOverrides, variable)
+		}
+	}
+
+	// We need to create 3 different lists from all secrets to satisfy terraform attributes: VALUE / ALIAS / OVERRIDE
+	var secretValues []*qovery.Secret
+	var secretAliases []*qovery.Secret
+	var secretOverrides []*qovery.Secret
+
+	for _, secret := range secrets {
+		if *secret.VariableType == qovery.APIVARIABLETYPEENUM_VALUE || *secret.VariableType == qovery.APIVARIABLETYPEENUM_BUILT_IN {
+			secretValues = append(secretValues, secret)
+		}
+		if *secret.VariableType == qovery.APIVARIABLETYPEENUM_ALIAS {
+			secretAliases = append(secretAliases, secret)
+		}
+		if *secret.VariableType == qovery.APIVARIABLETYPEENUM_OVERRIDE {
+			secretOverrides = append(secretOverrides, secret)
+		}
+	}
+
+	return ValueAliasOverrideApplicationVariable{
+		variableValues:    variableValues,
+		variableAliases:   variableAliases,
+		variableOverrides: variableOverrides,
+		secretValues:      secretValues,
+		secretAliases:     secretAliases,
+		secretOverrides:   secretOverrides,
+	}
 }

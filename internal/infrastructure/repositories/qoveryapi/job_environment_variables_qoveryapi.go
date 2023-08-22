@@ -67,7 +67,7 @@ func (p jobEnvironmentVariablesQoveryAPI) Update(ctx context.Context, jobID stri
 }
 
 // Delete calls Qovery's API to delete an environment variable from a job using the given jobID and credentialsID.
-func (p jobEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, jobID string, credentialsID string) error {
+func (p jobEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, jobID string, credentialsID string) *apierrors.ApiError {
 	resp, err := p.client.JobEnvironmentVariableApi.
 		DeleteJobEnvironmentVariable(ctx, jobID, credentialsID).
 		Execute()
@@ -76,4 +76,27 @@ func (p jobEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, jobID stri
 	}
 
 	return nil
+}
+
+func (p jobEnvironmentVariablesQoveryAPI) CreateAlias(ctx context.Context, jobID string, request variable.UpsertRequest, aliasedVariableId string) (*variable.Variable, error) {
+	v, resp, err := p.client.JobEnvironmentVariableApi.
+		CreateJobEnvironmentVariableAlias(ctx, jobID, aliasedVariableId).
+		Key(qovery.Key{Key: request.Key}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJobEnvironmentVariable, jobID, resp, err)
+	}
+
+	return newDomainVariableFromQovery(v)
+}
+func (p jobEnvironmentVariablesQoveryAPI) CreateOverride(ctx context.Context, jobID string, request variable.UpsertRequest, overriddenVariableId string) (*variable.Variable, error) {
+	v, resp, err := p.client.JobEnvironmentVariableApi.
+		CreateJobEnvironmentVariableOverride(ctx, jobID, overriddenVariableId).
+		Value(qovery.Value{Value: &request.Value}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJobEnvironmentVariable, jobID, resp, err)
+	}
+
+	return newDomainVariableFromQovery(v)
 }

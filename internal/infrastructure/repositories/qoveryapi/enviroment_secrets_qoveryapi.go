@@ -67,7 +67,7 @@ func (p environmentSecretsQoveryAPI) Update(ctx context.Context, environmentID s
 }
 
 // Delete calls Qovery's API to delete an environment secret from an environment using the given environmentID and credentialsID.
-func (p environmentSecretsQoveryAPI) Delete(ctx context.Context, environmentID string, credentialsID string) error {
+func (p environmentSecretsQoveryAPI) Delete(ctx context.Context, environmentID string, credentialsID string) *apierrors.ApiError {
 	resp, err := p.client.EnvironmentSecretApi.
 		DeleteEnvironmentSecret(ctx, environmentID, credentialsID).
 		Execute()
@@ -76,4 +76,28 @@ func (p environmentSecretsQoveryAPI) Delete(ctx context.Context, environmentID s
 	}
 
 	return nil
+}
+
+func (p environmentSecretsQoveryAPI) CreateAlias(ctx context.Context, environmentId string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
+	v, resp, err := p.client.EnvironmentSecretApi.
+		CreateEnvironmentSecretAlias(ctx, environmentId, aliasedSecretId).
+		Key(qovery.Key{Key: request.Key}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceEnvironmentSecret, environmentId, resp, err)
+	}
+
+	return newDomainSecretFromQovery(v)
+}
+
+func (p environmentSecretsQoveryAPI) CreateOverride(ctx context.Context, environmentId string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
+	v, resp, err := p.client.EnvironmentSecretApi.
+		CreateEnvironmentSecretOverride(ctx, environmentId, overriddenSecretId).
+		Value(qovery.Value{Value: &request.Value}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceEnvironmentSecret, environmentId, resp, err)
+	}
+
+	return newDomainSecretFromQovery(v)
 }

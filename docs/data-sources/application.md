@@ -19,7 +19,9 @@ data "qovery_application" "my_application" {
 
 - `advanced_settings_json` (String) Advanced settings.
 - `deployment_stage_id` (String) Id of the deployment stage.
+- `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this application. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
+- `secret_overrides` (Attributes Set) List of secret overrides linked to this application. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes Set) List of secrets linked to this application. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
@@ -34,6 +36,7 @@ data "qovery_application" "my_application" {
 - `dockerfile_path` (String) Dockerfile Path of the application.
 - `entrypoint` (String) Entrypoint of the application.
 - `environment_id` (String) Id of the environment.
+- `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this application. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
 - `external_host` (String) The application external FQDN host [NOTE: only if your application is using a publicly accessible port].
 - `git_repository` (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
@@ -43,7 +46,21 @@ data "qovery_application" "my_application" {
 - `min_running_instances` (Number) Minimum number of instances running for the application.
 - `name` (String) Name of the application.
 - `ports` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--ports))
+- `secret_aliases` (Attributes Set) List of secret aliases linked to this application. (see [below for nested schema](#nestedatt--secret_aliases))
 - `storage` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
+
+<a id="nestedatt--environment_variable_overrides"></a>
+### Nested Schema for `environment_variable_overrides`
+
+Required:
+
+- `key` (String) Name of the environment variable override.
+- `value` (String) Value of the environment variable override.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable override.
+
 
 <a id="nestedatt--healthchecks"></a>
 ### Nested Schema for `healthchecks`
@@ -192,6 +209,19 @@ Optional:
 
 
 
+<a id="nestedatt--secret_overrides"></a>
+### Nested Schema for `secret_overrides`
+
+Required:
+
+- `key` (String) Name of the secret override.
+- `value` (String, Sensitive) Value of the secret override.
+
+Read-Only:
+
+- `id` (String) Id of the secret override.
+
+
 <a id="nestedatt--secrets"></a>
 ### Nested Schema for `secrets`
 
@@ -221,6 +251,19 @@ Read-Only:
 - `id` (String) Id of the custom domain.
 - `status` (String) Status of the custom domain.
 - `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
+
+
+<a id="nestedatt--environment_variable_aliases"></a>
+### Nested Schema for `environment_variable_aliases`
+
+Required:
+
+- `key` (String) Name of the environment variable alias.
+- `value` (String) Name of the variable to alias.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable alias.
 
 
 <a id="nestedatt--environment_variables"></a>
@@ -258,6 +301,19 @@ Read-Only:
 - `name` (String) Name of the port.
 - `protocol` (String) Protocol used for the port of the application.
 - `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this application.
+
+
+<a id="nestedatt--secret_aliases"></a>
+### Nested Schema for `secret_aliases`
+
+Required:
+
+- `key` (String) Name of the secret alias.
+- `value` (String) Name of the secret to alias.
+
+Read-Only:
+
+- `id` (String) Id of the secret alias.
 
 
 <a id="nestedatt--storage"></a>

@@ -115,6 +115,27 @@ func (r projectResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagno
 					},
 				}),
 			},
+			"environment_variable_aliases": {
+				Description: "List of environment variable aliases linked to this project.",
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the environment variable alias.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Name of the environment variable alias.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Name of the variable to alias.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}),
+			},
 			"secrets": {
 				Description: "List of secrets linked to this project.",
 				Optional:    true,
@@ -134,6 +155,27 @@ func (r projectResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagno
 						Type:        types.StringType,
 						Required:    true,
 						Sensitive:   true,
+					},
+				}),
+			},
+			"secret_aliases": {
+				Description: "List of secret aliases linked to this project.",
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the secret alias.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Name of the secret alias.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Name of the secret to alias.",
+						Type:        types.StringType,
+						Required:    true,
 					},
 				}),
 			},

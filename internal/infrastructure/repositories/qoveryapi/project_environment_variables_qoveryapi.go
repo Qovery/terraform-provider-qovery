@@ -67,7 +67,7 @@ func (p projectEnvironmentVariablesQoveryAPI) Update(ctx context.Context, projec
 }
 
 // Delete calls Qovery's API to delete an environment variable from a project using the given projectID and credentialsID.
-func (p projectEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, projectID string, credentialsID string) error {
+func (p projectEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, projectID string, credentialsID string) *apierrors.ApiError {
 	resp, err := p.client.ProjectEnvironmentVariableApi.
 		DeleteProjectEnvironmentVariable(ctx, projectID, credentialsID).
 		Execute()
@@ -76,4 +76,27 @@ func (p projectEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, projec
 	}
 
 	return nil
+}
+
+func (p projectEnvironmentVariablesQoveryAPI) CreateAlias(ctx context.Context, projectID string, request variable.UpsertRequest, aliasedVariableId string) (*variable.Variable, error) {
+	v, resp, err := p.client.ProjectEnvironmentVariableApi.
+		CreateProjectEnvironmentVariableAlias(ctx, projectID, aliasedVariableId).
+		Key(qovery.Key{Key: request.Key}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceProjectEnvironmentVariable, projectID, resp, err)
+	}
+
+	return newDomainVariableFromQovery(v)
+}
+func (p projectEnvironmentVariablesQoveryAPI) CreateOverride(ctx context.Context, projectID string, request variable.UpsertRequest, overriddenVariableId string) (*variable.Variable, error) {
+	v, resp, err := p.client.ProjectEnvironmentVariableApi.
+		CreateProjectEnvironmentVariableOverride(ctx, projectID, overriddenVariableId).
+		Value(qovery.Value{Value: &request.Value}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceProjectEnvironmentVariable, projectID, resp, err)
+	}
+
+	return newDomainVariableFromQovery(v)
 }

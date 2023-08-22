@@ -19,8 +19,12 @@ data "qovery_job" "my_job" {
 
 - `advanced_settings_json` (String) Advanced settings.
 - `deployment_stage_id` (String) Id of the deployment stage.
+- `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this job. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this job. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
 - `port` (Number) Job's probes port.
+- `secret_aliases` (Attributes Set) List of secret aliases linked to this job. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secret_overrides` (Attributes Set) List of secret overrides linked to this job. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes Set) List of secrets linked to this job. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
@@ -38,6 +42,32 @@ data "qovery_job" "my_job" {
 - `name` (String) Name of the job.
 - `schedule` (Attributes) Job's schedule. (see [below for nested schema](#nestedatt--schedule))
 - `source` (Attributes) Job's source. (see [below for nested schema](#nestedatt--source))
+
+<a id="nestedatt--environment_variable_aliases"></a>
+### Nested Schema for `environment_variable_aliases`
+
+Required:
+
+- `key` (String) Name of the environment variable alias.
+- `value` (String) Name of the variable to alias.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable alias.
+
+
+<a id="nestedatt--environment_variable_overrides"></a>
+### Nested Schema for `environment_variable_overrides`
+
+Required:
+
+- `key` (String) Name of the environment variable override.
+- `value` (String) Value of the environment variable override.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable override.
+
 
 <a id="nestedatt--healthchecks"></a>
 ### Nested Schema for `healthchecks`
@@ -184,6 +214,32 @@ Optional:
 
 
 
+
+
+<a id="nestedatt--secret_aliases"></a>
+### Nested Schema for `secret_aliases`
+
+Required:
+
+- `key` (String) Name of the secret alias.
+- `value` (String) Name of the secret to alias.
+
+Read-Only:
+
+- `id` (String) Id of the secret alias.
+
+
+<a id="nestedatt--secret_overrides"></a>
+### Nested Schema for `secret_overrides`
+
+Required:
+
+- `key` (String) Name of the secret override.
+- `value` (String, Sensitive) Value of the secret override.
+
+Read-Only:
+
+- `id` (String) Id of the secret override.
 
 
 <a id="nestedatt--secrets"></a>

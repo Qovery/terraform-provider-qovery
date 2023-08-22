@@ -315,6 +315,48 @@ func (d jobDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnost
 					},
 				}),
 			},
+			"environment_variable_aliases": {
+				Description: "List of environment variable aliases linked to this job.",
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the environment variable alias.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Name of the environment variable alias.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Name of the variable to alias.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}),
+			},
+			"environment_variable_overrides": {
+				Description: "List of environment variable overrides linked to this job.",
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the environment variable override.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Name of the environment variable override.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Value of the environment variable override.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}),
+			},
 			"secrets": {
 				Description: "List of secrets linked to this job.",
 				Optional:    true,
@@ -333,6 +375,49 @@ func (d jobDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnost
 						Description: "Value of the secret [NOTE: will always be empty].",
 						Type:        types.StringType,
 						Computed:    true,
+						Sensitive:   true,
+					},
+				}),
+			},
+			"secret_aliases": {
+				Description: "List of secret aliases linked to this job.",
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the secret alias.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Name of the secret alias.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Name of the secret to alias.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+				}),
+			},
+			"secret_overrides": {
+				Description: "List of secret overrides linked to this job.",
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the secret override.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"key": {
+						Description: "Name of the secret override.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"value": {
+						Description: "Value of the secret override.",
+						Type:        types.StringType,
+						Required:    true,
 						Sensitive:   true,
 					},
 				}),

@@ -67,7 +67,7 @@ func (p jobSecretsQoveryAPI) Update(ctx context.Context, jobID string, credentia
 }
 
 // Delete calls Qovery's API to delete an environment secret from a job using the given jobID and credentialsID.
-func (p jobSecretsQoveryAPI) Delete(ctx context.Context, jobID string, credentialsID string) error {
+func (p jobSecretsQoveryAPI) Delete(ctx context.Context, jobID string, credentialsID string) *apierrors.ApiError {
 	resp, err := p.client.JobSecretApi.
 		DeleteJobSecret(ctx, jobID, credentialsID).
 		Execute()
@@ -76,4 +76,28 @@ func (p jobSecretsQoveryAPI) Delete(ctx context.Context, jobID string, credentia
 	}
 
 	return nil
+}
+
+func (p jobSecretsQoveryAPI) CreateAlias(ctx context.Context, jobID string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
+	v, resp, err := p.client.JobSecretApi.
+		CreateJobSecretAlias(ctx, jobID, aliasedSecretId).
+		Key(qovery.Key{Key: request.Key}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJobSecret, jobID, resp, err)
+	}
+
+	return newDomainSecretFromQovery(v)
+}
+
+func (p jobSecretsQoveryAPI) CreateOverride(ctx context.Context, jobID string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
+	v, resp, err := p.client.JobSecretApi.
+		CreateJobSecretOverride(ctx, jobID, overriddenSecretId).
+		Value(qovery.Value{Value: &request.Value}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJobSecret, jobID, resp, err)
+	}
+
+	return newDomainSecretFromQovery(v)
 }

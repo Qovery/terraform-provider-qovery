@@ -10,33 +10,45 @@ import (
 )
 
 type Container struct {
-	ID                          types.String  `tfsdk:"id"`
-	EnvironmentID               types.String  `tfsdk:"environment_id"`
-	RegistryID                  types.String  `tfsdk:"registry_id"`
-	Name                        types.String  `tfsdk:"name"`
-	ImageName                   types.String  `tfsdk:"image_name"`
-	Tag                         types.String  `tfsdk:"tag"`
-	Entrypoint                  types.String  `tfsdk:"entrypoint"`
-	CPU                         types.Int64   `tfsdk:"cpu"`
-	Memory                      types.Int64   `tfsdk:"memory"`
-	MinRunningInstances         types.Int64   `tfsdk:"min_running_instances"`
-	MaxRunningInstances         types.Int64   `tfsdk:"max_running_instances"`
-	AutoPreview                 types.Bool    `tfsdk:"auto_preview"`
-	BuiltInEnvironmentVariables types.Set     `tfsdk:"built_in_environment_variables"`
-	EnvironmentVariables        types.Set     `tfsdk:"environment_variables"`
-	Secrets                     types.Set     `tfsdk:"secrets"`
-	Storages                    types.Set     `tfsdk:"storage"`
-	Ports                       types.Set     `tfsdk:"ports"`
-	Arguments                   types.List    `tfsdk:"arguments"`
-	ExternalHost                types.String  `tfsdk:"external_host"`
-	InternalHost                types.String  `tfsdk:"internal_host"`
-	DeploymentStageId           types.String  `tfsdk:"deployment_stage_id"`
-	Healthchecks                *HealthChecks `tfsdk:"healthchecks"`
-	AdvancedSettingsJson        types.String  `tfsdk:"advanced_settings_json"`
+	ID                           types.String  `tfsdk:"id"`
+	EnvironmentID                types.String  `tfsdk:"environment_id"`
+	RegistryID                   types.String  `tfsdk:"registry_id"`
+	Name                         types.String  `tfsdk:"name"`
+	ImageName                    types.String  `tfsdk:"image_name"`
+	Tag                          types.String  `tfsdk:"tag"`
+	Entrypoint                   types.String  `tfsdk:"entrypoint"`
+	CPU                          types.Int64   `tfsdk:"cpu"`
+	Memory                       types.Int64   `tfsdk:"memory"`
+	MinRunningInstances          types.Int64   `tfsdk:"min_running_instances"`
+	MaxRunningInstances          types.Int64   `tfsdk:"max_running_instances"`
+	AutoPreview                  types.Bool    `tfsdk:"auto_preview"`
+	BuiltInEnvironmentVariables  types.Set     `tfsdk:"built_in_environment_variables"`
+	EnvironmentVariables         types.Set     `tfsdk:"environment_variables"`
+	EnvironmentVariableAliases   types.Set     `tfsdk:"environment_variable_aliases"`
+	EnvironmentVariableOverrides types.Set     `tfsdk:"environment_variable_overrides"`
+	Secrets                      types.Set     `tfsdk:"secrets"`
+	SecretAliases                types.Set     `tfsdk:"secret_aliases"`
+	SecretOverrides              types.Set     `tfsdk:"secret_overrides"`
+	Storages                     types.Set     `tfsdk:"storage"`
+	Ports                        types.Set     `tfsdk:"ports"`
+	Arguments                    types.List    `tfsdk:"arguments"`
+	ExternalHost                 types.String  `tfsdk:"external_host"`
+	InternalHost                 types.String  `tfsdk:"internal_host"`
+	DeploymentStageId            types.String  `tfsdk:"deployment_stage_id"`
+	Healthchecks                 *HealthChecks `tfsdk:"healthchecks"`
+	AdvancedSettingsJson         types.String  `tfsdk:"advanced_settings_json"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
 	return toEnvironmentVariableList(cont.EnvironmentVariables)
+}
+
+func (cont Container) EnvironmentVariableAliasList() EnvironmentVariableList {
+	return toEnvironmentVariableList(cont.EnvironmentVariableAliases)
+}
+
+func (cont Container) EnvironmentVariableOverrideList() EnvironmentVariableList {
+	return toEnvironmentVariableList(cont.EnvironmentVariableOverrides)
 }
 
 func (cont Container) BuiltInEnvironmentVariableList() EnvironmentVariableList {
@@ -44,7 +56,15 @@ func (cont Container) BuiltInEnvironmentVariableList() EnvironmentVariableList {
 }
 
 func (cont Container) SecretList() SecretList {
-	return toSecretList(cont.Secrets)
+	return ToSecretList(cont.Secrets)
+}
+
+func (cont Container) SecretAliasesList() SecretList {
+	return ToSecretList(cont.SecretAliases)
+}
+
+func (cont Container) SecretOverridesList() SecretList {
+	return ToSecretList(cont.SecretOverrides)
 }
 
 func (cont Container) StorageList() StorageList {
@@ -65,13 +85,18 @@ func (cont Container) ArgumentList() []string {
 
 func (cont Container) toUpsertServiceRequest(state *Container) (*container.UpsertServiceRequest, error) {
 	var stateEnvironmentVariables EnvironmentVariableList
+	var stateEnvironmentVariableAliases EnvironmentVariableList
+	var stateEnvironmentVariableOverrides EnvironmentVariableList
+	var stateSecrets SecretList
+	var stateSecretAliases SecretList
+	var stateSecretOverrides SecretList
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
-	}
-
-	var stateSecrets SecretList
-	if state != nil {
+		stateEnvironmentVariableAliases = state.EnvironmentVariableAliasList()
+		stateEnvironmentVariableOverrides = state.EnvironmentVariableOverrideList()
 		stateSecrets = state.SecretList()
+		stateSecretAliases = state.SecretAliasesList()
+		stateSecretOverrides = state.SecretOverridesList()
 	}
 
 	//var stateCustomDomains CustomDomainList
@@ -80,9 +105,13 @@ func (cont Container) toUpsertServiceRequest(state *Container) (*container.Upser
 	//}
 
 	return &container.UpsertServiceRequest{
-		ContainerUpsertRequest: cont.toUpsertRepositoryRequest(),
-		EnvironmentVariables:   cont.EnvironmentVariableList().diffRequest(stateEnvironmentVariables),
-		Secrets:                cont.SecretList().diffRequest(stateSecrets),
+		ContainerUpsertRequest:       cont.toUpsertRepositoryRequest(),
+		EnvironmentVariables:         cont.EnvironmentVariableList().diffRequest(stateEnvironmentVariables),
+		EnvironmentVariableAliases:   cont.EnvironmentVariableAliasList().diffRequest(stateEnvironmentVariableAliases),
+		EnvironmentVariableOverrides: cont.EnvironmentVariableOverrideList().diffRequest(stateEnvironmentVariableOverrides),
+		Secrets:                      cont.SecretList().diffRequest(stateSecrets),
+		SecretAliases:                cont.SecretAliasesList().diffRequest(stateSecretAliases),
+		SecretOverrides:              cont.SecretOverridesList().diffRequest(stateSecretOverrides),
 		//CustomDomains:          cont.CustomDomainsList().diff(stateCustomDomains),
 	}, nil
 }
@@ -122,27 +151,31 @@ func (cont Container) toUpsertRepositoryRequest() container.UpsertRepositoryRequ
 
 func convertDomainContainerToContainer(state Container, container *container.Container) Container {
 	return Container{
-		ID:                          FromString(container.ID.String()),
-		EnvironmentID:               FromString(container.EnvironmentID.String()),
-		RegistryID:                  FromString(container.RegistryID.String()),
-		Name:                        FromString(container.Name),
-		ImageName:                   FromString(container.ImageName),
-		Tag:                         FromString(container.Tag),
-		CPU:                         FromInt32(container.CPU),
-		Memory:                      FromInt32(container.Memory),
-		MinRunningInstances:         FromInt32(container.MinRunningInstances),
-		MaxRunningInstances:         FromInt32(container.MaxRunningInstances),
-		AutoPreview:                 FromBool(container.AutoPreview),
-		Arguments:                   FromStringArray(container.Arguments),
-		Storages:                    convertDomainStoragesToStorageList(container.Storages).toTerraformSet(),
-		Ports:                       convertDomainPortsToPortList(container.Ports).toTerraformSet(),
-		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableList(container.EnvironmentVariables, variable.ScopeContainer).toTerraformSet(),
-		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn).toTerraformSet(),
-		InternalHost:                FromStringPointer(container.InternalHost),
-		ExternalHost:                FromStringPointer(container.ExternalHost),
-		Secrets:                     convertDomainSecretsToSecretList(state.SecretList(), container.Secrets, variable.ScopeContainer).toTerraformSet(),
-		DeploymentStageId:           FromString(container.DeploymentStageID),
-		Healthchecks:                convertHealthchecksResponseToDomain(&container.Healthchecks),
-		AdvancedSettingsJson:        FromString(container.AdvancedSettingsJson),
+		ID:                           FromString(container.ID.String()),
+		EnvironmentID:                FromString(container.EnvironmentID.String()),
+		RegistryID:                   FromString(container.RegistryID.String()),
+		Name:                         FromString(container.Name),
+		ImageName:                    FromString(container.ImageName),
+		Tag:                          FromString(container.Tag),
+		CPU:                          FromInt32(container.CPU),
+		Memory:                       FromInt32(container.Memory),
+		MinRunningInstances:          FromInt32(container.MinRunningInstances),
+		MaxRunningInstances:          FromInt32(container.MaxRunningInstances),
+		AutoPreview:                  FromBool(container.AutoPreview),
+		Arguments:                    FromStringArray(container.Arguments),
+		Storages:                     convertDomainStoragesToStorageList(container.Storages).toTerraformSet(),
+		Ports:                        convertDomainPortsToPortList(container.Ports).toTerraformSet(),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(),
+		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, container.EnvironmentVariables, variable.ScopeContainer, "VALUE").toTerraformSet(),
+		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, container.EnvironmentVariables, variable.ScopeContainer, "ALIAS").toTerraformSet(),
+		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableOverrides, container.EnvironmentVariables, variable.ScopeContainer, "OVERRIDE").toTerraformSet(),
+		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, container.Secrets, variable.ScopeContainer, "VALUE").toTerraformSet(),
+		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, container.Secrets, variable.ScopeContainer, "ALIAS").toTerraformSet(),
+		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, container.Secrets, variable.ScopeContainer, "OVERRIDE").toTerraformSet(),
+		InternalHost:                 FromStringPointer(container.InternalHost),
+		ExternalHost:                 FromStringPointer(container.ExternalHost),
+		DeploymentStageId:            FromString(container.DeploymentStageID),
+		Healthchecks:                 convertHealthchecksResponseToDomain(&container.Healthchecks),
+		AdvancedSettingsJson:         FromString(container.AdvancedSettingsJson),
 	}
 }

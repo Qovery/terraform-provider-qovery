@@ -59,26 +59,30 @@ var (
 )
 
 type Job struct {
-	ID                          uuid.UUID `validate:"required"`
-	EnvironmentID               uuid.UUID `validate:"required"`
-	Name                        string
-	CPU                         int32
-	Memory                      int32
-	MaxNbRestart                uint32
-	MaxDurationSeconds          uint32
-	AutoPreview                 bool
-	Source                      JobSource   `validate:"required"`
-	Schedule                    JobSchedule `validate:"required"`
-	Port                        *port.Port
-	EnvironmentVariables        variable.Variables
-	BuiltInEnvironmentVariables variable.Variables
-	Secrets                     secret.Secrets
-	InternalHost                *string
-	ExternalHost                *string
-	State                       status.State
-	DeploymentStageID           string
-	HealthChecks                qovery2.Healthcheck
-	AdvancedSettingsJson        string
+	ID                           uuid.UUID `validate:"required"`
+	EnvironmentID                uuid.UUID `validate:"required"`
+	Name                         string
+	CPU                          int32
+	Memory                       int32
+	MaxNbRestart                 uint32
+	MaxDurationSeconds           uint32
+	AutoPreview                  bool
+	Source                       JobSource   `validate:"required"`
+	Schedule                     JobSchedule `validate:"required"`
+	Port                         *port.Port
+	BuiltInEnvironmentVariables  variable.Variables
+	EnvironmentVariables         variable.Variables
+	EnvironmentVariableAliases   variable.Variables
+	EnvironmentVariableOverrides variable.Variables
+	Secrets                      secret.Secrets
+	SecretAliases                secret.Secrets
+	SecretOverrides              secret.Secrets
+	InternalHost                 *string
+	ExternalHost                 *string
+	State                        status.State
+	DeploymentStageID            string
+	HealthChecks                 qovery2.Healthcheck
+	AdvancedSettingsJson         string
 }
 
 // Validate returns an error to tell whether the Job domain model is valid or not.

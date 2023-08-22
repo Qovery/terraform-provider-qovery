@@ -67,7 +67,7 @@ func (p projectSecretsQoveryAPI) Update(ctx context.Context, projectID string, c
 }
 
 // Delete calls Qovery's API to delete an environment secret from a project using the given projectID and credentialsID.
-func (p projectSecretsQoveryAPI) Delete(ctx context.Context, projectID string, credentialsID string) error {
+func (p projectSecretsQoveryAPI) Delete(ctx context.Context, projectID string, credentialsID string) *apierrors.ApiError {
 	resp, err := p.client.ProjectSecretApi.
 		DeleteProjectSecret(ctx, projectID, credentialsID).
 		Execute()
@@ -76,4 +76,27 @@ func (p projectSecretsQoveryAPI) Delete(ctx context.Context, projectID string, c
 	}
 
 	return nil
+}
+
+func (p projectSecretsQoveryAPI) CreateAlias(ctx context.Context, projectId string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
+	v, resp, err := p.client.ProjectSecretApi.
+		CreateProjectSecretAlias(ctx, projectId, aliasedSecretId).
+		Key(qovery.Key{Key: request.Key}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceProjectSecret, projectId, resp, err)
+	}
+
+	return newDomainSecretFromQovery(v)
+}
+func (p projectSecretsQoveryAPI) CreateOverride(ctx context.Context, projectId string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
+	v, resp, err := p.client.ProjectSecretApi.
+		CreateProjectSecretOverride(ctx, projectId, overriddenSecretId).
+		Value(qovery.Value{Value: &request.Value}).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceProjectSecret, projectId, resp, err)
+	}
+
+	return newDomainSecretFromQovery(v)
 }

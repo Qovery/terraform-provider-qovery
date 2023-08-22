@@ -17,7 +17,13 @@ var (
 // Service represents the interface to implement to handle the domain logic of a Variable.
 type Service interface {
 	List(ctx context.Context, scopeResourceID string) (Variables, error)
-	Update(ctx context.Context, scopeResourceID string, request DiffRequest) (Variables, error)
+	Update(
+		ctx context.Context,
+		scopeResourceID string,
+		environmentVariablesRequest DiffRequest,
+		environmentVariableAliasesRequest DiffRequest,
+		environmentVariableOverridesRequest DiffRequest,
+		overrideAuthorizedScopes map[Scope]struct{}) (Variables, error)
 }
 
 // DiffRequest represents the parameters needed to create & update a Variable.

@@ -5,6 +5,8 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
 //go:generate mockery --testonly --with-expecter --name=Service --structname=SecretService --filename=secret_service_mock.go --output=../../application/services/mocks_test/ --outpkg=mocks_test
@@ -17,7 +19,13 @@ var (
 // Service represents the interface to implement to handle the domain logic of a Secret.
 type Service interface {
 	List(ctx context.Context, scopeResourceID string) (Secrets, error)
-	Update(ctx context.Context, scopeResourceID string, request DiffRequest) (Secrets, error)
+	Update(
+		ctx context.Context,
+		scopeResourceID string,
+		secretsRequest DiffRequest,
+		secretAliasesRequest DiffRequest,
+		secretOverridesRequest DiffRequest,
+		overrideAuthorizedScopes map[variable.Scope]struct{}) (Secrets, error)
 }
 
 // DiffRequest represents the parameters needed to create & update a Secret.

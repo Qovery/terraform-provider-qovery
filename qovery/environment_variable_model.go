@@ -181,10 +181,10 @@ func fromEnvironmentVariable(v *qovery.EnvironmentVariable) EnvironmentVariable 
 	}
 }
 
-func fromEnvironmentVariableList(vars []*qovery.EnvironmentVariable, scope qovery.APIVariableScopeEnum) EnvironmentVariableList {
+func fromEnvironmentVariableList(vars []*qovery.EnvironmentVariable, scope qovery.APIVariableScopeEnum, variableType string) EnvironmentVariableList {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
-		if v.Scope != scope {
+		if v.Scope != scope || string(*v.VariableType) != variableType {
 			continue
 		}
 		list = append(list, fromEnvironmentVariable(v))
@@ -193,6 +193,23 @@ func fromEnvironmentVariableList(vars []*qovery.EnvironmentVariable, scope qover
 	if len(list) == 0 {
 		return nil
 	}
+	return list
+}
+
+func fromEnvironmentVariableListWithNullableInitialState(initialState types.Set, vars []*qovery.EnvironmentVariable, scope qovery.APIVariableScopeEnum, variableType string) EnvironmentVariableList {
+	list := make([]EnvironmentVariable, 0, len(vars))
+	for _, v := range vars {
+		if v.Scope != scope || string(*v.VariableType) != variableType {
+			continue
+		}
+		list = append(list, fromEnvironmentVariable(v))
+	}
+
+	// Return nil only if list is empty and original state is nil
+	if len(list) == 0 && initialState.IsNull() {
+		return nil
+	}
+	// Otherwise return the list, even empty (`[]` in the terraform file)
 	return list
 }
 
@@ -217,10 +234,10 @@ func toEnvironmentVariableList(vars types.Set) EnvironmentVariableList {
 	return environmentVariables
 }
 
-func convertDomainVariablesToEnvironmentVariableList(vars variable.Variables, scope variable.Scope) EnvironmentVariableList {
+func convertDomainVariablesToEnvironmentVariableList(vars variable.Variables, scope variable.Scope, variableType string) EnvironmentVariableList {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
-		if v.Scope != scope {
+		if v.Scope != scope || v.Type != variableType {
 			continue
 		}
 		list = append(list, convertDomainVariableToEnvironmentVariable(v))
@@ -229,6 +246,23 @@ func convertDomainVariablesToEnvironmentVariableList(vars variable.Variables, sc
 	if len(list) == 0 {
 		return nil
 	}
+	return list
+}
+
+func convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(initialState types.Set, vars variable.Variables, scope variable.Scope, variableType string) EnvironmentVariableList {
+	list := make([]EnvironmentVariable, 0, len(vars))
+	for _, v := range vars {
+		if v.Scope != scope || v.Type != variableType {
+			continue
+		}
+		list = append(list, convertDomainVariableToEnvironmentVariable(v))
+	}
+
+	// Return nil only if list is empty and original state is nil
+	if len(list) == 0 && initialState.IsNull() {
+		return nil
+	}
+	// Otherwise return the list, even empty (`[]` in the terraform file)
 	return list
 }
 

@@ -67,7 +67,7 @@ func (p containerEnvironmentVariablesQoveryAPI) Update(ctx context.Context, cont
 }
 
 // Delete calls Qovery's API to delete an environment variable from a container using the given containerID and credentialsID.
-func (p containerEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, containerID string, credentialsID string) error {
+func (p containerEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, containerID string, credentialsID string) *apierrors.ApiError {
 	resp, err := p.client.ContainerEnvironmentVariableApi.
 		DeleteContainerEnvironmentVariable(ctx, containerID, credentialsID).
 		Execute()
@@ -76,4 +76,27 @@ func (p containerEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, cont
 	}
 
 	return nil
+}
+
+func (p containerEnvironmentVariablesQoveryAPI) CreateAlias(ctx context.Context, containerID string, request variable.UpsertRequest, aliasedVariableId string) (*variable.Variable, error) {
+	v, resp, err := p.client.ContainerEnvironmentVariableApi.
+		CreateContainerEnvironmentVariableAlias(ctx, containerID, aliasedVariableId).
+		Key(qovery.Key{Key: request.Key}).
+		Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainerEnvironmentVariable, request.Key, resp, err)
+	}
+
+	return newDomainVariableFromQovery(v)
+}
+func (p containerEnvironmentVariablesQoveryAPI) CreateOverride(ctx context.Context, containerID string, request variable.UpsertRequest, overriddenVariableId string) (*variable.Variable, error) {
+	v, resp, err := p.client.ContainerEnvironmentVariableApi.
+		CreateContainerEnvironmentVariableOverride(ctx, containerID, overriddenVariableId).
+		Value(qovery.Value{Value: &request.Value}).
+		Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainerEnvironmentVariable, request.Key, resp, err)
+	}
+
+	return newDomainVariableFromQovery(v)
 }
