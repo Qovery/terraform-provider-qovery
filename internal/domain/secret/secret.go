@@ -114,7 +114,7 @@ func NewSecret(params NewSecretParams) (*Secret, error) {
 // UpsertRequest represents the parameters needed to create & update a Secret.
 type UpsertRequest struct {
 	Key   string `validate:"required"`
-	Value string `validate:"required"`
+	Value string
 }
 
 // Validate returns an error to tell whether the UpsertRequest is valid or not.

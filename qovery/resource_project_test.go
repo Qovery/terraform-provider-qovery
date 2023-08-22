@@ -78,7 +78,7 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 				Config: testAccProjectDefaultConfigWithEnvironmentVariablesAndAliases(
 					testName,
 					map[string]string{
-						"key1": "value1",
+						"key1": "",
 					},
 					map[string]string{},
 				),
@@ -90,7 +90,7 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
 						"key":   "key1",
-						"value": "value1",
+						"value": "",
 					}),
 				),
 			},
@@ -198,7 +198,7 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 				Config: testAccProjectDefaultConfigWithSecretsAndAliases(
 					testName,
 					map[string]string{
-						"key1": "value1",
+						"key1": "",
 					},
 					map[string]string{
 						"key1_alias": "key1",
@@ -213,7 +213,7 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secrets.*", map[string]string{
 						"key":   "key1",
-						"value": "value1",
+						"value": "",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secret_aliases.*", map[string]string{
 						"key":   "key1_alias",

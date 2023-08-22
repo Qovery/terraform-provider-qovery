@@ -393,7 +393,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 				Config: testAccContainerDefaultConfigWithEnvironmentVariables(
 					testName,
 					map[string]string{
-						"key1": "value1",
+						"key1": "",
 					},
 					map[string]string{},
 					map[string]string{},
@@ -416,7 +416,7 @@ func TestAcc_ContainerWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_container.test", "ports.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variables.*", map[string]string{
 						"key":   "key1",
-						"value": "value1",
+						"value": "",
 					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
@@ -594,7 +594,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 				Config: testAccContainerDefaultConfigWithSecrets(
 					testName,
 					map[string]string{
-						"key1": "value1",
+						"key1": "",
 					},
 					map[string]string{},
 					map[string]string{},
@@ -621,7 +621,7 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secrets.*", map[string]string{
 						"key":   "key1",
-						"value": "value1",
+						"value": "",
 					}),
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),

@@ -351,7 +351,7 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 				Config: testAccApplicationDefaultConfigWithEnvironmentVariables(
 					testName,
 					map[string]string{
-						"key1": "value1",
+						"key1": "",
 					},
 					map[string]string{},
 					map[string]string{},
@@ -376,7 +376,7 @@ func TestAcc_ApplicationWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "environment_variables.*", map[string]string{
 						"key":   "key1",
-						"value": "value1",
+						"value": "",
 					}),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
@@ -559,7 +559,7 @@ func TestAcc_ApplicationWithSecrets(t *testing.T) {
 				Config: testAccApplicationDefaultConfigWithSecrets(
 					testName,
 					map[string]string{
-						"key1": "value1",
+						"key1": "",
 					},
 					map[string]string{
 						"key1_alias": "key1",
@@ -589,7 +589,7 @@ func TestAcc_ApplicationWithSecrets(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "secrets.*", map[string]string{
 						"key":   "key1",
-						"value": "value1",
+						"value": "",
 					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "secret_aliases.*", map[string]string{
 						"key":   "key1_alias",

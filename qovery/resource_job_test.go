@@ -63,7 +63,26 @@ func TestAcc_Job(t *testing.T) {
 								},
 							},
 						},
-						Secrets:              types.Set{Null: true},
+						EnvironmentVariables: types.Set{
+							Elems: []attr.Value{
+								types.Object{
+									Attrs: map[string]attr.Value{
+										"key":   qovery.FromString("key1"),
+										"value": qovery.FromString(""),
+									},
+								},
+							},
+						},
+						Secrets: types.Set{
+							Elems: []attr.Value{
+								types.Object{
+									Attrs: map[string]attr.Value{
+										"key":   qovery.FromString("secretkey1"),
+										"value": qovery.FromString(""),
+									},
+								},
+							},
+						},
 						AdvancedSettingsJson: qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),
@@ -90,6 +109,14 @@ func TestAcc_Job(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_job.test", "schedule.cronjob.command.arguments.1", "arg2"),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_job.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_job.test", "environment_variables.*", map[string]string{
+						"key":   "key1",
+						"value": "",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_job.test", "secrets.*", map[string]string{
+						"key":   "secretkey1",
+						"value": "",
 					}),
 					resource.TestCheckNoResourceAttr("qovery_job.test", "external_host"),
 					resource.TestCheckNoResourceAttr("qovery_job.test", "internal_host"),
