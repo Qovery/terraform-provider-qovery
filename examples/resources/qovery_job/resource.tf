@@ -16,12 +16,45 @@ resource "qovery_job" "my_job" {
       value = "MY_TERRAFORM_CONTAINER_VARIABLE_VALUE"
     }
   ]
+  environment_variable_aliases = [
+    {
+      key = "ENV_VAR_KEY_ALIAS"
+      # the value of the alias must be the name of the aliased variable
+      # e.g here it is an alias to the above declared environment variable "ENV_VAR_KEY"
+      value = "ENV_VAR_KEY"
+    }
+  ]
+  environment_variable_overrides = [
+    {
+      # the key of the override must be the name of the aliased variable
+      # e.g here it is an override on a variable declared at project scope "SOME_PROJECT_VARIABLE"
+      key   = "SOME_PROJECT_VARIABLE"
+      value = "OVERRIDDEN_VALUE"
+    }
+  ]
   secrets = [
     {
       key   = "MY_TERRAFORM_CONTAINER_SECRET"
       value = "MY_TERRAFORM_CONTAINER_SECRET_VALUE"
     }
   ]
+  secret_aliases = [
+    {
+      key = "SECRET_KEY_ALIAS"
+      # the value of the alias must be the name of the aliased secret
+      # e.g here it is an alias to the above declared secret "SECRET_KEY"
+      value = "SECRET_KEY"
+    }
+  ]
+  secret_overrides = [
+    {
+      # the key of the override must be the name of the aliased secret
+      # e.g here it is an override on a secret declared at project scope "SOME_PROJECT_SECRET"
+      key   = "SOME_PROJECT_SECRET"
+      value = "OVERRIDDEN_VALUE"
+    }
+  ]
+
   schedule = {
     on_start  = {}
     on_stop   = {}
