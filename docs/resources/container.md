@@ -95,6 +95,12 @@ resource "qovery_container" "my_container" {
     }
   ]
 
+  custom_domains = [
+    {
+      domain = "example.com"
+    }
+  ]
+
   advanced_settings_json = jsonencode({
     # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings
     # you can only indicate settings that you need to override
@@ -129,6 +135,7 @@ resource "qovery_container" "my_container" {
 - `cpu` (Number) CPU of the container in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 10`.
 	- Default: `500`.
+- `custom_domains` (Attributes Set) List of custom domains linked to this container. (see [below for nested schema](#nestedatt--custom_domains))
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `entrypoint` (String) Entrypoint of the container.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this container. (see [below for nested schema](#nestedatt--environment_variable_aliases))
@@ -301,6 +308,20 @@ Optional:
 
 
 
+
+
+<a id="nestedatt--custom_domains"></a>
+### Nested Schema for `custom_domains`
+
+Required:
+
+- `domain` (String) Your custom domain.
+
+Read-Only:
+
+- `id` (String) Id of the custom domain.
+- `status` (String) Status of the custom domain.
+- `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
 
 
 <a id="nestedatt--environment_variable_aliases"></a>
