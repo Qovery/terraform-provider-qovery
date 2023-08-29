@@ -18,6 +18,7 @@ data "qovery_container" "my_container" {
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
+- `custom_domains` (Attributes Set) List of custom domains linked to this container. (see [below for nested schema](#nestedatt--custom_domains))
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this container. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this container. (see [below for nested schema](#nestedatt--environment_variable_overrides))
@@ -46,6 +47,20 @@ data "qovery_container" "my_container" {
 - `registry_id` (String) Id of the registry.
 - `storage` (Attributes Set) List of storages linked to this container. (see [below for nested schema](#nestedatt--storage))
 - `tag` (String) Tag of the container image.
+
+<a id="nestedatt--custom_domains"></a>
+### Nested Schema for `custom_domains`
+
+Required:
+
+- `domain` (String) Your custom domain.
+
+Read-Only:
+
+- `id` (String) Id of the custom domain.
+- `status` (String) Status of the custom domain.
+- `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
+
 
 <a id="nestedatt--environment_variable_aliases"></a>
 ### Nested Schema for `environment_variable_aliases`

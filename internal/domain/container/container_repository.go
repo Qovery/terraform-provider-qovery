@@ -10,6 +10,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 
+	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
 )
@@ -40,6 +41,7 @@ type UpsertRepositoryRequest struct {
 	DeploymentStageID    string
 	Healthchecks         *qovery.Healthcheck
 	AdvancedSettingsJson string
+	CustomDomains        client.CustomDomainsDiff
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.

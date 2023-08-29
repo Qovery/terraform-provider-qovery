@@ -88,6 +88,12 @@ resource "qovery_container" "my_container" {
     }
   ]
 
+  custom_domains = [
+    {
+      domain = "example.com"
+    }
+  ]
+
   advanced_settings_json = jsonencode({
     # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings
     # you can only indicate settings that you need to override

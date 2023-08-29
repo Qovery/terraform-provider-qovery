@@ -3,6 +3,7 @@ package qovery
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
+	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
@@ -32,6 +33,7 @@ type Container struct {
 	Storages                     types.Set     `tfsdk:"storage"`
 	Ports                        types.Set     `tfsdk:"ports"`
 	Arguments                    types.List    `tfsdk:"arguments"`
+	CustomDomains                types.Set     `tfsdk:"custom_domains"`
 	ExternalHost                 types.String  `tfsdk:"external_host"`
 	InternalHost                 types.String  `tfsdk:"internal_host"`
 	DeploymentStageId            types.String  `tfsdk:"deployment_stage_id"`
@@ -79,9 +81,9 @@ func (cont Container) ArgumentList() []string {
 	return ToStringArray(cont.Arguments)
 }
 
-//func (cont Container) CustomDomainsList() CustomDomainList {
-//	return toCustomDomainList(cont.CustomDomains)
-//}
+func (cont Container) CustomDomainsList() CustomDomainList {
+	return toCustomDomainList(cont.CustomDomains)
+}
 
 func (cont Container) toUpsertServiceRequest(state *Container) (*container.UpsertServiceRequest, error) {
 	var stateEnvironmentVariables EnvironmentVariableList
@@ -90,6 +92,8 @@ func (cont Container) toUpsertServiceRequest(state *Container) (*container.Upser
 	var stateSecrets SecretList
 	var stateSecretAliases SecretList
 	var stateSecretOverrides SecretList
+	var stateCustomDomains CustomDomainList
+
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
 		stateEnvironmentVariableAliases = state.EnvironmentVariableAliasList()
@@ -97,26 +101,21 @@ func (cont Container) toUpsertServiceRequest(state *Container) (*container.Upser
 		stateSecrets = state.SecretList()
 		stateSecretAliases = state.SecretAliasesList()
 		stateSecretOverrides = state.SecretOverridesList()
+		stateCustomDomains = state.CustomDomainsList()
 	}
 
-	//var stateCustomDomains CustomDomainList
-	//if state != nil {
-	//	stateCustomDomains = state.CustomDomainsList()
-	//}
-
 	return &container.UpsertServiceRequest{
-		ContainerUpsertRequest:       cont.toUpsertRepositoryRequest(),
+		ContainerUpsertRequest:       cont.toUpsertRepositoryRequest(cont.CustomDomainsList().diff(stateCustomDomains)),
 		EnvironmentVariables:         cont.EnvironmentVariableList().diffRequest(stateEnvironmentVariables),
 		EnvironmentVariableAliases:   cont.EnvironmentVariableAliasList().diffRequest(stateEnvironmentVariableAliases),
 		EnvironmentVariableOverrides: cont.EnvironmentVariableOverrideList().diffRequest(stateEnvironmentVariableOverrides),
 		Secrets:                      cont.SecretList().diffRequest(stateSecrets),
 		SecretAliases:                cont.SecretAliasesList().diffRequest(stateSecretAliases),
 		SecretOverrides:              cont.SecretOverridesList().diffRequest(stateSecretOverrides),
-		//CustomDomains:          cont.CustomDomainsList().diff(stateCustomDomains),
 	}, nil
 }
 
-func (cont Container) toUpsertRepositoryRequest() container.UpsertRepositoryRequest {
+func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomDomainsDiff) container.UpsertRepositoryRequest {
 	storageList := cont.StorageList()
 	storages := make([]storage.UpsertRequest, 0, len(storageList))
 	for _, store := range storageList {
@@ -146,6 +145,7 @@ func (cont Container) toUpsertRepositoryRequest() container.UpsertRepositoryRequ
 		DeploymentStageID:    ToString(cont.DeploymentStageId),
 		Healthchecks:         cont.Healthchecks.toHealthchecksRequest(),
 		AdvancedSettingsJson: ToString(cont.AdvancedSettingsJson),
+		CustomDomains:        customDomainsDiff,
 	}
 }
 
@@ -177,5 +177,6 @@ func convertDomainContainerToContainer(state Container, container *container.Con
 		DeploymentStageId:            FromString(container.DeploymentStageID),
 		Healthchecks:                 convertHealthchecksResponseToDomain(&container.Healthchecks),
 		AdvancedSettingsJson:         FromString(container.AdvancedSettingsJson),
+		CustomDomains:                fromCustomDomainList(container.CustomDomains).toTerraformSet(),
 	}
 }

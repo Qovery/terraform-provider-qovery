@@ -17,6 +17,7 @@ const (
 	ApiResourceClusterRoutingTable            ApiResource = "cluster routing table"
 	ApiResourceClusterStatus                  ApiResource = "cluster status"
 	ApiResourceContainer                      ApiResource = "container"
+	ApiResourceContainerCustomDomain          ApiResource = "container custom domain"
 	ApiResourceContainerEnvironmentVariable   ApiResource = "container environment variable"
 	ApiResourceContainerRegistry              ApiResource = "container registry"
 	ApiResourceContainerSecret                ApiResource = "container secret"
