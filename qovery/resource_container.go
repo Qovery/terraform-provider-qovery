@@ -431,32 +431,32 @@ func (r containerResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diag
 					modifiers.NewStringSliceDefaultModifier([]string{}),
 				},
 			},
-			//"custom_domains": {
-			//	Description: "List of custom domains linked to this container.",
-			//	Computed:    true,
-			//	Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-			//		"id": {
-			//			Description: "Id of the custom domain.",
-			//			Type:        types.StringType,
-			//			Computed:    true,
-			//		},
-			//		"domain": {
-			//			Description: "Your custom domain.",
-			//			Type:        types.StringType,
-			//			Computed:    true,
-			//		},
-			//		"validation_domain": {
-			//			Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
-			//			Type:        types.StringType,
-			//			Computed:    true,
-			//		},
-			//		"status": {
-			//			Description: "Status of the custom domain.",
-			//			Type:        types.StringType,
-			//			Computed:    true,
-			//		},
-			//	}),
-			//},
+			"custom_domains": {
+				Description: "List of custom domains linked to this container.",
+				Optional:    true,
+				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
+					"id": {
+						Description: "Id of the custom domain.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"domain": {
+						Description: "Your custom domain.",
+						Type:        types.StringType,
+						Required:    true,
+					},
+					"validation_domain": {
+						Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+					"status": {
+						Description: "Status of the custom domain.",
+						Type:        types.StringType,
+						Computed:    true,
+					},
+				}),
+			},
 			"external_host": {
 				Description: "The container external FQDN host [NOTE: only if your container is using a publicly accessible port].",
 				Type:        types.StringType,
