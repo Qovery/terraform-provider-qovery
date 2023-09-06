@@ -26,7 +26,7 @@ resource "qovery_job" "my_job" {
   ]
   environment_variable_overrides = [
     {
-      # the key of the override must be the name of the aliased variable
+      # the key of the override must be the name of the overridden variable
       # e.g here it is an override on a variable declared at project scope "SOME_PROJECT_VARIABLE"
       key   = "SOME_PROJECT_VARIABLE"
       value = "OVERRIDDEN_VALUE"
@@ -48,7 +48,7 @@ resource "qovery_job" "my_job" {
   ]
   secret_overrides = [
     {
-      # the key of the override must be the name of the aliased secret
+      # the key of the override must be the name of the overridden secret
       # e.g here it is an override on a secret declared at project scope "SOME_PROJECT_SECRET"
       key   = "SOME_PROJECT_SECRET"
       value = "OVERRIDDEN_VALUE"
