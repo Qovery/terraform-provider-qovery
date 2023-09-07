@@ -125,12 +125,12 @@ func (r containerRegistryResource) GetSchema(_ context.Context) (tfsdk.Schema, d
 						Optional:    true,
 					},
 					"username": {
-						Description: "Required if kind is `DOCKER_HUB`.",
+						Description: "Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.",
 						Type:        types.StringType,
 						Optional:    true,
 					},
 					"password": {
-						Description: "Required if kind is `DOCKER_HUB`.",
+						Description: "Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.",
 						Type:        types.StringType,
 						Optional:    true,
 					},
