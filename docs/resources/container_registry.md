@@ -31,7 +31,7 @@ resource "qovery_container_registry" "my_container_registry" {
 ### Required
 
 - `kind` (String) Kind of the container registry.
-	- Can be: `DOCKER_HUB`, `DOCR`, `ECR`, `PUBLIC_ECR`, `SCALEWAY_CR`.
+	- Can be: `DOCKER_HUB`, `DOCR`, `ECR`, `GENERIC_CR`, `GITHUB_CR`, `GITLAB_CR`, `PUBLIC_ECR`, `SCALEWAY_CR`.
 - `name` (String) Name of the container registry.
 - `organization_id` (String) Id of the organization.
 - `url` (String) URL of the container registry.
@@ -51,12 +51,12 @@ resource "qovery_container_registry" "my_container_registry" {
 Optional:
 
 - `access_key_id` (String) Required if kind is `ECR` or `PUBLIC_ECR`.
-- `password` (String) Required if kind is `DOCKER_HUB`.
+- `password` (String) Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.
 - `region` (String) Required if kind is `ECR` or `SCALEWAY_CR`.
 - `scaleway_access_key` (String) Required if kind is `SCALEWAY_CR`.
 - `scaleway_secret_key` (String) Required if kind is `SCALEWAY_CR`.
 - `secret_access_key` (String) Required if kind is `ECR` or `PUBLIC_ECR`.
-- `username` (String) Required if kind is `DOCKER_HUB`.
+- `username` (String) Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.
 ## Import
 ```shell
 terraform import qovery_container_registry.my_container_registry "<organization_id>,<container_registry_id>"
