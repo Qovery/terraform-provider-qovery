@@ -84,13 +84,13 @@ func fromStorageList(state StorageList, storages storage.Storages) StorageList {
 	return list
 }
 
-func convertDomainStoragesToStorageList(storages storage.Storages) StorageList {
+func convertDomainStoragesToStorageList(initialState types.Set, storages storage.Storages) StorageList {
 	list := make([]Storage, 0, len(storages))
 	for _, s := range storages {
 		list = append(list, convertDomainStorageToStorage(s))
 	}
 
-	if len(list) == 0 {
+	if len(list) == 0 && initialState.IsNull() {
 		return nil
 	}
 	return list

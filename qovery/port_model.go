@@ -98,13 +98,13 @@ func fromPortList(state PortList, ports port.Ports) PortList {
 	return list
 }
 
-func convertDomainPortsToPortList(ports port.Ports) PortList {
+func convertDomainPortsToPortList(initialState types.Set, ports port.Ports) PortList {
 	list := make([]Port, 0, len(ports))
 	for _, s := range ports {
 		list = append(list, convertDomainPortToPort(s))
 	}
 
-	if len(list) == 0 {
+	if len(list) == 0 && initialState.IsNull() {
 		return nil
 	}
 	return list
