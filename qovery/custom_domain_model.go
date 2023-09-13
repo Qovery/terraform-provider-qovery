@@ -127,16 +127,15 @@ func fromCustomDomain(d *qovery.CustomDomain) CustomDomain {
 	}
 }
 
-func fromCustomDomainList(vars []*qovery.CustomDomain) CustomDomainList {
-	if len(vars) == 0 {
+func fromCustomDomainList(initialState types.Set, customDomains []*qovery.CustomDomain) CustomDomainList {
+	list := make([]CustomDomain, 0, len(customDomains))
+	for _, customDomain := range customDomains {
+		list = append(list, fromCustomDomain(customDomain))
+	}
+
+	if len(list) == 0 && initialState.IsNull() {
 		return nil
 	}
-
-	list := make([]CustomDomain, 0, len(vars))
-	for _, v := range vars {
-		list = append(list, fromCustomDomain(v))
-	}
-
 	return list
 }
 

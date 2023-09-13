@@ -220,8 +220,8 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		MaxRunningInstances:          FromInt32Pointer(app.ApplicationResponse.MaxRunningInstances),
 		AutoPreview:                  FromBoolPointer(app.ApplicationResponse.AutoPreview),
 		GitRepository:                convertResponseToApplicationGitRepository(app.ApplicationResponse.GitRepository),
-		Storage:                      convertResponseToApplicationStorage(app.ApplicationResponse.Storage),
-		Ports:                        convertResponseToApplicationPorts(app.ApplicationResponse.Ports),
+		Storage:                      convertResponseToApplicationStorage(state.Storage, app.ApplicationResponse.Storage),
+		Ports:                        convertResponseToApplicationPorts(state.Ports, app.ApplicationResponse.Ports),
 		BuiltInEnvironmentVariables:  fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_BUILT_IN, "BUILT_IN").toTerraformSet(),
 		EnvironmentVariables:         fromEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(),
 		EnvironmentVariableAliases:   fromEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, app.ApplicationEnvironmentVariableAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(),
@@ -229,7 +229,7 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		Secrets:                      fromSecretList(state.Secrets, app.ApplicationSecrets, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(),
 		SecretVariableAliases:        fromSecretList(state.SecretVariableAliases, app.ApplicationSecretAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(),
 		SecretVariableOverrides:      fromSecretList(state.SecretVariableOverrides, app.ApplicationSecretOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION, "OVERRIDE").toTerraformSet(),
-		CustomDomains:                fromCustomDomainList(app.ApplicationCustomDomains).toTerraformSet(),
+		CustomDomains:                fromCustomDomainList(state.CustomDomains, app.ApplicationCustomDomains).toTerraformSet(),
 		InternalHost:                 FromString(app.ApplicationInternalHost),
 		ExternalHost:                 FromStringPointer(app.ApplicationExternalHost),
 		Entrypoint:                   FromStringPointer(app.ApplicationResponse.Entrypoint),
@@ -305,11 +305,7 @@ func (store ApplicationStorage) toUpdateRequest(id string) (*qovery.ServiceStora
 	}, nil
 }
 
-func convertResponseToApplicationStorage(storage []qovery.ServiceStorageStorageInner) []ApplicationStorage {
-	if len(storage) == 0 {
-		return nil
-	}
-
+func convertResponseToApplicationStorage(initialState []ApplicationStorage, storage []qovery.ServiceStorageStorageInner) []ApplicationStorage {
 	list := make([]ApplicationStorage, 0, len(storage))
 	for _, s := range storage {
 		list = append(list, ApplicationStorage{
@@ -319,6 +315,11 @@ func convertResponseToApplicationStorage(storage []qovery.ServiceStorageStorageI
 			MountPoint: FromString(s.MountPoint),
 		})
 	}
+
+	if len(storage) == 0 && initialState == nil {
+		return nil
+	}
+
 	return list
 }
 
@@ -365,11 +366,7 @@ func (port ApplicationPort) toUpdateRequest() (*qovery.ServicePort, error) {
 	}, nil
 }
 
-func convertResponseToApplicationPorts(ports []qovery.ServicePort) []ApplicationPort {
-	if len(ports) == 0 {
-		return nil
-	}
-
+func convertResponseToApplicationPorts(initialState []ApplicationPort, ports []qovery.ServicePort) []ApplicationPort {
 	list := make([]ApplicationPort, 0, len(ports))
 	for _, p := range ports {
 		list = append(list, ApplicationPort{
@@ -382,5 +379,10 @@ func convertResponseToApplicationPorts(ports []qovery.ServicePort) []Application
 			IsDefault:          FromBoolPointer(p.IsDefault),
 		})
 	}
+
+	if len(ports) == 0 && initialState == nil {
+		return nil
+	}
+
 	return list
 }

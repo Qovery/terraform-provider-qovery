@@ -163,8 +163,8 @@ func convertDomainContainerToContainer(state Container, container *container.Con
 		MaxRunningInstances:          FromInt32(container.MaxRunningInstances),
 		AutoPreview:                  FromBool(container.AutoPreview),
 		Arguments:                    FromStringArray(container.Arguments),
-		Storages:                     convertDomainStoragesToStorageList(container.Storages).toTerraformSet(),
-		Ports:                        convertDomainPortsToPortList(container.Ports).toTerraformSet(),
+		Storages:                     convertDomainStoragesToStorageList(state.Storages, container.Storages).toTerraformSet(),
+		Ports:                        convertDomainPortsToPortList(state.Ports, container.Ports).toTerraformSet(),
 		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, container.EnvironmentVariables, variable.ScopeContainer, "VALUE").toTerraformSet(),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, container.EnvironmentVariables, variable.ScopeContainer, "ALIAS").toTerraformSet(),
@@ -177,6 +177,6 @@ func convertDomainContainerToContainer(state Container, container *container.Con
 		DeploymentStageId:            FromString(container.DeploymentStageID),
 		Healthchecks:                 convertHealthchecksResponseToDomain(&container.Healthchecks),
 		AdvancedSettingsJson:         FromString(container.AdvancedSettingsJson),
-		CustomDomains:                fromCustomDomainList(container.CustomDomains).toTerraformSet(),
+		CustomDomains:                fromCustomDomainList(state.CustomDomains, container.CustomDomains).toTerraformSet(),
 	}
 }
