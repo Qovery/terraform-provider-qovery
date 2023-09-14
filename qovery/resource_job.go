@@ -498,6 +498,12 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 				Optional:    true,
 				Computed:    true,
 			},
+			"auto_deploy": {
+				Description: "Specify if the job will be automatically updated after receiving a new image tag or a new commit according to the source type.",
+				Type:        types.BoolType,
+				Optional:    true,
+				Computed:    true,
+			},
 		},
 	}, nil
 }

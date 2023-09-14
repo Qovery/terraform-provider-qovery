@@ -83,6 +83,7 @@ type Job struct {
 	DeploymentStageID            string
 	HealthChecks                 qovery2.Healthcheck
 	AdvancedSettingsJson         string
+	AutoDeploy                   *bool
 }
 
 // Validate returns an error to tell whether the Job domain model is valid or not.
@@ -156,6 +157,7 @@ type NewJobParams struct {
 	Port                 *port.NewPortParams
 	Healthchecks         qovery2.Healthcheck
 	AdvancedSettingsJson string
+	AutoDeploy           *bool
 }
 
 // NewJob returns a new instance of a Job domain model.
@@ -213,6 +215,7 @@ func NewJob(params NewJobParams) (*Job, error) {
 		DeploymentStageID:    params.DeploymentStageID,
 		HealthChecks:         params.Healthchecks,
 		AdvancedSettingsJson: params.AdvancedSettingsJson,
+		AutoDeploy:           params.AutoDeploy,
 	}
 
 	environmentVariables := make(variable.Variables, len(params.EnvironmentVariables))

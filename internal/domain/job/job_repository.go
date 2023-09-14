@@ -38,6 +38,7 @@ type UpsertRepositoryRequest struct {
 	Secrets              []secret.UpsertRequest
 	DeploymentStageID    string
 	AdvancedSettingsJson string
+	AutoDeploy           qovery2.NullableBool
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.
