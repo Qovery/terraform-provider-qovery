@@ -37,6 +37,7 @@ type Application struct {
 	DeploymentStageId            types.String              `tfsdk:"deployment_stage_id"`
 	Healthchecks                 *HealthChecks             `tfsdk:"healthchecks"`
 	AdvancedSettingsJson         types.String              `tfsdk:"advanced_settings_json"`
+	AutoDeploy                   types.Bool                `tfsdk:"auto_deploy"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
@@ -116,6 +117,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			Entrypoint:          ToStringPointer(app.Entrypoint),
 			Arguments:           ToStringArray(app.Arguments),
 			Healthchecks:        app.Healthchecks.toHealthchecksRequest(),
+			AutoDeploy:          *qovery.NewNullableBool(ToBoolPointer(app.AutoDeploy)),
 		},
 		EnvironmentVariablesDiff:         app.EnvironmentVariableList().diff(nil),
 		EnvironmentVariableAliasesDiff:   app.EnvironmentVariableAliasList().diff(nil),
@@ -190,6 +192,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		Entrypoint:          ToStringPointer(app.Entrypoint),
 		Arguments:           ToStringArray(app.Arguments),
 		Healthchecks:        app.Healthchecks.toHealthchecksRequest(),
+		AutoDeploy:          *qovery.NewNullableBool(ToBoolPointer(app.AutoDeploy)),
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:           applicationEditRequest,
@@ -237,6 +240,7 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		DeploymentStageId:            FromString(app.ApplicationDeploymentStageID),
 		Healthchecks:                 convertHealthchecksResponseToDomain(app.ApplicationResponse.Healthchecks),
 		AdvancedSettingsJson:         FromString(app.AdvancedSettingsJson),
+		AutoDeploy:                   FromBoolPointer(app.ApplicationResponse.AutoDeploy),
 	}
 }
 

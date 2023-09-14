@@ -577,6 +577,12 @@ func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Optional:    true,
 				Computed:    true,
 			},
+			"auto_deploy": {
+				Description: "Specify if the application will be automatically updated after receiving a new commit.",
+				Type:        types.BoolType,
+				Optional:    true,
+				Computed:    true,
+			},
 		},
 	}, nil
 }

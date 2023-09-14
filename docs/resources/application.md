@@ -133,6 +133,7 @@ You can find complete examples within these repositories:
 
 - `advanced_settings_json` (String) Advanced settings.
 - `arguments` (List of String) List of arguments of this application.
+- `auto_deploy` (Boolean) Specify if the application will be automatically updated after receiving a new commit.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
 	- Default: `false`.
 - `build_mode` (String) Build Mode of the application.
