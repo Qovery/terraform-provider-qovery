@@ -57,6 +57,7 @@ func newDomainContainerFromQovery(
 		AdvancedSettingsAsJson: advancedSettingsAsJson,
 		CustomDomains:          customDomains,
 		Healthchecks:           *c.Healthchecks,
+		AutoDeploy:             c.AutoDeploy,
 	})
 }
 
@@ -87,5 +88,6 @@ func newQoveryContainerRequestFromDomain(request container.UpsertRepositoryReque
 		Storage:             storages,
 		Ports:               ports,
 		Healthchecks:        request.Healthchecks,
+		AutoDeploy:          request.AutoDeploy,
 	}, nil
 }

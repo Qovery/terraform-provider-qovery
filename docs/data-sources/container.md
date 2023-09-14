@@ -18,6 +18,7 @@ data "qovery_container" "my_container" {
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
+- `auto_deploy` (Boolean) Specify if the container will be automatically updated after receiving a new image tag.
 - `custom_domains` (Attributes Set) List of custom domains linked to this container. (see [below for nested schema](#nestedatt--custom_domains))
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this container. (see [below for nested schema](#nestedatt--environment_variable_aliases))

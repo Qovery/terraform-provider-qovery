@@ -383,6 +383,12 @@ func (d containerDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 				Optional:    true,
 				Computed:    true,
 			},
+			"auto_deploy": {
+				Description: "Specify if the container will be automatically updated after receiving a new image tag.",
+				Type:        types.BoolType,
+				Optional:    true,
+				Computed:    true,
+			},
 		},
 	}, nil
 }
