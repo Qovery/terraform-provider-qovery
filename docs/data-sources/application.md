@@ -18,6 +18,7 @@ data "qovery_application" "my_application" {
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
+- `auto_deploy` (Boolean) Specify if the application will be automatically updated after receiving a new commit.
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this application. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))

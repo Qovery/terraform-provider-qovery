@@ -86,6 +86,7 @@ type Container struct {
 	Healthchecks                qovery.Healthcheck
 	AdvancedSettingsJson        string
 	CustomDomains               []*qovery.CustomDomain
+	AutoDeploy                  *bool
 }
 
 // Validate returns an error to tell whether the Container domain model is valid or not.
@@ -134,6 +135,7 @@ type NewContainerParams struct {
 	Healthchecks           qovery.Healthcheck
 	AdvancedSettingsAsJson string
 	CustomDomains          []*qovery.CustomDomain
+	AutoDeploy             *bool
 }
 
 // NewContainer returns a new instance of a Container domain model.
@@ -185,6 +187,7 @@ func NewContainer(params NewContainerParams) (*Container, error) {
 		Healthchecks:         params.Healthchecks,
 		AdvancedSettingsJson: params.AdvancedSettingsAsJson,
 		CustomDomains:        params.CustomDomains,
+		AutoDeploy:           params.AutoDeploy,
 	}
 
 	if err := c.SetEnvironmentVariables(params.EnvironmentVariables); err != nil {

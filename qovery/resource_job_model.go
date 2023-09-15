@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/execution_command"
@@ -228,6 +229,7 @@ type Job struct {
 	InternalHost                 types.String  `tfsdk:"internal_host"`
 	DeploymentStageId            types.String  `tfsdk:"deployment_stage_id"`
 	AdvancedSettingsJson         types.String  `tfsdk:"advanced_settings_json"`
+	AutoDeploy                   types.Bool    `tfsdk:"auto_deploy"`
 }
 
 func (j Job) EnvironmentVariableList() EnvironmentVariableList {
@@ -296,6 +298,7 @@ func (j Job) toUpsertRepositoryRequest() job.UpsertRepositoryRequest {
 		Source:               j.Source.toUpsertRequest(),
 		Schedule:             j.Schedule.toUpsertRequest(),
 		AdvancedSettingsJson: ToString(j.AdvancedSettingsJson),
+		AutoDeploy:           *qovery.NewNullableBool(ToBoolPointer(j.AutoDeploy)),
 	}
 }
 
@@ -332,5 +335,6 @@ func convertDomainJobToJob(state Job, job *job.Job) Job {
 		DeploymentStageId:            FromString(job.DeploymentStageID),
 		HealthChecks:                 convertHealthchecksResponseToDomain(&job.HealthChecks),
 		AdvancedSettingsJson:         FromString(job.AdvancedSettingsJson),
+		AutoDeploy:                   FromBoolPointer(job.AutoDeploy),
 	}
 }

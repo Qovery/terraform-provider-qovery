@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
@@ -39,6 +40,7 @@ type Container struct {
 	DeploymentStageId            types.String  `tfsdk:"deployment_stage_id"`
 	Healthchecks                 *HealthChecks `tfsdk:"healthchecks"`
 	AdvancedSettingsJson         types.String  `tfsdk:"advanced_settings_json"`
+	AutoDeploy                   types.Bool    `tfsdk:"auto_deploy"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
@@ -146,6 +148,7 @@ func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomD
 		Healthchecks:         cont.Healthchecks.toHealthchecksRequest(),
 		AdvancedSettingsJson: ToString(cont.AdvancedSettingsJson),
 		CustomDomains:        customDomainsDiff,
+		AutoDeploy:           *qovery.NewNullableBool(ToBoolPointer(cont.AutoDeploy)),
 	}
 }
 
@@ -178,5 +181,6 @@ func convertDomainContainerToContainer(state Container, container *container.Con
 		Healthchecks:                 convertHealthchecksResponseToDomain(&container.Healthchecks),
 		AdvancedSettingsJson:         FromString(container.AdvancedSettingsJson),
 		CustomDomains:                fromCustomDomainList(state.CustomDomains, container.CustomDomains).toTerraformSet(),
+		AutoDeploy:                   FromBoolPointer(container.AutoDeploy),
 	}
 }

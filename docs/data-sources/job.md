@@ -18,6 +18,7 @@ data "qovery_job" "my_job" {
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
+- `auto_deploy` (Boolean) Specify if the job will be automatically updated after receiving a new image tag or a new commit according to the source type.
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this job. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this job. (see [below for nested schema](#nestedatt--environment_variable_overrides))
