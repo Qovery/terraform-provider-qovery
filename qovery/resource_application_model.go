@@ -35,7 +35,7 @@ type Application struct {
 	Entrypoint                   types.String              `tfsdk:"entrypoint"`
 	Arguments                    types.List                `tfsdk:"arguments"`
 	DeploymentStageId            types.String              `tfsdk:"deployment_stage_id"`
-	Healthchecks                 *HealthChecks             `tfsdk:"healthchecks"`
+	Healthchecks                 HealthChecks              `tfsdk:"healthchecks"`
 	AdvancedSettingsJson         types.String              `tfsdk:"advanced_settings_json"`
 	AutoDeploy                   types.Bool                `tfsdk:"auto_deploy"`
 }

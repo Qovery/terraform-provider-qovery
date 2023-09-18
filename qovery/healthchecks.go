@@ -235,12 +235,8 @@ func (p *Probe) toProbeRequest() *qovery.Probe {
 	}
 }
 
-func (h *HealthChecks) toHealthchecksRequest() *qovery.Healthcheck {
-	if h == nil {
-		return qovery.NewHealthcheck()
-	}
-
-	return &qovery.Healthcheck{
+func (h HealthChecks) toHealthchecksRequest() qovery.Healthcheck {
+	return qovery.Healthcheck{
 		ReadinessProbe: h.ReadinessProbe.toProbeRequest(),
 		LivenessProbe:  h.LivenessProbe.toProbeRequest(),
 	}
@@ -298,12 +294,8 @@ func convertProbeResponseToDomain(p *qovery.Probe) *Probe {
 	}
 }
 
-func convertHealthchecksResponseToDomain(r *qovery.Healthcheck) *HealthChecks {
-	if r == nil {
-		return nil
-	}
-
-	return &HealthChecks{
+func convertHealthchecksResponseToDomain(r qovery.Healthcheck) HealthChecks {
+	return HealthChecks{
 		ReadinessProbe: convertProbeResponseToDomain(r.ReadinessProbe),
 		LivenessProbe:  convertProbeResponseToDomain(r.LivenessProbe),
 	}
