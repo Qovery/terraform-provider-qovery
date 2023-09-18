@@ -56,7 +56,7 @@ func newDomainContainerFromQovery(
 		DeploymentStageID:      deploymentStageID,
 		AdvancedSettingsAsJson: advancedSettingsAsJson,
 		CustomDomains:          customDomains,
-		Healthchecks:           *c.Healthchecks,
+		Healthchecks:           c.Healthchecks,
 		AutoDeploy:             c.AutoDeploy,
 	})
 }

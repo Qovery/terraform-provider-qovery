@@ -39,7 +39,7 @@ type UpsertRepositoryRequest struct {
 	Storages             []storage.UpsertRequest
 	Ports                []port.UpsertRequest
 	DeploymentStageID    string
-	Healthchecks         *qovery.Healthcheck
+	Healthchecks         qovery.Healthcheck
 	AdvancedSettingsJson string
 	CustomDomains        client.CustomDomainsDiff
 	AutoDeploy           qovery.NullableBool
