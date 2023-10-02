@@ -3,8 +3,9 @@ package qovery
 import (
 	"context"
 	"fmt"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 	"os"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -126,7 +127,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	}
 
 	// Initialize qovery client
-	domainServices, err := services.New(services.WithQoveryRepository(token, p.version))
+	domainServices, err := services.New(services.WithQoveryRepository(token, p.version, "https://api.qovery.com"))
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to initialize domain services",
