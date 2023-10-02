@@ -178,4 +178,5 @@ jobs:
           TEST_CONTAINER_ID: ${{ secrets.TEST_CONTAINER_ID }}
           TEST_JOB_ID: ${{ secrets.TEST_JOB_ID }}
           TEST_AWS_ECR_URL: ${{ secrets.TEST_AWS_ECR_URL }}
+          TEST_QOVERY_HOST: ${{ secrets.TEST_QOVERY_HOST }}
         run: task testacc

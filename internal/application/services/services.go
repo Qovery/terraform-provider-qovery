@@ -2,6 +2,7 @@ package services
 
 import (
 	"github.com/pkg/errors"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
@@ -177,9 +178,9 @@ func New(configs ...Configuration) (*Services, error) {
 	return services, nil
 }
 
-func WithQoveryRepository(apiToken string, providerVersion string) Configuration {
+func WithQoveryRepository(apiToken string, providerVersion string, host string) Configuration {
 	return func(services *Services) error {
-		repos, err := repositories.New(repositories.WithQoveryAPI(apiToken, providerVersion))
+		repos, err := repositories.New(repositories.WithQoveryAPI(apiToken, providerVersion, host))
 		if err != nil {
 			return err
 		}
