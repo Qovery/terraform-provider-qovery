@@ -23,7 +23,7 @@ type ClusterUpsertParams struct {
 	ClusterRoutingTable         ClusterRoutingTable
 	AdvancedSettingsJson        string
 	ForceUpdate                 bool
-	DesiredState                qovery.StateEnum
+	DesiredState                qovery.ClusterStateEnum
 }
 
 func (c *Client) CreateCluster(ctx context.Context, organizationID string, params *ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {

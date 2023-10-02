@@ -116,7 +116,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 
 	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state)
 
-	desiredState, err := qovery.NewStateEnumFromValue(ToString(c.State))
+	desiredState, err := qovery.NewClusterStateEnumFromValue(ToString(c.State))
 	if err != nil {
 		return nil, err
 	}
