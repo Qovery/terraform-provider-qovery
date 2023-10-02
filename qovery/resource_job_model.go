@@ -206,30 +206,30 @@ func JobScheduleCronFromDomainJobScheduleCron(s job.JobScheduleCron) JobSchedule
 }
 
 type Job struct {
-	ID                           types.String `tfsdk:"id"`
-	EnvironmentID                types.String `tfsdk:"environment_id"`
-	Name                         types.String `tfsdk:"name"`
-	CPU                          types.Int64  `tfsdk:"cpu"`
-	Memory                       types.Int64  `tfsdk:"memory"`
-	MaxDurationSeconds           types.Int64  `tfsdk:"max_duration_seconds"`
-	MaxNbRestart                 types.Int64  `tfsdk:"max_nb_restart"`
-	AutoPreview                  types.Bool   `tfsdk:"auto_preview"`
-	Source                       *JobSource   `tfsdk:"source"`
-	Schedule                     *JobSchedule `tfsdk:"schedule"`
-	HealthChecks                 HealthChecks `tfsdk:"healthchecks"`
-	BuiltInEnvironmentVariables  types.Set    `tfsdk:"built_in_environment_variables"`
-	EnvironmentVariables         types.Set    `tfsdk:"environment_variables"`
-	EnvironmentVariableAliases   types.Set    `tfsdk:"environment_variable_aliases"`
-	EnvironmentVariableOverrides types.Set    `tfsdk:"environment_variable_overrides"`
-	Secrets                      types.Set    `tfsdk:"secrets"`
-	SecretAliases                types.Set    `tfsdk:"secret_aliases"`
-	SecretOverrides              types.Set    `tfsdk:"secret_overrides"`
-	Port                         types.Int64  `tfsdk:"port"`
-	ExternalHost                 types.String `tfsdk:"external_host"`
-	InternalHost                 types.String `tfsdk:"internal_host"`
-	DeploymentStageId            types.String `tfsdk:"deployment_stage_id"`
-	AdvancedSettingsJson         types.String `tfsdk:"advanced_settings_json"`
-	AutoDeploy                   types.Bool   `tfsdk:"auto_deploy"`
+	ID                           types.String  `tfsdk:"id"`
+	EnvironmentID                types.String  `tfsdk:"environment_id"`
+	Name                         types.String  `tfsdk:"name"`
+	CPU                          types.Int64   `tfsdk:"cpu"`
+	Memory                       types.Int64   `tfsdk:"memory"`
+	MaxDurationSeconds           types.Int64   `tfsdk:"max_duration_seconds"`
+	MaxNbRestart                 types.Int64   `tfsdk:"max_nb_restart"`
+	AutoPreview                  types.Bool    `tfsdk:"auto_preview"`
+	Source                       *JobSource    `tfsdk:"source"`
+	Schedule                     *JobSchedule  `tfsdk:"schedule"`
+	HealthChecks                 *HealthChecks `tfsdk:"healthchecks"`
+	BuiltInEnvironmentVariables  types.Set     `tfsdk:"built_in_environment_variables"`
+	EnvironmentVariables         types.Set     `tfsdk:"environment_variables"`
+	EnvironmentVariableAliases   types.Set     `tfsdk:"environment_variable_aliases"`
+	EnvironmentVariableOverrides types.Set     `tfsdk:"environment_variable_overrides"`
+	Secrets                      types.Set     `tfsdk:"secrets"`
+	SecretAliases                types.Set     `tfsdk:"secret_aliases"`
+	SecretOverrides              types.Set     `tfsdk:"secret_overrides"`
+	Port                         types.Int64   `tfsdk:"port"`
+	ExternalHost                 types.String  `tfsdk:"external_host"`
+	InternalHost                 types.String  `tfsdk:"internal_host"`
+	DeploymentStageId            types.String  `tfsdk:"deployment_stage_id"`
+	AdvancedSettingsJson         types.String  `tfsdk:"advanced_settings_json"`
+	AutoDeploy                   types.Bool    `tfsdk:"auto_deploy"`
 }
 
 func (j Job) EnvironmentVariableList() EnvironmentVariableList {
@@ -311,6 +311,7 @@ func convertDomainJobToJob(state Job, job *job.Job) Job {
 	source := JobSourceFromDomainJobSource(job.Source)
 	schedule := JobScheduleFromDomainJobSchedule(job.Schedule)
 
+	healthchecks := convertHealthchecksResponseToDomain(job.HealthChecks)
 	return Job{
 		ID:                           FromString(job.ID.String()),
 		EnvironmentID:                FromString(job.EnvironmentID.String()),
@@ -333,7 +334,7 @@ func convertDomainJobToJob(state Job, job *job.Job) Job {
 		InternalHost:                 FromStringPointer(job.InternalHost),
 		ExternalHost:                 FromStringPointer(job.ExternalHost),
 		DeploymentStageId:            FromString(job.DeploymentStageID),
-		HealthChecks:                 convertHealthchecksResponseToDomain(job.HealthChecks),
+		HealthChecks:                 &healthchecks,
 		AdvancedSettingsJson:         FromString(job.AdvancedSettingsJson),
 		AutoDeploy:                   FromBoolPointer(job.AutoDeploy),
 	}

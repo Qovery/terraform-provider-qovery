@@ -12,35 +12,35 @@ import (
 )
 
 type Container struct {
-	ID                           types.String `tfsdk:"id"`
-	EnvironmentID                types.String `tfsdk:"environment_id"`
-	RegistryID                   types.String `tfsdk:"registry_id"`
-	Name                         types.String `tfsdk:"name"`
-	ImageName                    types.String `tfsdk:"image_name"`
-	Tag                          types.String `tfsdk:"tag"`
-	Entrypoint                   types.String `tfsdk:"entrypoint"`
-	CPU                          types.Int64  `tfsdk:"cpu"`
-	Memory                       types.Int64  `tfsdk:"memory"`
-	MinRunningInstances          types.Int64  `tfsdk:"min_running_instances"`
-	MaxRunningInstances          types.Int64  `tfsdk:"max_running_instances"`
-	AutoPreview                  types.Bool   `tfsdk:"auto_preview"`
-	BuiltInEnvironmentVariables  types.Set    `tfsdk:"built_in_environment_variables"`
-	EnvironmentVariables         types.Set    `tfsdk:"environment_variables"`
-	EnvironmentVariableAliases   types.Set    `tfsdk:"environment_variable_aliases"`
-	EnvironmentVariableOverrides types.Set    `tfsdk:"environment_variable_overrides"`
-	Secrets                      types.Set    `tfsdk:"secrets"`
-	SecretAliases                types.Set    `tfsdk:"secret_aliases"`
-	SecretOverrides              types.Set    `tfsdk:"secret_overrides"`
-	Storages                     types.Set    `tfsdk:"storage"`
-	Ports                        types.Set    `tfsdk:"ports"`
-	Arguments                    types.List   `tfsdk:"arguments"`
-	CustomDomains                types.Set    `tfsdk:"custom_domains"`
-	ExternalHost                 types.String `tfsdk:"external_host"`
-	InternalHost                 types.String `tfsdk:"internal_host"`
-	DeploymentStageId            types.String `tfsdk:"deployment_stage_id"`
-	Healthchecks                 HealthChecks `tfsdk:"healthchecks"`
-	AdvancedSettingsJson         types.String `tfsdk:"advanced_settings_json"`
-	AutoDeploy                   types.Bool   `tfsdk:"auto_deploy"`
+	ID                           types.String  `tfsdk:"id"`
+	EnvironmentID                types.String  `tfsdk:"environment_id"`
+	RegistryID                   types.String  `tfsdk:"registry_id"`
+	Name                         types.String  `tfsdk:"name"`
+	ImageName                    types.String  `tfsdk:"image_name"`
+	Tag                          types.String  `tfsdk:"tag"`
+	Entrypoint                   types.String  `tfsdk:"entrypoint"`
+	CPU                          types.Int64   `tfsdk:"cpu"`
+	Memory                       types.Int64   `tfsdk:"memory"`
+	MinRunningInstances          types.Int64   `tfsdk:"min_running_instances"`
+	MaxRunningInstances          types.Int64   `tfsdk:"max_running_instances"`
+	AutoPreview                  types.Bool    `tfsdk:"auto_preview"`
+	BuiltInEnvironmentVariables  types.Set     `tfsdk:"built_in_environment_variables"`
+	EnvironmentVariables         types.Set     `tfsdk:"environment_variables"`
+	EnvironmentVariableAliases   types.Set     `tfsdk:"environment_variable_aliases"`
+	EnvironmentVariableOverrides types.Set     `tfsdk:"environment_variable_overrides"`
+	Secrets                      types.Set     `tfsdk:"secrets"`
+	SecretAliases                types.Set     `tfsdk:"secret_aliases"`
+	SecretOverrides              types.Set     `tfsdk:"secret_overrides"`
+	Storages                     types.Set     `tfsdk:"storage"`
+	Ports                        types.Set     `tfsdk:"ports"`
+	Arguments                    types.List    `tfsdk:"arguments"`
+	CustomDomains                types.Set     `tfsdk:"custom_domains"`
+	ExternalHost                 types.String  `tfsdk:"external_host"`
+	InternalHost                 types.String  `tfsdk:"internal_host"`
+	DeploymentStageId            types.String  `tfsdk:"deployment_stage_id"`
+	Healthchecks                 *HealthChecks `tfsdk:"healthchecks"`
+	AdvancedSettingsJson         types.String  `tfsdk:"advanced_settings_json"`
+	AutoDeploy                   types.Bool    `tfsdk:"auto_deploy"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
@@ -153,6 +153,7 @@ func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomD
 }
 
 func convertDomainContainerToContainer(state Container, container *container.Container) Container {
+	healthchecks := convertHealthchecksResponseToDomain(container.Healthchecks)
 	return Container{
 		ID:                           FromString(container.ID.String()),
 		EnvironmentID:                FromString(container.EnvironmentID.String()),
@@ -178,7 +179,7 @@ func convertDomainContainerToContainer(state Container, container *container.Con
 		InternalHost:                 FromStringPointer(container.InternalHost),
 		ExternalHost:                 FromStringPointer(container.ExternalHost),
 		DeploymentStageId:            FromString(container.DeploymentStageID),
-		Healthchecks:                 convertHealthchecksResponseToDomain(container.Healthchecks),
+		Healthchecks:                 &healthchecks,
 		AdvancedSettingsJson:         FromString(container.AdvancedSettingsJson),
 		CustomDomains:                fromCustomDomainList(state.CustomDomains, container.CustomDomains).toTerraformSet(),
 		AutoDeploy:                   FromBoolPointer(container.AutoDeploy),

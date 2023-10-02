@@ -121,7 +121,6 @@ resource "qovery_container" "my_container" {
 ### Required
 
 - `environment_id` (String) Id of the environment.
-- `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
 - `image_name` (String) Name of the container image.
 - `name` (String) Name of the container.
 - `registry_id` (String) Id of the registry.
@@ -142,6 +141,7 @@ resource "qovery_container" "my_container" {
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this container. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this container. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this container. (see [below for nested schema](#nestedatt--environment_variables))
+- `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
 - `max_running_instances` (Number) Maximum number of instances running for the container.
 	- Must be: `>= -1`.
 	- Default: `1`.
@@ -163,6 +163,59 @@ resource "qovery_container" "my_container" {
 - `external_host` (String) The container external FQDN host [NOTE: only if your container is using a publicly accessible port].
 - `id` (String) Id of the container.
 - `internal_host` (String) The container internal host.
+
+<a id="nestedatt--custom_domains"></a>
+### Nested Schema for `custom_domains`
+
+Required:
+
+- `domain` (String) Your custom domain.
+
+Read-Only:
+
+- `id` (String) Id of the custom domain.
+- `status` (String) Status of the custom domain.
+- `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
+
+
+<a id="nestedatt--environment_variable_aliases"></a>
+### Nested Schema for `environment_variable_aliases`
+
+Required:
+
+- `key` (String) Name of the environment variable alias.
+- `value` (String) Name of the variable to alias.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable alias.
+
+
+<a id="nestedatt--environment_variable_overrides"></a>
+### Nested Schema for `environment_variable_overrides`
+
+Required:
+
+- `key` (String) Name of the environment variable override.
+- `value` (String) Value of the environment variable override.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable override.
+
+
+<a id="nestedatt--environment_variables"></a>
+### Nested Schema for `environment_variables`
+
+Required:
+
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable.
+
 
 <a id="nestedatt--healthchecks"></a>
 ### Nested Schema for `healthchecks`
@@ -309,59 +362,6 @@ Optional:
 
 
 
-
-
-<a id="nestedatt--custom_domains"></a>
-### Nested Schema for `custom_domains`
-
-Required:
-
-- `domain` (String) Your custom domain.
-
-Read-Only:
-
-- `id` (String) Id of the custom domain.
-- `status` (String) Status of the custom domain.
-- `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
-
-
-<a id="nestedatt--environment_variable_aliases"></a>
-### Nested Schema for `environment_variable_aliases`
-
-Required:
-
-- `key` (String) Name of the environment variable alias.
-- `value` (String) Name of the variable to alias.
-
-Read-Only:
-
-- `id` (String) Id of the environment variable alias.
-
-
-<a id="nestedatt--environment_variable_overrides"></a>
-### Nested Schema for `environment_variable_overrides`
-
-Required:
-
-- `key` (String) Name of the environment variable override.
-- `value` (String) Value of the environment variable override.
-
-Read-Only:
-
-- `id` (String) Id of the environment variable override.
-
-
-<a id="nestedatt--environment_variables"></a>
-### Nested Schema for `environment_variables`
-
-Required:
-
-- `key` (String) Key of the environment variable.
-- `value` (String) Value of the environment variable.
-
-Read-Only:
-
-- `id` (String) Id of the environment variable.
 
 
 <a id="nestedatt--ports"></a>

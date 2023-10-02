@@ -55,7 +55,7 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 				MaximumMemory:       int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
 				MinRunningInstances: int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
 				MaxRunningInstances: int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
-				Healthchecks: &qovery.Healthcheck{
+				Healthchecks: qovery.Healthcheck{
 					ReadinessProbe: nil,
 					LivenessProbe:  nil,
 				},
