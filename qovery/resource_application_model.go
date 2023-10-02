@@ -35,7 +35,7 @@ type Application struct {
 	Entrypoint                   types.String              `tfsdk:"entrypoint"`
 	Arguments                    types.List                `tfsdk:"arguments"`
 	DeploymentStageId            types.String              `tfsdk:"deployment_stage_id"`
-	Healthchecks                 HealthChecks              `tfsdk:"healthchecks"`
+	Healthchecks                 *HealthChecks             `tfsdk:"healthchecks"`
 	AdvancedSettingsJson         types.String              `tfsdk:"advanced_settings_json"`
 	AutoDeploy                   types.Bool                `tfsdk:"auto_deploy"`
 }
@@ -210,6 +210,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 }
 
 func convertResponseToApplication(state Application, app *client.ApplicationResponse) Application {
+	healthchecks := convertHealthchecksResponseToDomain(app.ApplicationResponse.Healthchecks)
 	return Application{
 		Id:                           FromString(app.ApplicationResponse.Id),
 		EnvironmentId:                FromString(app.ApplicationResponse.Environment.Id),
@@ -238,7 +239,7 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		Entrypoint:                   FromStringPointer(app.ApplicationResponse.Entrypoint),
 		Arguments:                    FromStringArray(app.ApplicationResponse.Arguments),
 		DeploymentStageId:            FromString(app.ApplicationDeploymentStageID),
-		Healthchecks:                 convertHealthchecksResponseToDomain(app.ApplicationResponse.Healthchecks),
+		Healthchecks:                 &healthchecks,
 		AdvancedSettingsJson:         FromString(app.AdvancedSettingsJson),
 		AutoDeploy:                   FromBoolPointer(app.ApplicationResponse.AutoDeploy),
 	}
