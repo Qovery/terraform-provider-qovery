@@ -44,12 +44,13 @@ type testEnvironment struct {
 	ContainerRegistryID           string `env:"TEST_CONTAINER_REGISTRY_ID,required"`
 	ContainerID                   string `env:"TEST_CONTAINER_ID,required"`
 	JobID                         string `env:"TEST_JOB_ID,required"`
+	QoveryHost                    string `env:"TEST_QOVERY_HOST,required"`
 }
 
 var (
-	apiClient         = client.New(os.Getenv(qovery.APITokenEnvName), "test")
-	qoveryServices, _ = services.New(services.WithQoveryRepository(os.Getenv(qovery.APITokenEnvName), "test"))
-	qoveryApiClient   = client.NewQoveryApiClient(os.Getenv(qovery.APITokenEnvName), "test")
+	apiClient         = client.New(os.Getenv(qovery.APITokenEnvName), "test", getTestQoveryHost())
+	qoveryServices, _ = services.New(services.WithQoveryRepository(os.Getenv(qovery.APITokenEnvName), "test", getTestQoveryHost()))
+	qoveryApiClient   = client.NewQoveryApiClient(os.Getenv(qovery.APITokenEnvName), "test", getTestQoveryHost())
 )
 
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
@@ -129,6 +130,10 @@ func getTestContainerID() string {
 
 func getTestJobID() string {
 	return os.Getenv("TEST_JOB_ID")
+}
+
+func getTestQoveryHost() string {
+	return os.Getenv("TEST_QOVERY_HOST")
 }
 
 func generateTestName(testName string) string {

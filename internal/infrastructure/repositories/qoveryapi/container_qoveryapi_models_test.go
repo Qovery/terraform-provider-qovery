@@ -21,6 +21,7 @@ const (
 func TestNewDomainContainerFromQovery(t *testing.T) {
 	t.Parallel()
 
+	registryKind := qovery.CONTAINERREGISTRYKINDENUM_DOCKER_HUB
 	testCases := []struct {
 		TestName      string
 		Container     *qovery.ContainerResponse
@@ -38,8 +39,11 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 				Environment: qovery.ReferenceObject{
 					Id: gofakeit.UUID(),
 				},
-				Registry: qovery.ReferenceObject{
-					Id: gofakeit.UUID(),
+				Registry: qovery.ContainerRegistryProviderDetailsResponse{
+					Id:   qovery.PtrString(gofakeit.UUID()),
+					Name: qovery.PtrString(gofakeit.Name()),
+					Url:  qovery.PtrString(gofakeit.URL()),
+					Kind: &registryKind,
 				},
 				Arguments: []string{
 					gofakeit.Word(),
@@ -55,7 +59,7 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 				MaximumMemory:       int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
 				MinRunningInstances: int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
 				MaxRunningInstances: int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
-				Healthchecks: &qovery.Healthcheck{
+				Healthchecks: qovery.Healthcheck{
 					ReadinessProbe: nil,
 					LivenessProbe:  nil,
 				},
@@ -80,7 +84,8 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 			assert.True(t, cont.IsValid())
 			assert.Equal(t, tc.Container.Id, cont.ID.String())
 			assert.Equal(t, tc.Container.Environment.Id, cont.EnvironmentID.String())
-			assert.Equal(t, tc.Container.Registry.Id, cont.RegistryID.String())
+			s := cont.RegistryID.String()
+			assert.Equal(t, tc.Container.Registry.Id, &s)
 			assert.Equal(t, tc.Container.Name, cont.Name)
 			assert.Equal(t, tc.Container.ImageName, cont.ImageName)
 			assert.Equal(t, tc.Container.Tag, cont.Tag)

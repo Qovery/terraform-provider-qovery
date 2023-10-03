@@ -40,7 +40,7 @@ func newDomainContainerFromQovery(
 	return container.NewContainer(container.NewContainerParams{
 		ContainerID:            c.Id,
 		EnvironmentID:          c.Environment.Id,
-		RegistryID:             c.Registry.Id,
+		RegistryID:             *c.Registry.Id,
 		Name:                   c.Name,
 		ImageName:              c.ImageName,
 		Tag:                    c.Tag,

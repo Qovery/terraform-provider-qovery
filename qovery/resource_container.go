@@ -419,7 +419,7 @@ func (r containerResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diag
 					},
 				}),
 			},
-			"healthchecks": healthchecksSchemaAttributes(true),
+			"healthchecks": healthchecksSchemaAttributes(false),
 			"arguments": {
 				Description: "List of arguments of this container.",
 				Optional:    true,

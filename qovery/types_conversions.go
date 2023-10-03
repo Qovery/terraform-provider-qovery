@@ -41,7 +41,8 @@ type ClientEnum interface {
 		registry.Kind |
 		status.State |
 		storage.Type |
-		qovery.BuildModeEnum
+		qovery.BuildModeEnum |
+		qovery.ClusterStateEnum
 }
 
 func clientEnumToStringArray[T ClientEnum](enum []T) []string {

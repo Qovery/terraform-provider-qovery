@@ -62,7 +62,7 @@ func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, e
 				return false, apiErr
 			}
 			isExpectedState := status.State == expected
-			if !isExpectedState && isFinalState(status.State) {
+			if !isExpectedState && isEnvFinalState(status.State) {
 				time.Sleep(5 * time.Second)
 				continue
 			}
@@ -78,15 +78,15 @@ func newApplicationFinalStateCheckerWaitFunc(client *Client, applicationID strin
 		if apiErr != nil {
 			return false, apiErr
 		}
-		return isFinalState(status.State), nil
+		return isEnvFinalState(status.State), nil
 	}
 }
 
-func newClusterStatusCheckerWaitFunc(client *Client, organizationID string, clusterID string, expected qovery.StateEnum) waitFunc {
+func newClusterStatusCheckerWaitFunc(client *Client, organizationID string, clusterID string, expected qovery.ClusterStateEnum) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
 		status, apiErr := client.getClusterStatus(ctx, organizationID, clusterID)
 		if apiErr != nil {
-			if (apierrors.IsBadRequest(apiErr) || apierrors.IsNotFound(apiErr)) && expected == qovery.STATEENUM_DELETED {
+			if (apierrors.IsBadRequest(apiErr) || apierrors.IsNotFound(apiErr)) && expected == qovery.CLUSTERSTATEENUM_DELETED {
 				return true, nil
 			}
 			return false, apiErr
@@ -119,7 +119,7 @@ func newDatabaseStatusCheckerWaitFunc(client *Client, databaseID string, expecte
 				return false, apiErr
 			}
 			isExpectedState := status.State == expected
-			if !isExpectedState && isFinalState(status.State) {
+			if !isExpectedState && isEnvFinalState(status.State) {
 				time.Sleep(5 * time.Second)
 				continue
 			}
@@ -135,24 +135,7 @@ func newDatabaseFinalStateCheckerWaitFunc(client *Client, databaseID string) wai
 		if apiErr != nil {
 			return false, apiErr
 		}
-		return isFinalState(status.State), nil
-	}
-}
-
-func newEnvironmentStatusCheckerWaitFunc(client *Client, environmentID string, expected qovery.StateEnum) waitFunc {
-	return func(ctx context.Context) (bool, *apierrors.APIError) {
-		status, apiErr := client.getEnvironmentStatus(ctx, environmentID)
-		if apiErr != nil {
-			if apierrors.IsNotFound(apiErr) && expected == qovery.STATEENUM_DELETED {
-				return true, nil
-			}
-			return false, apiErr
-		}
-		isExpectedState := status.State == expected
-		if !isExpectedState && isFinalState(status.State) {
-			return false, apierrors.NewDeployError(apierrors.APIResourceEnvironment, environmentID, nil, fmt.Errorf("expected status '%s' but got '%s'", expected, status.State))
-		}
-		return status.State == expected, nil
+		return isEnvFinalState(status.State), nil
 	}
 }
 
@@ -162,29 +145,47 @@ func newEnvironmentFinalStateCheckerWaitFunc(client *Client, environmentID strin
 		if apiErr != nil {
 			return false, apiErr
 		}
-		return isFinalState(status.State), nil
+		return isEnvFinalState(status.State), nil
 	}
 }
 
-func isFinalState(state qovery.StateEnum) bool {
+func isEnvFinalState(state qovery.StateEnum) bool {
+	return !isEnvProcessingState(state) &&
+		!isEnvWaitingState(state) &&
+		!isEnvQueuedState(state)
+}
+
+func isEnvProcessingState(state qovery.StateEnum) bool {
+	return strings.HasSuffix(string(state), "ING")
+}
+
+func isEnvWaitingState(state qovery.StateEnum) bool {
+	return strings.Contains(string(state), "_WAITING")
+}
+
+func isEnvQueuedState(state qovery.StateEnum) bool {
+	return strings.Contains(string(state), "_QUEUED")
+}
+
+func isFinalState(state qovery.ClusterStateEnum) bool {
 	return !isProcessingState(state) &&
 		!isWaitingState(state) &&
 		!isQueuedState(state)
 }
 
-func isStatusError(state qovery.StateEnum) bool {
+func isStatusError(state qovery.ClusterStateEnum) bool {
 	return strings.HasSuffix(string(state), "_ERROR")
 }
 
-func isProcessingState(state qovery.StateEnum) bool {
+func isProcessingState(state qovery.ClusterStateEnum) bool {
 	return strings.HasSuffix(string(state), "ING")
 }
 
-func isWaitingState(state qovery.StateEnum) bool {
+func isWaitingState(state qovery.ClusterStateEnum) bool {
 	return strings.Contains(string(state), "_WAITING")
 }
 
-func isQueuedState(state qovery.StateEnum) bool {
+func isQueuedState(state qovery.ClusterStateEnum) bool {
 	return strings.Contains(string(state), "_QUEUED")
 }
 

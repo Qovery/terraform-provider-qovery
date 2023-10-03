@@ -3,8 +3,9 @@ package qovery
 import (
 	"context"
 	"fmt"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 	"os"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -125,8 +126,17 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 		return
 	}
 
+	// hack for tests
+	testQoveryHost, isQoveryHostPresent := os.LookupEnv("TEST_QOVERY_HOST")
+	host := ""
+	if isQoveryHostPresent {
+		host = testQoveryHost
+	} else {
+		host = "https://api.qovery.com"
+	}
+
 	// Initialize qovery client
-	domainServices, err := services.New(services.WithQoveryRepository(token, p.version))
+	domainServices, err := services.New(services.WithQoveryRepository(token, p.version, host))
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to initialize domain services",
@@ -137,7 +147,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 
 	// Create a new Qovery client and set it to the provider client
 	p.configured = true
-	p.client = client.New(token, p.version)
+	p.client = client.New(token, p.version, host)
 	p.organizationService = domainServices.Organization
 	p.awsCredentialsService = domainServices.CredentialsAws
 	p.scalewayCredentialsService = domainServices.CredentialsScaleway

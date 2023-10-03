@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/pkg/errors"
@@ -69,11 +70,12 @@ func New(configs ...Configuration) (*Repositories, error) {
 	return repos, nil
 }
 
-func WithQoveryAPI(apiToken string, providerVersion string) Configuration {
+func WithQoveryAPI(apiToken string, providerVersion string, host string) Configuration {
 	return func(repos *Repositories) error {
 		qoveryAPI, err := qoveryapi.New(
 			qoveryapi.WithQoveryAPIToken(apiToken),
 			qoveryapi.WithUserAgent(fmt.Sprintf("terraform-provider-qovery/%s", providerVersion)),
+			qoveryapi.WithServerHost(host),
 		)
 		if err != nil {
 			return errors.Wrap(err, ErrFailedToInitializeQoveryAPI.Error())

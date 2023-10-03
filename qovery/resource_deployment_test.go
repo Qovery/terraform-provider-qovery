@@ -110,7 +110,7 @@ func testAccQoveryContainerHasState(expectedState qovery.StateEnum) resource.Tes
 
 		containerStatus, response, err := qoveryApiClient.ContainerMainCallsApi.GetContainerStatus(context.TODO(), rs.Primary.ID).Execute()
 		if err != nil || response.StatusCode >= 400 {
-			return fmt.Errorf("Cannot find container status")
+			return fmt.Errorf("Cannot find container status: %s, %d", err, response.StatusCode)
 		}
 		if containerStatus.State != expectedState {
 			return fmt.Errorf("Expected container status %s, got %s", expectedState, containerStatus.State)

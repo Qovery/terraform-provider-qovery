@@ -2,6 +2,7 @@ package qoveryapi
 
 import (
 	"fmt"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/pkg/errors"
@@ -27,6 +28,8 @@ var (
 	ErrInvalidQoveryAPIToken = errors.New("invalid qovery api token")
 	// ErrInvalidUserAgent is returned when the user-agent is invalid.
 	ErrInvalidUserAgent = errors.New("invalid user-agent")
+	// ErrInvalidHost is returned when the host is invalid.
+	ErrInvalidHost = errors.New("invalid-host")
 )
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -236,6 +239,24 @@ func WithUserAgent(userAgent string) Configuration {
 		}
 
 		qoveryAPI.client.GetConfig().UserAgent = userAgent
+
+		return nil
+	}
+}
+
+// WithServerHost sets the user-agent of the api client with the provider version.
+func WithServerHost(host string) Configuration {
+	return func(qoveryAPI *QoveryAPI) error {
+		if host == "" {
+			return ErrInvalidHost
+		}
+
+		qoveryAPI.client.GetConfig().Servers = qovery.ServerConfigurations{
+			{
+				URL:         host,
+				Description: "No description provided",
+			},
+		}
 
 		return nil
 	}
