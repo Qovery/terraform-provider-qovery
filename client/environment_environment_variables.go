@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Client) getEnvironmentEnvironmentVariables(ctx context.Context, environmentID string) ([]*qovery.EnvironmentVariable, *apierrors.APIError) {
-	vars, res, err := c.api.EnvironmentVariableApi.
+	vars, res, err := c.api.EnvironmentVariableAPI.
 		ListEnvironmentEnvironmentVariable(ctx, environmentID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -19,7 +19,7 @@ func (c *Client) getEnvironmentEnvironmentVariables(ctx context.Context, environ
 }
 
 func (c *Client) getEnvironmentBuiltInEnvironmentVariables(ctx context.Context, environmentID string) ([]*qovery.EnvironmentVariable, *apierrors.APIError) {
-	vars, res, err := c.api.EnvironmentVariableApi.
+	vars, res, err := c.api.EnvironmentVariableAPI.
 		ListEnvironmentEnvironmentVariable(ctx, environmentID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -30,7 +30,7 @@ func (c *Client) getEnvironmentBuiltInEnvironmentVariables(ctx context.Context, 
 
 func (c *Client) updateEnvironmentEnvironmentVariables(ctx context.Context, environmentID string, request EnvironmentVariablesDiff) *apierrors.APIError {
 	for _, variable := range request.Delete {
-		res, err := c.api.EnvironmentVariableApi.
+		res, err := c.api.EnvironmentVariableAPI.
 			DeleteEnvironmentEnvironmentVariable(ctx, environmentID, variable.Id).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -39,7 +39,7 @@ func (c *Client) updateEnvironmentEnvironmentVariables(ctx context.Context, envi
 	}
 
 	for _, variable := range request.Update {
-		_, res, err := c.api.EnvironmentVariableApi.
+		_, res, err := c.api.EnvironmentVariableAPI.
 			EditEnvironmentEnvironmentVariable(ctx, environmentID, variable.Id).
 			EnvironmentVariableEditRequest(variable.EnvironmentVariableEditRequest).
 			Execute()
@@ -49,7 +49,7 @@ func (c *Client) updateEnvironmentEnvironmentVariables(ctx context.Context, envi
 	}
 
 	for _, variable := range request.Create {
-		_, res, err := c.api.EnvironmentVariableApi.
+		_, res, err := c.api.EnvironmentVariableAPI.
 			CreateEnvironmentEnvironmentVariable(ctx, environmentID).
 			EnvironmentVariableRequest(variable.EnvironmentVariableRequest).
 			Execute()

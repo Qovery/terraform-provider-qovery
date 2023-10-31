@@ -37,32 +37,32 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 		return nil, errors.Wrap(err, job.ErrInvalidJobUpsertRequest.Error())
 	}
 
-	newJob, resp, err := c.client.JobsApi.
+	newJob, resp, err := c.client.JobsAPI.
 		CreateJob(ctx, environmentID).
 		JobRequest(*req).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJob, request.Name, resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, resp, err)
 	}
 
 	// Attach job to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newJob.Id).Execute()
+		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newJob.Id).Execute()
 		if err != nil || response.StatusCode >= 400 {
-			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJob, request.Name, resp, err)
+			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, resp, err)
 		}
 	}
 
 	// Update advanced settings
 	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.JOB, newJob.Id, request.AdvancedSettingsJson)
 	if err != nil {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJob, request.Name, nil, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, nil, err)
 	}
 
 	// Get job deployment stage
-	deploymentStage, resp, err := c.client.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, newJob.Id).Execute()
+	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, newJob.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJob, newJob.Id, resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, newJob.Id, resp, err)
 	}
 
 	return newDomainJobFromQovery(newJob, deploymentStage.Id, request.AdvancedSettingsJson)
@@ -70,22 +70,22 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 
 // Get calls Qovery's API to retrieve a job using the given jobID.
 func (c jobQoveryAPI) Get(ctx context.Context, jobID string) (*job.Job, error) {
-	job, resp, err := c.client.JobMainCallsApi.
+	job, resp, err := c.client.JobMainCallsAPI.
 		GetJob(ctx, jobID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadApiError(apierrors.ApiResourceJob, jobID, resp, err)
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
 	// Get job deployment stage
-	deploymentStage, resp, err := c.client.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, job.Id).Execute()
+	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, job.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadApiError(apierrors.ApiResourceJob, job.Id, resp, err)
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, job.Id, resp, err)
 	}
 
 	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(advanced_settings.JOB, jobID)
 	if err != nil {
-		return nil, apierrors.NewReadApiError(apierrors.ApiResourceJob, job.Id, nil, err)
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, job.Id, nil, err)
 	}
 
 	return newDomainJobFromQovery(job, deploymentStage.Id, *advancedSettingsAsJson)
@@ -98,32 +98,32 @@ func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.Upse
 		return nil, errors.Wrap(err, job.ErrInvalidJobUpsertRequest.Error())
 	}
 
-	job, resp, err := c.client.JobMainCallsApi.
+	job, resp, err := c.client.JobMainCallsAPI.
 		EditJob(ctx, jobID).
 		JobRequest(*req).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceJob, jobID, resp, err)
+		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
 	// Attach job to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, job.Id).Execute()
+		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, job.Id).Execute()
 		if err != nil || response.StatusCode >= 400 {
-			return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJob, request.Name, resp, err)
+			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, resp, err)
 		}
 	}
 
 	// Update advanced settings
 	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.JOB, job.Id, request.AdvancedSettingsJson)
 	if err != nil {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJob, request.Name, nil, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, nil, err)
 	}
 
 	// Get job deployment stage
-	deploymentStage, resp, err := c.client.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, job.Id).Execute()
+	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, job.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceJob, job.Id, resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, job.Id, resp, err)
 	}
 
 	return newDomainJobFromQovery(job, deploymentStage.Id, request.AdvancedSettingsJson)
@@ -131,7 +131,7 @@ func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.Upse
 
 // Delete calls Qovery's API to deletes a job using the given jobID.
 func (c jobQoveryAPI) Delete(ctx context.Context, jobID string) error {
-	_, resp, err := c.client.JobMainCallsApi.
+	_, resp, err := c.client.JobMainCallsAPI.
 		GetJob(ctx, jobID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
@@ -139,14 +139,14 @@ func (c jobQoveryAPI) Delete(ctx context.Context, jobID string) error {
 			// if the job is not found, then it has already been deleted
 			return nil
 		}
-		return apierrors.NewDeleteApiError(apierrors.ApiResourceJob, jobID, resp, err)
+		return apierrors.NewDeleteAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
-	resp, err = c.client.JobMainCallsApi.
+	resp, err = c.client.JobMainCallsAPI.
 		DeleteJob(ctx, jobID).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
-		return apierrors.NewDeleteApiError(apierrors.ApiResourceJob, jobID, resp, err)
+		return apierrors.NewDeleteAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
 	return nil

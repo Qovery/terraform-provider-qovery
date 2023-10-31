@@ -86,7 +86,7 @@ func cleanProjects(ctx context.Context, apiClient *qovery.APIClient, organizatio
 		if strings.Contains(project.Name, testPrefix) {
 			bar.Describe(fmt.Sprintf("%s...", project.Name[0:50]))
 
-			_, err := apiClient.ProjectMainCallsApi.
+			_, err := apiClient.ProjectMainCallsAPI.
 				DeleteProject(ctx, project.ID).
 				Execute()
 			if err != nil {
@@ -112,7 +112,7 @@ func cleanAwsCredentials(ctx context.Context, apiClient *qovery.APIClient, organ
 		if strings.Contains(creds.Name, testPrefix) {
 			bar.Describe(fmt.Sprintf("%s...", creds.Name[0:50]))
 
-			_, err := apiClient.CloudProviderCredentialsApi.
+			_, err := apiClient.CloudProviderCredentialsAPI.
 				DeleteAWSCredentials(ctx, creds.ID, organizationID).
 				Execute()
 			if err != nil {
@@ -138,7 +138,7 @@ func cleanScalewayCredentials(ctx context.Context, apiClient *qovery.APIClient, 
 		if strings.Contains(creds.Name, testPrefix) {
 			bar.Describe(fmt.Sprintf("%s...", creds.Name[0:50]))
 
-			_, err := apiClient.CloudProviderCredentialsApi.
+			_, err := apiClient.CloudProviderCredentialsAPI.
 				DeleteScalewayCredentials(ctx, creds.ID, organizationID).
 				Execute()
 			if err != nil {
@@ -168,7 +168,7 @@ func cleanContainerRegistry(ctx context.Context, apiClient *qovery.APIClient, or
 			}
 			bar.Describe(fmt.Sprintf("%s...", reg.Name[0:maxSize]))
 
-			_, err := apiClient.ContainerRegistriesApi.
+			_, err := apiClient.ContainerRegistriesAPI.
 				DeleteContainerRegistry(ctx, organizationID, reg.ID).
 				Execute()
 			if err != nil {
@@ -183,7 +183,7 @@ func cleanContainerRegistry(ctx context.Context, apiClient *qovery.APIClient, or
 }
 
 func getProjectsToDelete(ctx context.Context, apiClient *qovery.APIClient, organizationID string) ([]project, error) {
-	projects, _, err := apiClient.ProjectsApi.
+	projects, _, err := apiClient.ProjectsAPI.
 		ListProject(ctx, organizationID).
 		Execute()
 	if err != nil {
@@ -204,7 +204,7 @@ func getProjectsToDelete(ctx context.Context, apiClient *qovery.APIClient, organ
 }
 
 func getAwsCredentialsToDelete(ctx context.Context, apiClient *qovery.APIClient, organizationID string) ([]credentials, error) {
-	awsCreds, _, err := apiClient.CloudProviderCredentialsApi.
+	awsCreds, _, err := apiClient.CloudProviderCredentialsAPI.
 		ListAWSCredentials(ctx, organizationID).
 		Execute()
 	if err != nil {
@@ -226,7 +226,7 @@ func getAwsCredentialsToDelete(ctx context.Context, apiClient *qovery.APIClient,
 }
 
 func getScalewayCredentialsToDelete(ctx context.Context, apiClient *qovery.APIClient, organizationID string) ([]credentials, error) {
-	scalewayCreds, _, err := apiClient.CloudProviderCredentialsApi.
+	scalewayCreds, _, err := apiClient.CloudProviderCredentialsAPI.
 		ListScalewayCredentials(ctx, organizationID).
 		Execute()
 	if err != nil {
@@ -248,7 +248,7 @@ func getScalewayCredentialsToDelete(ctx context.Context, apiClient *qovery.APICl
 }
 
 func getContainerRegitriesToDelete(ctx context.Context, apiClient *qovery.APIClient, organizationID string) ([]registry, error) {
-	registries, _, err := apiClient.ContainerRegistriesApi.
+	registries, _, err := apiClient.ContainerRegistriesAPI.
 		ListContainerRegistry(ctx, organizationID).
 		Execute()
 	if err != nil {

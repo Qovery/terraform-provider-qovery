@@ -28,7 +28,7 @@ func TestNewDomainEnvironmentFromQovery(t *testing.T) {
 			TestName: "success",
 			Environment: &qovery.Environment{
 				Id: gofakeit.UUID(),
-				Project: &qovery.ReferenceObject{
+				Project: qovery.ReferenceObject{
 					Id: gofakeit.UUID(),
 				},
 				ClusterId: gofakeit.UUID(),

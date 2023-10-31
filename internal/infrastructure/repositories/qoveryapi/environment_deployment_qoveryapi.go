@@ -31,11 +31,11 @@ func newEnvironmentDeploymentQoveryAPI(client *qovery.APIClient) (deployment.Rep
 
 // GetStatus calls Qovery's API to get the status of an environment using the given environmentID.
 func (c environmentDeploymentQoveryAPI) GetStatus(ctx context.Context, environmentID string) (*status.Status, error) {
-	environmentStatus, resp, err := c.client.EnvironmentMainCallsApi.
+	environmentStatus, resp, err := c.client.EnvironmentMainCallsAPI.
 		GetEnvironmentStatus(ctx, environmentID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadApiError(apierrors.ApiResourceEnvironmentStatus, environmentID, resp, err)
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceEnvironmentStatus, environmentID, resp, err)
 	}
 
 	return newDomainEnvironmentStatusFromQovery(environmentStatus)
@@ -43,11 +43,11 @@ func (c environmentDeploymentQoveryAPI) GetStatus(ctx context.Context, environme
 
 // Deploy calls Qovery's API to deploy an environment using the given environmentID.
 func (c environmentDeploymentQoveryAPI) Deploy(ctx context.Context, environmentID string, imageTag string) (*status.Status, error) {
-	environmentStatus, resp, err := c.client.EnvironmentActionsApi.
+	environmentStatus, resp, err := c.client.EnvironmentActionsAPI.
 		DeployEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewDeployApiError(apierrors.ApiResourceEnvironment, environmentID, resp, err)
+		return nil, apierrors.NewDeployAPIError(apierrors.APIResourceEnvironment, environmentID, resp, err)
 	}
 
 	return newDomainStatusFromQovery(environmentStatus)
@@ -55,11 +55,11 @@ func (c environmentDeploymentQoveryAPI) Deploy(ctx context.Context, environmentI
 
 // Redeploy calls Qovery's API to redeploy an environment using the given environmentID.
 func (c environmentDeploymentQoveryAPI) Redeploy(ctx context.Context, environmentID string) (*status.Status, error) {
-	_, resp, err := c.client.EnvironmentActionsApi.
+	_, resp, err := c.client.EnvironmentActionsAPI.
 		RedeployEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewRedeployApiError(apierrors.ApiResourceEnvironment, environmentID, resp, err)
+		return nil, apierrors.NewRedeployAPIError(apierrors.APIResourceEnvironment, environmentID, resp, err)
 	}
 
 	return c.GetStatus(ctx, environmentID)
@@ -67,11 +67,11 @@ func (c environmentDeploymentQoveryAPI) Redeploy(ctx context.Context, environmen
 
 // Stop calls Qovery's API to stop an environment using the given environmentID.
 func (c environmentDeploymentQoveryAPI) Stop(ctx context.Context, environmentID string) (*status.Status, error) {
-	environmentStatus, resp, err := c.client.EnvironmentActionsApi.
+	environmentStatus, resp, err := c.client.EnvironmentActionsAPI.
 		StopEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewStopApiError(apierrors.ApiResourceEnvironment, environmentID, resp, err)
+		return nil, apierrors.NewStopAPIError(apierrors.APIResourceEnvironment, environmentID, resp, err)
 	}
 
 	return newDomainEnvironmentStatusFromQovery(environmentStatus)

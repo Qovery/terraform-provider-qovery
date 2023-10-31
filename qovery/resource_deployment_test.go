@@ -84,7 +84,7 @@ func testAccQoveryApplicationHasState(expectedState qovery.StateEnum) resource.T
 			return fmt.Errorf("application.id not found")
 		}
 
-		applicationStatus, response, err := qoveryApiClient.ApplicationMainCallsApi.GetApplicationStatus(context.TODO(), rs.Primary.ID).Execute()
+		applicationStatus, response, err := qoveryAPIClient.ApplicationMainCallsAPI.GetApplicationStatus(context.TODO(), rs.Primary.ID).Execute()
 		if err != nil || response.StatusCode >= 400 {
 			return fmt.Errorf("Cannot find application status")
 		}
@@ -108,7 +108,7 @@ func testAccQoveryContainerHasState(expectedState qovery.StateEnum) resource.Tes
 			return fmt.Errorf("container.id not found")
 		}
 
-		containerStatus, response, err := qoveryApiClient.ContainerMainCallsApi.GetContainerStatus(context.TODO(), rs.Primary.ID).Execute()
+		containerStatus, response, err := qoveryAPIClient.ContainerMainCallsAPI.GetContainerStatus(context.TODO(), rs.Primary.ID).Execute()
 		if err != nil || response.StatusCode >= 400 {
 			return fmt.Errorf("Cannot find container status: %s, %d", err, response.StatusCode)
 		}
@@ -132,7 +132,7 @@ func testAccQoveryDatabaseHasState(expectedState qovery.StateEnum) resource.Test
 			return fmt.Errorf("database.id not found")
 		}
 
-		databaseStatus, response, err := qoveryApiClient.DatabaseMainCallsApi.GetDatabaseStatus(context.TODO(), rs.Primary.ID).Execute()
+		databaseStatus, response, err := qoveryAPIClient.DatabaseMainCallsAPI.GetDatabaseStatus(context.TODO(), rs.Primary.ID).Execute()
 		if err != nil || response.StatusCode >= 400 {
 			return fmt.Errorf("Cannot find database status")
 		}

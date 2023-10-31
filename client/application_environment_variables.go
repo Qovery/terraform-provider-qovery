@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Client) getApplicationEnvironmentVariables(ctx context.Context, applicationID string) ([]*qovery.EnvironmentVariable, *apierrors.APIError) {
-	applicationVariables, res, err := c.api.ApplicationEnvironmentVariableApi.
+	applicationVariables, res, err := c.api.ApplicationEnvironmentVariableAPI.
 		ListApplicationEnvironmentVariable(ctx, applicationID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -20,7 +20,7 @@ func (c *Client) getApplicationEnvironmentVariables(ctx context.Context, applica
 
 func (c *Client) updateApplicationEnvironmentVariables(ctx context.Context, applicationID string, request EnvironmentVariablesDiff) *apierrors.APIError {
 	for _, variable := range request.Delete {
-		res, err := c.api.ApplicationEnvironmentVariableApi.
+		res, err := c.api.ApplicationEnvironmentVariableAPI.
 			DeleteApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -29,7 +29,7 @@ func (c *Client) updateApplicationEnvironmentVariables(ctx context.Context, appl
 	}
 
 	for _, variable := range request.Update {
-		_, res, err := c.api.ApplicationEnvironmentVariableApi.
+		_, res, err := c.api.ApplicationEnvironmentVariableAPI.
 			EditApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			EnvironmentVariableEditRequest(variable.EnvironmentVariableEditRequest).
 			Execute()
@@ -39,7 +39,7 @@ func (c *Client) updateApplicationEnvironmentVariables(ctx context.Context, appl
 	}
 
 	for _, variable := range request.Create {
-		_, res, err := c.api.ApplicationEnvironmentVariableApi.
+		_, res, err := c.api.ApplicationEnvironmentVariableAPI.
 			CreateApplicationEnvironmentVariable(ctx, applicationID).
 			EnvironmentVariableRequest(variable.EnvironmentVariableRequest).
 			Execute()
@@ -58,7 +58,7 @@ func (c *Client) updateApplicationEnvironmentVariableAliases(
 ) *apierrors.APIError {
 	// Delete
 	for _, variable := range request.Delete {
-		res, err := c.api.ApplicationEnvironmentVariableApi.
+		res, err := c.api.ApplicationEnvironmentVariableAPI.
 			DeleteApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			Execute()
 		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
@@ -71,7 +71,7 @@ func (c *Client) updateApplicationEnvironmentVariableAliases(
 	for _, variable := range request.Update {
 		// If the variable alias value has been updated, it means it targets a new aliased variable.
 		// So delete it firstly and re-create it
-		res, err := c.api.ApplicationEnvironmentVariableApi.
+		res, err := c.api.ApplicationEnvironmentVariableAPI.
 			DeleteApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			Execute()
 		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
@@ -80,7 +80,7 @@ func (c *Client) updateApplicationEnvironmentVariableAliases(
 		}
 		// The alias variable value contains the name of the aliased variable
 		aliasedVariableId := environmentVariablesByName[*(variable.Value)].Id
-		_, res, err = c.api.ApplicationEnvironmentVariableApi.
+		_, res, err = c.api.ApplicationEnvironmentVariableAPI.
 			CreateApplicationEnvironmentVariableAlias(ctx, applicationID, aliasedVariableId).
 			Key(qovery.Key{Key: variable.Key}).
 			Execute()
@@ -93,7 +93,7 @@ func (c *Client) updateApplicationEnvironmentVariableAliases(
 	for _, variable := range request.Create {
 		// The alias variable value contains the name of the aliased variable
 		aliasedVariableId := environmentVariablesByName[*(variable.Value)].Id
-		_, res, err := c.api.ApplicationEnvironmentVariableApi.
+		_, res, err := c.api.ApplicationEnvironmentVariableAPI.
 			CreateApplicationEnvironmentVariableAlias(ctx, applicationID, aliasedVariableId).
 			Key(qovery.Key{Key: variable.Key}).
 			Execute()
@@ -112,7 +112,7 @@ func (c *Client) updateApplicationEnvironmentVariableOverrides(
 ) *apierrors.APIError {
 	// Delete
 	for _, variable := range request.Delete {
-		res, err := c.api.ApplicationEnvironmentVariableApi.
+		res, err := c.api.ApplicationEnvironmentVariableAPI.
 			DeleteApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			Execute()
 		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
@@ -125,7 +125,7 @@ func (c *Client) updateApplicationEnvironmentVariableOverrides(
 	for _, variable := range request.Update {
 		// If the variable override name has been updated, it means it targets a new overrided variable.
 		// So delete it firstly and re-create it
-		res, err := c.api.ApplicationEnvironmentVariableApi.
+		res, err := c.api.ApplicationEnvironmentVariableAPI.
 			DeleteApplicationEnvironmentVariable(ctx, applicationID, variable.Id).
 			Execute()
 		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
@@ -134,7 +134,7 @@ func (c *Client) updateApplicationEnvironmentVariableOverrides(
 		}
 		// The override variable key contains the name of the overridden variable
 		overriddenVariableId := environmentVariablesByName[variable.Key].Id
-		_, res, err = c.api.ApplicationEnvironmentVariableApi.
+		_, res, err = c.api.ApplicationEnvironmentVariableAPI.
 			CreateApplicationEnvironmentVariableOverride(ctx, applicationID, overriddenVariableId).
 			Value(qovery.Value{Value: variable.Value}).
 			Execute()
@@ -147,7 +147,7 @@ func (c *Client) updateApplicationEnvironmentVariableOverrides(
 	for _, variable := range request.Create {
 		// The override variable key contains the name of the overridden variable
 		overriddenVariableId := environmentVariablesByName[variable.Key].Id
-		_, res, err := c.api.ApplicationEnvironmentVariableApi.
+		_, res, err := c.api.ApplicationEnvironmentVariableAPI.
 			CreateApplicationEnvironmentVariableOverride(ctx, applicationID, overriddenVariableId).
 			Value(qovery.Value{Value: variable.Value}).
 			Execute()
@@ -166,7 +166,7 @@ func (c *Client) updateApplicationSecretAliases(
 ) *apierrors.APIError {
 	// Delete all aliases to remove
 	for _, secret := range request.Delete {
-		res, err := c.api.ApplicationSecretApi.
+		res, err := c.api.ApplicationSecretAPI.
 			DeleteApplicationSecret(ctx, applicationID, secret.Id).
 			Execute()
 		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
@@ -178,7 +178,7 @@ func (c *Client) updateApplicationSecretAliases(
 	// If the secret alias value has been updated, it means it targets a new aliased secret.
 	// So delete it firstly and re-create it
 	for _, secret := range request.Update {
-		res, err := c.api.ApplicationSecretApi.
+		res, err := c.api.ApplicationSecretAPI.
 			DeleteApplicationSecret(ctx, applicationID, secret.Id).
 			Execute()
 		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
@@ -189,7 +189,7 @@ func (c *Client) updateApplicationSecretAliases(
 	for _, secret := range request.Update {
 		// The alias secret value contains the name of the aliased secret
 		aliasedSecretId := secretsByName[*(secret.Value)].Id
-		_, res, err := c.api.ApplicationSecretApi.
+		_, res, err := c.api.ApplicationSecretAPI.
 			CreateApplicationSecretAlias(ctx, applicationID, aliasedSecretId).
 			Key(qovery.Key{Key: secret.Key}).
 			Execute()
@@ -202,7 +202,7 @@ func (c *Client) updateApplicationSecretAliases(
 	for _, secret := range request.Create {
 		// The alias secret value contains the name of the aliased secret
 		aliasedSecretId := secretsByName[*(secret.Value)].Id
-		_, res, err := c.api.ApplicationSecretApi.
+		_, res, err := c.api.ApplicationSecretAPI.
 			CreateApplicationSecretAlias(ctx, applicationID, aliasedSecretId).
 			Key(qovery.Key{Key: secret.Key}).
 			Execute()
@@ -221,7 +221,7 @@ func (c *Client) updateApplicationSecretOverrides(
 ) *apierrors.APIError {
 	// Delete all overrides to remove
 	for _, secret := range request.Delete {
-		res, err := c.api.ApplicationSecretApi.
+		res, err := c.api.ApplicationSecretAPI.
 			DeleteApplicationSecret(ctx, applicationID, secret.Id).
 			Execute()
 		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
@@ -233,7 +233,7 @@ func (c *Client) updateApplicationSecretOverrides(
 	// If the secret override name has been updated, it means it targets a new overrided secret.
 	// So delete it firstly and re-create it
 	for _, secret := range request.Update {
-		res, err := c.api.ApplicationSecretApi.
+		res, err := c.api.ApplicationSecretAPI.
 			DeleteApplicationSecret(ctx, applicationID, secret.Id).
 			Execute()
 		// if 404 then ignore (the higher scoped variable could have been deleted, deleting the current scope variable previously so 404 is normal)
@@ -244,7 +244,7 @@ func (c *Client) updateApplicationSecretOverrides(
 	for _, secret := range request.Update {
 		// The override secret key contains the name of the overridden secret
 		overriddenSecretId := secretsByName[secret.Key].Id
-		_, res, err := c.api.ApplicationSecretApi.
+		_, res, err := c.api.ApplicationSecretAPI.
 			CreateApplicationSecretOverride(ctx, applicationID, overriddenSecretId).
 			Value(qovery.Value{Value: secret.Value}).
 			Execute()
@@ -257,7 +257,7 @@ func (c *Client) updateApplicationSecretOverrides(
 	for _, secret := range request.Create {
 		// The override secret key contains the name of the overridden secret
 		overriddenSecretId := secretsByName[secret.Key].Id
-		_, res, err := c.api.ApplicationSecretApi.
+		_, res, err := c.api.ApplicationSecretAPI.
 			CreateApplicationSecretOverride(ctx, applicationID, overriddenSecretId).
 			Value(qovery.Value{Value: secret.Value}).
 			Execute()

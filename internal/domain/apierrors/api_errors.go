@@ -20,19 +20,19 @@ type apiErrorPayload struct {
 	Path      string `json:"path"`
 }
 
-// ApiError represents an error that comes from Qovery's API client.
+// APIError represents an error that comes from Qovery's API client.
 // It contains all the information needed to understand an api error.
-type ApiError struct {
+type APIError struct {
 	err        error          // err is the actual error returned by the api client.
-	action     ApiAction      // action that produced the api client error.
-	resource   ApiResource    // resource that produced the api client error.
+	action     APIAction      // action that produced the api client error.
+	resource   APIResource    // resource that produced the api client error.
 	resourceID string         // resourceID that produced the api client error. [NOTE: it is replaced by the resource name in some cases (for failed create requests)]
 	Resp       *http.Response // Resp is the response returned by the api client.
 }
 
 // IsNotFound returns weather the error is a 404 or not.
 // NOTE: Since the api returns a 403 when a resource is not found, we also consider those as a 404.
-func (e ApiError) IsNotFound() bool {
+func (e APIError) IsNotFound() bool {
 	if e.Resp == nil {
 		return false
 	}
@@ -44,7 +44,7 @@ func (e ApiError) IsNotFound() bool {
 }
 
 // IsBadRequest returns weather the error is a 400 or not.
-func (e ApiError) IsBadRequest() bool {
+func (e APIError) IsBadRequest() bool {
 	if e.Resp == nil {
 		return false
 	}
@@ -53,19 +53,19 @@ func (e ApiError) IsBadRequest() bool {
 }
 
 // Error implements the Error interface.
-// It returns the detailed error message for this ApiError.
-func (e ApiError) Error() string {
+// It returns the detailed error message for this APIError.
+func (e APIError) Error() string {
 	return e.Detail()
 }
 
-// Summary returns a brief description of the error with the ApiResource and ApiAction.
-func (e ApiError) Summary() string {
+// Summary returns a brief description of the error with the APIResource and APIAction.
+func (e APIError) Summary() string {
 	return fmt.Sprintf("Error on %s %s", e.resource, e.action)
 }
 
-// Detail return a detailed error message for this ApiError.
+// Detail return a detailed error message for this APIError.
 // It tries to read the error payload received from the api client to give extra information about the error.
-func (e ApiError) Detail() string {
+func (e APIError) Detail() string {
 	var extra string
 	payload := e.errorPayload()
 
@@ -83,7 +83,7 @@ func (e ApiError) Detail() string {
 
 // errorPayload tries to read the response body to extract the error payload sent by the api client.
 // It returns nil if the body is empty.
-func (e ApiError) errorPayload() *apiErrorPayload {
+func (e APIError) errorPayload() *apiErrorPayload {
 	if e.err == nil || e.Resp == nil {
 		return nil
 	}
@@ -101,40 +101,40 @@ func (e ApiError) errorPayload() *apiErrorPayload {
 	return &payload
 }
 
-// NewApiErrorFromError tries to cast an error into an ApiError.
-// This is useful when working with ApiError passed as an `error` type to get the actual ApiError type.
-func NewApiErrorFromError(err error) *ApiError {
+// NewAPIErrorFromError tries to cast an error into an APIError.
+// This is useful when working with APIError passed as an `error` type to get the actual APIError type.
+func NewAPIErrorFromError(err error) *APIError {
 	switch err.(type) {
-	case *ApiError:
-		return err.(*ApiError)
+	case *APIError:
+		return err.(*APIError)
 	default:
 		return nil
 	}
 }
 
-// IsErrNotFound takes an error type and tries to cast it into a ApiError to check weather the error is an 404 or not.
+// IsErrNotFound takes an error type and tries to cast it into a APIError to check weather the error is an 404 or not.
 // It returns false if the casting fails.
 func IsErrNotFound(err error) bool {
-	apiErr := NewApiErrorFromError(err)
+	apiErr := NewAPIErrorFromError(err)
 	if apiErr == nil {
 		return false
 	}
 	return apiErr.IsNotFound()
 }
 
-// IsErrBadRequest takes an error type and tries to cast it into a ApiError to check weather the error is an 400 or not.
+// IsErrBadRequest takes an error type and tries to cast it into a APIError to check weather the error is an 400 or not.
 // It returns false if the casting fails.
 func IsErrBadRequest(err error) bool {
-	apiErr := NewApiErrorFromError(err)
+	apiErr := NewAPIErrorFromError(err)
 	if apiErr == nil {
 		return false
 	}
 	return apiErr.IsBadRequest()
 }
 
-// NewApiError returns a new instance of ApiError with the given parameters.
-func NewApiError(action ApiAction, resource ApiResource, resourceID string, resp *http.Response, err error) *ApiError {
-	return &ApiError{
+// NewAPIError returns a new instance of APIError with the given parameters.
+func NewAPIError(action APIAction, resource APIResource, resourceID string, resp *http.Response, err error) *APIError {
+	return &APIError{
 		err:        err,
 		action:     action,
 		resource:   resource,
@@ -143,44 +143,44 @@ func NewApiError(action ApiAction, resource ApiResource, resourceID string, resp
 	}
 }
 
-// NewCreateApiError returns a new instance of ApiError for a `create` action with the given parameters.
-func NewCreateApiError(resource ApiResource, resourceID string, resp *http.Response, err error) *ApiError {
-	return NewApiError(ApiActionCreate, resource, resourceID, resp, err)
+// NewCreateAPIError returns a new instance of APIError for a `create` action with the given parameters.
+func NewCreateAPIError(resource APIResource, resourceID string, resp *http.Response, err error) *APIError {
+	return NewAPIError(APIActionCreate, resource, resourceID, resp, err)
 }
 
-// NewReadApiError returns a new instance of ApiError for a `read` action with the given parameters.
-func NewReadApiError(resource ApiResource, resourceID string, resp *http.Response, err error) *ApiError {
-	return NewApiError(ApiActionRead, resource, resourceID, resp, err)
+// NewReadAPIError returns a new instance of APIError for a `read` action with the given parameters.
+func NewReadAPIError(resource APIResource, resourceID string, resp *http.Response, err error) *APIError {
+	return NewAPIError(APIActionRead, resource, resourceID, resp, err)
 }
 
-// NewUpdateApiError returns a new instance of ApiError for an `update` action with the given parameters.
-func NewUpdateApiError(resource ApiResource, resourceID string, resp *http.Response, err error) *ApiError {
-	return NewApiError(ApiActionUpdate, resource, resourceID, resp, err)
+// NewUpdateAPIError returns a new instance of APIError for an `update` action with the given parameters.
+func NewUpdateAPIError(resource APIResource, resourceID string, resp *http.Response, err error) *APIError {
+	return NewAPIError(APIActionUpdate, resource, resourceID, resp, err)
 }
 
-// NewDeleteApiError returns a new instance of ApiError for a `delete` action with the given parameters.
-func NewDeleteApiError(resource ApiResource, resourceID string, resp *http.Response, err error) *ApiError {
-	return NewApiError(ApiActionDelete, resource, resourceID, resp, err)
+// NewDeleteAPIError returns a new instance of APIError for a `delete` action with the given parameters.
+func NewDeleteAPIError(resource APIResource, resourceID string, resp *http.Response, err error) *APIError {
+	return NewAPIError(APIActionDelete, resource, resourceID, resp, err)
 }
 
-// NewStopApiError returns a new instance of ApiError for a `stop` action with the given parameters.
-func NewStopApiError(resource ApiResource, resourceID string, resp *http.Response, err error) *ApiError {
-	return NewApiError(ApiActionStop, resource, resourceID, resp, err)
+// NewStopAPIError returns a new instance of APIError for a `stop` action with the given parameters.
+func NewStopAPIError(resource APIResource, resourceID string, resp *http.Response, err error) *APIError {
+	return NewAPIError(APIActionStop, resource, resourceID, resp, err)
 }
 
-// NewRedeployApiError returns a new instance of ApiError for a `redeploy` action with the given parameters.
-func NewRedeployApiError(resource ApiResource, resourceID string, resp *http.Response, err error) *ApiError {
-	return NewApiError(ApiActionRedeploy, resource, resourceID, resp, err)
+// NewRedeployAPIError returns a new instance of APIError for a `redeploy` action with the given parameters.
+func NewRedeployAPIError(resource APIResource, resourceID string, resp *http.Response, err error) *APIError {
+	return NewAPIError(APIActionRedeploy, resource, resourceID, resp, err)
 }
 
-// NewDeployApiError returns a new instance of ApiError for a `deploy` action with the given parameters.
-func NewDeployApiError(resource ApiResource, resourceID string, resp *http.Response, err error) *ApiError {
-	return NewApiError(ApiActionDeploy, resource, resourceID, resp, err)
+// NewDeployAPIError returns a new instance of APIError for a `deploy` action with the given parameters.
+func NewDeployAPIError(resource APIResource, resourceID string, resp *http.Response, err error) *APIError {
+	return NewAPIError(APIActionDeploy, resource, resourceID, resp, err)
 }
 
-// NewNotFoundApiError returns a new instance of ApiError for a `not_found` resource with the given parameters.
-func NewNotFoundApiError(resource ApiResource, resourceID string) *ApiError {
-	return NewApiError(ApiActionRead, resource, resourceID, &http.Response{
+// NewNotFoundAPIError returns a new instance of APIError for a `not_found` resource with the given parameters.
+func NewNotFoundAPIError(resource APIResource, resourceID string) *APIError {
+	return NewAPIError(APIActionRead, resource, resourceID, &http.Response{
 		StatusCode: http.StatusNotFound,
 	}, errors.New("resource not found"))
 }

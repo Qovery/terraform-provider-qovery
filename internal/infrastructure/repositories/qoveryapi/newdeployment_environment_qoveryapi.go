@@ -29,9 +29,9 @@ func newDeploymentEnvironmentQoveryAPI(client *qovery.APIClient) (newdeployment.
 }
 
 func (c newNewDeploymentQoveryAPI) Deploy(ctx context.Context, newDeployment newdeployment.Deployment) (*newdeployment.Deployment, error) {
-	_, resp, err := c.client.EnvironmentActionsApi.DeployEnvironment(ctx, newDeployment.EnvironmentID.String()).Execute()
+	_, resp, err := c.client.EnvironmentActionsAPI.DeployEnvironment(ctx, newDeployment.EnvironmentID.String()).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeployment, newDeployment.EnvironmentID.String(), resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceDeployment, newDeployment.EnvironmentID.String(), resp, err)
 	}
 
 	return &newDeployment, nil
@@ -42,36 +42,36 @@ func (c newNewDeploymentQoveryAPI) ReDeploy(ctx context.Context, newDeployment n
 }
 
 func (c newNewDeploymentQoveryAPI) Stop(ctx context.Context, newDeployment newdeployment.Deployment) (*newdeployment.Deployment, error) {
-	_, resp, err := c.client.EnvironmentActionsApi.StopEnvironment(ctx, newDeployment.EnvironmentID.String()).Execute()
+	_, resp, err := c.client.EnvironmentActionsAPI.StopEnvironment(ctx, newDeployment.EnvironmentID.String()).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeployment, newDeployment.EnvironmentID.String(), resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceDeployment, newDeployment.EnvironmentID.String(), resp, err)
 	}
 
 	return &newDeployment, nil
 }
 
 func (c newNewDeploymentQoveryAPI) Restart(ctx context.Context, newDeployment newdeployment.Deployment) (*newdeployment.Deployment, error) {
-	_, resp, err := c.client.EnvironmentActionsApi.RestartEnvironment(ctx, newDeployment.EnvironmentID.String()).Execute()
+	_, resp, err := c.client.EnvironmentActionsAPI.RestartEnvironment(ctx, newDeployment.EnvironmentID.String()).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeployment, newDeployment.EnvironmentID.String(), resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceDeployment, newDeployment.EnvironmentID.String(), resp, err)
 	}
 
 	return &newDeployment, nil
 }
 
 func (c newNewDeploymentQoveryAPI) Delete(ctx context.Context, newDeployment newdeployment.Deployment) (*newdeployment.Deployment, error) {
-	resp, err := c.client.EnvironmentMainCallsApi.DeleteEnvironment(ctx, newDeployment.EnvironmentID.String()).Execute()
+	resp, err := c.client.EnvironmentMainCallsAPI.DeleteEnvironment(ctx, newDeployment.EnvironmentID.String()).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeployment, newDeployment.EnvironmentID.String(), resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceDeployment, newDeployment.EnvironmentID.String(), resp, err)
 	}
 
 	return &newDeployment, nil
 }
 
 func (c newNewDeploymentQoveryAPI) GetLastDeploymentId(ctx context.Context, environmentID uuid.UUID) (*string, error) {
-	history, resp, err := c.client.EnvironmentDeploymentHistoryApi.ListEnvironmentDeploymentHistory(ctx, environmentID.String()).Execute()
+	history, resp, err := c.client.EnvironmentDeploymentHistoryAPI.ListEnvironmentDeploymentHistory(ctx, environmentID.String()).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceDeployment, environmentID.String(), resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceDeployment, environmentID.String(), resp, err)
 	}
 
 	deploymentHistory := history.GetResults()

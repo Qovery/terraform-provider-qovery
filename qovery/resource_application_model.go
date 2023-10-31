@@ -214,7 +214,7 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 	return Application{
 		Id:                           FromString(app.ApplicationResponse.Id),
 		EnvironmentId:                FromString(app.ApplicationResponse.Environment.Id),
-		Name:                         FromStringPointer(app.ApplicationResponse.Name),
+		Name:                         FromString(app.ApplicationResponse.Name),
 		BuildMode:                    fromClientEnumPointer(app.ApplicationResponse.BuildMode),
 		DockerfilePath:               FromNullableString(app.ApplicationResponse.DockerfilePath),
 		BuildpackLanguage:            FromNullableNullableBuildPackLanguageEnum(app.ApplicationResponse.BuildpackLanguage),

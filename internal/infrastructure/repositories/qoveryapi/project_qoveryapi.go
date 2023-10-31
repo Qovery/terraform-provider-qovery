@@ -27,12 +27,12 @@ func newProjectQoveryAPI(client *qovery.APIClient) (project.Repository, error) {
 
 // Create calls Qovery's API to create a project for an organization using the given organizationID and request.
 func (c projectQoveryAPI) Create(ctx context.Context, organizationID string, request project.UpsertRepositoryRequest) (*project.Project, error) {
-	proj, resp, err := c.client.ProjectsApi.
+	proj, resp, err := c.client.ProjectsAPI.
 		CreateProject(ctx, organizationID).
 		ProjectRequest(newQoveryProjectRequestFromDomain(request)).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceProject, request.Name, resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceProject, request.Name, resp, err)
 	}
 
 	return newDomainProjectFromQovery(proj)
@@ -40,11 +40,11 @@ func (c projectQoveryAPI) Create(ctx context.Context, organizationID string, req
 
 // Get calls Qovery's API to retrieve a  project using the given projectID.
 func (c projectQoveryAPI) Get(ctx context.Context, projectID string) (*project.Project, error) {
-	proj, resp, err := c.client.ProjectMainCallsApi.
+	proj, resp, err := c.client.ProjectMainCallsAPI.
 		GetProject(ctx, projectID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadApiError(apierrors.ApiResourceProject, projectID, resp, err)
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceProject, projectID, resp, err)
 	}
 
 	return newDomainProjectFromQovery(proj)
@@ -52,12 +52,12 @@ func (c projectQoveryAPI) Get(ctx context.Context, projectID string) (*project.P
 
 // Update calls Qovery's API to update a project using the given projectID and request.
 func (c projectQoveryAPI) Update(ctx context.Context, projectID string, request project.UpsertRepositoryRequest) (*project.Project, error) {
-	proj, resp, err := c.client.ProjectMainCallsApi.
+	proj, resp, err := c.client.ProjectMainCallsAPI.
 		EditProject(ctx, projectID).
 		ProjectRequest(newQoveryProjectRequestFromDomain(request)).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceProject, projectID, resp, err)
+		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceProject, projectID, resp, err)
 	}
 
 	return newDomainProjectFromQovery(proj)
@@ -65,11 +65,11 @@ func (c projectQoveryAPI) Update(ctx context.Context, projectID string, request 
 
 // Delete calls Qovery's API to deletes a project using the given projectID.
 func (c projectQoveryAPI) Delete(ctx context.Context, projectID string) error {
-	resp, err := c.client.ProjectMainCallsApi.
+	resp, err := c.client.ProjectMainCallsAPI.
 		DeleteProject(ctx, projectID).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
-		return apierrors.NewDeleteApiError(apierrors.ApiResourceProject, projectID, resp, err)
+		return apierrors.NewDeleteAPIError(apierrors.APIResourceProject, projectID, resp, err)
 	}
 
 	return nil

@@ -31,11 +31,11 @@ func newJobDeploymentQoveryAPI(client *qovery.APIClient) (deployment.Repository,
 
 // GetStatus calls Qovery's API to get the status of a job using the given jobID.
 func (c jobDeploymentQoveryAPI) GetStatus(ctx context.Context, jobID string) (*status.Status, error) {
-	jobStatus, resp, err := c.client.JobMainCallsApi.
+	jobStatus, resp, err := c.client.JobMainCallsAPI.
 		GetJobStatus(ctx, jobID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadApiError(apierrors.ApiResourceJobStatus, jobID, resp, err)
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJobStatus, jobID, resp, err)
 	}
 
 	return newDomainStatusFromQovery(jobStatus)
@@ -44,14 +44,14 @@ func (c jobDeploymentQoveryAPI) GetStatus(ctx context.Context, jobID string) (*s
 // Deploy calls Qovery's API to deploy a job using the given jobID.
 func (c jobDeploymentQoveryAPI) Deploy(ctx context.Context, jobID string, version string) (*status.Status, error) {
 	// TODO(benjaminch): to be checked because we should be able to pass a commit ID
-	jobStatus, resp, err := c.client.JobActionsApi.
+	jobStatus, resp, err := c.client.JobActionsAPI.
 		DeployJob(ctx, jobID).
 		JobDeployRequest(qovery.JobDeployRequest{
 			ImageTag: &version,
 		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewDeployApiError(apierrors.ApiResourceJob, jobID, resp, err)
+		return nil, apierrors.NewDeployAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
 	return newDomainStatusFromQovery(jobStatus)
@@ -59,11 +59,11 @@ func (c jobDeploymentQoveryAPI) Deploy(ctx context.Context, jobID string, versio
 
 // Redeploy calls Qovery's API to redeploy a job using the given jobID.
 func (c jobDeploymentQoveryAPI) Redeploy(ctx context.Context, jobID string) (*status.Status, error) {
-	jobStatus, resp, err := c.client.JobActionsApi.
+	jobStatus, resp, err := c.client.JobActionsAPI.
 		RedeployJob(ctx, jobID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewRedeployApiError(apierrors.ApiResourceJob, jobID, resp, err)
+		return nil, apierrors.NewRedeployAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
 	return newDomainStatusFromQovery(jobStatus)
@@ -71,11 +71,11 @@ func (c jobDeploymentQoveryAPI) Redeploy(ctx context.Context, jobID string) (*st
 
 // Stop calls Qovery's API to stop a job using the given jobID.
 func (c jobDeploymentQoveryAPI) Stop(ctx context.Context, jobID string) (*status.Status, error) {
-	jobStatus, resp, err := c.client.JobActionsApi.
+	jobStatus, resp, err := c.client.JobActionsAPI.
 		StopJob(ctx, jobID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewStopApiError(apierrors.ApiResourceJob, jobID, resp, err)
+		return nil, apierrors.NewStopAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
 	return newDomainStatusFromQovery(jobStatus)

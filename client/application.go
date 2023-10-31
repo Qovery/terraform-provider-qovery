@@ -53,7 +53,7 @@ type ApplicationUpdateParams struct {
 }
 
 func (c *Client) CreateApplication(ctx context.Context, environmentID string, params *ApplicationCreateParams) (*ApplicationResponse, *apierrors.APIError) {
-	application, res, err := c.api.ApplicationsApi.
+	application, res, err := c.api.ApplicationsAPI.
 		CreateApplication(ctx, environmentID).
 		ApplicationRequest(params.ApplicationRequest).
 		Execute()
@@ -63,7 +63,7 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 
 	// Attach application to deployment stage
 	if len(params.ApplicationDeploymentStageID) > 0 {
-		_, resp, err := c.api.DeploymentStageMainCallsApi.
+		_, resp, err := c.api.DeploymentStageMainCallsAPI.
 			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageID, application.Id).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -72,7 +72,7 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 	}
 
 	// Get application deployment stage
-	applicationDeploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, application.Id).Execute()
+	applicationDeploymentStage, resp, err := c.api.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, application.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, application.Id, resp, err)
 	}
@@ -93,7 +93,7 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 }
 
 func (c *Client) GetApplication(ctx context.Context, applicationID string) (*ApplicationResponse, *apierrors.APIError) {
-	application, res, err := c.api.ApplicationMainCallsApi.
+	application, res, err := c.api.ApplicationMainCallsAPI.
 		GetApplication(ctx, applicationID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -120,7 +120,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 		return nil, apiErr
 	}
 
-	deploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, application.Id).Execute()
+	deploymentStage, resp, err := c.api.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, application.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
@@ -149,7 +149,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string) (*App
 }
 
 func (c *Client) UpdateApplication(ctx context.Context, applicationID string, params *ApplicationUpdateParams) (*ApplicationResponse, *apierrors.APIError) {
-	application, res, err := c.api.ApplicationMainCallsApi.
+	application, res, err := c.api.ApplicationMainCallsAPI.
 		EditApplication(ctx, applicationID).
 		ApplicationEditRequest(params.ApplicationEditRequest).
 		Execute()
@@ -159,7 +159,7 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 
 	// Attach service to deployment stage
 	if len(params.ApplicationDeploymentStageID) > 0 {
-		_, resp, err := c.api.DeploymentStageMainCallsApi.
+		_, resp, err := c.api.DeploymentStageMainCallsAPI.
 			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageID, applicationID).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -183,7 +183,7 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 }
 
 func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *apierrors.APIError {
-	application, res, err := c.api.ApplicationMainCallsApi.
+	application, res, err := c.api.ApplicationMainCallsAPI.
 		GetApplication(ctx, applicationID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -199,7 +199,7 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 		return apiErr
 	}
 
-	res, err = c.api.ApplicationMainCallsApi.
+	res, err = c.api.ApplicationMainCallsAPI.
 		DeleteApplication(ctx, applicationID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {
@@ -373,7 +373,7 @@ func (c *Client) getApplicationHosts(ctx context.Context, application *qovery.Ap
 // fetchVariablesForAliasesAndOverrides
 // returns 2 hashmaps used to send requests for variable aliases & overrides
 func (c *Client) fetchVariablesForAliasesAndOverrides(ctx context.Context, app *qovery.Application) (map[string]qovery.EnvironmentVariable, map[string]qovery.EnvironmentVariable, *apierrors.APIError) {
-	applicationVariables, response, err := c.api.ApplicationEnvironmentVariableApi.ListApplicationEnvironmentVariable(ctx, app.Id).Execute()
+	applicationVariables, response, err := c.api.ApplicationEnvironmentVariableAPI.ListApplicationEnvironmentVariable(ctx, app.Id).Execute()
 	if err != nil || response.StatusCode >= 400 {
 		return nil, nil, apierrors.NewReadError(apierrors.APIResourceApplicationEnvironmentVariable, app.Id, response, err)
 	}
@@ -395,7 +395,7 @@ func (c *Client) fetchVariablesForAliasesAndOverrides(ctx context.Context, app *
 // fetchSecretsForAliasesAndOverrides
 // returns 2 hashmaps used to send requests for secret aliases & overrides
 func (c *Client) fetchSecretsForAliasesAndOverrides(ctx context.Context, app *qovery.Application) (map[string]qovery.Secret, map[string]qovery.Secret, *apierrors.APIError) {
-	applicationVariables, response, err := c.api.ApplicationSecretApi.ListApplicationSecrets(ctx, app.Id).Execute()
+	applicationVariables, response, err := c.api.ApplicationSecretAPI.ListApplicationSecrets(ctx, app.Id).Execute()
 	if err != nil || response.StatusCode >= 400 {
 		return nil, nil, apierrors.NewReadError(apierrors.APIResourceApplicationSecret, app.Id, response, err)
 	}

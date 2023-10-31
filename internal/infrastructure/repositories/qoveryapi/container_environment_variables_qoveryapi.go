@@ -30,12 +30,12 @@ func newContainerEnvironmentVariablesQoveryAPI(client *qovery.APIClient) (variab
 
 // Create calls Qovery's API to create an environment variable for a container using the given containerID and request.
 func (p containerEnvironmentVariablesQoveryAPI) Create(ctx context.Context, containerID string, request variable.UpsertRequest) (*variable.Variable, error) {
-	v, resp, err := p.client.ContainerEnvironmentVariableApi.
+	v, resp, err := p.client.ContainerEnvironmentVariableAPI.
 		CreateContainerEnvironmentVariable(ctx, containerID).
 		EnvironmentVariableRequest(newQoveryEnvironmentVariableRequestFromDomain(request)).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainerEnvironmentVariable, request.Key, resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainerEnvironmentVariable, request.Key, resp, err)
 	}
 
 	return newDomainVariableFromQovery(v)
@@ -43,11 +43,11 @@ func (p containerEnvironmentVariablesQoveryAPI) Create(ctx context.Context, cont
 
 // List calls Qovery's API to retrieve an environment variables from a container using the given containerID and variableID.
 func (p containerEnvironmentVariablesQoveryAPI) List(ctx context.Context, containerID string) (variable.Variables, error) {
-	vars, resp, err := p.client.ContainerEnvironmentVariableApi.
+	vars, resp, err := p.client.ContainerEnvironmentVariableAPI.
 		ListContainerEnvironmentVariable(ctx, containerID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadApiError(apierrors.ApiResourceContainerEnvironmentVariable, containerID, resp, err)
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceContainerEnvironmentVariable, containerID, resp, err)
 	}
 
 	return newDomainVariablesFromQovery(vars)
@@ -55,47 +55,47 @@ func (p containerEnvironmentVariablesQoveryAPI) List(ctx context.Context, contai
 
 // Update calls Qovery's API to update an environment variable from a container using the given containerID, credentialsID and request.
 func (p containerEnvironmentVariablesQoveryAPI) Update(ctx context.Context, containerID string, credentialsID string, request variable.UpsertRequest) (*variable.Variable, error) {
-	v, resp, err := p.client.ContainerEnvironmentVariableApi.
+	v, resp, err := p.client.ContainerEnvironmentVariableAPI.
 		EditContainerEnvironmentVariable(ctx, containerID, credentialsID).
 		EnvironmentVariableEditRequest(newQoveryEnvironmentVariableEditRequestFromDomain(request)).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceContainerEnvironmentVariable, credentialsID, resp, err)
+		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceContainerEnvironmentVariable, credentialsID, resp, err)
 	}
 
 	return newDomainVariableFromQovery(v)
 }
 
 // Delete calls Qovery's API to delete an environment variable from a container using the given containerID and credentialsID.
-func (p containerEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, containerID string, credentialsID string) *apierrors.ApiError {
-	resp, err := p.client.ContainerEnvironmentVariableApi.
+func (p containerEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, containerID string, credentialsID string) *apierrors.APIError {
+	resp, err := p.client.ContainerEnvironmentVariableAPI.
 		DeleteContainerEnvironmentVariable(ctx, containerID, credentialsID).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
-		return apierrors.NewDeleteApiError(apierrors.ApiResourceContainerEnvironmentVariable, credentialsID, resp, err)
+		return apierrors.NewDeleteAPIError(apierrors.APIResourceContainerEnvironmentVariable, credentialsID, resp, err)
 	}
 
 	return nil
 }
 
 func (p containerEnvironmentVariablesQoveryAPI) CreateAlias(ctx context.Context, containerID string, request variable.UpsertRequest, aliasedVariableId string) (*variable.Variable, error) {
-	v, resp, err := p.client.ContainerEnvironmentVariableApi.
+	v, resp, err := p.client.ContainerEnvironmentVariableAPI.
 		CreateContainerEnvironmentVariableAlias(ctx, containerID, aliasedVariableId).
 		Key(qovery.Key{Key: request.Key}).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainerEnvironmentVariable, request.Key, resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainerEnvironmentVariable, request.Key, resp, err)
 	}
 
 	return newDomainVariableFromQovery(v)
 }
 func (p containerEnvironmentVariablesQoveryAPI) CreateOverride(ctx context.Context, containerID string, request variable.UpsertRequest, overriddenVariableId string) (*variable.Variable, error) {
-	v, resp, err := p.client.ContainerEnvironmentVariableApi.
+	v, resp, err := p.client.ContainerEnvironmentVariableAPI.
 		CreateContainerEnvironmentVariableOverride(ctx, containerID, overriddenVariableId).
 		Value(qovery.Value{Value: &request.Value}).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceContainerEnvironmentVariable, request.Key, resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainerEnvironmentVariable, request.Key, resp, err)
 	}
 
 	return newDomainVariableFromQovery(v)

@@ -215,12 +215,12 @@ func (p *ProbeExec) toProbeExecRequest() qovery.NullableProbeTypeExec {
 	})
 }
 
-func (p *Probe) toProbeRequest() *qovery.Probe {
+func (p *Probe) toProbeRequest() *qovery.NullableProbe {
 	if p == nil {
 		return nil
 	}
 
-	return &qovery.Probe{
+	probe := qovery.Probe{
 		InitialDelaySeconds: ToInt32Pointer(p.InitialDelaySeconds),
 		PeriodSeconds:       ToInt32Pointer(p.PeriodSeconds),
 		TimeoutSeconds:      ToInt32Pointer(p.TimeoutSeconds),
@@ -233,16 +233,26 @@ func (p *Probe) toProbeRequest() *qovery.Probe {
 			Grpc: p.Type.Grpc.toProbeGrpcRequest(),
 		},
 	}
+	return qovery.NewNullableProbe(&probe)
 }
 
 func (h HealthChecks) toHealthchecksRequest() qovery.Healthcheck {
+	var readinessProbe = qovery.NewNullableProbe(nil)
+	if h.ReadinessProbe != nil {
+		readinessProbe = h.ReadinessProbe.toProbeRequest()
+	}
+	var livenessProbe = qovery.NewNullableProbe(nil)
+	if h.LivenessProbe != nil {
+		livenessProbe = h.LivenessProbe.toProbeRequest()
+	}
 	return qovery.Healthcheck{
-		ReadinessProbe: h.ReadinessProbe.toProbeRequest(),
-		LivenessProbe:  h.LivenessProbe.toProbeRequest(),
+		ReadinessProbe: *readinessProbe,
+		LivenessProbe:  *livenessProbe,
 	}
 }
 
-func convertProbeResponseToDomain(p *qovery.Probe) *Probe {
+func convertProbeResponseToDomain(probe *qovery.NullableProbe) *Probe {
+	var p = probe.Get()
 	if p == nil {
 		return nil
 	}
@@ -296,7 +306,7 @@ func convertProbeResponseToDomain(p *qovery.Probe) *Probe {
 
 func convertHealthchecksResponseToDomain(r qovery.Healthcheck) HealthChecks {
 	return HealthChecks{
-		ReadinessProbe: convertProbeResponseToDomain(r.ReadinessProbe),
-		LivenessProbe:  convertProbeResponseToDomain(r.LivenessProbe),
+		ReadinessProbe: convertProbeResponseToDomain(&r.ReadinessProbe),
+		LivenessProbe:  convertProbeResponseToDomain(&r.LivenessProbe),
 	}
 }

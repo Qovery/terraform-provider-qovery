@@ -85,7 +85,7 @@ func wait(ctx context.Context, f waitFunc, timeout *time.Duration) error {
 
 func (d deploymentStatusQoveryAPI) newEnvironmentWaitForTerminalStateBeforeDeploying(environmentID uuid.UUID) waitFunc {
 	return func(ctx context.Context) (bool, error) {
-		status, response, err := d.client.EnvironmentMainCallsApi.GetEnvironmentStatus(ctx, environmentID.String()).Execute()
+		status, response, err := d.client.EnvironmentMainCallsAPI.GetEnvironmentStatus(ctx, environmentID.String()).Execute()
 		if err != nil || response.StatusCode >= 400 {
 			return false, err
 		}
@@ -109,7 +109,7 @@ func (d deploymentStatusQoveryAPI) newEnvironmentWaitForTerminalStateBeforeDeplo
 
 func (d deploymentStatusQoveryAPI) newEnvironmentWaitForExpectedDesiredState(environmentID uuid.UUID, desiredState newdeployment.DeploymentDesiredState) waitFunc {
 	return func(ctx context.Context) (bool, error) {
-		status, response, err := d.client.EnvironmentMainCallsApi.GetEnvironmentStatus(ctx, environmentID.String()).Execute()
+		status, response, err := d.client.EnvironmentMainCallsAPI.GetEnvironmentStatus(ctx, environmentID.String()).Execute()
 		if err != nil {
 			if response.StatusCode == 404 && desiredState == newdeployment.DELETED {
 				return true, nil

@@ -33,29 +33,23 @@ func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string, adv
 	}
 
 	var sourceImage *image.NewImageParams
-	if imageFrom := j.Source.Image.Get(); imageFrom != nil {
+	if j.Source.JobResponseAllOfSourceOneOf != nil {
+		imageFrom := j.Source.JobResponseAllOfSourceOneOf.Image
 		var registryID = ""
 		if imageFrom.RegistryId != nil {
 			registryID = *imageFrom.RegistryId
 		}
-		var imageName = ""
-		if imageFrom.ImageName != nil {
-			imageName = *imageFrom.ImageName
-		}
-		var imageTag = ""
-		if imageFrom.Tag != nil {
-			imageTag = *imageFrom.Tag
-		}
-
 		sourceImage = &image.NewImageParams{
 			RegistryID: registryID,
-			Name:       imageName,
-			Tag:        imageTag,
+			Name:       imageFrom.ImageName,
+			Tag:        imageFrom.Tag,
 		}
 	}
 
 	var sourceDocker *docker.NewDockerParams
-	if dockerFrom := j.Source.Docker.Get(); dockerFrom != nil {
+
+	if j.Source.JobResponseAllOfSourceOneOf1 != nil {
+		dockerFrom := j.Source.JobResponseAllOfSourceOneOf1.Docker
 		var gitRepository = git_repository.NewGitRepositoryParams{
 			Url:      "",
 			Branch:   nil,

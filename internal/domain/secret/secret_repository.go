@@ -16,5 +16,5 @@ type Repository interface {
 	CreateOverride(ctx context.Context, scopeResourceID string, request UpsertRequest, overriddenSecretId string) (*Secret, error)
 	List(ctx context.Context, scopeResourceID string) (Secrets, error)
 	Update(ctx context.Context, scopeResourceID string, secretID string, request UpsertRequest) (*Secret, error)
-	Delete(ctx context.Context, scopeResourceID string, secretID string) *apierrors.ApiError
+	Delete(ctx context.Context, scopeResourceID string, secretID string) *apierrors.APIError
 }
