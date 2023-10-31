@@ -90,6 +90,7 @@ func TestAcc_Application(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
 					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", "master"),
 					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.git_token_id", getTestQoverySandboxGitTokenID()),
 					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
 					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "buildpack_language"),
@@ -1388,6 +1389,7 @@ func testAccQoveryApplicationDestroy(resourceName string) resource.TestCheckFunc
 }
 
 func testAccApplicationDefaultConfig(testName string) string {
+
 	return fmt.Sprintf(`
 %s
 
@@ -1398,11 +1400,12 @@ resource "qovery_application" "test" {
   dockerfile_path = "Dockerfile"
   git_repository = {
     url = "%s"
+    git_token_id = "%s"
   }
   healthchecks = {}
   advanced_settings_json = jsonencode({"build.timeout_max_sec": 1700})
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL,
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(),
 	)
 }
 

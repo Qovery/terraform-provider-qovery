@@ -51,10 +51,11 @@ func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string, adv
 	if j.Source.JobResponseAllOfSourceOneOf1 != nil {
 		dockerFrom := j.Source.JobResponseAllOfSourceOneOf1.Docker
 		var gitRepository = git_repository.NewGitRepositoryParams{
-			Url:      "",
-			Branch:   nil,
-			CommitID: nil,
-			RootPath: nil,
+			Url:        "",
+			Branch:     nil,
+			CommitID:   nil,
+			RootPath:   nil,
+			GitTokenId: nil,
 		}
 
 		if gitRepositoryFrom := dockerFrom.GitRepository; gitRepositoryFrom != nil {
@@ -69,6 +70,9 @@ func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string, adv
 			}
 			if gitRepositoryFrom.RootPath != nil {
 				gitRepository.RootPath = gitRepositoryFrom.RootPath
+			}
+			if gitRepositoryFrom.GitTokenId.Get() != nil {
+				gitRepository.GitTokenId = gitRepositoryFrom.GitTokenId.Get()
 			}
 		}
 
@@ -159,9 +163,10 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 		docker = &qovery.JobRequestAllOfSourceDocker{
 			DockerfilePath: *qovery.NewNullableString(request.Source.Docker.DockerFilePath),
 			GitRepository: &qovery.ApplicationGitRepositoryRequest{
-				Url:      request.Source.Docker.GitRepository.Url,
-				Branch:   request.Source.Docker.GitRepository.Branch,
-				RootPath: request.Source.Docker.GitRepository.RootPath,
+				Url:        request.Source.Docker.GitRepository.Url,
+				Branch:     request.Source.Docker.GitRepository.Branch,
+				RootPath:   request.Source.Docker.GitRepository.RootPath,
+				GitTokenId: *qovery.NewNullableString(request.Source.Docker.GitRepository.GitTokenId),
 			},
 		}
 	}

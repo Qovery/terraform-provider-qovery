@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -80,6 +81,8 @@ type qProvider struct {
 
 	// deploymentService is an instance of a newdeployment.Service that handles the domain logic.
 	deploymentService newdeployment.Service
+
+	gitTokenService gittoken.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -158,6 +161,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.environmentService = domainServices.Environment
 	p.deploymentStageService = domainServices.DeploymentStage
 	p.deploymentService = domainServices.Deployment
+	p.gitTokenService = domainServices.GitToken
 
 	resp.DataSourceData = p
 	resp.ResourceData = p
@@ -178,6 +182,7 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newJobResource,
 		newDeploymentStageResource,
 		newDeploymentResource,
+		newGitTokenResource,
 	}
 }
 
@@ -196,6 +201,7 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 		newScalewayCredentialsDataSource,
 		newDeploymentStageDataSource,
 		newDeploymentDataSource,
+		newGitTokenDataSource,
 	}
 }
 

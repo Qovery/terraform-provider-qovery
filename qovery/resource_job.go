@@ -321,6 +321,12 @@ func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostic
 										Optional:    true,
 										Computed:    true,
 									},
+									"git_token_id": {
+										Description: "The git token ID to be used",
+										Type:        types.StringType,
+										Optional:    true,
+										Computed:    false,
+									},
 								}),
 							},
 						}),

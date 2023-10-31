@@ -348,6 +348,10 @@ Read-Only:
 <a id="nestedatt--source--docker--git_repository"></a>
 ### Nested Schema for `source.docker.git_repository`
 
+Optional:
+
+- `git_token_id` (String) The git token ID to be used
+
 Read-Only:
 
 - `branch` (String) Job's docker source git repository branch.

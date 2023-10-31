@@ -10,10 +10,11 @@ var (
 )
 
 type GitRepository struct {
-	Url      string
-	Branch   *string
-	CommitID *string
-	RootPath *string
+	Url        string
+	Branch     *string
+	CommitID   *string
+	RootPath   *string
+	GitTokenId *string
 }
 
 func (i GitRepository) Validate() error {
@@ -25,18 +26,20 @@ func (i GitRepository) Validate() error {
 }
 
 type NewGitRepositoryParams struct {
-	Url      string
-	Branch   *string
-	CommitID *string
-	RootPath *string
+	Url        string
+	Branch     *string
+	CommitID   *string
+	RootPath   *string
+	GitTokenId *string
 }
 
 func NewGitRepository(params NewGitRepositoryParams) (*GitRepository, error) {
 	gitRepository := &GitRepository{
-		Url:      params.Url,
-		Branch:   params.Branch,
-		CommitID: params.CommitID,
-		RootPath: params.RootPath,
+		Url:        params.Url,
+		Branch:     params.Branch,
+		CommitID:   params.CommitID,
+		RootPath:   params.RootPath,
+		GitTokenId: params.GitTokenId,
 	}
 
 	if err := gitRepository.Validate(); err != nil {

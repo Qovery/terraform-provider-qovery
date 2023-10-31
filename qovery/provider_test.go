@@ -136,6 +136,10 @@ func getTestQoveryHost() string {
 	return os.Getenv("TEST_QOVERY_HOST")
 }
 
+func getTestQoverySandboxGitTokenID() string {
+	return os.Getenv("TEST_QOVERY_SANDBOX_GIT_TOKEN_ID")
+}
+
 func generateTestName(testName string) string {
 	return fmt.Sprintf("%s-%s-%s", testNamePrefix, testName, testNameSuffix)
 }
