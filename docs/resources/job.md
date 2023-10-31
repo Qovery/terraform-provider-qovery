@@ -484,6 +484,7 @@ Required:
 
 Optional:
 
+- `git_token_id` (String) The git token ID to be used
 - `root_path` (String) Job's docker source git repository root path.
 
 

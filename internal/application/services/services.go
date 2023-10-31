@@ -3,6 +3,7 @@ package services
 import (
 	"github.com/pkg/errors"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
@@ -21,7 +22,7 @@ var (
 	ErrInvalidRepository = errors.New("invalid repository")
 	// ErrInvalidService is the error return if the given service is nil or invalid.
 	ErrInvalidService = errors.New("invalid service")
-	// ErrMissingConfiguration is the error return if no configuration has been given.
+	// ErrMissingConfiguration is the error return if no conf gittokiguration has been given.
 	ErrMissingConfiguration = errors.New("missing configuration")
 )
 
@@ -39,6 +40,7 @@ type Services struct {
 	Environment         environment.Service
 	DeploymentStage     deploymentstage.Service
 	Deployment          newdeployment.Service
+	GitToken            gittoken.Service
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -164,6 +166,12 @@ func New(configs ...Configuration) (*Services, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	gitTokenService, err := NewGitTokenService(services.repos.QoveryClient)
+	if err != nil {
+		return nil, err
+	}
+
 	services.CredentialsAws = credentialsAwsService
 	services.CredentialsScaleway = credentialsScalewayService
 	services.Organization = organizationService
@@ -174,6 +182,7 @@ func New(configs ...Configuration) (*Services, error) {
 	services.Environment = environmentService
 	services.DeploymentStage = deploymentStageService
 	services.Deployment = deploymentService
+	services.GitToken = gitTokenService
 
 	return services, nil
 }

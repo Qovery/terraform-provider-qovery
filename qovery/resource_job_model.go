@@ -38,9 +38,10 @@ func JobSourceFromDomainJobSource(j job.JobSource) JobSource {
 	if j.Docker != nil {
 		dkr = &Docker{
 			GitRepository: GitRepository{
-				Url:      FromString(j.Docker.GitRepository.Url),
-				Branch:   FromStringPointer(j.Docker.GitRepository.Branch),
-				RootPath: FromStringPointer(j.Docker.GitRepository.RootPath),
+				Url:        FromString(j.Docker.GitRepository.Url),
+				Branch:     FromStringPointer(j.Docker.GitRepository.Branch),
+				RootPath:   FromStringPointer(j.Docker.GitRepository.RootPath),
+				GitTokenId: FromStringPointer(j.Docker.GitRepository.GitTokenId),
 			},
 			DockerFilePath: FromStringPointer(j.Docker.DockerFilePath),
 		}

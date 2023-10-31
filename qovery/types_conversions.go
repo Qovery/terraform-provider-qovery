@@ -12,6 +12,7 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
@@ -42,7 +43,8 @@ type ClientEnum interface {
 		status.State |
 		storage.Type |
 		qovery.BuildModeEnum |
-		qovery.ClusterStateEnum
+		qovery.ClusterStateEnum |
+		gittoken.GitTokenType
 }
 
 func clientEnumToStringArray[T ClientEnum](enum []T) []string {

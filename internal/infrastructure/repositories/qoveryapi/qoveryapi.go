@@ -37,7 +37,7 @@ type Configuration func(qoveryAPI *QoveryAPI) error
 
 // QoveryAPI contains the implementations of domain repositories using the qovery api client.
 type QoveryAPI struct {
-	client *qovery.APIClient
+	Client *qovery.APIClient
 
 	CredentialsAws                 credentials.AwsRepository
 	CredentialsScaleway            credentials.ScalewayRepository
@@ -183,7 +183,7 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 
 	// Create a new QoveryAPI instance.
 	qoveryAPI := &QoveryAPI{
-		client:                         apiClient,
+		Client:                         apiClient,
 		CredentialsAws:                 credentialsAwsAPI,
 		CredentialsScaleway:            credentialsScalewayAPI,
 		Organization:                   organizationAPI,
@@ -225,7 +225,7 @@ func WithQoveryAPIToken(apiToken string) Configuration {
 			return ErrInvalidQoveryAPIToken
 		}
 
-		qoveryAPI.client.GetConfig().AddDefaultHeader("Authorization", fmt.Sprintf("Token %s", apiToken))
+		qoveryAPI.Client.GetConfig().AddDefaultHeader("Authorization", fmt.Sprintf("Token %s", apiToken))
 
 		return nil
 	}
@@ -238,7 +238,7 @@ func WithUserAgent(userAgent string) Configuration {
 			return ErrInvalidUserAgent
 		}
 
-		qoveryAPI.client.GetConfig().UserAgent = userAgent
+		qoveryAPI.Client.GetConfig().UserAgent = userAgent
 
 		return nil
 	}
@@ -251,7 +251,7 @@ func WithServerHost(host string) Configuration {
 			return ErrInvalidHost
 		}
 
-		qoveryAPI.client.GetConfig().Servers = qovery.ServerConfigurations{
+		qoveryAPI.Client.GetConfig().Servers = qovery.ServerConfigurations{
 			{
 				URL:         host,
 				Description: "No description provided",

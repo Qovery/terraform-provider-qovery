@@ -145,6 +145,12 @@ func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Di
 							modifiers.NewStringDefaultModifier(applicationGitRepositoryRootPathDefault),
 						},
 					},
+					"git_token_id": {
+						Description: "The git token ID to be used",
+						Type:        types.StringType,
+						Optional:    true,
+						Computed:    false,
+					},
 				}),
 			},
 			"build_mode": {

@@ -45,6 +45,7 @@ type testEnvironment struct {
 	ContainerID                   string `env:"TEST_CONTAINER_ID,required"`
 	JobID                         string `env:"TEST_JOB_ID,required"`
 	QoveryHost                    string `env:"TEST_QOVERY_HOST,required"`
+	QoverySandboxGitTokenId       string `env:"TEST_QOVERY_SANDBOX_GIT_TOKEN_ID,required"`
 }
 
 var (
@@ -134,6 +135,10 @@ func getTestJobID() string {
 
 func getTestQoveryHost() string {
 	return os.Getenv("TEST_QOVERY_HOST")
+}
+
+func getTestQoverySandboxGitTokenID() string {
+	return os.Getenv("TEST_QOVERY_SANDBOX_GIT_TOKEN_ID")
 }
 
 func generateTestName(testName string) string {
