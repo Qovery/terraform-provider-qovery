@@ -31,12 +31,12 @@ func newCredentialsScalewayQoveryAPI(client *qovery.APIClient) (credentials.Scal
 
 // Create calls Qovery's API to create a scaleway cluster credentials on an organization using the given organizationID and request.
 func (c credentialsScalewayQoveryAPI) Create(ctx context.Context, organizationID string, request credentials.UpsertScalewayRequest) (*credentials.Credentials, error) {
-	creds, resp, err := c.client.CloudProviderCredentialsApi.
+	creds, resp, err := c.client.CloudProviderCredentialsAPI.
 		CreateScalewayCredentials(ctx, organizationID).
 		ScalewayCredentialsRequest(newQoveryScalewayCredentialsRequestFromDomain(request)).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceScalewayCredentials, request.Name, resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceScalewayCredentials, request.Name, resp, err)
 	}
 
 	return newDomainCredentialsFromQovery(organizationID, creds)
@@ -44,11 +44,11 @@ func (c credentialsScalewayQoveryAPI) Create(ctx context.Context, organizationID
 
 // Get calls Qovery's API to retrieve an scaleway cluster credentials from an organization using the given organizationID and credentialsID.
 func (c credentialsScalewayQoveryAPI) Get(ctx context.Context, organizationID string, credentialsID string) (*credentials.Credentials, error) {
-	creds, resp, err := c.client.CloudProviderCredentialsApi.
+	creds, resp, err := c.client.CloudProviderCredentialsAPI.
 		GetScalewayCredentials(ctx, organizationID, credentialsID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadApiError(apierrors.ApiResourceScalewayCredentials, credentialsID, resp, err)
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceScalewayCredentials, credentialsID, resp, err)
 	}
 
 	return newDomainCredentialsFromQovery(organizationID, creds)
@@ -56,12 +56,12 @@ func (c credentialsScalewayQoveryAPI) Get(ctx context.Context, organizationID st
 
 // Update calls Qovery's API to update a scaleway cluster credentials from an organization using the given organizationID, credentialsID and request.
 func (c credentialsScalewayQoveryAPI) Update(ctx context.Context, organizationID string, credentialsID string, request credentials.UpsertScalewayRequest) (*credentials.Credentials, error) {
-	creds, resp, err := c.client.CloudProviderCredentialsApi.
+	creds, resp, err := c.client.CloudProviderCredentialsAPI.
 		EditScalewayCredentials(ctx, organizationID, credentialsID).
 		ScalewayCredentialsRequest(newQoveryScalewayCredentialsRequestFromDomain(request)).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceScalewayCredentials, credentialsID, resp, err)
+		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceScalewayCredentials, credentialsID, resp, err)
 	}
 
 	return newDomainCredentialsFromQovery(organizationID, creds)
@@ -69,11 +69,11 @@ func (c credentialsScalewayQoveryAPI) Update(ctx context.Context, organizationID
 
 // Delete calls Qovery's API to delete a scaleway cluster credentials from an organization using the given organizationID and credentialsID.
 func (c credentialsScalewayQoveryAPI) Delete(ctx context.Context, organizationID string, credentialsID string) error {
-	resp, err := c.client.CloudProviderCredentialsApi.
+	resp, err := c.client.CloudProviderCredentialsAPI.
 		DeleteScalewayCredentials(ctx, credentialsID, organizationID).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
-		return apierrors.NewDeleteApiError(apierrors.ApiResourceScalewayCredentials, credentialsID, resp, err)
+		return apierrors.NewDeleteAPIError(apierrors.APIResourceScalewayCredentials, credentialsID, resp, err)
 	}
 
 	return nil

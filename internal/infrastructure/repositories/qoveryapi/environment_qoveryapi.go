@@ -29,15 +29,15 @@ func newEnvironmentQoveryAPI(client *qovery.APIClient) (environment.Repository, 
 func (c environmentQoveryAPI) Create(ctx context.Context, projectID string, request environment.CreateRepositoryRequest) (*environment.Environment, error) {
 	req, err := newQoveryCreateEnvironmentRequestFromDomain(request)
 	if err != nil {
-		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceEnvironment, request.Name, nil, err)
+		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceEnvironment, request.Name, nil, err)
 	}
 
-	env, resp, err := c.client.EnvironmentsApi.
+	env, resp, err := c.client.EnvironmentsAPI.
 		CreateEnvironment(ctx, projectID).
 		CreateEnvironmentRequest(*req).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateApiError(apierrors.ApiResourceEnvironment, request.Name, resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceEnvironment, request.Name, resp, err)
 	}
 
 	return newDomainEnvironmentFromQovery(env)
@@ -45,11 +45,11 @@ func (c environmentQoveryAPI) Create(ctx context.Context, projectID string, requ
 
 // Get calls Qovery's API to retrieve an environment using the given environmentID.
 func (c environmentQoveryAPI) Get(ctx context.Context, environmentID string) (*environment.Environment, error) {
-	env, resp, err := c.client.EnvironmentMainCallsApi.
+	env, resp, err := c.client.EnvironmentMainCallsAPI.
 		GetEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadApiError(apierrors.ApiResourceEnvironment, environmentID, resp, err)
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceEnvironment, environmentID, resp, err)
 	}
 
 	return newDomainEnvironmentFromQovery(env)
@@ -59,15 +59,15 @@ func (c environmentQoveryAPI) Get(ctx context.Context, environmentID string) (*e
 func (c environmentQoveryAPI) Update(ctx context.Context, environmentID string, request environment.UpdateRepositoryRequest) (*environment.Environment, error) {
 	req, err := newQoveryEnvironmentEditRequestFromDomain(request)
 	if err != nil {
-		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceEnvironment, environmentID, nil, err)
+		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceEnvironment, environmentID, nil, err)
 	}
 
-	env, resp, err := c.client.EnvironmentMainCallsApi.
+	env, resp, err := c.client.EnvironmentMainCallsAPI.
 		EditEnvironment(ctx, environmentID).
 		EnvironmentEditRequest(*req).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceEnvironment, environmentID, resp, err)
+		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceEnvironment, environmentID, resp, err)
 	}
 
 	return newDomainEnvironmentFromQovery(env)
@@ -75,18 +75,18 @@ func (c environmentQoveryAPI) Update(ctx context.Context, environmentID string, 
 
 // Delete calls Qovery's API to deletes an environment using the given environmentID.
 func (c environmentQoveryAPI) Delete(ctx context.Context, environmentID string) error {
-	resp, err := c.client.EnvironmentMainCallsApi.
+	resp, err := c.client.EnvironmentMainCallsAPI.
 		DeleteEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
-		return apierrors.NewDeleteApiError(apierrors.ApiResourceEnvironment, environmentID, resp, err)
+		return apierrors.NewDeleteAPIError(apierrors.APIResourceEnvironment, environmentID, resp, err)
 	}
 
 	return nil
 }
 
 func (c environmentQoveryAPI) Exists(ctx context.Context, environmentID string) bool {
-	_, resp, _ := c.client.EnvironmentMainCallsApi.
+	_, resp, _ := c.client.EnvironmentMainCallsAPI.
 		GetEnvironment(ctx, environmentID).
 		Execute()
 	return !(resp.StatusCode >= 400)

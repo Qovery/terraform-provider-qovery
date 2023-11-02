@@ -26,7 +26,7 @@ var (
 )
 
 type testEnvironment struct {
-	QoveryApiToken                string `env:"QOVERY_API_TOKEN,required"`
+	QoveryAPIToken                string `env:"QOVERY_API_TOKEN,required"`
 	OrganizationID                string `env:"TEST_ORGANIZATION_ID,required"`
 	AwsCredentialsID              string `env:"TEST_AWS_CREDENTIALS_ID,required"`
 	AwsCredentialsAccessKeyID     string `env:"TEST_AWS_CREDENTIALS_ACCESS_KEY_ID,required"`
@@ -50,7 +50,7 @@ type testEnvironment struct {
 var (
 	apiClient         = client.New(os.Getenv(qovery.APITokenEnvName), "test", getTestQoveryHost())
 	qoveryServices, _ = services.New(services.WithQoveryRepository(os.Getenv(qovery.APITokenEnvName), "test", getTestQoveryHost()))
-	qoveryApiClient   = client.NewQoveryApiClient(os.Getenv(qovery.APITokenEnvName), "test", getTestQoveryHost())
+	qoveryAPIClient   = client.NewQoveryAPIClient(os.Getenv(qovery.APITokenEnvName), "test", getTestQoveryHost())
 )
 
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){

@@ -196,15 +196,15 @@ func (_c *SecretRepository_CreateOverride_Call) RunAndReturn(run func(context.Co
 }
 
 // Delete provides a mock function with given fields: ctx, scopeResourceID, secretID
-func (_m *SecretRepository) Delete(ctx context.Context, scopeResourceID string, secretID string) *apierrors.ApiError {
+func (_m *SecretRepository) Delete(ctx context.Context, scopeResourceID string, secretID string) *apierrors.APIError {
 	ret := _m.Called(ctx, scopeResourceID, secretID)
 
-	var r0 *apierrors.ApiError
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *apierrors.ApiError); ok {
+	var r0 *apierrors.APIError
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *apierrors.APIError); ok {
 		r0 = rf(ctx, scopeResourceID, secretID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*apierrors.ApiError)
+			r0 = ret.Get(0).(*apierrors.APIError)
 		}
 	}
 
@@ -231,12 +231,12 @@ func (_c *SecretRepository_Delete_Call) Run(run func(ctx context.Context, scopeR
 	return _c
 }
 
-func (_c *SecretRepository_Delete_Call) Return(_a0 *apierrors.ApiError) *SecretRepository_Delete_Call {
+func (_c *SecretRepository_Delete_Call) Return(_a0 *apierrors.APIError) *SecretRepository_Delete_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *SecretRepository_Delete_Call) RunAndReturn(run func(context.Context, string, string) *apierrors.ApiError) *SecretRepository_Delete_Call {
+func (_c *SecretRepository_Delete_Call) RunAndReturn(run func(context.Context, string, string) *apierrors.APIError) *SecretRepository_Delete_Call {
 	_c.Call.Return(run)
 	return _c
 }

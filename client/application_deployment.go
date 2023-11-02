@@ -20,7 +20,7 @@ func (c *Client) deployApplication(ctx context.Context, application *qovery.Appl
 	case qovery.STATEENUM_DEPLOYMENT_ERROR:
 		return c.redeployApplication(ctx, application)
 	default:
-		_, res, err := c.api.ApplicationActionsApi.
+		_, res, err := c.api.ApplicationActionsAPI.
 			DeployApplication(ctx, application.Id).
 			DeployRequest(qovery.DeployRequest{
 				GitCommitId: *application.GitRepository.DeployedCommitId,
@@ -48,7 +48,7 @@ func (c *Client) stopApplication(ctx context.Context, application *qovery.Applic
 	case qovery.STATEENUM_STOPPED:
 		return status, nil
 	default:
-		_, res, err := c.api.ApplicationActionsApi.
+		_, res, err := c.api.ApplicationActionsAPI.
 			StopApplication(ctx, application.Id).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -74,7 +74,7 @@ func (c *Client) redeployApplication(ctx context.Context, application *qovery.Ap
 		return nil, apiErr
 	}
 
-	_, res, err := c.api.ApplicationActionsApi.
+	_, res, err := c.api.ApplicationActionsAPI.
 		RedeployApplication(ctx, application.Id).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {

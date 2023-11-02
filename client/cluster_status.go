@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Client) getClusterStatus(ctx context.Context, organizationID string, clusterID string) (*qovery.ClusterStatusGet, *apierrors.APIError) {
-	status, res, err := c.api.ClustersApi.
+	status, res, err := c.api.ClustersAPI.
 		GetClusterStatus(ctx, organizationID, clusterID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {

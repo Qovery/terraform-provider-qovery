@@ -36,12 +36,12 @@ func (c containerRegistryQoveryAPI) Create(ctx context.Context, organizationID s
 		return nil, errors.Wrap(err, registry.ErrInvalidUpsertRequest.Error())
 	}
 
-	reg, resp, err := c.client.ContainerRegistriesApi.
+	reg, resp, err := c.client.ContainerRegistriesAPI.
 		CreateContainerRegistry(ctx, organizationID).
 		ContainerRegistryRequest(*req).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		apiErr := apierrors.NewCreateApiError(apierrors.ApiResourceContainerRegistry, request.Name, resp, err)
+		apiErr := apierrors.NewCreateAPIError(apierrors.APIResourceContainerRegistry, request.Name, resp, err)
 		return nil, apiErr
 	}
 
@@ -50,11 +50,11 @@ func (c containerRegistryQoveryAPI) Create(ctx context.Context, organizationID s
 
 // Get calls Qovery's API to retrieve a  registry using the given registryID.
 func (c containerRegistryQoveryAPI) Get(ctx context.Context, organizationID string, registryID string) (*registry.Registry, error) {
-	reg, resp, err := c.client.ContainerRegistriesApi.
+	reg, resp, err := c.client.ContainerRegistriesAPI.
 		GetContainerRegistry(ctx, organizationID, registryID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadApiError(apierrors.ApiResourceContainerRegistry, registryID, resp, err)
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceContainerRegistry, registryID, resp, err)
 	}
 
 	return newDomainRegistryFromQovery(reg, organizationID)
@@ -67,12 +67,12 @@ func (c containerRegistryQoveryAPI) Update(ctx context.Context, organizationID s
 		return nil, errors.Wrap(err, registry.ErrInvalidUpsertRequest.Error())
 	}
 
-	reg, resp, err := c.client.ContainerRegistriesApi.
+	reg, resp, err := c.client.ContainerRegistriesAPI.
 		EditContainerRegistry(ctx, organizationID, registryID).
 		ContainerRegistryRequest(*req).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewUpdateApiError(apierrors.ApiResourceContainerRegistry, registryID, resp, err)
+		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceContainerRegistry, registryID, resp, err)
 	}
 
 	return newDomainRegistryFromQovery(reg, organizationID)
@@ -80,11 +80,11 @@ func (c containerRegistryQoveryAPI) Update(ctx context.Context, organizationID s
 
 // Delete calls Qovery's API to deletes a registry using the given registryID.
 func (c containerRegistryQoveryAPI) Delete(ctx context.Context, organizationID string, registryID string) error {
-	resp, err := c.client.ContainerRegistriesApi.
+	resp, err := c.client.ContainerRegistriesAPI.
 		DeleteContainerRegistry(ctx, organizationID, registryID).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
-		return apierrors.NewDeleteApiError(apierrors.ApiResourceContainerRegistry, registryID, resp, err)
+		return apierrors.NewDeleteAPIError(apierrors.APIResourceContainerRegistry, registryID, resp, err)
 	}
 
 	return nil

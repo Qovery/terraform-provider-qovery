@@ -8,7 +8,7 @@ import (
 )
 
 func (c *Client) getClusterAdvancedSettings(ctx context.Context, organizationID string, clusterID string) (*map[string]interface{}, *apierrors.APIError) {
-	advancedSettings, res, err := c.api.ClustersApi.
+	advancedSettings, res, err := c.api.ClustersAPI.
 		GetClusterAdvancedSettings(ctx, organizationID, clusterID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -27,7 +27,7 @@ func (c *Client) editClusterAdvancedSettings(ctx context.Context, organizationID
 	if jsonErr != nil {
 		return nil, apierrors.NewUpdateError(apierrors.APIResourceClusterAdvancedSettings, clusterID, nil, jsonErr)
 	}
-	advancedSettings, res, err := c.api.ClustersApi.
+	advancedSettings, res, err := c.api.ClustersAPI.
 		EditClusterAdvancedSettings(ctx, organizationID, clusterID).
 		ClusterAdvancedSettings(req).
 		Execute()

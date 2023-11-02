@@ -196,15 +196,15 @@ func (_c *VariableRepository_CreateOverride_Call) RunAndReturn(run func(context.
 }
 
 // Delete provides a mock function with given fields: ctx, scopeResourceID, variableID
-func (_m *VariableRepository) Delete(ctx context.Context, scopeResourceID string, variableID string) *apierrors.ApiError {
+func (_m *VariableRepository) Delete(ctx context.Context, scopeResourceID string, variableID string) *apierrors.APIError {
 	ret := _m.Called(ctx, scopeResourceID, variableID)
 
-	var r0 *apierrors.ApiError
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *apierrors.ApiError); ok {
+	var r0 *apierrors.APIError
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *apierrors.APIError); ok {
 		r0 = rf(ctx, scopeResourceID, variableID)
 	} else {
 		if ret.Get(0) != nil {
-			r0 = ret.Get(0).(*apierrors.ApiError)
+			r0 = ret.Get(0).(*apierrors.APIError)
 		}
 	}
 
@@ -231,12 +231,12 @@ func (_c *VariableRepository_Delete_Call) Run(run func(ctx context.Context, scop
 	return _c
 }
 
-func (_c *VariableRepository_Delete_Call) Return(_a0 *apierrors.ApiError) *VariableRepository_Delete_Call {
+func (_c *VariableRepository_Delete_Call) Return(_a0 *apierrors.APIError) *VariableRepository_Delete_Call {
 	_c.Call.Return(_a0)
 	return _c
 }
 
-func (_c *VariableRepository_Delete_Call) RunAndReturn(run func(context.Context, string, string) *apierrors.ApiError) *VariableRepository_Delete_Call {
+func (_c *VariableRepository_Delete_Call) RunAndReturn(run func(context.Context, string, string) *apierrors.APIError) *VariableRepository_Delete_Call {
 	_c.Call.Return(run)
 	return _c
 }

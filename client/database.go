@@ -29,7 +29,7 @@ type DatabaseUpdateParams struct {
 }
 
 func (c *Client) CreateDatabase(ctx context.Context, environmentID string, params *DatabaseCreateParams) (*DatabaseResponse, *apierrors.APIError) {
-	database, res, err := c.api.DatabasesApi.
+	database, res, err := c.api.DatabasesAPI.
 		CreateDatabase(ctx, environmentID).
 		DatabaseRequest(params.DatabaseRequest).
 		Execute()
@@ -39,14 +39,14 @@ func (c *Client) CreateDatabase(ctx context.Context, environmentID string, param
 
 	// Attach database to deployment stage
 	if len(params.DeploymentStageID) > 0 {
-		_, response, err := c.api.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, params.DeploymentStageID, database.Id).Execute()
+		_, response, err := c.api.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, params.DeploymentStageID, database.Id).Execute()
 		if err != nil || response.StatusCode >= 400 {
 			return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, params.DeploymentStageID, response, err)
 		}
 	}
 
 	// Get database deployment stage
-	deploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, database.Id).Execute()
+	deploymentStage, resp, err := c.api.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, database.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, database.Id, resp, err)
 	}
@@ -55,7 +55,7 @@ func (c *Client) CreateDatabase(ctx context.Context, environmentID string, param
 }
 
 func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseResponse, *apierrors.APIError) {
-	database, res, err := c.api.DatabaseMainCallsApi.
+	database, res, err := c.api.DatabaseMainCallsAPI.
 		GetDatabase(ctx, databaseID).
 		Execute()
 
@@ -79,7 +79,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 	}
 
 	// Get database deployment stage
-	deploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, database.Id).Execute()
+	deploymentStage, resp, err := c.api.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, database.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, database.Id, resp, err)
 	}
@@ -118,7 +118,7 @@ func (c *Client) getDatabaseHostInternal(ctx context.Context, database *qovery.D
 }
 
 func (c *Client) GetDatabaseCredentials(ctx context.Context, databaseID string) (*qovery.Credentials, *apierrors.APIError) {
-	credentials, res, err := c.api.DatabaseMainCallsApi.
+	credentials, res, err := c.api.DatabaseMainCallsAPI.
 		GetDatabaseMasterCredentials(ctx, databaseID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -129,7 +129,7 @@ func (c *Client) GetDatabaseCredentials(ctx context.Context, databaseID string) 
 }
 
 func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *DatabaseUpdateParams) (*DatabaseResponse, *apierrors.APIError) {
-	database, res, err := c.api.DatabaseMainCallsApi.
+	database, res, err := c.api.DatabaseMainCallsAPI.
 		EditDatabase(ctx, databaseID).
 		DatabaseEditRequest(params.DatabaseEditRequest).
 		Execute()
@@ -138,14 +138,14 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *
 	}
 	// Attach database to deployment stage
 	if len(params.DeploymentStageID) > 0 {
-		_, response, err := c.api.DeploymentStageMainCallsApi.AttachServiceToDeploymentStage(ctx, params.DeploymentStageID, database.Id).Execute()
+		_, response, err := c.api.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, params.DeploymentStageID, database.Id).Execute()
 		if err != nil || response.StatusCode >= 400 {
 			return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, params.DeploymentStageID, response, err)
 		}
 	}
 
 	// Get database deployment stage
-	deploymentStage, resp, err := c.api.DeploymentStageMainCallsApi.GetServiceDeploymentStage(ctx, database.Id).Execute()
+	deploymentStage, resp, err := c.api.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, database.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, database.Id, resp, err)
 	}
@@ -154,7 +154,7 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *
 }
 
 func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierrors.APIError {
-	database, res, err := c.api.DatabaseMainCallsApi.
+	database, res, err := c.api.DatabaseMainCallsAPI.
 		GetDatabase(ctx, databaseID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -170,7 +170,7 @@ func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierro
 		return apiErr
 	}
 
-	res, err = c.api.DatabaseMainCallsApi.
+	res, err = c.api.DatabaseMainCallsAPI.
 		DeleteDatabase(ctx, databaseID).
 		Execute()
 	if err != nil || res.StatusCode >= 300 {
@@ -215,7 +215,7 @@ func (c *Client) deployDatabase(ctx context.Context, databaseID string) (*qovery
 	case qovery.STATEENUM_DEPLOYMENT_ERROR:
 		return c.redeployDatabase(ctx, databaseID)
 	default:
-		_, res, err := c.api.DatabaseActionsApi.
+		_, res, err := c.api.DatabaseActionsAPI.
 			DeployDatabase(ctx, databaseID).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -240,7 +240,7 @@ func (c *Client) stopDatabase(ctx context.Context, databaseID string) (*qovery.S
 	case qovery.STATEENUM_STOPPED:
 		return status, nil
 	default:
-		_, res, err := c.api.DatabaseActionsApi.
+		_, res, err := c.api.DatabaseActionsAPI.
 			StopDatabase(ctx, databaseID).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -261,7 +261,7 @@ func (c *Client) redeployDatabase(ctx context.Context, databaseID string) (*qove
 		return nil, apiErr
 	}
 
-	_, res, err := c.api.DatabaseActionsApi.
+	_, res, err := c.api.DatabaseActionsAPI.
 		RedeployDatabase(ctx, databaseID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {

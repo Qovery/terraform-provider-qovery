@@ -171,7 +171,7 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
-	deploymentEnvironmentApi, err := newDeploymentEnvironmentQoveryAPI(apiClient)
+	deploymentEnvironmentAPI, err := newDeploymentEnvironmentQoveryAPI(apiClient)
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +204,7 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		EnvironmentEnvironmentVariable: environmentEnvironmentVariableAPI,
 		EnvironmentSecret:              environmentSecretAPI,
 		DeploymentStage:                deploymentStageAPI,
-		DeploymentEnvironment:          deploymentEnvironmentApi,
+		DeploymentEnvironment:          deploymentEnvironmentAPI,
 		DeploymentStatus:               deploymentStatusAPI,
 	}
 

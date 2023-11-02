@@ -9,7 +9,7 @@ import (
 )
 
 func (c *Client) getEnvironmentStatus(ctx context.Context, environmentID string) (*qovery.EnvironmentStatus, *apierrors.APIError) {
-	status, res, err := c.api.EnvironmentMainCallsApi.
+	status, res, err := c.api.EnvironmentMainCallsAPI.
 		GetEnvironmentStatus(ctx, environmentID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {

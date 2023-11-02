@@ -31,11 +31,11 @@ func newContainerDeploymentQoveryAPI(client *qovery.APIClient) (deployment.Repos
 
 // GetStatus calls Qovery's API to get the status of a container using the given containerID.
 func (c containerDeploymentQoveryAPI) GetStatus(ctx context.Context, containerID string) (*status.Status, error) {
-	containerStatus, resp, err := c.client.ContainerMainCallsApi.
+	containerStatus, resp, err := c.client.ContainerMainCallsAPI.
 		GetContainerStatus(ctx, containerID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadApiError(apierrors.ApiResourceContainerStatus, containerID, resp, err)
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceContainerStatus, containerID, resp, err)
 	}
 
 	return newDomainStatusFromQovery(containerStatus)
@@ -43,14 +43,14 @@ func (c containerDeploymentQoveryAPI) GetStatus(ctx context.Context, containerID
 
 // Deploy calls Qovery's API to deploy a container using the given containerID.
 func (c containerDeploymentQoveryAPI) Deploy(ctx context.Context, containerID string, imageTag string) (*status.Status, error) {
-	containerStatus, resp, err := c.client.ContainerActionsApi.
+	containerStatus, resp, err := c.client.ContainerActionsAPI.
 		DeployContainer(ctx, containerID).
 		ContainerDeployRequest(qovery.ContainerDeployRequest{
 			ImageTag: imageTag,
 		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewDeployApiError(apierrors.ApiResourceContainer, containerID, resp, err)
+		return nil, apierrors.NewDeployAPIError(apierrors.APIResourceContainer, containerID, resp, err)
 	}
 
 	return newDomainStatusFromQovery(containerStatus)
@@ -58,11 +58,11 @@ func (c containerDeploymentQoveryAPI) Deploy(ctx context.Context, containerID st
 
 // Redeploy calls Qovery's API to redeploy a container using the given containerID.
 func (c containerDeploymentQoveryAPI) Redeploy(ctx context.Context, containerID string) (*status.Status, error) {
-	containerStatus, resp, err := c.client.ContainerActionsApi.
+	containerStatus, resp, err := c.client.ContainerActionsAPI.
 		RedeployContainer(ctx, containerID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewRedeployApiError(apierrors.ApiResourceContainer, containerID, resp, err)
+		return nil, apierrors.NewRedeployAPIError(apierrors.APIResourceContainer, containerID, resp, err)
 	}
 
 	return newDomainStatusFromQovery(containerStatus)
@@ -70,11 +70,11 @@ func (c containerDeploymentQoveryAPI) Redeploy(ctx context.Context, containerID 
 
 // Stop calls Qovery's API to stop a container using the given containerID.
 func (c containerDeploymentQoveryAPI) Stop(ctx context.Context, containerID string) (*status.Status, error) {
-	containerStatus, resp, err := c.client.ContainerActionsApi.
+	containerStatus, resp, err := c.client.ContainerActionsAPI.
 		StopContainer(ctx, containerID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewStopApiError(apierrors.ApiResourceContainer, containerID, resp, err)
+		return nil, apierrors.NewStopAPIError(apierrors.APIResourceContainer, containerID, resp, err)
 	}
 
 	return newDomainStatusFromQovery(containerStatus)

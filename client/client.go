@@ -28,8 +28,8 @@ func New(token string, version string, host string) *Client {
 	}
 }
 
-// NewQoveryApiClient used for tests only
-func NewQoveryApiClient(token string, version string, host string) *qovery.APIClient {
+// NewQoveryAPIClient used for tests only
+func NewQoveryAPIClient(token string, version string, host string) *qovery.APIClient {
 	cfg := qovery.NewConfiguration()
 	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Token %s", token))
 	cfg.AddDefaultHeader("content-type", "application/json")

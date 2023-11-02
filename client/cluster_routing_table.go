@@ -57,7 +57,7 @@ func newClusterRouteFromQoveryResponse(resp qovery.ClusterRoutingTableResultsInn
 }
 
 func (c *Client) getClusterRoutingTable(ctx context.Context, organizationID string, clusterID string) (*ClusterRoutingTable, *apierrors.APIError) {
-	routingTable, res, err := c.api.ClustersApi.
+	routingTable, res, err := c.api.ClustersAPI.
 		GetRoutingTable(ctx, organizationID, clusterID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
@@ -69,7 +69,7 @@ func (c *Client) getClusterRoutingTable(ctx context.Context, organizationID stri
 }
 
 func (c *Client) editClusterRoutingTable(ctx context.Context, organizationID string, clusterID string, request ClusterRoutingTable) (*ClusterRoutingTable, *apierrors.APIError) {
-	routingTable, res, err := c.api.ClustersApi.
+	routingTable, res, err := c.api.ClustersAPI.
 		EditRoutingTable(ctx, organizationID, clusterID).
 		ClusterRoutingTableRequest(request.toQoveryRequest()).
 		Execute()
