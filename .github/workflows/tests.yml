@@ -179,4 +179,5 @@ jobs:
           TEST_JOB_ID: ${{ secrets.TEST_JOB_ID }}
           TEST_AWS_ECR_URL: ${{ secrets.TEST_AWS_ECR_URL }}
           TEST_QOVERY_HOST: ${{ secrets.TEST_QOVERY_HOST }}
+          TEST_QOVERY_SANDBOX_GIT_TOKEN_ID: ${{ secrets.TEST_QOVERY_SANDBOX_GIT_TOKEN_ID }}
         run: task testacc

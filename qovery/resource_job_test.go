@@ -532,7 +532,7 @@ resource "qovery_job" "test" {
     {{ end }}
 	{{ with .Docker }}	
 	docker = {
-        {{ with .DockerDockerFilePath }}	
+        {{ with .DockerFilePath }}	
 		dockerfile_path = {{ .String }}
         {{ end }}
 		{{ with .GitRepository }}
@@ -543,8 +543,11 @@ resource "qovery_job" "test" {
 			{{ with .Branch }}
         	branch = {{ .String }}
 			{{ end }}
-			{{ with .RootPath }}	
+			{{ with .RootPath }}
         	root_path = {{ .String }}
+			{{ end }}
+			{{ with .GitTokenId }}
+        	git_token_id = {{ .String }}
 			{{ end }}
         }
 		{{ end }}

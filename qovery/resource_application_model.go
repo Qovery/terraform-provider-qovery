@@ -246,16 +246,18 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 }
 
 type ApplicationGitRepository struct {
-	URL      types.String `tfsdk:"url"`
-	RootPath types.String `tfsdk:"root_path"`
-	Branch   types.String `tfsdk:"branch"`
+	URL        types.String `tfsdk:"url"`
+	RootPath   types.String `tfsdk:"root_path"`
+	Branch     types.String `tfsdk:"branch"`
+	GitTokenId types.String `tfsdk:"git_token_id"`
 }
 
 func (repo ApplicationGitRepository) toCreateRequest() qovery.ApplicationGitRepositoryRequest {
 	return qovery.ApplicationGitRepositoryRequest{
-		Url:      ToString(repo.URL),
-		RootPath: ToStringPointer(repo.RootPath),
-		Branch:   ToStringPointer(repo.Branch),
+		Url:        ToString(repo.URL),
+		RootPath:   ToStringPointer(repo.RootPath),
+		Branch:     ToStringPointer(repo.Branch),
+		GitTokenId: *qovery.NewNullableString(ToStringPointer(repo.GitTokenId)),
 	}
 }
 
@@ -270,9 +272,10 @@ func convertResponseToApplicationGitRepository(gitRepository *qovery.Application
 	}
 
 	return &ApplicationGitRepository{
-		URL:      FromStringPointer(gitRepository.Url),
-		RootPath: FromStringPointer(gitRepository.RootPath),
-		Branch:   FromStringPointer(gitRepository.Branch),
+		URL:        FromStringPointer(gitRepository.Url),
+		RootPath:   FromStringPointer(gitRepository.RootPath),
+		Branch:     FromStringPointer(gitRepository.Branch),
+		GitTokenId: FromStringPointer(gitRepository.GitTokenId.Get()),
 	}
 }
 

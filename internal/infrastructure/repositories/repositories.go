@@ -3,6 +3,8 @@ package repositories
 import (
 	"fmt"
 
+	"github.com/qovery/qovery-client-go"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/pkg/errors"
@@ -51,6 +53,7 @@ type Repositories struct {
 	DeploymentStage                deploymentstage.Repository
 	DeploymentEnvironment          newdeployment.EnvironmentRepository
 	DeploymentStatus               newdeployment.DeploymentStatusRepository
+	QoveryClient                   *qovery.APIClient
 }
 
 func New(configs ...Configuration) (*Repositories, error) {
@@ -103,6 +106,7 @@ func WithQoveryAPI(apiToken string, providerVersion string, host string) Configu
 		repos.DeploymentStage = qoveryAPI.DeploymentStage
 		repos.DeploymentEnvironment = qoveryAPI.DeploymentEnvironment
 		repos.DeploymentStatus = qoveryAPI.DeploymentStatus
+		repos.QoveryClient = qoveryAPI.Client
 
 		return nil
 	}

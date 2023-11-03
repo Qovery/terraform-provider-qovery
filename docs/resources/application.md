@@ -186,6 +186,7 @@ Optional:
 
 - `branch` (String) Branch of the git repository.
 	- Default: `main or master (depending on repository)`.
+- `git_token_id` (String) The git token ID to be used
 - `root_path` (String) Root path of the application.
 	- Default: `/`.
 

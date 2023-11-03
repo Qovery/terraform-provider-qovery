@@ -39,4 +39,5 @@ const (
 	APIResourceScalewayCredentials            APIResource = "scaleway credentials"
 	APIResourceDeploymentStage                APIResource = "deployment stage"
 	APIResourceDeployment                     APIResource = "deployment"
+	APIGitToken                               APIResource = "git token"
 )
