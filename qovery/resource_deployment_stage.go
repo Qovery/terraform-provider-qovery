@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
@@ -48,42 +46,36 @@ func (r *deploymentStageResource) Configure(_ context.Context, req resource.Conf
 	r.deploymentStageService = provider.deploymentStageService
 }
 
-func (r deploymentStageResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r deploymentStageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the deployment stage.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"environment_id": {
+			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the deployment stage.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"description": {
+			"description": schema.StringAttribute{
 				Description: "Description of the deployment stage.",
-				Type:        types.StringType,
 				Optional:    true,
 			},
-			"is_after": {
+			"is_after": schema.StringAttribute{
 				Description: "Move the current deployment stage after the target deployment stage",
-				Type:        types.StringType,
 				Optional:    true,
 			},
-			"is_before": {
+			"is_before": schema.StringAttribute{
 				Description: "Move the current deployment stage before the target deployment stage",
-				Type:        types.StringType,
 				Optional:    true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Create qovery deployment stage resource
@@ -96,7 +88,7 @@ func (r deploymentStageResource) Create(ctx context.Context, req resource.Create
 	}
 
 	// Create new deployment stage
-	deploymentStage, err := r.deploymentStageService.Create(ctx, plan.EnvironmentId.Value, plan.toCreateServiceRequest())
+	deploymentStage, err := r.deploymentStageService.Create(ctx, plan.EnvironmentId.ValueString(), plan.toCreateServiceRequest())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment stage create", err.Error())
 		return
@@ -104,7 +96,7 @@ func (r deploymentStageResource) Create(ctx context.Context, req resource.Create
 
 	// Initialize state values
 	state := convertDomainDeploymentStageToDeploymentStage(deploymentStage, plan.Description)
-	tflog.Info(ctx, "created deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.Value})
+	tflog.Info(ctx, "created deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.ValueString()})
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
@@ -119,7 +111,7 @@ func (r deploymentStageResource) Read(ctx context.Context, req resource.ReadRequ
 	}
 
 	// Get deployment stage from the API
-	deploymentStage, err := r.deploymentStageService.Get(ctx, state.EnvironmentId.Value, state.Id.Value)
+	deploymentStage, err := r.deploymentStageService.Get(ctx, state.EnvironmentId.ValueString(), state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment stage read", err.Error())
 		return
@@ -127,7 +119,7 @@ func (r deploymentStageResource) Read(ctx context.Context, req resource.ReadRequ
 
 	// Refresh state values
 	newState := convertDomainDeploymentStageToDeploymentStage(deploymentStage, state.Description)
-	tflog.Trace(ctx, "read deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.Value})
+	tflog.Trace(ctx, "read deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.ValueString()})
 
 	// We need to keep the 'IsAfter' and 'IsBefore' properties
 	newState = DeploymentStage{
@@ -154,7 +146,7 @@ func (r deploymentStageResource) Update(ctx context.Context, req resource.Update
 	}
 
 	// Update deployment stage in the backend
-	deploymentStage, err := r.deploymentStageService.Update(ctx, state.Id.Value, plan.toUpdateServiceRequest())
+	deploymentStage, err := r.deploymentStageService.Update(ctx, state.Id.ValueString(), plan.toUpdateServiceRequest())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment stage update", err.Error())
 		return
@@ -162,7 +154,7 @@ func (r deploymentStageResource) Update(ctx context.Context, req resource.Update
 
 	// Update state values
 	state = convertDomainDeploymentStageToDeploymentStage(deploymentStage, plan.Description)
-	tflog.Trace(ctx, "updated deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.Value})
+	tflog.Trace(ctx, "updated deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -178,13 +170,13 @@ func (r deploymentStageResource) Delete(ctx context.Context, req resource.Delete
 	}
 
 	// Delete deployment stage
-	err := r.deploymentStageService.Delete(ctx, state.Id.Value)
+	err := r.deploymentStageService.Delete(ctx, state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment stage delete", err.Error())
 		return
 	}
 
-	tflog.Trace(ctx, "deleted deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.Value})
+	tflog.Trace(ctx, "deleted deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.ValueString()})
 
 	// Remove deployment stage from state
 	resp.State.RemoveResource(ctx)

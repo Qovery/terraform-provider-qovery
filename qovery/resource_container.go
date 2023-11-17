@@ -5,10 +5,12 @@ import (
 	"fmt"
 
 	"github.com/AlekSi/pointer"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
@@ -16,7 +18,6 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
-	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
@@ -54,439 +55,393 @@ func (r *containerResource) Configure(_ context.Context, req resource.ConfigureR
 	r.containerService = provider.containerService
 }
 
-func (r containerResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery container resource. This can be used to create and manage Qovery container registry.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the container.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"environment_id": {
+			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"registry_id": {
+			"registry_id": schema.StringAttribute{
 				Description: "Id of the registry.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the container.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"image_name": {
+			"image_name": schema.StringAttribute{
 				Description: "Name of the container image.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"tag": {
+			"tag": schema.StringAttribute{
 				Description: "Tag of the container image.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"cpu": {
+			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"CPU of the container in millicores (m) [1000m = 1 CPU].",
 					container.MinCPU,
 					pointer.ToInt64(container.DefaultCPU),
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(container.DefaultCPU),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(container.DefaultCPU),
+				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: container.MinCPU},
 				},
 			},
-			"memory": {
+			"memory": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"RAM of the container in MB [1024MB = 1GB].",
 					container.MinMemory,
 					pointer.ToInt64(container.DefaultMemory),
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(container.DefaultMemory),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(container.DefaultMemory),
+				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: container.MinMemory},
 				},
 			},
-			"min_running_instances": {
+			"min_running_instances": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Minimum number of instances running for the container.",
 					container.MinMinRunningInstances,
 					pointer.ToInt64(container.DefaultMinRunningInstances),
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(container.DefaultMinRunningInstances),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(container.MinMinRunningInstances),
+				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: container.MinMinRunningInstances},
 				},
 			},
-			"max_running_instances": {
+			"max_running_instances": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Maximum number of instances running for the container.",
 					container.MinMaxRunningInstances,
 					pointer.ToInt64(container.DefaultMaxRunningInstances),
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(container.DefaultMaxRunningInstances),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(container.DefaultMaxRunningInstances),
+				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: container.MinMaxRunningInstances},
 				},
 			},
-			"auto_preview": {
+			"auto_preview": schema.BoolAttribute{
 				Description: "Specify if the environment preview option is activated or not for this container.",
-				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"entrypoint": {
+			"entrypoint": schema.StringAttribute{
 				Description: "Entrypoint of the container.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"storage": {
+			"storage": schema.SetNestedAttribute{
 				Description: "List of storages linked to this container.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the storage.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-					"type": {
-						Description: descriptions.NewStringEnumDescription(
-							"Type of the storage for the container.",
-							clientEnumToStringArray(storage.AllowedTypeValues),
-							nil,
-						),
-						Type:     types.StringType,
-						Required: true,
-						Validators: []tfsdk.AttributeValidator{
-							validators.NewStringEnumValidator(clientEnumToStringArray(storage.AllowedTypeValues)),
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the storage.",
+							Computed:    true,
+						},
+						"type": schema.StringAttribute{
+							Description: descriptions.NewStringEnumDescription(
+								"Type of the storage for the container.",
+								clientEnumToStringArray(storage.AllowedTypeValues),
+								nil,
+							),
+							Required: true,
+							Validators: []validator.String{
+								validators.NewStringEnumValidator(clientEnumToStringArray(storage.AllowedTypeValues)),
+							},
+						},
+						"size": schema.Int64Attribute{
+							Description: descriptions.NewInt64MinDescription(
+								"Size of the storage for the container in GB [1024MB = 1GB].",
+								container.MinStorageSize,
+								nil,
+							),
+							Required: true,
+							Validators: []validator.Int64{
+								validators.Int64MinValidator{Min: applicationStorageSizeMin},
+							},
+						},
+						"mount_point": schema.StringAttribute{
+							Description: "Mount point of the storage for the container.",
+							Required:    true,
 						},
 					},
-					"size": {
-						Description: descriptions.NewInt64MinDescription(
-							"Size of the storage for the container in GB [1024MB = 1GB].",
-							container.MinStorageSize,
-							nil,
-						),
-						Type:     types.Int64Type,
-						Required: true,
-						Validators: []tfsdk.AttributeValidator{
-							validators.Int64MinValidator{Min: applicationStorageSizeMin},
-						},
-					},
-					"mount_point": {
-						Description: "Mount point of the storage for the container.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"ports": {
+			"ports": schema.SetNestedAttribute{
 				Description: "List of ports linked to this container.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the port.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-					"name": {
-						Description: "Name of the port.",
-						Type:        types.StringType,
-						Optional:    true,
-						Computed:    true,
-					},
-					"internal_port": {
-						Description: descriptions.NewInt64MinMaxDescription(
-							"Internal port of the container.",
-							port.MinPort,
-							port.MaxPort,
-							nil,
-						),
-						Type:     types.Int64Type,
-						Required: true,
-						Validators: []tfsdk.AttributeValidator{
-							validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the port.",
+							Computed:    true,
+						},
+						"name": schema.StringAttribute{
+							Description: "Name of the port.",
+							Optional:    true,
+							Computed:    true,
+						},
+						"internal_port": schema.Int64Attribute{
+							Description: descriptions.NewInt64MinMaxDescription(
+								"Internal port of the container.",
+								port.MinPort,
+								port.MaxPort,
+								nil,
+							),
+							Required: true,
+							Validators: []validator.Int64{
+								validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
+							},
+						},
+						"external_port": schema.Int64Attribute{
+							Description: descriptions.NewInt64MinMaxDescription(
+								"External port of the container.\n\t- Required if: `ports.publicly_accessible=true`.",
+								port.MinPort,
+								port.MaxPort,
+								nil,
+							),
+							Optional: true,
+							Validators: []validator.Int64{
+								validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
+							},
+						},
+						"publicly_accessible": schema.BoolAttribute{
+							Description: "Specify if the port is exposed to the world or not for this container.",
+							Required:    true,
+						},
+						"protocol": schema.StringAttribute{
+							Description: descriptions.NewStringEnumDescription(
+								"Protocol used for the port of the container.",
+								clientEnumToStringArray(port.AllowedProtocolValues),
+								pointer.ToString(port.DefaultProtocol.String()),
+							),
+							Optional: true,
+							Computed: true,
+							Default:  stringdefault.StaticString(port.DefaultProtocol.String()),
+						},
+						"is_default": schema.BoolAttribute{
+							Description: "If this port will be used for the root domain",
+							Required:    true,
 						},
 					},
-					"external_port": {
-						Description: descriptions.NewInt64MinMaxDescription(
-							"External port of the container.\n\t- Required if: `ports.publicly_accessible=true`.",
-							port.MinPort,
-							port.MaxPort,
-							nil,
-						),
-						Type:     types.Int64Type,
-						Optional: true,
-						Validators: []tfsdk.AttributeValidator{
-							validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
-						},
-					},
-					"publicly_accessible": {
-						Description: "Specify if the port is exposed to the world or not for this container.",
-						Type:        types.BoolType,
-						Required:    true,
-					},
-					"protocol": {
-						Description: descriptions.NewStringEnumDescription(
-							"Protocol used for the port of the container.",
-							clientEnumToStringArray(port.AllowedProtocolValues),
-							pointer.ToString(port.DefaultProtocol.String()),
-						),
-						Type:     types.StringType,
-						Optional: true,
-						Computed: true,
-						PlanModifiers: tfsdk.AttributePlanModifiers{
-							modifiers.NewStringDefaultModifier(port.DefaultProtocol.String()),
-						},
-					},
-					"is_default": {
-						Description: "If this port will be used for the root domain",
-						Type:        types.BoolType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"built_in_environment_variables": {
+			"built_in_environment_variables": schema.SetNestedAttribute{
 				Description: "List of built-in environment variables linked to this container.",
 				Computed:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the environment variable.",
+							Computed:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable.",
+							Computed:    true,
+						},
 					},
-					"key": {
-						Description: "Key of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-				}),
+				},
 			},
-			"environment_variables": {
+			// TODO (framework-migration) Extract environment variables + secrets attributes to avoid repetition everywhere (project / env / services)
+			"environment_variables": schema.SetNestedAttribute{
 				Description: "List of environment variables linked to this container.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the environment variable.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Key of the environment variable.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"environment_variable_aliases": {
+			"environment_variable_aliases": schema.SetNestedAttribute{
 				Description: "List of environment variable aliases linked to this container.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable alias.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable alias.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the environment variable alias.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Name of the variable to alias.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the environment variable alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Name of the variable to alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"environment_variable_overrides": {
+			"environment_variable_overrides": schema.SetNestedAttribute{
 				Description: "List of environment variable overrides linked to this container.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable override.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable override.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the environment variable override.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable override.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the environment variable override.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable override.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"secrets": {
+			"secrets": schema.SetNestedAttribute{
 				Description: "List of secrets linked to this container.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the secret.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the secret.",
+							Required:    true,
+							Sensitive:   true,
+						},
 					},
-					"key": {
-						Description: "Key of the secret.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the secret [NOTE: will always be empty].",
-						Type:        types.StringType,
-						Required:    true,
-						Sensitive:   true,
-					},
-				}),
+				},
 			},
-			"secret_aliases": {
+			"secret_aliases": schema.SetNestedAttribute{
 				Description: "List of secret aliases linked to this container.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret alias.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret alias.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the secret alias.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Name of the secret to alias.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the secret alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Name of the secret to alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"secret_overrides": {
+			"secret_overrides": schema.SetNestedAttribute{
 				Description: "List of secret overrides linked to this container.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret override.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret override.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the secret override.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the secret override.",
+							Required:    true,
+							Sensitive:   true,
+						},
 					},
-					"key": {
-						Description: "Name of the secret override.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the secret override.",
-						Type:        types.StringType,
-						Required:    true,
-						Sensitive:   true,
-					},
-				}),
+				},
 			},
 			"healthchecks": healthchecksSchemaAttributes(false),
-			"arguments": {
+			"arguments": schema.ListAttribute{
 				Description: "List of arguments of this container.",
 				Optional:    true,
+				ElementType: types.StringType,
 				Computed:    true,
-				Type: types.ListType{
-					ElemType: types.StringType,
-				},
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringSliceDefaultModifier([]string{}),
-				},
+				//Default:     listdefault.StaticValue(types.ListNull(types.StringType)),
 			},
-			"custom_domains": {
+			"custom_domains": schema.SetNestedAttribute{
 				Description: "List of custom domains linked to this container.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the custom domain.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the custom domain.",
+							Computed:    true,
+						},
+						"domain": schema.StringAttribute{
+							Description: "Your custom domain.",
+							Required:    true,
+						},
+						"validation_domain": schema.StringAttribute{
+							Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
+							Computed:    true,
+						},
+						"status": schema.StringAttribute{
+							Description: "Status of the custom domain.",
+							Computed:    true,
+						},
 					},
-					"domain": {
-						Description: "Your custom domain.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"validation_domain": {
-						Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-					"status": {
-						Description: "Status of the custom domain.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-				}),
+				},
 			},
-			"external_host": {
+			"external_host": schema.StringAttribute{
 				Description: "The container external FQDN host [NOTE: only if your container is using a publicly accessible port].",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"internal_host": {
+			"internal_host": schema.StringAttribute{
 				Description: "The container internal host.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"deployment_stage_id": {
+			"deployment_stage_id": schema.StringAttribute{
 				Description: "Id of the deployment stage.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"advanced_settings_json": {
+			"advanced_settings_json": schema.StringAttribute{
 				Description: "Advanced settings.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"auto_deploy": {
+			"auto_deploy": schema.BoolAttribute{
 				Description: " Specify if the container will be automatically updated after receiving a new image tag.",
-				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Create qovery container resource
@@ -504,15 +459,15 @@ func (r containerResource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.AddError("Error on container create", err.Error())
 		return
 	}
-	cont, err := r.containerService.Create(ctx, plan.EnvironmentID.Value, *request)
+	cont, err := r.containerService.Create(ctx, plan.EnvironmentID.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container create", err.Error())
 		return
 	}
 
 	// Initialize state values
-	state := convertDomainContainerToContainer(plan, cont)
-	tflog.Trace(ctx, "created container", map[string]interface{}{"container_id": state.ID.Value})
+	state := convertDomainContainerToContainer(ctx, plan, cont)
+	tflog.Trace(ctx, "created container", map[string]interface{}{"container_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -528,15 +483,15 @@ func (r containerResource) Read(ctx context.Context, req resource.ReadRequest, r
 	}
 
 	// Get container from the API
-	cont, err := r.containerService.Get(ctx, state.ID.Value)
+	cont, err := r.containerService.Get(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container read", err.Error())
 		return
 	}
 
 	// Refresh state values
-	state = convertDomainContainerToContainer(state, cont)
-	tflog.Trace(ctx, "read container", map[string]interface{}{"container_id": state.ID.Value})
+	state = convertDomainContainerToContainer(ctx, state, cont)
+	tflog.Trace(ctx, "read container", map[string]interface{}{"container_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -558,15 +513,15 @@ func (r containerResource) Update(ctx context.Context, req resource.UpdateReques
 		resp.Diagnostics.AddError("Error on container create", err.Error())
 		return
 	}
-	cont, err := r.containerService.Update(ctx, state.ID.Value, *request)
+	cont, err := r.containerService.Update(ctx, state.ID.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container update", err.Error())
 		return
 	}
 
 	// Update state values
-	state = convertDomainContainerToContainer(plan, cont)
-	tflog.Trace(ctx, "updated container", map[string]interface{}{"container_id": state.ID.Value})
+	state = convertDomainContainerToContainer(ctx, plan, cont)
+	tflog.Trace(ctx, "updated container", map[string]interface{}{"container_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -582,13 +537,13 @@ func (r containerResource) Delete(ctx context.Context, req resource.DeleteReques
 	}
 
 	// Delete container
-	err := r.containerService.Delete(ctx, state.ID.Value)
+	err := r.containerService.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container delete", err.Error())
 		return
 	}
 
-	tflog.Trace(ctx, "deleted container", map[string]interface{}{"container_id": state.ID.Value})
+	tflog.Trace(ctx, "deleted container", map[string]interface{}{"container_id": state.ID.ValueString()})
 
 	// Remove container from state
 	resp.State.RemoveResource(ctx)

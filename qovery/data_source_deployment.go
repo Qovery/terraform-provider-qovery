@@ -5,11 +5,10 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -45,34 +44,33 @@ func (d *deploymentDataSource) Configure(_ context.Context, req datasource.Confi
 	d.deploymentService = provider.deploymentService
 }
 
-func (d deploymentDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Description: "Use this data source to retrieve information about an existing deployment.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+func (r deploymentDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the deployment",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"environment_id": {
-				Description: "Id of the environment to deploy.",
-				Type:        types.StringType,
+			"environment_id": schema.StringAttribute{
+				Description: "Id of the environment.",
 				Required:    true,
 			},
-			"version": {
+			"version": schema.StringAttribute{
 				Description: "Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'RUNNING' state)",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    false,
 			},
-			"desired_state": {
-				Description: "Desired state of the deployment.",
-				Type:        types.StringType,
-				Optional:    true,
+			"desired_state": schema.StringAttribute{
+				Description: descriptions.NewStringEnumDescription(
+					"Desired state of the deployment.",
+					deploymentStates,
+					nil),
+				Required: true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Read qovery deployment data source

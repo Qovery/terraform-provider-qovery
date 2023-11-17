@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
@@ -46,139 +44,130 @@ func (d *projectDataSource) Configure(_ context.Context, req datasource.Configur
 	d.projectService = provider.projectService
 }
 
-func (d projectDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Description: "Use this data source to retrieve information about an existing project.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+func (r projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Provides a Qovery project resource. This can be used to create and manage Qovery projects.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the project.",
-				Type:        types.StringType,
+				Computed:    true,
+			},
+			"organization_id": schema.StringAttribute{
+				Description: "Id of the organization.",
 				Required:    true,
 			},
-			"organization_id": {
-				Description: "Id of the organization.",
-				Type:        types.StringType,
-				Computed:    true,
-			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the project.",
-				Type:        types.StringType,
-				Computed:    true,
+				Required:    true,
 			},
-			"description": {
+			"description": schema.StringAttribute{
 				Description: "Description of the project.",
-				Type:        types.StringType,
+				Optional:    true,
 				Computed:    true,
 			},
-			"built_in_environment_variables": {
+			"built_in_environment_variables": schema.SetNestedAttribute{
 				Description: "List of built-in environment variables linked to this project.",
 				Computed:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the environment variable.",
+							Computed:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable.",
+							Computed:    true,
+						},
 					},
-					"key": {
-						Description: "Key of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-				}),
+				},
 			},
-			"environment_variables": {
+			"environment_variables": schema.SetNestedAttribute{
 				Description: "List of environment variables linked to this project.",
 				Optional:    true,
-				Computed:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the environment variable.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Key of the environment variable.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"environment_variable_aliases": {
+			"environment_variable_aliases": schema.SetNestedAttribute{
 				Description: "List of environment variable aliases linked to this project.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable alias.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable alias.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the environment variable alias.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Name of the variable to alias.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the environment variable alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Name of the variable to alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"secrets": {
+			"secrets": schema.SetNestedAttribute{
 				Description: "List of secrets linked to this project.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the secret.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the secret.",
+							Required:    true,
+							Sensitive:   true,
+						},
 					},
-					"key": {
-						Description: "Key of the secret.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-					"value": {
-						Description: "Value of the secret [NOTE: will always be empty].",
-						Type:        types.StringType,
-						Computed:    true,
-						Sensitive:   true,
-					},
-				}),
+				},
 			},
-			"secret_aliases": {
+			"secret_aliases": schema.SetNestedAttribute{
 				Description: "List of secret aliases linked to this project.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret alias.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret alias.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the secret alias.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Name of the secret to alias.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the secret alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Name of the secret to alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
 		},
-	}, nil
+	}
 }
 
 // Read qovery project data source
@@ -191,14 +180,14 @@ func (d projectDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	}
 
 	// Get project from API
-	proj, err := d.projectService.Get(ctx, data.Id.Value)
+	proj, err := d.projectService.Get(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on project read", err.Error())
 		return
 	}
 
-	state := convertDomainProjectToProject(data, proj)
-	tflog.Trace(ctx, "read project", map[string]interface{}{"project_id": state.Id.Value})
+	state := convertDomainProjectToProject(ctx, data, proj)
+	tflog.Trace(ctx, "read project", map[string]interface{}{"project_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

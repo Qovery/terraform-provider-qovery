@@ -130,14 +130,16 @@ func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string, adv
 
 	var maxNbRestart = job.DefaultMaxNbRestart
 	if j.MaxNbRestart != nil {
-		maxNbRestart = uint32(*j.MaxNbRestart)
+		maxNbRestart = int64(*j.MaxNbRestart)
 	}
 
 	var maxDurationSeconds = job.DefaultMaxDurationSeconds
 	if j.MaxDurationSeconds != nil {
-		maxDurationSeconds = uint32(*j.MaxDurationSeconds)
+		maxDurationSeconds = int64(*j.MaxDurationSeconds)
 	}
 
+	paramsMaxNbRestart := int32(maxNbRestart)
+	paramsMaxDurationSeconds := int32(maxDurationSeconds)
 	return job.NewJob(job.NewJobParams{
 		JobID:                j.Id,
 		EnvironmentID:        j.Environment.Id,
@@ -145,8 +147,8 @@ func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string, adv
 		AutoPreview:          j.AutoPreview,
 		CPU:                  j.Cpu,
 		Memory:               j.Memory,
-		MaxNbRestart:         &maxNbRestart,
-		MaxDurationSeconds:   &maxDurationSeconds,
+		MaxNbRestart:         &paramsMaxNbRestart,
+		MaxDurationSeconds:   &paramsMaxDurationSeconds,
 		Port:                 prt,
 		Source:               jobSource,
 		Schedule:             jobSchedule,

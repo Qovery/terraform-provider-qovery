@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 )
 
-func NewStringDefaultModifier(defaultValue string) StringDefaultModifier {
+func NewStringDefaultModifier(defaultValue string) planmodifier.String {
 	return StringDefaultModifier{
 		Default: defaultValue,
 	}
@@ -33,24 +35,20 @@ func (m StringDefaultModifier) MarkdownDescription(_ context.Context) string {
 	return fmt.Sprintf("If value is not configured, defaults to `%s`", m.Default)
 }
 
-// Modify runs the logic of the plan modifier.
-// Access to the configuration, plan, and state is available in `req`, while
-// `resp` contains fields for updating the planned value, triggering resource
-// replacement, and returning diagnostics.
-func (m StringDefaultModifier) Modify(ctx context.Context, req tfsdk.ModifyAttributePlanRequest, resp *tfsdk.ModifyAttributePlanResponse) {
+func (m StringDefaultModifier) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
 	// types.String must be the attr.Value produced by the attr.Type in the schema for this attribute
 	// for generic plan modifiers, use
 	// https://pkg.go.dev/github.com/hashicorp/terraform-plugin-framework/tfsdk#ConvertValue
 	// to convert into a known type.
 	var attr types.String
-	resp.Diagnostics.Append(tfsdk.ValueAs(ctx, req.AttributePlan, &attr)...)
+	resp.Diagnostics.Append(tfsdk.ValueAs(ctx, req.PlanValue, &attr)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if !attr.Null && !attr.Unknown {
+	if !attr.IsNull() && !attr.IsUnknown() {
 		return
 	}
 
-	resp.AttributePlan = types.String{Value: m.Default}
+	resp.PlanValue = basetypes.NewStringValue(m.Default)
 }

@@ -1,7 +1,7 @@
 package qovery
 
 import (
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 )
@@ -46,127 +46,113 @@ type ProbeExec struct {
 	command types.List `tfsdk:"command"`
 }
 
-func healthchecksSchemaAttributes(required bool) tfsdk.Attribute {
-	return tfsdk.Attribute{
+func healthchecksSchemaAttributes(required bool) schema.Attribute {
+	return schema.SingleNestedAttribute{
 		Description: "Configuration for the healthchecks that are going to be executed against your service",
 		Required:    required,
 		Optional:    !required,
-		Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-			"readiness_probe": {
+		Attributes: map[string]schema.Attribute{
+			"readiness_probe": schema.SingleNestedAttribute{
 				Description: "Configuration for the readiness probe, in order to know when your service is ready to receive traffic. Failing the probe means your service will stop receiving traffic.",
-				Attributes:  tfsdk.SingleNestedAttributes(probeSchemaAttributes()),
 				Optional:    true,
+				Attributes:  probeSchemaAttributes(),
 			},
-			"liveness_probe": {
+			"liveness_probe": schema.SingleNestedAttribute{
 				Description: "Configuration for the liveness probe, in order to know when your service is working correctly. Failing the probe means your service being killed/ask to be restarted.",
-				Attributes:  tfsdk.SingleNestedAttributes(probeSchemaAttributes()),
 				Optional:    true,
+				Attributes:  probeSchemaAttributes(),
 			},
-		}),
+		},
 	}
 }
 
-func probeSchemaAttributes() map[string]tfsdk.Attribute {
-	return map[string]tfsdk.Attribute{
-		"initial_delay_seconds": {
+func probeSchemaAttributes() map[string]schema.Attribute {
+	return map[string]schema.Attribute{
+		"initial_delay_seconds": schema.Int64Attribute{
 			Description: "Number of seconds to wait before the first execution of the probe to be trigerred",
-			Type:        types.Int64Type,
 			Required:    true,
 		},
-		"period_seconds": {
+		"period_seconds": schema.Int64Attribute{
 			Description: "Number of seconds before each execution of the probe",
-			Type:        types.Int64Type,
 			Required:    true,
 		},
-		"timeout_seconds": {
+		"timeout_seconds": schema.Int64Attribute{
 			Description: "Number of seconds within which the check need to respond before declaring it as a failure",
-			Type:        types.Int64Type,
 			Required:    true,
 		},
-		"success_threshold": {
+		"success_threshold": schema.Int64Attribute{
 			Description: "Number of time the probe should success before declaring a failed probe as ok again",
-			Type:        types.Int64Type,
 			Required:    true,
 		},
-		"failure_threshold": {
+		"failure_threshold": schema.Int64Attribute{
 			Description: "Number of time the an ok probe should fail before declaring it as failed",
-			Type:        types.Int64Type,
 			Required:    true,
 		},
-		"type": {
+		"type": schema.SingleNestedAttribute{
 			Description: "Kind of check to run for this probe. There can only be one configured at a time",
 			Required:    true,
-			Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-				"tcp": {
+			Attributes: map[string]schema.Attribute{
+				"tcp": schema.SingleNestedAttribute{
 					Description: "Check that the given port accepting connection",
 					Optional:    true,
-					Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-						"port": {
+					Attributes: map[string]schema.Attribute{
+						"port": schema.Int64Attribute{
 							Description: "The port number to try to connect to",
 							Required:    true,
-							Type:        types.Int64Type,
 						},
-						"host": {
+						"host": schema.StringAttribute{
 							Description: "Optional. If the host need to be different than localhost/pod ip",
-							Type:        types.StringType,
 							Optional:    true,
 							Computed:    true,
 						},
-					}),
+					},
 				},
-				"http": {
+				"http": schema.SingleNestedAttribute{
 					Description: "Check that the given port respond to HTTP call (should return a 2xx response code)",
 					Optional:    true,
-					Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-						"port": {
+					Attributes: map[string]schema.Attribute{
+						"port": schema.Int64Attribute{
 							Description: "The port number to try to connect to",
 							Required:    true,
-							Type:        types.Int64Type,
 						},
-						"path": {
+						"path": schema.StringAttribute{
 							Description: "The path that the HTTP GET request. By default it is `/`",
-							Type:        types.StringType,
 							Optional:    true,
 							Computed:    true,
 						},
-						"scheme": {
+						"scheme": schema.StringAttribute{
 							Description: "if the HTTP GET request should be done in HTTP or HTTPS. Default is HTTP",
-							Type:        types.StringType,
 							Optional:    true,
 							Computed:    true,
 						},
-					}),
+					},
 				},
-				"grpc": {
+				"grpc": schema.SingleNestedAttribute{
 					Description: "Check that the given port respond to GRPC call",
 					Optional:    true,
-					Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-						"port": {
+					Attributes: map[string]schema.Attribute{
+						"port": schema.Int64Attribute{
 							Description: "The port number to try to connect to",
 							Required:    true,
-							Type:        types.Int64Type,
 						},
-						"service": {
+						"service": schema.StringAttribute{
 							Description: "The grpc service to connect to. It needs to implement grpc health protocol. https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe",
-							Type:        types.StringType,
 							Optional:    true,
 						},
-					}),
+					},
 				},
-				"exec": {
+				"exec": schema.SingleNestedAttribute{
 					Description: "Check that the given command return an exit 0. Binary should be present in the image",
 					Optional:    true,
-					Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-						"command": {
+					Attributes: map[string]schema.Attribute{
+						"command": schema.ListAttribute{
 							Description: "The command and its arguments to exec",
 							Required:    true,
-							Type: types.ListType{
-								ElemType: types.StringType,
-							},
+							ElementType: types.StringType,
 						},
-					}),
+					},
 				},
-			}),
+			},
 		},
 	}
 }

@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
+	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -45,41 +46,78 @@ func (d *containerRegistryDataSource) Configure(_ context.Context, req datasourc
 	d.containerRegistryService = provider.containerRegistryService
 }
 
-func (d containerRegistryDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Description: "Use this data source to retrieve information about an existing container registry.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+func (r containerRegistryDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Provides a Qovery container registry resource. This can be used to create and manage Qovery container registry.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the container registry.",
-				Type:        types.StringType,
-				Required:    true,
+				Computed:    true,
 			},
-			"organization_id": {
+			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the container registry.",
-				Type:        types.StringType,
-				Computed:    true},
-			"kind": {
-				Description: "Kind of the container registry.",
-				Type:        types.StringType,
-				Computed:    true,
+				Required:    true,
 			},
-			"url": {
+			"kind": schema.StringAttribute{
+				Description: descriptions.NewStringEnumDescription(
+					"Kind of the container registry.",
+					registryKinds,
+					nil,
+				),
+				Required: true,
+				Validators: []validator.String{
+					validators.NewStringEnumValidator(registryKinds),
+				},
+			},
+			"url": schema.StringAttribute{
 				Description: "URL of the container registry.",
-				Type:        types.StringType,
+				Required:    true,
+			},
+			"description": schema.StringAttribute{
+				Description: "Description of the container registry.",
+				Optional:    true,
 				Computed:    true,
 			},
-			"description": {
-				Description: "Description of the container registry.",
-				Type:        types.StringType,
-				Computed:    true,
+			"config": schema.SingleNestedAttribute{
+				Description: "Configuration needed to authenticate the container registry.",
+				Optional:    true,
+				Attributes: map[string]schema.Attribute{
+					"access_key_id": schema.StringAttribute{
+						Description: "Required if kind is `ECR` or `PUBLIC_ECR`.",
+						Optional:    true,
+					},
+					"secret_access_key": schema.StringAttribute{
+						Description: "Required if kind is `ECR` or `PUBLIC_ECR`.",
+						Optional:    true,
+					},
+					"region": schema.StringAttribute{
+						Description: "Required if kind is `ECR` or `SCALEWAY_CR`.",
+						Optional:    true,
+					},
+					"scaleway_access_key": schema.StringAttribute{
+						Description: "Required if kind is `SCALEWAY_CR`.",
+						Optional:    true,
+					},
+					"scaleway_secret_key": schema.StringAttribute{
+						Description: "Required if kind is `SCALEWAY_CR`.",
+						Optional:    true,
+					},
+					"username": schema.StringAttribute{
+						Description: "Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.",
+						Optional:    true,
+					},
+					"password": schema.StringAttribute{
+						Description: "Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.",
+						Optional:    true,
+					},
+				},
 			},
 		},
-	}, nil
+	}
 }
 
 // Read qovery container registry data source
@@ -92,14 +130,14 @@ func (d containerRegistryDataSource) Read(ctx context.Context, req datasource.Re
 	}
 
 	// Get container registry from API
-	reg, err := d.containerRegistryService.Get(ctx, data.OrganizationId.Value, data.Id.Value)
+	reg, err := d.containerRegistryService.Get(ctx, data.OrganizationId.ValueString(), data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container registry read", err.Error())
 		return
 	}
 
 	state := convertDomainRegistryToContainerRegistryDataSource(reg)
-	tflog.Trace(ctx, "read container registry", map[string]interface{}{"container_registry_id": state.Id.Value})
+	tflog.Trace(ctx, "read container registry", map[string]interface{}{"container_registry_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

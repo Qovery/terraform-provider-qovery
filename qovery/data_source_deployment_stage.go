@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
@@ -45,33 +43,36 @@ func (d *deploymentStageDataSource) Configure(_ context.Context, req datasource.
 
 	d.deploymentStageService = provider.deploymentStageService
 }
-
-func (d deploymentStageDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Description: "Use this data source to retrieve information about an existing deployment stage.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+func (r deploymentStageDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the deployment stage.",
-				Type:        types.StringType,
+				Computed:    true,
+			},
+			"environment_id": schema.StringAttribute{
+				Description: "Id of the environment.",
 				Required:    true,
 			},
-			"environment_id": {
-				Description: "Id of the environment.",
-				Type:        types.StringType,
-				Computed:    true,
-			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the deployment stage.",
-				Type:        types.StringType,
-				Computed:    true,
+				Required:    true,
 			},
-			"description": {
+			"description": schema.StringAttribute{
 				Description: "Description of the deployment stage.",
-				Type:        types.StringType,
-				Computed:    true,
+				Optional:    true,
+			},
+			"is_after": schema.StringAttribute{
+				Description: "Move the current deployment stage after the target deployment stage",
+				Optional:    true,
+			},
+			"is_before": schema.StringAttribute{
+				Description: "Move the current deployment stage before the target deployment stage",
+				Optional:    true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Read qovery deployment stage data source
@@ -84,14 +85,14 @@ func (d deploymentStageDataSource) Read(ctx context.Context, req datasource.Read
 	}
 
 	// Get deployment stage from API
-	deploymentStageDomain, err := d.deploymentStageService.Get(ctx, data.EnvironmentId.Value, data.Id.Value)
+	deploymentStageDomain, err := d.deploymentStageService.Get(ctx, data.EnvironmentId.ValueString(), data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment stage read", err.Error())
 		return
 	}
 
 	newState := convertDomainDeploymentStageToDeploymentStage(deploymentStageDomain, data.Description)
-	tflog.Trace(ctx, "read deployment stage", map[string]interface{}{"deployment_stage_id": data.Id.Value})
+	tflog.Trace(ctx, "read deployment stage", map[string]interface{}{"deployment_stage_id": data.Id.ValueString()})
 
 	// We need to keep the 'IsAfter' and 'IsBefore' properties
 	newState = DeploymentStage{

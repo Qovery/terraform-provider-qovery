@@ -4,11 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
@@ -48,139 +46,130 @@ func (r *projectResource) Configure(_ context.Context, req resource.ConfigureReq
 	r.projectService = provider.projectService
 }
 
-func (r projectResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r projectResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery project resource. This can be used to create and manage Qovery projects.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the project.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"organization_id": {
+			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the project.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"description": {
+			"description": schema.StringAttribute{
 				Description: "Description of the project.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"built_in_environment_variables": {
+			"built_in_environment_variables": schema.SetNestedAttribute{
 				Description: "List of built-in environment variables linked to this project.",
 				Computed:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the environment variable.",
+							Computed:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable.",
+							Computed:    true,
+						},
 					},
-					"key": {
-						Description: "Key of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-				}),
+				},
 			},
-			"environment_variables": {
+			"environment_variables": schema.SetNestedAttribute{
 				Description: "List of environment variables linked to this project.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the environment variable.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Key of the environment variable.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"environment_variable_aliases": {
+			"environment_variable_aliases": schema.SetNestedAttribute{
 				Description: "List of environment variable aliases linked to this project.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable alias.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable alias.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the environment variable alias.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Name of the variable to alias.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the environment variable alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Name of the variable to alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"secrets": {
+			"secrets": schema.SetNestedAttribute{
 				Description: "List of secrets linked to this project.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the secret.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the secret.",
+							Required:    true,
+							Sensitive:   true,
+						},
 					},
-					"key": {
-						Description: "Key of the secret.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the secret.",
-						Type:        types.StringType,
-						Required:    true,
-						Sensitive:   true,
-					},
-				}),
+				},
 			},
-			"secret_aliases": {
+			"secret_aliases": schema.SetNestedAttribute{
 				Description: "List of secret aliases linked to this project.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret alias.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret alias.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the secret alias.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Name of the secret to alias.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the secret alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Name of the secret to alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
 		},
-	}, nil
+	}
 }
 
 // Create qovery project resource
@@ -194,15 +183,15 @@ func (r projectResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	// Create new project
 
-	proj, err := r.projectService.Create(ctx, plan.OrganizationId.Value, plan.toCreateServiceRequest())
+	proj, err := r.projectService.Create(ctx, plan.OrganizationId.ValueString(), plan.toCreateServiceRequest())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on project create", err.Error())
 		return
 	}
 
 	// Initialize state values
-	state := convertDomainProjectToProject(plan, proj)
-	tflog.Trace(ctx, "created project", map[string]interface{}{"project_id": state.Id.Value})
+	state := convertDomainProjectToProject(ctx, plan, proj)
+	tflog.Trace(ctx, "created project", map[string]interface{}{"project_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -218,15 +207,15 @@ func (r projectResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	// Get project from the API
-	proj, err := r.projectService.Get(ctx, state.Id.Value)
+	proj, err := r.projectService.Get(ctx, state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on project read", err.Error())
 		return
 	}
 
 	// Refresh state values
-	state = convertDomainProjectToProject(state, proj)
-	tflog.Trace(ctx, "read project", map[string]interface{}{"project_id": state.Id.Value})
+	state = convertDomainProjectToProject(ctx, state, proj)
+	tflog.Trace(ctx, "read project", map[string]interface{}{"project_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -243,15 +232,15 @@ func (r projectResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	// Update project in the backend
-	proj, err := r.projectService.Update(ctx, state.Id.Value, plan.toUpdateServiceRequest(state))
+	proj, err := r.projectService.Update(ctx, state.Id.ValueString(), plan.toUpdateServiceRequest(state))
 	if err != nil {
 		resp.Diagnostics.AddError("Error on project update", err.Error())
 		return
 	}
 
 	// Update state values
-	state = convertDomainProjectToProject(plan, proj)
-	tflog.Trace(ctx, "updated project", map[string]interface{}{"project_id": state.Id.Value})
+	state = convertDomainProjectToProject(ctx, plan, proj)
+	tflog.Trace(ctx, "updated project", map[string]interface{}{"project_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -267,13 +256,13 @@ func (r projectResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 
 	// Delete project
-	err := r.projectService.Delete(ctx, state.Id.Value)
+	err := r.projectService.Delete(ctx, state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on project delete", err.Error())
 		return
 	}
 
-	tflog.Trace(ctx, "deleted project", map[string]interface{}{"project_id": state.Id.Value})
+	tflog.Trace(ctx, "deleted project", map[string]interface{}{"project_id": state.Id.ValueString()})
 
 	// Remove project from state
 	resp.State.RemoveResource(ctx)

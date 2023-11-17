@@ -1,6 +1,8 @@
 package qovery
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
@@ -141,7 +143,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 	}, nil
 }
 
-func convertResponseToCluster(res *client.ClusterResponse) Cluster {
+func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse) Cluster {
 	routingTable := fromClusterRoutingTable(res.ClusterRoutingTable)
 
 	return Cluster{
@@ -157,7 +159,7 @@ func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 		MinRunningNodes:      FromInt32Pointer(res.ClusterResponse.MinRunningNodes),
 		MaxRunningNodes:      FromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
 		Features:             fromQoveryClusterFeatures(res.ClusterResponse.Features),
-		RoutingTables:        routingTable.toTerraformSet(),
+		RoutingTables:        routingTable.toTerraformSet(ctx),
 		State:                fromClientEnumPointer(res.ClusterResponse.Status),
 		AdvancedSettingsJson: FromString(res.AdvancedSettingsJson),
 	}
@@ -165,54 +167,60 @@ func convertResponseToCluster(res *client.ClusterResponse) Cluster {
 
 func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 	if ff == nil {
-		return types.Object{Null: true}
+		// Early return object null without attribute types
+		return types.ObjectNull(make(map[string]attr.Type))
 	}
 
-	attrs := make(map[string]attr.Value)
-	attrTypes := make(map[string]attr.Type)
+	attributes := make(map[string]attr.Value)
+	attributeTypes := make(map[string]attr.Type)
 	for _, f := range ff {
 		if f.Id == nil {
 			continue
 		}
 		switch *f.Id {
 		case featureIdVpcSubnet:
-			attrs[featureKeyVpcSubnet] = FromStringPointer(f.GetValue().String)
-			attrTypes[featureKeyVpcSubnet] = types.StringType
+			attributes[featureKeyVpcSubnet] = FromStringPointer(f.GetValue().String)
+			attributeTypes[featureKeyVpcSubnet] = types.StringType
 		case featureIdStaticIP:
-			attrs[featureKeyStaticIP] = FromBoolPointer(f.GetValue().Bool)
-			attrTypes[featureKeyStaticIP] = types.BoolType
+			attributes[featureKeyStaticIP] = FromBoolPointer(f.GetValue().Bool)
+			attributeTypes[featureKeyStaticIP] = types.BoolType
 		}
 	}
 
 	// The object should be fill even if no feature is present, but will be mark as Null
 	// (e.g SCW clusters don't have any feature)
 	isNull := false
-	if len(attrs) == 0 && len(attrTypes) == 0 {
+	if len(attributes) == 0 && len(attributeTypes) == 0 {
 		isNull = true
 		defaultFeatureKeyVpcSubnet := ""
 		defaultFeatureKeyStaticIP := false
-		attrs[featureKeyVpcSubnet] = FromStringPointer(&defaultFeatureKeyVpcSubnet)
-		attrTypes[featureKeyVpcSubnet] = types.StringType
-		attrs[featureKeyStaticIP] = FromBoolPointer(&defaultFeatureKeyStaticIP)
-		attrTypes[featureKeyStaticIP] = types.BoolType
+		attributes[featureKeyVpcSubnet] = FromStringPointer(&defaultFeatureKeyVpcSubnet)
+		attributeTypes[featureKeyVpcSubnet] = types.StringType
+		attributes[featureKeyStaticIP] = FromBoolPointer(&defaultFeatureKeyStaticIP)
+		attributeTypes[featureKeyStaticIP] = types.BoolType
 	}
 
-	return types.Object{
-		Attrs:     attrs,
-		AttrTypes: attrTypes,
-		Null:      isNull,
+	if isNull {
+		// Early return object null
+		return types.ObjectNull(attributeTypes)
 	}
+
+	terraformObjectValue, diagnostics := types.ObjectValue(attributeTypes, attributes)
+	if diagnostics.HasError() {
+		panic("TODO")
+	}
+	return terraformObjectValue
 }
 
 func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterRequestFeaturesInner {
-	if f.Null || f.Unknown || mode == "K3S" {
+	if f.IsNull() || f.IsUnknown() || mode == "K3S" {
 		return nil
 	}
 
-	features := make([]qovery.ClusterRequestFeaturesInner, 0, len(f.Attrs))
-	if _, ok := f.Attrs[featureKeyVpcSubnet]; ok {
+	features := make([]qovery.ClusterRequestFeaturesInner, 0, len(f.Attributes()))
+	if _, ok := f.Attributes()[featureKeyVpcSubnet]; ok {
 		value := qovery.NewNullableClusterFeatureValue(&qovery.ClusterFeatureValue{
-			String: ToStringPointer(f.Attrs[featureKeyVpcSubnet].(types.String)),
+			String: ToStringPointer(f.Attributes()[featureKeyVpcSubnet].(types.String)),
 		})
 
 		features = append(features, qovery.ClusterRequestFeaturesInner{
@@ -221,9 +229,9 @@ func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterReques
 		})
 	}
 
-	if _, ok := f.Attrs[featureKeyStaticIP]; ok {
+	if _, ok := f.Attributes()[featureKeyStaticIP]; ok {
 		value := qovery.NewNullableClusterFeatureValue(&qovery.ClusterFeatureValue{
-			Bool: ToBoolPointer(f.Attrs[featureKeyStaticIP].(types.Bool)),
+			Bool: ToBoolPointer(f.Attributes()[featureKeyStaticIP].(types.Bool)),
 		})
 
 		features = append(features, qovery.ClusterRequestFeaturesInner{

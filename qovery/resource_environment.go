@@ -5,16 +5,15 @@ import (
 	"fmt"
 
 	"github.com/AlekSi/pointer"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
-	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
@@ -52,197 +51,183 @@ func (r *environmentResource) Configure(_ context.Context, req resource.Configur
 	r.environmentService = provider.environmentService
 }
 
-func (r environmentResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r environmentResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery environment resource. This can be used to create and manage Qovery environments.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"project_id": {
+			"project_id": schema.StringAttribute{
 				Description: "Id of the project.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"cluster_id": {
+			"cluster_id": schema.StringAttribute{
 				Description: "Id of the cluster [NOTE: can't be updated after creation].",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the environment.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"mode": {
+			"mode": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Mode of the environment [NOTE: can't be updated after creation].",
 					clientEnumToStringArray(environment.AllowedModeValues),
 					pointer.ToString(environment.DefaultMode.String()),
 				),
-				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringDefaultModifier(environment.DefaultMode.String()),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  stringdefault.StaticString(environment.DefaultMode.String()),
+				Validators: []validator.String{
 					validators.NewStringEnumValidator(clientEnumToStringArray(environment.AllowedModeValues)),
 				},
 			},
-			"built_in_environment_variables": {
+			"built_in_environment_variables": schema.SetNestedAttribute{
 				Description: "List of built-in environment variables linked to this environment.",
 				Computed:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the environment variable.",
+							Computed:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable.",
+							Computed:    true,
+						},
 					},
-					"key": {
-						Description: "Key of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-				}),
+				},
 			},
-			"environment_variables": {
+			"environment_variables": schema.SetNestedAttribute{
 				Description: "List of environment variables linked to this environment.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the environment variable.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Key of the environment variable.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"environment_variable_aliases": {
+			"environment_variable_aliases": schema.SetNestedAttribute{
 				Description: "List of environment variable aliases linked to this environment.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable alias.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable alias.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the environment variable alias.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Name of the variable to alias.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the environment variable alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Name of the variable to alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"environment_variable_overrides": {
+			"environment_variable_overrides": schema.SetNestedAttribute{
 				Description: "List of environment variable overrides linked to this environment.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable override.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable override.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the environment variable override.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable override.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the environment variable override.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable override.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"secrets": {
+			"secrets": schema.SetNestedAttribute{
 				Description: "List of secrets linked to this environment.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the secret.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the secret.",
+							Required:    true,
+							Sensitive:   true,
+						},
 					},
-					"key": {
-						Description: "Key of the secret.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the secret.",
-						Type:        types.StringType,
-						Required:    true,
-						Sensitive:   true,
-					},
-				}),
+				},
 			},
-			"secret_aliases": {
+			"secret_aliases": schema.SetNestedAttribute{
 				Description: "List of secret aliases linked to this environment.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret alias.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret alias.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the secret alias.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Name of the secret to alias.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the secret alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Name of the secret to alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"secret_overrides": {
+			"secret_overrides": schema.SetNestedAttribute{
 				Description: "List of secret overrides linked to this environment.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret override.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret override.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the secret override.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the secret override.",
+							Required:    true,
+							Sensitive:   true,
+						},
 					},
-					"key": {
-						Description: "Name of the secret override.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the secret override.",
-						Type:        types.StringType,
-						Required:    true,
-						Sensitive:   true,
-					},
-				}),
+				},
 			},
 		},
-	}, nil
+	}
 }
 
 // Create qovery environment resource
@@ -261,15 +246,15 @@ func (r environmentResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	env, err := r.environmentService.Create(ctx, plan.ProjectId.Value, *request)
+	env, err := r.environmentService.Create(ctx, plan.ProjectId.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on environment create", err.Error())
 		return
 	}
 
 	// Initialize state values
-	state := convertDomainEnvironmentToEnvironment(plan, env)
-	tflog.Trace(ctx, "created environment", map[string]interface{}{"environment_id": state.Id.Value})
+	state := convertDomainEnvironmentToEnvironment(ctx, plan, env)
+	tflog.Trace(ctx, "created environment", map[string]interface{}{"environment_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -285,15 +270,15 @@ func (r environmentResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	// Get environment from the API
-	env, err := r.environmentService.Get(ctx, state.Id.Value)
+	env, err := r.environmentService.Get(ctx, state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on environment read", err.Error())
 		return
 	}
 
 	// Refresh state values
-	state = convertDomainEnvironmentToEnvironment(state, env)
-	tflog.Trace(ctx, "read environment", map[string]interface{}{"environment_id": state.Id.Value})
+	state = convertDomainEnvironmentToEnvironment(ctx, state, env)
+	tflog.Trace(ctx, "read environment", map[string]interface{}{"environment_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -316,15 +301,15 @@ func (r environmentResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	// Update environment in the backend
-	env, err := r.environmentService.Update(ctx, state.Id.Value, *request)
+	env, err := r.environmentService.Update(ctx, state.Id.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on environment update", err.Error())
 		return
 	}
 
 	// Update state values
-	state = convertDomainEnvironmentToEnvironment(plan, env)
-	tflog.Trace(ctx, "updated environment", map[string]interface{}{"environment_id": state.Id.Value})
+	state = convertDomainEnvironmentToEnvironment(ctx, plan, env)
+	tflog.Trace(ctx, "updated environment", map[string]interface{}{"environment_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -340,13 +325,13 @@ func (r environmentResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 
 	// Delete environment
-	err := r.environmentService.Delete(ctx, state.Id.Value)
+	err := r.environmentService.Delete(ctx, state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on environment delete", err.Error())
 		return
 	}
 
-	tflog.Trace(ctx, "deleted environment", map[string]interface{}{"environment_id": state.Id.Value})
+	tflog.Trace(ctx, "deleted environment", map[string]interface{}{"environment_id": state.Id.ValueString()})
 
 	// Remove environment from state
 	resp.State.RemoveResource(ctx)

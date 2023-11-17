@@ -1,6 +1,8 @@
 package qovery
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -15,22 +17,23 @@ var clusterRouteAttrTypes = map[string]attr.Type{
 
 type ClusterRouteList []ClusterRoute
 
-func (routes ClusterRouteList) toTerraformSet() types.Set {
-	set := types.Set{
-		ElemType: types.ObjectType{
-			AttrTypes: clusterRouteAttrTypes,
-		},
+func (routes ClusterRouteList) toTerraformSet(ctx context.Context) types.Set {
+	var clusterRouteObjectType = types.ObjectType{
+		AttrTypes: clusterRouteAttrTypes,
 	}
-
 	if routes == nil {
-		set.Null = true
-		return set
+		return types.SetNull(clusterRouteObjectType)
 	}
 
-	set.Elems = make([]attr.Value, 0, len(routes))
+	var elements = make([]attr.Value, 0, len(routes))
 	for _, v := range routes {
-		set.Elems = append(set.Elems, v.toTerraformObject())
+		elements = append(elements, v.toTerraformObject())
 	}
+	set, diagnostics := types.SetValueFrom(ctx, clusterRouteObjectType, elements)
+	if diagnostics.HasError() {
+		panic("TODO")
+	}
+
 	return set
 }
 
@@ -53,14 +56,17 @@ type ClusterRoute struct {
 }
 
 func (r ClusterRoute) toTerraformObject() types.Object {
-	return types.Object{
-		AttrTypes: clusterRouteAttrTypes,
-		Attrs: map[string]attr.Value{
-			"description": r.Description,
-			"destination": r.Destination,
-			"target":      r.Target,
-		},
+	var attributes = map[string]attr.Value{
+		"description": r.Description,
+		"destination": r.Destination,
+		"target":      r.Target,
 	}
+	terraformObjectValue, diagnostics := types.ObjectValue(clusterRouteAttrTypes, attributes)
+	if diagnostics.HasError() {
+		// TODO (framework-migration) Add new error checks
+		panic("TODO")
+	}
+	return terraformObjectValue
 }
 
 func (r ClusterRoute) toUpsertRequest() client.ClusterRoute {
@@ -97,19 +103,19 @@ func fromClusterRoutingTable(routingTable *client.ClusterRoutingTable) ClusterRo
 
 func toClusterRoute(r types.Object) ClusterRoute {
 	return ClusterRoute{
-		Description: r.Attrs["description"].(types.String),
-		Destination: r.Attrs["destination"].(types.String),
-		Target:      r.Attrs["target"].(types.String),
+		Description: r.Attributes()["description"].(types.String),
+		Destination: r.Attributes()["destination"].(types.String),
+		Target:      r.Attributes()["target"].(types.String),
 	}
 }
 
 func toClusterRouteList(routes types.Set) ClusterRouteList {
-	if routes.Null || routes.Unknown {
+	if routes.IsNull() || routes.IsUnknown() {
 		return nil
 	}
 
-	clusterRoutes := make([]ClusterRoute, 0, len(routes.Elems))
-	for _, elem := range routes.Elems {
+	clusterRoutes := make([]ClusterRoute, 0, len(routes.Elements()))
+	for _, elem := range routes.Elements() {
 		clusterRoutes = append(clusterRoutes, toClusterRoute(elem.(types.Object)))
 	}
 

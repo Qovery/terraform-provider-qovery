@@ -1,6 +1,8 @@
 package qovery
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -16,21 +18,21 @@ var storageAttrTypes = map[string]attr.Type{
 
 type StorageList []Storage
 
-func (ss StorageList) toTerraformSet() types.Set {
-	set := types.Set{
-		ElemType: types.ObjectType{
-			AttrTypes: storageAttrTypes,
-		},
+func (ss StorageList) toTerraformSet(ctx context.Context) types.Set {
+	var storageObjectType = types.ObjectType{
+		AttrTypes: storageAttrTypes,
 	}
-
 	if ss == nil {
-		set.Null = true
-		return set
+		return types.SetNull(storageObjectType)
 	}
 
-	set.Elems = make([]attr.Value, 0, len(ss))
+	var elements = make([]attr.Value, 0, len(ss))
 	for _, v := range ss {
-		set.Elems = append(set.Elems, v.toTerraformObject())
+		elements = append(elements, v.toTerraformObject())
+	}
+	set, diagnostics := types.SetValueFrom(ctx, storageObjectType, elements)
+	if diagnostics.HasError() {
+		panic("TODO")
 	}
 	return set
 }
@@ -43,15 +45,17 @@ type Storage struct {
 }
 
 func (p Storage) toTerraformObject() types.Object {
-	return types.Object{
-		AttrTypes: storageAttrTypes,
-		Attrs: map[string]attr.Value{
-			"id":          p.ID,
-			"type":        p.Type,
-			"mount_point": p.MountPoint,
-			"size":        p.Size,
-		},
+	var attributes = map[string]attr.Value{
+		"id":          p.ID,
+		"type":        p.Type,
+		"mount_point": p.MountPoint,
+		"size":        p.Size,
 	}
+	terraformObjectValue, diagnostics := types.ObjectValue(storageAttrTypes, attributes)
+	if diagnostics.HasError() {
+		panic("TODO")
+	}
+	return terraformObjectValue
 }
 
 func (p Storage) toUpsertRequest() storage.UpsertRequest {
@@ -107,20 +111,20 @@ func convertDomainStorageToStorage(s storage.Storage) Storage {
 
 func toStorage(v types.Object) Storage {
 	return Storage{
-		ID:         v.Attrs["id"].(types.String),
-		Type:       v.Attrs["type"].(types.String),
-		MountPoint: v.Attrs["mount_point"].(types.String),
-		Size:       v.Attrs["size"].(types.Int64),
+		ID:         v.Attributes()["id"].(types.String),
+		Type:       v.Attributes()["type"].(types.String),
+		MountPoint: v.Attributes()["mount_point"].(types.String),
+		Size:       v.Attributes()["size"].(types.Int64),
 	}
 }
 
 func toStorageList(vars types.Set) StorageList {
-	if vars.Null || vars.Unknown {
+	if vars.IsNull() || vars.IsUnknown() {
 		return []Storage{}
 	}
 
-	environmentVariables := make([]Storage, 0, len(vars.Elems))
-	for _, elem := range vars.Elems {
+	environmentVariables := make([]Storage, 0, len(vars.Elements()))
+	for _, elem := range vars.Elements() {
 		environmentVariables = append(environmentVariables, toStorage(elem.(types.Object)))
 	}
 

@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
@@ -53,57 +52,50 @@ func (r *gitTokenResource) Configure(_ context.Context, req resource.ConfigureRe
 	r.service = provider.gitTokenService
 }
 
-func (r gitTokenResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery git token resource. This can be used to create and manage Qovery git token.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the git token.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"organization_id": {
+			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the git token.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"description": {
+			"description": schema.StringAttribute{
 				Description: "Description of the git token.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"type": {
+			"type": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Type of the git token.",
 					gitTokenTypes,
 					nil,
 				),
-				Type:     types.StringType,
 				Required: true,
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.String{
 					validators.NewStringEnumValidator(gitTokenTypes),
 				},
 			},
-			"bitbucket_workspace": {
+			"bitbucket_workspace": schema.StringAttribute{
 				Description: "(Mandatory only for Bitbucket git token) Workspace where the token has permissions .",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"token": {
+			"token": schema.StringAttribute{
 				Description: "Value of the git token.",
-				Type:        types.StringType,
 				Required:    true,
 				Sensitive:   true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Create qovery git token resource
@@ -116,15 +108,15 @@ func (r gitTokenResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Create new git token
-	response, err := r.service.Create(ctx, plan.OrganizationId.Value, plan.toUpsertRequest())
+	response, err := r.service.Create(ctx, plan.OrganizationId.ValueString(), plan.toUpsertRequest())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on git token create", err.Error())
 		return
 	}
 
 	// Initialize state values
-	state := toTerraformObject(plan.OrganizationId.Value, plan.Token.Value, *response)
-	tflog.Trace(ctx, "created git token", map[string]interface{}{"git_token_id": state.ID.Value})
+	state := toTerraformObject(plan.OrganizationId.ValueString(), plan.Token.ValueString(), *response)
+	tflog.Trace(ctx, "created git token", map[string]interface{}{"git_token_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -140,15 +132,15 @@ func (r gitTokenResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	// Get git token from the API
-	response, err := r.service.Get(ctx, state.OrganizationId.Value, state.ID.Value)
+	response, err := r.service.Get(ctx, state.OrganizationId.ValueString(), state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on git token read", err.Error())
 		return
 	}
 
 	// Refresh state values
-	state = toTerraformObject(state.OrganizationId.Value, state.Token.Value, *response)
-	tflog.Trace(ctx, "read git token", map[string]interface{}{"git_token_id": state.ID.Value})
+	state = toTerraformObject(state.OrganizationId.ValueString(), state.Token.ValueString(), *response)
+	tflog.Trace(ctx, "read git token", map[string]interface{}{"git_token_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -165,15 +157,15 @@ func (r gitTokenResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Update git token in the backend
-	response, err := r.service.Update(ctx, state.OrganizationId.Value, state.ID.Value, plan.toUpsertRequest())
+	response, err := r.service.Update(ctx, state.OrganizationId.ValueString(), state.ID.ValueString(), plan.toUpsertRequest())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on git token update", err.Error())
 		return
 	}
 
 	// Update state values
-	state = toTerraformObject(plan.OrganizationId.Value, plan.Token.Value, *response)
-	tflog.Trace(ctx, "updated git token", map[string]interface{}{"git_token_id": state.ID.Value})
+	state = toTerraformObject(plan.OrganizationId.ValueString(), plan.Token.ValueString(), *response)
+	tflog.Trace(ctx, "updated git token", map[string]interface{}{"git_token_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -189,13 +181,13 @@ func (r gitTokenResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 
 	// Delete git token
-	err := r.service.Delete(ctx, state.OrganizationId.Value, state.ID.Value)
+	err := r.service.Delete(ctx, state.OrganizationId.ValueString(), state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on git token delete", err.Error())
 		return
 	}
 
-	tflog.Trace(ctx, "deleted git token", map[string]interface{}{"git_token_id": state.ID.Value})
+	tflog.Trace(ctx, "deleted git token", map[string]interface{}{"git_token_id": state.ID.ValueString()})
 
 	// Remove git token from state
 	resp.State.RemoveResource(ctx)
