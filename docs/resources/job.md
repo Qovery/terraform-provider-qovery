@@ -142,7 +142,7 @@ You can find complete examples within these repositories:
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
-- `auto_deploy` (Boolean) Specify if the job will be automatically updated after receiving a new image tag or a new commit according to the source type.
+- `auto_deploy` (Boolean) Specify if the job will be automatically updated after receiving a new image tag.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this job.
 - `cpu` (Number) CPU of the job in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 10`.
@@ -448,7 +448,7 @@ Read-Only:
 Required:
 
 - `key` (String) Key of the secret.
-- `value` (String, Sensitive) Value of the secret [NOTE: will always be empty].
+- `value` (String, Sensitive) Value of the secret.
 
 Read-Only:
 

@@ -1,6 +1,6 @@
 # qovery_job (Data Source)
 
-Use this data source to retrieve information about an existing job.
+Provides a Qovery job resource. This can be used to create and manage Qovery job registry.
 ## Example Usage
 ```terraform
 data "qovery_job" "my_job" {
@@ -13,62 +13,45 @@ data "qovery_job" "my_job" {
 
 ### Required
 
-- `id` (String) Id of the job.
+- `environment_id` (String) Id of the environment.
+- `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
+- `name` (String) Name of the job.
+- `schedule` (Attributes) Job's schedule. (see [below for nested schema](#nestedatt--schedule))
 
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
-- `auto_deploy` (Boolean) Specify if the job will be automatically updated after receiving a new image tag or a new commit according to the source type.
+- `auto_deploy` (Boolean) Specify if the job will be automatically updated after receiving a new image tag.
+- `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this job.
+- `cpu` (Number) CPU of the job in millicores (m) [1000m = 1 CPU].
+	- Must be: `>= 10`.
+	- Default: `500`.
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this job. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this job. (see [below for nested schema](#nestedatt--environment_variable_overrides))
-- `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
+- `environment_variables` (Attributes Set) List of environment variables linked to this job. (see [below for nested schema](#nestedatt--environment_variables))
+- `max_duration_seconds` (Number) Job's max duration in seconds.
+	- Must be: `>= 0`.
+	- Default: `300`.
+- `max_nb_restart` (Number) Job's max number of restarts.
+	- Must be: `>= 0`.
+	- Default: `0`.
+- `memory` (Number) RAM of the job in MB [1024MB = 1GB].
+	- Must be: `>= 1`.
+	- Default: `512`.
 - `port` (Number) Job's probes port.
+	- Must be: `>= 1` and `<= 65535`.
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this job. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_overrides` (Attributes Set) List of secret overrides linked to this job. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes Set) List of secrets linked to this job. (see [below for nested schema](#nestedatt--secrets))
+- `source` (Attributes) Job's source. (see [below for nested schema](#nestedatt--source))
 
 ### Read-Only
 
-- `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this job.
 - `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this job. (see [below for nested schema](#nestedatt--built_in_environment_variables))
-- `cpu` (Number) CPU of the job in millicores (m) [1000m = 1 CPU].
-- `environment_id` (String) Id of the environment.
-- `environment_variables` (Attributes Set) List of environment variables linked to this job. (see [below for nested schema](#nestedatt--environment_variables))
 - `external_host` (String) The job external FQDN host [NOTE: only if your job is using a publicly accessible port].
+- `id` (String) Id of the job.
 - `internal_host` (String) The job internal host.
-- `max_duration_seconds` (Number) Job's max duration in seconds.
-- `max_nb_restart` (Number) Job's max number of restarts
-- `memory` (Number) RAM of the job in MB [1024MB = 1GB].
-- `name` (String) Name of the job.
-- `schedule` (Attributes) Job's schedule. (see [below for nested schema](#nestedatt--schedule))
-- `source` (Attributes) Job's source. (see [below for nested schema](#nestedatt--source))
-
-<a id="nestedatt--environment_variable_aliases"></a>
-### Nested Schema for `environment_variable_aliases`
-
-Required:
-
-- `key` (String) Name of the environment variable alias.
-- `value` (String) Name of the variable to alias.
-
-Read-Only:
-
-- `id` (String) Id of the environment variable alias.
-
-
-<a id="nestedatt--environment_variable_overrides"></a>
-### Nested Schema for `environment_variable_overrides`
-
-Required:
-
-- `key` (String) Name of the environment variable override.
-- `value` (String) Value of the environment variable override.
-
-Read-Only:
-
-- `id` (String) Id of the environment variable override.
-
 
 <a id="nestedatt--healthchecks"></a>
 ### Nested Schema for `healthchecks`
@@ -217,62 +200,6 @@ Optional:
 
 
 
-<a id="nestedatt--secret_aliases"></a>
-### Nested Schema for `secret_aliases`
-
-Required:
-
-- `key` (String) Name of the secret alias.
-- `value` (String) Name of the secret to alias.
-
-Read-Only:
-
-- `id` (String) Id of the secret alias.
-
-
-<a id="nestedatt--secret_overrides"></a>
-### Nested Schema for `secret_overrides`
-
-Required:
-
-- `key` (String) Name of the secret override.
-- `value` (String, Sensitive) Value of the secret override.
-
-Read-Only:
-
-- `id` (String) Id of the secret override.
-
-
-<a id="nestedatt--secrets"></a>
-### Nested Schema for `secrets`
-
-Read-Only:
-
-- `id` (String) Id of the secret.
-- `key` (String) Key of the secret.
-- `value` (String, Sensitive) Value of the secret [NOTE: will always be empty].
-
-
-<a id="nestedatt--built_in_environment_variables"></a>
-### Nested Schema for `built_in_environment_variables`
-
-Read-Only:
-
-- `id` (String) Id of the environment variable.
-- `key` (String) Key of the environment variable.
-- `value` (String) Value of the environment variable.
-
-
-<a id="nestedatt--environment_variables"></a>
-### Nested Schema for `environment_variables`
-
-Read-Only:
-
-- `id` (String) Id of the environment variable.
-- `key` (String) Key of the environment variable.
-- `value` (String) Value of the environment variable.
-
-
 <a id="nestedatt--schedule"></a>
 ### Nested Schema for `schedule`
 
@@ -286,7 +213,7 @@ Optional:
 <a id="nestedatt--schedule--cronjob"></a>
 ### Nested Schema for `schedule.cronjob`
 
-Read-Only:
+Required:
 
 - `command` (Attributes) Job's cron command. (see [below for nested schema](#nestedatt--schedule--cronjob--command))
 - `schedule` (String) Job's cron string.
@@ -329,10 +256,88 @@ Optional:
 
 
 
+<a id="nestedatt--environment_variable_aliases"></a>
+### Nested Schema for `environment_variable_aliases`
+
+Required:
+
+- `key` (String) Name of the environment variable alias.
+- `value` (String) Name of the variable to alias.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable alias.
+
+
+<a id="nestedatt--environment_variable_overrides"></a>
+### Nested Schema for `environment_variable_overrides`
+
+Required:
+
+- `key` (String) Name of the environment variable override.
+- `value` (String) Value of the environment variable override.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable override.
+
+
+<a id="nestedatt--environment_variables"></a>
+### Nested Schema for `environment_variables`
+
+Required:
+
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable.
+
+
+<a id="nestedatt--secret_aliases"></a>
+### Nested Schema for `secret_aliases`
+
+Required:
+
+- `key` (String) Name of the secret alias.
+- `value` (String) Name of the secret to alias.
+
+Read-Only:
+
+- `id` (String) Id of the secret alias.
+
+
+<a id="nestedatt--secret_overrides"></a>
+### Nested Schema for `secret_overrides`
+
+Required:
+
+- `key` (String) Name of the secret override.
+- `value` (String, Sensitive) Value of the secret override.
+
+Read-Only:
+
+- `id` (String) Id of the secret override.
+
+
+<a id="nestedatt--secrets"></a>
+### Nested Schema for `secrets`
+
+Required:
+
+- `key` (String) Key of the secret.
+- `value` (String, Sensitive) Value of the secret.
+
+Read-Only:
+
+- `id` (String) Id of the secret.
+
+
 <a id="nestedatt--source"></a>
 ### Nested Schema for `source`
 
-Read-Only:
+Optional:
 
 - `docker` (Attributes) Job's docker source. (see [below for nested schema](#nestedatt--source--docker))
 - `image` (Attributes) Job's image source. (see [below for nested schema](#nestedatt--source--image))
@@ -340,32 +345,46 @@ Read-Only:
 <a id="nestedatt--source--docker"></a>
 ### Nested Schema for `source.docker`
 
-Read-Only:
+Required:
+
+- `git_repository` (Attributes) Job's docker source git repository. (see [below for nested schema](#nestedatt--source--docker--git_repository))
+
+Optional:
 
 - `dockerfile_path` (String) Job's docker source dockerfile path.
-- `git_repository` (Attributes) Job's docker source git repository. (see [below for nested schema](#nestedatt--source--docker--git_repository))
 
 <a id="nestedatt--source--docker--git_repository"></a>
 ### Nested Schema for `source.docker.git_repository`
 
+Required:
+
+- `branch` (String) Job's docker source git repository branch.
+- `url` (String) Job's docker source git repository URL.
+
 Optional:
 
 - `git_token_id` (String) The git token ID to be used
-
-Read-Only:
-
-- `branch` (String) Job's docker source git repository branch.
 - `root_path` (String) Job's docker source git repository root path.
-- `url` (String) Job's docker source git repository URL.
 
 
 
 <a id="nestedatt--source--image"></a>
 ### Nested Schema for `source.image`
 
-Read-Only:
+Required:
 
 - `name` (String) Job's image source name.
 - `registry_id` (String) Job's image source registry ID.
 - `tag` (String) Job's image source tag.
+
+
+
+<a id="nestedatt--built_in_environment_variables"></a>
+### Nested Schema for `built_in_environment_variables`
+
+Read-Only:
+
+- `id` (String) Id of the environment variable.
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
 

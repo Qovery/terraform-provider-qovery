@@ -1,6 +1,6 @@
 # qovery_cluster (Data Source)
 
-Use this data source to retrieve information about an existing cluster.
+Provides a Qovery cluster resource. This can be used to create and manage Qovery cluster.
 ## Example Usage
 ```terraform
 data "qovery_cluster" "my_cluster" {
@@ -14,38 +14,52 @@ data "qovery_cluster" "my_cluster" {
 
 ### Required
 
-- `id` (String) Id of the cluster.
-- `organization_id` (String) Id of the organization.
+- `cloud_provider` (String) Cloud provider of the cluster.
+	- Can be: `AWS`, `DO`, `SCW`.
+- `credentials_id` (String) Id of the credentials.
+- `instance_type` (String) Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`
+- `name` (String) Name of the cluster.
+- `region` (String) Region of the cluster.
+
+### Optional
+
+- `advanced_settings_json` (String) Advanced settings of the cluster.
+- `description` (String) Description of the cluster.
+	- Default: ``.
+- `features` (Attributes Set) Features of the cluster. (see [below for nested schema](#nestedatt--features))
+- `kubernetes_mode` (String) Kubernetes mode of the cluster.
+	- Can be: `K3S`, `MANAGED`.
+	- Default: `MANAGED`.
+- `max_running_nodes` (Number) Maximum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters]
+	- Must be: `>= 1`.
+	- Default: `10`.
+- `min_running_nodes` (Number) Minimum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters].
+	- Must be: `>= 1`.
+	- Default: `3`.
+- `routing_table` (Attributes Set) List of routes of the cluster. (see [below for nested schema](#nestedatt--routing_table))
+- `state` (String) State of the cluster.
+	- Can be: `DEPLOYED`, `STOPPED`.
+	- Default: `DEPLOYED`.
 
 ### Read-Only
 
-- `advanced_settings_json` (String) Advanced settings of the cluster.
-- `cloud_provider` (String) Cloud provider of the cluster.
-- `credentials_id` (String) Id of the credentials.
-- `description` (String) Description of the cluster.
-- `features` (Attributes) Features of the cluster. (see [below for nested schema](#nestedatt--features))
-- `instance_type` (String) Instance type of the cluster.
-- `kubernetes_mode` (String) Kubernetes mode of the cluster.
-- `max_running_nodes` (Number) Maximum number of nodes running for the cluster.
-- `min_running_nodes` (Number) Minimum number of nodes running for the cluster.
-- `name` (String) Name of the cluster.
-- `region` (String) Region of the cluster.
-- `routing_table` (Attributes Set) List of routes of the cluster. (see [below for nested schema](#nestedatt--routing_table))
-- `state` (String) State of the cluster.
+- `id` (String) Id of the cluster.
 
 <a id="nestedatt--features"></a>
 ### Nested Schema for `features`
 
-Read-Only:
+Optional:
 
 - `static_ip` (Boolean) Static IP (AWS only) [NOTE: can't be updated after creation].
+	- Default: `false`.
 - `vpc_subnet` (String) Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].
+	- Default: `10.0.0.0/16`.
 
 
 <a id="nestedatt--routing_table"></a>
 ### Nested Schema for `routing_table`
 
-Read-Only:
+Required:
 
 - `description` (String) Description of the route.
 - `destination` (String) Destination of the route.

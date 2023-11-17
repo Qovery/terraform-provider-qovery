@@ -1,6 +1,6 @@
 # qovery_container (Data Source)
 
-Use this data source to retrieve information about an existing container.
+Provides a Qovery container resource. This can be used to create and manage Qovery container registry.
 ## Example Usage
 ```terraform
 data "qovery_container" "my_container" {
@@ -13,41 +13,49 @@ data "qovery_container" "my_container" {
 
 ### Required
 
-- `id` (String) Id of the container.
+- `environment_id` (String) Id of the environment.
+- `image_name` (String) Name of the container image.
+- `name` (String) Name of the container.
+- `registry_id` (String) Id of the registry.
+- `tag` (String) Tag of the container image.
 
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
+- `arguments` (List of String) List of arguments of this container.
 - `auto_deploy` (Boolean) Specify if the container will be automatically updated after receiving a new image tag.
+- `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this container.
+- `cpu` (Number) CPU of the container in millicores (m) [1000m = 1 CPU].
+	- Must be: `>= 10`.
+	- Default: `500`.
 - `custom_domains` (Attributes Set) List of custom domains linked to this container. (see [below for nested schema](#nestedatt--custom_domains))
 - `deployment_stage_id` (String) Id of the deployment stage.
+- `entrypoint` (String) Entrypoint of the container.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this container. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this container. (see [below for nested schema](#nestedatt--environment_variable_overrides))
+- `environment_variables` (Attributes Set) List of environment variables linked to this container. (see [below for nested schema](#nestedatt--environment_variables))
 - `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
+- `max_running_instances` (Number) Maximum number of instances running for the container.
+	- Must be: `>= -1`.
+	- Default: `1`.
+- `memory` (Number) RAM of the container in MB [1024MB = 1GB].
+	- Must be: `>= 10`.
+	- Default: `512`.
+- `min_running_instances` (Number) Minimum number of instances running for the container.
+	- Must be: `>= 1`.
+	- Default: `1`.
+- `ports` (Attributes Set) List of ports linked to this container. (see [below for nested schema](#nestedatt--ports))
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this container. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_overrides` (Attributes Set) List of secret overrides linked to this container. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes Set) List of secrets linked to this container. (see [below for nested schema](#nestedatt--secrets))
+- `storage` (Attributes Set) List of storages linked to this container. (see [below for nested schema](#nestedatt--storage))
 
 ### Read-Only
 
-- `arguments` (List of String) List of arguments of this container.
-- `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this container.
 - `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this container. (see [below for nested schema](#nestedatt--built_in_environment_variables))
-- `cpu` (Number) CPU of the container in millicores (m) [1000m = 1 CPU].
-- `entrypoint` (String) Entrypoint of the container.
-- `environment_id` (String) Id of the environment.
-- `environment_variables` (Attributes Set) List of environment variables linked to this container. (see [below for nested schema](#nestedatt--environment_variables))
 - `external_host` (String) The container external FQDN host [NOTE: only if your container is using a publicly accessible port].
-- `image_name` (String) Name of the container image.
+- `id` (String) Id of the container.
 - `internal_host` (String) The container internal host.
-- `max_running_instances` (Number) Maximum number of instances running for the container.
-- `memory` (Number) RAM of the container in MB [1024MB = 1GB].
-- `min_running_instances` (Number) Minimum number of instances running for the container.
-- `name` (String) Name of the container.
-- `ports` (Attributes Set) List of storages linked to this container. (see [below for nested schema](#nestedatt--ports))
-- `registry_id` (String) Id of the registry.
-- `storage` (Attributes Set) List of storages linked to this container. (see [below for nested schema](#nestedatt--storage))
-- `tag` (String) Tag of the container image.
 
 <a id="nestedatt--custom_domains"></a>
 ### Nested Schema for `custom_domains`
@@ -87,6 +95,19 @@ Required:
 Read-Only:
 
 - `id` (String) Id of the environment variable override.
+
+
+<a id="nestedatt--environment_variables"></a>
+### Nested Schema for `environment_variables`
+
+Required:
+
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable.
 
 
 <a id="nestedatt--healthchecks"></a>
@@ -236,6 +257,31 @@ Optional:
 
 
 
+<a id="nestedatt--ports"></a>
+### Nested Schema for `ports`
+
+Required:
+
+- `internal_port` (Number) Internal port of the container.
+	- Must be: `>= 1` and `<= 65535`.
+- `is_default` (Boolean) If this port will be used for the root domain
+- `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this container.
+
+Optional:
+
+- `external_port` (Number) External port of the container.
+	- Required if: `ports.publicly_accessible=true`.
+	- Must be: `>= 1` and `<= 65535`.
+- `name` (String) Name of the port.
+- `protocol` (String) Protocol used for the port of the container.
+	- Can be: `GRPC`, `HTTP`, `TCP`, `UDP`.
+	- Default: `HTTP`.
+
+Read-Only:
+
+- `id` (String) Id of the port.
+
+
 <a id="nestedatt--secret_aliases"></a>
 ### Nested Schema for `secret_aliases`
 
@@ -265,11 +311,30 @@ Read-Only:
 <a id="nestedatt--secrets"></a>
 ### Nested Schema for `secrets`
 
+Required:
+
+- `key` (String) Key of the secret.
+- `value` (String, Sensitive) Value of the secret.
+
 Read-Only:
 
 - `id` (String) Id of the secret.
-- `key` (String) Key of the secret.
-- `value` (String, Sensitive) Value of the secret [NOTE: will always be empty].
+
+
+<a id="nestedatt--storage"></a>
+### Nested Schema for `storage`
+
+Required:
+
+- `mount_point` (String) Mount point of the storage for the container.
+- `size` (Number) Size of the storage for the container in GB [1024MB = 1GB].
+	- Must be: `>= 1`.
+- `type` (String) Type of the storage for the container.
+	- Can be: `FAST_SSD`.
+
+Read-Only:
+
+- `id` (String) Id of the storage.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>
@@ -280,42 +345,4 @@ Read-Only:
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
-
-
-<a id="nestedatt--environment_variables"></a>
-### Nested Schema for `environment_variables`
-
-Read-Only:
-
-- `id` (String) Id of the environment variable.
-- `key` (String) Key of the environment variable.
-- `value` (String) Value of the environment variable.
-
-
-<a id="nestedatt--ports"></a>
-### Nested Schema for `ports`
-
-Required:
-
-- `is_default` (Boolean) If this port will be used for the root domain
-
-Read-Only:
-
-- `external_port` (Number) External port of the container.
-- `id` (String) Id of the port.
-- `internal_port` (Number) Internal port of the container.
-- `name` (String) Name of the port.
-- `protocol` (String) Protocol used for the port of the container.
-- `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this container.
-
-
-<a id="nestedatt--storage"></a>
-### Nested Schema for `storage`
-
-Read-Only:
-
-- `id` (String) Id of the storage.
-- `mount_point` (String) Mount point of the storage for the container.
-- `size` (Number) Size of the storage for the container in GB [1024MB = 1GB].
-- `type` (String) Type of the storage for the container.
 
