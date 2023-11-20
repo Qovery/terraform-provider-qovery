@@ -14,12 +14,7 @@ data "qovery_cluster" "my_cluster" {
 
 ### Required
 
-- `cloud_provider` (String) Cloud provider of the cluster.
-	- Can be: `AWS`, `DO`, `SCW`.
-- `credentials_id` (String) Id of the credentials.
-- `instance_type` (String) Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`
-- `name` (String) Name of the cluster.
-- `region` (String) Region of the cluster.
+- `id` (String) Id of the cluster.
 
 ### Optional
 
@@ -43,7 +38,12 @@ data "qovery_cluster" "my_cluster" {
 
 ### Read-Only
 
-- `id` (String) Id of the cluster.
+- `cloud_provider` (String) Cloud provider of the cluster.
+	- Can be: `AWS`, `DO`, `SCW`.
+- `credentials_id` (String) Id of the credentials.
+- `instance_type` (String) Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`
+- `name` (String) Name of the cluster.
+- `region` (String) Region of the cluster.
 
 <a id="nestedatt--features"></a>
 ### Nested Schema for `features`
@@ -59,7 +59,7 @@ Optional:
 <a id="nestedatt--routing_table"></a>
 ### Nested Schema for `routing_table`
 
-Required:
+Read-Only:
 
 - `description` (String) Description of the route.
 - `destination` (String) Destination of the route.

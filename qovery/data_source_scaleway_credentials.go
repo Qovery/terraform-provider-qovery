@@ -54,7 +54,7 @@ func (r scalewayCredentialsDataSource) Schema(_ context.Context, _ datasource.Sc
 			},
 			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Required:    true,
+				Computed:    true,
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the Scaleway credentials.",

@@ -54,19 +54,19 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Computed:    true,
+				Required:    true,
 			},
 			"project_id": schema.StringAttribute{
 				Description: "Id of the project.",
-				Required:    true,
+				Computed:    true,
 			},
 			"cluster_id": schema.StringAttribute{
 				Description: "Id of the cluster [NOTE: can't be updated after creation].",
-				Required:    true,
+				Computed:    true,
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the environment.",
-				Required:    true,
+				Computed:    true,
 			},
 			"mode": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -103,6 +103,7 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 			"environment_variables": schema.SetNestedAttribute{
 				Description: "List of environment variables linked to this environment.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -111,11 +112,11 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"key": schema.StringAttribute{
 							Description: "Key of the environment variable.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -123,6 +124,7 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 			"environment_variable_aliases": schema.SetNestedAttribute{
 				Description: "List of environment variable aliases linked to this environment.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -131,11 +133,11 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the environment variable alias.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Name of the variable to alias.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -143,8 +145,8 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 			"environment_variable_overrides": schema.SetNestedAttribute{
 				Description: "List of environment variable overrides linked to this environment.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
-
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description: "Id of the environment variable override.",
@@ -152,11 +154,11 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the environment variable override.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable override.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -164,8 +166,8 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 			"secrets": schema.SetNestedAttribute{
 				Description: "List of secrets linked to this environment.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
-
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description: "Id of the secret.",
@@ -173,11 +175,11 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"key": schema.StringAttribute{
 							Description: "Key of the secret.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the secret.",
-							Required:    true,
+							Computed:    true,
 							Sensitive:   true,
 						},
 					},
@@ -186,8 +188,8 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 			"secret_aliases": schema.SetNestedAttribute{
 				Description: "List of secret aliases linked to this environment.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
-
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description: "Id of the secret alias.",
@@ -195,11 +197,11 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the secret alias.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Name of the secret to alias.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -215,11 +217,11 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the secret override.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the secret override.",
-							Required:    true,
+							Computed:    true,
 							Sensitive:   true,
 						},
 					},

@@ -57,23 +57,23 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the application.",
-				Computed:    true,
+				Required:    true,
 			},
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Required:    true,
+				Computed:    true,
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the application.",
-				Required:    true,
+				Computed:    true,
 			},
 			"git_repository": schema.SingleNestedAttribute{
 				Description: "Git repository of the application.",
-				Required:    true,
+				Computed:    true,
 				Attributes: map[string]schema.Attribute{
 					"url": schema.StringAttribute{
 						Description: "URL of the git repository.",
-						Required:    true,
+						Computed:    true,
 					},
 					"branch": schema.StringAttribute{
 						Description: descriptions.NewStringDefaultDescription(
@@ -89,11 +89,12 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 							applicationGitRepositoryRootPathDefault,
 						),
 						Optional: true,
+						Computed: true,
 					},
 					"git_token_id": schema.StringAttribute{
 						Description: "The git token ID to be used",
 						Optional:    true,
-						Computed:    false,
+						Computed:    true,
 					},
 				},
 			},
@@ -103,14 +104,12 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 					applicationBuildModes,
 					&applicationBuildModeDefault,
 				),
-				Optional: true,
-				Validators: []validator.String{
-					validators.NewStringEnumValidator(applicationBuildModes),
-				},
+				Computed: true,
 			},
 			"dockerfile_path": schema.StringAttribute{
 				Description: "Dockerfile Path of the application.\n\t- Required if: `build_mode=\"DOCKER\"`.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"buildpack_language": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -119,9 +118,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 					nil,
 				),
 				Optional: true,
-				Validators: []validator.String{
-					validators.NewStringEnumValidator(applicationBuildPackLanguages),
-				},
+				Computed: true,
 			},
 			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -130,9 +127,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 					&applicationCPUDefault,
 				),
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: applicationCPUMin},
-				},
+				Computed: true,
 			},
 			"memory": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -141,6 +136,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 					&applicationMemoryDefault,
 				),
 				Optional: true,
+				Computed: true,
 				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: applicationMemoryMin},
 				},
@@ -152,6 +148,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 					&applicationMinRunningInstancesDefault,
 				),
 				Optional: true,
+				Computed: true,
 				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: applicationMinRunningInstancesMin},
 				},
@@ -163,9 +160,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 					&applicationMaxRunningInstancesDefault,
 				),
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: applicationMaxRunningInstancesMin},
-				},
+				Computed: true,
 			},
 			"auto_preview": schema.BoolAttribute{
 				Description: descriptions.NewBoolDefaultDescription(
@@ -183,11 +178,13 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 			"arguments": schema.ListAttribute{
 				Description: "List of arguments of this application.",
 				Optional:    true,
+				Computed:    true,
 				ElementType: types.StringType,
 			},
 			"storage": schema.SetNestedAttribute{
 				Description: "List of storages linked to this application.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -200,10 +197,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 								clientEnumToStringArray(storage.AllowedTypeValues),
 								nil,
 							),
-							Required: true,
-							Validators: []validator.String{
-								validators.NewStringEnumValidator(clientEnumToStringArray(storage.AllowedTypeValues)),
-							},
+							Computed: true,
 						},
 						"size": schema.Int64Attribute{
 							Description: descriptions.NewInt64MinDescription(
@@ -211,21 +205,18 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 								applicationStorageSizeMin,
 								nil,
 							),
-							Required: true,
-							Validators: []validator.Int64{
-								validators.Int64MinValidator{Min: applicationStorageSizeMin},
-							},
+							Computed: true,
 						},
 						"mount_point": schema.StringAttribute{
 							Description: "Mount point of the storage for the application.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
 			},
 			"ports": schema.SetNestedAttribute{
 				Description: "List of ports linked to this application.",
-				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -244,10 +235,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 								port.MaxPort,
 								nil,
 							),
-							Required: true,
-							Validators: []validator.Int64{
-								validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
-							},
+							Computed: true,
 						},
 						"external_port": schema.Int64Attribute{
 							Description: descriptions.NewInt64MinMaxDescription(
@@ -256,14 +244,11 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 								port.MaxPort,
 								nil,
 							),
-							Optional: true,
-							Validators: []validator.Int64{
-								validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
-							},
+							Computed: true,
 						},
 						"publicly_accessible": schema.BoolAttribute{
 							Description: "Specify if the port is exposed to the world or not for this application.",
-							Required:    true,
+							Computed:    true,
 						},
 						"protocol": schema.StringAttribute{
 							Description: descriptions.NewStringEnumDescription(
@@ -272,10 +257,11 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 								pointer.ToString(port.DefaultProtocol.String()),
 							),
 							Optional: true,
+							Computed: true,
 						},
 						"is_default": schema.BoolAttribute{
 							Description: "If this port will be used for the root domain",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -312,11 +298,11 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"key": schema.StringAttribute{
 							Description: "Key of the environment variable.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -332,11 +318,11 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the environment variable alias.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Name of the variable to alias.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -352,11 +338,11 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the environment variable override.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable override.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -372,11 +358,11 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"key": schema.StringAttribute{
 							Description: "Key of the secret.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the secret.",
-							Required:    true,
+							Computed:    true,
 							Sensitive:   true,
 						},
 					},
@@ -393,11 +379,11 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the secret alias.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Name of the secret to alias.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -413,17 +399,17 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the secret override.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the secret override.",
-							Required:    true,
+							Computed:    true,
 							Sensitive:   true,
 						},
 					},
 				},
 			},
-			"healthchecks": healthchecksSchemaAttributes(true),
+			"healthchecks": healthchecksSchemaAttributes(false),
 			"custom_domains": schema.SetNestedAttribute{
 				Description: "List of custom domains linked to this application.",
 				Optional:    true,
@@ -435,7 +421,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"domain": schema.StringAttribute{
 							Description: "Your custom domain.",
-							Required:    true,
+							Computed:    true,
 						},
 						"validation_domain": schema.StringAttribute{
 							Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",

@@ -7,7 +7,6 @@ import (
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
@@ -15,7 +14,6 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
-	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -58,27 +56,27 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the container.",
-				Computed:    true,
+				Required:    true,
 			},
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Required:    true,
+				Computed:    true,
 			},
 			"registry_id": schema.StringAttribute{
 				Description: "Id of the registry.",
-				Required:    true,
+				Computed:    true,
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the container.",
-				Required:    true,
+				Computed:    true,
 			},
 			"image_name": schema.StringAttribute{
 				Description: "Name of the container image.",
-				Required:    true,
+				Computed:    true,
 			},
 			"tag": schema.StringAttribute{
 				Description: "Tag of the container image.",
-				Required:    true,
+				Computed:    true,
 			},
 			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -87,9 +85,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 					pointer.ToInt64(container.DefaultCPU),
 				),
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: container.MinCPU},
-				},
+				Computed: true,
 			},
 			"memory": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -98,9 +94,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 					pointer.ToInt64(container.DefaultMemory),
 				),
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: container.MinMemory},
-				},
+				Computed: true,
 			},
 			"min_running_instances": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -109,9 +103,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 					pointer.ToInt64(container.DefaultMinRunningInstances),
 				),
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: container.MinMinRunningInstances},
-				},
+				Computed: true,
 			},
 			"max_running_instances": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -120,9 +112,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 					pointer.ToInt64(container.DefaultMaxRunningInstances),
 				),
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: container.MinMaxRunningInstances},
-				},
+				Computed: true,
 			},
 			"auto_preview": schema.BoolAttribute{
 				Description: "Specify if the environment preview option is activated or not for this container.",
@@ -137,6 +127,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 			"storage": schema.SetNestedAttribute{
 				Description: "List of storages linked to this container.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -149,10 +140,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 								clientEnumToStringArray(storage.AllowedTypeValues),
 								nil,
 							),
-							Required: true,
-							Validators: []validator.String{
-								validators.NewStringEnumValidator(clientEnumToStringArray(storage.AllowedTypeValues)),
-							},
+							Computed: true,
 						},
 						"size": schema.Int64Attribute{
 							Description: descriptions.NewInt64MinDescription(
@@ -160,14 +148,11 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 								container.MinStorageSize,
 								nil,
 							),
-							Required: true,
-							Validators: []validator.Int64{
-								validators.Int64MinValidator{Min: applicationStorageSizeMin},
-							},
+							Computed: true,
 						},
 						"mount_point": schema.StringAttribute{
 							Description: "Mount point of the storage for the container.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -175,6 +160,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 			"ports": schema.SetNestedAttribute{
 				Description: "List of ports linked to this container.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -193,10 +179,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 								port.MaxPort,
 								nil,
 							),
-							Required: true,
-							Validators: []validator.Int64{
-								validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
-							},
+							Computed: true,
 						},
 						"external_port": schema.Int64Attribute{
 							Description: descriptions.NewInt64MinMaxDescription(
@@ -206,13 +189,11 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 								nil,
 							),
 							Optional: true,
-							Validators: []validator.Int64{
-								validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
-							},
+							Computed: true,
 						},
 						"publicly_accessible": schema.BoolAttribute{
 							Description: "Specify if the port is exposed to the world or not for this container.",
-							Required:    true,
+							Computed:    true,
 						},
 						"protocol": schema.StringAttribute{
 							Description: descriptions.NewStringEnumDescription(
@@ -221,10 +202,11 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 								pointer.ToString(port.DefaultProtocol.String()),
 							),
 							Optional: true,
+							Computed: true,
 						},
 						"is_default": schema.BoolAttribute{
 							Description: "If this port will be used for the root domain",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -261,11 +243,11 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 						},
 						"key": schema.StringAttribute{
 							Description: "Key of the environment variable.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -281,11 +263,11 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the environment variable alias.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Name of the variable to alias.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -301,11 +283,11 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the environment variable override.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable override.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -321,11 +303,11 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 						},
 						"key": schema.StringAttribute{
 							Description: "Key of the secret.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the secret.",
-							Required:    true,
+							Computed:    true,
 							Sensitive:   true,
 						},
 					},
@@ -342,11 +324,11 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the secret alias.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Name of the secret to alias.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -362,11 +344,11 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the secret override.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the secret override.",
-							Required:    true,
+							Computed:    true,
 							Sensitive:   true,
 						},
 					},
@@ -389,7 +371,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 						},
 						"domain": schema.StringAttribute{
 							Description: "Your custom domain.",
-							Required:    true,
+							Computed:    true,
 						},
 						"validation_domain": schema.StringAttribute{
 							Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",

@@ -50,15 +50,15 @@ func (r projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the project.",
-				Computed:    true,
+				Required:    true,
 			},
 			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Required:    true,
+				Computed:    true,
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the project.",
-				Required:    true,
+				Computed:    true,
 			},
 			"description": schema.StringAttribute{
 				Description: "Description of the project.",
@@ -88,6 +88,7 @@ func (r projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 			"environment_variables": schema.SetNestedAttribute{
 				Description: "List of environment variables linked to this project.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -96,11 +97,11 @@ func (r projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 						},
 						"key": schema.StringAttribute{
 							Description: "Key of the environment variable.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -108,6 +109,7 @@ func (r projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 			"environment_variable_aliases": schema.SetNestedAttribute{
 				Description: "List of environment variable aliases linked to this project.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -116,11 +118,11 @@ func (r projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the environment variable alias.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Name of the variable to alias.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -128,6 +130,7 @@ func (r projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 			"secrets": schema.SetNestedAttribute{
 				Description: "List of secrets linked to this project.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -136,11 +139,11 @@ func (r projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 						},
 						"key": schema.StringAttribute{
 							Description: "Key of the secret.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the secret.",
-							Required:    true,
+							Computed:    true,
 							Sensitive:   true,
 						},
 					},
@@ -149,6 +152,7 @@ func (r projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 			"secret_aliases": schema.SetNestedAttribute{
 				Description: "List of secret aliases linked to this project.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -157,11 +161,11 @@ func (r projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the secret alias.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Name of the secret to alias.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},

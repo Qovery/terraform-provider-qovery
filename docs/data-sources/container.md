@@ -13,11 +13,7 @@ data "qovery_container" "my_container" {
 
 ### Required
 
-- `environment_id` (String) Id of the environment.
-- `image_name` (String) Name of the container image.
-- `name` (String) Name of the container.
-- `registry_id` (String) Id of the registry.
-- `tag` (String) Tag of the container image.
+- `id` (String) Id of the container.
 
 ### Optional
 
@@ -53,19 +49,20 @@ data "qovery_container" "my_container" {
 ### Read-Only
 
 - `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this container. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `environment_id` (String) Id of the environment.
 - `external_host` (String) The container external FQDN host [NOTE: only if your container is using a publicly accessible port].
-- `id` (String) Id of the container.
+- `image_name` (String) Name of the container image.
 - `internal_host` (String) The container internal host.
+- `name` (String) Name of the container.
+- `registry_id` (String) Id of the registry.
+- `tag` (String) Tag of the container image.
 
 <a id="nestedatt--custom_domains"></a>
 ### Nested Schema for `custom_domains`
 
-Required:
-
-- `domain` (String) Your custom domain.
-
 Read-Only:
 
+- `domain` (String) Your custom domain.
 - `id` (String) Id of the custom domain.
 - `status` (String) Status of the custom domain.
 - `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
@@ -74,40 +71,31 @@ Read-Only:
 <a id="nestedatt--environment_variable_aliases"></a>
 ### Nested Schema for `environment_variable_aliases`
 
-Required:
-
-- `key` (String) Name of the environment variable alias.
-- `value` (String) Name of the variable to alias.
-
 Read-Only:
 
 - `id` (String) Id of the environment variable alias.
+- `key` (String) Name of the environment variable alias.
+- `value` (String) Name of the variable to alias.
 
 
 <a id="nestedatt--environment_variable_overrides"></a>
 ### Nested Schema for `environment_variable_overrides`
 
-Required:
-
-- `key` (String) Name of the environment variable override.
-- `value` (String) Value of the environment variable override.
-
 Read-Only:
 
 - `id` (String) Id of the environment variable override.
+- `key` (String) Name of the environment variable override.
+- `value` (String) Value of the environment variable override.
 
 
 <a id="nestedatt--environment_variables"></a>
 ### Nested Schema for `environment_variables`
 
-Required:
-
-- `key` (String) Key of the environment variable.
-- `value` (String) Value of the environment variable.
-
 Read-Only:
 
 - `id` (String) Id of the environment variable.
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
 
 
 <a id="nestedatt--healthchecks"></a>
@@ -260,13 +248,6 @@ Optional:
 <a id="nestedatt--ports"></a>
 ### Nested Schema for `ports`
 
-Required:
-
-- `internal_port` (Number) Internal port of the container.
-	- Must be: `>= 1` and `<= 65535`.
-- `is_default` (Boolean) If this port will be used for the root domain
-- `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this container.
-
 Optional:
 
 - `external_port` (Number) External port of the container.
@@ -280,61 +261,53 @@ Optional:
 Read-Only:
 
 - `id` (String) Id of the port.
+- `internal_port` (Number) Internal port of the container.
+	- Must be: `>= 1` and `<= 65535`.
+- `is_default` (Boolean) If this port will be used for the root domain
+- `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this container.
 
 
 <a id="nestedatt--secret_aliases"></a>
 ### Nested Schema for `secret_aliases`
 
-Required:
-
-- `key` (String) Name of the secret alias.
-- `value` (String) Name of the secret to alias.
-
 Read-Only:
 
 - `id` (String) Id of the secret alias.
+- `key` (String) Name of the secret alias.
+- `value` (String) Name of the secret to alias.
 
 
 <a id="nestedatt--secret_overrides"></a>
 ### Nested Schema for `secret_overrides`
 
-Required:
-
-- `key` (String) Name of the secret override.
-- `value` (String, Sensitive) Value of the secret override.
-
 Read-Only:
 
 - `id` (String) Id of the secret override.
+- `key` (String) Name of the secret override.
+- `value` (String, Sensitive) Value of the secret override.
 
 
 <a id="nestedatt--secrets"></a>
 ### Nested Schema for `secrets`
 
-Required:
-
-- `key` (String) Key of the secret.
-- `value` (String, Sensitive) Value of the secret.
-
 Read-Only:
 
 - `id` (String) Id of the secret.
+- `key` (String) Key of the secret.
+- `value` (String, Sensitive) Value of the secret.
 
 
 <a id="nestedatt--storage"></a>
 ### Nested Schema for `storage`
 
-Required:
+Read-Only:
 
+- `id` (String) Id of the storage.
 - `mount_point` (String) Mount point of the storage for the container.
 - `size` (Number) Size of the storage for the container in GB [1024MB = 1GB].
 	- Must be: `>= 1`.
 - `type` (String) Type of the storage for the container.
 	- Can be: `FAST_SSD`.
-
-Read-Only:
-
-- `id` (String) Id of the storage.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>

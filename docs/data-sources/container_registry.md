@@ -13,11 +13,7 @@ data "qovery_container_registry" "my_container_registry" {
 
 ### Required
 
-- `kind` (String) Kind of the container registry.
-	- Can be: `DOCKER_HUB`, `DOCR`, `ECR`, `GENERIC_CR`, `GITHUB_CR`, `GITLAB_CR`, `PUBLIC_ECR`, `SCALEWAY_CR`.
-- `name` (String) Name of the container registry.
-- `organization_id` (String) Id of the organization.
-- `url` (String) URL of the container registry.
+- `id` (String) Id of the container registry.
 
 ### Optional
 
@@ -26,7 +22,11 @@ data "qovery_container_registry" "my_container_registry" {
 
 ### Read-Only
 
-- `id` (String) Id of the container registry.
+- `kind` (String) Kind of the container registry.
+	- Can be: `DOCKER_HUB`, `DOCR`, `ECR`, `GENERIC_CR`, `GITHUB_CR`, `GITLAB_CR`, `PUBLIC_ECR`, `SCALEWAY_CR`.
+- `name` (String) Name of the container registry.
+- `organization_id` (String) Id of the organization.
+- `url` (String) URL of the container registry.
 
 <a id="nestedatt--config"></a>
 ### Nested Schema for `config`

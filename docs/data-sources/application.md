@@ -13,10 +13,7 @@ data "qovery_application" "my_application" {
 
 ### Required
 
-- `environment_id` (String) Id of the environment.
-- `git_repository` (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
-- `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
-- `name` (String) Name of the application.
+- `id` (String) Id of the application.
 
 ### Optional
 
@@ -25,9 +22,6 @@ data "qovery_application" "my_application" {
 - `auto_deploy` (Boolean) Specify if the application will be automatically updated after receiving a new image tag.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
 	- Default: `false`.
-- `build_mode` (String) Build Mode of the application.
-	- Can be: `BUILDPACKS`, `DOCKER`.
-	- Default: `BUILDPACKS`.
 - `buildpack_language` (String) Buildpack Language framework.
 	- Required if: `build_mode="BUILDPACKS"`.
 	- Can be: `CLOJURE`, `GO`, `GRADLE`, `GRAILS`, `JAVA`, `JVM`, `NODE_JS`, `PHP`, `PLAY`, `PYTHON`, `SCALA`.
@@ -42,6 +36,7 @@ data "qovery_application" "my_application" {
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this application. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this application. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
+- `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
 - `max_running_instances` (Number) Maximum number of instances running for the application.
 	- Must be: `>= -1`.
 	- Default: `1`.
@@ -51,7 +46,6 @@ data "qovery_application" "my_application" {
 - `min_running_instances` (Number) Minimum number of instances running for the application.
 	- Must be: `>= 0`.
 	- Default: `1`.
-- `ports` (Attributes Set) List of ports linked to this application. (see [below for nested schema](#nestedatt--ports))
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this application. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_overrides` (Attributes Set) List of secret overrides linked to this application. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes Set) List of secrets linked to this application. (see [below for nested schema](#nestedatt--secrets))
@@ -59,25 +53,56 @@ data "qovery_application" "my_application" {
 
 ### Read-Only
 
+- `build_mode` (String) Build Mode of the application.
+	- Can be: `BUILDPACKS`, `DOCKER`.
+	- Default: `BUILDPACKS`.
 - `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this application. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `environment_id` (String) Id of the environment.
 - `external_host` (String) The application external FQDN host [NOTE: only if your application is using a publicly accessible port].
-- `id` (String) Id of the application.
+- `git_repository` (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
 - `internal_host` (String) The application internal host.
+- `name` (String) Name of the application.
+- `ports` (Attributes Set) List of ports linked to this application. (see [below for nested schema](#nestedatt--ports))
 
-<a id="nestedatt--git_repository"></a>
-### Nested Schema for `git_repository`
+<a id="nestedatt--custom_domains"></a>
+### Nested Schema for `custom_domains`
 
-Required:
+Read-Only:
 
-- `url` (String) URL of the git repository.
+- `domain` (String) Your custom domain.
+- `id` (String) Id of the custom domain.
+- `status` (String) Status of the custom domain.
+- `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
 
-Optional:
 
-- `branch` (String) Branch of the git repository.
-	- Default: `main or master (depending on repository)`.
-- `git_token_id` (String) The git token ID to be used
-- `root_path` (String) Root path of the application.
-	- Default: `/`.
+<a id="nestedatt--environment_variable_aliases"></a>
+### Nested Schema for `environment_variable_aliases`
+
+Read-Only:
+
+- `id` (String) Id of the environment variable alias.
+- `key` (String) Name of the environment variable alias.
+- `value` (String) Name of the variable to alias.
+
+
+<a id="nestedatt--environment_variable_overrides"></a>
+### Nested Schema for `environment_variable_overrides`
+
+Read-Only:
+
+- `id` (String) Id of the environment variable override.
+- `key` (String) Name of the environment variable override.
+- `value` (String) Value of the environment variable override.
+
+
+<a id="nestedatt--environment_variables"></a>
+### Nested Schema for `environment_variables`
+
+Read-Only:
+
+- `id` (String) Id of the environment variable.
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
 
 
 <a id="nestedatt--healthchecks"></a>
@@ -227,137 +252,47 @@ Optional:
 
 
 
-<a id="nestedatt--custom_domains"></a>
-### Nested Schema for `custom_domains`
-
-Required:
-
-- `domain` (String) Your custom domain.
-
-Read-Only:
-
-- `id` (String) Id of the custom domain.
-- `status` (String) Status of the custom domain.
-- `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
-
-
-<a id="nestedatt--environment_variable_aliases"></a>
-### Nested Schema for `environment_variable_aliases`
-
-Required:
-
-- `key` (String) Name of the environment variable alias.
-- `value` (String) Name of the variable to alias.
-
-Read-Only:
-
-- `id` (String) Id of the environment variable alias.
-
-
-<a id="nestedatt--environment_variable_overrides"></a>
-### Nested Schema for `environment_variable_overrides`
-
-Required:
-
-- `key` (String) Name of the environment variable override.
-- `value` (String) Value of the environment variable override.
-
-Read-Only:
-
-- `id` (String) Id of the environment variable override.
-
-
-<a id="nestedatt--environment_variables"></a>
-### Nested Schema for `environment_variables`
-
-Required:
-
-- `key` (String) Key of the environment variable.
-- `value` (String) Value of the environment variable.
-
-Read-Only:
-
-- `id` (String) Id of the environment variable.
-
-
-<a id="nestedatt--ports"></a>
-### Nested Schema for `ports`
-
-Required:
-
-- `internal_port` (Number) Internal port of the application.
-	- Must be: `>= 1` and `<= 65535`.
-- `is_default` (Boolean) If this port will be used for the root domain
-- `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this application.
-
-Optional:
-
-- `external_port` (Number) External port of the application.
-	- Required if: `ports.publicly_accessible=true`.
-	- Must be: `>= 1` and `<= 65535`.
-- `name` (String) Name of the port.
-- `protocol` (String) Protocol used for the port of the application.
-	- Can be: `GRPC`, `HTTP`, `TCP`, `UDP`.
-	- Default: `HTTP`.
-
-Read-Only:
-
-- `id` (String) Id of the port.
-
-
 <a id="nestedatt--secret_aliases"></a>
 ### Nested Schema for `secret_aliases`
-
-Required:
-
-- `key` (String) Name of the secret alias.
-- `value` (String) Name of the secret to alias.
 
 Read-Only:
 
 - `id` (String) Id of the secret alias.
+- `key` (String) Name of the secret alias.
+- `value` (String) Name of the secret to alias.
 
 
 <a id="nestedatt--secret_overrides"></a>
 ### Nested Schema for `secret_overrides`
 
-Required:
-
-- `key` (String) Name of the secret override.
-- `value` (String, Sensitive) Value of the secret override.
-
 Read-Only:
 
 - `id` (String) Id of the secret override.
+- `key` (String) Name of the secret override.
+- `value` (String, Sensitive) Value of the secret override.
 
 
 <a id="nestedatt--secrets"></a>
 ### Nested Schema for `secrets`
 
-Required:
-
-- `key` (String) Key of the secret.
-- `value` (String, Sensitive) Value of the secret.
-
 Read-Only:
 
 - `id` (String) Id of the secret.
+- `key` (String) Key of the secret.
+- `value` (String, Sensitive) Value of the secret.
 
 
 <a id="nestedatt--storage"></a>
 ### Nested Schema for `storage`
 
-Required:
+Read-Only:
 
+- `id` (String) Id of the storage.
 - `mount_point` (String) Mount point of the storage for the application.
 - `size` (Number) Size of the storage for the application in GB [1024MB = 1GB].
 	- Must be: `>= 1`.
 - `type` (String) Type of the storage for the application.
 	- Can be: `FAST_SSD`.
-
-Read-Only:
-
-- `id` (String) Id of the storage.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>
@@ -368,4 +303,42 @@ Read-Only:
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
+
+
+<a id="nestedatt--git_repository"></a>
+### Nested Schema for `git_repository`
+
+Optional:
+
+- `branch` (String) Branch of the git repository.
+	- Default: `main or master (depending on repository)`.
+- `git_token_id` (String) The git token ID to be used
+- `root_path` (String) Root path of the application.
+	- Default: `/`.
+
+Read-Only:
+
+- `url` (String) URL of the git repository.
+
+
+<a id="nestedatt--ports"></a>
+### Nested Schema for `ports`
+
+Optional:
+
+- `name` (String) Name of the port.
+- `protocol` (String) Protocol used for the port of the application.
+	- Can be: `GRPC`, `HTTP`, `TCP`, `UDP`.
+	- Default: `HTTP`.
+
+Read-Only:
+
+- `external_port` (Number) External port of the application.
+	- Required if: `ports.publicly_accessible=true`.
+	- Must be: `>= 1` and `<= 65535`.
+- `id` (String) Id of the port.
+- `internal_port` (Number) Internal port of the application.
+	- Must be: `>= 1` and `<= 65535`.
+- `is_default` (Boolean) If this port will be used for the root domain
+- `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this application.
 

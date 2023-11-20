@@ -1,6 +1,3 @@
-//go:build integration && !unit
-// +build integration,!unit
-
 package qovery_test
 
 import (
@@ -28,9 +25,27 @@ const (
 	jobScheduleCronString = "*/2 * * * *"
 )
 
+var variableObjectType = types.ObjectType{
+	AttrTypes: map[string]attr.Type{
+		"key":   types.StringType,
+		"value": types.StringType,
+	},
+}
+
+func generateVariableSet(key string, value string) types.Set {
+	return types.SetValueMust(
+		variableObjectType,
+		[]attr.Value{
+			qovery.FromString(key),
+			qovery.FromString(value),
+		},
+	)
+}
+
 func TestAcc_Job(t *testing.T) {
 	t.Parallel()
 	testName := "job"
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -63,26 +78,8 @@ func TestAcc_Job(t *testing.T) {
 								},
 							},
 						},
-						EnvironmentVariables: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("key1"),
-										"value": qovery.FromString(""),
-									},
-								},
-							},
-						},
-						Secrets: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("secretkey1"),
-										"value": qovery.FromString(""),
-									},
-								},
-							},
-						},
+						EnvironmentVariables: generateVariableSet("key1", ""),
+						Secrets:              generateVariableSet("secretkey1", ""),
 						AdvancedSettingsJson: qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),
@@ -150,67 +147,13 @@ func TestAcc_Job(t *testing.T) {
 								},
 							},
 						},
-						EnvironmentVariables: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("key1"),
-										"value": qovery.FromString("value1"),
-									},
-								},
-							},
-						},
-						EnvironmentVariableAliases: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("key1_alias"),
-										"value": qovery.FromString("key1"),
-									},
-								},
-							},
-						},
-						EnvironmentVariableOverrides: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("environment_variable"),
-										"value": qovery.FromString("override value"),
-									},
-								},
-							},
-						},
-						Secrets: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("secretkey1"),
-										"value": qovery.FromString("secretvalue1"),
-									},
-								},
-							},
-						},
-						SecretAliases: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("secretkey1_alias"),
-										"value": qovery.FromString("secretkey1"),
-									},
-								},
-							},
-						},
-						SecretOverrides: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("environment_secret"),
-										"value": qovery.FromString("override value"),
-									},
-								},
-							},
-						},
-						AdvancedSettingsJson: qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
+						EnvironmentVariables:         generateVariableSet("key1", "value1"),
+						EnvironmentVariableAliases:   generateVariableSet("key1_alias", "key"),
+						EnvironmentVariableOverrides: generateVariableSet("environment_variable", "override_value"),
+						Secrets:                      generateVariableSet("secretkey1", "secretvalue1"),
+						SecretAliases:                generateVariableSet("secretkey1_alias", "secretkey1"),
+						SecretOverrides:              generateVariableSet("environment_secret", "override_value"),
+						AdvancedSettingsJson:         qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -293,67 +236,13 @@ func TestAcc_Job(t *testing.T) {
 								},
 							},
 						},
-						EnvironmentVariables: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("key1"),
-										"value": qovery.FromString("value1-updated"),
-									},
-								},
-							},
-						},
-						EnvironmentVariableAliases: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("key1_alias_updated"),
-										"value": qovery.FromString("key1"),
-									},
-								},
-							},
-						},
-						EnvironmentVariableOverrides: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("environment_variable"),
-										"value": qovery.FromString("override value updated"),
-									},
-								},
-							},
-						},
-						Secrets: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("secretkey1"),
-										"value": qovery.FromString("secretvalue1-updated"),
-									},
-								},
-							},
-						},
-						SecretAliases: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("secretkey1_alias_updated"),
-										"value": qovery.FromString("secretkey1"),
-									},
-								},
-							},
-						},
-						SecretOverrides: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("environment_secret"),
-										"value": qovery.FromString("override value updated"),
-									},
-								},
-							},
-						},
-						AdvancedSettingsJson: qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
+						EnvironmentVariables:         generateVariableSet("key1", "value1-updated"),
+						EnvironmentVariableAliases:   generateVariableSet("key1_alias_updated", "key1"),
+						EnvironmentVariableOverrides: generateVariableSet("environment_variable", "override value updated"),
+						Secrets:                      generateVariableSet("secretkey1", "secretvalue1-updated"),
+						SecretAliases:                generateVariableSet("secretkey1_alias_updated", "secretkey1"),
+						SecretOverrides:              generateVariableSet("environment_secret", "override value updated"),
+						AdvancedSettingsJson:         qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -413,26 +302,8 @@ func TestAcc_Job(t *testing.T) {
 								},
 							},
 						},
-						EnvironmentVariables: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("key1"),
-										"value": qovery.FromString("value1"),
-									},
-								},
-							},
-						},
-						Secrets: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("secretkey1"),
-										"value": qovery.FromString("secretvalue1"),
-									},
-								},
-							},
-						},
+						EnvironmentVariables: generateVariableSet("key1", "value1"),
+						Secrets:              generateVariableSet("secretkey1", "secretvalue1"),
 						AdvancedSettingsJson: qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),

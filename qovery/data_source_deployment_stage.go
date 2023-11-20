@@ -49,27 +49,30 @@ func (r deploymentStageDataSource) Schema(_ context.Context, _ datasource.Schema
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the deployment stage.",
-				Computed:    true,
+				Required:    true,
 			},
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Required:    true,
+				Computed:    true,
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the deployment stage.",
-				Required:    true,
+				Computed:    true,
 			},
 			"description": schema.StringAttribute{
 				Description: "Description of the deployment stage.",
 				Optional:    true,
+				Computed:    true,
 			},
 			"is_after": schema.StringAttribute{
 				Description: "Move the current deployment stage after the target deployment stage",
 				Optional:    true,
+				Computed:    true,
 			},
 			"is_before": schema.StringAttribute{
 				Description: "Move the current deployment stage before the target deployment stage",
 				Optional:    true,
+				Computed:    true,
 			},
 		},
 	}

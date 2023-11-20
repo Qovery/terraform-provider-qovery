@@ -6,12 +6,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
-	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -52,15 +50,15 @@ func (r gitTokenDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the git token.",
-				Computed:    true,
+				Required:    true,
 			},
 			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Required:    true,
+				Computed:    true,
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the git token.",
-				Required:    true,
+				Computed:    true,
 			},
 			"description": schema.StringAttribute{
 				Description: "Description of the git token.",
@@ -73,10 +71,7 @@ func (r gitTokenDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 					gitTokenTypes,
 					nil,
 				),
-				Required: true,
-				Validators: []validator.String{
-					validators.NewStringEnumValidator(gitTokenTypes),
-				},
+				Computed: true,
 			},
 			"bitbucket_workspace": schema.StringAttribute{
 				Description: "(Mandatory only for Bitbucket git token) Workspace where the token has permissions .",
@@ -85,7 +80,7 @@ func (r gitTokenDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 			},
 			"token": schema.StringAttribute{
 				Description: "Value of the git token.",
-				Required:    true,
+				Computed:    true,
 				Sensitive:   true,
 			},
 		},

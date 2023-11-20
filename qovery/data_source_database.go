@@ -6,12 +6,10 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
-	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -57,11 +55,11 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 			},
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Required:    true,
+				Computed:    true,
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the database.",
-				Required:    true,
+				Computed:    true,
 			},
 			"type": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -69,14 +67,11 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 					databaseTypes,
 					nil,
 				),
-				Required: true,
-				Validators: []validator.String{
-					validators.NewStringEnumValidator(databaseTypes),
-				},
+				Computed: true,
 			},
 			"version": schema.StringAttribute{
 				Description: "Version of the database",
-				Required:    true,
+				Computed:    true,
 			},
 			"mode": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -84,10 +79,7 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 					databaseModes,
 					nil,
 				),
-				Required: true,
-				Validators: []validator.String{
-					validators.NewStringEnumValidator(databaseModes),
-				},
+				Computed: true,
 			},
 			"accessibility": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -96,9 +88,6 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 					&databaseAccessibilityDefault,
 				),
 				Optional: true,
-				Validators: []validator.String{
-					validators.NewStringEnumValidator(databaseAccessibilities),
-				},
 			},
 			"instance_type": schema.StringAttribute{
 				Description: "Instance type of the database.",
@@ -112,9 +101,6 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 					&databaseCPUDefault,
 				),
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: databaseCPUMin},
-				},
 			},
 			"memory": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -123,9 +109,6 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 					&databaseMemoryDefault,
 				),
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: databaseMemoryMin},
-				},
 			},
 			"storage": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -134,9 +117,6 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 					&databaseStorageDefault,
 				),
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: databaseStorageMin},
-				},
 			},
 			"external_host": schema.StringAttribute{
 				Description: "The database external FQDN host [NOTE: only if your container is using a publicly accessible port].",

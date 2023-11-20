@@ -5,16 +5,13 @@ import (
 	"fmt"
 
 	"github.com/AlekSi/pointer"
+	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
-	"github.com/qovery/terraform-provider-qovery/qovery/validators"
-
-	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 )
@@ -62,11 +59,11 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 			},
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Required:    true,
+				Computed:    true,
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the job.",
-				Required:    true,
+				Computed:    true,
 			},
 			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -75,9 +72,6 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 					pointer.ToInt64(job.DefaultCPU),
 				),
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: job.MinCPU},
-				},
 			},
 			"memory": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -86,9 +80,6 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 					pointer.ToInt64(job.DefaultMemory),
 				),
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: job.MinMemory},
-				},
 			},
 			"max_duration_seconds": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -97,9 +88,7 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 					pointer.ToInt64(int64(job.DefaultMaxDurationSeconds)),
 				),
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: int64(job.MinDurationSeconds)}, // TODO(benjaminch): useless check, by design won't be < 0
-				},
+				Computed: true,
 			},
 			"max_nb_restart": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -108,9 +97,7 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 					pointer.ToInt64(int64(job.DefaultMaxNbRestart)),
 				),
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: int64(job.MinNbRestart)}, // TODO(benjaminch): useless check, by design won't be < 0
-				},
+				Computed: true,
 			},
 			"port": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinMaxDescription(
@@ -119,10 +106,8 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 					port.MaxPort,
 					nil,
 				),
+				Computed: true,
 				Optional: true,
-				Validators: []validator.Int64{
-					validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
-				},
 			},
 			"auto_preview": schema.BoolAttribute{
 				Description: "Specify if the environment preview option is activated or not for this job.",
@@ -132,11 +117,12 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 			"healthchecks": healthchecksSchemaAttributes(true),
 			"schedule": schema.SingleNestedAttribute{
 				Description: "Job's schedule.",
-				Required:    true,
+				Computed:    true,
 				Attributes: map[string]schema.Attribute{
 					"on_start": schema.SingleNestedAttribute{
 						Description: "Job's schedule on start.",
 						Optional:    true,
+						Computed:    true,
 						Attributes: map[string]schema.Attribute{
 							"entrypoint": schema.StringAttribute{
 								Description: "Entrypoint of the job.",
@@ -153,6 +139,7 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 					"on_stop": schema.SingleNestedAttribute{
 						Description: "Job's schedule on stop.",
 						Optional:    true,
+						Computed:    true,
 						Attributes: map[string]schema.Attribute{
 							"entrypoint": schema.StringAttribute{
 								Description: "Entrypoint of the job.",
@@ -169,6 +156,7 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 					"on_delete": schema.SingleNestedAttribute{
 						Description: "Job's schedule on delete.",
 						Optional:    true,
+						Computed:    true,
 						Attributes: map[string]schema.Attribute{
 							"entrypoint": schema.StringAttribute{
 								Description: "Entrypoint of the job.",
@@ -178,6 +166,7 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 							"arguments": schema.ListAttribute{
 								Description: "List of arguments of this job.",
 								Optional:    true,
+								Computed:    true,
 								ElementType: types.StringType,
 							},
 						},
@@ -185,15 +174,16 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 					"cronjob": schema.SingleNestedAttribute{
 						Description: "Job's cron.",
 						Optional:    true,
+						Computed:    true,
 						Attributes: map[string]schema.Attribute{
 							"schedule": schema.StringAttribute{
 								Description: "Job's cron string.",
-								Required:    true,
+								Computed:    true,
 								// TODO(benjaminch): introduce a cron string validator
 							},
 							"command": schema.SingleNestedAttribute{
 								Description: "Job's cron command.",
-								Required:    true,
+								Computed:    true,
 								Attributes: map[string]schema.Attribute{
 									"entrypoint": schema.StringAttribute{
 										Description: "Entrypoint of the job.",
@@ -203,6 +193,7 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 									"arguments": schema.ListAttribute{
 										Description: "List of arguments of this job.",
 										Optional:    true,
+										Computed:    true,
 										ElementType: types.StringType,
 									},
 								},
@@ -214,28 +205,31 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 			"source": schema.SingleNestedAttribute{
 				Description: "Job's source.",
 				Optional:    true,
+				Computed:    true,
 				Attributes: map[string]schema.Attribute{
 					"image": schema.SingleNestedAttribute{
 						Description: "Job's image source.",
 						Optional:    true,
+						Computed:    true,
 						Attributes: map[string]schema.Attribute{
 							"registry_id": schema.StringAttribute{
 								Description: "Job's image source registry ID.",
-								Required:    true,
+								Computed:    true,
 							},
 							"name": schema.StringAttribute{
 								Description: "Job's image source name.",
-								Required:    true,
+								Computed:    true,
 							},
 							"tag": schema.StringAttribute{
 								Description: "Job's image source tag.",
-								Required:    true,
+								Computed:    true,
 							},
 						},
 					},
 					"docker": schema.SingleNestedAttribute{
 						Description: "Job's docker source.",
 						Optional:    true,
+						Computed:    true,
 						Attributes: map[string]schema.Attribute{
 							"dockerfile_path": schema.StringAttribute{
 								Description: "Job's docker source dockerfile path.",
@@ -243,15 +237,15 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 							},
 							"git_repository": schema.SingleNestedAttribute{
 								Description: "Job's docker source git repository.",
-								Required:    true,
+								Computed:    true,
 								Attributes: map[string]schema.Attribute{
 									"url": schema.StringAttribute{
 										Description: "Job's docker source git repository URL.",
-										Required:    true,
+										Computed:    true,
 									},
 									"branch": schema.StringAttribute{
 										Description: "Job's docker source git repository branch.",
-										Required:    true,
+										Computed:    true,
 									},
 									"root_path": schema.StringAttribute{
 										Description: "Job's docker source git repository root path.",
@@ -301,11 +295,11 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 						},
 						"key": schema.StringAttribute{
 							Description: "Key of the environment variable.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -313,6 +307,7 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 			"environment_variable_aliases": schema.SetNestedAttribute{
 				Description: "List of environment variable aliases linked to this job.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -321,11 +316,11 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the environment variable alias.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Name of the variable to alias.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -341,11 +336,11 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the environment variable override.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable override.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -361,11 +356,11 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 						},
 						"key": schema.StringAttribute{
 							Description: "Key of the secret.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the secret.",
-							Required:    true,
+							Computed:    true,
 							Sensitive:   true,
 						},
 					},
@@ -382,11 +377,11 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the secret alias.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Name of the secret to alias.",
-							Required:    true,
+							Computed:    true,
 						},
 					},
 				},
@@ -402,11 +397,11 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 						},
 						"key": schema.StringAttribute{
 							Description: "Name of the secret override.",
-							Required:    true,
+							Computed:    true,
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the secret override.",
-							Required:    true,
+							Computed:    true,
 							Sensitive:   true,
 						},
 					},
