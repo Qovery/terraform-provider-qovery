@@ -51,7 +51,7 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the database.",
-				Computed:    true,
+				Required:    true,
 			},
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",

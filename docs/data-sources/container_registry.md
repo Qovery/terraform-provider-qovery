@@ -14,10 +14,10 @@ data "qovery_container_registry" "my_container_registry" {
 ### Required
 
 - `id` (String) Id of the container registry.
+- `organization_id` (String) Id of the organization.
 
 ### Optional
 
-- `config` (Attributes) Configuration needed to authenticate the container registry. (see [below for nested schema](#nestedatt--config))
 - `description` (String) Description of the container registry.
 
 ### Read-Only
@@ -25,19 +25,5 @@ data "qovery_container_registry" "my_container_registry" {
 - `kind` (String) Kind of the container registry.
 	- Can be: `DOCKER_HUB`, `DOCR`, `ECR`, `GENERIC_CR`, `GITHUB_CR`, `GITLAB_CR`, `PUBLIC_ECR`, `SCALEWAY_CR`.
 - `name` (String) Name of the container registry.
-- `organization_id` (String) Id of the organization.
 - `url` (String) URL of the container registry.
-
-<a id="nestedatt--config"></a>
-### Nested Schema for `config`
-
-Optional:
-
-- `access_key_id` (String) Required if kind is `ECR` or `PUBLIC_ECR`.
-- `password` (String) Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.
-- `region` (String) Required if kind is `ECR` or `SCALEWAY_CR`.
-- `scaleway_access_key` (String) Required if kind is `SCALEWAY_CR`.
-- `scaleway_secret_key` (String) Required if kind is `SCALEWAY_CR`.
-- `secret_access_key` (String) Required if kind is `ECR` or `PUBLIC_ECR`.
-- `username` (String) Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.
 

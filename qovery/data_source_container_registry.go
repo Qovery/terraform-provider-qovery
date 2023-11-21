@@ -54,7 +54,7 @@ func (r containerRegistryDataSource) Schema(_ context.Context, _ datasource.Sche
 			},
 			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Computed:    true,
+				Required:    true,
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the container registry.",
@@ -76,48 +76,6 @@ func (r containerRegistryDataSource) Schema(_ context.Context, _ datasource.Sche
 				Description: "Description of the container registry.",
 				Optional:    true,
 				Computed:    true,
-			},
-			"config": schema.SingleNestedAttribute{
-				Description: "Configuration needed to authenticate the container registry.",
-				Optional:    true,
-				Computed:    true,
-				Attributes: map[string]schema.Attribute{
-					"access_key_id": schema.StringAttribute{
-						Description: "Required if kind is `ECR` or `PUBLIC_ECR`.",
-						Optional:    true,
-						Computed:    true,
-					},
-					"secret_access_key": schema.StringAttribute{
-						Description: "Required if kind is `ECR` or `PUBLIC_ECR`.",
-						Optional:    true,
-						Computed:    true,
-					},
-					"region": schema.StringAttribute{
-						Description: "Required if kind is `ECR` or `SCALEWAY_CR`.",
-						Computed:    true,
-						Optional:    true,
-					},
-					"scaleway_access_key": schema.StringAttribute{
-						Description: "Required if kind is `SCALEWAY_CR`.",
-						Optional:    true,
-						Computed:    true,
-					},
-					"scaleway_secret_key": schema.StringAttribute{
-						Description: "Required if kind is `SCALEWAY_CR`.",
-						Optional:    true,
-						Computed:    true,
-					},
-					"username": schema.StringAttribute{
-						Description: "Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.",
-						Optional:    true,
-						Computed:    true,
-					},
-					"password": schema.StringAttribute{
-						Description: "Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.",
-						Optional:    true,
-						Computed:    true,
-					},
-				},
 			},
 		},
 	}

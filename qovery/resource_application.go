@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -249,7 +248,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Optional:    true,
 				ElementType: types.StringType,
 				Computed:    true,
-				Default:     listdefault.StaticValue(types.ListNull(types.StringType)),
+				//Default:     listdefault.StaticValue(ListNull(types.StringType)),
 			},
 			"storage": schema.SetNestedAttribute{
 				Description: "List of storages linked to this application.",
@@ -289,7 +288,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					},
 				},
 			},
-			"ports": schema.SetNestedAttribute{
+			"ports": schema.ListNestedAttribute{
 				Description: "List of ports linked to this application.",
 				Optional:    true,
 				NestedObject: schema.NestedAttributeObject{

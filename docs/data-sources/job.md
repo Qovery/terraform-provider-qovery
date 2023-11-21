@@ -13,7 +13,7 @@ data "qovery_job" "my_job" {
 
 ### Required
 
-- `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
+- `id` (String) Id of the job.
 
 ### Optional
 
@@ -27,6 +27,7 @@ data "qovery_job" "my_job" {
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this job. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this job. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this job. (see [below for nested schema](#nestedatt--environment_variables))
+- `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
 - `max_duration_seconds` (Number) Job's max duration in seconds.
 	- Must be: `>= 0`.
 	- Default: `300`.
@@ -48,10 +49,39 @@ data "qovery_job" "my_job" {
 - `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this job. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
 - `external_host` (String) The job external FQDN host [NOTE: only if your job is using a publicly accessible port].
-- `id` (String) Id of the job.
 - `internal_host` (String) The job internal host.
 - `name` (String) Name of the job.
 - `schedule` (Attributes) Job's schedule. (see [below for nested schema](#nestedatt--schedule))
+
+<a id="nestedatt--environment_variable_aliases"></a>
+### Nested Schema for `environment_variable_aliases`
+
+Read-Only:
+
+- `id` (String) Id of the environment variable alias.
+- `key` (String) Name of the environment variable alias.
+- `value` (String) Name of the variable to alias.
+
+
+<a id="nestedatt--environment_variable_overrides"></a>
+### Nested Schema for `environment_variable_overrides`
+
+Read-Only:
+
+- `id` (String) Id of the environment variable override.
+- `key` (String) Name of the environment variable override.
+- `value` (String) Value of the environment variable override.
+
+
+<a id="nestedatt--environment_variables"></a>
+### Nested Schema for `environment_variables`
+
+Read-Only:
+
+- `id` (String) Id of the environment variable.
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
+
 
 <a id="nestedatt--healthchecks"></a>
 ### Nested Schema for `healthchecks`
@@ -198,36 +228,6 @@ Optional:
 
 
 
-
-
-<a id="nestedatt--environment_variable_aliases"></a>
-### Nested Schema for `environment_variable_aliases`
-
-Read-Only:
-
-- `id` (String) Id of the environment variable alias.
-- `key` (String) Name of the environment variable alias.
-- `value` (String) Name of the variable to alias.
-
-
-<a id="nestedatt--environment_variable_overrides"></a>
-### Nested Schema for `environment_variable_overrides`
-
-Read-Only:
-
-- `id` (String) Id of the environment variable override.
-- `key` (String) Name of the environment variable override.
-- `value` (String) Value of the environment variable override.
-
-
-<a id="nestedatt--environment_variables"></a>
-### Nested Schema for `environment_variables`
-
-Read-Only:
-
-- `id` (String) Id of the environment variable.
-- `key` (String) Key of the environment variable.
-- `value` (String) Value of the environment variable.
 
 
 <a id="nestedatt--secret_aliases"></a>

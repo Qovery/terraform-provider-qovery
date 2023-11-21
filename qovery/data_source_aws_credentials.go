@@ -54,21 +54,11 @@ func (r awsCredentialsDataSource) Schema(_ context.Context, _ datasource.SchemaR
 			},
 			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Computed:    true,
+				Required:    true,
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the aws credentials.",
 				Computed:    true,
-			},
-			"access_key_id": schema.StringAttribute{
-				Description: "Your AWS access key id.",
-				Computed:    true,
-				Sensitive:   true,
-			},
-			"secret_access_key": schema.StringAttribute{
-				Description: "Your AWS secret access key.",
-				Computed:    true,
-				Sensitive:   true,
 			},
 		},
 	}

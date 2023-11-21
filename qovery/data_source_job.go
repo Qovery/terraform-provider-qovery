@@ -55,7 +55,7 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the job.",
-				Computed:    true,
+				Required:    true,
 			},
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
@@ -114,7 +114,7 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 				Optional:    true,
 				Computed:    true,
 			},
-			"healthchecks": healthchecksSchemaAttributes(true),
+			"healthchecks": healthchecksSchemaAttributes(false),
 			"schedule": schema.SingleNestedAttribute{
 				Description: "Job's schedule.",
 				Computed:    true,

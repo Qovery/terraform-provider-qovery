@@ -1,3 +1,6 @@
+//go:build integration && !unit
+// +build integration,!unit
+
 package qovery_test
 
 import (
@@ -25,20 +28,24 @@ const (
 	jobScheduleCronString = "*/2 * * * *"
 )
 
+var attributes = map[string]attr.Type{
+	"key":   types.StringType,
+	"value": types.StringType,
+}
 var variableObjectType = types.ObjectType{
-	AttrTypes: map[string]attr.Type{
-		"key":   types.StringType,
-		"value": types.StringType,
-	},
+	AttrTypes: attributes,
 }
 
 func generateVariableSet(key string, value string) types.Set {
+	var values = types.ObjectValueMust(attributes, map[string]attr.Value{
+		"key":   qovery.FromString(key),
+		"value": qovery.FromString(value),
+	})
+	var elements = make([]attr.Value, 0, 1)
+	elements = append(elements, values)
 	return types.SetValueMust(
 		variableObjectType,
-		[]attr.Value{
-			qovery.FromString(key),
-			qovery.FromString(value),
-		},
+		elements,
 	)
 }
 
@@ -148,11 +155,11 @@ func TestAcc_Job(t *testing.T) {
 							},
 						},
 						EnvironmentVariables:         generateVariableSet("key1", "value1"),
-						EnvironmentVariableAliases:   generateVariableSet("key1_alias", "key"),
-						EnvironmentVariableOverrides: generateVariableSet("environment_variable", "override_value"),
+						EnvironmentVariableAliases:   generateVariableSet("key1_alias", "key1"),
+						EnvironmentVariableOverrides: generateVariableSet("environment_variable", "override value"),
 						Secrets:                      generateVariableSet("secretkey1", "secretvalue1"),
 						SecretAliases:                generateVariableSet("secretkey1_alias", "secretkey1"),
-						SecretOverrides:              generateVariableSet("environment_secret", "override_value"),
+						SecretOverrides:              generateVariableSet("environment_secret", "override value"),
 						AdvancedSettingsJson:         qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),
@@ -356,10 +363,10 @@ resource "qovery_job" "test" {
   environment_id = qovery_environment.test.id
   name = {{ .Job.Name.String }}
 
-  cpu = {{ .Job.CPU }}
-  memory = {{ .Job.Memory }}
-  max_duration_seconds = {{ .Job.MaxDurationSeconds }}
-  max_nb_restart = {{ .Job.MaxNbRestart }}
+  cpu = {{ .Job.CPU.ValueInt64 }}
+  memory = {{ .Job.Memory.ValueInt64 }}
+  max_duration_seconds = {{ .Job.MaxDurationSeconds.ValueInt64 }}
+  max_nb_restart = {{ .Job.MaxNbRestart.ValueInt64 }}
   auto_preview = {{ .Job.AutoPreview }}
 
   {{ if not .Job.EnvironmentVariables.IsNull }}
@@ -389,7 +396,7 @@ resource "qovery_job" "test" {
   healthchecks = {}
 
   {{ if not .Job.AdvancedSettingsJson.IsNull }}
-  advanced_settings_json = jsonencode({{ .Job.AdvancedSettingsJson.Value }})
+  advanced_settings_json = jsonencode({{ .Job.AdvancedSettingsJson.ValueString }})
   {{ end }}
 
   {{ with .Job.Source }}	
