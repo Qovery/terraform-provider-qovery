@@ -1,6 +1,8 @@
 package qoveryapi
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/qovery/qovery-client-go"
 
@@ -14,11 +16,84 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
+type AggregateJobResponse struct {
+	Id                 string
+	EnvironmentId      string
+	CreatedAt          time.Time
+	UpdatedAt          *time.Time
+	MaximumCpu         int32
+	MaximumMemory      int32
+	Name               string
+	Description        *string
+	Cpu                int32
+	Memory             int32
+	MaxNbRestart       *int32
+	MaxDurationSeconds *int32
+	AutoPreview        bool
+	Port               qovery.NullableInt32
+	Source             qovery.BaseJobResponseAllOfSource
+	Healthchecks       qovery.Healthcheck
+	AutoDeploy         *bool
+	JobType            string
+	ScheduleCron       *qovery.CronJobResponseAllOfSchedule
+	ScheduleLifecycle  *qovery.LifecycleJobResponseAllOfSchedule
+}
+
+func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobResponse {
+	if jobResponse.CronJobResponse != nil {
+		return AggregateJobResponse{
+			Id:                 jobResponse.CronJobResponse.Id,
+			EnvironmentId:      jobResponse.CronJobResponse.Environment.Id,
+			CreatedAt:          jobResponse.CronJobResponse.CreatedAt,
+			UpdatedAt:          jobResponse.CronJobResponse.UpdatedAt,
+			MaximumCpu:         jobResponse.CronJobResponse.MaximumCpu,
+			MaximumMemory:      jobResponse.CronJobResponse.MaximumMemory,
+			Name:               jobResponse.CronJobResponse.Name,
+			Description:        jobResponse.CronJobResponse.Description,
+			Cpu:                jobResponse.CronJobResponse.Cpu,
+			Memory:             jobResponse.CronJobResponse.Memory,
+			MaxNbRestart:       jobResponse.CronJobResponse.MaxNbRestart,
+			MaxDurationSeconds: jobResponse.CronJobResponse.MaxDurationSeconds,
+			AutoPreview:        jobResponse.CronJobResponse.AutoPreview,
+			Port:               jobResponse.CronJobResponse.Port,
+			Source:             jobResponse.CronJobResponse.Source,
+			Healthchecks:       jobResponse.CronJobResponse.Healthchecks,
+			AutoDeploy:         jobResponse.CronJobResponse.AutoDeploy,
+			ScheduleLifecycle:  nil,
+			ScheduleCron:       &jobResponse.CronJobResponse.Schedule,
+		}
+	} else {
+		return AggregateJobResponse{
+			Id:                 jobResponse.LifecycleJobResponse.Id,
+			EnvironmentId:      jobResponse.LifecycleJobResponse.Environment.Id,
+			CreatedAt:          jobResponse.LifecycleJobResponse.CreatedAt,
+			UpdatedAt:          jobResponse.LifecycleJobResponse.UpdatedAt,
+			MaximumCpu:         jobResponse.LifecycleJobResponse.MaximumCpu,
+			MaximumMemory:      jobResponse.LifecycleJobResponse.MaximumMemory,
+			Name:               jobResponse.LifecycleJobResponse.Name,
+			Description:        jobResponse.LifecycleJobResponse.Description,
+			Cpu:                jobResponse.LifecycleJobResponse.Cpu,
+			Memory:             jobResponse.LifecycleJobResponse.Memory,
+			MaxNbRestart:       jobResponse.LifecycleJobResponse.MaxNbRestart,
+			MaxDurationSeconds: jobResponse.LifecycleJobResponse.MaxDurationSeconds,
+			AutoPreview:        jobResponse.LifecycleJobResponse.AutoPreview,
+			Port:               jobResponse.LifecycleJobResponse.Port,
+			Source:             jobResponse.LifecycleJobResponse.Source,
+			Healthchecks:       jobResponse.LifecycleJobResponse.Healthchecks,
+			AutoDeploy:         jobResponse.LifecycleJobResponse.AutoDeploy,
+			ScheduleCron:       nil,
+			ScheduleLifecycle:  &jobResponse.LifecycleJobResponse.Schedule,
+		}
+	}
+}
+
 // newDomainCredentialsFromQovery takes a qovery.EnvironmentVariable returned by the API client and turns it into the domain model variable.Variable.
-func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string, advancedSettingsJson string) (*job.Job, error) {
-	if j == nil {
+func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID string, advancedSettingsJson string) (*job.Job, error) {
+	if jobResponse == nil {
 		return nil, variable.ErrNilVariable
 	}
+
+	var j = getAggregateJobResponse(jobResponse)
 
 	var prt *port.NewPortParams = nil
 	if j.Port.IsSet() {
@@ -33,8 +108,8 @@ func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string, adv
 	}
 
 	var sourceImage *image.NewImageParams
-	if j.Source.JobResponseAllOfSourceOneOf != nil {
-		imageFrom := j.Source.JobResponseAllOfSourceOneOf.Image
+	if j.Source.BaseJobResponseAllOfSourceOneOf != nil {
+		imageFrom := j.Source.BaseJobResponseAllOfSourceOneOf.Image
 		var registryID = ""
 		if imageFrom.RegistryId != nil {
 			registryID = *imageFrom.RegistryId
@@ -48,8 +123,8 @@ func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string, adv
 
 	var sourceDocker *docker.NewDockerParams
 
-	if j.Source.JobResponseAllOfSourceOneOf1 != nil {
-		dockerFrom := j.Source.JobResponseAllOfSourceOneOf1.Docker
+	if j.Source.BaseJobResponseAllOfSourceOneOf1 != nil {
+		dockerFrom := j.Source.BaseJobResponseAllOfSourceOneOf1.Docker
 		var gitRepository = git_repository.NewGitRepositoryParams{
 			Url:        "",
 			Branch:     nil,
@@ -91,33 +166,33 @@ func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string, adv
 	var onStop *execution_command.NewExecutionCommandParams = nil
 	var onDelete *execution_command.NewExecutionCommandParams = nil
 	var cronJob *job.NewJobScheduleCronParams = nil
-	if j.Schedule != nil {
-		if j.Schedule.OnStart != nil {
+	if j.ScheduleLifecycle != nil {
+		if j.ScheduleLifecycle.OnStart != nil {
 			onStart = &execution_command.NewExecutionCommandParams{
-				Entrypoint: j.Schedule.OnStart.Entrypoint,
-				Arguments:  j.Schedule.OnStart.Arguments,
+				Entrypoint: j.ScheduleLifecycle.OnStart.Entrypoint,
+				Arguments:  j.ScheduleLifecycle.OnStart.Arguments,
 			}
 		}
-		if j.Schedule.OnStop != nil {
+		if j.ScheduleLifecycle.OnStop != nil {
 			onStop = &execution_command.NewExecutionCommandParams{
-				Entrypoint: j.Schedule.OnStop.Entrypoint,
-				Arguments:  j.Schedule.OnStop.Arguments,
+				Entrypoint: j.ScheduleLifecycle.OnStop.Entrypoint,
+				Arguments:  j.ScheduleLifecycle.OnStop.Arguments,
 			}
 		}
-		if j.Schedule.OnDelete != nil {
+		if j.ScheduleLifecycle.OnDelete != nil {
 			onDelete = &execution_command.NewExecutionCommandParams{
-				Entrypoint: j.Schedule.OnDelete.Entrypoint,
-				Arguments:  j.Schedule.OnDelete.Arguments,
+				Entrypoint: j.ScheduleLifecycle.OnDelete.Entrypoint,
+				Arguments:  j.ScheduleLifecycle.OnDelete.Arguments,
 			}
 		}
-		if j.Schedule.Cronjob != nil {
-			cronJob = &job.NewJobScheduleCronParams{
-				Schedule: j.Schedule.Cronjob.ScheduledAt,
-				Command: execution_command.NewExecutionCommandParams{
-					Entrypoint: j.Schedule.Cronjob.Entrypoint,
-					Arguments:  j.Schedule.Cronjob.Arguments,
-				},
-			}
+	}
+	if j.ScheduleCron != nil {
+		cronJob = &job.NewJobScheduleCronParams{
+			Schedule: j.ScheduleCron.Cronjob.ScheduledAt,
+			Command: execution_command.NewExecutionCommandParams{
+				Entrypoint: j.ScheduleCron.Cronjob.Entrypoint,
+				Arguments:  j.ScheduleCron.Cronjob.Arguments,
+			},
 		}
 	}
 
@@ -142,7 +217,7 @@ func newDomainJobFromQovery(j *qovery.JobResponse, deploymentStageID string, adv
 	paramsMaxDurationSeconds := int32(maxDurationSeconds)
 	return job.NewJob(job.NewJobParams{
 		JobID:                j.Id,
-		EnvironmentID:        j.Environment.Id,
+		EnvironmentID:        j.EnvironmentId,
 		Name:                 j.Name,
 		AutoPreview:          j.AutoPreview,
 		CPU:                  j.Cpu,

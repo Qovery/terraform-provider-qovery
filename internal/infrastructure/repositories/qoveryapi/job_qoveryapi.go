@@ -45,24 +45,31 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, resp, err)
 	}
 
+	var newJobId string
+	if newJob.CronJobResponse != nil {
+		newJobId = newJob.CronJobResponse.Id
+	} else {
+		newJobId = newJob.LifecycleJobResponse.Id
+	}
+
 	// Attach job to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newJob.Id).Execute()
+		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newJobId).Execute()
 		if err != nil || response.StatusCode >= 400 {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, resp, err)
 		}
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.JOB, newJob.Id, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.JOB, newJobId, request.AdvancedSettingsJson)
 	if err != nil {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, nil, err)
 	}
 
 	// Get job deployment stage
-	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, newJob.Id).Execute()
+	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, newJobId).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, newJob.Id, resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, newJobId, resp, err)
 	}
 
 	return newDomainJobFromQovery(newJob, deploymentStage.Id, request.AdvancedSettingsJson)
@@ -78,14 +85,14 @@ func (c jobQoveryAPI) Get(ctx context.Context, jobID string) (*job.Job, error) {
 	}
 
 	// Get job deployment stage
-	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, job.Id).Execute()
+	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, jobID).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, job.Id, resp, err)
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
 	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(advanced_settings.JOB, jobID)
 	if err != nil {
-		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, job.Id, nil, err)
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, nil, err)
 	}
 
 	return newDomainJobFromQovery(job, deploymentStage.Id, *advancedSettingsAsJson)
@@ -108,22 +115,22 @@ func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.Upse
 
 	// Attach job to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, job.Id).Execute()
+		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, jobID).Execute()
 		if err != nil || response.StatusCode >= 400 {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, resp, err)
 		}
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.JOB, job.Id, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.JOB, jobID, request.AdvancedSettingsJson)
 	if err != nil {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, nil, err)
 	}
 
 	// Get job deployment stage
-	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, job.Id).Execute()
+	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, jobID).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, job.Id, resp, err)
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
 	return newDomainJobFromQovery(job, deploymentStage.Id, request.AdvancedSettingsJson)
