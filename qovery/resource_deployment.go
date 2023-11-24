@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
@@ -78,40 +78,36 @@ func (r *deploymentResource) Configure(_ context.Context, req resource.Configure
 	r.deploymentService = provider.deploymentService
 }
 
-func (r deploymentResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r deploymentResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the deployment",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"environment_id": {
+			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"version": {
+			"version": schema.StringAttribute{
 				Description: "Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'RUNNING' state)",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    false,
 			},
-			"desired_state": {
+			"desired_state": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Desired state of the deployment.",
 					deploymentStates,
 					nil),
-				Type:     types.StringType,
 				Required: true,
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.String{
 					validators.NewStringEnumValidator(deploymentStates),
 				},
 			},
 		},
-	}, nil
+	}
 }
 
 // Create qovery deployment stage resource

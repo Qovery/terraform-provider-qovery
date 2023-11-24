@@ -4,17 +4,22 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
-	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
@@ -96,501 +101,445 @@ func (r *applicationResource) Configure(_ context.Context, req resource.Configur
 	r.client = provider.client
 }
 
-func (r applicationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery application resource. This can be used to create and manage Qovery applications.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the application.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"environment_id": {
+			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the application.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"git_repository": {
+			"git_repository": schema.SingleNestedAttribute{
 				Description: "Git repository of the application.",
 				Required:    true,
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"url": {
+				Attributes: map[string]schema.Attribute{
+					"url": schema.StringAttribute{
 						Description: "URL of the git repository.",
-						Type:        types.StringType,
 						Required:    true,
 					},
-					"branch": {
+					"branch": schema.StringAttribute{
 						Description: descriptions.NewStringDefaultDescription(
 							"Branch of the git repository.",
 							applicationGitRepositoryBranchDefault,
 						),
-						Type:     types.StringType,
 						Optional: true,
 						Computed: true,
 					},
-					"root_path": {
+					"root_path": schema.StringAttribute{
 						Description: descriptions.NewStringDefaultDescription(
 							"Root path of the application.",
 							applicationGitRepositoryRootPathDefault,
 						),
-						Type:     types.StringType,
 						Optional: true,
 						Computed: true,
-						PlanModifiers: tfsdk.AttributePlanModifiers{
-							modifiers.NewStringDefaultModifier(applicationGitRepositoryRootPathDefault),
-						},
+						Default:  stringdefault.StaticString(applicationGitRepositoryRootPathDefault),
 					},
-					"git_token_id": {
+					"git_token_id": schema.StringAttribute{
 						Description: "The git token ID to be used",
-						Type:        types.StringType,
 						Optional:    true,
 						Computed:    false,
 					},
-				}),
+				},
 			},
-			"build_mode": {
+			"build_mode": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Build Mode of the application.",
 					applicationBuildModes,
 					&applicationBuildModeDefault,
 				),
-				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringDefaultModifier(applicationBuildModeDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  stringdefault.StaticString(applicationBuildModeDefault),
+				Validators: []validator.String{
 					validators.NewStringEnumValidator(applicationBuildModes),
 				},
 			},
-			"dockerfile_path": {
+			"dockerfile_path": schema.StringAttribute{
 				Description: "Dockerfile Path of the application.\n\t- Required if: `build_mode=\"DOCKER\"`.",
-				Type:        types.StringType,
 				Optional:    true,
 			},
-			"buildpack_language": {
+			"buildpack_language": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Buildpack Language framework.\n\t- Required if: `build_mode=\"BUILDPACKS\"`.",
 					applicationBuildPackLanguages,
 					nil,
 				),
-				Type:     types.StringType,
 				Optional: true,
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.String{
 					validators.NewStringEnumValidator(applicationBuildPackLanguages),
 				},
 			},
-			"cpu": {
+			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"CPU of the application in millicores (m) [1000m = 1 CPU].",
 					applicationCPUMin,
 					&applicationCPUDefault,
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(applicationCPUDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(applicationCPUDefault),
+				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: applicationCPUMin},
 				},
 			},
-			"memory": {
+			"memory": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"RAM of the application in MB [1024MB = 1GB].",
 					applicationMemoryMin,
 					&applicationMemoryDefault,
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(applicationMemoryDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(applicationMemoryDefault),
+				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: applicationMemoryMin},
 				},
 			},
-			"min_running_instances": {
+			"min_running_instances": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Minimum number of instances running for the application.",
 					applicationMinRunningInstancesMin,
 					&applicationMinRunningInstancesDefault,
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(applicationMinRunningInstancesDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(applicationMinRunningInstancesDefault),
+				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: applicationMinRunningInstancesMin},
 				},
 			},
-			"max_running_instances": {
+			"max_running_instances": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Maximum number of instances running for the application.",
 					applicationMaxRunningInstancesMin,
 					&applicationMaxRunningInstancesDefault,
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(applicationMaxRunningInstancesDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(applicationMaxRunningInstancesDefault),
+				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: applicationMaxRunningInstancesMin},
 				},
 			},
-			"auto_preview": {
+			"auto_preview": schema.BoolAttribute{
 				Description: descriptions.NewBoolDefaultDescription(
 					"Specify if the environment preview option is activated or not for this application.",
 					applicationAutoPreviewDefault,
 				),
-				Type:     types.BoolType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewBoolDefaultModifier(applicationAutoPreviewDefault),
-				},
+				Default:  booldefault.StaticBool(applicationAutoPreviewDefault),
 			},
-			"entrypoint": {
+			"entrypoint": schema.StringAttribute{
 				Description: "Entrypoint of the application.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"arguments": {
+			"arguments": schema.ListAttribute{
 				Description: "List of arguments of this application.",
 				Optional:    true,
+				ElementType: types.StringType,
 				Computed:    true,
-				Type: types.ListType{
-					ElemType: types.StringType,
-				},
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringSliceDefaultModifier([]string{}),
-				},
+				//Default:     listdefault.StaticValue(ListNull(types.StringType)),
 			},
-			"storage": {
+			"storage": schema.SetNestedAttribute{
 				Description: "List of storages linked to this application.",
 				Optional:    true,
-				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the storage.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-					"type": {
-						Description: descriptions.NewStringEnumDescription(
-							"Type of the storage for the application.",
-							applicationStorageTypes,
-							nil,
-						),
-						Type:     types.StringType,
-						Required: true,
-						Validators: []tfsdk.AttributeValidator{
-							validators.NewStringEnumValidator(applicationStorageTypes),
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the storage.",
+							Computed:    true,
+						},
+						"type": schema.StringAttribute{
+							Description: descriptions.NewStringEnumDescription(
+								"Type of the storage for the application.",
+								clientEnumToStringArray(storage.AllowedTypeValues),
+								nil,
+							),
+							Required: true,
+							Validators: []validator.String{
+								validators.NewStringEnumValidator(clientEnumToStringArray(storage.AllowedTypeValues)),
+							},
+						},
+						"size": schema.Int64Attribute{
+							Description: descriptions.NewInt64MinDescription(
+								"Size of the storage for the application in GB [1024MB = 1GB].",
+								applicationStorageSizeMin,
+								nil,
+							),
+							Required: true,
+							Validators: []validator.Int64{
+								validators.Int64MinValidator{Min: applicationStorageSizeMin},
+							},
+						},
+						"mount_point": schema.StringAttribute{
+							Description: "Mount point of the storage for the application.",
+							Required:    true,
 						},
 					},
-					"size": {
-						Description: descriptions.NewInt64MinDescription(
-							"Size of the storage for the application in GB [1024MB = 1GB].",
-							applicationStorageSizeMin,
-							nil,
-						),
-						Type:     types.Int64Type,
-						Required: true,
-						Validators: []tfsdk.AttributeValidator{
-							validators.Int64MinValidator{Min: applicationStorageSizeMin},
-						},
-					},
-					"mount_point": {
-						Description: "Mount point of the storage for the application.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"ports": {
+			"ports": schema.ListNestedAttribute{
 				Description: "List of ports linked to this application.",
 				Optional:    true,
-				Attributes: tfsdk.ListNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the port.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-					"name": {
-						Description: "Name of the port.",
-						Type:        types.StringType,
-						Optional:    true,
-						Computed:    true,
-					},
-					"internal_port": {
-						Description: descriptions.NewInt64MinMaxDescription(
-							"Internal port of the application.",
-							applicationPortMin,
-							applicationPortMax,
-							nil,
-						),
-						Type:     types.Int64Type,
-						Required: true,
-						Validators: []tfsdk.AttributeValidator{
-							validators.Int64MinMaxValidator{Min: applicationPortMin, Max: applicationPortMax},
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the port.",
+							Computed:    true,
+						},
+						"name": schema.StringAttribute{
+							Description: "Name of the port.",
+							Optional:    true,
+							Computed:    true,
+						},
+						"internal_port": schema.Int64Attribute{
+							Description: descriptions.NewInt64MinMaxDescription(
+								"Internal port of the application.",
+								port.MinPort,
+								port.MaxPort,
+								nil,
+							),
+							Required: true,
+							Validators: []validator.Int64{
+								validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
+							},
+						},
+						"external_port": schema.Int64Attribute{
+							Description: descriptions.NewInt64MinMaxDescription(
+								"External port of the application.\n\t- Required if: `ports.publicly_accessible=true`.",
+								port.MinPort,
+								port.MaxPort,
+								nil,
+							),
+							Optional: true,
+							Validators: []validator.Int64{
+								validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
+							},
+						},
+						"publicly_accessible": schema.BoolAttribute{
+							Description: "Specify if the port is exposed to the world or not for this application.",
+							Required:    true,
+						},
+						"protocol": schema.StringAttribute{
+							Description: descriptions.NewStringEnumDescription(
+								"Protocol used for the port of the application.",
+								clientEnumToStringArray(port.AllowedProtocolValues),
+								pointer.ToString(port.DefaultProtocol.String()),
+							),
+							Optional: true,
+							Computed: true,
+							Default:  stringdefault.StaticString(port.DefaultProtocol.String()),
+						},
+						"is_default": schema.BoolAttribute{
+							Description: "If this port will be used for the root domain",
+							Required:    true,
 						},
 					},
-					"external_port": {
-						Description: descriptions.NewInt64MinMaxDescription(
-							"External port of the application.\n\t- Required if: `ports.publicly_accessible=true`.",
-							applicationPortMin,
-							applicationPortMax,
-							nil,
-						),
-						Type:     types.Int64Type,
-						Optional: true,
-						Validators: []tfsdk.AttributeValidator{
-							validators.Int64MinMaxValidator{Min: applicationPortMin, Max: applicationPortMax},
-						},
-					},
-					"publicly_accessible": {
-						Description: "Specify if the port is exposed to the world or not for this application.",
-						Type:        types.BoolType,
-						Required:    true,
-					},
-					"is_default": {
-						Description: "If this port will be used for the root domain",
-						Type:        types.BoolType,
-						Required:    true,
-					},
-					"protocol": {
-						Description: descriptions.NewStringEnumDescription(
-							"Protocol used for the port of the application.",
-							applicationPortProtocols,
-							&applicationPortProtocolDefault,
-						),
-						Type:     types.StringType,
-						Optional: true,
-						Computed: true,
-						PlanModifiers: tfsdk.AttributePlanModifiers{
-							modifiers.NewStringDefaultModifier(applicationPortProtocolDefault),
-						},
-					},
-				}),
+				},
 			},
-			"built_in_environment_variables": {
+			"built_in_environment_variables": schema.SetNestedAttribute{
 				Description: "List of built-in environment variables linked to this application.",
 				Computed:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the environment variable.",
+							Computed:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable.",
+							Computed:    true,
+						},
 					},
-					"key": {
-						Description: "Key of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-				}),
+				},
 			},
-			"environment_variables": {
+			// TODO (framework-migration) Extract environment variables + secrets attributes to avoid repetition everywhere (project / env / services)
+			"environment_variables": schema.SetNestedAttribute{
 				Description: "List of environment variables linked to this application.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the environment variable.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Key of the environment variable.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"environment_variable_aliases": {
+			"environment_variable_aliases": schema.SetNestedAttribute{
 				Description: "List of environment variable aliases linked to this application.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable alias.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable alias.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the environment variable alias.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Name of the variable to alias.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the environment variable alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Name of the variable to alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"environment_variable_overrides": {
+			"environment_variable_overrides": schema.SetNestedAttribute{
 				Description: "List of environment variable overrides linked to this application.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable override.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable override.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the environment variable override.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable override.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the environment variable override.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable override.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"secrets": {
+			"secrets": schema.SetNestedAttribute{
 				Description: "List of secrets linked to this application.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the secret.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the secret.",
+							Required:    true,
+							Sensitive:   true,
+						},
 					},
-					"key": {
-						Description: "Key of the secret.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the secret.",
-						Type:        types.StringType,
-						Required:    true,
-						Sensitive:   true,
-					},
-				}),
+				},
 			},
-			"secret_aliases": {
+			"secret_aliases": schema.SetNestedAttribute{
 				Description: "List of secret aliases linked to this application.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret alias.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret alias.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the secret alias.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Name of the secret to alias.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the secret alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Name of the secret to alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"secret_overrides": {
+			"secret_overrides": schema.SetNestedAttribute{
 				Description: "List of secret overrides linked to this application.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret override.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret override.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the secret override.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the secret override.",
+							Required:    true,
+							Sensitive:   true,
+						},
 					},
-					"key": {
-						Description: "Name of the secret override.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the secret override.",
-						Type:        types.StringType,
-						Required:    true,
-						Sensitive:   true,
-					},
-				}),
+				},
 			},
 			"healthchecks": healthchecksSchemaAttributes(true),
-			"custom_domains": {
+			"custom_domains": schema.SetNestedAttribute{
 				Description: "List of custom domains linked to this application.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the custom domain.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the custom domain.",
+							Computed:    true,
+						},
+						"domain": schema.StringAttribute{
+							Description: "Your custom domain.",
+							Required:    true,
+						},
+						"validation_domain": schema.StringAttribute{
+							Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
+							Computed:    true,
+						},
+						"status": schema.StringAttribute{
+							Description: "Status of the custom domain.",
+							Computed:    true,
+						},
 					},
-					"domain": {
-						Description: "Your custom domain.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"validation_domain": {
-						Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-					"status": {
-						Description: "Status of the custom domain.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-				}),
+				},
 			},
-			"external_host": {
+			"external_host": schema.StringAttribute{
 				Description: "The application external FQDN host [NOTE: only if your application is using a publicly accessible port].",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"internal_host": {
+			"internal_host": schema.StringAttribute{
 				Description: "The application internal host.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"deployment_stage_id": {
+			"deployment_stage_id": schema.StringAttribute{
 				Description: "Id of the deployment stage.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"advanced_settings_json": {
+			"advanced_settings_json": schema.StringAttribute{
 				Description: "Advanced settings.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"auto_deploy": {
-				Description: "Specify if the application will be automatically updated after receiving a new commit.",
-				Type:        types.BoolType,
+			"auto_deploy": schema.BoolAttribute{
+				Description: " Specify if the application will be automatically updated after receiving a new image tag.",
 				Optional:    true,
 				Computed:    true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Create qovery application resource
@@ -615,8 +564,8 @@ func (r applicationResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Initialize state values
-	state := convertResponseToApplication(plan, application)
-	tflog.Trace(ctx, "created application", map[string]interface{}{"application_id": state.Id.Value})
+	state := convertResponseToApplication(ctx, plan, application)
+	tflog.Trace(ctx, "created application", map[string]interface{}{"application_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -632,15 +581,15 @@ func (r applicationResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	// Get application from the API
-	application, apiErr := r.client.GetApplication(ctx, state.Id.Value)
+	application, apiErr := r.client.GetApplication(ctx, state.Id.ValueString())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
 	// Refresh state values
-	state = convertResponseToApplication(state, application)
-	tflog.Trace(ctx, "read application", map[string]interface{}{"application_id": state.Id.Value})
+	state = convertResponseToApplication(ctx, state, application)
+	tflog.Trace(ctx, "read application", map[string]interface{}{"application_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -662,15 +611,15 @@ func (r applicationResource) Update(ctx context.Context, req resource.UpdateRequ
 		resp.Diagnostics.AddError(err.Error(), err.Error())
 		return
 	}
-	application, apiErr := r.client.UpdateApplication(ctx, state.Id.Value, request)
+	application, apiErr := r.client.UpdateApplication(ctx, state.Id.ValueString(), request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
 	// Update state values
-	state = convertResponseToApplication(plan, application)
-	tflog.Trace(ctx, "updated application", map[string]interface{}{"application_id": state.Id.Value})
+	state = convertResponseToApplication(ctx, plan, application)
+	tflog.Trace(ctx, "updated application", map[string]interface{}{"application_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -686,13 +635,13 @@ func (r applicationResource) Delete(ctx context.Context, req resource.DeleteRequ
 	}
 
 	// Delete application
-	apiErr := r.client.DeleteApplication(ctx, state.Id.Value)
+	apiErr := r.client.DeleteApplication(ctx, state.Id.ValueString())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	tflog.Trace(ctx, "deleted application", map[string]interface{}{"application_id": state.Id.Value})
+	tflog.Trace(ctx, "deleted application", map[string]interface{}{"application_id": state.Id.ValueString()})
 
 	// Remove application from state
 	resp.State.RemoveResource(ctx)

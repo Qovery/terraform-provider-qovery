@@ -1,6 +1,8 @@
 package qovery
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
@@ -63,16 +65,16 @@ func (p Project) toUpdateServiceRequest(state Project) project.UpsertServiceRequ
 	}
 }
 
-func convertDomainProjectToProject(state Project, res *project.Project) Project {
+func convertDomainProjectToProject(ctx context.Context, state Project, res *project.Project) Project {
 	return Project{
 		Id:                          FromString(res.ID.String()),
 		OrganizationId:              FromString(res.OrganizationID.String()),
 		Name:                        FromString(res.Name),
 		Description:                 FromStringPointer(res.Description),
-		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(res.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(),
-		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, res.EnvironmentVariables, variable.ScopeProject, "VALUE").toTerraformSet(),
-		EnvironmentVariableAliases:  convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, res.EnvironmentVariables, variable.ScopeProject, "ALIAS").toTerraformSet(),
-		Secrets:                     convertDomainSecretsToSecretList(state.Secrets, res.Secrets, variable.ScopeProject, "VALUE").toTerraformSet(),
-		SecretAliases:               convertDomainSecretsToSecretList(state.SecretAliases, res.Secrets, variable.ScopeProject, "ALIAS").toTerraformSet(),
+		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(res.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
+		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, res.EnvironmentVariables, variable.ScopeProject, "VALUE").toTerraformSet(ctx),
+		EnvironmentVariableAliases:  convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, res.EnvironmentVariables, variable.ScopeProject, "ALIAS").toTerraformSet(ctx),
+		Secrets:                     convertDomainSecretsToSecretList(state.Secrets, res.Secrets, variable.ScopeProject, "VALUE").toTerraformSet(ctx),
+		SecretAliases:               convertDomainSecretsToSecretList(state.SecretAliases, res.Secrets, variable.ScopeProject, "ALIAS").toTerraformSet(ctx),
 	}
 }

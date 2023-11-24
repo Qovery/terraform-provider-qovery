@@ -1,6 +1,8 @@
 package qovery
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -19,22 +21,23 @@ var portAttrTypes = map[string]attr.Type{
 
 type PortList []Port
 
-func (pp PortList) toTerraformSet() types.Set {
-	set := types.Set{
-		ElemType: types.ObjectType{
-			AttrTypes: portAttrTypes,
-		},
+func (pp PortList) toTerraformSet(ctx context.Context) types.Set {
+	var portObjectType = types.ObjectType{
+		AttrTypes: portAttrTypes,
 	}
-
 	if pp == nil {
-		set.Null = true
-		return set
+		return types.SetNull(portObjectType)
 	}
 
-	set.Elems = make([]attr.Value, 0, len(pp))
+	var elements = make([]attr.Value, 0, len(pp))
 	for _, v := range pp {
-		set.Elems = append(set.Elems, v.toTerraformObject())
+		elements = append(elements, v.toTerraformObject())
 	}
+	set, diagnostics := types.SetValueFrom(ctx, portObjectType, elements)
+	if diagnostics.HasError() {
+		panic("TODO")
+	}
+
 	return set
 }
 
@@ -49,18 +52,20 @@ type Port struct {
 }
 
 func (p Port) toTerraformObject() types.Object {
-	return types.Object{
-		AttrTypes: portAttrTypes,
-		Attrs: map[string]attr.Value{
-			"id":                  p.Id,
-			"name":                p.Name,
-			"protocol":            p.Protocol,
-			"internal_port":       p.InternalPort,
-			"external_port":       p.ExternalPort,
-			"publicly_accessible": p.PubliclyAccessible,
-			"is_default":          p.IsDefault,
-		},
+	var attributes = map[string]attr.Value{
+		"id":                  p.Id,
+		"name":                p.Name,
+		"protocol":            p.Protocol,
+		"internal_port":       p.InternalPort,
+		"external_port":       p.ExternalPort,
+		"publicly_accessible": p.PubliclyAccessible,
+		"is_default":          p.IsDefault,
 	}
+	terraformObjectValue, diagnostics := types.ObjectValue(portAttrTypes, attributes)
+	if diagnostics.HasError() {
+		panic("TODO")
+	}
+	return terraformObjectValue
 }
 
 func (p Port) toUpsertRequest() port.UpsertRequest {
@@ -124,23 +129,23 @@ func convertDomainPortToPort(s port.Port) Port {
 
 func toPort(v types.Object) Port {
 	return Port{
-		Id:                 v.Attrs["id"].(types.String),
-		Name:               v.Attrs["name"].(types.String),
-		Protocol:           v.Attrs["protocol"].(types.String),
-		InternalPort:       v.Attrs["internal_port"].(types.Int64),
-		ExternalPort:       v.Attrs["external_port"].(types.Int64),
-		PubliclyAccessible: v.Attrs["publicly_accessible"].(types.Bool),
-		IsDefault:          v.Attrs["is_default"].(types.Bool),
+		Id:                 v.Attributes()["id"].(types.String),
+		Name:               v.Attributes()["name"].(types.String),
+		Protocol:           v.Attributes()["protocol"].(types.String),
+		InternalPort:       v.Attributes()["internal_port"].(types.Int64),
+		ExternalPort:       v.Attributes()["external_port"].(types.Int64),
+		PubliclyAccessible: v.Attributes()["publicly_accessible"].(types.Bool),
+		IsDefault:          v.Attributes()["is_default"].(types.Bool),
 	}
 }
 
 func toPortList(vars types.Set) PortList {
-	if vars.Null || vars.Unknown {
+	if vars.IsNull() || vars.IsUnknown() {
 		return []Port{}
 	}
 
-	ports := make([]Port, 0, len(vars.Elems))
-	for _, elem := range vars.Elems {
+	ports := make([]Port, 0, len(vars.Elements()))
+	for _, elem := range vars.Elements() {
 		ports = append(ports, toPort(elem.(types.Object)))
 	}
 

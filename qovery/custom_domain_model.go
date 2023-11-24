@@ -1,6 +1,8 @@
 package qovery
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
@@ -17,22 +19,23 @@ var customDomainAttrTypes = map[string]attr.Type{
 
 type CustomDomainList []CustomDomain
 
-func (domains CustomDomainList) toTerraformSet() types.Set {
-	set := types.Set{
-		ElemType: types.ObjectType{
-			AttrTypes: customDomainAttrTypes,
-		},
+func (domains CustomDomainList) toTerraformSet(ctx context.Context) types.Set {
+	var domainObjectType = types.ObjectType{
+		AttrTypes: customDomainAttrTypes,
 	}
-
 	if domains == nil {
-		set.Null = true
-		return set
+		return types.SetNull(domainObjectType)
 	}
 
-	set.Elems = make([]attr.Value, 0, len(domains))
+	var elements = make([]attr.Value, 0, len(domains))
 	for _, d := range domains {
-		set.Elems = append(set.Elems, d.toTerraformObject())
+		elements = append(elements, d.toTerraformObject())
 	}
+	set, diagnostics := types.SetValueFrom(ctx, domainObjectType, elements)
+	if diagnostics.HasError() {
+		panic("TODO")
+	}
+
 	return set
 }
 
@@ -47,7 +50,7 @@ func (domains CustomDomainList) contains(domain CustomDomain) bool {
 
 func (domains CustomDomainList) find(domain string) *CustomDomain {
 	for _, d := range domains {
-		if d.Domain.Value == domain {
+		if d.Domain.ValueString() == domain {
 			return &d
 		}
 	}
@@ -84,15 +87,17 @@ type CustomDomain struct {
 }
 
 func (d CustomDomain) toTerraformObject() types.Object {
-	return types.Object{
-		AttrTypes: customDomainAttrTypes,
-		Attrs: map[string]attr.Value{
-			"id":                d.Id,
-			"domain":            d.Domain,
-			"validation_domain": d.ValidationDomain,
-			"status":            d.Status,
-		},
+	var attributes = map[string]attr.Value{
+		"id":                d.Id,
+		"domain":            d.Domain,
+		"validation_domain": d.ValidationDomain,
+		"status":            d.Status,
 	}
+	terraformObjectValue, diagnostics := types.ObjectValue(customDomainAttrTypes, attributes)
+	if diagnostics.HasError() {
+		panic("TODO")
+	}
+	return terraformObjectValue
 }
 
 func (d CustomDomain) toCreateRequest() client.CustomDomainCreateRequest {
@@ -141,20 +146,20 @@ func fromCustomDomainList(initialState types.Set, customDomains []*qovery.Custom
 
 func toCustomDomain(v types.Object) CustomDomain {
 	return CustomDomain{
-		Id:               v.Attrs["id"].(types.String),
-		Domain:           v.Attrs["domain"].(types.String),
-		ValidationDomain: v.Attrs["validation_domain"].(types.String),
-		Status:           v.Attrs["status"].(types.String),
+		Id:               v.Attributes()["id"].(types.String),
+		Domain:           v.Attributes()["domain"].(types.String),
+		ValidationDomain: v.Attributes()["validation_domain"].(types.String),
+		Status:           v.Attributes()["status"].(types.String),
 	}
 }
 
 func toCustomDomainList(vars types.Set) CustomDomainList {
-	if vars.Null || vars.Unknown {
+	if vars.IsNull() || vars.IsUnknown() {
 		return nil
 	}
 
-	customDomains := make([]CustomDomain, 0, len(vars.Elems))
-	for _, elem := range vars.Elems {
+	customDomains := make([]CustomDomain, 0, len(vars.Elements()))
+	for _, elem := range vars.Elements() {
 		customDomains = append(customDomains, toCustomDomain(elem.(types.Object)))
 	}
 

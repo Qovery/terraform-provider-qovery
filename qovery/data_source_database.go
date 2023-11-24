@@ -5,12 +5,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -46,99 +45,106 @@ func (d *databaseDataSource) Configure(_ context.Context, req datasource.Configu
 	d.client = provider.client
 }
 
-func (d databaseDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Description: "Use this data source to retrieve information about an existing database.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Provides a Qovery database resource. This can be used to create and manage Qovery databases.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the database.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"environment_id": {
+			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the database.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"type": {
-				Description: "Type of the database.",
-				Type:        types.StringType,
-				Computed:    true,
+			"type": schema.StringAttribute{
+				Description: descriptions.NewStringEnumDescription(
+					"Type of the database [NOTE: can't be updated after creation].",
+					databaseTypes,
+					nil,
+				),
+				Computed: true,
 			},
-			"version": {
+			"version": schema.StringAttribute{
 				Description: "Version of the database",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"mode": {
-				Description: "Mode of the database.",
-				Type:        types.StringType,
-				Computed:    true,
+			"mode": schema.StringAttribute{
+				Description: descriptions.NewStringEnumDescription(
+					"Mode of the database [NOTE: can't be updated after creation].",
+					databaseModes,
+					nil,
+				),
+				Computed: true,
 			},
-			"accessibility": {
-				Description: "Accessibility of the database.",
-				Type:        types.StringType,
-				Computed:    true,
+			"accessibility": schema.StringAttribute{
+				Description: descriptions.NewStringEnumDescription(
+					"Accessibility of the database.",
+					databaseAccessibilities,
+					&databaseAccessibilityDefault,
+				),
+				Optional: true,
 			},
-			"cpu": {
-				Description: "CPU of the database in milli-cores (m) [1000m = 1 CPU].",
-				Type:        types.Int64Type,
-				Computed:    true,
-			},
-			"memory": {
-				Description: "RAM of the database in MB [1024MB = 1GB].",
-				Type:        types.Int64Type,
-				Computed:    true,
-			},
-			"storage": {
-				Description: "Storage of the database in MB [1024MB = 1GB].",
-				Type:        types.Int64Type,
-				Computed:    true,
-			},
-			"instance_type": {
+			"instance_type": schema.StringAttribute{
 				Description: "Instance type of the database.",
-				Type:        types.StringType,
-				Computed:    true,
 				Optional:    true,
-			},
-			"external_host": {
-				Description: "The database external FQDN host (only if your database is publicly accessible with ACCESSIBILITY = PUBLIC)",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"internal_host": {
+			"cpu": schema.Int64Attribute{
+				Description: descriptions.NewInt64MinDescription(
+					"CPU of the database in millicores (m) [1000m = 1 CPU].",
+					databaseCPUMin,
+					&databaseCPUDefault,
+				),
+				Optional: true,
+			},
+			"memory": schema.Int64Attribute{
+				Description: descriptions.NewInt64MinDescription(
+					"RAM of the database in MB [1024MB = 1GB].",
+					databaseMemoryMin,
+					&databaseMemoryDefault,
+				),
+				Optional: true,
+			},
+			"storage": schema.Int64Attribute{
+				Description: descriptions.NewInt64MinDescription(
+					"Storage of the database in GB [1024MB = 1GB] [NOTE: can't be updated after creation].",
+					databaseStorageMin,
+					&databaseStorageDefault,
+				),
+				Optional: true,
+			},
+			"external_host": schema.StringAttribute{
+				Description: "The database external FQDN host [NOTE: only if your container is using a publicly accessible port].",
+				Computed:    true,
+			},
+			"internal_host": schema.StringAttribute{
 				Description: "The database internal host (Recommended for your application)",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"port": {
-				Description: "The port to connect to your database",
-				Type:        types.Int64Type,
-				Computed:    true,
-			},
-			"login": {
-				Description: "The login to connect to your database",
-				Type:        types.StringType,
-				Computed:    true,
-			},
-			"password": {
-				Description: "The password to connect to your database",
-				Type:        types.StringType,
-				Computed:    true,
-			},
-			"deployment_stage_id": {
+			"deployment_stage_id": schema.StringAttribute{
 				Description: "Id of the deployment stage.",
-				Type:        types.StringType,
 				Optional:    true,
+				Computed:    true,
+			},
+			"port": schema.Int64Attribute{
+				Description: "The port to connect to your database",
+				Computed:    true,
+			},
+			"login": schema.StringAttribute{
+				Description: "The login to connect to your database",
+				Computed:    true,
+			},
+			"password": schema.StringAttribute{
+				Description: "The password to connect to your database",
 				Computed:    true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Read qovery database data source
@@ -151,13 +157,13 @@ func (d databaseDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	}
 
 	// Get database from API
-	database, apiErr := d.client.GetDatabase(ctx, data.Id.Value)
+	database, apiErr := d.client.GetDatabase(ctx, data.Id.ValueString())
 	if apiErr != nil {
 		return
 	}
 
 	state := convertResponseToDatabase(database)
-	tflog.Trace(ctx, "read database", map[string]interface{}{"database_id": state.Id.Value})
+	tflog.Trace(ctx, "read database", map[string]interface{}{"database_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

@@ -5,12 +5,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -45,41 +44,41 @@ func (d *containerRegistryDataSource) Configure(_ context.Context, req datasourc
 	d.containerRegistryService = provider.containerRegistryService
 }
 
-func (d containerRegistryDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Description: "Use this data source to retrieve information about an existing container registry.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+func (r containerRegistryDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Provides a Qovery container registry resource. This can be used to create and manage Qovery container registry.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Required:    true,
 				Description: "Id of the container registry.",
-				Type:        types.StringType,
-				Required:    true,
 			},
-			"organization_id": {
+			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the container registry.",
-				Type:        types.StringType,
-				Computed:    true},
-			"kind": {
-				Description: "Kind of the container registry.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"url": {
+			"kind": schema.StringAttribute{
+				Description: descriptions.NewStringEnumDescription(
+					"Kind of the container registry.",
+					registryKinds,
+					nil,
+				),
+				Computed: true,
+			},
+			"url": schema.StringAttribute{
 				Description: "URL of the container registry.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"description": {
+			"description": schema.StringAttribute{
 				Description: "Description of the container registry.",
-				Type:        types.StringType,
+				Optional:    true,
 				Computed:    true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Read qovery container registry data source
@@ -92,14 +91,14 @@ func (d containerRegistryDataSource) Read(ctx context.Context, req datasource.Re
 	}
 
 	// Get container registry from API
-	reg, err := d.containerRegistryService.Get(ctx, data.OrganizationId.Value, data.Id.Value)
+	reg, err := d.containerRegistryService.Get(ctx, data.OrganizationId.ValueString(), data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container registry read", err.Error())
 		return
 	}
 
 	state := convertDomainRegistryToContainerRegistryDataSource(reg)
-	tflog.Trace(ctx, "read container registry", map[string]interface{}{"container_registry_id": state.Id.Value})
+	tflog.Trace(ctx, "read container registry", map[string]interface{}{"container_registry_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

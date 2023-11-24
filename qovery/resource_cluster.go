@@ -6,19 +6,18 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
-
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
-	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
@@ -62,13 +61,6 @@ var (
 	clusterKubernetesModeDefault = string(qovery.KUBERNETESENUM_MANAGED)
 )
 
-type advSettingAttr struct {
-	description   string
-	_type         attr.Type
-	planModifiers tfsdk.AttributePlanModifiers
-	defaultValue  attr.Value
-}
-
 type clusterResource struct {
 	client *client.Client
 }
@@ -99,189 +91,160 @@ func (r *clusterResource) Configure(_ context.Context, req resource.ConfigureReq
 	r.client = provider.client
 }
 
-func (r clusterResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	// TODO (framework-migration): test if Default is OK when modifying the attribute, otherwise we'll need to use a modifier
+	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery cluster resource. This can be used to create and manage Qovery cluster.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the cluster.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"credentials_id": {
+			"credentials_id": schema.StringAttribute{
 				Description: "Id of the credentials.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"organization_id": {
+			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the cluster.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"cloud_provider": {
+			"cloud_provider": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Cloud provider of the cluster.",
 					cloudProviders,
 					nil,
 				),
-				Type:     types.StringType,
 				Required: true,
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.String{
 					validators.NewStringEnumValidator(cloudProviders),
 				},
 			},
-			"region": {
+			"region": schema.StringAttribute{
 				Description: "Region of the cluster.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"description": {
+			"description": schema.StringAttribute{
 				Description: descriptions.NewStringDefaultDescription(
 					"Description of the cluster.",
 					clusterDescriptionDefault,
 				),
-				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringDefaultModifier(clusterDescriptionDefault),
-				},
+				Default:  stringdefault.StaticString(clusterDescriptionDefault),
 			},
-			"kubernetes_mode": {
+			"kubernetes_mode": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Kubernetes mode of the cluster.",
 					clusterKubernetesModes,
 					&clusterKubernetesModeDefault,
 				),
-				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringDefaultModifier(clusterKubernetesModeDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  stringdefault.StaticString(clusterKubernetesModeDefault),
+				Validators: []validator.String{
 					validators.NewStringEnumValidator(clusterKubernetesModes),
 				},
 			},
-			"instance_type": {
+			"instance_type": schema.StringAttribute{
 				Description: "Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"min_running_nodes": {
+			"min_running_nodes": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Minimum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters].",
 					clusterMinRunningNodesMin,
 					&clusterMinRunningNodesDefault,
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(clusterMinRunningNodesDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(clusterMinRunningNodesDefault),
+				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: clusterMinRunningNodesMin},
 				},
 			},
-			"max_running_nodes": {
+			"max_running_nodes": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Maximum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters]",
 					clusterMaxRunningNodesMin,
 					&clusterMaxRunningNodesDefault,
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(clusterMaxRunningNodesDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(clusterMaxRunningNodesDefault),
+				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: clusterMaxRunningNodesMin},
 				},
 			},
-			"features": {
+			"features": schema.SingleNestedAttribute{
 				Description: "Features of the cluster.",
 				Optional:    true,
 				Computed:    true,
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"vpc_subnet": {
+				Attributes: map[string]schema.Attribute{
+					"vpc_subnet": schema.StringAttribute{
 						Description: descriptions.NewStringDefaultDescription(
 							"Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].",
 							clusterFeatureVpcSubnetDefault,
 						),
-						Type:     types.StringType,
 						Optional: true,
 						Computed: true,
-						PlanModifiers: tfsdk.AttributePlanModifiers{
-							modifiers.NewStringDefaultModifier(clusterFeatureVpcSubnetDefault),
-						},
+						Default:  stringdefault.StaticString(clusterFeatureVpcSubnetDefault),
 					},
-					"static_ip": {
+					"static_ip": schema.BoolAttribute{
 						Description: descriptions.NewBoolDefaultDescription(
 							"Static IP (AWS only) [NOTE: can't be updated after creation].",
 							clusterFeatureStaticIPDefault,
 						),
-						Type:     types.BoolType,
 						Optional: true,
 						Computed: true,
-						PlanModifiers: tfsdk.AttributePlanModifiers{
-							modifiers.NewBoolDefaultModifier(clusterFeatureStaticIPDefault),
-						},
+						Default:  booldefault.StaticBool(clusterFeatureStaticIPDefault),
 					},
-				}),
+				},
 			},
-			"routing_table": {
+			"routing_table": schema.SetNestedAttribute{
 				Description: "List of routes of the cluster.",
 				Optional:    true,
 				Computed:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"description": {
-						Description: "Description of the route.",
-						Type:        types.StringType,
-						Required:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"description": schema.StringAttribute{
+							Description: "Description of the route.",
+							Required:    true,
+						},
+						"destination": schema.StringAttribute{
+							Description: "Destination of the route.",
+							Required:    true,
+						},
+						"target": schema.StringAttribute{
+							Description: "Target of the route.",
+							Required:    true,
+						},
 					},
-					"destination": {
-						Description: "Destination of the route.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"target": {
-						Description: "Target of the route.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"state": {
+			"state": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"State of the cluster.",
 					clusterStates,
 					&clusterStateDefault,
 				),
-				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringDefaultModifier(clusterStateDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  stringdefault.StaticString(clusterStateDefault),
+				Validators: []validator.String{
 					validators.NewStringEnumValidator(clusterStates),
 				},
 			},
-			"advanced_settings_json": {
+			"advanced_settings_json": schema.StringAttribute{
 				Description: "Advanced settings of the cluster.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Create qovery cluster resource
@@ -299,15 +262,15 @@ func (r clusterResource) Create(ctx context.Context, req resource.CreateRequest,
 		resp.Diagnostics.AddError(err.Error(), err.Error())
 		return
 	}
-	cluster, apiErr := r.client.CreateCluster(ctx, plan.OrganizationId.Value, request)
+	cluster, apiErr := r.client.CreateCluster(ctx, plan.OrganizationId.ValueString(), request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
 	// Initialize state values
-	state := convertResponseToCluster(cluster)
-	tflog.Trace(ctx, "created cluster", map[string]interface{}{"cluster_id": state.Id.Value})
+	state := convertResponseToCluster(ctx, cluster)
+	tflog.Trace(ctx, "created cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -323,14 +286,14 @@ func (r clusterResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	// Get cluster from the API
-	cluster, apiErr := r.client.GetCluster(ctx, state.OrganizationId.Value, state.Id.Value)
+	cluster, apiErr := r.client.GetCluster(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	state = convertResponseToCluster(cluster)
-	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.Value})
+	state = convertResponseToCluster(ctx, cluster)
+	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -352,14 +315,14 @@ func (r clusterResource) Update(ctx context.Context, req resource.UpdateRequest,
 		resp.Diagnostics.AddError(err.Error(), err.Error())
 		return
 	}
-	cluster, apiErr := r.client.UpdateCluster(ctx, state.OrganizationId.Value, state.Id.Value, request)
+	cluster, apiErr := r.client.UpdateCluster(ctx, state.OrganizationId.ValueString(), state.Id.ValueString(), request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 	// Update state values
-	state = convertResponseToCluster(cluster)
-	tflog.Trace(ctx, "updated cluster", map[string]interface{}{"cluster_id": state.Id.Value})
+	state = convertResponseToCluster(ctx, cluster)
+	tflog.Trace(ctx, "updated cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -375,13 +338,13 @@ func (r clusterResource) Delete(ctx context.Context, req resource.DeleteRequest,
 	}
 
 	// Delete cluster
-	apiErr := r.client.DeleteCluster(ctx, state.OrganizationId.Value, state.Id.Value)
+	apiErr := r.client.DeleteCluster(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	tflog.Trace(ctx, "deleted cluster", map[string]interface{}{"cluster_id": state.Id.Value})
+	tflog.Trace(ctx, "deleted cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
 
 	// Remove cluster from state
 	resp.State.RemoveResource(ctx)

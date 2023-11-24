@@ -1,6 +1,6 @@
 # qovery_aws_credentials (Data Source)
 
-Use this data source to retrieve information about an existing aws credentials.
+Provides a Qovery AWS credentials resource. This can be used to create and manage Qovery AWS credentials.
 ## Example Usage
 ```terraform
 data "qovery_aws_credentials" "my_aws_creds" {
@@ -14,7 +14,7 @@ data "qovery_aws_credentials" "my_aws_creds" {
 
 ### Required
 
-- `id` (String) Id of the credentials.
+- `id` (String) Id of the AWS credentials.
 - `organization_id` (String) Id of the organization.
 
 ### Read-Only

@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
@@ -53,91 +52,78 @@ func (r *containerRegistryResource) Configure(_ context.Context, req resource.Co
 	r.containerRegistryService = provider.containerRegistryService
 }
 
-func (r containerRegistryResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery container registry resource. This can be used to create and manage Qovery container registry.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the container registry.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"organization_id": {
+			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the container registry.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"kind": {
+			"kind": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Kind of the container registry.",
 					registryKinds,
 					nil,
 				),
-				Type:     types.StringType,
 				Required: true,
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.String{
 					validators.NewStringEnumValidator(registryKinds),
 				},
 			},
-			"url": {
+			"url": schema.StringAttribute{
 				Description: "URL of the container registry.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"description": {
+			"description": schema.StringAttribute{
 				Description: "Description of the container registry.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"config": {
+			"config": schema.SingleNestedAttribute{
 				Description: "Configuration needed to authenticate the container registry.",
 				Optional:    true,
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"access_key_id": {
+				Attributes: map[string]schema.Attribute{
+					"access_key_id": schema.StringAttribute{
 						Description: "Required if kind is `ECR` or `PUBLIC_ECR`.",
-						Type:        types.StringType,
 						Optional:    true,
 					},
-					"secret_access_key": {
+					"secret_access_key": schema.StringAttribute{
 						Description: "Required if kind is `ECR` or `PUBLIC_ECR`.",
-						Type:        types.StringType,
 						Optional:    true,
 					},
-					"region": {
+					"region": schema.StringAttribute{
 						Description: "Required if kind is `ECR` or `SCALEWAY_CR`.",
-						Type:        types.StringType,
 						Optional:    true,
 					},
-					"scaleway_access_key": {
+					"scaleway_access_key": schema.StringAttribute{
 						Description: "Required if kind is `SCALEWAY_CR`.",
-						Type:        types.StringType,
 						Optional:    true,
 					},
-					"scaleway_secret_key": {
+					"scaleway_secret_key": schema.StringAttribute{
 						Description: "Required if kind is `SCALEWAY_CR`.",
-						Type:        types.StringType,
 						Optional:    true,
 					},
-					"username": {
+					"username": schema.StringAttribute{
 						Description: "Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.",
-						Type:        types.StringType,
 						Optional:    true,
 					},
-					"password": {
+					"password": schema.StringAttribute{
 						Description: "Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.",
-						Type:        types.StringType,
 						Optional:    true,
 					},
-				}),
+				},
 			},
 		},
-	}, nil
+	}
 }
 
 // Create qovery container registry resource
@@ -150,7 +136,7 @@ func (r containerRegistryResource) Create(ctx context.Context, req resource.Crea
 	}
 
 	// Create new container registry
-	reg, err := r.containerRegistryService.Create(ctx, plan.OrganizationId.Value, plan.toUpsertRequest())
+	reg, err := r.containerRegistryService.Create(ctx, plan.OrganizationId.ValueString(), plan.toUpsertRequest())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container registry create", err.Error())
 		return
@@ -158,7 +144,7 @@ func (r containerRegistryResource) Create(ctx context.Context, req resource.Crea
 
 	// Initialize state values
 	state := convertDomainRegistryToContainerRegistry(plan, reg)
-	tflog.Trace(ctx, "created container registry", map[string]interface{}{"container_registry_id": state.Id.Value})
+	tflog.Trace(ctx, "created container registry", map[string]interface{}{"container_registry_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -174,7 +160,7 @@ func (r containerRegistryResource) Read(ctx context.Context, req resource.ReadRe
 	}
 
 	// Get container registry from the API
-	reg, err := r.containerRegistryService.Get(ctx, state.OrganizationId.Value, state.Id.Value)
+	reg, err := r.containerRegistryService.Get(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container registry read", err.Error())
 		return
@@ -182,7 +168,7 @@ func (r containerRegistryResource) Read(ctx context.Context, req resource.ReadRe
 
 	// Refresh state values
 	state = convertDomainRegistryToContainerRegistry(state, reg)
-	tflog.Trace(ctx, "read container registry", map[string]interface{}{"container_registry_id": state.Id.Value})
+	tflog.Trace(ctx, "read container registry", map[string]interface{}{"container_registry_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -199,7 +185,7 @@ func (r containerRegistryResource) Update(ctx context.Context, req resource.Upda
 	}
 
 	// Update container registry in the backend
-	reg, err := r.containerRegistryService.Update(ctx, state.OrganizationId.Value, state.Id.Value, plan.toUpsertRequest())
+	reg, err := r.containerRegistryService.Update(ctx, state.OrganizationId.ValueString(), state.Id.ValueString(), plan.toUpsertRequest())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container registry update", err.Error())
 		return
@@ -207,7 +193,7 @@ func (r containerRegistryResource) Update(ctx context.Context, req resource.Upda
 
 	// Update state values
 	state = convertDomainRegistryToContainerRegistry(plan, reg)
-	tflog.Trace(ctx, "updated container registry", map[string]interface{}{"container_registry_id": state.Id.Value})
+	tflog.Trace(ctx, "updated container registry", map[string]interface{}{"container_registry_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -223,13 +209,13 @@ func (r containerRegistryResource) Delete(ctx context.Context, req resource.Dele
 	}
 
 	// Delete container registry
-	err := r.containerRegistryService.Delete(ctx, state.OrganizationId.Value, state.Id.Value)
+	err := r.containerRegistryService.Delete(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container registry delete", err.Error())
 		return
 	}
 
-	tflog.Trace(ctx, "deleted container registry", map[string]interface{}{"container_registry_id": state.Id.Value})
+	tflog.Trace(ctx, "deleted container registry", map[string]interface{}{"container_registry_id": state.Id.ValueString()})
 
 	// Remove containerRegistry from state
 	resp.State.RemoveResource(ctx)

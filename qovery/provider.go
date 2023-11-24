@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
@@ -33,7 +33,6 @@ const APITokenEnvName = "QOVERY_API_TOKEN"
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
 var _ provider.Provider = &qProvider{}
-var _ provider.ProviderWithMetadata = &qProvider{}
 
 // qProvider satisfies the provider.Provider interface and usually is included
 // with all Resource and DataSource implementations.
@@ -106,7 +105,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	}
 
 	// User must provide a token to the provider
-	if data.Token.Unknown {
+	if data.Token.IsUnknown() {
 		// Cannot connect to client with an unknown value
 		resp.Diagnostics.AddWarning(
 			"Unable to create client",
@@ -115,8 +114,8 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 		return
 	}
 
-	token := data.Token.Value
-	if data.Token.Null {
+	token := data.Token.ValueString()
+	if data.Token.IsNull() {
 		token = os.Getenv(APITokenEnvName)
 	}
 
@@ -205,16 +204,15 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 	}
 }
 
-func (p *qProvider) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Attributes: map[string]tfsdk.Attribute{
-			"token": {
+func (p *qProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"token": schema.StringAttribute{
 				Description: "The Qovery API Token to use. This can also be specified with the `QOVERY_API_TOKEN` shell environment variable.",
-				Type:        types.StringType,
 				Optional:    true,
 			},
 		},
-	}, nil
+	}
 }
 
 func (p qProvider) GetClient() *client.Client {

@@ -77,7 +77,7 @@ resource "qovery_database" "my_managed_database" {
 
 ### Read-Only
 
-- `external_host` (String) The database external FQDN host (only if your database is publicly accessible with ACCESSIBILITY = PUBLIC)
+- `external_host` (String) The database external FQDN host [NOTE: only if your container is using a publicly accessible port].
 - `id` (String) Id of the database.
 - `internal_host` (String) The database internal host (Recommended for your application)
 - `login` (String) The login to connect to your database

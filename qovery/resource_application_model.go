@@ -1,6 +1,8 @@
 package qovery
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
@@ -92,7 +94,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 	}
 
 	var buildMode *qovery.BuildModeEnum
-	if !app.BuildMode.Null && !app.BuildMode.Unknown {
+	if !app.BuildMode.IsNull() && !app.BuildMode.IsUnknown() {
 		bm, err := qovery.NewBuildModeEnumFromValue(ToString(app.BuildMode))
 		if err != nil {
 			return nil, err
@@ -168,7 +170,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 	}
 
 	var buildMode *qovery.BuildModeEnum
-	if !app.BuildMode.Null && !app.BuildMode.Unknown {
+	if !app.BuildMode.IsNull() && !app.BuildMode.IsUnknown() {
 		bm, err := qovery.NewBuildModeEnumFromValue(ToString(app.BuildMode))
 		if err != nil {
 			return nil, err
@@ -209,7 +211,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 
 }
 
-func convertResponseToApplication(state Application, app *client.ApplicationResponse) Application {
+func convertResponseToApplication(ctx context.Context, state Application, app *client.ApplicationResponse) Application {
 	healthchecks := convertHealthchecksResponseToDomain(app.ApplicationResponse.Healthchecks)
 	return Application{
 		Id:                           FromString(app.ApplicationResponse.Id),
@@ -226,14 +228,14 @@ func convertResponseToApplication(state Application, app *client.ApplicationResp
 		GitRepository:                convertResponseToApplicationGitRepository(app.ApplicationResponse.GitRepository),
 		Storage:                      convertResponseToApplicationStorage(state.Storage, app.ApplicationResponse.Storage),
 		Ports:                        convertResponseToApplicationPorts(state.Ports, app.ApplicationResponse.Ports),
-		BuiltInEnvironmentVariables:  fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_BUILT_IN, "BUILT_IN").toTerraformSet(),
-		EnvironmentVariables:         fromEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(),
-		EnvironmentVariableAliases:   fromEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, app.ApplicationEnvironmentVariableAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(),
-		EnvironmentVariableOverrides: fromEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableOverrides, app.ApplicationEnvironmentVariableOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION, "OVERRIDE").toTerraformSet(),
-		Secrets:                      fromSecretList(state.Secrets, app.ApplicationSecrets, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(),
-		SecretVariableAliases:        fromSecretList(state.SecretVariableAliases, app.ApplicationSecretAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(),
-		SecretVariableOverrides:      fromSecretList(state.SecretVariableOverrides, app.ApplicationSecretOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION, "OVERRIDE").toTerraformSet(),
-		CustomDomains:                fromCustomDomainList(state.CustomDomains, app.ApplicationCustomDomains).toTerraformSet(),
+		BuiltInEnvironmentVariables:  fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_BUILT_IN, "BUILT_IN").toTerraformSet(ctx),
+		EnvironmentVariables:         fromEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(ctx),
+		EnvironmentVariableAliases:   fromEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, app.ApplicationEnvironmentVariableAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(ctx),
+		EnvironmentVariableOverrides: fromEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableOverrides, app.ApplicationEnvironmentVariableOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION, "OVERRIDE").toTerraformSet(ctx),
+		Secrets:                      fromSecretList(state.Secrets, app.ApplicationSecrets, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(ctx),
+		SecretVariableAliases:        fromSecretList(state.SecretVariableAliases, app.ApplicationSecretAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(ctx),
+		SecretVariableOverrides:      fromSecretList(state.SecretVariableOverrides, app.ApplicationSecretOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION, "OVERRIDE").toTerraformSet(ctx),
+		CustomDomains:                fromCustomDomainList(state.CustomDomains, app.ApplicationCustomDomains).toTerraformSet(ctx),
 		InternalHost:                 FromString(app.ApplicationInternalHost),
 		ExternalHost:                 FromStringPointer(app.ApplicationExternalHost),
 		Entrypoint:                   FromStringPointer(app.ApplicationResponse.Entrypoint),

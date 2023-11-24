@@ -133,7 +133,7 @@ You can find complete examples within these repositories:
 
 - `advanced_settings_json` (String) Advanced settings.
 - `arguments` (List of String) List of arguments of this application.
-- `auto_deploy` (Boolean) Specify if the application will be automatically updated after receiving a new commit.
+- `auto_deploy` (Boolean) Specify if the application will be automatically updated after receiving a new image tag.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
 	- Default: `false`.
 - `build_mode` (String) Build Mode of the application.
@@ -166,7 +166,7 @@ You can find complete examples within these repositories:
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this application. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_overrides` (Attributes Set) List of secret overrides linked to this application. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes Set) List of secrets linked to this application. (see [below for nested schema](#nestedatt--secrets))
-- `storage` (Attributes List) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
+- `storage` (Attributes Set) List of storages linked to this application. (see [below for nested schema](#nestedatt--storage))
 
 ### Read-Only
 

@@ -1,6 +1,8 @@
 package qovery
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
@@ -187,7 +189,7 @@ func (s JobScheduleCron) toUpsertRequest() job.JobScheduleCron {
 			Entrypoint: ToStringPointer(s.Command.Entrypoint),
 			Arguments:  args,
 		},
-		Schedule: s.Schedule.Value,
+		Schedule: s.Schedule.ValueString(),
 	}
 }
 
@@ -303,7 +305,7 @@ func (j Job) toUpsertRepositoryRequest() job.UpsertRepositoryRequest {
 	}
 }
 
-func convertDomainJobToJob(state Job, job *job.Job) Job {
+func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 	var prt *int32 = nil
 	if job.Port != nil {
 		prt = &job.Port.InternalPort
@@ -319,19 +321,19 @@ func convertDomainJobToJob(state Job, job *job.Job) Job {
 		Name:                         FromString(job.Name),
 		CPU:                          FromInt32(job.CPU),
 		Memory:                       FromInt32(job.Memory),
-		MaxNbRestart:                 FromUInt32(job.MaxNbRestart),
-		MaxDurationSeconds:           FromUInt32(job.MaxDurationSeconds),
+		MaxNbRestart:                 FromInt32(job.MaxNbRestart),
+		MaxDurationSeconds:           FromInt32(job.MaxDurationSeconds),
 		AutoPreview:                  FromBool(job.AutoPreview),
 		Port:                         FromInt32Pointer(prt),
 		Source:                       &source,
 		Schedule:                     &schedule,
-		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(job.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(),
-		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, job.EnvironmentVariables, variable.ScopeJob, "VALUE").toTerraformSet(),
-		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, job.EnvironmentVariables, variable.ScopeJob, "ALIAS").toTerraformSet(),
-		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableOverrides, job.EnvironmentVariables, variable.ScopeJob, "OVERRIDE").toTerraformSet(),
-		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, job.Secrets, variable.ScopeJob, "VALUE").toTerraformSet(),
-		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, job.Secrets, variable.ScopeJob, "ALIAS").toTerraformSet(),
-		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, job.Secrets, variable.ScopeJob, "OVERRIDE").toTerraformSet(),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(job.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
+		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, job.EnvironmentVariables, variable.ScopeJob, "VALUE").toTerraformSet(ctx),
+		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, job.EnvironmentVariables, variable.ScopeJob, "ALIAS").toTerraformSet(ctx),
+		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableOverrides, job.EnvironmentVariables, variable.ScopeJob, "OVERRIDE").toTerraformSet(ctx),
+		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, job.Secrets, variable.ScopeJob, "VALUE").toTerraformSet(ctx),
+		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, job.Secrets, variable.ScopeJob, "ALIAS").toTerraformSet(ctx),
+		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, job.Secrets, variable.ScopeJob, "OVERRIDE").toTerraformSet(ctx),
 		InternalHost:                 FromStringPointer(job.InternalHost),
 		ExternalHost:                 FromStringPointer(job.ExternalHost),
 		DeploymentStageId:            FromString(job.DeploymentStageID),

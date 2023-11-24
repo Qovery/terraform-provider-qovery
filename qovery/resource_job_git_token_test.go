@@ -7,7 +7,6 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -54,26 +53,8 @@ func TestAcc_JobGitToken(t *testing.T) {
 								},
 							},
 						},
-						EnvironmentVariables: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("key1"),
-										"value": qovery.FromString(""),
-									},
-								},
-							},
-						},
-						Secrets: types.Set{
-							Elems: []attr.Value{
-								types.Object{
-									Attrs: map[string]attr.Value{
-										"key":   qovery.FromString("secretkey1"),
-										"value": qovery.FromString(""),
-									},
-								},
-							},
-						},
+						EnvironmentVariables: generateVariableSet("key1", ""),
+						Secrets:              generateVariableSet("secretkey1", ""),
 						AdvancedSettingsJson: qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),

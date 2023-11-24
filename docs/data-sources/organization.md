@@ -1,6 +1,6 @@
 # qovery_organization (Data Source)
 
-Use this data source to retrieve information about an existing organization.
+Provides a Qovery organization resource. This can be used to create and manage Qovery organizations.
 ## Example Usage
 ```terraform
 data "qovery_organization" "my_organization" {
@@ -20,4 +20,5 @@ data "qovery_organization" "my_organization" {
 - `description` (String) Description of the organization.
 - `name` (String) Name of the organization.
 - `plan` (String) Plan of the organization.
+	- Can be: `BUSINESS`, `ENTERPRISE`, `ENTERPRISE_YEARLY`, `FREE`, `PROFESSIONAL`, `TEAM`, `TEAM_YEARLY`.
 

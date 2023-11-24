@@ -5,11 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
@@ -49,45 +47,39 @@ func (r *scalewayCredentialsResource) Configure(_ context.Context, req resource.
 	r.scalewayCredentialsService = provider.scalewayCredentialsService
 }
 
-func (r scalewayCredentialsResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r scalewayCredentialsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery SCALEWAY credentials resource. This can be used to create and manage Qovery SCALEWAY credentials.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the SCALEWAY credentials.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"organization_id": {
+			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the scaleway credentials.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"scaleway_access_key": {
+			"scaleway_access_key": schema.StringAttribute{
 				Description: "Your SCALEWAY access key id.",
-				Type:        types.StringType,
 				Required:    true,
 				Sensitive:   true,
 			},
-			"scaleway_secret_key": {
+			"scaleway_secret_key": schema.StringAttribute{
 				Description: "Your SCALEWAY secret key.",
-				Type:        types.StringType,
 				Required:    true,
 				Sensitive:   true,
 			},
-			"scaleway_project_id": {
+			"scaleway_project_id": schema.StringAttribute{
 				Description: "Your SCALEWAY project ID.",
-				Type:        types.StringType,
 				Required:    true,
 				Sensitive:   true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Create qovery scaleway credentials resource
@@ -100,7 +92,7 @@ func (r scalewayCredentialsResource) Create(ctx context.Context, req resource.Cr
 	}
 
 	// Create new credentials
-	creds, err := r.scalewayCredentialsService.Create(ctx, plan.OrganizationId.Value, plan.toUpsertScalewayRequest())
+	creds, err := r.scalewayCredentialsService.Create(ctx, plan.OrganizationId.ValueString(), plan.toUpsertScalewayRequest())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on scaleway credentials create", err.Error())
 		return
@@ -108,7 +100,7 @@ func (r scalewayCredentialsResource) Create(ctx context.Context, req resource.Cr
 
 	// Initialize state values
 	state := convertDomainCredentialsToScalewayCredentials(creds, plan)
-	tflog.Trace(ctx, "created scaleway credentials", map[string]interface{}{"credentials_id": state.Id.Value})
+	tflog.Trace(ctx, "created scaleway credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -124,14 +116,14 @@ func (r scalewayCredentialsResource) Read(ctx context.Context, req resource.Read
 	}
 
 	// Get credentials from API
-	creds, err := r.scalewayCredentialsService.Get(ctx, state.OrganizationId.Value, state.Id.Value)
+	creds, err := r.scalewayCredentialsService.Get(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on scaleway credentials read", err.Error())
 		return
 	}
 
 	state = convertDomainCredentialsToScalewayCredentials(creds, state)
-	tflog.Trace(ctx, "read scaleway credentials", map[string]interface{}{"credentials_id": state.Id.Value})
+	tflog.Trace(ctx, "read scaleway credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -148,7 +140,7 @@ func (r scalewayCredentialsResource) Update(ctx context.Context, req resource.Up
 	}
 
 	// Update credentials in the backend
-	creds, err := r.scalewayCredentialsService.Update(ctx, state.OrganizationId.Value, state.Id.Value, plan.toUpsertScalewayRequest())
+	creds, err := r.scalewayCredentialsService.Update(ctx, state.OrganizationId.ValueString(), state.Id.ValueString(), plan.toUpsertScalewayRequest())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on scaleway credentials update", err.Error())
 		return
@@ -156,7 +148,7 @@ func (r scalewayCredentialsResource) Update(ctx context.Context, req resource.Up
 
 	// Update state values
 	state = convertDomainCredentialsToScalewayCredentials(creds, plan)
-	tflog.Trace(ctx, "updated scaleway credentials", map[string]interface{}{"credentials_id": state.Id.Value})
+	tflog.Trace(ctx, "updated scaleway credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -172,13 +164,13 @@ func (r scalewayCredentialsResource) Delete(ctx context.Context, req resource.De
 	}
 
 	// Delete credentials in the backend
-	err := r.scalewayCredentialsService.Delete(ctx, state.OrganizationId.Value, state.Id.Value)
+	err := r.scalewayCredentialsService.Delete(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on scaleway credentials delete", err.Error())
 		return
 	}
 
-	tflog.Trace(ctx, "deleted scaleway credentials", map[string]interface{}{"credentials_id": state.Id.Value})
+	tflog.Trace(ctx, "deleted scaleway credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
 
 	// Remove credentials from state
 	resp.State.RemoveResource(ctx)

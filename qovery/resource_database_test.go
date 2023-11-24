@@ -521,7 +521,7 @@ resource "qovery_database" "test" {
 	mode = {{ .Database.Mode.String }}
 
 	{{ with .Database.InstanceType }}
-	{{ if not .Null }}
+	{{ if not .IsNull }}
 	instance_type = {{ .String }}
 	{{ end }}
 	{{ end }}
@@ -529,13 +529,13 @@ resource "qovery_database" "test" {
 	accessibility = {{ .String }}
 	{{ end }}
 	{{ with .Database.CPU }}
-	cpu = {{ . }}
+	cpu = {{ .ValueInt64 }}
 	{{ end }}
 	{{ with .Database.Memory }}
-	memory = {{ . }}
+	memory = {{ .ValueInt64 }}
 	{{ end }}
 	{{ with .Database.Storage }}
-	storage = {{ . }}
+	storage = {{ .ValueInt64 }}
 	{{ end }}
 }
 `)

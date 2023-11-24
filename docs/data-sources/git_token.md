@@ -1,5 +1,5 @@
 # qovery_git_token (Data Source)
 
-Use this data source to retrieve information about an existing git token.
+Provides a Qovery git token resource. This can be used to create and manage Qovery git token.
 
 

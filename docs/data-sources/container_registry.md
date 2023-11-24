@@ -1,6 +1,6 @@
 # qovery_container_registry (Data Source)
 
-Use this data source to retrieve information about an existing container registry.
+Provides a Qovery container registry resource. This can be used to create and manage Qovery container registry.
 ## Example Usage
 ```terraform
 data "qovery_container_registry" "my_container_registry" {
@@ -16,10 +16,14 @@ data "qovery_container_registry" "my_container_registry" {
 - `id` (String) Id of the container registry.
 - `organization_id` (String) Id of the organization.
 
-### Read-Only
+### Optional
 
 - `description` (String) Description of the container registry.
+
+### Read-Only
+
 - `kind` (String) Kind of the container registry.
+	- Can be: `DOCKER_HUB`, `DOCR`, `ECR`, `GENERIC_CR`, `GITHUB_CR`, `GITLAB_CR`, `PUBLIC_ECR`, `SCALEWAY_CR`.
 - `name` (String) Name of the container registry.
 - `url` (String) URL of the container registry.
 

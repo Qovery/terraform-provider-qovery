@@ -1,6 +1,6 @@
 # qovery_environment (Data Source)
 
-Use this data source to retrieve information about an existing environment.
+Provides a Qovery environment resource. This can be used to create and manage Qovery environments.
 ## Example Usage
 ```terraform
 data "qovery_environment" "my_environment" {
@@ -20,6 +20,9 @@ data "qovery_environment" "my_environment" {
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this environment. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this environment. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this environment. (see [below for nested schema](#nestedatt--environment_variables))
+- `mode` (String) Mode of the environment [NOTE: can't be updated after creation].
+	- Can be: `DEVELOPMENT`, `PREVIEW`, `PRODUCTION`, `STAGING`.
+	- Default: `DEVELOPMENT`.
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this environment. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_overrides` (Attributes Set) List of secret overrides linked to this environment. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes Set) List of secrets linked to this environment. (see [below for nested schema](#nestedatt--secrets))
@@ -27,35 +30,28 @@ data "qovery_environment" "my_environment" {
 ### Read-Only
 
 - `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this environment. (see [below for nested schema](#nestedatt--built_in_environment_variables))
-- `cluster_id` (String) Id of the cluster.
-- `mode` (String) Mode of the environment.
+- `cluster_id` (String) Id of the cluster [NOTE: can't be updated after creation].
 - `name` (String) Name of the environment.
 - `project_id` (String) Id of the project.
 
 <a id="nestedatt--environment_variable_aliases"></a>
 ### Nested Schema for `environment_variable_aliases`
 
-Required:
-
-- `key` (String) Name of the environment variable alias.
-- `value` (String) Name of the variable to alias.
-
 Read-Only:
 
 - `id` (String) Id of the environment variable alias.
+- `key` (String) Name of the environment variable alias.
+- `value` (String) Name of the variable to alias.
 
 
 <a id="nestedatt--environment_variable_overrides"></a>
 ### Nested Schema for `environment_variable_overrides`
 
-Required:
-
-- `key` (String) Name of the environment variable override.
-- `value` (String) Value of the environment variable override.
-
 Read-Only:
 
 - `id` (String) Id of the environment variable override.
+- `key` (String) Name of the environment variable override.
+- `value` (String) Value of the environment variable override.
 
 
 <a id="nestedatt--environment_variables"></a>
@@ -71,27 +67,21 @@ Read-Only:
 <a id="nestedatt--secret_aliases"></a>
 ### Nested Schema for `secret_aliases`
 
-Required:
-
-- `key` (String) Name of the secret alias.
-- `value` (String) Name of the secret to alias.
-
 Read-Only:
 
 - `id` (String) Id of the secret alias.
+- `key` (String) Name of the secret alias.
+- `value` (String) Name of the secret to alias.
 
 
 <a id="nestedatt--secret_overrides"></a>
 ### Nested Schema for `secret_overrides`
 
-Required:
-
-- `key` (String) Name of the secret override.
-- `value` (String, Sensitive) Value of the secret override.
-
 Read-Only:
 
 - `id` (String) Id of the secret override.
+- `key` (String) Name of the secret override.
+- `value` (String, Sensitive) Value of the secret override.
 
 
 <a id="nestedatt--secrets"></a>
@@ -101,7 +91,7 @@ Read-Only:
 
 - `id` (String) Id of the secret.
 - `key` (String) Key of the secret.
-- `value` (String, Sensitive) Value of the secret [NOTE: will always be empty].
+- `value` (String, Sensitive) Value of the secret.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>

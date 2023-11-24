@@ -5,12 +5,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -46,32 +45,32 @@ func (d *organizationDataSource) Configure(_ context.Context, req datasource.Con
 	d.organizationService = provider.organizationService
 }
 
-func (d organizationDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Description: "Use this data source to retrieve information about an existing organization.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+func (r organizationDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Provides a Qovery organization resource. This can be used to create and manage Qovery organizations.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the organization.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"plan": {
-				Description: "Plan of the organization.",
-				Type:        types.StringType,
-				Computed:    true,
+			"plan": schema.StringAttribute{
+				Description: descriptions.NewStringEnumDescription(
+					"Plan of the organization.",
+					organizationPlans,
+					nil,
+				),
+				Computed: true,
 			},
-			"description": {
+			"description": schema.StringAttribute{
 				Description: "Description of the organization.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Read qovery organization data source
@@ -84,14 +83,14 @@ func (d organizationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	}
 
 	// Get organization from API
-	orga, err := d.organizationService.Get(ctx, data.Id.Value)
+	orga, err := d.organizationService.Get(ctx, data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on organization read", err.Error())
 		return
 	}
 
 	state := convertDomainOrganizationToTerraform(orga)
-	tflog.Trace(ctx, "read organization", map[string]interface{}{"organization_id": state.Id.Value})
+	tflog.Trace(ctx, "read organization", map[string]interface{}{"organization_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

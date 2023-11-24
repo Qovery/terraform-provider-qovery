@@ -1,6 +1,8 @@
 package qovery
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
@@ -17,21 +19,21 @@ var environmentVariableAttrTypes = map[string]attr.Type{
 
 type EnvironmentVariableList []EnvironmentVariable
 
-func (vars EnvironmentVariableList) toTerraformSet() types.Set {
-	set := types.Set{
-		ElemType: types.ObjectType{
-			AttrTypes: environmentVariableAttrTypes,
-		},
+func (vars EnvironmentVariableList) toTerraformSet(ctx context.Context) types.Set {
+	var environmentVariableObjectType = types.ObjectType{
+		AttrTypes: environmentVariableAttrTypes,
 	}
-
 	if vars == nil {
-		set.Null = true
-		return set
+		return types.SetNull(environmentVariableObjectType)
 	}
 
-	set.Elems = make([]attr.Value, 0, len(vars))
+	var elements = make([]attr.Value, 0, len(vars))
 	for _, v := range vars {
-		set.Elems = append(set.Elems, v.toTerraformObject())
+		elements = append(elements, v.toTerraformObject())
+	}
+	set, diagnostics := types.SetValueFrom(ctx, environmentVariableObjectType, elements)
+	if diagnostics.HasError() {
+		panic("TODO")
 	}
 	return set
 }
@@ -47,7 +49,7 @@ func (vars EnvironmentVariableList) contains(e EnvironmentVariable) bool {
 
 func (vars EnvironmentVariableList) find(key string) *EnvironmentVariable {
 	for _, v := range vars {
-		if v.Key.Value == key {
+		if v.Key.ValueString() == key {
 			return &v
 		}
 	}
@@ -113,14 +115,16 @@ type EnvironmentVariable struct {
 }
 
 func (e EnvironmentVariable) toTerraformObject() types.Object {
-	return types.Object{
-		AttrTypes: environmentVariableAttrTypes,
-		Attrs: map[string]attr.Value{
-			"id":    e.Id,
-			"key":   e.Key,
-			"value": e.Value,
-		},
+	var attributes = map[string]attr.Value{
+		"id":    e.Id,
+		"key":   e.Key,
+		"value": e.Value,
 	}
+	terraformObjectValue, diagnostics := types.ObjectValue(environmentVariableAttrTypes, attributes)
+	if diagnostics.HasError() {
+		panic("TODO")
+	}
+	return terraformObjectValue
 }
 
 func (e EnvironmentVariable) toCreateRequest() client.EnvironmentVariableCreateRequest {
@@ -215,19 +219,19 @@ func fromEnvironmentVariableListWithNullableInitialState(initialState types.Set,
 
 func toEnvironmentVariable(v types.Object) EnvironmentVariable {
 	return EnvironmentVariable{
-		Id:    v.Attrs["id"].(types.String),
-		Key:   v.Attrs["key"].(types.String),
-		Value: v.Attrs["value"].(types.String),
+		Id:    v.Attributes()["id"].(types.String),
+		Key:   v.Attributes()["key"].(types.String),
+		Value: v.Attributes()["value"].(types.String),
 	}
 }
 
 func toEnvironmentVariableList(vars types.Set) EnvironmentVariableList {
-	if vars.Null || vars.Unknown {
+	if vars.IsNull() || vars.IsUnknown() {
 		return nil
 	}
 
-	environmentVariables := make([]EnvironmentVariable, 0, len(vars.Elems))
-	for _, elem := range vars.Elems {
+	environmentVariables := make([]EnvironmentVariable, 0, len(vars.Elements()))
+	for _, elem := range vars.Elements() {
 		environmentVariables = append(environmentVariables, toEnvironmentVariable(elem.(types.Object)))
 	}
 

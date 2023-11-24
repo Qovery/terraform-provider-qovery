@@ -1,6 +1,8 @@
 package qovery
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
@@ -18,21 +20,22 @@ var secretAttrTypes = map[string]attr.Type{
 
 type SecretList []Secret
 
-func (ss SecretList) toTerraformSet() types.Set {
-	set := types.Set{
-		ElemType: types.ObjectType{
-			AttrTypes: secretAttrTypes,
-		},
+func (ss SecretList) toTerraformSet(ctx context.Context) types.Set {
+	var secretObjectType = types.ObjectType{
+		AttrTypes: secretAttrTypes,
 	}
-
 	if ss == nil {
-		set.Null = true
-		return set
+		return types.SetNull(secretObjectType)
 	}
 
-	set.Elems = make([]attr.Value, 0, len(ss))
+	var elements = make([]attr.Value, 0, len(ss))
 	for _, v := range ss {
-		set.Elems = append(set.Elems, v.toTerraformObject())
+		elements = append(elements, v.toTerraformObject())
+	}
+
+	set, diagnostics := types.SetValueFrom(ctx, secretObjectType, elements)
+	if diagnostics.HasError() {
+		panic("TODO")
 	}
 	return set
 }
@@ -114,14 +117,16 @@ type Secret struct {
 }
 
 func (s Secret) toTerraformObject() types.Object {
-	return types.Object{
-		AttrTypes: secretAttrTypes,
-		Attrs: map[string]attr.Value{
-			"id":    s.Id,
-			"key":   s.Key,
-			"value": s.Value,
-		},
+	var attributes = map[string]attr.Value{
+		"id":    s.Id,
+		"key":   s.Key,
+		"value": s.Value,
 	}
+	terraformObjectValue, diagnostics := types.ObjectValue(secretAttrTypes, attributes)
+	if diagnostics.HasError() {
+		panic("TODO")
+	}
+	return terraformObjectValue
 }
 
 func (s Secret) toCreateRequest() client.SecretCreateRequest {
@@ -246,19 +251,19 @@ func convertDomainSecretToSecret(s secret.Secret, state *Secret) Secret {
 
 func toSecret(v types.Object) Secret {
 	return Secret{
-		Id:    v.Attrs["id"].(types.String),
-		Key:   v.Attrs["key"].(types.String),
-		Value: v.Attrs["value"].(types.String),
+		Id:    v.Attributes()["id"].(types.String),
+		Key:   v.Attributes()["key"].(types.String),
+		Value: v.Attributes()["value"].(types.String),
 	}
 }
 
 func ToSecretList(vars types.Set) SecretList {
-	if vars.Null || vars.Unknown {
+	if vars.IsNull() || vars.IsUnknown() {
 		return []Secret{}
 	}
 
-	secrets := make([]Secret, 0, len(vars.Elems))
-	for _, elem := range vars.Elems {
+	secrets := make([]Secret, 0, len(vars.Elements()))
+	for _, elem := range vars.Elements() {
 		secrets = append(secrets, toSecret(elem.(types.Object)))
 	}
 

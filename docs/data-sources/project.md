@@ -1,6 +1,6 @@
 # qovery_project (Data Source)
 
-Use this data source to retrieve information about an existing project.
+Provides a Qovery project resource. This can be used to create and manage Qovery projects.
 ## Example Usage
 ```terraform
 data "qovery_project" "my_project" {
@@ -17,6 +17,7 @@ data "qovery_project" "my_project" {
 
 ### Optional
 
+- `description` (String) Description of the project.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this project. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variables` (Attributes Set) List of environment variables linked to this project. (see [below for nested schema](#nestedatt--environment_variables))
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this project. (see [below for nested schema](#nestedatt--secret_aliases))
@@ -25,47 +26,37 @@ data "qovery_project" "my_project" {
 ### Read-Only
 
 - `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this project. (see [below for nested schema](#nestedatt--built_in_environment_variables))
-- `description` (String) Description of the project.
 - `name` (String) Name of the project.
 - `organization_id` (String) Id of the organization.
 
 <a id="nestedatt--environment_variable_aliases"></a>
 ### Nested Schema for `environment_variable_aliases`
 
-Required:
-
-- `key` (String) Name of the environment variable alias.
-- `value` (String) Name of the variable to alias.
-
 Read-Only:
 
 - `id` (String) Id of the environment variable alias.
+- `key` (String) Name of the environment variable alias.
+- `value` (String) Name of the variable to alias.
 
 
 <a id="nestedatt--environment_variables"></a>
 ### Nested Schema for `environment_variables`
 
-Required:
-
-- `key` (String) Key of the environment variable.
-- `value` (String) Value of the environment variable.
-
 Read-Only:
 
 - `id` (String) Id of the environment variable.
+- `key` (String) Key of the environment variable.
+- `value` (String) Value of the environment variable.
 
 
 <a id="nestedatt--secret_aliases"></a>
 ### Nested Schema for `secret_aliases`
 
-Required:
-
-- `key` (String) Name of the secret alias.
-- `value` (String) Name of the secret to alias.
-
 Read-Only:
 
 - `id` (String) Id of the secret alias.
+- `key` (String) Name of the secret alias.
+- `value` (String) Name of the secret to alias.
 
 
 <a id="nestedatt--secrets"></a>
@@ -75,7 +66,7 @@ Read-Only:
 
 - `id` (String) Id of the secret.
 - `key` (String) Key of the secret.
-- `value` (String, Sensitive) Value of the secret [NOTE: will always be empty].
+- `value` (String, Sensitive) Value of the secret.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>

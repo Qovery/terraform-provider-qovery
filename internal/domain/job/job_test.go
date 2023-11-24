@@ -1,11 +1,13 @@
 package job_test
 
 import (
+	"testing"
+
 	"github.com/pkg/errors"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
-	"testing"
 
 	"github.com/stretchr/testify/assert"
 
@@ -179,8 +181,8 @@ func TestJobValidate(t *testing.T) {
 				EnvironmentID:        job_helper.DefaultJobEnvironmentID,
 				Name:                 tc.name,
 				CPU:                  tc.cpu,
-				MaxNbRestart:         tc.maxNbRestart,
-				MaxDurationSeconds:   tc.maxDurationSeconds,
+				MaxNbRestart:         int32(tc.maxNbRestart),
+				MaxDurationSeconds:   int32(tc.maxDurationSeconds),
 				Memory:               tc.memory,
 				Schedule:             tc.schedule,
 				Source:               tc.source,

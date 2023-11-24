@@ -1,5 +1,5 @@
 # qovery_deployment_stage (Data Source)
 
-Use this data source to retrieve information about an existing deployment stage.
+Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.
 
 

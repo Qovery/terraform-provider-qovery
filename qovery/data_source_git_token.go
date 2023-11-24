@@ -5,14 +5,11 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
-	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -47,57 +44,47 @@ func (d *gitTokenDataSource) Configure(_ context.Context, req datasource.Configu
 	d.service = provider.gitTokenService
 }
 
-func (d gitTokenDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Description: "Use this data source to retrieve information about an existing git token.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+func (r gitTokenDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Provides a Qovery git token resource. This can be used to create and manage Qovery git token.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the git token.",
-				Type:        types.StringType,
+				Required:    true,
+			},
+			"organization_id": schema.StringAttribute{
+				Description: "Id of the organization.",
 				Computed:    true,
 			},
-			"organization_id": {
-				Description: "Id of the organization.",
-				Type:        types.StringType,
-				Required:    true,
-			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the git token.",
-				Type:        types.StringType,
-				Required:    true,
+				Computed:    true,
 			},
-			"description": {
+			"description": schema.StringAttribute{
 				Description: "Description of the git token.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"type": {
+			"type": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Type of the git token.",
 					gitTokenTypes,
 					nil,
 				),
-				Type:     types.StringType,
-				Required: true,
-				Validators: []tfsdk.AttributeValidator{
-					validators.NewStringEnumValidator(gitTokenTypes),
-				},
+				Computed: true,
 			},
-			"bitbucket_workspace": {
+			"bitbucket_workspace": schema.StringAttribute{
 				Description: "(Mandatory only for Bitbucket git token) Workspace where the token has permissions .",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"token": {
+			"token": schema.StringAttribute{
 				Description: "Value of the git token.",
-				Type:        types.StringType,
-				Required:    true,
+				Computed:    true,
 				Sensitive:   true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Read qovery git token data source
@@ -110,14 +97,14 @@ func (d gitTokenDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	}
 
 	// Get git token from API
-	response, err := d.service.Get(ctx, data.OrganizationId.Value, data.ID.Value)
+	response, err := d.service.Get(ctx, data.OrganizationId.ValueString(), data.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on git token read", err.Error())
 		return
 	}
 
-	state := toTerraformObject(data.OrganizationId.Value, data.Token.Value, *response)
-	tflog.Trace(ctx, "read git token", map[string]interface{}{"git_token_id": state.ID.Value})
+	state := toTerraformObject(data.OrganizationId.ValueString(), data.Token.ValueString(), *response)
+	tflog.Trace(ctx, "read git token", map[string]interface{}{"git_token_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

@@ -15,14 +15,14 @@ import (
 )
 
 const (
-	DefaultCPU                uint32 = 500
-	MinCPU                    uint32 = 10
-	DefaultMemory             uint32 = 512
-	MinMemory                 uint32 = 1
-	MinNbRestart              uint32 = 0
-	DefaultMaxNbRestart       uint32 = 0
-	MinDurationSeconds        uint32 = 0
-	DefaultMaxDurationSeconds uint32 = 300
+	DefaultCPU                int64 = 500
+	MinCPU                    int64 = 10
+	DefaultMemory             int64 = 512
+	MinMemory                 int64 = 1
+	MinNbRestart              int64 = 0
+	DefaultMaxNbRestart       int64 = 0
+	MinDurationSeconds        int64 = 0
+	DefaultMaxDurationSeconds int64 = 300
 )
 
 var (
@@ -64,8 +64,8 @@ type Job struct {
 	Name                         string
 	CPU                          int32
 	Memory                       int32
-	MaxNbRestart                 uint32
-	MaxDurationSeconds           uint32
+	MaxNbRestart                 int32
+	MaxDurationSeconds           int32
 	AutoPreview                  bool
 	Source                       JobSource   `validate:"required"`
 	Schedule                     JobSchedule `validate:"required"`
@@ -92,11 +92,11 @@ func (j Job) Validate() error {
 		return ErrInvalidJobNameParam
 	}
 
-	if uint32(j.CPU) < MinCPU {
+	if j.CPU < int32(MinCPU) {
 		return ErrInvalidJobCPUTooLowParam
 	}
 
-	if uint32(j.Memory) < MinMemory {
+	if j.Memory < int32(MinMemory) {
 		return ErrInvalidJobMemoryTooLowParam
 	}
 
@@ -145,8 +145,8 @@ type NewJobParams struct {
 	Name                 string
 	CPU                  int32
 	Memory               int32
-	MaxNbRestart         *uint32
-	MaxDurationSeconds   *uint32
+	MaxNbRestart         *int32
+	MaxDurationSeconds   *int32
 	AutoPreview          bool
 	Source               NewJobSourceParams
 	Schedule             NewJobScheduleParams
@@ -192,12 +192,12 @@ func NewJob(params NewJobParams) (*Job, error) {
 
 	var maxNbRestart = DefaultMaxNbRestart
 	if params.MaxNbRestart != nil {
-		maxNbRestart = *params.MaxNbRestart
+		maxNbRestart = int64(*params.MaxNbRestart)
 	}
 
 	var maxDurationSeconds = DefaultMaxDurationSeconds
 	if params.MaxDurationSeconds != nil {
-		maxDurationSeconds = *params.MaxDurationSeconds
+		maxDurationSeconds = int64(*params.MaxDurationSeconds)
 	}
 
 	j := &Job{
@@ -207,8 +207,8 @@ func NewJob(params NewJobParams) (*Job, error) {
 		AutoPreview:          params.AutoPreview,
 		CPU:                  params.CPU,
 		Memory:               params.Memory,
-		MaxNbRestart:         maxNbRestart,
-		MaxDurationSeconds:   maxDurationSeconds,
+		MaxNbRestart:         int32(maxNbRestart),
+		MaxDurationSeconds:   int32(maxDurationSeconds),
 		Schedule:             *jobSchedule,
 		Source:               *jobSource,
 		Port:                 prt,

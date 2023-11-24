@@ -1,6 +1,8 @@
 package qovery
 
 import (
+	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
@@ -152,7 +154,7 @@ func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomD
 	}
 }
 
-func convertDomainContainerToContainer(state Container, container *container.Container) Container {
+func convertDomainContainerToContainer(ctx context.Context, state Container, container *container.Container) Container {
 	healthchecks := convertHealthchecksResponseToDomain(container.Healthchecks)
 	return Container{
 		ID:                           FromString(container.ID.String()),
@@ -167,21 +169,21 @@ func convertDomainContainerToContainer(state Container, container *container.Con
 		MaxRunningInstances:          FromInt32(container.MaxRunningInstances),
 		AutoPreview:                  FromBool(container.AutoPreview),
 		Arguments:                    FromStringArray(container.Arguments),
-		Storages:                     convertDomainStoragesToStorageList(state.Storages, container.Storages).toTerraformSet(),
-		Ports:                        convertDomainPortsToPortList(state.Ports, container.Ports).toTerraformSet(),
-		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(),
-		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, container.EnvironmentVariables, variable.ScopeContainer, "VALUE").toTerraformSet(),
-		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, container.EnvironmentVariables, variable.ScopeContainer, "ALIAS").toTerraformSet(),
-		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableOverrides, container.EnvironmentVariables, variable.ScopeContainer, "OVERRIDE").toTerraformSet(),
-		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, container.Secrets, variable.ScopeContainer, "VALUE").toTerraformSet(),
-		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, container.Secrets, variable.ScopeContainer, "ALIAS").toTerraformSet(),
-		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, container.Secrets, variable.ScopeContainer, "OVERRIDE").toTerraformSet(),
+		Storages:                     convertDomainStoragesToStorageList(state.Storages, container.Storages).toTerraformSet(ctx),
+		Ports:                        convertDomainPortsToPortList(state.Ports, container.Ports).toTerraformSet(ctx),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
+		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, container.EnvironmentVariables, variable.ScopeContainer, "VALUE").toTerraformSet(ctx),
+		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, container.EnvironmentVariables, variable.ScopeContainer, "ALIAS").toTerraformSet(ctx),
+		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableOverrides, container.EnvironmentVariables, variable.ScopeContainer, "OVERRIDE").toTerraformSet(ctx),
+		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, container.Secrets, variable.ScopeContainer, "VALUE").toTerraformSet(ctx),
+		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, container.Secrets, variable.ScopeContainer, "ALIAS").toTerraformSet(ctx),
+		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, container.Secrets, variable.ScopeContainer, "OVERRIDE").toTerraformSet(ctx),
 		InternalHost:                 FromStringPointer(container.InternalHost),
 		ExternalHost:                 FromStringPointer(container.ExternalHost),
 		DeploymentStageId:            FromString(container.DeploymentStageID),
 		Healthchecks:                 &healthchecks,
 		AdvancedSettingsJson:         FromString(container.AdvancedSettingsJson),
-		CustomDomains:                fromCustomDomainList(state.CustomDomains, container.CustomDomains).toTerraformSet(),
+		CustomDomains:                fromCustomDomainList(state.CustomDomains, container.CustomDomains).toTerraformSet(ctx),
 		AutoDeploy:                   FromBoolPointer(container.AutoDeploy),
 	}
 }

@@ -4,17 +4,17 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
-	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
@@ -86,157 +86,132 @@ func (r *databaseResource) Configure(_ context.Context, req resource.ConfigureRe
 	r.client = provider.client
 }
 
-func (r databaseResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery database resource. This can be used to create and manage Qovery databases.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the database.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"environment_id": {
+			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the database.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"type": {
+			"type": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Type of the database [NOTE: can't be updated after creation].",
 					databaseTypes,
 					nil,
 				),
-				Type:     types.StringType,
 				Required: true,
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.String{
 					validators.NewStringEnumValidator(databaseTypes),
 				},
 			},
-			"version": {
+			"version": schema.StringAttribute{
 				Description: "Version of the database",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"mode": {
+			"mode": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Mode of the database [NOTE: can't be updated after creation].",
 					databaseModes,
 					nil,
 				),
-				Type:     types.StringType,
 				Required: true,
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.String{
 					validators.NewStringEnumValidator(databaseModes),
 				},
 			},
-			"accessibility": {
+			"accessibility": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Accessibility of the database.",
 					databaseAccessibilities,
 					&databaseAccessibilityDefault,
 				),
-				Type:     types.StringType,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewStringDefaultModifier(databaseAccessibilityDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  stringdefault.StaticString(databaseAccessibilityDefault),
+				Validators: []validator.String{
 					validators.NewStringEnumValidator(databaseAccessibilities),
 				},
 			},
-			"instance_type": {
+			"instance_type": schema.StringAttribute{
 				Description: "Instance type of the database.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"cpu": {
+			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"CPU of the database in millicores (m) [1000m = 1 CPU].",
 					databaseCPUMin,
 					&databaseCPUDefault,
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(databaseCPUDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(databaseCPUDefault),
+				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: databaseCPUMin},
 				},
 			},
-			"memory": {
+			"memory": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"RAM of the database in MB [1024MB = 1GB].",
 					databaseMemoryMin,
 					&databaseMemoryDefault,
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(databaseMemoryDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(databaseMemoryDefault),
+				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: databaseMemoryMin},
 				},
 			},
-			"storage": {
+			"storage": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Storage of the database in GB [1024MB = 1GB] [NOTE: can't be updated after creation].",
 					databaseStorageMin,
 					&databaseStorageDefault,
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(databaseStorageDefault),
-				},
-				Validators: []tfsdk.AttributeValidator{
+				Default:  int64default.StaticInt64(databaseStorageDefault),
+				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: databaseStorageMin},
 				},
 			},
-			"external_host": {
-				Description: "The database external FQDN host (only if your database is publicly accessible with ACCESSIBILITY = PUBLIC)",
-				Type:        types.StringType,
+			"external_host": schema.StringAttribute{
+				Description: "The database external FQDN host [NOTE: only if your container is using a publicly accessible port].",
 				Computed:    true,
 			},
-			"internal_host": {
+			"internal_host": schema.StringAttribute{
 				Description: "The database internal host (Recommended for your application)",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"port": {
-				Description: "The port to connect to your database",
-				Type:        types.Int64Type,
-				Computed:    true,
-			},
-			"login": {
-				Description: "The login to connect to your database",
-				Type:        types.StringType,
-				Computed:    true,
-			},
-			"password": {
-				Description: "The password to connect to your database",
-				Type:        types.StringType,
-				Computed:    true,
-			},
-			"deployment_stage_id": {
+			"deployment_stage_id": schema.StringAttribute{
 				Description: "Id of the deployment stage.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
+			"port": schema.Int64Attribute{
+				Description: "The port to connect to your database",
+				Computed:    true,
+			},
+			"login": schema.StringAttribute{
+				Description: "The login to connect to your database",
+				Computed:    true,
+			},
+			"password": schema.StringAttribute{
+				Description: "The password to connect to your database",
+				Computed:    true,
+			},
 		},
-	}, nil
+	}
 }
 
 // Create qovery database resource
@@ -254,7 +229,7 @@ func (r databaseResource) Create(ctx context.Context, req resource.CreateRequest
 		resp.Diagnostics.AddError(err.Error(), err.Error())
 		return
 	}
-	database, apiErr := r.client.CreateDatabase(ctx, plan.EnvironmentId.Value, request)
+	database, apiErr := r.client.CreateDatabase(ctx, plan.EnvironmentId.ValueString(), request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -262,7 +237,7 @@ func (r databaseResource) Create(ctx context.Context, req resource.CreateRequest
 
 	// Initialize state values
 	state := convertResponseToDatabase(database)
-	tflog.Trace(ctx, "created database", map[string]interface{}{"database_id": state.Id.Value})
+	tflog.Trace(ctx, "created database", map[string]interface{}{"database_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -278,7 +253,7 @@ func (r databaseResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	// Get database from the API
-	database, apiErr := r.client.GetDatabase(ctx, state.Id.Value)
+	database, apiErr := r.client.GetDatabase(ctx, state.Id.ValueString())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -286,7 +261,7 @@ func (r databaseResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	// Refresh state values
 	state = convertResponseToDatabase(database)
-	tflog.Trace(ctx, "read database", map[string]interface{}{"database_id": state.Id.Value})
+	tflog.Trace(ctx, "read database", map[string]interface{}{"database_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -308,7 +283,7 @@ func (r databaseResource) Update(ctx context.Context, req resource.UpdateRequest
 		resp.Diagnostics.AddError(err.Error(), err.Error())
 		return
 	}
-	database, apiErr := r.client.UpdateDatabase(ctx, state.Id.Value, request)
+	database, apiErr := r.client.UpdateDatabase(ctx, state.Id.ValueString(), request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
@@ -316,7 +291,7 @@ func (r databaseResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	// Update state values
 	state = convertResponseToDatabase(database)
-	tflog.Trace(ctx, "updated database", map[string]interface{}{"database_id": state.Id.Value})
+	tflog.Trace(ctx, "updated database", map[string]interface{}{"database_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -332,13 +307,13 @@ func (r databaseResource) Delete(ctx context.Context, req resource.DeleteRequest
 	}
 
 	// Delete database
-	apiErr := r.client.DeleteDatabase(ctx, state.Id.Value)
+	apiErr := r.client.DeleteDatabase(ctx, state.Id.ValueString())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
 
-	tflog.Trace(ctx, "deleted database", map[string]interface{}{"database_id": state.Id.Value})
+	tflog.Trace(ctx, "deleted database", map[string]interface{}{"database_id": state.Id.ValueString()})
 
 	// Remove database from state
 	resp.State.RemoveResource(ctx)

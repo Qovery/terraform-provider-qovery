@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
@@ -46,27 +44,24 @@ func (d *awsCredentialsDataSource) Configure(_ context.Context, req datasource.C
 	d.awsCredentialsService = provider.awsCredentialsService
 }
 
-func (d awsCredentialsDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
-		Description: "Use this data source to retrieve information about an existing aws credentials.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
-				Description: "Id of the credentials.",
-				Type:        types.StringType,
+func (r awsCredentialsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
+		Description: "Provides a Qovery AWS credentials resource. This can be used to create and manage Qovery AWS credentials.",
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
+				Description: "Id of the AWS credentials.",
 				Required:    true,
 			},
-			"organization_id": {
+			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the aws credentials.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Read qovery awsCredentials data source
@@ -79,14 +74,14 @@ func (d awsCredentialsDataSource) Read(ctx context.Context, req datasource.ReadR
 	}
 
 	// Get credentials from API
-	creds, err := d.awsCredentialsService.Get(ctx, data.OrganizationId.Value, data.Id.Value)
+	creds, err := d.awsCredentialsService.Get(ctx, data.OrganizationId.ValueString(), data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on aws credentials read", err.Error())
 		return
 	}
 
 	state := convertDomainCredentialsToAWSCredentialsDataSource(creds)
-	tflog.Trace(ctx, "read aws credentials", map[string]interface{}{"credentials_id": state.Id.Value})
+	tflog.Trace(ctx, "read aws credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

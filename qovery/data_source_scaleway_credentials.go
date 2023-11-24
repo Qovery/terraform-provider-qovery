@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
@@ -46,27 +44,24 @@ func (d *scalewayCredentialsDataSource) Configure(_ context.Context, req datasou
 	d.scalewayCredentialsService = provider.scalewayCredentialsService
 }
 
-func (d scalewayCredentialsDataSource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r scalewayCredentialsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Use this data source to retrieve information about an existing Scaleway credentials.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the credentials.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"organization_id": {
+			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the Scaleway credentials.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Read qovery scalewayCredentials data source
@@ -79,14 +74,14 @@ func (d scalewayCredentialsDataSource) Read(ctx context.Context, req datasource.
 	}
 
 	// Get credentials from API
-	creds, err := d.scalewayCredentialsService.Get(ctx, data.OrganizationId.Value, data.Id.Value)
+	creds, err := d.scalewayCredentialsService.Get(ctx, data.OrganizationId.ValueString(), data.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on scaleway credentials read", err.Error())
 		return
 	}
 
 	state := convertDomainCredentialsToScalewayCredentialsDataSource(creds)
-	tflog.Trace(ctx, "read scaleway credentials", map[string]interface{}{"credentials_id": state.Id.Value})
+	tflog.Trace(ctx, "read scaleway credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

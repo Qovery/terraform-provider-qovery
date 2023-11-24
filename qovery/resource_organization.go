@@ -4,11 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
-	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
@@ -52,39 +51,36 @@ func (r *organizationResource) Configure(_ context.Context, req resource.Configu
 	r.organizationService = provider.organizationService
 }
 
-func (r organizationResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r organizationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery organization resource. This can be used to create and manage Qovery organizations.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the organization.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"plan": {
+			"plan": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Plan of the organization.",
 					organizationPlans,
 					nil,
 				),
-				Type:     types.StringType,
 				Required: true,
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.String{
 					validators.NewStringEnumValidator(organizationPlans),
 				},
 			},
-			"description": {
+			"description": schema.StringAttribute{
 				Description: "Description of the organization.",
-				Type:        types.StringType,
 				Optional:    true,
+				Computed:    true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Create qovery organization resource
@@ -103,7 +99,7 @@ func (r organizationResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	// Get organization from API
-	orga, err := r.organizationService.Get(ctx, state.Id.Value)
+	orga, err := r.organizationService.Get(ctx, state.Id.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on organization read", err.Error())
 		return
@@ -111,7 +107,7 @@ func (r organizationResource) Read(ctx context.Context, req resource.ReadRequest
 
 	// Refresh state values
 	state = convertDomainOrganizationToTerraform(orga)
-	tflog.Trace(ctx, "read organization", map[string]interface{}{"organization_id": state.Id.Value})
+	tflog.Trace(ctx, "read organization", map[string]interface{}{"organization_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -128,7 +124,7 @@ func (r organizationResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	// Update organization in backend
-	orga, err := r.organizationService.Update(ctx, state.Id.Value, plan.toOrganizationUpdateRequest())
+	orga, err := r.organizationService.Update(ctx, state.Id.ValueString(), plan.toOrganizationUpdateRequest())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on organization update", err.Error())
 		return
@@ -136,14 +132,14 @@ func (r organizationResource) Update(ctx context.Context, req resource.UpdateReq
 
 	// Update state values
 	state = convertDomainOrganizationToTerraform(orga)
-	tflog.Trace(ctx, "updated organization", map[string]interface{}{"organization_id": state.Id.Value})
+	tflog.Trace(ctx, "updated organization", map[string]interface{}{"organization_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
 }
 
 // Delete qovery organization resource
-func (r organizationResource) Delete(ctx context.Context, req resource.DeleteRequest, resp *resource.DeleteResponse) {
+func (r organizationResource) Delete(_ context.Context, _ resource.DeleteRequest, resp *resource.DeleteResponse) {
 	resp.Diagnostics.AddError("Error on organization delete", "Organization deletion is not allowed using terraform.")
 }
 

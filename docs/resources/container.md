@@ -421,7 +421,7 @@ Read-Only:
 Required:
 
 - `key` (String) Key of the secret.
-- `value` (String, Sensitive) Value of the secret [NOTE: will always be empty].
+- `value` (String, Sensitive) Value of the secret.
 
 Read-Only:
 

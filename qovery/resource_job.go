@@ -4,19 +4,21 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 
 	"github.com/AlekSi/pointer"
-	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
-	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
-	"github.com/qovery/terraform-provider-qovery/qovery/modifiers"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
@@ -54,464 +56,407 @@ func (r *jobResource) Configure(_ context.Context, req resource.ConfigureRequest
 	r.jobService = provider.jobService
 }
 
-func (r jobResource) GetSchema(_ context.Context) (tfsdk.Schema, diag.Diagnostics) {
-	return tfsdk.Schema{
+func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery job resource. This can be used to create and manage Qovery job registry.",
-		Attributes: map[string]tfsdk.Attribute{
-			"id": {
+		Attributes: map[string]schema.Attribute{
+			"id": schema.StringAttribute{
 				Description: "Id of the job.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"environment_id": {
+			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"name": {
+			"name": schema.StringAttribute{
 				Description: "Name of the job.",
-				Type:        types.StringType,
 				Required:    true,
 			},
-			"cpu": {
+			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"CPU of the job in millicores (m) [1000m = 1 CPU].",
-					int64(job.MinCPU),
-					pointer.ToInt64(int64(job.DefaultCPU)),
+					job.MinCPU,
+					pointer.ToInt64(job.DefaultCPU),
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(int64(job.DefaultCPU)),
-				},
-				Validators: []tfsdk.AttributeValidator{
-					validators.Int64MinValidator{Min: int64(job.MinCPU)}, // TODO(benjaminch): useless check, by design won't be < 0
+				Default:  int64default.StaticInt64(job.DefaultCPU),
+				Validators: []validator.Int64{
+					validators.Int64MinValidator{Min: job.MinCPU},
 				},
 			},
-			"memory": {
+			"memory": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"RAM of the job in MB [1024MB = 1GB].",
-					int64(job.MinMemory),
-					pointer.ToInt64(int64(job.DefaultMemory)),
+					job.MinMemory,
+					pointer.ToInt64(job.DefaultMemory),
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(int64(job.DefaultMemory)),
-				},
-				Validators: []tfsdk.AttributeValidator{
-					validators.Int64MinValidator{Min: int64(job.MinMemory)},
+				Default:  int64default.StaticInt64(job.DefaultMemory),
+				Validators: []validator.Int64{
+					validators.Int64MinValidator{Min: job.MinMemory},
 				},
 			},
-			"max_duration_seconds": {
+			"max_duration_seconds": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Job's max duration in seconds.",
-					int64(job.MinDurationSeconds),
-					pointer.ToInt64(int64(job.DefaultMaxDurationSeconds)),
+					job.MinDurationSeconds,
+					pointer.ToInt64(job.DefaultMaxDurationSeconds),
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(int64(job.DefaultMaxDurationSeconds)),
-				},
-				Validators: []tfsdk.AttributeValidator{
-					validators.Int64MinValidator{Min: int64(job.MinDurationSeconds)}, // TODO(benjaminch): useless check, by design won't be < 0
+				Default:  int64default.StaticInt64(job.DefaultMaxDurationSeconds),
+				Validators: []validator.Int64{
+					validators.Int64MinValidator{Min: job.MinDurationSeconds}, // TODO(benjaminch): useless check, by design won't be < 0
 				},
 			},
-			"max_nb_restart": {
+			"max_nb_restart": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Job's max number of restarts.",
-					int64(job.MinNbRestart),
-					pointer.ToInt64(int64(job.DefaultMaxNbRestart)),
+					job.MinNbRestart,
+					pointer.ToInt64(job.DefaultMaxNbRestart),
 				),
-				Type:     types.Int64Type,
 				Optional: true,
 				Computed: true,
-				PlanModifiers: tfsdk.AttributePlanModifiers{
-					modifiers.NewInt64DefaultModifier(int64(job.DefaultMaxNbRestart)),
-				},
-				Validators: []tfsdk.AttributeValidator{
-					validators.Int64MinValidator{Min: int64(job.MinNbRestart)}, // TODO(benjaminch): useless check, by design won't be < 0
+				Default:  int64default.StaticInt64(job.DefaultMaxNbRestart),
+				Validators: []validator.Int64{
+					validators.Int64MinValidator{Min: job.MinNbRestart}, // TODO(benjaminch): useless check, by design won't be < 0
 				},
 			},
-			"port": {
+			"port": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinMaxDescription(
 					"Job's probes port.",
 					port.MinPort,
 					port.MaxPort,
 					nil,
 				),
-				Type:     types.Int64Type,
 				Optional: true,
-				Validators: []tfsdk.AttributeValidator{
+				Validators: []validator.Int64{
 					validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
 				},
 			},
-			"auto_preview": {
+			"auto_preview": schema.BoolAttribute{
 				Description: "Specify if the environment preview option is activated or not for this job.",
-				Type:        types.BoolType,
 				Optional:    true,
 				Computed:    true,
 			},
 			"healthchecks": healthchecksSchemaAttributes(true),
-			"schedule": {
+			"schedule": schema.SingleNestedAttribute{
 				Description: "Job's schedule.",
 				Required:    true,
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"on_start": {
+				Attributes: map[string]schema.Attribute{
+					"on_start": schema.SingleNestedAttribute{
 						Description: "Job's schedule on start.",
 						Optional:    true,
-						Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-							"entrypoint": {
+						Attributes: map[string]schema.Attribute{
+							"entrypoint": schema.StringAttribute{
 								Description: "Entrypoint of the job.",
-								Type:        types.StringType,
 								Optional:    true,
 								Computed:    true,
 							},
-							"arguments": {
+							"arguments": schema.ListAttribute{
 								Description: "List of arguments of this job.",
 								Optional:    true,
 								Computed:    true,
-								Type: types.ListType{
-									ElemType: types.StringType,
-								},
-								PlanModifiers: tfsdk.AttributePlanModifiers{
-									modifiers.NewStringSliceDefaultModifier([]string{}),
-								},
+								ElementType: types.StringType,
+								Default:     listdefault.StaticValue(types.ListNull(types.StringType)),
 							},
-						}),
+						},
 					},
-					"on_stop": {
+					"on_stop": schema.SingleNestedAttribute{
 						Description: "Job's schedule on stop.",
 						Optional:    true,
-						Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-							"entrypoint": {
+						Attributes: map[string]schema.Attribute{
+							"entrypoint": schema.StringAttribute{
 								Description: "Entrypoint of the job.",
-								Type:        types.StringType,
 								Optional:    true,
 								Computed:    true,
 							},
-							"arguments": {
+							"arguments": schema.ListAttribute{
 								Description: "List of arguments of this job.",
 								Optional:    true,
+								ElementType: types.StringType,
 								Computed:    true,
-								Type: types.ListType{
-									ElemType: types.StringType,
-								},
-								PlanModifiers: tfsdk.AttributePlanModifiers{
-									modifiers.NewStringSliceDefaultModifier([]string{}),
-								},
+								Default:     listdefault.StaticValue(types.ListNull(types.StringType)),
 							},
-						}),
+						},
 					},
-					"on_delete": {
+					"on_delete": schema.SingleNestedAttribute{
 						Description: "Job's schedule on delete.",
 						Optional:    true,
-						Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-							"entrypoint": {
+						Attributes: map[string]schema.Attribute{
+							"entrypoint": schema.StringAttribute{
 								Description: "Entrypoint of the job.",
-								Type:        types.StringType,
 								Optional:    true,
 								Computed:    true,
 							},
-							"arguments": {
+							"arguments": schema.ListAttribute{
 								Description: "List of arguments of this job.",
 								Optional:    true,
+								ElementType: types.StringType,
 								Computed:    true,
-								Type: types.ListType{
-									ElemType: types.StringType,
-								},
-								PlanModifiers: tfsdk.AttributePlanModifiers{
-									modifiers.NewStringSliceDefaultModifier([]string{}),
-								},
+								Default:     listdefault.StaticValue(types.ListNull(types.StringType)),
 							},
-						}),
+						},
 					},
-					"cronjob": {
+					"cronjob": schema.SingleNestedAttribute{
 						Description: "Job's cron.",
 						Optional:    true,
-						Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-							"schedule": {
+						Attributes: map[string]schema.Attribute{
+							"schedule": schema.StringAttribute{
 								Description: "Job's cron string.",
-								Type:        types.StringType,
 								Required:    true,
 								// TODO(benjaminch): introduce a cron string validator
 							},
-							"command": {
+							"command": schema.SingleNestedAttribute{
 								Description: "Job's cron command.",
 								Required:    true,
-								Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-									"entrypoint": {
+								Attributes: map[string]schema.Attribute{
+									"entrypoint": schema.StringAttribute{
 										Description: "Entrypoint of the job.",
-										Type:        types.StringType,
 										Optional:    true,
 										Computed:    true,
 									},
-									"arguments": {
+									"arguments": schema.ListAttribute{
 										Description: "List of arguments of this job.",
 										Optional:    true,
+										ElementType: types.StringType,
 										Computed:    true,
-										Type: types.ListType{
-											ElemType: types.StringType,
-										},
-										PlanModifiers: tfsdk.AttributePlanModifiers{
-											modifiers.NewStringSliceDefaultModifier([]string{}),
-										},
+										Default:     listdefault.StaticValue(types.ListNull(types.StringType)),
 									},
-								}),
+								},
 							},
-						}),
+						},
 					},
-				}),
+				},
 			},
-			"source": {
+			"source": schema.SingleNestedAttribute{
 				Description: "Job's source.",
 				Optional:    true,
-				Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-					"image": {
+				Attributes: map[string]schema.Attribute{
+					"image": schema.SingleNestedAttribute{
 						Description: "Job's image source.",
 						Optional:    true,
-						Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-							"registry_id": {
+						Attributes: map[string]schema.Attribute{
+							"registry_id": schema.StringAttribute{
 								Description: "Job's image source registry ID.",
-								Type:        types.StringType,
 								Required:    true,
 							},
-							"name": {
+							"name": schema.StringAttribute{
 								Description: "Job's image source name.",
-								Type:        types.StringType,
 								Required:    true,
 							},
-							"tag": {
+							"tag": schema.StringAttribute{
 								Description: "Job's image source tag.",
-								Type:        types.StringType,
 								Required:    true,
 							},
-						}),
+						},
 					},
-					"docker": {
+					"docker": schema.SingleNestedAttribute{
 						Description: "Job's docker source.",
 						Optional:    true,
-						Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-							"dockerfile_path": {
+						Attributes: map[string]schema.Attribute{
+							"dockerfile_path": schema.StringAttribute{
 								Description: "Job's docker source dockerfile path.",
-								Type:        types.StringType,
 								Optional:    true,
 							},
-							"git_repository": {
+							"git_repository": schema.SingleNestedAttribute{
 								Description: "Job's docker source git repository.",
 								Required:    true,
-								Attributes: tfsdk.SingleNestedAttributes(map[string]tfsdk.Attribute{
-									"url": {
+								Attributes: map[string]schema.Attribute{
+									"url": schema.StringAttribute{
 										Description: "Job's docker source git repository URL.",
-										Type:        types.StringType,
 										Required:    true,
 									},
-									"branch": {
+									"branch": schema.StringAttribute{
 										Description: "Job's docker source git repository branch.",
-										Type:        types.StringType,
 										Required:    true,
 									},
-									"root_path": {
+									"root_path": schema.StringAttribute{
 										Description: "Job's docker source git repository root path.",
-										Type:        types.StringType,
 										Optional:    true,
 										Computed:    true,
 									},
-									"git_token_id": {
+									"git_token_id": schema.StringAttribute{
 										Description: "The git token ID to be used",
-										Type:        types.StringType,
 										Optional:    true,
 										Computed:    false,
 									},
-								}),
+								},
 							},
-						}),
+						},
 					},
-				}),
+				},
 			},
-			"built_in_environment_variables": {
+			"built_in_environment_variables": schema.SetNestedAttribute{
 				Description: "List of built-in environment variables linked to this job.",
 				Computed:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the environment variable.",
+							Computed:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable.",
+							Computed:    true,
+						},
 					},
-					"key": {
-						Description: "Key of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
-					},
-				}),
+				},
 			},
-			"environment_variables": {
+			// TODO (framework-migration) Extract environment variables + secrets attributes to avoid repetition everywhere (project / env / services)
+			"environment_variables": schema.SetNestedAttribute{
 				Description: "List of environment variables linked to this job.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the environment variable.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Key of the environment variable.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"environment_variable_aliases": {
+			"environment_variable_aliases": schema.SetNestedAttribute{
 				Description: "List of environment variable aliases linked to this job.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable alias.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable alias.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the environment variable alias.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Name of the variable to alias.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the environment variable alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Name of the variable to alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"environment_variable_overrides": {
+			"environment_variable_overrides": schema.SetNestedAttribute{
 				Description: "List of environment variable overrides linked to this job.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the environment variable override.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable override.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the environment variable override.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable override.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the environment variable override.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the environment variable override.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"secrets": {
+			"secrets": schema.SetNestedAttribute{
 				Description: "List of secrets linked to this job.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the secret.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the secret.",
+							Required:    true,
+							Sensitive:   true,
+						},
 					},
-					"key": {
-						Description: "Key of the secret.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the secret [NOTE: will always be empty].",
-						Type:        types.StringType,
-						Required:    true,
-						Sensitive:   true,
-					},
-				}),
+				},
 			},
-			"secret_aliases": {
+			"secret_aliases": schema.SetNestedAttribute{
 				Description: "List of secret aliases linked to this job.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret alias.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret alias.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the secret alias.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Name of the secret to alias.",
+							Required:    true,
+						},
 					},
-					"key": {
-						Description: "Name of the secret alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Name of the secret to alias.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-				}),
+				},
 			},
-			"secret_overrides": {
+			"secret_overrides": schema.SetNestedAttribute{
 				Description: "List of secret overrides linked to this job.",
 				Optional:    true,
-				Attributes: tfsdk.SetNestedAttributes(map[string]tfsdk.Attribute{
-					"id": {
-						Description: "Id of the secret override.",
-						Type:        types.StringType,
-						Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret override.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the secret override.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the secret override.",
+							Required:    true,
+							Sensitive:   true,
+						},
 					},
-					"key": {
-						Description: "Name of the secret override.",
-						Type:        types.StringType,
-						Required:    true,
-					},
-					"value": {
-						Description: "Value of the secret override.",
-						Type:        types.StringType,
-						Required:    true,
-						Sensitive:   true,
-					},
-				}),
+				},
 			},
-			"external_host": {
+			"external_host": schema.StringAttribute{
 				Description: "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"internal_host": {
+			"internal_host": schema.StringAttribute{
 				Description: "The job internal host.",
-				Type:        types.StringType,
 				Computed:    true,
 			},
-			"deployment_stage_id": {
+			"deployment_stage_id": schema.StringAttribute{
 				Description: "Id of the deployment stage.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"advanced_settings_json": {
+			"advanced_settings_json": schema.StringAttribute{
 				Description: "Advanced settings.",
-				Type:        types.StringType,
 				Optional:    true,
 				Computed:    true,
 			},
-			"auto_deploy": {
-				Description: "Specify if the job will be automatically updated after receiving a new image tag or a new commit according to the source type.",
-				Type:        types.BoolType,
+			"auto_deploy": schema.BoolAttribute{
+				Description: " Specify if the job will be automatically updated after receiving a new image tag.",
 				Optional:    true,
 				Computed:    true,
 			},
 		},
-	}, nil
+	}
 }
 
 // Create qovery job resource
@@ -529,15 +474,15 @@ func (r jobResource) Create(ctx context.Context, req resource.CreateRequest, res
 		resp.Diagnostics.AddError("Error on job create", err.Error())
 		return
 	}
-	cont, err := r.jobService.Create(ctx, plan.EnvironmentID.Value, *request)
+	cont, err := r.jobService.Create(ctx, plan.EnvironmentID.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on job create", err.Error())
 		return
 	}
 
 	// Initialize state values
-	state := convertDomainJobToJob(plan, cont)
-	tflog.Trace(ctx, "created job", map[string]interface{}{"job_id": state.ID.Value})
+	state := convertDomainJobToJob(ctx, plan, cont)
+	tflog.Trace(ctx, "created job", map[string]interface{}{"job_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -553,15 +498,15 @@ func (r jobResource) Read(ctx context.Context, req resource.ReadRequest, resp *r
 	}
 
 	// Get job from the API
-	cont, err := r.jobService.Get(ctx, state.ID.Value)
+	cont, err := r.jobService.Get(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on job read", err.Error())
 		return
 	}
 
 	// Refresh state values
-	state = convertDomainJobToJob(state, cont)
-	tflog.Trace(ctx, "read job", map[string]interface{}{"job_id": state.ID.Value})
+	state = convertDomainJobToJob(ctx, state, cont)
+	tflog.Trace(ctx, "read job", map[string]interface{}{"job_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -583,15 +528,15 @@ func (r jobResource) Update(ctx context.Context, req resource.UpdateRequest, res
 		resp.Diagnostics.AddError("Error on job create", err.Error())
 		return
 	}
-	cont, err := r.jobService.Update(ctx, state.ID.Value, *request)
+	cont, err := r.jobService.Update(ctx, state.ID.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on job update", err.Error())
 		return
 	}
 
 	// Update state values
-	state = convertDomainJobToJob(plan, cont)
-	tflog.Trace(ctx, "updated job", map[string]interface{}{"job_id": state.ID.Value})
+	state = convertDomainJobToJob(ctx, plan, cont)
+	tflog.Trace(ctx, "updated job", map[string]interface{}{"job_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -607,13 +552,13 @@ func (r jobResource) Delete(ctx context.Context, req resource.DeleteRequest, res
 	}
 
 	// Delete job
-	err := r.jobService.Delete(ctx, state.ID.Value)
+	err := r.jobService.Delete(ctx, state.ID.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on job delete", err.Error())
 		return
 	}
 
-	tflog.Trace(ctx, "deleted job", map[string]interface{}{"job_id": state.ID.Value})
+	tflog.Trace(ctx, "deleted job", map[string]interface{}{"job_id": state.ID.ValueString()})
 
 	// Remove job from state
 	resp.State.RemoveResource(ctx)
