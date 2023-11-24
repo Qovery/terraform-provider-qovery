@@ -43,7 +43,7 @@ type ProbeGrpc struct {
 }
 
 type ProbeExec struct {
-	command types.List `tfsdk:"command"`
+	Command types.List `tfsdk:"command"`
 }
 
 func healthchecksSchemaAttributes(required bool) schema.Attribute {
@@ -197,7 +197,7 @@ func (p *ProbeExec) toProbeExecRequest() qovery.NullableProbeTypeExec {
 	}
 
 	return *qovery.NewNullableProbeTypeExec(&qovery.ProbeTypeExec{
-		Command: ToStringArray(p.command),
+		Command: ToStringArray(p.Command),
 	})
 }
 
@@ -271,7 +271,7 @@ func convertProbeResponseToDomain(probe *qovery.NullableProbe) *Probe {
 	var exec *ProbeExec
 	if p.Type.Exec.Get() != nil {
 		exec = &ProbeExec{
-			command: FromStringArray(p.Type.Exec.Get().Command),
+			Command: FromStringArray(p.Type.Exec.Get().Command),
 		}
 	}
 
