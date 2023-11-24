@@ -80,6 +80,7 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 	}
 	getDefaultAdvancedSettingsRequest.Header.Set("Authorization", apiToken)
 	getDefaultAdvancedSettingsRequest.Header.Set("Content-Type", "application/json")
+	getDefaultAdvancedSettingsRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respGetDefaultAdvancedSettings, err := httpClient.Do(getDefaultAdvancedSettingsRequest)
 	defer respGetDefaultAdvancedSettings.Body.Close()
@@ -107,6 +108,7 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 	}
 	getRequest.Header.Set("Authorization", apiToken)
 	getRequest.Header.Set("Content-Type", "application/json")
+	getRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respGetAdvancedSettings, err := httpClient.Do(getRequest)
 	defer respGetAdvancedSettings.Body.Close()
@@ -172,6 +174,7 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 	}
 	getRequest.Header.Set("Authorization", apiToken)
 	getRequest.Header.Set("Content-Type", "application/json")
+	getRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respGetAdvancedSettings, err := httpClient.Do(getRequest)
 	defer respGetAdvancedSettings.Body.Close()
@@ -212,6 +215,7 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 	putRequest.Header.Set("Authorization", apiToken)
 	putRequest.Header.Set("Content-Type", "application/json")
 	putRequest.Header.Set("Accept", "application/json")
+	getRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respPostAdvancedSettings, err := httpClient.Do(putRequest)
 
