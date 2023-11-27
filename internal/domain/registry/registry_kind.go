@@ -10,14 +10,15 @@ import (
 type Kind string
 
 const (
-	KindECR        Kind = "ECR"
-	KindDocker     Kind = "DOCR"
-	KindScalewayCR Kind = "SCALEWAY_CR"
-	KindDockerHub  Kind = "DOCKER_HUB"
-	KindGithubCr   Kind = "GITHUB_CR"
-	KindGitlabCr   Kind = "GITLAB_CR"
-	KindPublicECR  Kind = "PUBLIC_ECR"
-	KindGenericCR  Kind = "GENERIC_CR"
+	KindECR                 Kind = "ECR"
+	KindDocker              Kind = "DOCR"
+	KindScalewayCR          Kind = "SCALEWAY_CR"
+	KindDockerHub           Kind = "DOCKER_HUB"
+	KindGithubCr            Kind = "GITHUB_CR"
+	KindGitlabCr            Kind = "GITLAB_CR"
+	KindPublicECR           Kind = "PUBLIC_ECR"
+	KindGenericCR           Kind = "GENERIC_CR"
+	KindGcpArtifactRegistry Kind = "GCP_ARTIFACT_REGISTRY"
 )
 
 // AllowedKindValues contains all the valid values of a Kind.
@@ -30,6 +31,7 @@ var AllowedKindValues = []Kind{
 	KindGitlabCr,
 	KindPublicECR,
 	KindGenericCR,
+	KindGcpArtifactRegistry,
 }
 
 // String returns the string value of a Kind.
