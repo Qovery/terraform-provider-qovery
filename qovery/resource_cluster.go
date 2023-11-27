@@ -153,6 +153,10 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Description: "Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`",
 				Required:    true,
 			},
+			"disk_size": schema.Int64Attribute{
+				Optional: true,
+				Computed: true,
+			},
 			"min_running_nodes": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Minimum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters].",

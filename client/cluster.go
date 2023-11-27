@@ -70,6 +70,15 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 }
 
 func (c *Client) UpdateCluster(ctx context.Context, organizationID string, clusterID string, params *ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
+	// INFO (cor-775) As DiskSize is defaulted when no value is present in the request, we need to set it to current value
+	// This is due to the attribute `disk_size` that was not there before
+	if params.ClusterRequest.DiskSize == nil {
+		cluster, apiErr := c.getClusterByID(ctx, organizationID, clusterID)
+		if apiErr != nil {
+			return nil, apiErr
+		}
+		params.ClusterRequest.DiskSize = cluster.DiskSize
+	}
 	cluster, res, err := c.api.ClustersAPI.
 		EditCluster(ctx, organizationID, clusterID).
 		ClusterRequest(params.ClusterRequest).

@@ -66,6 +66,7 @@ You can find complete examples within these repositories:
 - `advanced_settings_json` (String) Advanced settings of the cluster.
 - `description` (String) Description of the cluster.
 	- Default: ``.
+- `disk_size` (Number)
 - `features` (Attributes) Features of the cluster. (see [below for nested schema](#nestedatt--features))
 - `kubernetes_mode` (String) Kubernetes mode of the cluster.
 	- Can be: `K3S`, `MANAGED`.

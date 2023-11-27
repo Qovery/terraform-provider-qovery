@@ -27,6 +27,7 @@ type Cluster struct {
 	Description          types.String `tfsdk:"description"`
 	KubernetesMode       types.String `tfsdk:"kubernetes_mode"`
 	InstanceType         types.String `tfsdk:"instance_type"`
+	DiskSize             types.Int64  `tfsdk:"disk_size"`
 	MinRunningNodes      types.Int64  `tfsdk:"min_running_nodes"`
 	MaxRunningNodes      types.Int64  `tfsdk:"max_running_nodes"`
 	Features             types.Object `tfsdk:"features"`
@@ -132,6 +133,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			Description:     ToStringPointer(c.Description),
 			Kubernetes:      kubernetesMode,
 			InstanceType:    ToStringPointer(c.InstanceType),
+			DiskSize:        ToInt64Pointer(c.DiskSize),
 			MinRunningNodes: ToInt32Pointer(c.MinRunningNodes),
 			MaxRunningNodes: ToInt32Pointer(c.MaxRunningNodes),
 			Features:        toQoveryClusterFeatures(c.Features, c.KubernetesMode.String()),
@@ -156,6 +158,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse) 
 		Description:          FromStringPointer(res.ClusterResponse.Description),
 		KubernetesMode:       fromClientEnumPointer(res.ClusterResponse.Kubernetes),
 		InstanceType:         FromStringPointer(res.ClusterResponse.InstanceType),
+		DiskSize:             FromInt32Pointer(res.ClusterResponse.DiskSize),
 		MinRunningNodes:      FromInt32Pointer(res.ClusterResponse.MinRunningNodes),
 		MaxRunningNodes:      FromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
 		Features:             fromQoveryClusterFeatures(res.ClusterResponse.Features),
