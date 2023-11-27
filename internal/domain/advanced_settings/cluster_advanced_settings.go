@@ -34,6 +34,7 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(organization
 	}
 	getDefaultAdvancedSettingsRequest.Header.Set("Authorization", apiToken)
 	getDefaultAdvancedSettingsRequest.Header.Set("Content-Type", "application/json")
+	getDefaultAdvancedSettingsRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respGetDefaultAdvancedSettings, err := httpClient.Do(getDefaultAdvancedSettingsRequest)
 	defer respGetDefaultAdvancedSettings.Body.Close()
@@ -58,6 +59,7 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(organization
 	}
 	getRequest.Header.Set("Authorization", apiToken)
 	getRequest.Header.Set("Content-Type", "application/json")
+	getRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respGetAdvancedSettings, err := httpClient.Do(getRequest)
 	defer respGetAdvancedSettings.Body.Close()
@@ -120,6 +122,7 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 	}
 	getRequest.Header.Set("Authorization", apiToken)
 	getRequest.Header.Set("Content-Type", "application/json")
+	getRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respGetAdvancedSettings, err := httpClient.Do(getRequest)
 	defer respGetAdvancedSettings.Body.Close()
@@ -160,6 +163,7 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 	putRequest.Header.Set("Authorization", apiToken)
 	putRequest.Header.Set("Content-Type", "application/json")
 	putRequest.Header.Set("Accept", "application/json")
+	putRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respPostAdvancedSettings, err := httpClient.Do(putRequest)
 
