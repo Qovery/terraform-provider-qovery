@@ -66,7 +66,7 @@ func (r scalewayCredentialsResource) Schema(_ context.Context, _ resource.Schema
 			"scaleway_access_key": schema.StringAttribute{
 				Description: "Your SCALEWAY access key id.",
 				Required:    true,
-				Sensitive:   true,
+				Sensitive:   false,
 			},
 			"scaleway_secret_key": schema.StringAttribute{
 				Description: "Your SCALEWAY secret key.",
@@ -76,7 +76,12 @@ func (r scalewayCredentialsResource) Schema(_ context.Context, _ resource.Schema
 			"scaleway_project_id": schema.StringAttribute{
 				Description: "Your SCALEWAY project ID.",
 				Required:    true,
-				Sensitive:   true,
+				Sensitive:   false,
+			},
+			"scaleway_organization_id": schema.StringAttribute{
+				Description: "Your SCALEWAY organization ID.",
+				Required:    true,
+				Sensitive:   false,
 			},
 		},
 	}

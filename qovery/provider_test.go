@@ -26,26 +26,27 @@ var (
 )
 
 type testEnvironment struct {
-	QoveryAPIToken                string `env:"QOVERY_API_TOKEN,required"`
-	OrganizationID                string `env:"TEST_ORGANIZATION_ID,required"`
-	AwsCredentialsID              string `env:"TEST_AWS_CREDENTIALS_ID,required"`
-	AwsCredentialsAccessKeyID     string `env:"TEST_AWS_CREDENTIALS_ACCESS_KEY_ID,required"`
-	AwsCredentialsSecretAccessKey string `env:"TEST_AWS_CREDENTIALS_SECRET_ACCESS_KEY,required"`
-	ScalewayCredentialsID         string `env:"TEST_SCALEWAY_CREDENTIALS_ID,required"`
-	ScalewayCredentialsProjectID  string `env:"TEST_SCALEWAY_CREDENTIALS_PROJECT_ID,required"`
-	ScalewayCredentialsAccessKey  string `env:"TEST_SCALEWAY_CREDENTIALS_ACCESS_KEY,required"`
-	ScalewayCredentialsSecretKey  string `env:"TEST_SCALEWAY_CREDENTIALS_SECRET_KEY,required"`
-	ClusterID                     string `env:"TEST_CLUSTER_ID,required"`
-	ProjectID                     string `env:"TEST_PROJECT_ID,required"`
-	EnvironmentID                 string `env:"TEST_ENVIRONMENT_ID,required"`
-	ApplicationID                 string `env:"TEST_APPLICATION_ID,required"`
-	DatabaseID                    string `env:"TEST_DATABASE_ID,required"`
-	AwsEcrURL                     string `env:"TEST_AWS_ECR_URL"`
-	ContainerRegistryID           string `env:"TEST_CONTAINER_REGISTRY_ID,required"`
-	ContainerID                   string `env:"TEST_CONTAINER_ID,required"`
-	JobID                         string `env:"TEST_JOB_ID,required"`
-	QoveryHost                    string `env:"TEST_QOVERY_HOST,required"`
-	QoverySandboxGitTokenId       string `env:"TEST_QOVERY_SANDBOX_GIT_TOKEN_ID,required"`
+	QoveryAPIToken                    string `env:"QOVERY_API_TOKEN,required"`
+	OrganizationID                    string `env:"TEST_ORGANIZATION_ID,required"`
+	AwsCredentialsID                  string `env:"TEST_AWS_CREDENTIALS_ID,required"`
+	AwsCredentialsAccessKeyID         string `env:"TEST_AWS_CREDENTIALS_ACCESS_KEY_ID,required"`
+	AwsCredentialsSecretAccessKey     string `env:"TEST_AWS_CREDENTIALS_SECRET_ACCESS_KEY,required"`
+	ScalewayCredentialsID             string `env:"TEST_SCALEWAY_CREDENTIALS_ID,required"`
+	ScalewayCredentialsProjectID      string `env:"TEST_SCALEWAY_CREDENTIALS_PROJECT_ID,required"`
+	ScalewayCredentialsOrganizationID string `env:"TEST_SCALEWAY_CREDENTIALS_ORGANIZATION_ID,required"`
+	ScalewayCredentialsAccessKey      string `env:"TEST_SCALEWAY_CREDENTIALS_ACCESS_KEY,required"`
+	ScalewayCredentialsSecretKey      string `env:"TEST_SCALEWAY_CREDENTIALS_SECRET_KEY,required"`
+	ClusterID                         string `env:"TEST_CLUSTER_ID,required"`
+	ProjectID                         string `env:"TEST_PROJECT_ID,required"`
+	EnvironmentID                     string `env:"TEST_ENVIRONMENT_ID,required"`
+	ApplicationID                     string `env:"TEST_APPLICATION_ID,required"`
+	DatabaseID                        string `env:"TEST_DATABASE_ID,required"`
+	AwsEcrURL                         string `env:"TEST_AWS_ECR_URL"`
+	ContainerRegistryID               string `env:"TEST_CONTAINER_REGISTRY_ID,required"`
+	ContainerID                       string `env:"TEST_CONTAINER_ID,required"`
+	JobID                             string `env:"TEST_JOB_ID,required"`
+	QoveryHost                        string `env:"TEST_QOVERY_HOST,required"`
+	QoverySandboxGitTokenId           string `env:"TEST_QOVERY_SANDBOX_GIT_TOKEN_ID,required"`
 }
 
 var (
@@ -87,6 +88,10 @@ func getTestScalewayCredentialsID() string {
 
 func getTestScalewayCredentialsProjectID() string {
 	return os.Getenv("TEST_SCALEWAY_CREDENTIALS_PROJECT_ID")
+}
+
+func getTestScalewayCredentialsOrganizationID() string {
+	return os.Getenv("TEST_SCALEWAY_CREDENTIALS_ORGANIZATION_ID")
 }
 
 func getTestScalewayCredentialsAccessKey() string {
