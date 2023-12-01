@@ -26,8 +26,9 @@ resource "qovery_scaleway_credentials" "my_scaleway_creds" {
 
 - `name` (String) Name of the scaleway credentials.
 - `organization_id` (String) Id of the organization.
-- `scaleway_access_key` (String, Sensitive) Your SCALEWAY access key id.
-- `scaleway_project_id` (String, Sensitive) Your SCALEWAY project ID.
+- `scaleway_access_key` (String) Your SCALEWAY access key id.
+- `scaleway_organization_id` (String) Your SCALEWAY organization ID.
+- `scaleway_project_id` (String) Your SCALEWAY project ID.
 - `scaleway_secret_key` (String, Sensitive) Your SCALEWAY secret key.
 
 ### Read-Only

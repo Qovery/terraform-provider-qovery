@@ -30,6 +30,7 @@ func TestAcc_ScalewayCredentials(t *testing.T) {
 					getTestScalewayCredentialsAccessKey(),
 					getTestScalewayCredentialsSecretKey(),
 					getTestScalewayCredentialsProjectID(),
+					getTestScalewayCredentialsOrganizationID(),
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryScalewayCredentialsExists("qovery_scaleway_credentials.test"),
@@ -38,6 +39,7 @@ func TestAcc_ScalewayCredentials(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_access_key", getTestScalewayCredentialsAccessKey()),
 					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_secret_key", getTestScalewayCredentialsSecretKey()),
 					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_project_id", getTestScalewayCredentialsProjectID()),
+					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_organization_id", getTestScalewayCredentialsOrganizationID()),
 				),
 			},
 			// Update name
@@ -47,6 +49,7 @@ func TestAcc_ScalewayCredentials(t *testing.T) {
 					getTestScalewayCredentialsAccessKey(),
 					getTestScalewayCredentialsSecretKey(),
 					getTestScalewayCredentialsProjectID(),
+					getTestScalewayCredentialsOrganizationID(),
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryScalewayCredentialsExists("qovery_scaleway_credentials.test"),
@@ -55,6 +58,7 @@ func TestAcc_ScalewayCredentials(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_access_key", getTestScalewayCredentialsAccessKey()),
 					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_secret_key", getTestScalewayCredentialsSecretKey()),
 					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_project_id", getTestScalewayCredentialsProjectID()),
+					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_organization_id", getTestScalewayCredentialsOrganizationID()),
 				),
 			},
 			// Check Import
@@ -63,7 +67,7 @@ func TestAcc_ScalewayCredentials(t *testing.T) {
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
-				ImportStateVerifyIgnore: []string{"scaleway_access_key", "scaleway_secret_key", "scaleway_project_id"},
+				ImportStateVerifyIgnore: []string{"scaleway_access_key", "scaleway_secret_key", "scaleway_project_id", "scaleway_organization_id"},
 			},
 		},
 	})
@@ -110,7 +114,7 @@ func testAccQoveryScalewayCredentialsDestroy(resourceName string) resource.TestC
 	}
 }
 
-func testAccScalewayCredentialsDefaultConfig(testName string, accessKey string, secretKey string, projectID string) string {
+func testAccScalewayCredentialsDefaultConfig(testName string, accessKey string, secretKey string, projectID string, organizationID string) string {
 	return fmt.Sprintf(`
 resource "qovery_scaleway_credentials" "test" {
   organization_id = "%s"
@@ -118,7 +122,8 @@ resource "qovery_scaleway_credentials" "test" {
   scaleway_access_key = "%s"
   scaleway_secret_key = "%s"
   scaleway_project_id = "%s"
+  scaleway_organization_id = "%s"
 }
-`, getTestOrganizationID(), generateTestName(testName), accessKey, secretKey, projectID,
+`, getTestOrganizationID(), generateTestName(testName), accessKey, secretKey, projectID, organizationID,
 	)
 }

@@ -103,10 +103,11 @@ func TestNewQoveryScalewayCredentialsRequestFromDomain(t *testing.T) {
 		{
 			TestName: "success",
 			Request: credentials.UpsertScalewayRequest{
-				Name:              gofakeit.Name(),
-				ScalewayProjectID: gofakeit.Word(),
-				ScalewayAccessKey: gofakeit.Word(),
-				ScalewaySecretKey: gofakeit.Word(),
+				Name:                   gofakeit.Name(),
+				ScalewayProjectID:      gofakeit.Word(),
+				ScalewayAccessKey:      gofakeit.Word(),
+				ScalewaySecretKey:      gofakeit.Word(),
+				ScalewayOrganizationID: gofakeit.Word(),
 			},
 		},
 	}
@@ -117,9 +118,10 @@ func TestNewQoveryScalewayCredentialsRequestFromDomain(t *testing.T) {
 			req := newQoveryScalewayCredentialsRequestFromDomain(tc.Request)
 
 			assert.Equal(t, tc.Request.Name, req.Name)
-			assert.Equal(t, tc.Request.ScalewayProjectID, *req.ScalewayProjectId)
-			assert.Equal(t, tc.Request.ScalewayAccessKey, *req.ScalewayAccessKey)
-			assert.Equal(t, tc.Request.ScalewaySecretKey, *req.ScalewaySecretKey)
+			assert.Equal(t, tc.Request.ScalewayProjectID, req.ScalewayProjectId)
+			assert.Equal(t, tc.Request.ScalewayAccessKey, req.ScalewayAccessKey)
+			assert.Equal(t, tc.Request.ScalewaySecretKey, req.ScalewaySecretKey)
+			assert.Equal(t, tc.Request.ScalewayOrganizationID, req.ScalewayOrganizationId)
 		})
 	}
 }

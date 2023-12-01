@@ -11,10 +11,11 @@ var (
 
 // UpsertScalewayRequest represents the parameters needed to create & update Scaleway Credentials.
 type UpsertScalewayRequest struct {
-	Name              string `validate:"required"`
-	ScalewayProjectID string `validate:"required"`
-	ScalewayAccessKey string `validate:"required"`
-	ScalewaySecretKey string `validate:"required"`
+	Name                   string `validate:"required"`
+	ScalewayProjectID      string `validate:"required"`
+	ScalewayAccessKey      string `validate:"required"`
+	ScalewaySecretKey      string `validate:"required"`
+	ScalewayOrganizationID string `validate:"required"`
 }
 
 // Validate returns an error to tell whether the UpsertScalewayRequest is valid or not.

@@ -31,9 +31,10 @@ func newQoveryAwsCredentialsRequestFromDomain(request credentials.UpsertAwsReque
 // newQoveryScalewayCredentialsRequestFromDomain takes the domain request credentials.UpsertScalewayRequest and turns it into a qovery.ScalewayCredentialsRequest to make the api call.
 func newQoveryScalewayCredentialsRequestFromDomain(request credentials.UpsertScalewayRequest) qovery.ScalewayCredentialsRequest {
 	return qovery.ScalewayCredentialsRequest{
-		Name:              request.Name,
-		ScalewayProjectId: &request.ScalewayProjectID,
-		ScalewayAccessKey: &request.ScalewayAccessKey,
-		ScalewaySecretKey: &request.ScalewaySecretKey,
+		Name:                   request.Name,
+		ScalewayProjectId:      request.ScalewayProjectID,
+		ScalewayAccessKey:      request.ScalewayAccessKey,
+		ScalewaySecretKey:      request.ScalewaySecretKey,
+		ScalewayOrganizationId: request.ScalewayOrganizationID,
 	}
 }
