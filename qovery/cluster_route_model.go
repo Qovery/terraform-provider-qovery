@@ -17,10 +17,15 @@ var clusterRouteAttrTypes = map[string]attr.Type{
 
 type ClusterRouteList []ClusterRoute
 
-func (routes ClusterRouteList) toTerraformSet(ctx context.Context) types.Set {
+func (routes ClusterRouteList) toTerraformSet(ctx context.Context, initialPlanClusterRouteSet types.Set) types.Set {
 	var clusterRouteObjectType = types.ObjectType{
 		AttrTypes: clusterRouteAttrTypes,
 	}
+
+	if len(initialPlanClusterRouteSet.Elements()) == 0 {
+		return types.SetValueMust(clusterRouteObjectType, []attr.Value{})
+	}
+
 	if routes == nil {
 		return types.SetNull(clusterRouteObjectType)
 	}
