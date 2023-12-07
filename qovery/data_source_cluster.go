@@ -196,7 +196,7 @@ func (d clusterDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	state := convertResponseToCluster(ctx, cluster)
+	state := convertResponseToCluster(ctx, cluster, data)
 	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
 
 	// Set state

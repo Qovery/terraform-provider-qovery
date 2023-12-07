@@ -273,7 +273,7 @@ func (r clusterResource) Create(ctx context.Context, req resource.CreateRequest,
 	}
 
 	// Initialize state values
-	state := convertResponseToCluster(ctx, cluster)
+	state := convertResponseToCluster(ctx, cluster, plan)
 	tflog.Trace(ctx, "created cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
 
 	// Set state
@@ -296,7 +296,7 @@ func (r clusterResource) Read(ctx context.Context, req resource.ReadRequest, res
 		return
 	}
 
-	state = convertResponseToCluster(ctx, cluster)
+	state = convertResponseToCluster(ctx, cluster, state)
 	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
 
 	// Set state
@@ -325,7 +325,7 @@ func (r clusterResource) Update(ctx context.Context, req resource.UpdateRequest,
 		return
 	}
 	// Update state values
-	state = convertResponseToCluster(ctx, cluster)
+	state = convertResponseToCluster(ctx, cluster, plan)
 	tflog.Trace(ctx, "updated cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
 
 	// Set state

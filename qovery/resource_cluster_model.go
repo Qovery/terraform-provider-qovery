@@ -145,7 +145,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 	}, nil
 }
 
-func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse) Cluster {
+func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, initialPlan Cluster) Cluster {
 	routingTable := fromClusterRoutingTable(res.ClusterRoutingTable)
 
 	return Cluster{
@@ -162,7 +162,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse) 
 		MinRunningNodes:      FromInt32Pointer(res.ClusterResponse.MinRunningNodes),
 		MaxRunningNodes:      FromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
 		Features:             fromQoveryClusterFeatures(res.ClusterResponse.Features),
-		RoutingTables:        routingTable.toTerraformSet(ctx),
+		RoutingTables:        routingTable.toTerraformSet(ctx, initialPlan.RoutingTables),
 		State:                fromClientEnumPointer(res.ClusterResponse.Status),
 		AdvancedSettingsJson: FromString(res.AdvancedSettingsJson),
 	}
