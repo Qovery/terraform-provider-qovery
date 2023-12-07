@@ -230,6 +230,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 		DeploymentStageID:    deploymentStageID,
 		AdvancedSettingsJson: advancedSettingsJson,
 		AutoDeploy:           j.AutoDeploy,
+		Healthchecks:         j.Healthchecks,
 	})
 }
 
@@ -309,6 +310,7 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 			OnDelete: scheduleOnDelete,
 			Cronjob:  scheduleCron,
 		},
-		AutoDeploy: request.AutoDeploy,
+		AutoDeploy:   request.AutoDeploy,
+		Healthchecks: request.Healthchecks,
 	}, nil
 }

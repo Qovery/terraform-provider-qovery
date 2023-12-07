@@ -13,7 +13,7 @@ type ClusterRoutingTable struct {
 }
 
 func (rt ClusterRoutingTable) toQoveryRequest() qovery.ClusterRoutingTableRequest {
-	routes := make([]qovery.ClusterRoutingTableRequestRoutesInner, 0, len(rt.Routes))
+	routes := make([]qovery.ClusterRoutingTableResultsInner, 0, len(rt.Routes))
 	for _, route := range rt.Routes {
 		routes = append(routes, route.toQoveryRequest())
 	}
@@ -40,8 +40,8 @@ type ClusterRoute struct {
 	Target      string
 }
 
-func (cr ClusterRoute) toQoveryRequest() qovery.ClusterRoutingTableRequestRoutesInner {
-	return qovery.ClusterRoutingTableRequestRoutesInner{
+func (cr ClusterRoute) toQoveryRequest() qovery.ClusterRoutingTableResultsInner {
+	return qovery.ClusterRoutingTableResultsInner{
 		Description: cr.Description,
 		Destination: cr.Destination,
 		Target:      cr.Target,
@@ -50,9 +50,9 @@ func (cr ClusterRoute) toQoveryRequest() qovery.ClusterRoutingTableRequestRoutes
 
 func newClusterRouteFromQoveryResponse(resp qovery.ClusterRoutingTableResultsInner) ClusterRoute {
 	return ClusterRoute{
-		Description: *resp.Description,
-		Destination: *resp.Destination,
-		Target:      *resp.Target,
+		Description: resp.Description,
+		Destination: resp.Destination,
+		Target:      resp.Target,
 	}
 }
 
