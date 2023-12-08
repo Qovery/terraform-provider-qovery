@@ -53,6 +53,10 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 				Description: "Id of the cluster.",
 				Required:    true,
 			},
+			"organization_id": schema.StringAttribute{
+				Description: "Id of the organization.",
+				Required:    true,
+			},
 			"credentials_id": schema.StringAttribute{
 				Description: "Id of the credentials.",
 				Computed:    true,
@@ -116,28 +120,26 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 				Optional: true,
 				Computed: true,
 			},
-			"features": schema.SetNestedAttribute{
+			"features": schema.SingleNestedAttribute{
 				Description: "Features of the cluster.",
 				Optional:    true,
 				Computed:    true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"vpc_subnet": schema.StringAttribute{
-							Description: descriptions.NewStringDefaultDescription(
-								"Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].",
-								clusterFeatureVpcSubnetDefault,
-							),
-							Optional: true,
-							Computed: true,
-						},
-						"static_ip": schema.BoolAttribute{
-							Description: descriptions.NewBoolDefaultDescription(
-								"Static IP (AWS only) [NOTE: can't be updated after creation].",
-								clusterFeatureStaticIPDefault,
-							),
-							Computed: true,
-							Optional: true,
-						},
+				Attributes: map[string]schema.Attribute{
+					"vpc_subnet": schema.StringAttribute{
+						Description: descriptions.NewStringDefaultDescription(
+							"Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].",
+							clusterFeatureVpcSubnetDefault,
+						),
+						Optional: true,
+						Computed: true,
+					},
+					"static_ip": schema.BoolAttribute{
+						Description: descriptions.NewBoolDefaultDescription(
+							"Static IP (AWS only) [NOTE: can't be updated after creation].",
+							clusterFeatureStaticIPDefault,
+						),
+						Optional: true,
+						Computed: true,
 					},
 				},
 			},
