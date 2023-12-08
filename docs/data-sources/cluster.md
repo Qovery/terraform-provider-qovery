@@ -15,6 +15,7 @@ data "qovery_cluster" "my_cluster" {
 ### Required
 
 - `id` (String) Id of the cluster.
+- `organization_id` (String) Id of the organization.
 
 ### Optional
 
@@ -22,7 +23,7 @@ data "qovery_cluster" "my_cluster" {
 - `description` (String) Description of the cluster.
 	- Default: ``.
 - `disk_size` (Number)
-- `features` (Attributes Set) Features of the cluster. (see [below for nested schema](#nestedatt--features))
+- `features` (Attributes) Features of the cluster. (see [below for nested schema](#nestedatt--features))
 - `kubernetes_mode` (String) Kubernetes mode of the cluster.
 	- Can be: `K3S`, `MANAGED`.
 	- Default: `MANAGED`.
