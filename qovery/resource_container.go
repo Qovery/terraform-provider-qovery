@@ -383,7 +383,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					},
 				},
 			},
-			"healthchecks": healthchecksSchemaAttributes(false),
+			"healthchecks": healthchecksSchemaAttributes(true),
 			"arguments": schema.ListAttribute{
 				Description: "List of arguments of this container.",
 				Optional:    true,
