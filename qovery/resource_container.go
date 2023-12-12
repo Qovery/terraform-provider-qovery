@@ -190,11 +190,11 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					},
 				},
 			},
-			"ports": schema.SetNestedAttribute{
+			"ports": schema.ListNestedAttribute{
 				Description: "List of ports linked to this container.",
 				Optional:    true,
-				PlanModifiers: []planmodifier.Set{
-					setplanmodifier.UseStateForUnknown(),
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{

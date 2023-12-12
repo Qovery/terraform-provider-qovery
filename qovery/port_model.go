@@ -2,10 +2,8 @@ package qovery
 
 import (
 	"context"
-
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 )
 
@@ -21,24 +19,24 @@ var portAttrTypes = map[string]attr.Type{
 
 type PortList []Port
 
-func (pp PortList) toTerraformSet(ctx context.Context) types.Set {
+func (pp PortList) toTerraformList(ctx context.Context) types.List {
 	var portObjectType = types.ObjectType{
 		AttrTypes: portAttrTypes,
 	}
 	if pp == nil {
-		return types.SetNull(portObjectType)
+		return types.ListNull(portObjectType)
 	}
 
 	var elements = make([]attr.Value, 0, len(pp))
 	for _, v := range pp {
 		elements = append(elements, v.toTerraformObject())
 	}
-	set, diagnostics := types.SetValueFrom(ctx, portObjectType, elements)
+	list, diagnostics := types.ListValueFrom(ctx, portObjectType, elements)
 	if diagnostics.HasError() {
 		panic("TODO")
 	}
 
-	return set
+	return list
 }
 
 type Port struct {
@@ -104,7 +102,7 @@ func fromPortList(state PortList, ports port.Ports) PortList {
 	return list
 }
 
-func convertDomainPortsToPortList(initialState types.Set, ports port.Ports) PortList {
+func convertDomainPortsToPortList(initialState types.List, ports port.Ports) PortList {
 	list := make([]Port, 0, len(ports))
 	for _, s := range ports {
 		list = append(list, convertDomainPortToPort(s))
@@ -140,7 +138,7 @@ func toPort(v types.Object) Port {
 	}
 }
 
-func toPortList(vars types.Set) PortList {
+func toPortList(vars types.List) PortList {
 	if vars.IsNull() || vars.IsUnknown() {
 		return []Port{}
 	}
