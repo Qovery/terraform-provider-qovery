@@ -171,7 +171,7 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		Entrypoint:                   FromStringPointer(container.Entrypoint),
 		Arguments:                    FromStringArray(container.Arguments),
 		Storages:                     convertDomainStoragesToStorageList(state.Storages, container.Storages).toTerraformSet(ctx),
-		Ports:                        convertDomainPortsToPortList(state.Ports, container.Ports).toTerraformList(ctx),
+		Ports:                        convertDomainPortsToPortList(ctx, state.Ports, container.Ports).toTerraformList(ctx),
 		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, container.EnvironmentVariables, variable.ScopeContainer, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, container.EnvironmentVariables, variable.ScopeContainer, "ALIAS").toTerraformSet(ctx),

@@ -5,8 +5,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
-	"sort"
-	"strings"
 )
 
 var portAttrTypes = map[string]attr.Type{
@@ -28,10 +26,6 @@ func (pp PortList) toTerraformList(ctx context.Context) types.List {
 	if pp == nil {
 		return types.ListNull(portObjectType)
 	}
-
-	sort.Slice(pp, func(i, j int) bool {
-		return strings.Compare(pp[i].Name.String(), pp[j].Name.String()) < 0
-	})
 
 	var elements = make([]attr.Value, 0, len(pp))
 	for _, v := range pp {
@@ -108,10 +102,27 @@ func fromPortList(state PortList, ports port.Ports) PortList {
 	return list
 }
 
-func convertDomainPortsToPortList(initialState types.List, ports port.Ports) PortList {
+func convertDomainPortsToPortList(ctx context.Context, initialState types.List, ports port.Ports) PortList {
+	// Try to sort ports as similarly as possible to the initialState.
+	portsByName := make(map[string]port.Port, len(ports))
+	for _, p := range ports {
+		portsByName[*p.Name] = p
+	}
+
 	list := make([]Port, 0, len(ports))
-	for _, s := range ports {
-		list = append(list, convertDomainPortToPort(s))
+	if !initialState.IsNull() {
+		initialStatePorts := make([]Port, 0, len(initialState.Elements()))
+		initialState.ElementsAs(ctx, &initialStatePorts, false)
+		for _, state := range initialStatePorts {
+			if value, ok := portsByName[state.Name.ValueString()]; ok {
+				list = append(list, convertDomainPortToPort(value))
+				delete(portsByName, state.Name.ValueString())
+			}
+		}
+	}
+
+	for _, p := range portsByName {
+		list = append(list, convertDomainPortToPort(p))
 	}
 
 	if len(list) == 0 && initialState.IsNull() {
