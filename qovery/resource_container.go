@@ -3,12 +3,17 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -61,6 +66,9 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"id": schema.StringAttribute{
 				Description: "Id of the container.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
@@ -185,11 +193,17 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"ports": schema.SetNestedAttribute{
 				Description: "List of ports linked to this container.",
 				Optional:    true,
+				PlanModifiers: []planmodifier.Set{
+					setplanmodifier.UseStateForUnknown(),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description: "Id of the port.",
 							Computed:    true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"name": schema.StringAttribute{
 							Description: "Name of the port.",
@@ -243,19 +257,31 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"built_in_environment_variables": schema.SetNestedAttribute{
 				Description: "List of built-in environment variables linked to this container.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.Set{
+					setplanmodifier.UseStateForUnknown(),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description: "Id of the environment variable.",
 							Computed:    true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"key": schema.StringAttribute{
 							Description: "Key of the environment variable.",
 							Computed:    true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable.",
 							Computed:    true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 					},
 				},
@@ -389,6 +415,9 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Optional:    true,
 				ElementType: types.StringType,
 				Computed:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
+				},
 				//Default:     listdefault.StaticValue(types.ListNull(types.StringType)),
 			},
 			"custom_domains": schema.SetNestedAttribute{
@@ -418,10 +447,16 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"external_host": schema.StringAttribute{
 				Description: "The container external FQDN host [NOTE: only if your container is using a publicly accessible port].",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"internal_host": schema.StringAttribute{
 				Description: "The container internal host.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"deployment_stage_id": schema.StringAttribute{
 				Description: "Id of the deployment stage.",
@@ -437,6 +472,9 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Description: " Specify if the container will be automatically updated after receiving a new image tag.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

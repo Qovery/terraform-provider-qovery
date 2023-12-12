@@ -70,6 +70,7 @@ func (p Port) toTerraformObject() types.Object {
 
 func (p Port) toUpsertRequest() port.UpsertRequest {
 	return port.UpsertRequest{
+		Id:                 ToStringPointer(p.Id),
 		Name:               ToStringPointer(p.Name),
 		Protocol:           ToStringPointer(p.Protocol),
 		InternalPort:       ToInt32(p.InternalPort),
