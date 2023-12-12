@@ -3,26 +3,27 @@ package qovery
 import (
 	"context"
 	"fmt"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
-
 	"github.com/AlekSi/pointer"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
+	"sort"
+	"strings"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -195,6 +196,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Optional:    true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
+					SortPortByName(),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -588,4 +590,47 @@ func (r containerResource) Delete(ctx context.Context, req resource.DeleteReques
 // ImportState imports a qovery container resource using its id
 func (r containerResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func SortPortByName() planmodifier.List {
+	return usePortNameForOrder{}
+}
+
+// useStateForUnknownModifier implements the plan modifier.
+type usePortNameForOrder struct{}
+
+func (u usePortNameForOrder) Description(ctx context.Context) string {
+	return "Sort list of port by name"
+}
+
+func (u usePortNameForOrder) MarkdownDescription(ctx context.Context) string {
+	return "Sort list of port by name"
+}
+
+func (u usePortNameForOrder) PlanModifyList(ctx context.Context, request planmodifier.ListRequest, response *planmodifier.ListResponse) {
+	if request.PlanValue.IsNull() {
+		return
+	}
+
+	planElements := make([]Port, 0, len(request.PlanValue.Elements()))
+	request.PlanValue.ElementsAs(ctx, &planElements, false)
+	sort.Slice(planElements, func(i, j int) bool {
+		return strings.Compare(planElements[i].Name.String(), planElements[j].Name.String()) < 0
+	})
+
+	//planElements.toTerraformList(ctx)
+
+	var portObjectType = types.ObjectType{
+		AttrTypes: portAttrTypes,
+	}
+	var elements = make([]attr.Value, 0, len(planElements))
+	for _, v := range planElements {
+		elements = append(elements, v.toTerraformObject())
+	}
+	list, diagnostics := types.ListValueFrom(ctx, portObjectType, elements)
+	if diagnostics.HasError() {
+		panic("TODO")
+	}
+
+	response.PlanValue = list
 }

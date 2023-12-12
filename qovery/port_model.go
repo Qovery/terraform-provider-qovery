@@ -5,6 +5,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
+	"sort"
+	"strings"
 )
 
 var portAttrTypes = map[string]attr.Type{
@@ -26,6 +28,10 @@ func (pp PortList) toTerraformList(ctx context.Context) types.List {
 	if pp == nil {
 		return types.ListNull(portObjectType)
 	}
+
+	sort.Slice(pp, func(i, j int) bool {
+		return strings.Compare(pp[i].Name.String(), pp[j].Name.String()) < 0
+	})
 
 	var elements = make([]attr.Value, 0, len(pp))
 	for _, v := range pp {
