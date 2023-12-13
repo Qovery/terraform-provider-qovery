@@ -7,7 +7,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -141,11 +143,13 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Description: "Specify if the environment preview option is activated or not for this container.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"entrypoint": schema.StringAttribute{
 				Description: "Entrypoint of the container.",
 				Optional:    true,
-				Computed:    true,
 			},
 			"storage": schema.SetNestedAttribute{
 				Description: "List of storages linked to this container.",
@@ -395,6 +399,9 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Optional:    true,
 				ElementType: types.StringType,
 				Computed:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
+				},
 				//Default:     listdefault.StaticValue(types.ListNull(types.StringType)),
 			},
 			"custom_domains": schema.SetNestedAttribute{
@@ -443,6 +450,9 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Description: " Specify if the container will be automatically updated after receiving a new image tag.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
