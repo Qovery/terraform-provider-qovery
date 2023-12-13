@@ -163,10 +163,6 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"id": schema.StringAttribute{
-							Description: "Id of the port.",
-							Computed:    true,
-						},
 						"name": schema.StringAttribute{
 							Description: "Name of the port.",
 							Optional:    true,

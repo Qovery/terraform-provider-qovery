@@ -10,7 +10,6 @@ import (
 )
 
 var portAttrTypes = map[string]attr.Type{
-	"id":                  types.StringType,
 	"name":                types.StringType,
 	"protocol":            types.StringType,
 	"internal_port":       types.Int64Type,
@@ -42,7 +41,6 @@ func (pp PortList) toTerraformSet(ctx context.Context) types.Set {
 }
 
 type Port struct {
-	Id                 types.String `tfsdk:"id"`
 	Name               types.String `tfsdk:"name"`
 	Protocol           types.String `tfsdk:"protocol"`
 	InternalPort       types.Int64  `tfsdk:"internal_port"`
@@ -53,7 +51,6 @@ type Port struct {
 
 func (p Port) toTerraformObject() types.Object {
 	var attributes = map[string]attr.Value{
-		"id":                  p.Id,
 		"name":                p.Name,
 		"protocol":            p.Protocol,
 		"internal_port":       p.InternalPort,
@@ -81,7 +78,6 @@ func (p Port) toUpsertRequest() port.UpsertRequest {
 
 func fromPort(p port.Port) Port {
 	return Port{
-		Id:                 FromString(p.ID.String()),
 		Name:               FromStringPointer(p.Name),
 		Protocol:           FromString(p.Protocol.String()),
 		InternalPort:       FromInt32(p.InternalPort),
@@ -117,7 +113,6 @@ func convertDomainPortsToPortList(initialState types.Set, ports port.Ports) Port
 
 func convertDomainPortToPort(s port.Port) Port {
 	return Port{
-		Id:                 FromString(s.ID.String()),
 		Name:               FromStringPointer(s.Name),
 		Protocol:           FromString(s.Protocol.String()),
 		InternalPort:       FromInt32(s.InternalPort),
@@ -129,7 +124,6 @@ func convertDomainPortToPort(s port.Port) Port {
 
 func toPort(v types.Object) Port {
 	return Port{
-		Id:                 v.Attributes()["id"].(types.String),
 		Name:               v.Attributes()["name"].(types.String),
 		Protocol:           v.Attributes()["protocol"].(types.String),
 		InternalPort:       v.Attributes()["internal_port"].(types.Int64),
