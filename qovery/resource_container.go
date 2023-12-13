@@ -3,16 +3,16 @@ package qovery
 import (
 	"context"
 	"fmt"
-
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
@@ -61,6 +61,9 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"id": schema.StringAttribute{
 				Description: "Id of the container.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
@@ -182,7 +185,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					},
 				},
 			},
-			"ports": schema.SetNestedAttribute{
+			"ports": schema.ListNestedAttribute{
 				Description: "List of ports linked to this container.",
 				Optional:    true,
 				NestedObject: schema.NestedAttributeObject{
@@ -190,6 +193,9 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 						"id": schema.StringAttribute{
 							Description: "Id of the port.",
 							Computed:    true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"name": schema.StringAttribute{
 							Description: "Name of the port.",

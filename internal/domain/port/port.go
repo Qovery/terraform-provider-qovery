@@ -131,6 +131,7 @@ func NewPort(params NewPortParams) (*Port, error) {
 
 // UpsertRequest represents the parameters needed to create & update a Variable.
 type UpsertRequest struct {
+	Id                 *string
 	InternalPort       int32 `validate:"required"`
 	PubliclyAccessible bool  `validate:"required"`
 	IsDefault          bool  `validate:"required"`

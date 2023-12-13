@@ -2,7 +2,6 @@ package qovery
 
 import (
 	"context"
-
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
@@ -34,7 +33,7 @@ type Container struct {
 	SecretAliases                types.Set     `tfsdk:"secret_aliases"`
 	SecretOverrides              types.Set     `tfsdk:"secret_overrides"`
 	Storages                     types.Set     `tfsdk:"storage"`
-	Ports                        types.Set     `tfsdk:"ports"`
+	Ports                        types.List    `tfsdk:"ports"`
 	Arguments                    types.List    `tfsdk:"arguments"`
 	CustomDomains                types.Set     `tfsdk:"custom_domains"`
 	ExternalHost                 types.String  `tfsdk:"external_host"`
@@ -171,7 +170,7 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		Entrypoint:                   FromStringPointer(container.Entrypoint),
 		Arguments:                    FromStringArray(container.Arguments),
 		Storages:                     convertDomainStoragesToStorageList(state.Storages, container.Storages).toTerraformSet(ctx),
-		Ports:                        convertDomainPortsToPortList(state.Ports, container.Ports).toTerraformSet(ctx),
+		Ports:                        convertDomainPortsToPortList(ctx, state.Ports, container.Ports).toTerraformList(ctx),
 		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariables, container.EnvironmentVariables, variable.ScopeContainer, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(state.EnvironmentVariableAliases, container.EnvironmentVariables, variable.ScopeContainer, "ALIAS").toTerraformSet(ctx),

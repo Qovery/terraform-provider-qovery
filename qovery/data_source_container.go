@@ -3,7 +3,6 @@ package qovery
 import (
 	"context"
 	"fmt"
-
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -157,7 +156,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 					},
 				},
 			},
-			"ports": schema.SetNestedAttribute{
+			"ports": schema.ListNestedAttribute{
 				Description: "List of ports linked to this container.",
 				Optional:    true,
 				Computed:    true,
