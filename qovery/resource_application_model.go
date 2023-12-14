@@ -2,7 +2,6 @@ package qovery
 
 import (
 	"context"
-
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
@@ -377,8 +376,29 @@ func (port ApplicationPort) toUpdateRequest() (*qovery.ServicePort, error) {
 }
 
 func convertResponseToApplicationPorts(initialState []ApplicationPort, ports []qovery.ServicePort) []ApplicationPort {
-	list := make([]ApplicationPort, 0, len(ports))
+	// Try to sort ports as similarly as possible to the initialState.
+	portsByName := make(map[string]qovery.ServicePort, len(ports))
 	for _, p := range ports {
+		portsByName[*p.Name] = p
+	}
+
+	list := make([]ApplicationPort, 0, len(ports))
+	for _, state := range initialState {
+		if p, ok := portsByName[state.Name.ValueString()]; ok {
+			list = append(list, ApplicationPort{
+				Id:                 FromString(p.Id),
+				Name:               FromStringPointer(p.Name),
+				InternalPort:       FromInt32(p.InternalPort),
+				ExternalPort:       FromInt32Pointer(p.ExternalPort),
+				Protocol:           fromClientEnum(p.Protocol),
+				PubliclyAccessible: FromBool(p.PubliclyAccessible),
+				IsDefault:          FromBoolPointer(p.IsDefault),
+			})
+			delete(portsByName, state.Name.ValueString())
+		}
+	}
+
+	for _, p := range portsByName {
 		list = append(list, ApplicationPort{
 			Id:                 FromString(p.Id),
 			Name:               FromStringPointer(p.Name),
@@ -388,10 +408,6 @@ func convertResponseToApplicationPorts(initialState []ApplicationPort, ports []q
 			PubliclyAccessible: FromBool(p.PubliclyAccessible),
 			IsDefault:          FromBoolPointer(p.IsDefault),
 		})
-	}
-
-	if len(ports) == 0 && initialState == nil {
-		return nil
 	}
 
 	return list
