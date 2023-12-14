@@ -420,7 +420,7 @@ func (d containerDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 
 	// Get container from API
-	cont, err := d.containerService.Get(ctx, data.ID.ValueString())
+	cont, err := d.containerService.Get(ctx, data.ID.ValueString(), data.AdvancedSettingsJson.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container read", err.Error())
 		return

@@ -410,5 +410,8 @@ func convertResponseToApplicationPorts(initialState []ApplicationPort, ports []q
 		})
 	}
 
+	if len(ports) == 0 && initialState == nil {
+		return nil
+	}
 	return list
 }

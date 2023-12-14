@@ -498,7 +498,7 @@ func (r jobResource) Read(ctx context.Context, req resource.ReadRequest, resp *r
 	}
 
 	// Get job from the API
-	cont, err := r.jobService.Get(ctx, state.ID.ValueString())
+	cont, err := r.jobService.Get(ctx, state.ID.ValueString(), state.AdvancedSettingsJson.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on job read", err.Error())
 		return

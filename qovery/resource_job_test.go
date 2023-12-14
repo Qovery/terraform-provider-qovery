@@ -504,7 +504,7 @@ func testAccQoveryJobExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("job.id not found")
 		}
 
-		_, err := qoveryServices.Job.Get(context.TODO(), rs.Primary.ID)
+		_, err := qoveryServices.Job.Get(context.TODO(), rs.Primary.ID, "{}")
 		if err != nil {
 			return err
 		}
@@ -523,7 +523,7 @@ func testAccQoveryJobDestroy(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("job.id not found")
 		}
 
-		_, err := qoveryServices.Job.Get(context.TODO(), rs.Primary.ID)
+		_, err := qoveryServices.Job.Get(context.TODO(), rs.Primary.ID, "{}")
 		if err == nil {
 			return fmt.Errorf("found job but expected it to be deleted")
 		}

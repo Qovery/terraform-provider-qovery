@@ -1358,7 +1358,7 @@ func testAccQoveryApplicationExists(resourceName string) resource.TestCheckFunc 
 			return fmt.Errorf("application.id not found")
 		}
 
-		_, apiErr := apiClient.GetApplication(context.TODO(), rs.Primary.ID)
+		_, apiErr := apiClient.GetApplication(context.TODO(), rs.Primary.ID, "{}")
 		if apiErr != nil {
 			return apiErr
 		}
@@ -1377,7 +1377,7 @@ func testAccQoveryApplicationDestroy(resourceName string) resource.TestCheckFunc
 			return fmt.Errorf("application.id not found")
 		}
 
-		_, apiErr := apiClient.GetApplication(context.TODO(), rs.Primary.ID)
+		_, apiErr := apiClient.GetApplication(context.TODO(), rs.Primary.ID, "{}")
 		if apiErr == nil {
 			return fmt.Errorf("found application but expected it to be deleted")
 		}

@@ -122,25 +122,25 @@ func (_c *ContainerRepository_Delete_Call) RunAndReturn(run func(context.Context
 	return _c
 }
 
-// Get provides a mock function with given fields: ctx, containerID
-func (_m *ContainerRepository) Get(ctx context.Context, containerID string) (*container.Container, error) {
-	ret := _m.Called(ctx, containerID)
+// Get provides a mock function with given fields: ctx, containerID, advancedSettingsJsonFromState
+func (_m *ContainerRepository) Get(ctx context.Context, containerID string, advancedSettingsJsonFromState string) (*container.Container, error) {
+	ret := _m.Called(ctx, containerID, advancedSettingsJsonFromState)
 
 	var r0 *container.Container
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string) (*container.Container, error)); ok {
-		return rf(ctx, containerID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*container.Container, error)); ok {
+		return rf(ctx, containerID, advancedSettingsJsonFromState)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string) *container.Container); ok {
-		r0 = rf(ctx, containerID)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *container.Container); ok {
+		r0 = rf(ctx, containerID, advancedSettingsJsonFromState)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*container.Container)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
-		r1 = rf(ctx, containerID)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, containerID, advancedSettingsJsonFromState)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -156,13 +156,14 @@ type ContainerRepository_Get_Call struct {
 // Get is a helper method to define mock.On call
 //   - ctx context.Context
 //   - containerID string
-func (_e *ContainerRepository_Expecter) Get(ctx interface{}, containerID interface{}) *ContainerRepository_Get_Call {
-	return &ContainerRepository_Get_Call{Call: _e.mock.On("Get", ctx, containerID)}
+//   - advancedSettingsJsonFromState string
+func (_e *ContainerRepository_Expecter) Get(ctx interface{}, containerID interface{}, advancedSettingsJsonFromState interface{}) *ContainerRepository_Get_Call {
+	return &ContainerRepository_Get_Call{Call: _e.mock.On("Get", ctx, containerID, advancedSettingsJsonFromState)}
 }
 
-func (_c *ContainerRepository_Get_Call) Run(run func(ctx context.Context, containerID string)) *ContainerRepository_Get_Call {
+func (_c *ContainerRepository_Get_Call) Run(run func(ctx context.Context, containerID string, advancedSettingsJsonFromState string)) *ContainerRepository_Get_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string))
 	})
 	return _c
 }
@@ -172,7 +173,7 @@ func (_c *ContainerRepository_Get_Call) Return(_a0 *container.Container, _a1 err
 	return _c
 }
 
-func (_c *ContainerRepository_Get_Call) RunAndReturn(run func(context.Context, string) (*container.Container, error)) *ContainerRepository_Get_Call {
+func (_c *ContainerRepository_Get_Call) RunAndReturn(run func(context.Context, string, string) (*container.Container, error)) *ContainerRepository_Get_Call {
 	_c.Call.Return(run)
 	return _c
 }

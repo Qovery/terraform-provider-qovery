@@ -497,7 +497,7 @@ func (r containerResource) Read(ctx context.Context, req resource.ReadRequest, r
 	}
 
 	// Get container from the API
-	cont, err := r.containerService.Get(ctx, state.ID.ValueString())
+	cont, err := r.containerService.Get(ctx, state.ID.ValueString(), state.AdvancedSettingsJson.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container read", err.Error())
 		return

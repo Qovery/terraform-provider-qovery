@@ -592,7 +592,7 @@ func (r applicationResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	// Get application from the API
-	application, apiErr := r.client.GetApplication(ctx, state.Id.ValueString())
+	application, apiErr := r.client.GetApplication(ctx, state.Id.ValueString(), state.AdvancedSettingsJson.ValueString())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return

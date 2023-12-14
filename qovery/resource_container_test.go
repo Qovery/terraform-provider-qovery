@@ -1401,7 +1401,7 @@ func testAccQoveryContainerExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("container.id not found")
 		}
 
-		_, err := qoveryServices.Container.Get(context.TODO(), rs.Primary.ID)
+		_, err := qoveryServices.Container.Get(context.TODO(), rs.Primary.ID, "{}")
 		if err != nil {
 			return err
 		}
@@ -1420,7 +1420,7 @@ func testAccQoveryContainerDestroy(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("container.id not found")
 		}
 
-		_, err := qoveryServices.Container.Get(context.TODO(), rs.Primary.ID)
+		_, err := qoveryServices.Container.Get(context.TODO(), rs.Primary.ID, "{}")
 		if err == nil {
 			return fmt.Errorf("found container but expected it to be deleted")
 		}
