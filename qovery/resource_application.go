@@ -3,6 +3,9 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -108,6 +111,9 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			"id": schema.StringAttribute{
 				Description: "Id of the application.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
@@ -241,13 +247,15 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			"entrypoint": schema.StringAttribute{
 				Description: "Entrypoint of the application.",
 				Optional:    true,
-				Computed:    true,
 			},
 			"arguments": schema.ListAttribute{
 				Description: "List of arguments of this application.",
 				Optional:    true,
 				ElementType: types.StringType,
 				Computed:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
+				},
 				//Default:     listdefault.StaticValue(ListNull(types.StringType)),
 			},
 			"storage": schema.SetNestedAttribute{
@@ -296,6 +304,9 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 						"id": schema.StringAttribute{
 							Description: "Id of the port.",
 							Computed:    true,
+							PlanModifiers: []planmodifier.String{
+								stringplanmodifier.UseStateForUnknown(),
+							},
 						},
 						"name": schema.StringAttribute{
 							Description: "Name of the port.",
@@ -581,7 +592,7 @@ func (r applicationResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	// Get application from the API
-	application, apiErr := r.client.GetApplication(ctx, state.Id.ValueString())
+	application, apiErr := r.client.GetApplication(ctx, state.Id.ValueString(), state.AdvancedSettingsJson.ValueString())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return

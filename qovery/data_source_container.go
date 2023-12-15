@@ -3,7 +3,6 @@ package qovery
 import (
 	"context"
 	"fmt"
-
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -157,7 +156,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 					},
 				},
 			},
-			"ports": schema.SetNestedAttribute{
+			"ports": schema.ListNestedAttribute{
 				Description: "List of ports linked to this container.",
 				Optional:    true,
 				Computed:    true,
@@ -421,7 +420,7 @@ func (d containerDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 
 	// Get container from API
-	cont, err := d.containerService.Get(ctx, data.ID.ValueString())
+	cont, err := d.containerService.Get(ctx, data.ID.ValueString(), data.AdvancedSettingsJson.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container read", err.Error())
 		return

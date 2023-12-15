@@ -64,7 +64,7 @@ func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl
 }
 
 // ReadServiceAdvancedSettings Get only overridden advanced settings
-func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType int, serviceId string) (*string, error) {
+func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsFromState string) (*string, error) {
 	httpClient := &http.Client{}
 	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
 
@@ -126,6 +126,9 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 
 	//
 	// Compute the Diff
+	advancedSettingsFromStateHashMap := make(map[string]interface{})
+	json.Unmarshal([]byte(advancedSettingsFromState), &advancedSettingsFromStateHashMap)
+
 	currentAdvancedSettingsHashMap := make(map[string]interface{})
 	json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap)
 
@@ -139,6 +142,12 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 		// if the value has been overridden
 		if !reflect.DeepEqual(defaultValue, v) {
 			overriddenAdvancedSettings[k] = v
+		} else {
+			// if the value is in the state
+			v, ok := advancedSettingsFromStateHashMap[k]
+			if ok {
+				overriddenAdvancedSettings[k] = v
+			}
 		}
 	}
 

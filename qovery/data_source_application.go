@@ -471,7 +471,7 @@ func (d applicationDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	// Get application from API
-	application, apiErr := d.client.GetApplication(ctx, data.Id.ValueString())
+	application, apiErr := d.client.GetApplication(ctx, data.Id.ValueString(), data.AdvancedSettingsJson.String())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return

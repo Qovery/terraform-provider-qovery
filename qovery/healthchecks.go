@@ -103,7 +103,6 @@ func probeSchemaAttributes() map[string]schema.Attribute {
 						"host": schema.StringAttribute{
 							Description: "Optional. If the host need to be different than localhost/pod ip",
 							Optional:    true,
-							Computed:    true,
 						},
 					},
 				},
@@ -118,12 +117,10 @@ func probeSchemaAttributes() map[string]schema.Attribute {
 						"path": schema.StringAttribute{
 							Description: "The path that the HTTP GET request. By default it is `/`",
 							Optional:    true,
-							Computed:    true,
 						},
 						"scheme": schema.StringAttribute{
 							Description: "if the HTTP GET request should be done in HTTP or HTTPS. Default is HTTP",
 							Optional:    true,
-							Computed:    true,
 						},
 					},
 				},

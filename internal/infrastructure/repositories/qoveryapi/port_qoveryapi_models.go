@@ -35,6 +35,7 @@ func newQoveryPortRequestFromDomain(request port.UpsertRequest) (*qovery.Service
 	}
 
 	return &qovery.ServicePortRequestPortsInner{
+		Id:                 request.Id,
 		Name:               request.Name,
 		Protocol:           portProtocol,
 		PubliclyAccessible: request.PubliclyAccessible,

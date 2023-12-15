@@ -86,12 +86,12 @@ func (s jobService) Create(ctx context.Context, environmentID string, request jo
 }
 
 // Get handles the domain logic to retrieve a job.
-func (s jobService) Get(ctx context.Context, jobID string) (*job.Job, error) {
+func (s jobService) Get(ctx context.Context, jobID string, advancedSettingsJsonFromState string) (*job.Job, error) {
 	if err := s.checkID(jobID); err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToGetJob.Error())
 	}
 
-	fetchedJob, err := s.jobRepository.Get(ctx, jobID)
+	fetchedJob, err := s.jobRepository.Get(ctx, jobID, advancedSettingsJsonFromState)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToGetJob.Error())
 	}

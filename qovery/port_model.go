@@ -2,10 +2,8 @@ package qovery
 
 import (
 	"context"
-
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 )
 
@@ -21,24 +19,24 @@ var portAttrTypes = map[string]attr.Type{
 
 type PortList []Port
 
-func (pp PortList) toTerraformSet(ctx context.Context) types.Set {
+func (pp PortList) toTerraformList(ctx context.Context) types.List {
 	var portObjectType = types.ObjectType{
 		AttrTypes: portAttrTypes,
 	}
 	if pp == nil {
-		return types.SetNull(portObjectType)
+		return types.ListNull(portObjectType)
 	}
 
 	var elements = make([]attr.Value, 0, len(pp))
 	for _, v := range pp {
 		elements = append(elements, v.toTerraformObject())
 	}
-	set, diagnostics := types.SetValueFrom(ctx, portObjectType, elements)
+	list, diagnostics := types.ListValueFrom(ctx, portObjectType, elements)
 	if diagnostics.HasError() {
 		panic("TODO")
 	}
 
-	return set
+	return list
 }
 
 type Port struct {
@@ -70,6 +68,7 @@ func (p Port) toTerraformObject() types.Object {
 
 func (p Port) toUpsertRequest() port.UpsertRequest {
 	return port.UpsertRequest{
+		Id:                 ToStringPointer(p.Id),
 		Name:               ToStringPointer(p.Name),
 		Protocol:           ToStringPointer(p.Protocol),
 		InternalPort:       ToInt32(p.InternalPort),
@@ -103,10 +102,27 @@ func fromPortList(state PortList, ports port.Ports) PortList {
 	return list
 }
 
-func convertDomainPortsToPortList(initialState types.Set, ports port.Ports) PortList {
+func convertDomainPortsToPortList(ctx context.Context, initialState types.List, ports port.Ports) PortList {
+	// Try to sort ports as similarly as possible to the initialState.
+	portsByName := make(map[string]port.Port, len(ports))
+	for _, p := range ports {
+		portsByName[*p.Name] = p
+	}
+
 	list := make([]Port, 0, len(ports))
-	for _, s := range ports {
-		list = append(list, convertDomainPortToPort(s))
+	if !initialState.IsNull() {
+		initialStatePorts := make([]Port, 0, len(initialState.Elements()))
+		initialState.ElementsAs(ctx, &initialStatePorts, false)
+		for _, state := range initialStatePorts {
+			if value, ok := portsByName[state.Name.ValueString()]; ok {
+				list = append(list, convertDomainPortToPort(value))
+				delete(portsByName, state.Name.ValueString())
+			}
+		}
+	}
+
+	for _, p := range portsByName {
+		list = append(list, convertDomainPortToPort(p))
 	}
 
 	if len(list) == 0 && initialState.IsNull() {
@@ -139,7 +155,7 @@ func toPort(v types.Object) Port {
 	}
 }
 
-func toPortList(vars types.Set) PortList {
+func toPortList(vars types.List) PortList {
 	if vars.IsNull() || vars.IsUnknown() {
 		return []Port{}
 	}
