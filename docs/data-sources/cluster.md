@@ -41,7 +41,7 @@ data "qovery_cluster" "my_cluster" {
 ### Read-Only
 
 - `cloud_provider` (String) Cloud provider of the cluster.
-	- Can be: `AWS`, `DO`, `SCW`.
+	- Can be: `AWS`, `DO`, `GCP`, `SCW`.
 - `credentials_id` (String) Id of the credentials.
 - `instance_type` (String) Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`
 - `name` (String) Name of the cluster.
