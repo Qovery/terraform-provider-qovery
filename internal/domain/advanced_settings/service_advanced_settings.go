@@ -23,6 +23,7 @@ const (
 	APPLICATION int = 0
 	CONTAINER   int = 1
 	JOB         int = 2
+	HELM        int = 3
 )
 
 // Compute the URL to GET or PUT advanced settings for any service type
@@ -37,8 +38,10 @@ func (c ServiceAdvancedSettingsService) computeServiceAdvancedSettingsUrl(servic
 		urlAdvancedSettings = host + "/container/" + serviceId + "/advancedSettings"
 	case JOB:
 		urlAdvancedSettings = host + "/job/" + serviceId + "/advancedSettings"
+	case HELM:
+		urlAdvancedSettings = host + "/helm/" + serviceId + "/advancedSettings"
 	default:
-		return nil, errors.New("serviceType must be one of APPLICATION / CONTAINER / JOB")
+		return nil, errors.New("serviceType must be one of APPLICATION / CONTAINER / JOB / HELM")
 	}
 
 	return &urlAdvancedSettings, nil
@@ -56,8 +59,10 @@ func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl
 		urlAdvancedSettings = host + "/defaultContainerAdvancedSettings"
 	case JOB:
 		urlAdvancedSettings = host + "/defaultJobAdvancedSettings"
+	case HELM:
+		urlAdvancedSettings = host + "/defaultHelmAdvancedSettings"
 	default:
-		return nil, errors.New("serviceType must be one of APPLICATION / CONTAINER / JOB")
+		return nil, errors.New("serviceType must be one of APPLICATION / CONTAINER / JOB / HELM")
 	}
 
 	return &urlAdvancedSettings, nil

@@ -2,6 +2,8 @@ package qovery
 
 import (
 	"fmt"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -41,7 +43,9 @@ type ClientEnum interface {
 		storage.Type |
 		qovery.BuildModeEnum |
 		qovery.ClusterStateEnum |
-		gittoken.GitTokenType
+		gittoken.GitTokenType |
+		helmRepository.Kind |
+		helm.Protocol
 }
 
 func clientEnumToStringArray[T ClientEnum](enum []T) []string {
@@ -150,6 +154,19 @@ func ToStringArray(v types.List) []string {
 	return array
 }
 
+func ToStringArrayFromSet(v types.Set) []string {
+	if v.IsNull() || v.IsUnknown() {
+		return []string{}
+	}
+
+	array := make([]string, 0, len(v.Elements()))
+	for _, elem := range v.Elements() {
+		array = append(array, ToString(elem.(types.String)))
+	}
+
+	return array
+}
+
 //
 // Convert Go types to Terraform types
 //
@@ -223,5 +240,18 @@ func FromStringArray(array []string) types.List {
 		elements = append(elements, FromString(v))
 	}
 	value, _ := basetypes.NewListValue(types.StringType, elements)
+	return value
+}
+
+func FromStringSet(array []string) types.Set {
+	if array == nil {
+		return basetypes.NewSetNull(types.StringType)
+	}
+
+	var elements = make([]attr.Value, 0, len(array))
+	for _, v := range array {
+		elements = append(elements, FromString(v))
+	}
+	value, _ := basetypes.NewSetValue(types.StringType, elements)
 	return value
 }

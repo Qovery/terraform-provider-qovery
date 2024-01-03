@@ -1,4 +1,4 @@
-package registry
+package helmRepository
 
 import (
 	"fmt"
@@ -10,26 +10,28 @@ import (
 type Kind string
 
 const (
-	KindECR                 Kind = "ECR"
-	KindScalewayCR          Kind = "SCALEWAY_CR"
-	KindDockerHub           Kind = "DOCKER_HUB"
-	KindGithubCr            Kind = "GITHUB_CR"
-	KindGitlabCr            Kind = "GITLAB_CR"
-	KindPublicECR           Kind = "PUBLIC_ECR"
-	KindGenericCR           Kind = "GENERIC_CR"
-	KindGcpArtifactRegistry Kind = "GCP_ARTIFACT_REGISTRY"
+	KindHttps      Kind = "HTTPS"
+	KindECR        Kind = "OCI_ECR"
+	KindDocker     Kind = "OCI_DOCR"
+	KindScalewayCR Kind = "OCI_SCALEWAY_CR"
+	KindDockerHub  Kind = "OCI_DOCKER_HUB"
+	KindGithubCr   Kind = "OCI_GITHUB_CR"
+	KindGitlabCr   Kind = "OCI_GITLAB_CR"
+	KindPublicECR  Kind = "OCI_PUBLIC_ECR"
+	KindGenericCR  Kind = "OCI_GENERIC_CR"
 )
 
 // AllowedKindValues contains all the valid values of a Kind.
 var AllowedKindValues = []Kind{
+	KindHttps,
 	KindECR,
+	KindDocker,
 	KindScalewayCR,
 	KindDockerHub,
 	KindGithubCr,
 	KindGitlabCr,
 	KindPublicECR,
 	KindGenericCR,
-	KindGcpArtifactRegistry,
 }
 
 // String returns the string value of a Kind.

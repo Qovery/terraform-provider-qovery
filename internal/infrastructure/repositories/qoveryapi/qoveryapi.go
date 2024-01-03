@@ -2,6 +2,8 @@ package qoveryapi
 
 import (
 	"fmt"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
@@ -61,6 +63,11 @@ type QoveryAPI struct {
 	DeploymentStage                deploymentstage.Repository
 	DeploymentEnvironment          newdeployment.EnvironmentRepository
 	DeploymentStatus               newdeployment.DeploymentStatusRepository
+	Helm                           helm.Repository
+	HelmDeployment                 deployment.Repository
+	HelmEnvironmentVariable        variable.Repository
+	HelmSecret                     secret.Repository
+	HelmRepository                 helmRepository.Repository
 }
 
 // New returns a new instance of QoveryAPI and applies the given configs.
@@ -181,6 +188,31 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	helmAPI, err := newHelmQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	helmDeploymentAPI, err := newHelmDeploymentQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	helmEnvironmentVariableAPI, err := newHelmEnvironmentVariablesQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	helmSecretAPI, err := newHelmSecretsQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	helmRepositoryAPI, err := newHelmRepositoryQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create a new QoveryAPI instance.
 	qoveryAPI := &QoveryAPI{
 		Client:                         apiClient,
@@ -206,6 +238,11 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		DeploymentStage:                deploymentStageAPI,
 		DeploymentEnvironment:          deploymentEnvironmentAPI,
 		DeploymentStatus:               deploymentStatusAPI,
+		Helm:                           helmAPI,
+		HelmDeployment:                 helmDeploymentAPI,
+		HelmEnvironmentVariable:        helmEnvironmentVariableAPI,
+		HelmSecret:                     helmSecretAPI,
+		HelmRepository:                 helmRepositoryAPI,
 	}
 
 	// Apply all the configs to the qoveryAPI instance.
