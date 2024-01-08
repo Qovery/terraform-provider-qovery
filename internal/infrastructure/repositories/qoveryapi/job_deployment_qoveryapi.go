@@ -60,7 +60,7 @@ func (c jobDeploymentQoveryAPI) Deploy(ctx context.Context, jobID string, versio
 // Redeploy calls Qovery's API to redeploy a job using the given jobID.
 func (c jobDeploymentQoveryAPI) Redeploy(ctx context.Context, jobID string) (*status.Status, error) {
 	jobStatus, resp, err := c.client.JobActionsAPI.
-		RedeployJob(ctx, jobID).
+		DeployJob(ctx, jobID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewRedeployAPIError(apierrors.APIResourceJob, jobID, resp, err)

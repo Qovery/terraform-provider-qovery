@@ -75,7 +75,7 @@ func (c *Client) redeployApplication(ctx context.Context, application *qovery.Ap
 	}
 
 	_, res, err := c.api.ApplicationActionsAPI.
-		RedeployApplication(ctx, application.Id).
+		DeployApplication(ctx, application.Id).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewRedeployError(apierrors.APIResourceApplication, application.Id, res, err)
