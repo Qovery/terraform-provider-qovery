@@ -262,7 +262,7 @@ func (c *Client) redeployDatabase(ctx context.Context, databaseID string) (*qove
 	}
 
 	_, res, err := c.api.DatabaseActionsAPI.
-		RedeployDatabase(ctx, databaseID).
+		DeployDatabase(ctx, databaseID).
 		Execute()
 	if err != nil || res.StatusCode >= 400 {
 		return nil, apierrors.NewRedeployError(apierrors.APIResourceDatabase, databaseID, res, err)

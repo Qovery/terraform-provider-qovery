@@ -35,7 +35,7 @@ func TestAcc_DatabaseDataSource(t *testing.T) {
 					resource.TestCheckNoResourceAttr("data.qovery_database.test", "instance_type"),
 					resource.TestCheckResourceAttr("data.qovery_database.test", "port", "6379"),
 					resource.TestCheckResourceAttr("data.qovery_database.test", "login", ""),
-					resource.TestCheckResourceAttr("data.qovery_database.test", "external_host", "zfe74ad34-redis.zc531a994.rustrocks.cloud"),
+					resource.TestCheckResourceAttr("data.qovery_database.test", "external_host", "localhost"), // because of private mode
 					resource.TestCheckResourceAttr("data.qovery_database.test", "internal_host", "zfe74ad34-redis"),
 					resource.TestCheckResourceAttrSet("data.qovery_database.test", "password"),
 				),

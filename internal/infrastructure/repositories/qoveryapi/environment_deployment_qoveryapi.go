@@ -56,7 +56,7 @@ func (c environmentDeploymentQoveryAPI) Deploy(ctx context.Context, environmentI
 // Redeploy calls Qovery's API to redeploy an environment using the given environmentID.
 func (c environmentDeploymentQoveryAPI) Redeploy(ctx context.Context, environmentID string) (*status.Status, error) {
 	_, resp, err := c.client.EnvironmentActionsAPI.
-		RedeployEnvironment(ctx, environmentID).
+		DeployEnvironment(ctx, environmentID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewRedeployAPIError(apierrors.APIResourceEnvironment, environmentID, resp, err)

@@ -59,7 +59,7 @@ func (c containerDeploymentQoveryAPI) Deploy(ctx context.Context, containerID st
 // Redeploy calls Qovery's API to redeploy a container using the given containerID.
 func (c containerDeploymentQoveryAPI) Redeploy(ctx context.Context, containerID string) (*status.Status, error) {
 	containerStatus, resp, err := c.client.ContainerActionsAPI.
-		RedeployContainer(ctx, containerID).
+		DeployContainer(ctx, containerID).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewRedeployAPIError(apierrors.APIResourceContainer, containerID, resp, err)
