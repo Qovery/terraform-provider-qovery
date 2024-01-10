@@ -1,0 +1,320 @@
+package qoveryapi
+
+import (
+	"github.com/pkg/errors"
+	"time"
+
+	"github.com/qovery/qovery-client-go"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
+)
+
+type AggregateHelmResponse struct {
+	Id                        string
+	EnvironmentId             string
+	CreatedAt                 time.Time
+	UpdatedAt                 *time.Time
+	Name                      string
+	Description               *string
+	TimeoutSec                *int32
+	AutoPreview               bool
+	AutoDeploy                bool
+	Arguments                 []string
+	AllowClusterWideResources bool
+	Source                    qovery.HelmResponseAllOfSource
+	ValuesOverride            qovery.HelmResponseAllOfValuesOverride
+	Ports                     []qovery.HelmResponseAllOfPorts
+}
+
+func getAggregateHelmResponse(helmResponse *qovery.HelmResponse) AggregateHelmResponse {
+	return AggregateHelmResponse{
+		Id:                        helmResponse.Id,
+		EnvironmentId:             helmResponse.Environment.Id,
+		CreatedAt:                 helmResponse.CreatedAt,
+		UpdatedAt:                 helmResponse.UpdatedAt,
+		Name:                      helmResponse.Name,
+		Description:               helmResponse.Description,
+		TimeoutSec:                helmResponse.TimeoutSec,
+		AutoPreview:               helmResponse.AutoPreview,
+		AutoDeploy:                helmResponse.AutoDeploy,
+		Arguments:                 helmResponse.Arguments,
+		AllowClusterWideResources: helmResponse.AllowClusterWideResources,
+		Source:                    helmResponse.Source,
+		ValuesOverride:            helmResponse.ValuesOverride,
+		Ports:                     helmResponse.Ports,
+	}
+}
+
+// newDomainCredentialsFromQovery takes a qovery.EnvironmentVariable returned by the API client and turns it into the domain model variable.Variable.
+func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageID string, advancedSettingsJson string) (*helm.Helm, error) {
+	if helmResponse == nil {
+		return nil, variable.ErrNilVariable
+	}
+
+	var h = getAggregateHelmResponse(helmResponse)
+
+	var helmSourceGitRepository *helm.NewHelmSourceGitRepository = nil
+	if h.Source.HelmResponseAllOfSourceOneOf != nil && h.Source.HelmResponseAllOfSourceOneOf.Git != nil && h.Source.HelmResponseAllOfSourceOneOf.Git.GitRepository != nil {
+		gitRepository := h.Source.HelmResponseAllOfSourceOneOf.Git.GitRepository
+
+		var gitTokenId *string = nil
+		if gitRepository.GitTokenId.IsSet() && gitRepository.GitTokenId.Get() != nil {
+			gitTokenId = gitRepository.GitTokenId.Get()
+		}
+
+		if gitRepository.Url != nil && gitRepository.RootPath != nil {
+			helmSourceGitRepository = &helm.NewHelmSourceGitRepository{
+				Url:        *gitRepository.Url,
+				Branch:     gitRepository.Branch,
+				RootPath:   *gitRepository.RootPath,
+				GitTokenId: gitTokenId,
+			}
+		}
+	}
+
+	var helmSourceHelmRepository *helm.NewHelmSourceHelmRepository = nil
+	if h.Source.HelmResponseAllOfSourceOneOf1 != nil && h.Source.HelmResponseAllOfSourceOneOf1.Repository != nil {
+		repository := h.Source.HelmResponseAllOfSourceOneOf1.Repository
+
+		helmSourceHelmRepository = &helm.NewHelmSourceHelmRepository{
+			RepositoryId: repository.Repository.Id,
+			ChartName:    repository.ChartName,
+			ChartVersion: repository.ChartVersion,
+		}
+	}
+
+	source := helm.NewHelmSourceParams{
+		HelmSourceGitRepository:  helmSourceGitRepository,
+		HelmSourceHelmRepository: helmSourceHelmRepository,
+	}
+
+	var raw *helm.Raw = nil
+	var gitRepository *helm.ValuesOverrideGit = nil
+	if h.ValuesOverride.File.IsSet() && h.ValuesOverride.File.Get() != nil {
+		file := h.ValuesOverride.File.Get()
+		if file.Git.IsSet() && file.Git.Get() != nil {
+			git := file.Git.Get()
+
+			var gitToken *string = nil
+			if git.GitRepository.GitTokenId.IsSet() && git.GitRepository.GitTokenId.Get() != nil {
+				gitToken = git.GitRepository.GitTokenId.Get()
+			}
+
+			gitRepository = &helm.ValuesOverrideGit{
+				Url:      *git.GitRepository.Url,
+				Branch:   *git.GitRepository.Branch,
+				Paths:    git.Paths,
+				GitToken: gitToken,
+			}
+		}
+
+		if file.Raw.IsSet() && file.Raw.Get() != nil {
+			rawInput := file.Raw.Get()
+
+			values := make([]helm.RawValue, 0, len(rawInput.Values))
+			for _, value := range rawInput.Values {
+				values = append(values, helm.RawValue{Name: value.Name, Content: value.Content})
+			}
+
+			raw = &helm.Raw{
+				Values: values,
+			}
+		}
+	}
+
+	file := helm.ValuesOverrideFile{
+		Raw:           raw,
+		GitRepository: gitRepository,
+	}
+
+	var valuesOverride = helm.NewHelmValuesOverrideParams{
+		Set:       h.ValuesOverride.Set,
+		SetString: h.ValuesOverride.SetString,
+		SetJson:   h.ValuesOverride.SetJson,
+		File:      file,
+	}
+
+	ports := make([]helm.NewHelmPortParams, 0, len(h.Ports))
+	for _, port := range h.Ports {
+		if port.Name != nil && port.IsDefault != nil {
+			protocol := string(port.Protocol)
+
+			pt := helm.NewHelmPortParams{
+				Name:         *port.Name,
+				InternalPort: port.InternalPort,
+				ExternalPort: port.ExternalPort,
+				ServiceName:  port.ServiceName,
+				Namespace:    port.Namespace,
+				Protocol:     protocol,
+				IsDefault:    *port.IsDefault,
+			}
+
+			ports = append(ports, pt)
+		}
+	}
+
+	return helm.NewHelm(helm.NewHelmParams{
+		HelmID:                    h.Id,
+		EnvironmentID:             h.EnvironmentId,
+		Name:                      h.Name,
+		TimeoutSec:                h.TimeoutSec,
+		AutoPreview:               h.AutoPreview,
+		AutoDeploy:                h.AutoDeploy,
+		Arguments:                 h.Arguments,
+		AllowClusterWideResources: h.AllowClusterWideResources,
+		Source:                    source,
+		ValuesOverride:            valuesOverride,
+		Ports:                     ports,
+		DeploymentStageID:         deploymentStageID,
+		AdvancedSettingsJson:      advancedSettingsJson,
+	})
+}
+
+// newQoveryHelmRequestFromDomain takes the domain request helm.UpsertRequest and turns it into a qovery.HelmRequest to make the api call.
+func newQoveryHelmRequestFromDomain(request helm.UpsertRepositoryRequest) (*qovery.HelmRequest, error) {
+	ports, err := newQoveryHelmPortsRequestFromDomain(request.Ports)
+	if err != nil {
+		return nil, errors.Wrap(err, helm.ErrInvalidUpsertRequest.Error())
+	}
+
+	source, err := newQoveryHelmSourceRequestFromDomain(request.Source)
+	if err != nil {
+		return nil, errors.Wrap(err, helm.ErrInvalidUpsertRequest.Error())
+	}
+
+	fileValuesOverride, err := newQoveryFileValuesOverrideRequestFromDomain(request.ValuesOverride.File)
+	if err != nil {
+		return nil, errors.Wrap(err, helm.ErrInvalidUpsertRequest.Error())
+	}
+
+	return &qovery.HelmRequest{
+		Name:                      request.Name,
+		TimeoutSec:                request.TimeoutSec,
+		AutoPreview:               request.AutoPreview,
+		AutoDeploy:                request.AutoDeploy,
+		Arguments:                 request.Arguments,
+		AllowClusterWideResources: &request.AllowClusterWideResources,
+		Source:                    *source,
+		Ports:                     *ports,
+		ValuesOverride: qovery.HelmRequestAllOfValuesOverride{
+			Set:       request.ValuesOverride.Set,
+			SetString: request.ValuesOverride.SetString,
+			SetJson:   request.ValuesOverride.SetJson,
+			File:      *fileValuesOverride,
+		},
+	}, nil
+}
+
+func newQoveryHelmSourceRequestFromDomain(source helm.Source) (*qovery.HelmRequestAllOfSource, error) {
+
+	var gitRepositorySource *qovery.HelmRequestAllOfSourceOneOf = nil
+	if source.GitRepository != nil {
+		gitTokenId := qovery.NullableString{}
+		if source.GitRepository.GitTokenId != nil {
+			gitTokenId.Set(source.GitRepository.GitTokenId)
+		}
+
+		gitRepository := qovery.HelmGitRepositoryRequest{
+			Url:        source.GitRepository.Url,
+			Branch:     source.GitRepository.Branch,
+			RootPath:   &source.GitRepository.RootPath,
+			GitTokenId: gitTokenId,
+		}
+
+		gitRepositorySource = &qovery.HelmRequestAllOfSourceOneOf{
+			GitRepository: &gitRepository,
+		}
+	}
+
+	var helmRepositorySource *qovery.HelmRequestAllOfSourceOneOf1 = nil
+	if source.HelmRepository != nil {
+		helmRepositoryId := qovery.NullableString{}
+		helmRepositoryId.Set(&source.HelmRepository.RepositoryId)
+
+		helmRepository := qovery.HelmRequestAllOfSourceOneOf1HelmRepository{
+			Repository:   helmRepositoryId,
+			ChartName:    &source.HelmRepository.ChartName,
+			ChartVersion: &source.HelmRepository.ChartVersion,
+		}
+
+		helmRepositorySource = &qovery.HelmRequestAllOfSourceOneOf1{
+			HelmRepository: &helmRepository,
+		}
+	}
+
+	s := qovery.HelmRequestAllOfSource{
+		HelmRequestAllOfSourceOneOf:  gitRepositorySource,
+		HelmRequestAllOfSourceOneOf1: helmRepositorySource,
+	}
+
+	return &s, nil
+}
+
+func newQoveryFileValuesOverrideRequestFromDomain(file helm.ValuesOverrideFile) (*qovery.NullableHelmRequestAllOfValuesOverrideFile, error) {
+	f := qovery.NullableHelmRequestAllOfValuesOverrideFile{}
+	v := qovery.HelmRequestAllOfValuesOverrideFile{}
+	f.Set(&v)
+
+	if file.GitRepository != nil {
+		g := qovery.HelmValuesGitRepositoryRequest{}
+		g.SetUrl(file.GitRepository.Url)
+		g.SetBranch(file.GitRepository.Branch)
+		g.SetPaths(file.GitRepository.Paths)
+		if file.GitRepository.GitToken != nil {
+			g.SetGitTokenId(*file.GitRepository.GitToken)
+		}
+
+		v.SetGitRepository(g)
+	}
+
+	if file.Raw != nil {
+		r := qovery.HelmRequestAllOfValuesOverrideFileRaw{}
+
+		values := make([]qovery.HelmRequestAllOfValuesOverrideFileRawValues, 0, len(file.Raw.Values))
+		for _, value := range file.Raw.Values {
+			name := value.Name
+			content := value.Content
+
+			values = append(values, qovery.HelmRequestAllOfValuesOverrideFileRawValues{Name: &name, Content: &content})
+		}
+
+		r.SetValues(values)
+
+		v.SetRaw(r)
+	}
+
+	return &f, nil
+}
+
+func newQoveryHelmPortsRequestFromDomain(ports *[]helm.Port) (*[]qovery.HelmPortRequestPortsInner, error) {
+	if ports == nil {
+		rv := make([]qovery.HelmPortRequestPortsInner, 0)
+		return &rv, nil
+	}
+
+	rv := make([]qovery.HelmPortRequestPortsInner, 0, len(*ports))
+	for _, port := range *ports {
+		protocol, err := qovery.NewHelmPortProtocolEnumFromValue(port.Protocol.String())
+		if err != nil {
+			return nil, helm.ErrInvalidPortProtocol
+		}
+
+		portName := port.Name
+		isDefault := port.IsDefault
+
+		helmPort := qovery.HelmPortRequestPortsInner{
+			Name:         &portName,
+			InternalPort: port.InternalPort,
+			ExternalPort: port.ExternalPort,
+			ServiceName:  port.ServiceName,
+			Namespace:    port.Namespace,
+			Protocol:     protocol,
+			IsDefault:    &isDefault,
+		}
+
+		rv = append(rv, helmPort)
+	}
+
+	return &rv, nil
+}

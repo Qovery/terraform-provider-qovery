@@ -40,4 +40,9 @@ const (
 	APIResourceDeploymentStage                APIResource = "deployment stage"
 	APIResourceDeployment                     APIResource = "deployment"
 	APIGitToken                               APIResource = "git token"
+	APIResourceHelm                           APIResource = "helm"
+	APIResourceHelmEnvironmentVariable        APIResource = "helm environment variable"
+	APIResourceHelmSecret                     APIResource = "helm secret"
+	APIResourceHelmStatus                     APIResource = "helm status"
+	APIResourceHelmRepository                 APIResource = "helm repository"
 )

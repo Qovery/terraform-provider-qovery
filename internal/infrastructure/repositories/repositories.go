@@ -2,6 +2,8 @@ package repositories
 
 import (
 	"fmt"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 
 	"github.com/qovery/qovery-client-go"
 
@@ -54,6 +56,11 @@ type Repositories struct {
 	DeploymentEnvironment          newdeployment.EnvironmentRepository
 	DeploymentStatus               newdeployment.DeploymentStatusRepository
 	QoveryClient                   *qovery.APIClient
+	Helm                           helm.Repository
+	HelmDeployment                 deployment.Repository
+	HelmEnvironmentVariable        variable.Repository
+	HelmSecret                     secret.Repository
+	HelmRepository                 helmRepository.Repository
 }
 
 func New(configs ...Configuration) (*Repositories, error) {
@@ -107,6 +114,11 @@ func WithQoveryAPI(apiToken string, providerVersion string, host string) Configu
 		repos.DeploymentEnvironment = qoveryAPI.DeploymentEnvironment
 		repos.DeploymentStatus = qoveryAPI.DeploymentStatus
 		repos.QoveryClient = qoveryAPI.Client
+		repos.Helm = qoveryAPI.Helm
+		repos.HelmDeployment = qoveryAPI.HelmDeployment
+		repos.HelmSecret = qoveryAPI.HelmSecret
+		repos.HelmEnvironmentVariable = qoveryAPI.HelmEnvironmentVariable
+		repos.HelmRepository = qoveryAPI.HelmRepository
 
 		return nil
 	}

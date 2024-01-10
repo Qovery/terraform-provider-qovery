@@ -3,6 +3,8 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
@@ -82,6 +84,12 @@ type qProvider struct {
 	deploymentService newdeployment.Service
 
 	gitTokenService gittoken.Service
+
+	// helmService is an instance of a helm.Service that handles the domain logic.
+	helmService helm.Service
+
+	// helmRegistryService is an instance of a registry.Service that handles the domain logic.
+	helmRepositoryService helmRepository.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -161,6 +169,8 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.deploymentStageService = domainServices.DeploymentStage
 	p.deploymentService = domainServices.Deployment
 	p.gitTokenService = domainServices.GitToken
+	p.helmService = domainServices.Helm
+	p.helmRepositoryService = domainServices.HelmRepository
 
 	resp.DataSourceData = p
 	resp.ResourceData = p
@@ -182,6 +192,8 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newDeploymentStageResource,
 		newDeploymentResource,
 		newGitTokenResource,
+		newHelmResource,
+		newHelmRepositoryResource,
 	}
 }
 
@@ -201,6 +213,8 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 		newDeploymentStageDataSource,
 		newDeploymentDataSource,
 		newGitTokenDataSource,
+		newHelmDataSource,
+		newhelmRepositoryDataSource,
 	}
 }
 

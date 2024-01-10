@@ -2,6 +2,8 @@ package services
 
 import (
 	"github.com/pkg/errors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
@@ -41,6 +43,8 @@ type Services struct {
 	DeploymentStage     deploymentstage.Service
 	Deployment          newdeployment.Service
 	GitToken            gittoken.Service
+	Helm                helm.Service
+	HelmRepository      helmRepository.Service
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -172,6 +176,28 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
+	helmDeploymentService, err := NewDeploymentService(services.repos.HelmDeployment)
+	if err != nil {
+		return nil, err
+	}
+
+	helmEnvironmentVariableService, err := NewVariableService(services.repos.HelmEnvironmentVariable)
+	if err != nil {
+		return nil, err
+	}
+
+	helmSecretService, err := NewSecretService(services.repos.HelmSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	helmService, err := NewHelmService(services.repos.Helm, helmDeploymentService, helmEnvironmentVariableService, helmSecretService)
+	if err != nil {
+		return nil, err
+	}
+
+	helmRepositoryService, err := NewHelmRepositoryService(services.repos.HelmRepository)
+
 	services.CredentialsAws = credentialsAwsService
 	services.CredentialsScaleway = credentialsScalewayService
 	services.Organization = organizationService
@@ -183,6 +209,8 @@ func New(configs ...Configuration) (*Services, error) {
 	services.DeploymentStage = deploymentStageService
 	services.Deployment = deploymentService
 	services.GitToken = gitTokenService
+	services.Helm = helmService
+	services.HelmRepository = helmRepositoryService
 
 	return services, nil
 }
