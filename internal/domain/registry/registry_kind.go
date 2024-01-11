@@ -11,6 +11,7 @@ type Kind string
 
 const (
 	KindECR                 Kind = "ECR"
+	KindDocker              Kind = "DOCR"
 	KindScalewayCR          Kind = "SCALEWAY_CR"
 	KindDockerHub           Kind = "DOCKER_HUB"
 	KindGithubCr            Kind = "GITHUB_CR"
@@ -23,6 +24,7 @@ const (
 // AllowedKindValues contains all the valid values of a Kind.
 var AllowedKindValues = []Kind{
 	KindECR,
+	KindDocker,
 	KindScalewayCR,
 	KindDockerHub,
 	KindGithubCr,
