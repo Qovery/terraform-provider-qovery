@@ -56,10 +56,10 @@ type HelmSourceGitRepository struct {
 }
 
 type HelmValuesOverride struct {
-	HelmValuesOverrideSet       types.Map              `tfsdk:"set"`
-	HelmValuesOverrideSetString types.Map              `tfsdk:"set_string"`
-	HelmValuesOverrideSetJson   types.Map              `tfsdk:"set_json"`
-	HelmValuesOverrideFile      HelmValuesOverrideFile `tfsdk:"file"`
+	HelmValuesOverrideSet       types.Map               `tfsdk:"set"`
+	HelmValuesOverrideSetString types.Map               `tfsdk:"set_string"`
+	HelmValuesOverrideSetJson   types.Map               `tfsdk:"set_json"`
+	HelmValuesOverrideFile      *HelmValuesOverrideFile `tfsdk:"file"`
 }
 
 type HelmValuesOverrideFile struct {
@@ -239,11 +239,17 @@ func (f HelmValuesOverrideFile) toUpsertRequest() helm.ValuesOverrideFile {
 			paths = append(paths, elem.(types.String).ValueString())
 		}
 
+		var gitTokenId *string = nil
+		if !f.GitRepository.GitTokenId.IsNull() {
+			v := ToStringPointer(f.GitRepository.GitTokenId)
+			gitTokenId = v
+		}
+
 		gitRepository = &helm.ValuesOverrideGit{
 			Url:      f.GitRepository.Url.ValueString(),
 			Branch:   f.GitRepository.Branch.ValueString(),
 			Paths:    paths,
-			GitToken: f.GitRepository.GitTokenId.ValueStringPointer(),
+			GitToken: gitTokenId,
 		}
 	}
 
@@ -268,11 +274,17 @@ func (valuesOverride HelmValuesOverride) toUpsertRequest() helm.ValuesOverride {
 	setString := convertSetElements(valuesOverride.HelmValuesOverrideSetString.Elements())
 	setJson := convertSetElements(valuesOverride.HelmValuesOverrideSetJson.Elements())
 
+	var file *helm.ValuesOverrideFile
+	if valuesOverride.HelmValuesOverrideFile != nil {
+		valuesOverrideFile := (*valuesOverride.HelmValuesOverrideFile).toUpsertRequest()
+		file = &valuesOverrideFile
+	}
+
 	return helm.ValuesOverride{
 		Set:       set,
 		SetString: setString,
 		SetJson:   setJson,
-		File:      valuesOverride.HelmValuesOverrideFile.toUpsertRequest(),
+		File:      file,
 	}
 }
 
@@ -295,7 +307,7 @@ func convertSetToHelmValuesOverrideSet(ctx context.Context, set [][]string) type
 	return helmValuesOverrideSet
 }
 
-func HelmValuesOverrideFromDomainHelmValuesOverride(ctx context.Context, h helm.ValuesOverride) HelmValuesOverride {
+func HelmValuesOverrideFromDomainHelmValuesOverride(ctx context.Context, h helm.ValuesOverride, state *HelmValuesOverride) HelmValuesOverride {
 	helmValuesOverrideSet := convertSetToHelmValuesOverrideSet(ctx, h.Set)
 	helmValuesOverrideSetString := convertSetToHelmValuesOverrideSet(ctx, h.SetString)
 	helmValuesOverrideSetJson := convertSetToHelmValuesOverrideSet(ctx, h.SetJson)
@@ -315,12 +327,24 @@ func HelmValuesOverrideFromDomainHelmValuesOverride(ctx context.Context, h helm.
 		}
 	}
 
-	var raw map[string]HelmValuesRaw
+	var raw *map[string]HelmValuesRaw
 	if h.File.Raw != nil {
-		raw = make(map[string]HelmValuesRaw, len(h.File.Raw.Values))
+		if (state != nil && state.HelmValuesOverrideFile != nil) || len(h.File.Raw.Values) != 0 {
+			helmValuesRaw := make(map[string]HelmValuesRaw, len(h.File.Raw.Values))
 
-		for _, value := range h.File.Raw.Values {
-			raw[value.Name] = HelmValuesRaw{Content: FromString(value.Content)}
+			for _, value := range h.File.Raw.Values {
+				helmValuesRaw[value.Name] = HelmValuesRaw{Content: FromString(value.Content)}
+			}
+
+			raw = &helmValuesRaw
+		}
+	}
+
+	var helmValuesOverrideFile *HelmValuesOverrideFile
+	if raw != nil || gitRepository != nil {
+		helmValuesOverrideFile = &HelmValuesOverrideFile{
+			GitRepository: gitRepository,
+			Raw:           raw,
 		}
 	}
 
@@ -328,10 +352,7 @@ func HelmValuesOverrideFromDomainHelmValuesOverride(ctx context.Context, h helm.
 		HelmValuesOverrideSet:       helmValuesOverrideSet,
 		HelmValuesOverrideSetString: helmValuesOverrideSetString,
 		HelmValuesOverrideSetJson:   helmValuesOverrideSetJson,
-		HelmValuesOverrideFile: HelmValuesOverrideFile{
-			Raw:           &raw,
-			GitRepository: gitRepository,
-		},
+		HelmValuesOverrideFile:      helmValuesOverrideFile,
 	}
 }
 
@@ -385,7 +406,7 @@ func HelmPortsFromDomainHelmPorts(ports []helm.Port) *map[string]HelmPort {
 
 func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) Helm {
 	source := HelmSourceFromDomainHelmSource(helm.Source)
-	valuesOverride := HelmValuesOverrideFromDomainHelmValuesOverride(ctx, helm.ValuesOverride)
+	valuesOverride := HelmValuesOverrideFromDomainHelmValuesOverride(ctx, helm.ValuesOverride, state.ValuesOverride)
 	ports := HelmPortsFromDomainHelmPorts(helm.Ports)
 
 	return Helm{

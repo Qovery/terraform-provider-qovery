@@ -25,14 +25,14 @@ type ValuesOverride struct {
 	Set       [][]string
 	SetString [][]string
 	SetJson   [][]string
-	File      ValuesOverrideFile
+	File      *ValuesOverrideFile
 }
 
 type NewHelmValuesOverrideParams struct {
 	Set       [][]string
 	SetString [][]string
 	SetJson   [][]string
-	File      ValuesOverrideFile
+	File      *ValuesOverrideFile
 }
 
 type NewHelmPortParams struct {

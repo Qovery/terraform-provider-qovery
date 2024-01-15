@@ -132,7 +132,7 @@ func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageI
 		Set:       h.ValuesOverride.Set,
 		SetString: h.ValuesOverride.SetString,
 		SetJson:   h.ValuesOverride.SetJson,
-		File:      file,
+		File:      &file,
 	}
 
 	ports := make([]helm.NewHelmPortParams, 0, len(h.Ports))
@@ -251,7 +251,11 @@ func newQoveryHelmSourceRequestFromDomain(source helm.Source) (*qovery.HelmReque
 	return &s, nil
 }
 
-func newQoveryFileValuesOverrideRequestFromDomain(file helm.ValuesOverrideFile) (*qovery.NullableHelmRequestAllOfValuesOverrideFile, error) {
+func newQoveryFileValuesOverrideRequestFromDomain(file *helm.ValuesOverrideFile) (*qovery.NullableHelmRequestAllOfValuesOverrideFile, error) {
+	if file == nil {
+		return &qovery.NullableHelmRequestAllOfValuesOverrideFile{}, nil
+	}
+
 	f := qovery.NullableHelmRequestAllOfValuesOverrideFile{}
 	v := qovery.HelmRequestAllOfValuesOverrideFile{}
 	f.Set(&v)

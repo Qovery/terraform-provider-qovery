@@ -178,7 +178,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 					},
 					"file": schema.SingleNestedAttribute{
 						Description: "Define the overrides by selecting a YAML file from a git repository (preferred) or by passing raw YAML files.",
-						Required:    true,
+						Optional:    true,
 						Attributes: map[string]schema.Attribute{
 							"raw": schema.MapNestedAttribute{
 								Description: "Raw YAML files",
