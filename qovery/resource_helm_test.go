@@ -63,7 +63,9 @@ func TestAcc_Helm(t *testing.T) {
 							},
 							HelmSourceGitRepository: nil,
 						},
-						ValuesOverride:               &qovery.HelmValuesOverride{},
+						ValuesOverride: &qovery.HelmValuesOverride{
+							HelmValuesOverrideFile: nil,
+						},
 						EnvironmentVariables:         generateHelmVariableSet("key1", "value1"),
 						EnvironmentVariableAliases:   generateHelmVariableSet("key1_alias", "key1"),
 						EnvironmentVariableOverrides: generateHelmVariableSet("environment_variable", "override value"),
@@ -82,6 +84,7 @@ func TestAcc_Helm(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_helm.test", "allow_cluster_wide_resources", "false"),
 					resource.TestCheckResourceAttr("qovery_helm.test", "source.helm_repository.chart_name", "httpbin"),
 					resource.TestCheckResourceAttr("qovery_helm.test", "source.helm_repository.chart_version", "1.0.0"),
+					resource.TestCheckNoResourceAttr("qovery_helm.test", "values_override.file"),
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_helm.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
@@ -226,6 +229,71 @@ func TestAcc_Helm(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_helm.test", "secret_overrides.0"),
 				),
 			},
+			// Create and Read testing with raw file as values override
+			{
+				Config: getHelmConfigFromModel(
+					testName,
+					qovery.Helm{
+						Name:                      qovery.FromString(generateTestName(testName) + "-values-file-raw"),
+						TimeoutSec:                qovery.FromInt64(600),
+						AutoPreview:               qovery.FromBool(false),
+						AutoDeploy:                qovery.FromBool(false),
+						AllowClusterWideResources: qovery.FromBool(false),
+						Source: &qovery.HelmSource{
+							HelmSourceHelmRepository: &qovery.HelmSourceHelmRepository{
+								HelmChartName:    qovery.FromString("httpbin"),
+								HelmChartVersion: qovery.FromString("1.0.0"),
+							},
+							HelmSourceGitRepository: nil,
+						},
+						ValuesOverride: &qovery.HelmValuesOverride{
+							HelmValuesOverrideFile: &qovery.HelmValuesOverrideFile{
+								Raw: &map[string]qovery.HelmValuesRaw{},
+							},
+						},
+						EnvironmentVariables:         generateHelmVariableSet("key1", "value1"),
+						EnvironmentVariableAliases:   generateHelmVariableSet("key1_alias", "key1"),
+						EnvironmentVariableOverrides: generateHelmVariableSet("environment_variable", "override value"),
+						Secrets:                      generateHelmVariableSet("secretkey1", "secretvalue1"),
+						AdvancedSettingsJson:         qovery.FromString("{\"network.ingress.proxy_buffer_size_kb\":8}"),
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryHelmExists("qovery_helm.test"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "name", generateTestName(testName)+"-values-file-raw"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "timeout_sec", "600"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "auto_preview", "false"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "auto_deploy", "false"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "allow_cluster_wide_resources", "false"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "source.helm_repository.chart_name", "httpbin"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "source.helm_repository.chart_version", "1.0.0"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "values_override.file.raw.file1.content", "content"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_helm.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_helm.test", "environment_variables.*", map[string]string{
+						"key":   "key1",
+						"value": "value1",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_helm.test", "environment_variable_aliases.*", map[string]string{
+						"key":   "key1_alias",
+						"value": "key1",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_helm.test", "environment_variable_overrides.*", map[string]string{
+						"key":   "environment_variable",
+						"value": "override value",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_helm.test", "secrets.*", map[string]string{
+						"key":   "secretkey1",
+						"value": "secretvalue1",
+					}),
+					resource.TestCheckNoResourceAttr("qovery_helm.test", "external_host"),
+					resource.TestCheckNoResourceAttr("qovery_helm.test", "internal_host"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "advanced_settings_json", "{\"network.ingress.proxy_buffer_size_kb\":8}"),
+				),
+			},
 			// Check Import
 			{
 				ResourceName:            "qovery_helm.test",
@@ -320,12 +388,27 @@ resource "qovery_helm" "test" {
 
   {{ with .Helm.ValuesOverride }}	
   values_override = {
-	 "set"= {}
-      "set_string"= {}
-      "set_json"= {}
-      file= {
-		raw = {}
-      }   
+	"set"= {}
+	"set_string"= {}
+	"set_json"= {}
+  	{{ with .HelmValuesOverrideFile }}	
+   	file= {
+		{{ with .Raw }}	
+		raw = { 
+			file1 = { 
+				content = "content"
+			}
+		}
+	 	{{ end }}
+	 	{{ with .GitRepository }}	
+	 	git_repository = { 
+			url = "https://github.com/Qovery/helm_chart_engine_testing.git"
+            branch = "main"
+		   	paths = [ "/simple_app/values.yaml" ]
+		}
+        {{ end }}
+  	}   
+  	{{ end }}
   }
   {{ end }}
 }
