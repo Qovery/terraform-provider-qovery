@@ -273,7 +273,7 @@ func convertResponseToApplicationGitRepository(gitRepository *qovery.Application
 	}
 
 	return &ApplicationGitRepository{
-		URL:        FromStringPointer(gitRepository.Url),
+		URL:        FromString(gitRepository.Url),
 		RootPath:   FromStringPointer(gitRepository.RootPath),
 		Branch:     FromStringPointer(gitRepository.Branch),
 		GitTokenId: FromStringPointer(gitRepository.GitTokenId.Get()),

@@ -63,13 +63,11 @@ func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageI
 			gitTokenId = gitRepository.GitTokenId.Get()
 		}
 
-		if gitRepository.Url != nil && gitRepository.RootPath != nil {
-			helmSourceGitRepository = &helm.NewHelmSourceGitRepository{
-				Url:        *gitRepository.Url,
-				Branch:     gitRepository.Branch,
-				RootPath:   *gitRepository.RootPath,
-				GitTokenId: gitTokenId,
-			}
+		helmSourceGitRepository = &helm.NewHelmSourceGitRepository{
+			Url:        gitRepository.Url,
+			Branch:     gitRepository.Branch,
+			RootPath:   *gitRepository.RootPath,
+			GitTokenId: gitTokenId,
 		}
 	}
 
@@ -102,7 +100,7 @@ func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageI
 			}
 
 			gitRepository = &helm.ValuesOverrideGit{
-				Url:      *git.GitRepository.Url,
+				Url:      git.GitRepository.Url,
 				Branch:   *git.GitRepository.Branch,
 				Paths:    git.Paths,
 				GitToken: gitToken,
@@ -261,15 +259,15 @@ func newQoveryFileValuesOverrideRequestFromDomain(file *helm.ValuesOverrideFile)
 	f.Set(&v)
 
 	if file.GitRepository != nil {
-		g := qovery.HelmValuesGitRepositoryRequest{}
-		g.SetUrl(file.GitRepository.Url)
-		g.SetBranch(file.GitRepository.Branch)
-		g.SetPaths(file.GitRepository.Paths)
-		if file.GitRepository.GitToken != nil {
-			g.SetGitTokenId(*file.GitRepository.GitToken)
+		g := qovery.HelmRequestAllOfValuesOverrideFileGit{
+			Paths: file.GitRepository.Paths,
+			GitRepository: qovery.ApplicationGitRepositoryRequest{
+				Url:        file.GitRepository.Url,
+				Branch:     &file.GitRepository.Branch,
+				GitTokenId: *qovery.NewNullableString(file.GitRepository.GitToken),
+			},
 		}
-
-		v.SetGitRepository(g)
+		v.SetGit(g)
 	}
 
 	if file.Raw != nil {
