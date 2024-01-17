@@ -134,9 +134,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 		}
 
 		if gitRepositoryFrom := dockerFrom.GitRepository; gitRepositoryFrom != nil {
-			if gitRepositoryFrom.Url != nil {
-				gitRepository.Url = *gitRepositoryFrom.Url
-			}
+			gitRepository.Url = gitRepositoryFrom.Url
 			if gitRepositoryFrom.Branch != nil {
 				gitRepository.Branch = gitRepositoryFrom.Branch
 			}
