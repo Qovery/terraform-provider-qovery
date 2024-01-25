@@ -80,7 +80,7 @@ func (r *deploymentResource) Configure(_ context.Context, req resource.Configure
 
 func (r deploymentResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.",
+		Description: "Provides a Qovery deployment resource. This is used to trigger a service deployment at demand.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the deployment",
