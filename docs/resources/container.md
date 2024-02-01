@@ -220,11 +220,11 @@ Optional:
 Required:
 
 - `port` (Number) The port number to try to connect to
+- `scheme` (String) if the HTTP GET request should be done in HTTP or HTTPS.
 
 Optional:
 
 - `path` (String) The path that the HTTP GET request. By default it is `/`
-- `scheme` (String) if the HTTP GET request should be done in HTTP or HTTPS. Default is HTTP
 
 
 <a id="nestedatt--healthchecks--liveness_probe--type--tcp"></a>
@@ -289,11 +289,11 @@ Optional:
 Required:
 
 - `port` (Number) The port number to try to connect to
+- `scheme` (String) if the HTTP GET request should be done in HTTP or HTTPS.
 
 Optional:
 
 - `path` (String) The path that the HTTP GET request. By default it is `/`
-- `scheme` (String) if the HTTP GET request should be done in HTTP or HTTPS. Default is HTTP
 
 
 <a id="nestedatt--healthchecks--readiness_probe--type--tcp"></a>

@@ -119,8 +119,8 @@ func probeSchemaAttributes() map[string]schema.Attribute {
 							Optional:    true,
 						},
 						"scheme": schema.StringAttribute{
-							Description: "if the HTTP GET request should be done in HTTP or HTTPS. Default is HTTP",
-							Optional:    true,
+							Description: "if the HTTP GET request should be done in HTTP or HTTPS.",
+							Required:    true,
 						},
 					},
 				},
