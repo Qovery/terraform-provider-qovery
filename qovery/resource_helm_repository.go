@@ -3,6 +3,8 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 	"strings"
 
@@ -59,6 +61,9 @@ func (r helmRepositoryResource) Schema(_ context.Context, _ resource.SchemaReque
 			"id": schema.StringAttribute{
 				Description: "Id of the helm repository.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",

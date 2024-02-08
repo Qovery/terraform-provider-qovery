@@ -3,6 +3,8 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -54,6 +56,9 @@ func (r awsCredentialsResource) Schema(_ context.Context, _ resource.SchemaReque
 			"id": schema.StringAttribute{
 				Description: "Id of the AWS credentials.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",

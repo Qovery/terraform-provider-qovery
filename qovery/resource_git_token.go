@@ -3,6 +3,8 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -59,6 +61,9 @@ func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"id": schema.StringAttribute{
 				Description: "Id of the git token.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
