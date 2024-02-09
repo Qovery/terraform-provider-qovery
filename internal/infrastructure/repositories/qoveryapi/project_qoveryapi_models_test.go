@@ -28,7 +28,7 @@ func TestNewDomainProjectFromQovery(t *testing.T) {
 			TestName: "success",
 			Project: &qovery.Project{
 				Id: gofakeit.UUID(),
-				Organization: &qovery.ReferenceObject{
+				Organization: qovery.ReferenceObject{
 					Id: gofakeit.UUID(),
 				},
 				Name:        gofakeit.Name(),
