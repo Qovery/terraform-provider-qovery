@@ -190,7 +190,7 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 			attributes[featureKeyStaticIP] = FromBoolPointer(f.GetValue().Bool)
 			attributeTypes[featureKeyStaticIP] = types.BoolType
 		case featureIdExistingVpc:
-			// tf has a default value for it, but the api does not returns this feature , as exisiting vpc super seed it
+			// tf has a default value for it, but the api does not return this feature , as exiting vpc super seed it
 			// So set the default value to match what tf expect and not break existing clients
 			attributes[featureKeyVpcSubnet] = FromStringPointer(&clusterFeatureVpcSubnetDefault)
 			attributeTypes[featureKeyVpcSubnet] = types.StringType
