@@ -91,10 +91,34 @@ You can find complete examples within these repositories:
 
 Optional:
 
+- `existing_vpc` (Attributes) Network configuration if you want to install qovery on an existing VPC (see [below for nested schema](#nestedatt--features--existing_vpc))
 - `static_ip` (Boolean) Static IP (AWS only) [NOTE: can't be updated after creation].
 	- Default: `false`.
 - `vpc_subnet` (String) Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].
 	- Default: `10.0.0.0/16`.
+
+<a id="nestedatt--features--existing_vpc"></a>
+### Nested Schema for `features.existing_vpc`
+
+Required:
+
+- `aws_vpc_eks_id` (String) Aws VPC id
+- `eks_subnets_zone_a_ids` (List of String) Ids of the subnets for EKS zone a. Must have map_public_ip_on_launch set to true
+- `eks_subnets_zone_b_ids` (List of String) Ids of the subnets for EKS zone b. Must have map_public_ip_on_launch set to true
+- `eks_subnets_zone_c_ids` (List of String) Ids of the subnets for EKS zone c. Must have map_public_ip_on_launch set to true
+
+Optional:
+
+- `documentdb_subnets_zone_a_ids` (List of String) Ids of the subnets for document db
+- `documentdb_subnets_zone_b_ids` (List of String) Ids of the subnets for document db
+- `documentdb_subnets_zone_c_ids` (List of String) Ids of the subnets for document db
+- `elasticache_subnets_zone_a_ids` (List of String) Ids of the subnets for elasticache
+- `elasticache_subnets_zone_b_ids` (List of String) Ids of the subnets for elasticache
+- `elasticache_subnets_zone_c_ids` (List of String) Ids of the subnets for elasticache
+- `rds_subnets_zone_a_ids` (List of String) Ids of the subnets for RDS
+- `rds_subnets_zone_b_ids` (List of String) Ids of the subnets for RDS
+- `rds_subnets_zone_c_ids` (List of String) Ids of the subnets for RDS
+
 
 
 <a id="nestedatt--routing_table"></a>

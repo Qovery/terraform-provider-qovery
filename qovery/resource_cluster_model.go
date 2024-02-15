@@ -2,19 +2,20 @@ package qovery
 
 import (
 	"context"
-
+	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
-
 	"github.com/qovery/terraform-provider-qovery/client"
 )
 
 const (
-	featureKeyVpcSubnet = "vpc_subnet"
-	featureIdVpcSubnet  = "VPC_SUBNET"
-	featureKeyStaticIP  = "static_ip"
-	featureIdStaticIP   = "STATIC_IP"
+	featureKeyVpcSubnet   = "vpc_subnet"
+	featureIdVpcSubnet    = "VPC_SUBNET"
+	featureKeyStaticIP    = "static_ip"
+	featureIdStaticIP     = "STATIC_IP"
+	featureIdExistingVpc  = "EXISTING_VPC"
+	featureKeyExistingVpc = "existing_vpc"
 )
 
 type Cluster struct {
@@ -188,6 +189,49 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 		case featureIdStaticIP:
 			attributes[featureKeyStaticIP] = FromBoolPointer(f.GetValue().Bool)
 			attributeTypes[featureKeyStaticIP] = types.BoolType
+		case featureIdExistingVpc:
+			// tf has a default value for it, but the api does not return this feature , as exiting vpc super seed it
+			// So set the default value to match what tf expect and not break existing clients
+			attributes[featureKeyVpcSubnet] = FromStringPointer(&clusterFeatureVpcSubnetDefault)
+			attributeTypes[featureKeyVpcSubnet] = types.StringType
+
+			v := f.GetValue().ClusterFeatureAwsExistingVpc
+			attrTypes := make(map[string]attr.Type)
+			attrTypes["aws_vpc_eks_id"] = types.StringType
+			attrTypes["eks_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
+			attrTypes["eks_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
+			attrTypes["eks_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
+			attrTypes["rds_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
+			attrTypes["rds_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
+			attrTypes["rds_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
+			attrTypes["documentdb_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
+			attrTypes["documentdb_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
+			attrTypes["documentdb_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
+			attrTypes["elasticache_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
+			attrTypes["elasticache_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
+			attrTypes["elasticache_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
+
+			attrVals := make(map[string]attr.Value)
+			attrVals["aws_vpc_eks_id"] = FromStringPointer(&v.AwsVpcEksId)
+			attrVals["eks_subnets_zone_a_ids"] = FromStringArray(v.EksSubnetsZoneAIds)
+			attrVals["eks_subnets_zone_b_ids"] = FromStringArray(v.EksSubnetsZoneBIds)
+			attrVals["eks_subnets_zone_c_ids"] = FromStringArray(v.EksSubnetsZoneCIds)
+			attrVals["rds_subnets_zone_a_ids"] = FromStringArray(v.RdsSubnetsZoneAIds)
+			attrVals["rds_subnets_zone_b_ids"] = FromStringArray(v.RdsSubnetsZoneBIds)
+			attrVals["rds_subnets_zone_c_ids"] = FromStringArray(v.RdsSubnetsZoneCIds)
+			attrVals["documentdb_subnets_zone_a_ids"] = FromStringArray(v.DocumentdbSubnetsZoneAIds)
+			attrVals["documentdb_subnets_zone_b_ids"] = FromStringArray(v.DocumentdbSubnetsZoneBIds)
+			attrVals["documentdb_subnets_zone_c_ids"] = FromStringArray(v.DocumentdbSubnetsZoneCIds)
+			attrVals["elasticache_subnets_zone_a_ids"] = FromStringArray(v.DocumentdbSubnetsZoneAIds)
+			attrVals["elasticache_subnets_zone_b_ids"] = FromStringArray(v.DocumentdbSubnetsZoneBIds)
+			attrVals["elasticache_subnets_zone_c_ids"] = FromStringArray(v.DocumentdbSubnetsZoneCIds)
+
+			terraformObjectValue, diagnostics := types.ObjectValue(attrTypes, attrVals)
+			if diagnostics.HasError() {
+				panic(fmt.Errorf("bad %s feature: %s", featureKeyExistingVpc, diagnostics.Errors()))
+			}
+			attributes[featureKeyExistingVpc] = terraformObjectValue
+			attributeTypes[featureKeyExistingVpc] = terraformObjectValue.Type(context.Background())
 		}
 	}
 
@@ -211,7 +255,7 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 
 	terraformObjectValue, diagnostics := types.ObjectValue(attributeTypes, attributes)
 	if diagnostics.HasError() {
-		panic("TODO")
+		panic(fmt.Errorf("bad cluster feature: %s", diagnostics.Errors()))
 	}
 	return terraformObjectValue
 }
@@ -240,6 +284,33 @@ func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterReques
 
 		features = append(features, qovery.ClusterRequestFeaturesInner{
 			Id:    StringAsPointer(featureIdStaticIP),
+			Value: *value,
+		})
+	}
+
+	if _, ok := f.Attributes()[featureKeyExistingVpc]; ok {
+		v := f.Attributes()[featureKeyExistingVpc].(types.Object)
+		feature := qovery.ClusterFeatureAwsExistingVpc{
+			AwsVpcEksId:                ToString(v.Attributes()["aws_vpc_eks_id"].(types.String)),
+			EksSubnetsZoneAIds:         ToStringArray(v.Attributes()["eks_subnets_zone_a_ids"].(types.List)),
+			EksSubnetsZoneBIds:         ToStringArray(v.Attributes()["eks_subnets_zone_b_ids"].(types.List)),
+			EksSubnetsZoneCIds:         ToStringArray(v.Attributes()["eks_subnets_zone_c_ids"].(types.List)),
+			RdsSubnetsZoneAIds:         ToStringArray(v.Attributes()["rds_subnets_zone_a_ids"].(types.List)),
+			RdsSubnetsZoneBIds:         ToStringArray(v.Attributes()["rds_subnets_zone_b_ids"].(types.List)),
+			RdsSubnetsZoneCIds:         ToStringArray(v.Attributes()["rds_subnets_zone_c_ids"].(types.List)),
+			DocumentdbSubnetsZoneAIds:  ToStringArray(v.Attributes()["documentdb_subnets_zone_a_ids"].(types.List)),
+			DocumentdbSubnetsZoneBIds:  ToStringArray(v.Attributes()["documentdb_subnets_zone_b_ids"].(types.List)),
+			DocumentdbSubnetsZoneCIds:  ToStringArray(v.Attributes()["documentdb_subnets_zone_c_ids"].(types.List)),
+			ElasticacheSubnetsZoneAIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_a_ids"].(types.List)),
+			ElasticacheSubnetsZoneBIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_b_ids"].(types.List)),
+			ElasticacheSubnetsZoneCIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_c_ids"].(types.List)),
+		}
+		value := qovery.NewNullableClusterFeatureValue(&qovery.ClusterFeatureValue{
+			ClusterFeatureAwsExistingVpc: &feature,
+		})
+
+		features = append(features, qovery.ClusterRequestFeaturesInner{
+			Id:    StringAsPointer(featureIdExistingVpc),
 			Value: *value,
 		})
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -210,6 +211,90 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						Optional: true,
 						Computed: true,
 						Default:  booldefault.StaticBool(clusterFeatureStaticIPDefault),
+					},
+					"existing_vpc": schema.SingleNestedAttribute{
+						Optional:    true,
+						Computed:    false,
+						Description: "Network configuration if you want to install qovery on an existing VPC",
+						Attributes: map[string]schema.Attribute{
+							"aws_vpc_eks_id": schema.StringAttribute{
+								Description: "Aws VPC id",
+								Required:    true,
+								Computed:    false,
+							},
+							"eks_subnets_zone_a_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for EKS zone a. Must have map_public_ip_on_launch set to true",
+								ElementType: types.StringType,
+								Required:    true,
+								Computed:    false,
+							},
+							"eks_subnets_zone_b_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for EKS zone b. Must have map_public_ip_on_launch set to true",
+								ElementType: types.StringType,
+								Required:    true,
+								Computed:    false,
+							},
+							"eks_subnets_zone_c_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for EKS zone c. Must have map_public_ip_on_launch set to true",
+								ElementType: types.StringType,
+								Required:    true,
+								Computed:    false,
+							},
+							"rds_subnets_zone_a_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for RDS",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"rds_subnets_zone_b_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for RDS",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"rds_subnets_zone_c_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for RDS",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"documentdb_subnets_zone_a_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for document db",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"documentdb_subnets_zone_b_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for document db",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"documentdb_subnets_zone_c_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for document db",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"elasticache_subnets_zone_a_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for elasticache",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"elasticache_subnets_zone_b_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for elasticache",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"elasticache_subnets_zone_c_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for elasticache",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+						},
 					},
 				},
 			},
