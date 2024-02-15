@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
@@ -70,7 +71,7 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.CONTAINER, newContainer.Id, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.CONTAINER, newContainer.Id, request.AdvancedSettingsJson)
 	if err != nil {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, newContainer.Id, nil, err)
 	}
@@ -106,7 +107,7 @@ func (c containerQoveryAPI) Get(ctx context.Context, containerID string, advance
 	}
 
 	// Get advanced settings
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(advanced_settings.CONTAINER, container.Id, advancedSettingsJsonFromState)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(domain.CONTAINER, container.Id, advancedSettingsJsonFromState)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceContainer, containerID, nil, err)
 	}
@@ -179,7 +180,7 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.CONTAINER, container.Id, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.CONTAINER, container.Id, request.AdvancedSettingsJson)
 	if err != nil {
 		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceContainer, container.Id, nil, err)
 	}

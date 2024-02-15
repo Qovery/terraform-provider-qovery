@@ -95,6 +95,13 @@ resource "qovery_application" "my_application" {
       domain = "example.com"
     }
   ]
+  deployment_restrictions = [
+    {
+      mode  = "MATCH"
+      type  = "PATH"
+      value = "path/or/file"
+    }
+  ]
 
   advanced_settings_json = jsonencode({
     # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Applications/operation/getDefaultApplicationAdvancedSettings

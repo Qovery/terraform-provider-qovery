@@ -222,6 +222,30 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 				Optional:    true,
 				Computed:    true,
 			},
+			"deployment_restrictions": schema.SetNestedAttribute{
+				Description: "List of deployment restrictions",
+				Optional:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the deployment restriction",
+							Computed:    true,
+						},
+						"mode": schema.StringAttribute{
+							Description: "Can be EXCLUDE or MATCH",
+							Computed:    true,
+						},
+						"type": schema.StringAttribute{
+							Description: "Currently, only PATH is accepted",
+							Computed:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the deployment restriction",
+							Computed:    true,
+						},
+					},
+				},
+			},
 		},
 	}
 }

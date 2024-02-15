@@ -6,7 +6,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
@@ -17,14 +19,21 @@ var _ job.Service = jobService{}
 
 // jobService implements the interface job.Service.
 type jobService struct {
-	jobRepository        job.Repository
-	jobDeploymentService deployment.Service
-	variableService      variable.Service
-	secretService        secret.Service
+	jobRepository                job.Repository
+	jobDeploymentService         deployment.Service
+	variableService              variable.Service
+	secretService                secret.Service
+	deploymentRestrictionService deploymentrestriction.DeploymentRestrictionService
 }
 
 // NewJobService return a new instance of a job.Service that uses the given job.Repository.
-func NewJobService(jobRepository job.Repository, jobDeploymentService deployment.Service, variableService variable.Service, secretService secret.Service) (job.Service, error) {
+func NewJobService(
+	jobRepository job.Repository,
+	jobDeploymentService deployment.Service,
+	variableService variable.Service,
+	secretService secret.Service,
+	deploymentRestrictionService deploymentrestriction.DeploymentRestrictionService,
+) (job.Service, error) {
 	if jobRepository == nil {
 		return nil, ErrInvalidRepository
 	}
@@ -42,10 +51,11 @@ func NewJobService(jobRepository job.Repository, jobDeploymentService deployment
 	}
 
 	return &jobService{
-		jobRepository:        jobRepository,
-		variableService:      variableService,
-		secretService:        secretService,
-		jobDeploymentService: jobDeploymentService,
+		jobRepository:                jobRepository,
+		variableService:              variableService,
+		secretService:                secretService,
+		jobDeploymentService:         jobDeploymentService,
+		deploymentRestrictionService: deploymentRestrictionService,
 	}, nil
 }
 
@@ -75,6 +85,12 @@ func (s jobService) Create(ctx context.Context, environmentID string, request jo
 	_, err = s.secretService.Update(ctx, newJob.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
+	}
+
+	if request.DeploymentRestrictionsDiff.IsNotEmpty() {
+		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, newJob.ID.String(), domain.JOB, request.DeploymentRestrictionsDiff); apiErr != nil {
+			return nil, apiErr
+		}
 	}
 
 	newJob, err = s.refreshJob(ctx, *newJob)
@@ -132,6 +148,12 @@ func (s jobService) Update(ctx context.Context, jobID string, request job.Upsert
 		return nil, errors.Wrap(err, job.ErrFailedToUpdateJob.Error())
 	}
 
+	if request.DeploymentRestrictionsDiff.IsNotEmpty() {
+		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, updateJob.ID.String(), domain.JOB, request.DeploymentRestrictionsDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
 	updateJob, err = s.refreshJob(ctx, *updateJob)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToUpdateJob.Error())
@@ -173,6 +195,11 @@ func (s jobService) refreshJob(ctx context.Context, job job.Job) (*job.Job, erro
 		return nil, err
 	}
 
+	deploymentRestrictions, apiErr := s.deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, job.ID.String(), domain.JOB)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	if err := job.SetEnvironmentVariables(envVars); err != nil {
 		return nil, err
 	}
@@ -185,7 +212,9 @@ func (s jobService) refreshJob(ctx context.Context, job job.Job) (*job.Job, erro
 		return nil, err
 	}
 
-	return &job, err
+	job.JobDeploymentRestrictions = deploymentRestrictions
+
+	return &job, nil
 }
 
 // checkEnvironmentID validates that the given environmentID is valid.

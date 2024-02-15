@@ -94,7 +94,13 @@ resource "qovery_helm" "my_helm" {
       value = "OVERRIDDEN_VALUE"
     }
   ]
-
+  deployment_restrictions = [
+    {
+      mode  = "MATCH"
+      type  = "PATH"
+      value = "path/or/file"
+    }
+  ]
 
   advanced_settings_json = jsonencode({
     # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings
@@ -124,6 +130,7 @@ resource "qovery_helm" "my_helm" {
 - `arguments` (Set of String) Helm arguments
 - `auto_deploy` (Boolean) Specify if the service will be automatically updated on every new commit on the branch.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this helm.
+- `deployment_restrictions` (Attributes Set) List of deployment restrictions (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_overrides))
@@ -217,6 +224,20 @@ Required:
 - `content` (String) content of the file
 
 
+
+
+<a id="nestedatt--deployment_restrictions"></a>
+### Nested Schema for `deployment_restrictions`
+
+Required:
+
+- `mode` (String) Can be EXCLUDE or MATCH
+- `type` (String) Currently, only PATH is accepted
+- `value` (String) Value of the deployment restriction
+
+Read-Only:
+
+- `id` (String) Id of the deployment restriction
 
 
 <a id="nestedatt--environment_variable_aliases"></a>

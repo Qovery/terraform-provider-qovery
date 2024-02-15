@@ -29,6 +29,7 @@ data "qovery_application" "my_application" {
 	- Must be: `>= 10`.
 	- Default: `500`.
 - `custom_domains` (Attributes Set) List of custom domains linked to this application. (see [below for nested schema](#nestedatt--custom_domains))
+- `deployment_restrictions` (Attributes Set) List of deployment restrictions (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `dockerfile_path` (String) Dockerfile Path of the application.
 	- Required if: `build_mode="DOCKER"`.
@@ -73,6 +74,17 @@ Read-Only:
 - `id` (String) Id of the custom domain.
 - `status` (String) Status of the custom domain.
 - `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
+
+
+<a id="nestedatt--deployment_restrictions"></a>
+### Nested Schema for `deployment_restrictions`
+
+Read-Only:
+
+- `id` (String) Id of the deployment restriction
+- `mode` (String) Can be EXCLUDE or MATCH
+- `type` (String) Currently, only PATH is accepted
+- `value` (String) Value of the deployment restriction
 
 
 <a id="nestedatt--environment_variable_aliases"></a>
