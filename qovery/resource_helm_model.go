@@ -3,10 +3,13 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
@@ -35,6 +38,7 @@ type Helm struct {
 	InternalHost                 types.String         `tfsdk:"internal_host"`
 	DeploymentStageId            types.String         `tfsdk:"deployment_stage_id"`
 	AdvancedSettingsJson         types.String         `tfsdk:"advanced_settings_json"`
+	DeploymentRestrictions       types.Set            `tfsdk:"deployment_restrictions"`
 }
 
 type HelmSource struct {
@@ -111,6 +115,10 @@ func (h Helm) SecretOverridesList() SecretList {
 	return ToSecretList(h.SecretOverrides)
 }
 
+func (j Helm) DeploymentRestrictionDiff(deploymentRestrictionsState *types.Set) (*deploymentrestriction.ServiceDeploymentRestrictionsDiff, error) {
+	return deploymentrestriction.ToDeploymentRestrictionDiff(j.DeploymentRestrictions, deploymentRestrictionsState)
+}
+
 func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, error) {
 	var stateEnvironmentVariables EnvironmentVariableList
 	var stateEnvironmentVariableAliases EnvironmentVariableList
@@ -118,6 +126,7 @@ func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, e
 	var stateSecrets SecretList
 	var stateSecretAliases SecretList
 	var stateSecretOverrides SecretList
+	var stateDeploymentRestrictions types.Set
 
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
@@ -126,9 +135,15 @@ func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, e
 		stateSecrets = state.SecretList()
 		stateSecretAliases = state.SecretAliasesList()
 		stateSecretOverrides = state.SecretOverridesList()
+		stateDeploymentRestrictions = state.DeploymentRestrictions
 	}
 
 	helmRequest, err := h.toUpsertRepositoryRequest()
+	if err != nil {
+		return nil, err
+	}
+
+	deploymentRestrictionsDiff, err := h.DeploymentRestrictionDiff(&stateDeploymentRestrictions)
 	if err != nil {
 		return nil, err
 	}
@@ -141,6 +156,7 @@ func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, e
 		Secrets:                      h.SecretList().diffRequest(stateSecrets),
 		SecretAliases:                h.SecretAliasesList().diffRequest(stateSecretAliases),
 		SecretOverrides:              h.SecretOverridesList().diffRequest(stateSecretOverrides),
+		DeploymentRestrictionsDiff:   *deploymentRestrictionsDiff,
 	}, nil
 }
 
@@ -432,5 +448,6 @@ func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) H
 		ExternalHost:                 FromStringPointer(helm.ExternalHost),
 		DeploymentStageId:            FromString(helm.DeploymentStageID),
 		AdvancedSettingsJson:         FromString(helm.AdvancedSettingsJson),
+		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, helm.JobDeploymentRestrictions),
 	}
 }

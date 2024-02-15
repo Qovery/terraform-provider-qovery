@@ -26,4 +26,5 @@ const (
 	APIResourceEnvironmentStatus                      APIResource = "environment status"
 	APIResourceClusterAdvancedSettings                APIResource = "cluster advanced settings"
 	APIResourceProjectEnvironmentVariable             APIResource = "project environment variable"
+	APIResourceServiceDeploymentRestriction           APIResource = "service deployment restriction"
 )

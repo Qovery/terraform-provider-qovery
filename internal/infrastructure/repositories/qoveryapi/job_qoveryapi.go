@@ -6,6 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
@@ -61,7 +62,7 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.JOB, newJobId, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.JOB, newJobId, request.AdvancedSettingsJson)
 	if err != nil {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, nil, err)
 	}
@@ -90,7 +91,7 @@ func (c jobQoveryAPI) Get(ctx context.Context, jobID string, advancedSettingsJso
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(advanced_settings.JOB, jobID, advancedSettingsJsonFromState)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(domain.JOB, jobID, advancedSettingsJsonFromState)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, nil, err)
 	}
@@ -122,7 +123,7 @@ func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.Upse
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.JOB, jobID, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.JOB, jobID, request.AdvancedSettingsJson)
 	if err != nil {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, nil, err)
 	}

@@ -2,6 +2,8 @@ package services
 
 import (
 	"github.com/pkg/errors"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 
@@ -32,19 +34,20 @@ var (
 type Services struct {
 	repos *repositories.Repositories
 
-	CredentialsAws      credentials.AwsService
-	CredentialsScaleway credentials.ScalewayService
-	Organization        organization.Service
-	Project             project.Service
-	Container           container.Service
-	Job                 job.Service
-	ContainerRegistry   registry.Service
-	Environment         environment.Service
-	DeploymentStage     deploymentstage.Service
-	Deployment          newdeployment.Service
-	GitToken            gittoken.Service
-	Helm                helm.Service
-	HelmRepository      helmRepository.Service
+	CredentialsAws               credentials.AwsService
+	CredentialsScaleway          credentials.ScalewayService
+	Organization                 organization.Service
+	Project                      project.Service
+	Container                    container.Service
+	Job                          job.Service
+	ContainerRegistry            registry.Service
+	Environment                  environment.Service
+	DeploymentStage              deploymentstage.Service
+	Deployment                   newdeployment.Service
+	GitToken                     gittoken.Service
+	Helm                         helm.Service
+	HelmRepository               helmRepository.Service
+	DeploymentRestrictionService deploymentrestriction.DeploymentRestrictionService
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -131,7 +134,12 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
-	jobService, err := NewJobService(services.repos.Job, jobDeploymentService, jobEnvironmentVariableService, jobSecretService)
+	deploymentRestrictionService, err := deploymentrestriction.NewDeploymentRestrictionService(*services.repos.QoveryClient)
+	if err != nil {
+		return nil, err
+	}
+
+	jobService, err := NewJobService(services.repos.Job, jobDeploymentService, jobEnvironmentVariableService, jobSecretService, deploymentRestrictionService)
 	if err != nil {
 		return nil, err
 	}
@@ -191,12 +199,15 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
-	helmService, err := NewHelmService(services.repos.Helm, helmDeploymentService, helmEnvironmentVariableService, helmSecretService)
+	helmService, err := NewHelmService(services.repos.Helm, helmDeploymentService, helmEnvironmentVariableService, helmSecretService, deploymentRestrictionService)
 	if err != nil {
 		return nil, err
 	}
 
 	helmRepositoryService, err := NewHelmRepositoryService(services.repos.HelmRepository)
+	if err != nil {
+		return nil, err
+	}
 
 	services.CredentialsAws = credentialsAwsService
 	services.CredentialsScaleway = credentialsScalewayService
@@ -211,6 +222,7 @@ func New(configs ...Configuration) (*Services, error) {
 	services.GitToken = gitTokenService
 	services.Helm = helmService
 	services.HelmRepository = helmRepositoryService
+	services.DeploymentRestrictionService = deploymentRestrictionService
 
 	return services, nil
 }

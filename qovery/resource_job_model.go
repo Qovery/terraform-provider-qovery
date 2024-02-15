@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/execution_command"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/image"
@@ -233,6 +234,7 @@ type Job struct {
 	DeploymentStageId            types.String  `tfsdk:"deployment_stage_id"`
 	AdvancedSettingsJson         types.String  `tfsdk:"advanced_settings_json"`
 	AutoDeploy                   types.Bool    `tfsdk:"auto_deploy"`
+	DeploymentRestrictions       types.Set     `tfsdk:"deployment_restrictions"`
 }
 
 func (j Job) EnvironmentVariableList() EnvironmentVariableList {
@@ -259,6 +261,10 @@ func (j Job) SecretOverridesList() SecretList {
 	return ToSecretList(j.SecretOverrides)
 }
 
+func (j Job) DeploymentRestrictionDiff(deploymentRestrictionsState *types.Set) (*deploymentrestriction.ServiceDeploymentRestrictionsDiff, error) {
+	return deploymentrestriction.ToDeploymentRestrictionDiff(j.DeploymentRestrictions, deploymentRestrictionsState)
+}
+
 func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, error) {
 	var stateEnvironmentVariables EnvironmentVariableList
 	var stateEnvironmentVariableAliases EnvironmentVariableList
@@ -266,6 +272,7 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 	var stateSecrets SecretList
 	var stateSecretAliases SecretList
 	var stateSecretOverrides SecretList
+	var stateDeploymentRestrictions types.Set
 
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
@@ -274,6 +281,12 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 		stateSecrets = state.SecretList()
 		stateSecretAliases = state.SecretAliasesList()
 		stateSecretOverrides = state.SecretOverridesList()
+		stateDeploymentRestrictions = state.DeploymentRestrictions
+	}
+
+	deploymentRestrictionsDiff, err := j.DeploymentRestrictionDiff(&stateDeploymentRestrictions)
+	if err != nil {
+		return nil, err
 	}
 
 	return &job.UpsertServiceRequest{
@@ -284,6 +297,7 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 		Secrets:                      j.SecretList().diffRequest(stateSecrets),
 		SecretAliases:                j.SecretAliasesList().diffRequest(stateSecretAliases),
 		SecretOverrides:              j.SecretOverridesList().diffRequest(stateSecretOverrides),
+		DeploymentRestrictionsDiff:   *deploymentRestrictionsDiff,
 	}, nil
 }
 
@@ -340,5 +354,6 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		HealthChecks:                 &healthchecks,
 		AdvancedSettingsJson:         FromString(job.AdvancedSettingsJson),
 		AutoDeploy:                   FromBoolPointer(job.AutoDeploy),
+		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, job.JobDeploymentRestrictions),
 	}
 }

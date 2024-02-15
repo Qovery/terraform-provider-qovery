@@ -6,6 +6,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
@@ -32,6 +33,7 @@ type UpsertServiceRequest struct {
 	Secrets                      secret.DiffRequest
 	SecretAliases                secret.DiffRequest
 	SecretOverrides              secret.DiffRequest
+	DeploymentRestrictionsDiff   deploymentrestriction.ServiceDeploymentRestrictionsDiff
 }
 
 func (r UpsertServiceRequest) Validate() error {

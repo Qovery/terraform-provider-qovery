@@ -23,6 +23,7 @@ data "qovery_job" "my_job" {
 - `cpu` (Number) CPU of the job in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 10`.
 	- Default: `500`.
+- `deployment_restrictions` (Attributes Set) List of deployment restrictions (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this job. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this job. (see [below for nested schema](#nestedatt--environment_variable_overrides))
@@ -52,6 +53,17 @@ data "qovery_job" "my_job" {
 - `internal_host` (String) The job internal host.
 - `name` (String) Name of the job.
 - `schedule` (Attributes) Job's schedule. (see [below for nested schema](#nestedatt--schedule))
+
+<a id="nestedatt--deployment_restrictions"></a>
+### Nested Schema for `deployment_restrictions`
+
+Read-Only:
+
+- `id` (String) Id of the deployment restriction
+- `mode` (String) Can be EXCLUDE or MATCH
+- `type` (String) Currently, only PATH is accepted
+- `value` (String) Value of the deployment restriction
+
 
 <a id="nestedatt--environment_variable_aliases"></a>
 ### Nested Schema for `environment_variable_aliases`

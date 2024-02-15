@@ -6,7 +6,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
@@ -17,14 +19,21 @@ var _ helm.Service = helmService{}
 
 // helmService implements the interface helm.Service.
 type helmService struct {
-	helmRepository        helm.Repository
-	helmDeploymentService deployment.Service
-	variableService       variable.Service
-	secretService         secret.Service
+	helmRepository               helm.Repository
+	helmDeploymentService        deployment.Service
+	variableService              variable.Service
+	secretService                secret.Service
+	deploymentRestrictionService deploymentrestriction.DeploymentRestrictionService
 }
 
 // NewHelmService return a new instance of a helm.Service that uses the given helm.Repository.
-func NewHelmService(helmRepository helm.Repository, helmDeploymentService deployment.Service, variableService variable.Service, secretService secret.Service) (helm.Service, error) {
+func NewHelmService(
+	helmRepository helm.Repository,
+	helmDeploymentService deployment.Service,
+	variableService variable.Service,
+	secretService secret.Service,
+	deploymentRestrictionService deploymentrestriction.DeploymentRestrictionService,
+) (helm.Service, error) {
 	if helmRepository == nil {
 		return nil, ErrInvalidRepository
 	}
@@ -42,10 +51,11 @@ func NewHelmService(helmRepository helm.Repository, helmDeploymentService deploy
 	}
 
 	return &helmService{
-		helmRepository:        helmRepository,
-		variableService:       variableService,
-		secretService:         secretService,
-		helmDeploymentService: helmDeploymentService,
+		helmRepository:               helmRepository,
+		variableService:              variableService,
+		secretService:                secretService,
+		helmDeploymentService:        helmDeploymentService,
+		deploymentRestrictionService: deploymentRestrictionService,
 	}, nil
 }
 
@@ -75,6 +85,12 @@ func (s helmService) Create(ctx context.Context, environmentID string, request h
 	_, err = s.secretService.Update(ctx, newHelm.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
+	}
+
+	if request.DeploymentRestrictionsDiff.IsNotEmpty() {
+		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, newHelm.ID.String(), domain.HELM, request.DeploymentRestrictionsDiff); apiErr != nil {
+			return nil, apiErr
+		}
 	}
 
 	newHelm, err = s.refreshHelm(ctx, *newHelm)
@@ -132,6 +148,12 @@ func (s helmService) Update(ctx context.Context, helmID string, request helm.Ups
 		return nil, errors.Wrap(err, helm.ErrFailedToUpdateHelm.Error())
 	}
 
+	if request.DeploymentRestrictionsDiff.IsNotEmpty() {
+		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, updateHelm.ID.String(), domain.HELM, request.DeploymentRestrictionsDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
 	updateHelm, err = s.refreshHelm(ctx, *updateHelm)
 	if err != nil {
 		return nil, errors.Wrap(err, helm.ErrFailedToUpdateHelm.Error())
@@ -173,6 +195,11 @@ func (s helmService) refreshHelm(ctx context.Context, helm helm.Helm) (*helm.Hel
 		return nil, err
 	}
 
+	deploymentRestrictions, apiErr := s.deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, helm.ID.String(), domain.HELM)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	if err := helm.SetEnvironmentVariables(envVars); err != nil {
 		return nil, err
 	}
@@ -184,6 +211,8 @@ func (s helmService) refreshHelm(ctx context.Context, helm helm.Helm) (*helm.Hel
 	if err := helm.SetState(status.State); err != nil {
 		return nil, err
 	}
+
+	helm.JobDeploymentRestrictions = deploymentRestrictions
 
 	return &helm, err
 }

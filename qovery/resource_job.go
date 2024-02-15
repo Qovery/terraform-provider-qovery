@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 
@@ -459,6 +460,30 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				Description: " Specify if the job will be automatically updated after receiving a new image tag.",
 				Optional:    true,
 				Computed:    true,
+			},
+			"deployment_restrictions": schema.SetNestedAttribute{
+				Description: "List of deployment restrictions",
+				Optional:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the deployment restriction",
+							Computed:    true,
+						},
+						"mode": schema.StringAttribute{
+							Description: "Can be EXCLUDE or MATCH",
+							Required:    true,
+						},
+						"type": schema.StringAttribute{
+							Description: "Currently, only PATH is accepted",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the deployment restriction",
+							Required:    true,
+						},
+					},
+				},
 			},
 		},
 	}

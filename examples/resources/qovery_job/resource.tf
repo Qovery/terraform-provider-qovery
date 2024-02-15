@@ -104,6 +104,14 @@ resource "qovery_job" "my_job" {
       failure_threshold     = 3
     }
   }
+  deployment_restrictions = [
+    {
+      mode  = "MATCH"
+      type  = "PATH"
+      value = "path/or/file"
+    }
+  ]
+
 
   advanced_settings_json = jsonencode({
     # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings

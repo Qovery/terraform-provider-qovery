@@ -2,10 +2,12 @@ package qovery
 
 import (
 	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 )
 
 type Application struct {
@@ -39,6 +41,7 @@ type Application struct {
 	Healthchecks                 *HealthChecks             `tfsdk:"healthchecks"`
 	AdvancedSettingsJson         types.String              `tfsdk:"advanced_settings_json"`
 	AutoDeploy                   types.Bool                `tfsdk:"auto_deploy"`
+	DeploymentRestrictions       types.Set                 `tfsdk:"deployment_restrictions"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
@@ -73,6 +76,10 @@ func (app Application) CustomDomainsList() CustomDomainList {
 	return toCustomDomainList(app.CustomDomains)
 }
 
+func (app Application) DeploymentRestrictionList(deploymentRestrictionsState *types.Set) (*deploymentrestriction.ServiceDeploymentRestrictionsDiff, error) {
+	return deploymentrestriction.ToDeploymentRestrictionDiff(app.DeploymentRestrictions, deploymentRestrictionsState)
+}
+
 func (app Application) toCreateApplicationRequest() (*client.ApplicationCreateParams, error) {
 	storage := make([]qovery.ServiceStorageRequestStorageInner, 0, len(app.Storage))
 	for _, store := range app.Storage {
@@ -101,6 +108,11 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		buildMode = bm
 	}
 
+	deploymentRestrictions, err := app.DeploymentRestrictionList(nil)
+	if err != nil {
+		return nil, err
+	}
+
 	return &client.ApplicationCreateParams{
 		ApplicationRequest: qovery.ApplicationRequest{
 			Name:                ToString(app.Name),
@@ -127,6 +139,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		SecretAliasesDiff:                app.SecretAliasList().diff(nil),
 		SecretOverridesDiff:              app.SecretOverrideList().diff(nil),
 		CustomDomainsDiff:                app.CustomDomainsList().diff(nil),
+		DeploymentRestrictionsDiff:       *deploymentRestrictions,
 		ApplicationDeploymentStageID:     ToString(app.DeploymentStageId),
 		AdvancedSettingsJson:             ToString(app.AdvancedSettingsJson),
 	}, nil
@@ -177,6 +190,11 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		buildMode = bm
 	}
 
+	deploymentRestrictions, err := app.DeploymentRestrictionList(&state.DeploymentRestrictions)
+	if err != nil {
+		return nil, err
+	}
+
 	applicationEditRequest := qovery.ApplicationEditRequest{
 		Name:                ToStringPointer(app.Name),
 		BuildMode:           buildMode,
@@ -204,6 +222,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		SecretAliasesDiff:                app.SecretAliasList().diff(state.SecretAliasList()),
 		SecretOverridesDiff:              app.SecretOverrideList().diff(state.SecretOverrideList()),
 		CustomDomainsDiff:                app.CustomDomainsList().diff(state.CustomDomainsList()),
+		DeploymentRestrictionsDiff:       *deploymentRestrictions,
 		ApplicationDeploymentStageID:     ToString(app.DeploymentStageId),
 		AdvancedSettingsJson:             ToString(app.AdvancedSettingsJson),
 	}, nil
@@ -243,6 +262,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		Healthchecks:                 &healthchecks,
 		AdvancedSettingsJson:         FromString(app.AdvancedSettingsJson),
 		AutoDeploy:                   FromBoolPointer(app.ApplicationResponse.AutoDeploy),
+		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, app.ApplicationDeploymentRestrictions),
 	}
 }
 

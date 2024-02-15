@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -16,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
@@ -441,6 +443,30 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Description: "Advanced settings.",
 				Optional:    true,
 				Computed:    true,
+			},
+			"deployment_restrictions": schema.SetNestedAttribute{
+				Description: "List of deployment restrictions",
+				Optional:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the deployment restriction",
+							Computed:    true,
+						},
+						"mode": schema.StringAttribute{
+							Description: "Can be EXCLUDE or MATCH",
+							Required:    true,
+						},
+						"type": schema.StringAttribute{
+							Description: "Currently, only PATH is accepted",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the deployment restriction",
+							Required:    true,
+						},
+					},
+				},
 			},
 		},
 	}

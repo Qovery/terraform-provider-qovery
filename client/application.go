@@ -8,7 +8,9 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 )
 
 type ApplicationResponse struct {
@@ -21,6 +23,7 @@ type ApplicationResponse struct {
 	ApplicationSecretAliases                []*qovery.Secret
 	ApplicationSecretOverrides              []*qovery.Secret
 	ApplicationCustomDomains                []*qovery.CustomDomain
+	ApplicationDeploymentRestrictions       []deploymentrestriction.ServiceDeploymentRestriction
 	ApplicationExternalHost                 *string
 	ApplicationInternalHost                 string
 	AdvancedSettingsJson                    string
@@ -37,6 +40,7 @@ type ApplicationCreateParams struct {
 	SecretAliasesDiff                SecretsDiff
 	SecretOverridesDiff              SecretsDiff
 	AdvancedSettingsJson             string
+	DeploymentRestrictionsDiff       deploymentrestriction.ServiceDeploymentRestrictionsDiff
 }
 
 type ApplicationUpdateParams struct {
@@ -50,6 +54,7 @@ type ApplicationUpdateParams struct {
 	SecretAliasesDiff                SecretsDiff
 	SecretOverridesDiff              SecretsDiff
 	AdvancedSettingsJson             string
+	DeploymentRestrictionsDiff       deploymentrestriction.ServiceDeploymentRestrictionsDiff
 }
 
 func (c *Client) CreateApplication(ctx context.Context, environmentID string, params *ApplicationCreateParams) (*ApplicationResponse, *apierrors.APIError) {
@@ -87,6 +92,7 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 		params.SecretAliasesDiff,
 		params.SecretOverridesDiff,
 		params.CustomDomainsDiff,
+		params.DeploymentRestrictionsDiff,
 		applicationDeploymentStage.Id,
 		params.AdvancedSettingsJson,
 	)
@@ -125,9 +131,18 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string, advan
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
 
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).ReadServiceAdvancedSettings(advanced_settings.APPLICATION, applicationID, advancedSettingsFromState)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).ReadServiceAdvancedSettings(domain.APPLICATION, applicationID, advancedSettingsFromState)
 	if err != nil {
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, nil, err)
+	}
+
+	deploymentRestrictionService, err := deploymentrestriction.NewDeploymentRestrictionService(*c.api)
+	if err != nil {
+		return nil, apierrors.NewUpdateError(apierrors.APIResourceApplication, application.Id, nil, err)
+	}
+	deploymentRestrictions, apiErr := deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, application.Id, domain.APPLICATION)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 
 	variables := computeAliasOverrideValueVariablesAndSecrets(environmentVariables, secrets)
@@ -145,6 +160,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string, advan
 		ApplicationExternalHost:                 hosts.external,
 		ApplicationInternalHost:                 hosts.internal,
 		AdvancedSettingsJson:                    *advancedSettingsAsJson,
+		ApplicationDeploymentRestrictions:       deploymentRestrictions,
 	}, nil
 }
 
@@ -177,6 +193,7 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 		params.SecretAliasesDiff,
 		params.SecretOverridesDiff,
 		params.CustomDomainsDiff,
+		params.DeploymentRestrictionsDiff,
 		params.ApplicationDeploymentStageID,
 		params.AdvancedSettingsJson,
 	)
@@ -223,6 +240,7 @@ func (c *Client) updateApplication(
 	secretAliasesDiff SecretsDiff,
 	secretOverridesDiff SecretsDiff,
 	customDomainsDiff CustomDomainsDiff,
+	deploymentRestrictionsDiff deploymentrestriction.ServiceDeploymentRestrictionsDiff,
 	deploymentStageId string,
 	advancedSettingsJson string,
 ) (*ApplicationResponse, *apierrors.APIError) {
@@ -286,7 +304,17 @@ func (c *Client) updateApplication(
 		}
 	}
 
-	err := advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).UpdateServiceAdvancedSettings(advanced_settings.APPLICATION, application.Id, advancedSettingsJson)
+	deploymentRestrictionService, err := deploymentrestriction.NewDeploymentRestrictionService(*c.api)
+	if err != nil {
+		return nil, apierrors.NewUpdateError(apierrors.APIResourceApplication, application.Id, nil, err)
+	}
+	if deploymentRestrictionsDiff.IsNotEmpty() {
+		if apiErr := deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, application.Id, domain.APPLICATION, deploymentRestrictionsDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).UpdateServiceAdvancedSettings(domain.APPLICATION, application.Id, advancedSettingsJson)
 	if err != nil {
 		return nil, apierrors.NewUpdateError(apierrors.APIResourceApplication, application.Id, nil, err)
 	}
@@ -311,6 +339,11 @@ func (c *Client) updateApplication(
 		return nil, apiErr
 	}
 
+	deploymentRestrictions, apiErr := deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, application.Id, domain.APPLICATION)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	variables := computeAliasOverrideValueVariablesAndSecrets(environmentVariables, secrets)
 	return &ApplicationResponse{
 		ApplicationResponse:                     application,
@@ -325,6 +358,7 @@ func (c *Client) updateApplication(
 		ApplicationInternalHost:                 hosts.internal,
 		ApplicationDeploymentStageID:            deploymentStageId,
 		AdvancedSettingsJson:                    advancedSettingsJson,
+		ApplicationDeploymentRestrictions:       deploymentRestrictions,
 	}, nil
 }
 

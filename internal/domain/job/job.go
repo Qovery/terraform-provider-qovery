@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	qovery2 "github.com/qovery/qovery-client-go"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
@@ -84,6 +85,7 @@ type Job struct {
 	HealthChecks                 qovery2.Healthcheck
 	AdvancedSettingsJson         string
 	AutoDeploy                   *bool
+	JobDeploymentRestrictions    []deploymentrestriction.ServiceDeploymentRestriction
 }
 
 // Validate returns an error to tell whether the Job domain model is valid or not.

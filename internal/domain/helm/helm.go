@@ -4,6 +4,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
@@ -52,6 +54,7 @@ type Helm struct {
 	State                        status.State
 	DeploymentStageID            string
 	AdvancedSettingsJson         string
+	JobDeploymentRestrictions    []deploymentrestriction.ServiceDeploymentRestriction
 }
 
 func (h Helm) Validate() error {

@@ -9,6 +9,8 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain"
 )
 
 type ServiceAdvancedSettingsService struct {
@@ -19,26 +21,19 @@ func NewServiceAdvancedSettingsService(apiConfig *qovery.Configuration) *Service
 	return &ServiceAdvancedSettingsService{apiConfig: apiConfig}
 }
 
-const (
-	APPLICATION int = 0
-	CONTAINER   int = 1
-	JOB         int = 2
-	HELM        int = 3
-)
-
 // Compute the URL to GET or PUT advanced settings for any service type
 func (c ServiceAdvancedSettingsService) computeServiceAdvancedSettingsUrl(serviceType int, serviceId string) (*string, error) {
 	var host = c.apiConfig.Servers[0].URL
 	var urlAdvancedSettings string
 
 	switch serviceType {
-	case APPLICATION:
+	case domain.APPLICATION:
 		urlAdvancedSettings = host + "/application/" + serviceId + "/advancedSettings"
-	case CONTAINER:
+	case domain.CONTAINER:
 		urlAdvancedSettings = host + "/container/" + serviceId + "/advancedSettings"
-	case JOB:
+	case domain.JOB:
 		urlAdvancedSettings = host + "/job/" + serviceId + "/advancedSettings"
-	case HELM:
+	case domain.HELM:
 		urlAdvancedSettings = host + "/helm/" + serviceId + "/advancedSettings"
 	default:
 		return nil, errors.New("serviceType must be one of APPLICATION / CONTAINER / JOB / HELM")
@@ -53,13 +48,13 @@ func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl
 	var urlAdvancedSettings string
 
 	switch serviceType {
-	case APPLICATION:
+	case domain.APPLICATION:
 		urlAdvancedSettings = host + "/defaultApplicationAdvancedSettings"
-	case CONTAINER:
+	case domain.CONTAINER:
 		urlAdvancedSettings = host + "/defaultContainerAdvancedSettings"
-	case JOB:
+	case domain.JOB:
 		urlAdvancedSettings = host + "/defaultJobAdvancedSettings"
-	case HELM:
+	case domain.HELM:
 		urlAdvancedSettings = host + "/defaultHelmAdvancedSettings"
 	default:
 		return nil, errors.New("serviceType must be one of APPLICATION / CONTAINER / JOB / HELM")
