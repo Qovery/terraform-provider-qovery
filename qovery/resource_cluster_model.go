@@ -190,12 +190,8 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 			attributes[featureKeyStaticIP] = FromBoolPointer(f.GetValue().Bool)
 			attributeTypes[featureKeyStaticIP] = types.BoolType
 		case featureIdExistingVpc:
-			// tf has a default value for it, but the api does not return this feature , as exiting vpc super seed it
-			// So set the default value to match what tf expect and not break existing clients
-			attributes[featureKeyVpcSubnet] = FromStringPointer(&clusterFeatureVpcSubnetDefault)
-			attributeTypes[featureKeyVpcSubnet] = types.StringType
-
 			v := f.GetValue().ClusterFeatureAwsExistingVpc
+
 			attrTypes := make(map[string]attr.Type)
 			attrTypes["aws_vpc_eks_id"] = types.StringType
 			attrTypes["eks_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
@@ -211,6 +207,17 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 			attrTypes["elasticache_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
 			attrTypes["elasticache_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
 
+			if v == nil {
+				terraformObjectValue := types.ObjectNull(attrTypes)
+				attributes[featureKeyExistingVpc] = terraformObjectValue
+				attributeTypes[featureKeyExistingVpc] = terraformObjectValue.Type(context.Background())
+				continue
+			}
+
+			// tf has a default value for it, but the api does not return this feature , as exiting vpc super seed it
+			// So set the default value to match what tf expect and not break existing clients
+			attributes[featureKeyVpcSubnet] = FromStringPointer(&clusterFeatureVpcSubnetDefault)
+			attributeTypes[featureKeyVpcSubnet] = types.StringType
 			attrVals := make(map[string]attr.Value)
 			attrVals["aws_vpc_eks_id"] = FromStringPointer(&v.AwsVpcEksId)
 			attrVals["eks_subnets_zone_a_ids"] = FromStringArray(v.EksSubnetsZoneAIds)
@@ -290,29 +297,31 @@ func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterReques
 
 	if _, ok := f.Attributes()[featureKeyExistingVpc]; ok {
 		v := f.Attributes()[featureKeyExistingVpc].(types.Object)
-		feature := qovery.ClusterFeatureAwsExistingVpc{
-			AwsVpcEksId:                ToString(v.Attributes()["aws_vpc_eks_id"].(types.String)),
-			EksSubnetsZoneAIds:         ToStringArray(v.Attributes()["eks_subnets_zone_a_ids"].(types.List)),
-			EksSubnetsZoneBIds:         ToStringArray(v.Attributes()["eks_subnets_zone_b_ids"].(types.List)),
-			EksSubnetsZoneCIds:         ToStringArray(v.Attributes()["eks_subnets_zone_c_ids"].(types.List)),
-			RdsSubnetsZoneAIds:         ToStringArray(v.Attributes()["rds_subnets_zone_a_ids"].(types.List)),
-			RdsSubnetsZoneBIds:         ToStringArray(v.Attributes()["rds_subnets_zone_b_ids"].(types.List)),
-			RdsSubnetsZoneCIds:         ToStringArray(v.Attributes()["rds_subnets_zone_c_ids"].(types.List)),
-			DocumentdbSubnetsZoneAIds:  ToStringArray(v.Attributes()["documentdb_subnets_zone_a_ids"].(types.List)),
-			DocumentdbSubnetsZoneBIds:  ToStringArray(v.Attributes()["documentdb_subnets_zone_b_ids"].(types.List)),
-			DocumentdbSubnetsZoneCIds:  ToStringArray(v.Attributes()["documentdb_subnets_zone_c_ids"].(types.List)),
-			ElasticacheSubnetsZoneAIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_a_ids"].(types.List)),
-			ElasticacheSubnetsZoneBIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_b_ids"].(types.List)),
-			ElasticacheSubnetsZoneCIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_c_ids"].(types.List)),
-		}
-		value := qovery.NewNullableClusterFeatureValue(&qovery.ClusterFeatureValue{
-			ClusterFeatureAwsExistingVpc: &feature,
-		})
+		if !v.IsNull() {
+			feature := qovery.ClusterFeatureAwsExistingVpc{
+				AwsVpcEksId:                ToString(v.Attributes()["aws_vpc_eks_id"].(types.String)),
+				EksSubnetsZoneAIds:         ToStringArray(v.Attributes()["eks_subnets_zone_a_ids"].(types.List)),
+				EksSubnetsZoneBIds:         ToStringArray(v.Attributes()["eks_subnets_zone_b_ids"].(types.List)),
+				EksSubnetsZoneCIds:         ToStringArray(v.Attributes()["eks_subnets_zone_c_ids"].(types.List)),
+				RdsSubnetsZoneAIds:         ToStringArray(v.Attributes()["rds_subnets_zone_a_ids"].(types.List)),
+				RdsSubnetsZoneBIds:         ToStringArray(v.Attributes()["rds_subnets_zone_b_ids"].(types.List)),
+				RdsSubnetsZoneCIds:         ToStringArray(v.Attributes()["rds_subnets_zone_c_ids"].(types.List)),
+				DocumentdbSubnetsZoneAIds:  ToStringArray(v.Attributes()["documentdb_subnets_zone_a_ids"].(types.List)),
+				DocumentdbSubnetsZoneBIds:  ToStringArray(v.Attributes()["documentdb_subnets_zone_b_ids"].(types.List)),
+				DocumentdbSubnetsZoneCIds:  ToStringArray(v.Attributes()["documentdb_subnets_zone_c_ids"].(types.List)),
+				ElasticacheSubnetsZoneAIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_a_ids"].(types.List)),
+				ElasticacheSubnetsZoneBIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_b_ids"].(types.List)),
+				ElasticacheSubnetsZoneCIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_c_ids"].(types.List)),
+			}
+			value := qovery.NewNullableClusterFeatureValue(&qovery.ClusterFeatureValue{
+				ClusterFeatureAwsExistingVpc: &feature,
+			})
 
-		features = append(features, qovery.ClusterRequestFeaturesInner{
-			Id:    StringAsPointer(featureIdExistingVpc),
-			Value: *value,
-		})
+			features = append(features, qovery.ClusterRequestFeaturesInner{
+				Id:    StringAsPointer(featureIdExistingVpc),
+				Value: *value,
+			})
+		}
 	}
 
 	return features
