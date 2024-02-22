@@ -70,7 +70,7 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 			},
 			"mode": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
-					"Mode of the environment [NOTE: can't be updated after creation].",
+					"Mode of the environment.",
 					clientEnumToStringArray(environment.AllowedModeValues),
 					pointer.ToString(environment.DefaultMode.String()),
 				),

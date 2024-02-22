@@ -20,7 +20,7 @@ data "qovery_environment" "my_environment" {
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this environment. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this environment. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this environment. (see [below for nested schema](#nestedatt--environment_variables))
-- `mode` (String) Mode of the environment [NOTE: can't be updated after creation].
+- `mode` (String) Mode of the environment.
 	- Can be: `DEVELOPMENT`, `PREVIEW`, `PRODUCTION`, `STAGING`.
 	- Default: `DEVELOPMENT`.
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this environment. (see [below for nested schema](#nestedatt--secret_aliases))
