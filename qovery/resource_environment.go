@@ -78,7 +78,7 @@ func (r environmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			},
 			"mode": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
-					"Mode of the environment [NOTE: can't be updated after creation].",
+					"Mode of the environment.",
 					clientEnumToStringArray(environment.AllowedModeValues),
 					pointer.ToString(environment.DefaultMode.String()),
 				),
