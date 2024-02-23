@@ -11,6 +11,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, environmentID string, request UpsertRepositoryRequest) (*DeploymentStage, error)
 	Get(ctx context.Context, environmentID string, deploymentStageID string) (*DeploymentStage, error)
+	GetAllByEnvironmentID(ctx context.Context, environmentID string) (*[]DeploymentStage, error)
 	Update(ctx context.Context, deploymentStageID string, request UpsertRepositoryRequest) (*DeploymentStage, error)
 	Delete(ctx context.Context, deploymentStageID string) error
 }

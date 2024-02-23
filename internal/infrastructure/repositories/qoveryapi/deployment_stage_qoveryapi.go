@@ -3,6 +3,7 @@ package qoveryapi
 import (
 	"context"
 
+	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
@@ -75,6 +76,31 @@ func (c deploymentStageQoveryAPI) Get(ctx context.Context, environmentID string,
 		Name:              *deploymentStage.Name,
 		Description:       *deploymentStage.Description,
 	})
+}
+
+func (c deploymentStageQoveryAPI) GetAllByEnvironmentID(ctx context.Context, environmentID string) (*[]deploymentstage.DeploymentStage, error) {
+	result, resp, err := c.client.DeploymentStageMainCallsAPI.ListEnvironmentDeploymentStage(ctx, environmentID).Execute()
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode > 200 {
+		return nil, errors.New("Wrong environment id")
+	}
+
+	var array []deploymentstage.DeploymentStage
+	for _, deploymentStage := range result.Results {
+		stage, err := deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
+			DeploymentStageID: deploymentStage.Id,
+			EnvironmentID:     deploymentStage.Environment.Id,
+			Name:              *deploymentStage.Name,
+			Description:       *deploymentStage.Description,
+		})
+		if err == nil {
+			array = append(array, *stage)
+		}
+	}
+
+	return &array, nil
 }
 
 func (c deploymentStageQoveryAPI) Update(ctx context.Context, deploymentStageID string, request deploymentstage.UpsertRepositoryRequest) (*deploymentstage.DeploymentStage, error) {

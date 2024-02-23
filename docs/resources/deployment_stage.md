@@ -43,5 +43,5 @@ You can find complete examples within these repositories:
 - `id` (String) Id of the deployment stage.
 ## Import
 ```shell
-terraform import qovery_deployment_stage.my_deployment_stage "<deployment_stage_id>"
+terraform import qovery_deployment_stage.my_deployment_stage "<environment_id>,<deployment_stage_name>"
 ```

@@ -17,6 +17,7 @@ var (
 type Service interface {
 	Create(ctx context.Context, environmentID string, request UpsertServiceRequest) (*DeploymentStage, error)
 	Get(ctx context.Context, environmentID string, deploymentStageID string) (*DeploymentStage, error)
+	GetAllByEnvironmentID(ctx context.Context, environmentID string, deploymentStageName string) (*DeploymentStage, error)
 	Update(ctx context.Context, deploymentStageID string, request UpsertServiceRequest) (*DeploymentStage, error)
 	Delete(ctx context.Context, deploymentStageID string) error
 }
