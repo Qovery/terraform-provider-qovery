@@ -3,6 +3,8 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 
@@ -189,5 +191,25 @@ func (r deploymentStageResource) Delete(ctx context.Context, req resource.Delete
 
 // ImportState imports a qovery deployment stage resource using its id
 func (r deploymentStageResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
-	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+	idParts := strings.Split(req.ID, ",")
+
+	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
+		resp.Diagnostics.AddError(
+			"Unexpected Import Identifier",
+			fmt.Sprintf("Expected import identifier with format: environment_id,deployment_stage_name. Got: %q", req.ID),
+		)
+		return
+	}
+
+	environmentId := idParts[0]
+	deploymentStageName := idParts[1]
+	deploymentStage, err := r.deploymentStageService.GetAllByEnvironmentID(ctx, environmentId, deploymentStageName)
+	if err != nil {
+		resp.Diagnostics.AddError("Error", err.Error())
+		return
+	}
+
+	req.ID = deploymentStage.ID.String()
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), deploymentStage.ID.String())...)
+	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("environment_id"), environmentId)...)
 }

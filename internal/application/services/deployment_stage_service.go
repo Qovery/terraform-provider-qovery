@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -49,6 +50,20 @@ func (s deploymentStageService) Get(ctx context.Context, environmentID string, d
 	}
 
 	return deploymentStage, nil
+}
+
+func (s deploymentStageService) GetAllByEnvironmentID(ctx context.Context, environmentID string, deploymentStageName string) (*deploymentstage.DeploymentStage, error) {
+	deploymentStages, err := s.deploymentStageRepository.GetAllByEnvironmentID(ctx, environmentID)
+	if err != nil {
+		return nil, errors.Wrap(err, deploymentstage.ErrFailedToGetDeploymentStage.Error())
+	}
+
+	for _, deploymentStage := range *deploymentStages {
+		if deploymentStage.Name == deploymentStageName {
+			return &deploymentStage, nil
+		}
+	}
+	return nil, errors.New(fmt.Sprintf("Cannot find deployment stage with name %s in environment with id %s", deploymentStageName, environmentID))
 }
 
 func (s deploymentStageService) Update(ctx context.Context, deploymentStageID string, request deploymentstage.UpsertServiceRequest) (*deploymentstage.DeploymentStage, error) {
