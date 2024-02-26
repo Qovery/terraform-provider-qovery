@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -140,6 +141,90 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 						),
 						Optional: true,
 						Computed: true,
+					},
+					"existing_vpc": schema.SingleNestedAttribute{
+						Description: "Network configuration if you want to install qovery on an existing VPC",
+						Optional:    true,
+						Computed:    false,
+						Attributes: map[string]schema.Attribute{
+							"aws_vpc_eks_id": schema.StringAttribute{
+								Description: "Aws VPC id",
+								Required:    true,
+								Computed:    false,
+							},
+							"eks_subnets_zone_a_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for EKS zone a. Must have map_public_ip_on_launch set to true",
+								ElementType: types.StringType,
+								Required:    true,
+								Computed:    false,
+							},
+							"eks_subnets_zone_b_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for EKS zone b. Must have map_public_ip_on_launch set to true",
+								ElementType: types.StringType,
+								Required:    true,
+								Computed:    false,
+							},
+							"eks_subnets_zone_c_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for EKS zone c. Must have map_public_ip_on_launch set to true",
+								ElementType: types.StringType,
+								Required:    true,
+								Computed:    false,
+							},
+							"rds_subnets_zone_a_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for RDS",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"rds_subnets_zone_b_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for RDS",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"rds_subnets_zone_c_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for RDS",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"documentdb_subnets_zone_a_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for document db",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"documentdb_subnets_zone_b_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for document db",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"documentdb_subnets_zone_c_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for document db",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"elasticache_subnets_zone_a_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for elasticache",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"elasticache_subnets_zone_b_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for elasticache",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+							"elasticache_subnets_zone_c_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for elasticache",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+							},
+						},
 					},
 				},
 			},
