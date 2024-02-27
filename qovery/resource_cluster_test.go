@@ -124,13 +124,12 @@ func TestAcc_Cluster(t *testing.T) {
 			},
 			// Check Import
 			// Since this takes too much time to create a cluster, the import test is done here.
-			// TODO: uncomment when ImportStateIdPrefix is fixed
-			//{
-			//	ResourceName:        "qovery_cluster.test",
-			//	ImportState:         true,
-			//	ImportStateVerify:   true,
-			//	ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
-			//},
+			{
+				ResourceName:        "qovery_cluster.test",
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
+			},
 		},
 	})
 }
