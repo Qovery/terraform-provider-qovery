@@ -415,10 +415,10 @@ func (c *Client) fetchVariablesForAliasesAndOverrides(ctx context.Context, app *
 	variablesByNameForAliases := make(map[string]qovery.EnvironmentVariable)
 	variablesByNameForOverrides := make(map[string]qovery.EnvironmentVariable)
 	for _, result := range applicationVariables.Results {
-		if *result.VariableType == qovery.APIVARIABLETYPEENUM_VALUE || *result.VariableType == qovery.APIVARIABLETYPEENUM_BUILT_IN {
+		if result.VariableType == qovery.APIVARIABLETYPEENUM_VALUE || result.VariableType == qovery.APIVARIABLETYPEENUM_BUILT_IN {
 			variablesByNameForAliases[result.Key] = result
 		}
-		if *result.VariableType == qovery.APIVARIABLETYPEENUM_VALUE && (result.Scope == qovery.APIVARIABLESCOPEENUM_ENVIRONMENT || result.Scope == qovery.APIVARIABLESCOPEENUM_PROJECT) {
+		if result.VariableType == qovery.APIVARIABLETYPEENUM_VALUE && (result.Scope == qovery.APIVARIABLESCOPEENUM_ENVIRONMENT || result.Scope == qovery.APIVARIABLESCOPEENUM_PROJECT) {
 			variablesByNameForOverrides[result.Key] = result
 		}
 	}
@@ -467,13 +467,13 @@ func computeAliasOverrideValueVariablesAndSecrets(
 	var variableOverrides []*qovery.EnvironmentVariable
 
 	for _, variable := range environmentVariables {
-		if *variable.VariableType == qovery.APIVARIABLETYPEENUM_VALUE || *variable.VariableType == qovery.APIVARIABLETYPEENUM_BUILT_IN {
+		if variable.VariableType == qovery.APIVARIABLETYPEENUM_VALUE || variable.VariableType == qovery.APIVARIABLETYPEENUM_BUILT_IN {
 			variableValues = append(variableValues, variable)
 		}
-		if *variable.VariableType == qovery.APIVARIABLETYPEENUM_ALIAS {
+		if variable.VariableType == qovery.APIVARIABLETYPEENUM_ALIAS {
 			variableAliases = append(variableAliases, variable)
 		}
-		if *variable.VariableType == qovery.APIVARIABLETYPEENUM_OVERRIDE {
+		if variable.VariableType == qovery.APIVARIABLETYPEENUM_OVERRIDE {
 			variableOverrides = append(variableOverrides, variable)
 		}
 	}

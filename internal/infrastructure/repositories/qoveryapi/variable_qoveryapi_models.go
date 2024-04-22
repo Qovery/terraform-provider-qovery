@@ -37,7 +37,7 @@ func newDomainVariableFromQovery(v *qovery.EnvironmentVariable) (*variable.Varia
 		Scope:      string(v.Scope),
 		Key:        v.Key,
 		Value:      value,
-		Type:       string(*v.VariableType),
+		Type:       string(v.VariableType),
 	})
 }
 

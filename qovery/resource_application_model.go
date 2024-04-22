@@ -198,7 +198,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 	applicationEditRequest := qovery.ApplicationEditRequest{
 		Name:                ToStringPointer(app.Name),
 		BuildMode:           buildMode,
-		DockerfilePath:      ToStringPointer(app.DockerfilePath),
+		DockerfilePath:      ToNullableString(app.DockerfilePath),
 		BuildpackLanguage:   ToNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
 		Cpu:                 ToInt32Pointer(app.CPU),
 		Memory:              ToInt32Pointer(app.Memory),
