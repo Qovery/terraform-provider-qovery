@@ -188,7 +188,7 @@ func fromEnvironmentVariable(v *qovery.EnvironmentVariable) EnvironmentVariable 
 func fromEnvironmentVariableList(vars []*qovery.EnvironmentVariable, scope qovery.APIVariableScopeEnum, variableType string) EnvironmentVariableList {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
-		if v.Scope != scope || string(*v.VariableType) != variableType {
+		if v.Scope != scope || string(v.VariableType) != variableType {
 			continue
 		}
 		list = append(list, fromEnvironmentVariable(v))
@@ -203,7 +203,7 @@ func fromEnvironmentVariableList(vars []*qovery.EnvironmentVariable, scope qover
 func fromEnvironmentVariableListWithNullableInitialState(initialState types.Set, vars []*qovery.EnvironmentVariable, scope qovery.APIVariableScopeEnum, variableType string) EnvironmentVariableList {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
-		if v.Scope != scope || string(*v.VariableType) != variableType {
+		if v.Scope != scope || string(v.VariableType) != variableType {
 			continue
 		}
 		list = append(list, fromEnvironmentVariable(v))

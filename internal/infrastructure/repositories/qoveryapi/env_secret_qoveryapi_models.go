@@ -39,7 +39,7 @@ func newDomainEnvSecretFromQovery(v *qovery.VariableResponse) (*secret.Secret, e
 		SecretID: v.GetId(),
 		Scope:    string(v.Scope),
 		Key:      v.GetKey(),
-		Type:     string(*v.VariableType),
+		Type:     string(v.VariableType),
 	})
 }
 
