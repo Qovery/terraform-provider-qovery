@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	applicationRepositoryURL = "https://github.com/Qovery/test_http_server.git"
+	applicationRepositoryURL = "https://github.com/erebe/test_http_server.git"
 	applicationBranch        = "master"
 )
 
