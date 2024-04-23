@@ -36,7 +36,7 @@ func TestAcc_JobGitToken(t *testing.T) {
 						Source: &qovery.JobSource{
 							Docker: &qovery.Docker{
 								GitRepository: qovery.GitRepository{
-									Url:        qovery.FromString("https://github.com/erebe/test_http_server.git"),
+									Url:        qovery.FromString("https://github.com/Qovery/test_http_server.git"),
 									Branch:     qovery.FromString("master"),
 									RootPath:   qovery.FromString("/"),
 									GitTokenId: qovery.FromString(getTestQoverySandboxGitTokenID()),
@@ -71,7 +71,7 @@ func TestAcc_JobGitToken(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_job.test", "max_nb_restart", "0"),
 					resource.TestCheckNoResourceAttr("qovery_job.test", "port"),
 					resource.TestCheckResourceAttr("qovery_job.test", "source.docker.dockerfile_path", "./Dockerfile"),
-					resource.TestCheckResourceAttr("qovery_job.test", "source.docker.git_repository.url", "https://github.com/erebe/test_http_server.git"),
+					resource.TestCheckResourceAttr("qovery_job.test", "source.docker.git_repository.url", "https://github.com/Qovery/test_http_server.git"),
 					resource.TestCheckResourceAttr("qovery_job.test", "source.docker.git_repository.branch", "master"),
 					resource.TestCheckResourceAttr("qovery_job.test", "source.docker.git_repository.root_path", "/"),
 					resource.TestCheckResourceAttr("qovery_job.test", "source.docker.git_repository.git_token_id", getTestQoverySandboxGitTokenID()),
