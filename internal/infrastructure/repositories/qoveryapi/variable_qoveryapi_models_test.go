@@ -34,7 +34,7 @@ func TestNewDomainVariablesFromQovery(t *testing.T) {
 							v := gofakeit.Word()
 							return &v
 						}(),
-						VariableType: &variableType,
+						VariableType: variableType,
 					},
 					{
 						Id:    gofakeit.UUID(),
@@ -44,7 +44,7 @@ func TestNewDomainVariablesFromQovery(t *testing.T) {
 							v := gofakeit.Word()
 							return &v
 						}(),
-						VariableType: &variableType,
+						VariableType: variableType,
 					},
 				},
 			},
