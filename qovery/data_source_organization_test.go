@@ -24,7 +24,7 @@ func TestAcc_OrganizationDataSource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.qovery_organization.test", "id", getTestOrganizationID()),
 					resource.TestCheckResourceAttr("data.qovery_organization.test", "name", "Q Sandbox"),
-					resource.TestCheckResourceAttr("data.qovery_organization.test", "plan", "PROFESSIONAL"),
+					resource.TestCheckResourceAttr("data.qovery_organization.test", "plan", "ENTERPRISE"),
 					resource.TestCheckResourceAttr("data.qovery_organization.test", "description", "Organization for team's test"),
 				),
 			},

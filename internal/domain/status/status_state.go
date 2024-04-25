@@ -10,29 +10,33 @@ import (
 type State string
 
 const (
-	StateBuilding         State = "BUILDING"
-	StateBuildError       State = "BUILD_ERROR"
-	StateCanceled         State = "CANCELED"
-	StateCanceling        State = "CANCELING"
-	StateDeleted          State = "DELETED"
-	StateDeleteError      State = "DELETE_ERROR"
-	StateDeleteQueued     State = "DELETE_QUEUED"
-	StateDeleting         State = "DELETING"
-	StateDeployed         State = "DEPLOYED"
-	StateDeploying        State = "DEPLOYING"
-	StateDeploymentError  State = "DEPLOYMENT_ERROR"
-	StateDeploymentQueued State = "DEPLOYMENT_QUEUED"
-	StateQueued           State = "QUEUED"
-	StateReady            State = "READY"
-	StateStopped          State = "STOPPED"
-	StateStopping         State = "STOPPING"
-	StateStopError        State = "STOP_ERROR"
-	StateStopQueued       State = "STOP_QUEUED"
-	StateRestarting       State = "RESTARTING"
-	StateRestarted        State = "RESTARTED"
-	StateRestartError     State = "RESTART_ERROR"
-	StateRestartQueued    State = "RESTART_QUEUED"
-	StateRecap            State = "RECAP"
+	StateBuilding          State = "BUILDING"
+	StateBuildError        State = "BUILD_ERROR"
+	StateCanceled          State = "CANCELED"
+	StateCanceling         State = "CANCELING"
+	StateDeleted           State = "DELETED"
+	StateDeleteError       State = "DELETE_ERROR"
+	StateDeleteQueued      State = "DELETE_QUEUED"
+	StateDeleting          State = "DELETING"
+	StateDeployed          State = "DEPLOYED"
+	StateDeploying         State = "DEPLOYING"
+	StateDeploymentError   State = "DEPLOYMENT_ERROR"
+	StateDeploymentQueued  State = "DEPLOYMENT_QUEUED"
+	StateQueued            State = "QUEUED"
+	StateReady             State = "READY"
+	StateStopped           State = "STOPPED"
+	StateStopping          State = "STOPPING"
+	StateStopError         State = "STOP_ERROR"
+	StateStopQueued        State = "STOP_QUEUED"
+	StateRestarting        State = "RESTARTING"
+	StateRestarted         State = "RESTARTED"
+	StateRestartError      State = "RESTART_ERROR"
+	StateRestartQueued     State = "RESTART_QUEUED"
+	StateRecap             State = "RECAP"
+	StateWaitingDeleting   State = "WAITING_DELETING"
+	StateWaitingRestarting State = "WAITING_RESTARTING"
+	StateWaitingRunning    State = "WAITING_RUNNING"
+	StateWaitingStopping   State = "WAITING_STOPPING"
 )
 
 // AllowedStateValues contains all the valid values of a State.
@@ -60,6 +64,10 @@ var AllowedStateValues = []State{
 	StateRestartError,
 	StateRestartQueued,
 	StateRecap,
+	StateWaitingDeleting,
+	StateWaitingRestarting,
+	StateWaitingRunning,
+	StateWaitingStopping,
 }
 
 var AllowedDesiredStateValues = []State{
