@@ -3,7 +3,6 @@ package qovery
 import (
 	"context"
 	"fmt"
-
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -515,6 +514,10 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 						"domain": schema.StringAttribute{
 							Description: "Your custom domain.",
 							Required:    true,
+						},
+						"generate_certificate": schema.BoolAttribute{
+							Description: "Qovery will generate and manage the certificate for this domain.",
+							Optional:    true,
 						},
 						"validation_domain": schema.StringAttribute{
 							Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",

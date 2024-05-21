@@ -70,6 +70,10 @@ data "qovery_application" "my_application" {
 <a id="nestedatt--custom_domains"></a>
 ### Nested Schema for `custom_domains`
 
+Optional:
+
+- `generate_certificate` (Boolean) Qovery will generate and manage the certificate for this domain.
+
 Read-Only:
 
 - `domain` (String) Your custom domain.
