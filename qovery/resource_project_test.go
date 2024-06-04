@@ -35,7 +35,10 @@ func TestAcc_Project(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
-					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "built_in_environment_variables.*", map[string]string{
+						"key":   "QOVERY_PROJECT_ID",
+						"value": "||Q_PRJ_ID||",
+					}),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "secrets.0"),
 				),
 			},
@@ -51,7 +54,10 @@ func TestAcc_Project(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", "this is a description"),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
-					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "built_in_environment_variables.*", map[string]string{
+						"key":   "QOVERY_PROJECT_ID",
+						"value": "||Q_PRJ_ID||",
+					}),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "secrets.0"),
 				),
 			},
@@ -87,7 +93,10 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "organization_id", getTestOrganizationID()),
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
-					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "built_in_environment_variables.*", map[string]string{
+						"key":   "QOVERY_PROJECT_ID",
+						"value": "||Q_PRJ_ID||",
+					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
 						"key":   "key1",
 						"value": "",
@@ -110,7 +119,10 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "organization_id", getTestOrganizationID()),
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
-					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "built_in_environment_variables.*", map[string]string{
+						"key":   "QOVERY_PROJECT_ID",
+						"value": "||Q_PRJ_ID||",
+					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
 						"key":   "key1",
 						"value": "value1-updated",
@@ -138,7 +150,10 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "organization_id", getTestOrganizationID()),
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
-					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "built_in_environment_variables.*", map[string]string{
+						"key":   "QOVERY_PROJECT_ID",
+						"value": "||Q_PRJ_ID||",
+					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
 						"key":   "key1",
 						"value": "value1",
@@ -167,7 +182,10 @@ func TestAcc_ProjectWithEnvironmentVariables(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "organization_id", getTestOrganizationID()),
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
-					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "built_in_environment_variables.*", map[string]string{
+						"key":   "QOVERY_PROJECT_ID",
+						"value": "||Q_PRJ_ID||",
+					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variables.*", map[string]string{
 						"key":   "key2",
 						"value": "value2",
@@ -210,7 +228,10 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
-					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "built_in_environment_variables.*", map[string]string{
+						"key":   "QOVERY_PROJECT_ID",
+						"value": "||Q_PRJ_ID||",
+					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secrets.*", map[string]string{
 						"key":   "key1",
 						"value": "",
@@ -238,7 +259,10 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
-					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "built_in_environment_variables.*", map[string]string{
+						"key":   "QOVERY_PROJECT_ID",
+						"value": "||Q_PRJ_ID||",
+					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secrets.*", map[string]string{
 						"key":   "key1",
 						"value": "value1-updated",
@@ -267,7 +291,10 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
-					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "built_in_environment_variables.*", map[string]string{
+						"key":   "QOVERY_PROJECT_ID",
+						"value": "||Q_PRJ_ID||",
+					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secrets.*", map[string]string{
 						"key":   "key1",
 						"value": "value1",
@@ -299,7 +326,10 @@ func TestAcc_ProjectWithSecrets(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
-					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "built_in_environment_variables.*", map[string]string{
+						"key":   "QOVERY_PROJECT_ID",
+						"value": "||Q_PRJ_ID||",
+					}),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secrets.*", map[string]string{
 						"key":   "key2",
 						"value": "value2",
@@ -333,7 +363,10 @@ func TestAcc_ProjectImport(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_project.test", "description", ""),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variables.0"),
-					resource.TestCheckNoResourceAttr("qovery_project.test", "built_in_environment_variables.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "built_in_environment_variables.*", map[string]string{
+						"key":   "QOVERY_PROJECT_ID",
+						"value": "||Q_PRJ_ID||",
+					}),
 					resource.TestCheckNoResourceAttr("qovery_project.test", "secrets.0"),
 				),
 			},

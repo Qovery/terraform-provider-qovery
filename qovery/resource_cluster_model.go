@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/qovery/qovery-client-go"
 	"github.com/qovery/terraform-provider-qovery/client"
 )
@@ -170,7 +171,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 	}
 }
 
-func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
+func fromQoveryClusterFeatures(ff []qovery.ClusterFeatureResponse) types.Object {
 	if ff == nil {
 		// Early return object null without attribute types
 		return types.ObjectNull(make(map[string]attr.Type))
@@ -184,13 +185,24 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeature) types.Object {
 		}
 		switch *f.Id {
 		case featureIdVpcSubnet:
-			attributes[featureKeyVpcSubnet] = FromStringPointer(f.GetValue().String)
+			if f.GetValueObject().ClusterFeatureStringResponse != nil {
+				attributes[featureKeyVpcSubnet] = FromString(f.GetValueObject().ClusterFeatureStringResponse.Value)
+			} else {
+				attributes[featureKeyVpcSubnet] = basetypes.NewStringNull()
+			}
 			attributeTypes[featureKeyVpcSubnet] = types.StringType
 		case featureIdStaticIP:
-			attributes[featureKeyStaticIP] = FromBoolPointer(f.GetValue().Bool)
+			if f.GetValueObject().ClusterFeatureBooleanResponse != nil {
+				attributes[featureKeyStaticIP] = FromBool(f.GetValueObject().ClusterFeatureBooleanResponse.Value)
+			} else {
+				attributes[featureKeyStaticIP] = basetypes.NewBoolNull()
+			}
 			attributeTypes[featureKeyStaticIP] = types.BoolType
 		case featureIdExistingVpc:
-			v := f.GetValue().ClusterFeatureAwsExistingVpc
+			var v *qovery.ClusterFeatureAwsExistingVpc = nil
+			if f.GetValueObject().ClusterFeatureAwsExistingVpcResponse != nil {
+				v = &f.GetValueObject().ClusterFeatureAwsExistingVpcResponse.Value
+			}
 
 			attrTypes := make(map[string]attr.Type)
 			attrTypes["aws_vpc_eks_id"] = types.StringType
@@ -274,7 +286,7 @@ func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterReques
 
 	features := make([]qovery.ClusterRequestFeaturesInner, 0, len(f.Attributes()))
 	if _, ok := f.Attributes()[featureKeyVpcSubnet]; ok {
-		value := qovery.NewNullableClusterFeatureValue(&qovery.ClusterFeatureValue{
+		value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
 			String: ToStringPointer(f.Attributes()[featureKeyVpcSubnet].(types.String)),
 		})
 
@@ -285,7 +297,7 @@ func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterReques
 	}
 
 	if _, ok := f.Attributes()[featureKeyStaticIP]; ok {
-		value := qovery.NewNullableClusterFeatureValue(&qovery.ClusterFeatureValue{
+		value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
 			Bool: ToBoolPointer(f.Attributes()[featureKeyStaticIP].(types.Bool)),
 		})
 
@@ -313,7 +325,7 @@ func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterReques
 				ElasticacheSubnetsZoneBIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_b_ids"].(types.List)),
 				ElasticacheSubnetsZoneCIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_c_ids"].(types.List)),
 			}
-			value := qovery.NewNullableClusterFeatureValue(&qovery.ClusterFeatureValue{
+			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
 				ClusterFeatureAwsExistingVpc: &feature,
 			})
 
