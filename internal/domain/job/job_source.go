@@ -2,6 +2,7 @@ package job
 
 import (
 	"github.com/pkg/errors"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/image"
@@ -14,12 +15,17 @@ var (
 	ErrInvalidJobSourceNoneOfDockerAndImageAreSet = errors.New("invalid job source: either `Docker` or `Image` should be set")
 )
 
-type JobSource struct {
+type Source struct {
 	Image  *image.Image
 	Docker *docker.Docker
 }
 
-func (s JobSource) Validate() error {
+type SourceResponse struct {
+	Image  *qovery.ContainerSource
+	Docker *qovery.JobSourceDockerResponse
+}
+
+func (s Source) Validate() error {
 	if s.Docker == nil && s.Image == nil {
 		return ErrInvalidJobSourceNoneOfDockerAndImageAreSet
 	}
@@ -44,7 +50,7 @@ func (s JobSource) Validate() error {
 }
 
 // Tag returns a string representing job unique tag, will be gather from job source.
-func (s JobSource) Tag() *string {
+func (s Source) Tag() *string {
 	if err := s.Validate(); err != nil {
 		// Should not happen, condition checked uppon creation
 		return nil
@@ -62,7 +68,7 @@ func (s JobSource) Tag() *string {
 }
 
 // TagOrEmpty returns a string representing job unique tag or empty if doesn't exist.
-func (s JobSource) TagOrEmpty() string {
+func (s Source) TagOrEmpty() string {
 	if s.Tag() != nil {
 		return *s.Tag()
 	}
@@ -75,7 +81,7 @@ type NewJobSourceParams struct {
 	Docker *docker.NewDockerParams
 }
 
-func NewJobSource(params NewJobSourceParams) (*JobSource, error) {
+func NewJobSource(params NewJobSourceParams) (*Source, error) {
 	var err error = nil
 
 	var img *image.Image = nil
@@ -94,7 +100,7 @@ func NewJobSource(params NewJobSourceParams) (*JobSource, error) {
 		}
 	}
 
-	newSource := &JobSource{
+	newSource := &Source{
 		Image:  img,
 		Docker: dckr,
 	}

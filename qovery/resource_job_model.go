@@ -19,7 +19,7 @@ type JobSource struct {
 	Docker *Docker `tfsdk:"docker"`
 }
 
-func (s JobSource) toUpsertRequest() job.JobSource {
+func (s JobSource) toUpsertRequest() job.Source {
 	var img *image.Image = nil
 	if s.Image != nil {
 		img = s.Image.toUpsertRequest()
@@ -30,13 +30,13 @@ func (s JobSource) toUpsertRequest() job.JobSource {
 		dkr = s.Docker.toUpsertRequest()
 	}
 
-	return job.JobSource{
+	return job.Source{
 		Image:  img,
 		Docker: dkr,
 	}
 }
 
-func JobSourceFromDomainJobSource(j job.JobSource) JobSource {
+func JobSourceFromDomainJobSource(j job.Source) JobSource {
 	var dkr *Docker = nil
 	if j.Docker != nil {
 		dkr = &Docker{

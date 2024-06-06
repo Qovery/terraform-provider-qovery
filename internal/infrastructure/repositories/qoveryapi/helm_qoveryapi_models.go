@@ -22,12 +22,23 @@ type AggregateHelmResponse struct {
 	AutoDeploy                bool
 	Arguments                 []string
 	AllowClusterWideResources bool
-	Source                    qovery.HelmResponseAllOfSource
+	Source                    helm.SourceResponse
 	ValuesOverride            qovery.HelmResponseAllOfValuesOverride
 	Ports                     []qovery.HelmResponseAllOfPorts
 }
 
 func getAggregateHelmResponse(helmResponse *qovery.HelmResponse) AggregateHelmResponse {
+	source := helm.SourceResponse{}
+	if git := helmResponse.Source["git"]; git != nil {
+		ret := qovery.HelmSourceGitResponse{}
+		_ = unmarshal(git, &ret)
+		source.Git = &ret
+	} else if repo := helmResponse.Source["repository"]; repo != nil {
+		ret := qovery.HelmSourceRepositoryResponse{}
+		_ = unmarshal(repo, &ret)
+		source.Repository = &ret
+	}
+
 	return AggregateHelmResponse{
 		Id:                        helmResponse.Id,
 		EnvironmentId:             helmResponse.Environment.Id,
@@ -40,7 +51,7 @@ func getAggregateHelmResponse(helmResponse *qovery.HelmResponse) AggregateHelmRe
 		AutoDeploy:                helmResponse.AutoDeploy,
 		Arguments:                 helmResponse.Arguments,
 		AllowClusterWideResources: helmResponse.AllowClusterWideResources,
-		Source:                    helmResponse.Source,
+		Source:                    source,
 		ValuesOverride:            helmResponse.ValuesOverride,
 		Ports:                     helmResponse.Ports,
 	}
@@ -55,8 +66,8 @@ func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageI
 	var h = getAggregateHelmResponse(helmResponse)
 
 	var helmSourceGitRepository *helm.NewHelmSourceGitRepository = nil
-	if h.Source.HelmResponseAllOfSourceOneOf != nil && h.Source.HelmResponseAllOfSourceOneOf.Git != nil && h.Source.HelmResponseAllOfSourceOneOf.Git.GitRepository != nil {
-		gitRepository := h.Source.HelmResponseAllOfSourceOneOf.Git.GitRepository
+	if git := h.Source.Git; git != nil {
+		gitRepository := git.GitRepository
 
 		var gitTokenId *string = nil
 		if gitRepository.GitTokenId.IsSet() && gitRepository.GitTokenId.Get() != nil {
@@ -72,13 +83,11 @@ func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageI
 	}
 
 	var helmSourceHelmRepository *helm.NewHelmSourceHelmRepository = nil
-	if h.Source.HelmResponseAllOfSourceOneOf1 != nil && h.Source.HelmResponseAllOfSourceOneOf1.Repository != nil {
-		repository := h.Source.HelmResponseAllOfSourceOneOf1.Repository
-
+	if repo := h.Source.Repository; repo != nil {
 		helmSourceHelmRepository = &helm.NewHelmSourceHelmRepository{
-			RepositoryId: repository.Repository.Id,
-			ChartName:    repository.ChartName,
-			ChartVersion: repository.ChartVersion,
+			RepositoryId: repo.Repository.Id,
+			ChartName:    repo.ChartName,
+			ChartVersion: repo.ChartVersion,
 		}
 	}
 
