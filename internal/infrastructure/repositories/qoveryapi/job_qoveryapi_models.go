@@ -1,6 +1,7 @@
 package qoveryapi
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,7 +32,7 @@ type AggregateJobResponse struct {
 	MaxDurationSeconds *int32
 	AutoPreview        bool
 	Port               qovery.NullableInt32
-	Source             qovery.BaseJobResponseAllOfSource
+	Source             job.SourceResponse
 	Healthchecks       qovery.Healthcheck
 	AutoDeploy         *bool
 	JobType            string
@@ -39,8 +40,24 @@ type AggregateJobResponse struct {
 	ScheduleLifecycle  *qovery.LifecycleJobResponseAllOfSchedule
 }
 
+func unmarshal[T any](input interface{}, output *T) error {
+	jsonString, _ := json.Marshal(input)
+	return json.Unmarshal(jsonString, output)
+}
+
 func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobResponse {
+	source := job.SourceResponse{}
 	if jobResponse.CronJobResponse != nil {
+		if jobResponse.CronJobResponse.Source["image"] != nil {
+			ret := qovery.ContainerSource{}
+			_ = unmarshal(jobResponse.CronJobResponse.Source["image"], &ret)
+			source.Image = &ret
+		} else if jobResponse.CronJobResponse.Source["docker"] != nil {
+			ret := qovery.JobSourceDockerResponse{}
+			_ = unmarshal(jobResponse.CronJobResponse.Source["docker"], &ret)
+			source.Docker = &ret
+		}
+
 		return AggregateJobResponse{
 			Id:                 jobResponse.CronJobResponse.Id,
 			EnvironmentId:      jobResponse.CronJobResponse.Environment.Id,
@@ -56,13 +73,22 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 			MaxDurationSeconds: jobResponse.CronJobResponse.MaxDurationSeconds,
 			AutoPreview:        jobResponse.CronJobResponse.AutoPreview,
 			Port:               jobResponse.CronJobResponse.Port,
-			Source:             jobResponse.CronJobResponse.Source,
+			Source:             source,
 			Healthchecks:       jobResponse.CronJobResponse.Healthchecks,
 			AutoDeploy:         jobResponse.CronJobResponse.AutoDeploy,
 			ScheduleLifecycle:  nil,
 			ScheduleCron:       &jobResponse.CronJobResponse.Schedule,
 		}
 	} else {
+		if jobResponse.LifecycleJobResponse.Source["image"] != nil {
+			ret := qovery.ContainerSource{}
+			_ = unmarshal(jobResponse.LifecycleJobResponse.Source["image"], &ret)
+			source.Image = &ret
+		} else if jobResponse.LifecycleJobResponse.Source["docker"] != nil {
+			ret := qovery.JobSourceDockerResponse{}
+			_ = unmarshal(jobResponse.LifecycleJobResponse.Source["docker"], &ret)
+			source.Docker = &ret
+		}
 		return AggregateJobResponse{
 			Id:                 jobResponse.LifecycleJobResponse.Id,
 			EnvironmentId:      jobResponse.LifecycleJobResponse.Environment.Id,
@@ -78,7 +104,7 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 			MaxDurationSeconds: jobResponse.LifecycleJobResponse.MaxDurationSeconds,
 			AutoPreview:        jobResponse.LifecycleJobResponse.AutoPreview,
 			Port:               jobResponse.LifecycleJobResponse.Port,
-			Source:             jobResponse.LifecycleJobResponse.Source,
+			Source:             source,
 			Healthchecks:       jobResponse.LifecycleJobResponse.Healthchecks,
 			AutoDeploy:         jobResponse.LifecycleJobResponse.AutoDeploy,
 			ScheduleCron:       nil,
@@ -108,50 +134,30 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 	}
 
 	var sourceImage *image.NewImageParams
-	if j.Source.BaseJobResponseAllOfSourceOneOf != nil {
-		imageFrom := j.Source.BaseJobResponseAllOfSourceOneOf.Image
+	if j.Source.Image != nil {
 		var registryID = ""
-		if imageFrom.RegistryId != nil {
-			registryID = *imageFrom.RegistryId
+		if j.Source.Image.RegistryId != nil {
+			registryID = *j.Source.Image.RegistryId
 		}
 		sourceImage = &image.NewImageParams{
 			RegistryID: registryID,
-			Name:       imageFrom.ImageName,
-			Tag:        imageFrom.Tag,
+			Name:       j.Source.Image.ImageName,
+			Tag:        j.Source.Image.Tag,
 		}
 	}
 
 	var sourceDocker *docker.NewDockerParams
-
-	if j.Source.BaseJobResponseAllOfSourceOneOf1 != nil {
-		dockerFrom := j.Source.BaseJobResponseAllOfSourceOneOf1.Docker
-		var gitRepository = git_repository.NewGitRepositoryParams{
-			Url:        "",
-			Branch:     nil,
-			CommitID:   nil,
-			RootPath:   nil,
-			GitTokenId: nil,
-		}
-
-		if gitRepositoryFrom := dockerFrom.GitRepository; gitRepositoryFrom != nil {
-			gitRepository.Url = gitRepositoryFrom.Url
-			if gitRepositoryFrom.Branch != nil {
-				gitRepository.Branch = gitRepositoryFrom.Branch
-			}
-			if gitRepositoryFrom.DeployedCommitId != nil {
-				gitRepository.CommitID = gitRepositoryFrom.DeployedCommitId
-			}
-			if gitRepositoryFrom.RootPath != nil {
-				gitRepository.RootPath = gitRepositoryFrom.RootPath
-			}
-			if gitRepositoryFrom.GitTokenId.Get() != nil {
-				gitRepository.GitTokenId = gitRepositoryFrom.GitTokenId.Get()
-			}
-		}
-
+	if j.Source.Docker != nil {
 		sourceDocker = &docker.NewDockerParams{
-			GitRepository:  gitRepository,
-			DockerFilePath: dockerFrom.DockerfilePath.Get(),
+			GitRepository: git_repository.NewGitRepositoryParams{
+				Url:        j.Source.Docker.GitRepository.Url,
+				Branch:     j.Source.Docker.GitRepository.Branch,
+				CommitID:   j.Source.Docker.GitRepository.DeployedCommitId,
+				RootPath:   j.Source.Docker.GitRepository.RootPath,
+				GitTokenId: j.Source.Docker.GitRepository.GitTokenId.Get(),
+			},
+			DockerFilePath: j.Source.Docker.DockerfilePath.Get(),
+			DockerFileRaw:  j.Source.Docker.DockerfileRaw.Get(),
 		}
 	}
 
@@ -238,6 +244,7 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 	if request.Source.Docker != nil {
 		docker = &qovery.JobRequestAllOfSourceDocker{
 			DockerfilePath: *qovery.NewNullableString(request.Source.Docker.DockerFilePath),
+			DockerfileRaw:  *qovery.NewNullableString(request.Source.Docker.DockerFileRaw),
 			GitRepository: &qovery.ApplicationGitRepositoryRequest{
 				Url:        request.Source.Docker.GitRepository.Url,
 				Branch:     request.Source.Docker.GitRepository.Branch,

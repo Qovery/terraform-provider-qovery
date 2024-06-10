@@ -14,6 +14,7 @@ var (
 type Docker struct {
 	GitRepository  git_repository.GitRepository
 	DockerFilePath *string
+	DockerFileRaw  *string
 }
 
 func (d Docker) Validate() error {
@@ -27,6 +28,7 @@ func (d Docker) Validate() error {
 type NewDockerParams struct {
 	GitRepository  git_repository.NewGitRepositoryParams
 	DockerFilePath *string
+	DockerFileRaw  *string
 }
 
 func NewDocker(params NewDockerParams) (*Docker, error) {
@@ -37,6 +39,7 @@ func NewDocker(params NewDockerParams) (*Docker, error) {
 	docker := &Docker{
 		GitRepository:  *gitRepository,
 		DockerFilePath: params.DockerFilePath,
+		DockerFileRaw:  params.DockerFileRaw,
 	}
 
 	if err := docker.Validate(); err != nil {

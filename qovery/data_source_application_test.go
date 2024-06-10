@@ -57,7 +57,7 @@ func TestAcc_ApplicationDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_application.test", "custom_domains.0.status", "VALIDATION_PENDING"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "external_host", "zc4425337-z99aa979e-gtw.zc531a994.rustrocks.cloud"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "internal_host", "app-z20501d1f"),
-					resource.TestCheckResourceAttr("data.qovery_application.test", "advanced_settings_json", "{\"build.timeout_max_sec\":1700}"),
+					resource.TestCheckResourceAttr("data.qovery_application.test", "advanced_settings_json", "{\"build.timeout_max_sec\":1700,\"deployment.lifecycle.pre_stop_exec_command\":[]}"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "auto_deploy", "true"),
 				),
 			},

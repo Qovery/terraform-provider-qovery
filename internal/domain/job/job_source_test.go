@@ -33,7 +33,7 @@ func TestJobSourceValidate(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.description, func(t *testing.T) {
 			// execute:
-			i := job.JobSource{
+			i := job.Source{
 				Image:  tc.image,
 				Docker: tc.docker,
 			}
@@ -53,7 +53,7 @@ func TestNewJobSource(t *testing.T) {
 	testCases := []struct {
 		description    string
 		params         job.NewJobSourceParams
-		expectedResult *job.JobSource
+		expectedResult *job.Source
 		expectedError  error
 	}{
 		{
@@ -81,7 +81,7 @@ func TestNewJobSource(t *testing.T) {
 				Docker: &docker_test_helper.DefaultValidNewDockerParams,
 			},
 			expectedError: nil,
-			expectedResult: &job.JobSource{
+			expectedResult: &job.Source{
 				Image:  nil,
 				Docker: &docker_test_helper.DefaultValidDocker,
 			},
@@ -93,7 +93,7 @@ func TestNewJobSource(t *testing.T) {
 				Docker: nil,
 			},
 			expectedError: nil,
-			expectedResult: &job.JobSource{
+			expectedResult: &job.Source{
 				Image:  &image_test_helper.DefaultValidImage,
 				Docker: nil,
 			},

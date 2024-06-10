@@ -68,7 +68,7 @@ type Job struct {
 	MaxNbRestart                 int32
 	MaxDurationSeconds           int32
 	AutoPreview                  bool
-	Source                       JobSource   `validate:"required"`
+	Source                       Source      `validate:"required"`
 	Schedule                     JobSchedule `validate:"required"`
 	Port                         *port.Port
 	BuiltInEnvironmentVariables  variable.Variables
