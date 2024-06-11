@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
+	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 	"github.com/qovery/terraform-provider-qovery/client"
 )
@@ -17,6 +18,8 @@ const (
 	featureIdStaticIP     = "STATIC_IP"
 	featureIdExistingVpc  = "EXISTING_VPC"
 	featureKeyExistingVpc = "existing_vpc"
+	featureIdKarpenter    = "KARPENTER"
+	featureKeyKarpenter   = "karpenter"
 )
 
 type Cluster struct {
@@ -107,6 +110,26 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 
 	routingTable := toClusterRouteList(c.RoutingTables)
 
+	features := toQoveryClusterFeatures(c.Features, c.KubernetesMode.String())
+	if features != nil {
+		for _, f := range features {
+			if f.Id != nil && *f.Id == featureIdKarpenter {
+				if !c.InstanceType.IsUnknown() {
+					return nil, errors.New("instance_type must not be defined when Karpenter feature is enabled")
+				}
+				if !c.MinRunningNodes.IsUnknown() {
+					return nil, errors.New("min_running_nodes must not be defined when Karpenter feature is enabled")
+				}
+				if !c.MaxRunningNodes.IsUnknown() {
+					return nil, errors.New("max_running_nodes must not be defined when Karpenter feature is enabled")
+				}
+				if !c.DiskSize.IsUnknown() {
+					return nil, errors.New("disk_size must not be defined when Karpenter feature is enabled")
+				}
+			}
+		}
+	}
+
 	var clusterCloudProviderRequest *qovery.ClusterCloudProviderInfoRequest
 	if state == nil || c.CredentialsId != state.CredentialsId {
 		clusterCloudProviderRequest = &qovery.ClusterCloudProviderInfoRequest{
@@ -139,7 +162,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			DiskSize:                 ToInt64Pointer(c.DiskSize),
 			MinRunningNodes:          ToInt32Pointer(c.MinRunningNodes),
 			MaxRunningNodes:          ToInt32Pointer(c.MaxRunningNodes),
-			Features:                 toQoveryClusterFeatures(c.Features, c.KubernetesMode.String()),
+			Features:                 features,
 		},
 		ClusterRoutingTable:  routingTable.toUpsertRequest(),
 		AdvancedSettingsJson: ToString(c.AdvancedSettingsJson),
@@ -251,6 +274,28 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeatureResponse) types.Object 
 			}
 			attributes[featureKeyExistingVpc] = terraformObjectValue
 			attributeTypes[featureKeyExistingVpc] = terraformObjectValue.Type(context.Background())
+		case featureIdKarpenter:
+			var v *qovery.ClusterFeatureKarpenterParameters = nil
+			if f.GetValueObject().ClusterFeatureKarpenterParametersResponse != nil {
+				v = &f.GetValueObject().ClusterFeatureKarpenterParametersResponse.Value
+			}
+
+			attrTypes := createKarpenterFeatureAttrTypes()
+			if v == nil {
+				terraformObjectValue := types.ObjectNull(attrTypes)
+				attributes[featureKeyKarpenter] = terraformObjectValue
+				attributeTypes[featureKeyKarpenter] = terraformObjectValue.Type(context.Background())
+				continue
+			}
+
+			attrVals := createKarpenterFeatureAttrValue(v)
+
+			terraformObjectValue, diagnostics := types.ObjectValue(attrTypes, attrVals)
+			if diagnostics.HasError() {
+				panic(fmt.Errorf("bad %s feature: %s", featureKeyExistingVpc, diagnostics.Errors()))
+			}
+			attributes[featureKeyKarpenter] = terraformObjectValue
+			attributeTypes[featureKeyKarpenter] = terraformObjectValue.Type(context.Background())
 		}
 	}
 
@@ -265,6 +310,15 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeatureResponse) types.Object 
 		attributeTypes[featureKeyVpcSubnet] = types.StringType
 		attributes[featureKeyStaticIP] = FromBoolPointer(&defaultFeatureKeyStaticIP)
 		attributeTypes[featureKeyStaticIP] = types.BoolType
+	}
+
+	// create default karpenter feature if not set yet
+	if attributes[featureKeyKarpenter] == nil {
+		attrTypes := createKarpenterFeatureAttrTypes()
+
+		terraformObjectValue := types.ObjectNull(attrTypes)
+		attributes[featureKeyKarpenter] = terraformObjectValue
+		attributeTypes[featureKeyKarpenter] = terraformObjectValue.Type(context.Background())
 	}
 
 	if isNull {
@@ -336,5 +390,59 @@ func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterReques
 		}
 	}
 
+	if _, ok := f.Attributes()[featureKeyKarpenter]; ok {
+		v := f.Attributes()[featureKeyKarpenter].(types.Object)
+		if !v.IsNull() {
+			defaultServiceArchitecture := v.Attributes()["default_service_architecture"].(types.String).ValueString()
+			arch, err := toCpuArchitectureEnum(defaultServiceArchitecture)
+			if err != nil {
+				fmt.Println("Error:", err)
+			}
+
+			feature := qovery.ClusterFeatureKarpenterParameters{
+				SpotEnabled:                ToBool(v.Attributes()["spot_enabled"].(types.Bool)),
+				DiskSizeInGib:              ToInt32(v.Attributes()["disk_size_in_gib"].(types.Int64)),
+				DefaultServiceArchitecture: arch,
+			}
+			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
+				ClusterFeatureKarpenterParameters: &feature,
+			})
+
+			features = append(features, qovery.ClusterRequestFeaturesInner{
+				Id:    StringAsPointer(featureIdKarpenter),
+				Value: *value,
+			})
+		}
+	}
+
 	return features
+}
+
+func toCpuArchitectureEnum(arch string) (qovery.CpuArchitectureEnum, error) {
+	switch arch {
+	case string(qovery.CPUARCHITECTUREENUM_AMD64), string(qovery.CPUARCHITECTUREENUM_ARM64):
+		return qovery.CpuArchitectureEnum(arch), nil
+	default:
+		return "", fmt.Errorf("invalid CPU architecture: %s", arch)
+	}
+}
+
+func createKarpenterFeatureAttrTypes() map[string]attr.Type {
+	attrTypes := make(map[string]attr.Type)
+	attrTypes["spot_enabled"] = types.BoolType
+	attrTypes["disk_size_in_gib"] = types.Int64Type
+	attrTypes["default_service_architecture"] = types.StringType
+
+	return attrTypes
+}
+
+func createKarpenterFeatureAttrValue(v *qovery.ClusterFeatureKarpenterParameters) map[string]attr.Value {
+	attrVals := make(map[string]attr.Value)
+	if v != nil {
+		attrVals["spot_enabled"] = FromBoolPointer(&v.SpotEnabled)
+		attrVals["disk_size_in_gib"] = FromInt32(v.DiskSizeInGib)
+		attrVals["default_service_architecture"] = FromString(string(v.DefaultServiceArchitecture))
+	}
+
+	return attrVals
 }
