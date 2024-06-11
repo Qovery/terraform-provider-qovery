@@ -29,7 +29,7 @@ func TestJobValidate(t *testing.T) {
 		maxDurationSeconds   uint32
 		autoPreview          bool
 		schedule             job.JobSchedule
-		source               job.Source
+		source               job.JobSource
 		environmentVariables []variable.Variable
 		environmentSecrets   []secret.Secret
 		port                 *port.Port

@@ -4,7 +4,6 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
@@ -56,11 +55,6 @@ type Helm struct {
 	DeploymentStageID            string
 	AdvancedSettingsJson         string
 	JobDeploymentRestrictions    []deploymentrestriction.ServiceDeploymentRestriction
-}
-
-type SourceResponse struct {
-	Git        *qovery.HelmSourceGitResponse
-	Repository *qovery.HelmSourceRepositoryResponse
 }
 
 func (h Helm) Validate() error {

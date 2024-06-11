@@ -31,7 +31,7 @@ type UpsertRepositoryRequest struct {
 	MaxNbRestart         *int32
 	MaxDurationSeconds   *int32
 	Healthchecks         qovery2.Healthcheck
-	Source               Source
+	Source               JobSource
 	Schedule             JobSchedule
 	Port                 *int32
 	EnvironmentVariables []variable.UpsertRequest

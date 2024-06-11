@@ -12,7 +12,7 @@ var (
 		Docker: nil,
 	}
 
-	DefaultJobSource = job.Source{
+	DefaultJobSource = job.JobSource{
 		Image:  &image_test_helper.DefaultValidImage,
 		Docker: nil,
 	}
@@ -22,7 +22,7 @@ var (
 		Docker: nil,
 	}
 
-	DefaultInvalidJobSource = job.Source{
+	DefaultInvalidJobSource = job.JobSource{
 		Image:  &image_test_helper.DefaultInvalidImage,
 		Docker: nil,
 	}
