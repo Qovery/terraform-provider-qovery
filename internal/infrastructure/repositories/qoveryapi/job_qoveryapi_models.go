@@ -48,14 +48,10 @@ func unmarshal[T any](input interface{}, output *T) error {
 func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobResponse {
 	source := job.SourceResponse{}
 	if jobResponse.CronJobResponse != nil {
-		if jobResponse.CronJobResponse.Source["image"] != nil {
-			ret := qovery.ContainerSource{}
-			_ = unmarshal(jobResponse.CronJobResponse.Source["image"], &ret)
-			source.Image = &ret
-		} else if jobResponse.CronJobResponse.Source["docker"] != nil {
-			ret := qovery.JobSourceDockerResponse{}
-			_ = unmarshal(jobResponse.CronJobResponse.Source["docker"], &ret)
-			source.Docker = &ret
+		if jobResponse.CronJobResponse.Source.BaseJobResponseAllOfSourceOneOf != nil {
+			source.Image = &jobResponse.CronJobResponse.Source.BaseJobResponseAllOfSourceOneOf.Image
+		} else if jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf1 != nil {
+			source.Docker = &jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf1.Docker
 		}
 
 		return AggregateJobResponse{
@@ -80,14 +76,10 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 			ScheduleCron:       &jobResponse.CronJobResponse.Schedule,
 		}
 	} else {
-		if jobResponse.LifecycleJobResponse.Source["image"] != nil {
-			ret := qovery.ContainerSource{}
-			_ = unmarshal(jobResponse.LifecycleJobResponse.Source["image"], &ret)
-			source.Image = &ret
-		} else if jobResponse.LifecycleJobResponse.Source["docker"] != nil {
-			ret := qovery.JobSourceDockerResponse{}
-			_ = unmarshal(jobResponse.LifecycleJobResponse.Source["docker"], &ret)
-			source.Docker = &ret
+		if jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf != nil {
+			source.Image = &jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf.Image
+		} else if jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf1 != nil {
+			source.Docker = &jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf1.Docker
 		}
 		return AggregateJobResponse{
 			Id:                 jobResponse.LifecycleJobResponse.Id,

@@ -29,14 +29,10 @@ type AggregateHelmResponse struct {
 
 func getAggregateHelmResponse(helmResponse *qovery.HelmResponse) AggregateHelmResponse {
 	source := helm.SourceResponse{}
-	if git := helmResponse.Source["git"]; git != nil {
-		ret := qovery.HelmSourceGitResponse{}
-		_ = unmarshal(git, &ret)
-		source.Git = &ret
-	} else if repo := helmResponse.Source["repository"]; repo != nil {
-		ret := qovery.HelmSourceRepositoryResponse{}
-		_ = unmarshal(repo, &ret)
-		source.Repository = &ret
+	if git := helmResponse.Source.HelmResponseAllOfSourceOneOf; git != nil {
+		source.Git = &git.Git
+	} else if repo := helmResponse.Source.HelmResponseAllOfSourceOneOf1; repo != nil {
+		source.Repository = &repo.Repository
 	}
 
 	return AggregateHelmResponse{
