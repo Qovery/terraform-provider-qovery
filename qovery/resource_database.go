@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -215,6 +216,11 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Description: "The password to connect to your database",
 				Computed:    true,
 			},
+			"annotations_group_ids": schema.SetAttribute{
+				Description: "list of annotations group ids",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
 		},
 	}
 }
@@ -241,7 +247,7 @@ func (r databaseResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Initialize state values
-	state := convertResponseToDatabase(database)
+	state := convertResponseToDatabase(ctx, plan, database)
 	tflog.Trace(ctx, "created database", map[string]interface{}{"database_id": state.Id.ValueString()})
 
 	// Set state
@@ -265,7 +271,7 @@ func (r databaseResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	// Refresh state values
-	state = convertResponseToDatabase(database)
+	state = convertResponseToDatabase(ctx, state, database)
 	tflog.Trace(ctx, "read database", map[string]interface{}{"database_id": state.Id.ValueString()})
 
 	// Set state
@@ -295,7 +301,7 @@ func (r databaseResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Update state values
-	state = convertResponseToDatabase(database)
+	state = convertResponseToDatabase(ctx, plan, database)
 	tflog.Trace(ctx, "updated database", map[string]interface{}{"database_id": state.Id.ValueString()})
 
 	// Set state

@@ -42,6 +42,7 @@ type Container struct {
 	Healthchecks                 *HealthChecks `tfsdk:"healthchecks"`
 	AdvancedSettingsJson         types.String  `tfsdk:"advanced_settings_json"`
 	AutoDeploy                   types.Bool    `tfsdk:"auto_deploy"`
+	AnnotationsGroupIds          types.Set     `tfsdk:"annotations_group_ids"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
@@ -131,6 +132,12 @@ func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomD
 		ports = append(ports, prt.toUpsertRequest())
 	}
 
+	annotationsGroupIds := make([]string, 0, len(cont.AnnotationsGroupIds.Elements()))
+	for _, id := range cont.AnnotationsGroupIds.Elements() {
+		id := id.(types.String)
+		annotationsGroupIds = append(annotationsGroupIds, id.ValueString())
+	}
+
 	return container.UpsertRepositoryRequest{
 		RegistryID:           ToString(cont.RegistryID),
 		Name:                 ToString(cont.Name),
@@ -150,6 +157,7 @@ func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomD
 		AdvancedSettingsJson: ToString(cont.AdvancedSettingsJson),
 		CustomDomains:        customDomainsDiff,
 		AutoDeploy:           *qovery.NewNullableBool(ToBoolPointer(cont.AutoDeploy)),
+		AnnotationsGroupIds:  annotationsGroupIds,
 	}
 }
 
@@ -185,5 +193,6 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		AdvancedSettingsJson:         FromString(container.AdvancedSettingsJson),
 		CustomDomains:                fromCustomDomainList(state.CustomDomains, container.CustomDomains).toTerraformSet(ctx),
 		AutoDeploy:                   FromBoolPointer(container.AutoDeploy),
+		AnnotationsGroupIds:          fromAnnotationsGroupList(ctx, state.AnnotationsGroupIds, container.AnnotationsGroupIds),
 	}
 }

@@ -406,6 +406,11 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Optional:    true,
 				Computed:    true,
 			},
+			"annotations_group_ids": schema.SetAttribute{
+				Description: "list of annotations group ids",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
 		},
 	}
 }

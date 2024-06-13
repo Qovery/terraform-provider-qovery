@@ -37,6 +37,11 @@ func newDomainContainerFromQovery(
 		customDomains = append(customDomains, &cpy)
 	}
 
+	annotationsGroupIds := make([]string, 0, len(c.AnnotationsGroups))
+	for _, annotationsGroupId := range c.AnnotationsGroups {
+		annotationsGroupIds = append(annotationsGroupIds, annotationsGroupId.Id)
+	}
+
 	return container.NewContainer(container.NewContainerParams{
 		ContainerID:            c.Id,
 		EnvironmentID:          c.Environment.Id,
@@ -58,6 +63,7 @@ func newDomainContainerFromQovery(
 		CustomDomains:          customDomains,
 		Healthchecks:           c.Healthchecks,
 		AutoDeploy:             c.AutoDeploy,
+		AnnotationsGroupIds:    annotationsGroupIds,
 	})
 }
 
@@ -69,6 +75,11 @@ func newQoveryContainerRequestFromDomain(request container.UpsertRepositoryReque
 	}
 
 	storages, err := newQoveryStoragesRequestFromDomain(request.Storages)
+	if err != nil {
+		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
+	}
+
+	annotationsGroups, err := NewQoveryServiceAnnotationsGroupRequestFromDomain(request.AnnotationsGroupIds)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
 	}
@@ -89,5 +100,6 @@ func newQoveryContainerRequestFromDomain(request container.UpsertRepositoryReque
 		Ports:               ports,
 		Healthchecks:        request.Healthchecks,
 		AutoDeploy:          request.AutoDeploy,
+		AnnotationsGroups:   annotationsGroups,
 	}, nil
 }

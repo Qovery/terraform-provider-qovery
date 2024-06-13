@@ -2,6 +2,7 @@ package qoveryapi
 
 import (
 	"fmt"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 
@@ -68,6 +69,7 @@ type QoveryAPI struct {
 	HelmEnvironmentVariable        variable.Repository
 	HelmSecret                     secret.Repository
 	HelmRepository                 helmRepository.Repository
+	AnnotationsGroup               annotations_group.Repository
 }
 
 // New returns a new instance of QoveryAPI and applies the given configs.
@@ -213,6 +215,11 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	annotationsGroupAPI, err := newAnnotationsGroupQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create a new QoveryAPI instance.
 	qoveryAPI := &QoveryAPI{
 		Client:                         apiClient,
@@ -243,6 +250,7 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		HelmEnvironmentVariable:        helmEnvironmentVariableAPI,
 		HelmSecret:                     helmSecretAPI,
 		HelmRepository:                 helmRepositoryAPI,
+		AnnotationsGroup:               annotationsGroupAPI,
 	}
 
 	// Apply all the configs to the qoveryAPI instance.

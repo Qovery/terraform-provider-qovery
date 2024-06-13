@@ -45,4 +45,5 @@ const (
 	APIResourceHelmSecret                     APIResource = "helm secret"
 	APIResourceHelmStatus                     APIResource = "helm status"
 	APIResourceHelmRepository                 APIResource = "helm repository"
+	APIResourceAnnotationsGroup               APIResource = "annotations group"
 )

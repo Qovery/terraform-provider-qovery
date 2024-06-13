@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 	"os"
@@ -90,6 +91,9 @@ type qProvider struct {
 
 	// helmRegistryService is an instance of a registry.Service that handles the domain logic.
 	helmRepositoryService helmRepository.Service
+
+	// annotationsGroupService is an instance of an annotations_group.Service that handles the domain logic.
+	annotationsGroupService annotations_group.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -171,6 +175,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.gitTokenService = domainServices.GitToken
 	p.helmService = domainServices.Helm
 	p.helmRepositoryService = domainServices.HelmRepository
+	p.annotationsGroupService = domainServices.AnnotationsGroup
 
 	resp.DataSourceData = p
 	resp.ResourceData = p
@@ -194,6 +199,7 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newGitTokenResource,
 		newHelmResource,
 		newHelmRepositoryResource,
+		newAnnotationsGroupResource,
 	}
 }
 
@@ -215,6 +221,7 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 		newGitTokenDataSource,
 		newHelmDataSource,
 		newhelmRepositoryDataSource,
+		newAnnotationsGroupDataSource,
 	}
 }
 

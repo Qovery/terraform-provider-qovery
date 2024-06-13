@@ -485,6 +485,11 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 					},
 				},
 			},
+			"annotations_group_ids": schema.SetAttribute{
+				Description: "list of annotations group ids",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
 		},
 	}
 }
