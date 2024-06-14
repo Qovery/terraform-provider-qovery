@@ -39,6 +39,7 @@ data "qovery_application" "my_application" {
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this application. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
 - `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
+- `labels_group_ids` (Set of String) list of labels group ids
 - `max_running_instances` (Number) Maximum number of instances running for the application.
 	- Must be: `>= -1`.
 	- Default: `1`.

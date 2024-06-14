@@ -490,6 +490,11 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				Optional:    true,
 				ElementType: types.StringType,
 			},
+			"labels_group_ids": schema.SetAttribute{
+				Description: "list of labels group ids",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
 		},
 	}
 }

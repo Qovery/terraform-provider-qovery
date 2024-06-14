@@ -149,6 +149,11 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 				Optional:    true,
 				ElementType: types.StringType,
 			},
+			"labels_group_ids": schema.SetAttribute{
+				Description: "list of labels group ids",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
 		},
 	}
 }

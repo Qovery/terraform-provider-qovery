@@ -87,6 +87,7 @@ type Job struct {
 	AutoDeploy                   *bool
 	JobDeploymentRestrictions    []deploymentrestriction.ServiceDeploymentRestriction
 	AnnotationsGroupIds          []string
+	LabelsGroupIds               []string
 }
 
 // Validate returns an error to tell whether the Job domain model is valid or not.
@@ -162,6 +163,7 @@ type NewJobParams struct {
 	AdvancedSettingsJson string
 	AutoDeploy           *bool
 	AnnotationsGroupIds  []string
+	LabelsGroupIds       []string
 }
 
 // NewJob returns a new instance of a Job domain model.
@@ -221,6 +223,7 @@ func NewJob(params NewJobParams) (*Job, error) {
 		AdvancedSettingsJson: params.AdvancedSettingsJson,
 		AutoDeploy:           params.AutoDeploy,
 		AnnotationsGroupIds:  params.AnnotationsGroupIds,
+		LabelsGroupIds:       params.LabelsGroupIds,
 	}
 
 	environmentVariables := make(variable.Variables, len(params.EnvironmentVariables))

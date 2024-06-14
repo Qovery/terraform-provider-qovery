@@ -46,6 +46,23 @@ func toLabel(v types.Object) labels_group.LabelUpsertRequest {
 	}
 }
 
+//	func (label LabelDomain) toTerraformObject() attr.Value {
+//		var attributes = map[string]attr.Value{
+//			"key":   label.Key,
+//			"value": label.Value,
+//		}
+//		terraformObjectValue, diagnostics := types.ObjectValue(labelAttrTypes, attributes)
+//		if diagnostics.HasError() {
+//			panic("Can't creat e ObjectValue")
+//		}
+//		return terraformObjectValue
+//	}
+//
+//	var labelAttrTypes = map[string]attr.Type{
+//		"key":   types.StringType,
+//		"value": types.StringType,
+//	}
+
 var labelsGroupAttrTypes = map[string]attr.Type{
 	"key":                         types.StringType,
 	"value":                       types.StringType,
@@ -108,4 +125,36 @@ func fromLabelList(labels []qovery.Label) LabelList {
 	}
 
 	return list
+}
+
+func fromLabelsGroupResponseList(ctx context.Context, initialState types.Set, labelsGroup []qovery.OrganizationLabelsGroupResponse) types.Set {
+	if initialState.IsNull() {
+		return types.SetNull(types.StringType)
+	}
+
+	var elements = make([]string, 0, len(labelsGroup))
+	for _, v := range labelsGroup {
+		elements = append(elements, v.Id)
+	}
+	set, diagnostics := types.SetValueFrom(ctx, types.StringType, elements)
+	if diagnostics.HasError() {
+		panic("TODO")
+	}
+	return set
+}
+
+func fromLabelsGroupList(ctx context.Context, initialState types.Set, labelsGroup []string) types.Set {
+	if initialState.IsNull() {
+		return types.SetNull(types.StringType)
+	}
+
+	var elements = make([]string, 0, len(labelsGroup))
+	for _, v := range labelsGroup {
+		elements = append(elements, v)
+	}
+	set, diagnostics := types.SetValueFrom(ctx, types.StringType, elements)
+	if diagnostics.HasError() {
+		panic("TODO")
+	}
+	return set
 }

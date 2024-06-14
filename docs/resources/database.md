@@ -69,6 +69,7 @@ resource "qovery_database" "my_managed_database" {
 	- Default: `250`.
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `instance_type` (String) Instance type of the database.
+- `labels_group_ids` (Set of String) list of labels group ids
 - `memory` (Number) RAM of the database in MB [1024MB = 1GB].
 	- Must be: `>= 100`.
 	- Default: `256`.

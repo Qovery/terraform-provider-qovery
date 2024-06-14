@@ -161,6 +161,7 @@ You can find complete examples within these repositories:
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this job. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this job. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this job. (see [below for nested schema](#nestedatt--environment_variables))
+- `labels_group_ids` (Set of String) list of labels group ids
 - `max_duration_seconds` (Number) Job's max duration in seconds.
 	- Must be: `>= 0`.
 	- Default: `300`.

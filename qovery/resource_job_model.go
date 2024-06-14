@@ -236,6 +236,7 @@ type Job struct {
 	AutoDeploy                   types.Bool    `tfsdk:"auto_deploy"`
 	DeploymentRestrictions       types.Set     `tfsdk:"deployment_restrictions"`
 	AnnotationsGroupIds          types.Set     `tfsdk:"annotations_group_ids"`
+	LabelssGroupIds              types.Set     `tfsdk:"labels_group_ids"`
 }
 
 func (j Job) EnvironmentVariableList() EnvironmentVariableList {
@@ -309,6 +310,12 @@ func (j Job) toUpsertRepositoryRequest() job.UpsertRepositoryRequest {
 		annotationsGroupIds = append(annotationsGroupIds, id.ValueString())
 	}
 
+	labelsGroupIds := make([]string, 0, len(j.LabelssGroupIds.Elements()))
+	for _, id := range j.LabelssGroupIds.Elements() {
+		id := id.(types.String)
+		labelsGroupIds = append(labelsGroupIds, id.ValueString())
+	}
+
 	return job.UpsertRepositoryRequest{
 		Name:                 ToString(j.Name),
 		AutoPreview:          ToBoolPointer(j.AutoPreview),
@@ -324,6 +331,7 @@ func (j Job) toUpsertRepositoryRequest() job.UpsertRepositoryRequest {
 		AdvancedSettingsJson: ToString(j.AdvancedSettingsJson),
 		AutoDeploy:           *qovery.NewNullableBool(ToBoolPointer(j.AutoDeploy)),
 		AnnotationsGroupIds:  annotationsGroupIds,
+		LabelsGroupIds:       labelsGroupIds,
 	}
 }
 
@@ -364,5 +372,6 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		AutoDeploy:                   FromBoolPointer(job.AutoDeploy),
 		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, job.JobDeploymentRestrictions),
 		AnnotationsGroupIds:          fromAnnotationsGroupList(ctx, state.AnnotationsGroupIds, job.AnnotationsGroupIds),
+		LabelssGroupIds:              fromLabelsGroupList(ctx, state.LabelssGroupIds, job.LabelsGroupIds),
 	}
 }

@@ -46,6 +46,7 @@ type Application struct {
 	AutoDeploy                   types.Bool                `tfsdk:"auto_deploy"`
 	DeploymentRestrictions       types.Set                 `tfsdk:"deployment_restrictions"`
 	AnnotationsGroupIds          types.Set                 `tfsdk:"annotations_group_ids"`
+	LabelsGroupIds               types.Set                 `tfsdk:"labels_group_ids"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
@@ -128,6 +129,17 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
 	}
 
+	labels := make([]string, 0, len(app.LabelsGroupIds.Elements()))
+	for _, id := range app.LabelsGroupIds.Elements() {
+		id := id.(types.String)
+		labels = append(labels, id.ValueString())
+	}
+
+	labelsGroups, err := qoveryapi.NewQoveryServiceLabelsGroupRequestFromDomain(labels)
+	if err != nil {
+		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
+	}
+
 	return &client.ApplicationCreateParams{
 		ApplicationRequest: qovery.ApplicationRequest{
 			Name:                ToString(app.Name),
@@ -147,6 +159,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			Healthchecks:        app.Healthchecks.toHealthchecksRequest(),
 			AutoDeploy:          *qovery.NewNullableBool(ToBoolPointer(app.AutoDeploy)),
 			AnnotationsGroups:   annotationsGroups,
+			LabelsGroups:        labelsGroups,
 		},
 		EnvironmentVariablesDiff:         app.EnvironmentVariableList().diff(nil),
 		EnvironmentVariableAliasesDiff:   app.EnvironmentVariableAliasList().diff(nil),
@@ -222,6 +235,17 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
 	}
 
+	labels := make([]string, 0, len(app.LabelsGroupIds.Elements()))
+	for _, id := range app.LabelsGroupIds.Elements() {
+		id := id.(types.String)
+		labels = append(labels, id.ValueString())
+	}
+
+	labelsGroups, err := qoveryapi.NewQoveryServiceLabelsGroupRequestFromDomain(labels)
+	if err != nil {
+		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
+	}
+
 	applicationEditRequest := qovery.ApplicationEditRequest{
 		Name:                ToStringPointer(app.Name),
 		BuildMode:           buildMode,
@@ -240,6 +264,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		Healthchecks:        app.Healthchecks.toHealthchecksRequest(),
 		AutoDeploy:          *qovery.NewNullableBool(ToBoolPointer(app.AutoDeploy)),
 		AnnotationsGroups:   annotationsGroups,
+		LabelsGroups:        labelsGroups,
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:           applicationEditRequest,
@@ -292,6 +317,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		AutoDeploy:                   FromBoolPointer(app.ApplicationResponse.AutoDeploy),
 		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, app.ApplicationDeploymentRestrictions),
 		AnnotationsGroupIds:          fromAnnotationsGroupResponseList(ctx, state.AnnotationsGroupIds, app.ApplicationResponse.AnnotationsGroups),
+		LabelsGroupIds:               fromLabelsGroupResponseList(ctx, state.LabelsGroupIds, app.ApplicationResponse.LabelsGroups),
 	}
 }
 
