@@ -3,6 +3,7 @@ package services
 import (
 	"github.com/pkg/errors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
@@ -48,6 +49,7 @@ type Services struct {
 	Helm                         helm.Service
 	HelmRepository               helmRepository.Service
 	AnnotationsGroup             annotations_group.Service
+	LabelsGroup                  labels_group.Service
 	DeploymentRestrictionService deploymentrestriction.DeploymentRestrictionService
 }
 
@@ -215,6 +217,11 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
+	labelsGroupService, err := NewLabelsGroupService(services.repos.LabelsGroupRepository)
+	if err != nil {
+		return nil, err
+	}
+
 	services.CredentialsAws = credentialsAwsService
 	services.CredentialsScaleway = credentialsScalewayService
 	services.Organization = organizationService
@@ -230,6 +237,7 @@ func New(configs ...Configuration) (*Services, error) {
 	services.HelmRepository = helmRepositoryService
 	services.DeploymentRestrictionService = deploymentRestrictionService
 	services.AnnotationsGroup = annotationsGroupService
+	services.LabelsGroup = labelsGroupService
 
 	return services, nil
 }

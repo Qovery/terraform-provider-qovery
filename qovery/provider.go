@@ -6,6 +6,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
 	"os"
 
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
@@ -94,6 +95,9 @@ type qProvider struct {
 
 	// annotationsGroupService is an instance of an annotations_group.Service that handles the domain logic.
 	annotationsGroupService annotations_group.Service
+
+	// labelsGroupService is an instance of a labels_group.Service that handles the domain logic.
+	labelsGroupService labels_group.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -176,6 +180,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.helmService = domainServices.Helm
 	p.helmRepositoryService = domainServices.HelmRepository
 	p.annotationsGroupService = domainServices.AnnotationsGroup
+	p.labelsGroupService = domainServices.LabelsGroup
 
 	resp.DataSourceData = p
 	resp.ResourceData = p
@@ -200,6 +205,7 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newHelmResource,
 		newHelmRepositoryResource,
 		newAnnotationsGroupResource,
+		newLabelsGroupResource,
 	}
 }
 
@@ -222,6 +228,7 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 		newHelmDataSource,
 		newhelmRepositoryDataSource,
 		newAnnotationsGroupDataSource,
+		newLabelsGroupDataSource,
 	}
 }
 
