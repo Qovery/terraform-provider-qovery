@@ -43,6 +43,7 @@ type UpsertRepositoryRequest struct {
 	AdvancedSettingsJson string
 	CustomDomains        client.CustomDomainsDiff
 	AutoDeploy           qovery.NullableBool
+	AnnotationsGroupIds  []string
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.

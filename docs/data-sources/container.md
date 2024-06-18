@@ -18,6 +18,7 @@ data "qovery_container" "my_container" {
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
+- `annotations_group_ids` (Set of String) list of annotations group ids
 - `arguments` (List of String) List of arguments of this container.
 - `auto_deploy` (Boolean) Specify if the container will be automatically updated after receiving a new image tag.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this container.

@@ -2,6 +2,8 @@ package qoveryapi
 
 import (
 	"encoding/json"
+	"github.com/pkg/errors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"time"
 
 	"github.com/google/uuid"
@@ -18,26 +20,27 @@ import (
 )
 
 type AggregateJobResponse struct {
-	Id                 string
-	EnvironmentId      string
-	CreatedAt          time.Time
-	UpdatedAt          *time.Time
-	MaximumCpu         int32
-	MaximumMemory      int32
-	Name               string
-	Description        *string
-	Cpu                int32
-	Memory             int32
-	MaxNbRestart       *int32
-	MaxDurationSeconds *int32
-	AutoPreview        bool
-	Port               qovery.NullableInt32
-	Source             job.SourceResponse
-	Healthchecks       qovery.Healthcheck
-	AutoDeploy         *bool
-	JobType            string
-	ScheduleCron       *qovery.CronJobResponseAllOfSchedule
-	ScheduleLifecycle  *qovery.LifecycleJobResponseAllOfSchedule
+	Id                  string
+	EnvironmentId       string
+	CreatedAt           time.Time
+	UpdatedAt           *time.Time
+	MaximumCpu          int32
+	MaximumMemory       int32
+	Name                string
+	Description         *string
+	Cpu                 int32
+	Memory              int32
+	MaxNbRestart        *int32
+	MaxDurationSeconds  *int32
+	AutoPreview         bool
+	Port                qovery.NullableInt32
+	Source              job.SourceResponse
+	Healthchecks        qovery.Healthcheck
+	AutoDeploy          *bool
+	JobType             string
+	ScheduleCron        *qovery.CronJobResponseAllOfSchedule
+	ScheduleLifecycle   *qovery.LifecycleJobResponseAllOfSchedule
+	AnnotationsGroupIds []string
 }
 
 func unmarshal[T any](input interface{}, output *T) error {
@@ -50,30 +53,36 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 	if jobResponse.CronJobResponse != nil {
 		if jobResponse.CronJobResponse.Source.BaseJobResponseAllOfSourceOneOf != nil {
 			source.Image = &jobResponse.CronJobResponse.Source.BaseJobResponseAllOfSourceOneOf.Image
-		} else if jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf1 != nil {
-			source.Docker = &jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf1.Docker
+		} else if jobResponse.CronJobResponse.Source.BaseJobResponseAllOfSourceOneOf1 != nil {
+			source.Docker = &jobResponse.CronJobResponse.Source.BaseJobResponseAllOfSourceOneOf1.Docker
+		}
+
+		var annotations = make([]string, 0, len(jobResponse.CronJobResponse.AnnotationsGroups))
+		for _, v := range jobResponse.CronJobResponse.AnnotationsGroups {
+			annotations = append(annotations, v.Id)
 		}
 
 		return AggregateJobResponse{
-			Id:                 jobResponse.CronJobResponse.Id,
-			EnvironmentId:      jobResponse.CronJobResponse.Environment.Id,
-			CreatedAt:          jobResponse.CronJobResponse.CreatedAt,
-			UpdatedAt:          jobResponse.CronJobResponse.UpdatedAt,
-			MaximumCpu:         jobResponse.CronJobResponse.MaximumCpu,
-			MaximumMemory:      jobResponse.CronJobResponse.MaximumMemory,
-			Name:               jobResponse.CronJobResponse.Name,
-			Description:        jobResponse.CronJobResponse.Description,
-			Cpu:                jobResponse.CronJobResponse.Cpu,
-			Memory:             jobResponse.CronJobResponse.Memory,
-			MaxNbRestart:       jobResponse.CronJobResponse.MaxNbRestart,
-			MaxDurationSeconds: jobResponse.CronJobResponse.MaxDurationSeconds,
-			AutoPreview:        jobResponse.CronJobResponse.AutoPreview,
-			Port:               jobResponse.CronJobResponse.Port,
-			Source:             source,
-			Healthchecks:       jobResponse.CronJobResponse.Healthchecks,
-			AutoDeploy:         jobResponse.CronJobResponse.AutoDeploy,
-			ScheduleLifecycle:  nil,
-			ScheduleCron:       &jobResponse.CronJobResponse.Schedule,
+			Id:                  jobResponse.CronJobResponse.Id,
+			EnvironmentId:       jobResponse.CronJobResponse.Environment.Id,
+			CreatedAt:           jobResponse.CronJobResponse.CreatedAt,
+			UpdatedAt:           jobResponse.CronJobResponse.UpdatedAt,
+			MaximumCpu:          jobResponse.CronJobResponse.MaximumCpu,
+			MaximumMemory:       jobResponse.CronJobResponse.MaximumMemory,
+			Name:                jobResponse.CronJobResponse.Name,
+			Description:         jobResponse.CronJobResponse.Description,
+			Cpu:                 jobResponse.CronJobResponse.Cpu,
+			Memory:              jobResponse.CronJobResponse.Memory,
+			MaxNbRestart:        jobResponse.CronJobResponse.MaxNbRestart,
+			MaxDurationSeconds:  jobResponse.CronJobResponse.MaxDurationSeconds,
+			AutoPreview:         jobResponse.CronJobResponse.AutoPreview,
+			Port:                jobResponse.CronJobResponse.Port,
+			Source:              source,
+			Healthchecks:        jobResponse.CronJobResponse.Healthchecks,
+			AutoDeploy:          jobResponse.CronJobResponse.AutoDeploy,
+			ScheduleLifecycle:   nil,
+			ScheduleCron:        &jobResponse.CronJobResponse.Schedule,
+			AnnotationsGroupIds: annotations,
 		}
 	} else {
 		if jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf != nil {
@@ -81,26 +90,33 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 		} else if jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf1 != nil {
 			source.Docker = &jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf1.Docker
 		}
+
+		var annotations = make([]string, 0, len(jobResponse.LifecycleJobResponse.AnnotationsGroups))
+		for _, v := range jobResponse.LifecycleJobResponse.AnnotationsGroups {
+			annotations = append(annotations, v.Id)
+		}
+
 		return AggregateJobResponse{
-			Id:                 jobResponse.LifecycleJobResponse.Id,
-			EnvironmentId:      jobResponse.LifecycleJobResponse.Environment.Id,
-			CreatedAt:          jobResponse.LifecycleJobResponse.CreatedAt,
-			UpdatedAt:          jobResponse.LifecycleJobResponse.UpdatedAt,
-			MaximumCpu:         jobResponse.LifecycleJobResponse.MaximumCpu,
-			MaximumMemory:      jobResponse.LifecycleJobResponse.MaximumMemory,
-			Name:               jobResponse.LifecycleJobResponse.Name,
-			Description:        jobResponse.LifecycleJobResponse.Description,
-			Cpu:                jobResponse.LifecycleJobResponse.Cpu,
-			Memory:             jobResponse.LifecycleJobResponse.Memory,
-			MaxNbRestart:       jobResponse.LifecycleJobResponse.MaxNbRestart,
-			MaxDurationSeconds: jobResponse.LifecycleJobResponse.MaxDurationSeconds,
-			AutoPreview:        jobResponse.LifecycleJobResponse.AutoPreview,
-			Port:               jobResponse.LifecycleJobResponse.Port,
-			Source:             source,
-			Healthchecks:       jobResponse.LifecycleJobResponse.Healthchecks,
-			AutoDeploy:         jobResponse.LifecycleJobResponse.AutoDeploy,
-			ScheduleCron:       nil,
-			ScheduleLifecycle:  &jobResponse.LifecycleJobResponse.Schedule,
+			Id:                  jobResponse.LifecycleJobResponse.Id,
+			EnvironmentId:       jobResponse.LifecycleJobResponse.Environment.Id,
+			CreatedAt:           jobResponse.LifecycleJobResponse.CreatedAt,
+			UpdatedAt:           jobResponse.LifecycleJobResponse.UpdatedAt,
+			MaximumCpu:          jobResponse.LifecycleJobResponse.MaximumCpu,
+			MaximumMemory:       jobResponse.LifecycleJobResponse.MaximumMemory,
+			Name:                jobResponse.LifecycleJobResponse.Name,
+			Description:         jobResponse.LifecycleJobResponse.Description,
+			Cpu:                 jobResponse.LifecycleJobResponse.Cpu,
+			Memory:              jobResponse.LifecycleJobResponse.Memory,
+			MaxNbRestart:        jobResponse.LifecycleJobResponse.MaxNbRestart,
+			MaxDurationSeconds:  jobResponse.LifecycleJobResponse.MaxDurationSeconds,
+			AutoPreview:         jobResponse.LifecycleJobResponse.AutoPreview,
+			Port:                jobResponse.LifecycleJobResponse.Port,
+			Source:              source,
+			Healthchecks:        jobResponse.LifecycleJobResponse.Healthchecks,
+			AutoDeploy:          jobResponse.LifecycleJobResponse.AutoDeploy,
+			ScheduleCron:        nil,
+			ScheduleLifecycle:   &jobResponse.LifecycleJobResponse.Schedule,
+			AnnotationsGroupIds: annotations,
 		}
 	}
 }
@@ -227,6 +243,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 		AdvancedSettingsJson: advancedSettingsJson,
 		AutoDeploy:           j.AutoDeploy,
 		Healthchecks:         j.Healthchecks,
+		AnnotationsGroupIds:  j.AnnotationsGroupIds,
 	})
 }
 
@@ -289,6 +306,11 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 		}
 	}
 
+	annotationsGroups, err := NewQoveryServiceAnnotationsGroupRequestFromDomain(request.AnnotationsGroupIds)
+	if err != nil {
+		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
+	}
+
 	return &qovery.JobRequest{
 		Name:               request.Name,
 		AutoPreview:        request.AutoPreview,
@@ -307,7 +329,8 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 			OnDelete: scheduleOnDelete,
 			Cronjob:  scheduleCron,
 		},
-		AutoDeploy:   request.AutoDeploy,
-		Healthchecks: request.Healthchecks,
+		AutoDeploy:        request.AutoDeploy,
+		Healthchecks:      request.Healthchecks,
+		AnnotationsGroups: annotationsGroups,
 	}, nil
 }

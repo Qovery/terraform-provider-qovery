@@ -574,6 +574,11 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					},
 				},
 			},
+			"annotations_group_ids": schema.SetAttribute{
+				Description: "list of annotations group ids",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
 		},
 	}
 }

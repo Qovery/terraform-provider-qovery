@@ -20,6 +20,7 @@ data "qovery_database" "my_database" {
 - `accessibility` (String) Accessibility of the database.
 	- Can be: `PRIVATE`, `PUBLIC`.
 	- Default: `PUBLIC`.
+- `annotations_group_ids` (Set of String) list of annotations group ids
 - `cpu` (Number) CPU of the database in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 250`.
 	- Default: `250`.

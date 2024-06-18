@@ -2,12 +2,12 @@ package services
 
 import (
 	"github.com/pkg/errors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
-
-	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
@@ -47,6 +47,7 @@ type Services struct {
 	GitToken                     gittoken.Service
 	Helm                         helm.Service
 	HelmRepository               helmRepository.Service
+	AnnotationsGroup             annotations_group.Service
 	DeploymentRestrictionService deploymentrestriction.DeploymentRestrictionService
 }
 
@@ -209,6 +210,11 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
+	annotationsGroupService, err := NewAnnotationsGroupService(services.repos.AnnotationsGroupRepository)
+	if err != nil {
+		return nil, err
+	}
+
 	services.CredentialsAws = credentialsAwsService
 	services.CredentialsScaleway = credentialsScalewayService
 	services.Organization = organizationService
@@ -223,6 +229,7 @@ func New(configs ...Configuration) (*Services, error) {
 	services.Helm = helmService
 	services.HelmRepository = helmRepositoryService
 	services.DeploymentRestrictionService = deploymentRestrictionService
+	services.AnnotationsGroup = annotationsGroupService
 
 	return services, nil
 }

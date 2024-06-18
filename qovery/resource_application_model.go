@@ -2,6 +2,9 @@ package qovery
 
 import (
 	"context"
+	"github.com/pkg/errors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
+	"github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories/qoveryapi"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
@@ -42,6 +45,7 @@ type Application struct {
 	AdvancedSettingsJson         types.String              `tfsdk:"advanced_settings_json"`
 	AutoDeploy                   types.Bool                `tfsdk:"auto_deploy"`
 	DeploymentRestrictions       types.Set                 `tfsdk:"deployment_restrictions"`
+	AnnotationsGroupIds          types.Set                 `tfsdk:"annotations_group_ids"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
@@ -113,6 +117,17 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		return nil, err
 	}
 
+	annotations := make([]string, 0, len(app.AnnotationsGroupIds.Elements()))
+	for _, id := range app.AnnotationsGroupIds.Elements() {
+		id := id.(types.String)
+		annotations = append(annotations, id.ValueString())
+	}
+
+	annotationsGroups, err := qoveryapi.NewQoveryServiceAnnotationsGroupRequestFromDomain(annotations)
+	if err != nil {
+		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
+	}
+
 	return &client.ApplicationCreateParams{
 		ApplicationRequest: qovery.ApplicationRequest{
 			Name:                ToString(app.Name),
@@ -131,6 +146,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			Arguments:           ToStringArray(app.Arguments),
 			Healthchecks:        app.Healthchecks.toHealthchecksRequest(),
 			AutoDeploy:          *qovery.NewNullableBool(ToBoolPointer(app.AutoDeploy)),
+			AnnotationsGroups:   annotationsGroups,
 		},
 		EnvironmentVariablesDiff:         app.EnvironmentVariableList().diff(nil),
 		EnvironmentVariableAliasesDiff:   app.EnvironmentVariableAliasList().diff(nil),
@@ -195,6 +211,17 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		return nil, err
 	}
 
+	annotations := make([]string, 0, len(app.AnnotationsGroupIds.Elements()))
+	for _, id := range app.AnnotationsGroupIds.Elements() {
+		id := id.(types.String)
+		annotations = append(annotations, id.ValueString())
+	}
+
+	annotationsGroups, err := qoveryapi.NewQoveryServiceAnnotationsGroupRequestFromDomain(annotations)
+	if err != nil {
+		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
+	}
+
 	applicationEditRequest := qovery.ApplicationEditRequest{
 		Name:                ToStringPointer(app.Name),
 		BuildMode:           buildMode,
@@ -212,6 +239,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		Arguments:           ToStringArray(app.Arguments),
 		Healthchecks:        app.Healthchecks.toHealthchecksRequest(),
 		AutoDeploy:          *qovery.NewNullableBool(ToBoolPointer(app.AutoDeploy)),
+		AnnotationsGroups:   annotationsGroups,
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:           applicationEditRequest,
@@ -263,6 +291,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		AdvancedSettingsJson:         FromString(app.AdvancedSettingsJson),
 		AutoDeploy:                   FromBoolPointer(app.ApplicationResponse.AutoDeploy),
 		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, app.ApplicationDeploymentRestrictions),
+		AnnotationsGroupIds:          fromAnnotationsGroupResponseList(ctx, state.AnnotationsGroupIds, app.ApplicationResponse.AnnotationsGroups),
 	}
 }
 

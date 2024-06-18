@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -143,6 +144,11 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 				Description: "The password to connect to your database",
 				Computed:    true,
 			},
+			"annotations_group_ids": schema.SetAttribute{
+				Description: "list of annotations group ids",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
 		},
 	}
 }
@@ -162,7 +168,7 @@ func (d databaseDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	state := convertResponseToDatabase(database)
+	state := convertResponseToDatabase(ctx, data, database)
 	tflog.Trace(ctx, "read database", map[string]interface{}{"database_id": state.Id.ValueString()})
 
 	// Set state
