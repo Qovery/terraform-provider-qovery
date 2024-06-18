@@ -150,7 +150,7 @@ You can find complete examples within these repositories:
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
-- `annotations_group_ids` (Set of String) list of annotations group ids
+- `annotations_group_ids` (Set of String) List of annotations group ids
 - `auto_deploy` (Boolean) Specify if the job will be automatically updated after receiving a new image tag.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this job.
 - `cpu` (Number) CPU of the job in millicores (m) [1000m = 1 CPU].
@@ -161,7 +161,7 @@ You can find complete examples within these repositories:
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this job. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this job. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this job. (see [below for nested schema](#nestedatt--environment_variables))
-- `labels_group_ids` (Set of String) list of labels group ids
+- `labels_group_ids` (Set of String) List of labels group ids
 - `max_duration_seconds` (Number) Job's max duration in seconds.
 	- Must be: `>= 0`.
 	- Default: `300`.

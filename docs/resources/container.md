@@ -130,7 +130,7 @@ resource "qovery_container" "my_container" {
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
-- `annotations_group_ids` (Set of String) list of annotations group ids
+- `annotations_group_ids` (Set of String) List of annotations group ids
 - `arguments` (List of String) List of arguments of this container.
 - `auto_deploy` (Boolean) Specify if the container will be automatically updated after receiving a new image tag.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this container.
@@ -143,7 +143,7 @@ resource "qovery_container" "my_container" {
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this container. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this container. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this container. (see [below for nested schema](#nestedatt--environment_variables))
-- `labels_group_ids` (Set of String) list of labels group ids
+- `labels_group_ids` (Set of String) List of labels group ids
 - `max_running_instances` (Number) Maximum number of instances running for the container.
 	- Must be: `>= -1`.
 	- Default: `1`.

@@ -18,7 +18,7 @@ data "qovery_application" "my_application" {
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
-- `annotations_group_ids` (Set of String) list of annotations group ids
+- `annotations_group_ids` (Set of String) List of annotations group ids
 - `arguments` (List of String) List of arguments of this application.
 - `auto_deploy` (Boolean) Specify if the application will be automatically updated after receiving a new image tag.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
@@ -39,7 +39,7 @@ data "qovery_application" "my_application" {
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this application. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
 - `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
-- `labels_group_ids` (Set of String) list of labels group ids
+- `labels_group_ids` (Set of String) List of labels group ids
 - `max_running_instances` (Number) Maximum number of instances running for the application.
 	- Must be: `>= -1`.
 	- Default: `1`.

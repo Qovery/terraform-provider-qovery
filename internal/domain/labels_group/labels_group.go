@@ -7,13 +7,13 @@ import (
 )
 
 var (
-	ErrInvalidLabelsGroupRequest             = errors.New("invalid aabels group request")
+	ErrInvalidLabelsGroupRequest             = errors.New("invalid labels group request")
 	ErrInvalidLabelsGroupOrganizationIdParam = errors.New("invalid organization id format")
-	ErrFailedToCreateLabelsGroup             = errors.New("failed to create aabels group")
-	ErrFailedToGetLabelsGroup                = errors.New("failed to get aabels group")
-	ErrFailedToUpdateLabelsGroup             = errors.New("failed to update aabels group")
-	ErrFailedToDeleteLabelsGroup             = errors.New("failed to delete aabels group")
-	ErrInvalidLabelsGroupIdParam             = errors.New("invalid aabels group id format")
+	ErrFailedToCreateLabelsGroup             = errors.New("failed to create labels group")
+	ErrFailedToGetLabelsGroup                = errors.New("failed to get labels group")
+	ErrFailedToUpdateLabelsGroup             = errors.New("failed to update labels group")
+	ErrFailedToDeleteLabelsGroup             = errors.New("failed to delete labels group")
+	ErrInvalidLabelsGroupIdParam             = errors.New("invalid labels group id format")
 	ErrInvalidScope                          = errors.New("invalid scope")
 )
 
