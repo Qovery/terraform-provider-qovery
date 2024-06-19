@@ -455,7 +455,12 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"annotations_group_ids": schema.SetAttribute{
-				Description: "list of annotations group ids",
+				Description: "List of annotations group ids",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
+			"labels_group_ids": schema.SetAttribute{
+				Description: "List of labels group ids",
 				Optional:    true,
 				ElementType: types.StringType,
 			},

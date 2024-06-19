@@ -43,6 +43,7 @@ type Container struct {
 	AdvancedSettingsJson         types.String  `tfsdk:"advanced_settings_json"`
 	AutoDeploy                   types.Bool    `tfsdk:"auto_deploy"`
 	AnnotationsGroupIds          types.Set     `tfsdk:"annotations_group_ids"`
+	LabelsGroupIds               types.Set     `tfsdk:"labels_group_ids"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
@@ -138,6 +139,12 @@ func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomD
 		annotationsGroupIds = append(annotationsGroupIds, id.ValueString())
 	}
 
+	labelsGroupIds := make([]string, 0, len(cont.LabelsGroupIds.Elements()))
+	for _, id := range cont.LabelsGroupIds.Elements() {
+		id := id.(types.String)
+		labelsGroupIds = append(labelsGroupIds, id.ValueString())
+	}
+
 	return container.UpsertRepositoryRequest{
 		RegistryID:           ToString(cont.RegistryID),
 		Name:                 ToString(cont.Name),
@@ -158,6 +165,7 @@ func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomD
 		CustomDomains:        customDomainsDiff,
 		AutoDeploy:           *qovery.NewNullableBool(ToBoolPointer(cont.AutoDeploy)),
 		AnnotationsGroupIds:  annotationsGroupIds,
+		LabelsGroupIds:       labelsGroupIds,
 	}
 }
 
@@ -194,5 +202,6 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		CustomDomains:                fromCustomDomainList(state.CustomDomains, container.CustomDomains).toTerraformSet(ctx),
 		AutoDeploy:                   FromBoolPointer(container.AutoDeploy),
 		AnnotationsGroupIds:          fromAnnotationsGroupList(ctx, state.AnnotationsGroupIds, container.AnnotationsGroupIds),
+		LabelsGroupIds:               fromLabelsGroupList(ctx, state.LabelsGroupIds, container.LabelsGroupIds),
 	}
 }

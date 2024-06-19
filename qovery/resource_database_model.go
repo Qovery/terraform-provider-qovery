@@ -30,6 +30,7 @@ type Database struct {
 	InstanceType        types.String `tfsdk:"instance_type"`
 	DeploymentStageId   types.String `tfsdk:"deployment_stage_id"`
 	AnnotationsGroupIds types.Set    `tfsdk:"annotations_group_ids"`
+	LabelsGroupIds      types.Set    `tfsdk:"labels_group_ids"`
 }
 
 func (d Database) toCreateDatabaseRequest() (*client.DatabaseCreateParams, error) {
@@ -59,6 +60,17 @@ func (d Database) toCreateDatabaseRequest() (*client.DatabaseCreateParams, error
 		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
 	}
 
+	labels := make([]string, 0, len(d.LabelsGroupIds.Elements()))
+	for _, id := range d.LabelsGroupIds.Elements() {
+		id := id.(types.String)
+		labels = append(labels, id.ValueString())
+	}
+
+	labelsGroups, err := qoveryapi.NewQoveryServiceLabelsGroupRequestFromDomain(labels)
+	if err != nil {
+		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
+	}
+
 	return &client.DatabaseCreateParams{
 		DatabaseRequest: qovery.DatabaseRequest{
 			Name:              ToString(d.Name),
@@ -71,6 +83,7 @@ func (d Database) toCreateDatabaseRequest() (*client.DatabaseCreateParams, error
 			Storage:           ToInt32Pointer(d.Storage),
 			InstanceType:      ToStringPointer(d.InstanceType),
 			AnnotationsGroups: annotationsGroups,
+			LabelsGroups:      labelsGroups,
 		},
 		DeploymentStageID: ToString(d.DeploymentStageId),
 	}, nil
@@ -93,6 +106,17 @@ func (d Database) toUpdateDatabaseRequest() (*client.DatabaseUpdateParams, error
 		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
 	}
 
+	labels := make([]string, 0, len(d.LabelsGroupIds.Elements()))
+	for _, id := range d.LabelsGroupIds.Elements() {
+		id := id.(types.String)
+		labels = append(labels, id.ValueString())
+	}
+
+	labelsGroups, err := qoveryapi.NewQoveryServiceLabelsGroupRequestFromDomain(labels)
+	if err != nil {
+		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
+	}
+
 	return &client.DatabaseUpdateParams{
 		DatabaseEditRequest: qovery.DatabaseEditRequest{
 			Name:              ToStringPointer(d.Name),
@@ -103,6 +127,7 @@ func (d Database) toUpdateDatabaseRequest() (*client.DatabaseUpdateParams, error
 			Storage:           ToInt32Pointer(d.Storage),
 			InstanceType:      ToStringPointer(d.InstanceType),
 			AnnotationsGroups: annotationsGroups,
+			LabelsGroups:      labelsGroups,
 		},
 	}, nil
 }
@@ -128,5 +153,6 @@ func convertResponseToDatabase(ctx context.Context, state Database, res *client.
 		DeploymentStageId:   FromString(res.DeploymentStageID),
 		InstanceType:        FromStringPointer(res.DatabaseResponse.InstanceType),
 		AnnotationsGroupIds: fromAnnotationsGroupResponseList(ctx, state.AnnotationsGroupIds, res.DatabaseResponse.AnnotationsGroups),
+		LabelsGroupIds:      fromLabelsGroupResponseList(ctx, state.LabelsGroupIds, res.DatabaseResponse.LabelsGroups),
 	}
 }

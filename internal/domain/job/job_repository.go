@@ -40,6 +40,7 @@ type UpsertRepositoryRequest struct {
 	AdvancedSettingsJson string
 	AutoDeploy           qovery2.NullableBool
 	AnnotationsGroupIds  []string
+	LabelsGroupIds       []string
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.

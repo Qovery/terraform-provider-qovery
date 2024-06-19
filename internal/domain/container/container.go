@@ -88,6 +88,7 @@ type Container struct {
 	CustomDomains               []*qovery.CustomDomain
 	AutoDeploy                  *bool
 	AnnotationsGroupIds         []string
+	LabelsGroupIds              []string
 }
 
 // Validate returns an error to tell whether the Container domain model is valid or not.
@@ -138,6 +139,7 @@ type NewContainerParams struct {
 	CustomDomains          []*qovery.CustomDomain
 	AutoDeploy             *bool
 	AnnotationsGroupIds    []string
+	LabelsGroupIds         []string
 }
 
 // NewContainer returns a new instance of a Container domain model.
@@ -191,6 +193,7 @@ func NewContainer(params NewContainerParams) (*Container, error) {
 		CustomDomains:        params.CustomDomains,
 		AutoDeploy:           params.AutoDeploy,
 		AnnotationsGroupIds:  params.AnnotationsGroupIds,
+		LabelsGroupIds:       params.LabelsGroupIds,
 	}
 
 	if err := c.SetEnvironmentVariables(params.EnvironmentVariables); err != nil {

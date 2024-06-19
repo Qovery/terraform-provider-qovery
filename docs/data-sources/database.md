@@ -20,12 +20,13 @@ data "qovery_database" "my_database" {
 - `accessibility` (String) Accessibility of the database.
 	- Can be: `PRIVATE`, `PUBLIC`.
 	- Default: `PUBLIC`.
-- `annotations_group_ids` (Set of String) list of annotations group ids
+- `annotations_group_ids` (Set of String) List of annotations group ids
 - `cpu` (Number) CPU of the database in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 250`.
 	- Default: `250`.
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `instance_type` (String) Instance type of the database.
+- `labels_group_ids` (Set of String) List of labels group ids
 - `memory` (Number) RAM of the database in MB [1024MB = 1GB].
 	- Must be: `>= 100`.
 	- Default: `256`.

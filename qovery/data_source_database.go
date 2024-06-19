@@ -145,7 +145,12 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 				Computed:    true,
 			},
 			"annotations_group_ids": schema.SetAttribute{
-				Description: "list of annotations group ids",
+				Description: "List of annotations group ids",
+				Optional:    true,
+				ElementType: types.StringType,
+			},
+			"labels_group_ids": schema.SetAttribute{
+				Description: "List of labels group ids",
 				Optional:    true,
 				ElementType: types.StringType,
 			},

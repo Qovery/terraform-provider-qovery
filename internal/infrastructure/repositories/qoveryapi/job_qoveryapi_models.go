@@ -41,6 +41,7 @@ type AggregateJobResponse struct {
 	ScheduleCron        *qovery.CronJobResponseAllOfSchedule
 	ScheduleLifecycle   *qovery.LifecycleJobResponseAllOfSchedule
 	AnnotationsGroupIds []string
+	LabelsGroupIds      []string
 }
 
 func unmarshal[T any](input interface{}, output *T) error {
@@ -60,6 +61,11 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 		var annotations = make([]string, 0, len(jobResponse.CronJobResponse.AnnotationsGroups))
 		for _, v := range jobResponse.CronJobResponse.AnnotationsGroups {
 			annotations = append(annotations, v.Id)
+		}
+
+		var labels = make([]string, 0, len(jobResponse.CronJobResponse.LabelsGroups))
+		for _, v := range jobResponse.CronJobResponse.LabelsGroups {
+			labels = append(labels, v.Id)
 		}
 
 		return AggregateJobResponse{
@@ -83,6 +89,7 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 			ScheduleLifecycle:   nil,
 			ScheduleCron:        &jobResponse.CronJobResponse.Schedule,
 			AnnotationsGroupIds: annotations,
+			LabelsGroupIds:      labels,
 		}
 	} else {
 		if jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf != nil {
@@ -94,6 +101,11 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 		var annotations = make([]string, 0, len(jobResponse.LifecycleJobResponse.AnnotationsGroups))
 		for _, v := range jobResponse.LifecycleJobResponse.AnnotationsGroups {
 			annotations = append(annotations, v.Id)
+		}
+
+		var labels = make([]string, 0, len(jobResponse.LifecycleJobResponse.LabelsGroups))
+		for _, v := range jobResponse.LifecycleJobResponse.LabelsGroups {
+			labels = append(labels, v.Id)
 		}
 
 		return AggregateJobResponse{
@@ -117,6 +129,7 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 			ScheduleCron:        nil,
 			ScheduleLifecycle:   &jobResponse.LifecycleJobResponse.Schedule,
 			AnnotationsGroupIds: annotations,
+			LabelsGroupIds:      labels,
 		}
 	}
 }
@@ -244,6 +257,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 		AutoDeploy:           j.AutoDeploy,
 		Healthchecks:         j.Healthchecks,
 		AnnotationsGroupIds:  j.AnnotationsGroupIds,
+		LabelsGroupIds:       j.LabelsGroupIds,
 	})
 }
 
@@ -311,6 +325,11 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
 	}
 
+	labelsGroups, err := NewQoveryServiceLabelsGroupRequestFromDomain(request.LabelsGroupIds)
+	if err != nil {
+		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
+	}
+
 	return &qovery.JobRequest{
 		Name:               request.Name,
 		AutoPreview:        request.AutoPreview,
@@ -332,5 +351,6 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 		AutoDeploy:        request.AutoDeploy,
 		Healthchecks:      request.Healthchecks,
 		AnnotationsGroups: annotationsGroups,
+		LabelsGroups:      labelsGroups,
 	}, nil
 }
