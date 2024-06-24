@@ -376,6 +376,10 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 							Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
 							Computed:    true,
 						},
+						"generate_certificate": schema.BoolAttribute{
+							Description: "Qovery will generate and manage the certificate for this domain.",
+							Optional:    true,
+						},
 						"status": schema.StringAttribute{
 							Description: "Status of the custom domain.",
 							Computed:    true,

@@ -1647,7 +1647,7 @@ func convertPortsToString(ports []servicePort) string {
 func convertCustomDomainsToString(customDomains []string) string {
 	domains := make([]string, 0, len(customDomains))
 	for _, domain := range customDomains {
-		domains = append(domains, fmt.Sprintf(`{domain: "%s"}`, domain))
+		domains = append(domains, fmt.Sprintf(`{domain: "%s", generate_certificate: false}`, domain))
 	}
 	return fmt.Sprintf("[%s]", strings.Join(domains, ","))
 }

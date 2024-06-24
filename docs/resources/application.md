@@ -355,6 +355,10 @@ Required:
 
 - `domain` (String) Your custom domain.
 
+Optional:
+
+- `generate_certificate` (Boolean) Qovery will generate and manage the certificate for this domain.
+
 Read-Only:
 
 - `id` (String) Id of the custom domain.

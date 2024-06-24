@@ -417,6 +417,10 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							Description: "Your custom domain.",
 							Required:    true,
 						},
+						"generate_certificate": schema.BoolAttribute{
+							Description: "Qovery will generate and manage the certificate for this domain.",
+							Optional:    true,
+						},
 						"validation_domain": schema.StringAttribute{
 							Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
 							Computed:    true,
