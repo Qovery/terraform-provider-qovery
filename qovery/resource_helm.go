@@ -173,15 +173,15 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Attributes: map[string]schema.Attribute{
 					"set": schema.MapAttribute{
 						ElementType: types.StringType,
-						Required:    true,
+						Optional:    true,
 					},
 					"set_string": schema.MapAttribute{
 						ElementType: types.StringType,
-						Required:    true,
+						Optional:    true,
 					},
 					"set_json": schema.MapAttribute{
 						ElementType: types.StringType,
-						Required:    true,
+						Optional:    true,
 					},
 					"file": schema.SingleNestedAttribute{
 						Description: "Define the overrides by selecting a YAML file from a git repository (preferred) or by passing raw YAML files.",

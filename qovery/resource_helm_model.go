@@ -304,7 +304,11 @@ func (valuesOverride HelmValuesOverride) toUpsertRequest() helm.ValuesOverride {
 	}
 }
 
-func convertSetToHelmValuesOverrideSet(ctx context.Context, set [][]string) types.Map {
+func convertSetToHelmValuesOverrideSet(ctx context.Context, set [][]string, state *types.Map) types.Map {
+	if state != nil && len(set) == 0 && (state.IsUnknown() || state.IsNull()) {
+		return *state
+	}
+
 	elements := make(map[string]string, len(set))
 
 	for _, kv := range set {
@@ -324,9 +328,18 @@ func convertSetToHelmValuesOverrideSet(ctx context.Context, set [][]string) type
 }
 
 func HelmValuesOverrideFromDomainHelmValuesOverride(ctx context.Context, h helm.ValuesOverride, state *HelmValuesOverride) HelmValuesOverride {
-	helmValuesOverrideSet := convertSetToHelmValuesOverrideSet(ctx, h.Set)
-	helmValuesOverrideSetString := convertSetToHelmValuesOverrideSet(ctx, h.SetString)
-	helmValuesOverrideSetJson := convertSetToHelmValuesOverrideSet(ctx, h.SetJson)
+	var helmValuesOverrideSet types.Map
+	var helmValuesOverrideSetString types.Map
+	var helmValuesOverrideSetJson types.Map
+	if state == nil {
+		helmValuesOverrideSet = convertSetToHelmValuesOverrideSet(ctx, h.Set, nil)
+		helmValuesOverrideSetString = convertSetToHelmValuesOverrideSet(ctx, h.SetString, nil)
+		helmValuesOverrideSetJson = convertSetToHelmValuesOverrideSet(ctx, h.SetJson, nil)
+	} else {
+		helmValuesOverrideSet = convertSetToHelmValuesOverrideSet(ctx, h.Set, &state.HelmValuesOverrideSetString)
+		helmValuesOverrideSetString = convertSetToHelmValuesOverrideSet(ctx, h.SetString, &state.HelmValuesOverrideSetString)
+		helmValuesOverrideSetJson = convertSetToHelmValuesOverrideSet(ctx, h.SetJson, &state.HelmValuesOverrideSetJson)
+	}
 
 	var gitRepository *HelmValuesGitRepository
 	if h.File.GitRepository != nil {
