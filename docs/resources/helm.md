@@ -184,15 +184,12 @@ Required:
 <a id="nestedatt--values_override"></a>
 ### Nested Schema for `values_override`
 
-Required:
-
-- `set` (Map of String)
-- `set_json` (Map of String)
-- `set_string` (Map of String)
-
 Optional:
 
 - `file` (Attributes) Define the overrides by selecting a YAML file from a git repository (preferred) or by passing raw YAML files. (see [below for nested schema](#nestedatt--values_override--file))
+- `set` (Map of String)
+- `set_json` (Map of String)
+- `set_string` (Map of String)
 
 <a id="nestedatt--values_override--file"></a>
 ### Nested Schema for `values_override.file`
