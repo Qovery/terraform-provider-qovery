@@ -170,7 +170,8 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 	defer respPostAdvancedSettings.Body.Close()
 
 	if err != nil || respPostAdvancedSettings.StatusCode >= 400 {
-		return err
+		body, _ := io.ReadAll(respPostAdvancedSettings.Body)
+		return errors.New("Cannot update cluster advanced settings :" + string(body))
 	}
 
 	return nil

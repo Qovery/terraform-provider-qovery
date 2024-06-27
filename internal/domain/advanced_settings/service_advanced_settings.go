@@ -231,7 +231,8 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 	defer respPostAdvancedSettings.Body.Close()
 
 	if err != nil || respPostAdvancedSettings.StatusCode >= 400 {
-		return err
+		body, _ := io.ReadAll(respPostAdvancedSettings.Body)
+		return errors.New("Cannot update service advanced settings :" + string(body))
 	}
 
 	return nil
