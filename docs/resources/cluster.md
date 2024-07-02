@@ -56,7 +56,6 @@ You can find complete examples within these repositories:
 - `cloud_provider` (String) Cloud provider of the cluster.
 	- Can be: `AWS`, `GCP`, `ON_PREMISE`, `SCW`.
 - `credentials_id` (String) Id of the credentials.
-- `instance_type` (String) Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`
 - `name` (String) Name of the cluster.
 - `organization_id` (String) Id of the organization.
 - `region` (String) Region of the cluster.
@@ -68,13 +67,14 @@ You can find complete examples within these repositories:
 	- Default: ``.
 - `disk_size` (Number)
 - `features` (Attributes) Features of the cluster. (see [below for nested schema](#nestedatt--features))
+- `instance_type` (String) Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`, and not set for Karpenter-enabled clusters
 - `kubernetes_mode` (String) Kubernetes mode of the cluster.
 	- Can be: `K3S`, `MANAGED`.
 	- Default: `MANAGED`.
-- `max_running_nodes` (Number) Maximum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters]
+- `max_running_nodes` (Number) Maximum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters; and not set for Karpenter-enabled clusters]
 	- Must be: `>= 1`.
 	- Default: `10`.
-- `min_running_nodes` (Number) Minimum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters].
+- `min_running_nodes` (Number) Minimum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters, and not set for Karpenter-enabled clusters].
 	- Must be: `>= 1`.
 	- Default: `3`.
 - `routing_table` (Attributes Set) List of routes of the cluster. (see [below for nested schema](#nestedatt--routing_table))
@@ -92,6 +92,7 @@ You can find complete examples within these repositories:
 Optional:
 
 - `existing_vpc` (Attributes) Network configuration if you want to install qovery on an existing VPC (see [below for nested schema](#nestedatt--features--existing_vpc))
+- `karpenter` (Attributes) Karpenter parameters if you want to use Karpenter on an EKS cluster (see [below for nested schema](#nestedatt--features--karpenter))
 - `static_ip` (Boolean) Static IP (AWS only) [NOTE: can't be updated after creation].
 	- Default: `false`.
 - `vpc_subnet` (String) Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].
@@ -118,6 +119,16 @@ Optional:
 - `rds_subnets_zone_a_ids` (List of String) Ids of the subnets for RDS
 - `rds_subnets_zone_b_ids` (List of String) Ids of the subnets for RDS
 - `rds_subnets_zone_c_ids` (List of String) Ids of the subnets for RDS
+
+
+<a id="nestedatt--features--karpenter"></a>
+### Nested Schema for `features.karpenter`
+
+Required:
+
+- `default_service_architecture` (String) The default architecture of service
+- `disk_size_in_gib` (Number)
+- `spot_enabled` (Boolean) Enable spot instances
 
 
 

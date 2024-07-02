@@ -13,7 +13,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -156,8 +155,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"instance_type": schema.StringAttribute{
-				Description: "Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`",
-				Required:    true,
+				Description: "Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`, and not set for Karpenter-enabled clusters",
+				Optional:    true,
+				Computed:    true,
 			},
 			"disk_size": schema.Int64Attribute{
 				Optional: true,
@@ -165,29 +165,21 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 			"min_running_nodes": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
-					"Minimum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters].",
+					"Minimum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters, and not set for Karpenter-enabled clusters].",
 					clusterMinRunningNodesMin,
 					&clusterMinRunningNodesDefault,
 				),
 				Optional: true,
 				Computed: true,
-				Default:  int64default.StaticInt64(clusterMinRunningNodesDefault),
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: clusterMinRunningNodesMin},
-				},
 			},
 			"max_running_nodes": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
-					"Maximum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters]",
+					"Maximum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters; and not set for Karpenter-enabled clusters]",
 					clusterMaxRunningNodesMin,
 					&clusterMaxRunningNodesDefault,
 				),
 				Optional: true,
 				Computed: true,
-				Default:  int64default.StaticInt64(clusterMaxRunningNodesDefault),
-				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: clusterMaxRunningNodesMin},
-				},
 			},
 			"features": schema.SingleNestedAttribute{
 				Description: "Features of the cluster.",
@@ -293,6 +285,27 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType: types.StringType,
 								Optional:    true,
 								Computed:    true,
+							},
+						},
+					},
+					"karpenter": schema.SingleNestedAttribute{
+						Optional:    true,
+						Computed:    false,
+						Description: "Karpenter parameters if you want to use Karpenter on an EKS cluster",
+						Attributes: map[string]schema.Attribute{
+							"spot_enabled": schema.BoolAttribute{
+								Description: "Enable spot instances",
+								Required:    true,
+								Computed:    false,
+							},
+							"disk_size_in_gib": schema.Int64Attribute{
+								Required: true,
+								Computed: false,
+							},
+							"default_service_architecture": schema.StringAttribute{
+								Description: "The default architecture of service",
+								Required:    true,
+								Computed:    false,
 							},
 						},
 					},
