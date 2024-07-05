@@ -81,7 +81,10 @@ func (p jobEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, jobID stri
 func (p jobEnvironmentVariablesQoveryAPI) CreateAlias(ctx context.Context, jobID string, request variable.UpsertRequest, aliasedVariableId string) (*variable.Variable, error) {
 	v, resp, err := p.client.JobEnvironmentVariableAPI.
 		CreateJobEnvironmentVariableAlias(ctx, jobID, aliasedVariableId).
-		Key(qovery.Key{Key: request.Key}).
+		Key(qovery.Key{
+			Key:         request.Key,
+			Description: *qovery.NewNullableString(&request.Description),
+		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJobEnvironmentVariable, jobID, resp, err)
@@ -92,7 +95,10 @@ func (p jobEnvironmentVariablesQoveryAPI) CreateAlias(ctx context.Context, jobID
 func (p jobEnvironmentVariablesQoveryAPI) CreateOverride(ctx context.Context, jobID string, request variable.UpsertRequest, overriddenVariableId string) (*variable.Variable, error) {
 	v, resp, err := p.client.JobEnvironmentVariableAPI.
 		CreateJobEnvironmentVariableOverride(ctx, jobID, overriddenVariableId).
-		Value(qovery.Value{Value: &request.Value}).
+		Value(qovery.Value{
+			Value:       &request.Value,
+			Description: *qovery.NewNullableString(&request.Description),
+		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJobEnvironmentVariable, jobID, resp, err)

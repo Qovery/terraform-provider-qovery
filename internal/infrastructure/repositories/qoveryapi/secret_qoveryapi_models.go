@@ -27,11 +27,17 @@ func newDomainSecretFromQovery(v *qovery.Secret) (*secret.Secret, error) {
 		return nil, secret.ErrNilSecret
 	}
 
+	description := ""
+	// shouldnt we have a description on qovery.Secret?
+	//if v.Description.IsSet() {
+	//	description = v.Description.Get()
+	//}
 	return secret.NewSecret(secret.NewSecretParams{
-		SecretID: v.GetId(),
-		Scope:    string(v.Scope),
-		Key:      v.GetKey(),
-		Type:     string(*v.VariableType),
+		SecretID:    v.GetId(),
+		Scope:       string(v.Scope),
+		Key:         v.GetKey(),
+		Type:        string(*v.VariableType),
+		Description: description,
 	})
 }
 
@@ -40,6 +46,8 @@ func newQoverySecretRequestFromDomain(request secret.UpsertRequest) qovery.Secre
 	return qovery.SecretRequest{
 		Key:   request.Key,
 		Value: &request.Value,
+		// shouldnt we have a description here?
+		// Description: *qovery.NewNullableString(&request.Description),
 	}
 }
 
@@ -48,5 +56,7 @@ func newQoverySecretEditRequestFromDomain(request secret.UpsertRequest) qovery.S
 	return qovery.SecretEditRequest{
 		Key:   request.Key,
 		Value: &request.Value,
+		// shouldnt we have a description here?
+		// Description: *qovery.NewNullableString(&request.Description),
 	}
 }

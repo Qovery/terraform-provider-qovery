@@ -82,6 +82,7 @@ func (p projectSecretsQoveryAPI) CreateAlias(ctx context.Context, projectId stri
 	v, resp, err := p.client.ProjectSecretAPI.
 		CreateProjectSecretAlias(ctx, projectId, aliasedSecretId).
 		Key(qovery.Key{Key: request.Key}).
+		// missing description here
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceProjectSecret, projectId, resp, err)

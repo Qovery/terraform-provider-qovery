@@ -9,10 +9,11 @@ func newQoveryEnvVariableRequestFromDomain(request variable.UpsertRequest, isSec
 	return qovery.VariableRequest{
 		Key:              request.Key,
 		Value:            request.Value,
-		MountPath:        qovery.NullableString{},
+		MountPath:        qovery.NullableString{}, //TODO: no mountpath?
 		IsSecret:         isSecret,
 		VariableScope:    parentScope,
 		VariableParentId: parentId,
+		Description:      *qovery.NewNullableString(&request.Description),
 	}
 }
 
@@ -21,6 +22,7 @@ func newQoveryEnvVariableCreateAliasRequestFromDomain(request variable.UpsertReq
 		Key:           request.Key,
 		AliasScope:    parentScope,
 		AliasParentId: parentId,
+		Description:   *qovery.NewNullableString(&request.Description),
 	}
 }
 
@@ -29,6 +31,7 @@ func newQoveryEnvVariableCreateOverrideRequestFromDomain(request variable.Upsert
 		Value:            request.Value,
 		OverrideScope:    parentScope,
 		OverrideParentId: parentId,
+		Description:      *qovery.NewNullableString(&request.Description),
 	}
 }
 
@@ -57,17 +60,19 @@ func newDomainEnvVariableFromQovery(v *qovery.VariableResponse) (*variable.Varia
 	}
 
 	return variable.NewVariable(variable.NewVariableParams{
-		VariableID: v.GetId(),
-		Scope:      string(v.Scope),
-		Key:        v.Key,
-		Value:      value,
-		Type:       string(v.VariableType),
+		VariableID:  v.GetId(),
+		Scope:       string(v.Scope),
+		Key:         v.Key,
+		Value:       value,
+		Type:        string(v.VariableType),
+		Description: *v.Description,
 	})
 }
 
 func newQoveryEnvVariableEditRequestFromDomain(request variable.UpsertRequest) qovery.VariableEditRequest {
 	return qovery.VariableEditRequest{
-		Key:   request.Key,
-		Value: request.Value,
+		Key:         request.Key,
+		Value:       request.Value,
+		Description: *qovery.NewNullableString(&request.Description),
 	}
 }

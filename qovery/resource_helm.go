@@ -300,6 +300,10 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 							Description: "Value of the environment variable.",
 							Computed:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -321,6 +325,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 							Description: "Value of the environment variable.",
 							Required:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+						},
 					},
 				},
 			},
@@ -341,6 +348,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 							Description: "Name of the variable to alias.",
 							Required:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable alias.",
+						},
 					},
 				},
 			},
@@ -360,6 +370,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable override.",
 							Required:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable override.",
 						},
 					},
 				},
@@ -382,6 +395,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 							Required:    true,
 							Sensitive:   true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the secret.",
+						},
 					},
 				},
 			},
@@ -401,6 +417,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 						"value": schema.StringAttribute{
 							Description: "Name of the secret to alias.",
 							Required:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the secret alias.",
 						},
 					},
 				},
@@ -422,6 +441,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 							Description: "Value of the secret override.",
 							Required:    true,
 							Sensitive:   true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the secret override.",
 						},
 					},
 				},

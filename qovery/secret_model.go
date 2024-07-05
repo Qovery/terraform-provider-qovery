@@ -16,6 +16,7 @@ var secretAttrTypes = map[string]attr.Type{
 	"id":    types.StringType,
 	"key":   types.StringType,
 	"value": types.StringType,
+	// TODO add desc
 }
 
 type SecretList []Secret
@@ -111,16 +112,18 @@ func (ss SecretList) diffRequest(old SecretList) secret.DiffRequest {
 }
 
 type Secret struct {
-	Id    types.String `tfsdk:"id"`
-	Key   types.String `tfsdk:"key"`
-	Value types.String `tfsdk:"value"`
+	Id          types.String `tfsdk:"id"`
+	Key         types.String `tfsdk:"key"`
+	Value       types.String `tfsdk:"value"`
+	Description types.String `tfsdk:"description"`
 }
 
 func (s Secret) toTerraformObject() types.Object {
 	var attributes = map[string]attr.Value{
-		"id":    s.Id,
-		"key":   s.Key,
-		"value": s.Value,
+		"id":          s.Id,
+		"key":         s.Key,
+		"value":       s.Value,
+		"description": s.Description,
 	}
 	terraformObjectValue, diagnostics := types.ObjectValue(secretAttrTypes, attributes)
 	if diagnostics.HasError() {
@@ -134,6 +137,8 @@ func (s Secret) toCreateRequest() client.SecretCreateRequest {
 		SecretRequest: qovery.SecretRequest{
 			Key:   ToString(s.Key),
 			Value: ToStringPointer(s.Value),
+			// missing description
+			//Description: *ToStringPointer(&s.Description),
 		},
 	}
 }
@@ -141,8 +146,9 @@ func (s Secret) toCreateRequest() client.SecretCreateRequest {
 func (s Secret) toDiffCreateRequest() secret.DiffCreateRequest {
 	return secret.DiffCreateRequest{
 		UpsertRequest: secret.UpsertRequest{
-			Key:   ToString(s.Key),
-			Value: ToString(s.Value),
+			Key:         ToString(s.Key),
+			Value:       ToString(s.Value),
+			Description: ToString(s.Description),
 		},
 	}
 }
@@ -153,6 +159,8 @@ func (s Secret) toUpdateRequest(new Secret) client.SecretUpdateRequest {
 		SecretEditRequest: qovery.SecretEditRequest{
 			Key:   ToString(s.Key),
 			Value: ToStringPointer(new.Value),
+			// missing description
+			//Description: *ToStringPointer(&s.Description),
 		},
 	}
 }
@@ -161,8 +169,9 @@ func (s Secret) toDiffUpdateRequest(new Secret) secret.DiffUpdateRequest {
 	return secret.DiffUpdateRequest{
 		SecretID: ToString(s.Id),
 		UpsertRequest: secret.UpsertRequest{
-			Key:   ToString(s.Key),
-			Value: ToString(new.Value),
+			Key:         ToString(s.Key),
+			Value:       ToString(new.Value),
+			Description: ToString(new.Description),
 		},
 	}
 }
@@ -183,6 +192,8 @@ func fromSecret(v *qovery.Secret, state *Secret) Secret {
 	sec := Secret{
 		Id:  FromString(v.Id),
 		Key: FromString(v.Key),
+		// missing description
+		//Description: FromString(v.Description),
 	}
 	if state != nil {
 		sec.Value = state.Value
@@ -240,8 +251,9 @@ func convertDomainSecretsToSecretList(initialState types.Set, secrets secret.Sec
 
 func convertDomainSecretToSecret(s secret.Secret, state *Secret) Secret {
 	sec := Secret{
-		Id:  FromString(s.ID.String()),
-		Key: FromString(s.Key),
+		Id:          FromString(s.ID.String()),
+		Key:         FromString(s.Key),
+		Description: FromString(s.Description),
 	}
 	if state != nil {
 		sec.Value = state.Value
@@ -251,9 +263,10 @@ func convertDomainSecretToSecret(s secret.Secret, state *Secret) Secret {
 
 func toSecret(v types.Object) Secret {
 	return Secret{
-		Id:    v.Attributes()["id"].(types.String),
-		Key:   v.Attributes()["key"].(types.String),
-		Value: v.Attributes()["value"].(types.String),
+		Id:          v.Attributes()["id"].(types.String),
+		Key:         v.Attributes()["key"].(types.String),
+		Value:       v.Attributes()["value"].(types.String),
+		Description: v.Attributes()["description"].(types.String),
 	}
 }
 

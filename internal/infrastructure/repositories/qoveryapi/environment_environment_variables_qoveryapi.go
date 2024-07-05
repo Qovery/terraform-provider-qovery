@@ -81,7 +81,10 @@ func (p environmentEnvironmentVariablesQoveryAPI) Delete(ctx context.Context, en
 func (p environmentEnvironmentVariablesQoveryAPI) CreateAlias(ctx context.Context, environmentID string, request variable.UpsertRequest, aliasedVariableId string) (*variable.Variable, error) {
 	v, resp, err := p.client.EnvironmentVariableAPI.
 		CreateEnvironmentEnvironmentVariableAlias(ctx, environmentID, aliasedVariableId).
-		Key(qovery.Key{Key: request.Key}).
+		Key(qovery.Key{
+			Key:         request.Key,
+			Description: *qovery.NewNullableString(&request.Description),
+		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceEnvironmentEnvironmentVariable, environmentID, resp, err)
@@ -92,7 +95,10 @@ func (p environmentEnvironmentVariablesQoveryAPI) CreateAlias(ctx context.Contex
 func (p environmentEnvironmentVariablesQoveryAPI) CreateOverride(ctx context.Context, environmentID string, request variable.UpsertRequest, overriddenVariableId string) (*variable.Variable, error) {
 	v, resp, err := p.client.EnvironmentVariableAPI.
 		CreateEnvironmentEnvironmentVariableOverride(ctx, environmentID, overriddenVariableId).
-		Value(qovery.Value{Value: &request.Value}).
+		Value(qovery.Value{
+			Value:       &request.Value,
+			Description: *qovery.NewNullableString(&request.Description),
+		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceEnvironmentEnvironmentVariable, environmentID, resp, err)

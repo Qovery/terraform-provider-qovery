@@ -48,10 +48,11 @@ func (s Secrets) IsValid() bool {
 }
 
 type Secret struct {
-	ID    uuid.UUID      `validate:"required"`
-	Scope variable.Scope `validate:"required"`
-	Key   string         `validate:"required"`
-	Type  string
+	ID          uuid.UUID      `validate:"required"`
+	Scope       variable.Scope `validate:"required"`
+	Key         string         `validate:"required"`
+	Type        string
+	Description string
 }
 
 // Validate returns an error to tell whether the Secret domain model is valid or not.
@@ -75,10 +76,11 @@ func (s Secret) IsValid() bool {
 // NewSecretParams represents the arguments needed to create a Secret.
 type NewSecretsParams = []NewSecretParams
 type NewSecretParams struct {
-	SecretID string
-	Scope    string
-	Key      string
-	Type     string
+	SecretID    string
+	Scope       string
+	Key         string
+	Type        string
+	Description string
 }
 
 // NewSecret returns a new instance of a Secret domain model.
@@ -98,10 +100,11 @@ func NewSecret(params NewSecretParams) (*Secret, error) {
 	}
 
 	v := &Secret{
-		ID:    secretsUUID,
-		Key:   params.Key,
-		Scope: *scope,
-		Type:  params.Type,
+		ID:          secretsUUID,
+		Key:         params.Key,
+		Scope:       *scope,
+		Type:        params.Type,
+		Description: params.Description,
 	}
 
 	if err := v.Validate(); err != nil {
@@ -113,8 +116,9 @@ func NewSecret(params NewSecretParams) (*Secret, error) {
 
 // UpsertRequest represents the parameters needed to create & update a Secret.
 type UpsertRequest struct {
-	Key   string `validate:"required"`
-	Value string
+	Key         string `validate:"required"`
+	Value       string
+	Description string
 }
 
 // Validate returns an error to tell whether the UpsertRequest is valid or not.

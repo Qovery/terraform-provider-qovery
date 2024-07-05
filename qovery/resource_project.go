@@ -89,6 +89,10 @@ func (r projectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 							Description: "Value of the environment variable.",
 							Computed:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -109,6 +113,9 @@ func (r projectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 							Description: "Value of the environment variable.",
 							Required:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+						},
 					},
 				},
 			},
@@ -128,6 +135,9 @@ func (r projectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						"value": schema.StringAttribute{
 							Description: "Name of the variable to alias.",
 							Required:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable alias.",
 						},
 					},
 				},
@@ -150,6 +160,9 @@ func (r projectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 							Required:    true,
 							Sensitive:   true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the secret.",
+						},
 					},
 				},
 			},
@@ -169,6 +182,9 @@ func (r projectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						"value": schema.StringAttribute{
 							Description: "Name of the secret to alias.",
 							Required:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the secret alias.",
 						},
 					},
 				},

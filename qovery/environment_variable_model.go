@@ -12,9 +12,10 @@ import (
 )
 
 var environmentVariableAttrTypes = map[string]attr.Type{
-	"id":    types.StringType,
-	"key":   types.StringType,
-	"value": types.StringType,
+	"id":          types.StringType,
+	"key":         types.StringType,
+	"value":       types.StringType,
+	"description": types.StringType,
 }
 
 type EnvironmentVariableList []EnvironmentVariable
@@ -109,16 +110,18 @@ func (vars EnvironmentVariableList) diff(old EnvironmentVariableList) client.Env
 }
 
 type EnvironmentVariable struct {
-	Id    types.String `tfsdk:"id"`
-	Key   types.String `tfsdk:"key"`
-	Value types.String `tfsdk:"value"`
+	Id          types.String `tfsdk:"id"`
+	Key         types.String `tfsdk:"key"`
+	Value       types.String `tfsdk:"value"`
+	Description types.String `tfsdk:"description"`
 }
 
 func (e EnvironmentVariable) toTerraformObject() types.Object {
 	var attributes = map[string]attr.Value{
-		"id":    e.Id,
-		"key":   e.Key,
-		"value": e.Value,
+		"id":          e.Id,
+		"key":         e.Key,
+		"value":       e.Value,
+		"description": e.Description,
 	}
 	terraformObjectValue, diagnostics := types.ObjectValue(environmentVariableAttrTypes, attributes)
 	if diagnostics.HasError() {
@@ -130,8 +133,9 @@ func (e EnvironmentVariable) toTerraformObject() types.Object {
 func (e EnvironmentVariable) toCreateRequest() client.EnvironmentVariableCreateRequest {
 	return client.EnvironmentVariableCreateRequest{
 		EnvironmentVariableRequest: qovery.EnvironmentVariableRequest{
-			Key:   ToString(e.Key),
-			Value: ToStringPointer(e.Value),
+			Key:         ToString(e.Key),
+			Value:       ToStringPointer(e.Value),
+			Description: *qovery.NewNullableString(ToStringPointer(e.Description)),
 		},
 	}
 }
@@ -139,8 +143,9 @@ func (e EnvironmentVariable) toCreateRequest() client.EnvironmentVariableCreateR
 func (e EnvironmentVariable) toDiffCreateRequest() variable.DiffCreateRequest {
 	return variable.DiffCreateRequest{
 		UpsertRequest: variable.UpsertRequest{
-			Key:   ToString(e.Key),
-			Value: ToString(e.Value),
+			Key:         ToString(e.Key),
+			Value:       ToString(e.Value),
+			Description: ToString(e.Description),
 		},
 	}
 }
@@ -149,8 +154,9 @@ func (e EnvironmentVariable) toUpdateRequest(new EnvironmentVariable) client.Env
 	return client.EnvironmentVariableUpdateRequest{
 		Id: ToString(e.Id),
 		EnvironmentVariableEditRequest: qovery.EnvironmentVariableEditRequest{
-			Key:   ToString(e.Key),
-			Value: ToStringPointer(new.Value),
+			Key:         ToString(e.Key),
+			Value:       ToStringPointer(new.Value),
+			Description: *qovery.NewNullableString(ToStringPointer(new.Description)),
 		},
 	}
 }
@@ -159,8 +165,9 @@ func (e EnvironmentVariable) toDiffUpdateRequest(new EnvironmentVariable) variab
 	return variable.DiffUpdateRequest{
 		VariableID: ToString(e.Id),
 		UpsertRequest: variable.UpsertRequest{
-			Key:   ToString(e.Key),
-			Value: ToString(new.Value),
+			Key:         ToString(e.Key),
+			Value:       ToString(new.Value),
+			Description: ToString(new.Description),
 		},
 	}
 }
@@ -182,6 +189,7 @@ func fromEnvironmentVariable(v *qovery.EnvironmentVariable) EnvironmentVariable 
 		Id:    FromString(v.Id),
 		Key:   FromString(v.Key),
 		Value: FromStringPointer(v.Value),
+		// TODO add desc
 	}
 }
 
@@ -219,9 +227,10 @@ func fromEnvironmentVariableListWithNullableInitialState(initialState types.Set,
 
 func toEnvironmentVariable(v types.Object) EnvironmentVariable {
 	return EnvironmentVariable{
-		Id:    v.Attributes()["id"].(types.String),
-		Key:   v.Attributes()["key"].(types.String),
-		Value: v.Attributes()["value"].(types.String),
+		Id:          v.Attributes()["id"].(types.String),
+		Key:         v.Attributes()["key"].(types.String),
+		Value:       v.Attributes()["value"].(types.String),
+		Description: v.Attributes()["description"].(types.String),
 	}
 }
 
@@ -272,8 +281,9 @@ func convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ini
 
 func convertDomainVariableToEnvironmentVariable(v variable.Variable) EnvironmentVariable {
 	return EnvironmentVariable{
-		Id:    FromString(v.ID.String()),
-		Key:   FromString(v.Key),
-		Value: FromString(v.Value),
+		Id:          FromString(v.ID.String()),
+		Key:         FromString(v.Key),
+		Value:       FromString(v.Value),
+		Description: FromString(v.Description),
 	}
 }

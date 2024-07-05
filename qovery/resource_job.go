@@ -312,6 +312,10 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 							Description: "Value of the environment variable.",
 							Computed:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -333,6 +337,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 							Description: "Value of the environment variable.",
 							Required:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+						},
 					},
 				},
 			},
@@ -353,6 +360,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 							Description: "Name of the variable to alias.",
 							Required:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable alias.",
+						},
 					},
 				},
 			},
@@ -372,6 +382,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable override.",
 							Required:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable override.",
 						},
 					},
 				},
@@ -394,6 +407,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 							Required:    true,
 							Sensitive:   true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the secret.",
+						},
 					},
 				},
 			},
@@ -413,6 +429,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 						"value": schema.StringAttribute{
 							Description: "Name of the secret to alias.",
 							Required:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the secret alias.",
 						},
 					},
 				},
@@ -434,6 +453,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 							Description: "Value of the secret override.",
 							Required:    true,
 							Sensitive:   true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the secret override.",
 						},
 					},
 				},

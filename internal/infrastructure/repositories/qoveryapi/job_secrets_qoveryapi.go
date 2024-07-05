@@ -81,7 +81,10 @@ func (p jobSecretsQoveryAPI) Delete(ctx context.Context, jobID string, credentia
 func (p jobSecretsQoveryAPI) CreateAlias(ctx context.Context, jobID string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
 	v, resp, err := p.client.JobSecretAPI.
 		CreateJobSecretAlias(ctx, jobID, aliasedSecretId).
-		Key(qovery.Key{Key: request.Key}).
+		Key(qovery.Key{
+			Key:         request.Key,
+			Description: *qovery.NewNullableString(&request.Description),
+		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJobSecret, jobID, resp, err)
@@ -93,7 +96,10 @@ func (p jobSecretsQoveryAPI) CreateAlias(ctx context.Context, jobID string, requ
 func (p jobSecretsQoveryAPI) CreateOverride(ctx context.Context, jobID string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
 	v, resp, err := p.client.JobSecretAPI.
 		CreateJobSecretOverride(ctx, jobID, overriddenSecretId).
-		Value(qovery.Value{Value: &request.Value}).
+		Value(qovery.Value{
+			Value:       &request.Value,
+			Description: *qovery.NewNullableString(&request.Description),
+		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJobSecret, jobID, resp, err)
