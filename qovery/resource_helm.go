@@ -327,6 +327,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 						},
 						"description": schema.StringAttribute{
 							Description: "Description of the environment variable.",
+							Optional:    true,
 						},
 					},
 				},
@@ -350,6 +351,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 						},
 						"description": schema.StringAttribute{
 							Description: "Description of the environment variable alias.",
+							Optional:    true,
 						},
 					},
 				},
@@ -373,6 +375,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 						},
 						"description": schema.StringAttribute{
 							Description: "Description of the environment variable override.",
+							Optional:    true,
 						},
 					},
 				},
@@ -397,6 +400,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 						},
 						"description": schema.StringAttribute{
 							Description: "Description of the secret.",
+							Optional:    true,
 						},
 					},
 				},
@@ -420,6 +424,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 						},
 						"description": schema.StringAttribute{
 							Description: "Description of the secret alias.",
+							Optional:    true,
 						},
 					},
 				},
@@ -444,6 +449,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 						},
 						"description": schema.StringAttribute{
 							Description: "Description of the secret override.",
+							Optional:    true,
 						},
 					},
 				},

@@ -76,6 +76,10 @@ Required:
 - `key` (String) Name of the environment variable alias.
 - `value` (String) Name of the variable to alias.
 
+Optional:
+
+- `description` (String) Description of the environment variable alias.
+
 Read-Only:
 
 - `id` (String) Id of the environment variable alias.
@@ -88,6 +92,10 @@ Required:
 
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
+
+Optional:
+
+- `description` (String) Description of the environment variable.
 
 Read-Only:
 
@@ -102,6 +110,10 @@ Required:
 - `key` (String) Name of the secret alias.
 - `value` (String) Name of the secret to alias.
 
+Optional:
+
+- `description` (String) Description of the secret alias.
+
 Read-Only:
 
 - `id` (String) Id of the secret alias.
@@ -115,6 +127,10 @@ Required:
 - `key` (String) Key of the secret.
 - `value` (String, Sensitive) Value of the secret.
 
+Optional:
+
+- `description` (String) Description of the secret.
+
 Read-Only:
 
 - `id` (String) Id of the secret.
@@ -125,6 +141,7 @@ Read-Only:
 
 Read-Only:
 
+- `description` (String) Description of the environment variable.
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.

@@ -135,10 +135,9 @@ func (s Secret) toTerraformObject() types.Object {
 func (s Secret) toCreateRequest() client.SecretCreateRequest {
 	return client.SecretCreateRequest{
 		SecretRequest: qovery.SecretRequest{
-			Key:   ToString(s.Key),
-			Value: ToStringPointer(s.Value),
-			// missing description
-			//Description: *ToStringPointer(&s.Description),
+			Key:         ToString(s.Key),
+			Value:       ToStringPointer(s.Value),
+			Description: *qovery.NewNullableString(ToStringPointer(s.Description)),
 		},
 	}
 }
@@ -157,10 +156,9 @@ func (s Secret) toUpdateRequest(new Secret) client.SecretUpdateRequest {
 	return client.SecretUpdateRequest{
 		Id: ToString(s.Id),
 		SecretEditRequest: qovery.SecretEditRequest{
-			Key:   ToString(s.Key),
-			Value: ToStringPointer(new.Value),
-			// missing description
-			//Description: *ToStringPointer(&s.Description),
+			Key:         ToString(s.Key),
+			Value:       ToStringPointer(new.Value),
+			Description: *qovery.NewNullableString(ToStringPointer(s.Description)),
 		},
 	}
 }
@@ -190,10 +188,9 @@ func (s Secret) toDiffDeleteRequest() secret.DiffDeleteRequest {
 
 func fromSecret(v *qovery.Secret, state *Secret) Secret {
 	sec := Secret{
-		Id:  FromString(v.Id),
-		Key: FromString(v.Key),
-		// missing description
-		//Description: FromString(v.Description),
+		Id:          FromString(v.Id),
+		Key:         FromString(v.Key),
+		Description: FromNullableString(v.Description),
 	}
 	if state != nil {
 		sec.Value = state.Value

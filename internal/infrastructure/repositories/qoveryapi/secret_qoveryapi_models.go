@@ -28,10 +28,9 @@ func newDomainSecretFromQovery(v *qovery.Secret) (*secret.Secret, error) {
 	}
 
 	description := ""
-	// shouldnt we have a description on qovery.Secret?
-	//if v.Description.IsSet() {
-	//	description = v.Description.Get()
-	//}
+	if v.Description.IsSet() {
+		description = *v.Description.Get()
+	}
 	return secret.NewSecret(secret.NewSecretParams{
 		SecretID:    v.GetId(),
 		Scope:       string(v.Scope),
@@ -44,19 +43,17 @@ func newDomainSecretFromQovery(v *qovery.Secret) (*secret.Secret, error) {
 // newQoverySecretRequestFromDomain takes the domain request secret.UpsertRequest and turns it into a qovery.SecretRequest to make the api call.
 func newQoverySecretRequestFromDomain(request secret.UpsertRequest) qovery.SecretRequest {
 	return qovery.SecretRequest{
-		Key:   request.Key,
-		Value: &request.Value,
-		// shouldnt we have a description here?
-		// Description: *qovery.NewNullableString(&request.Description),
+		Key:         request.Key,
+		Value:       &request.Value,
+		Description: *qovery.NewNullableString(&request.Description),
 	}
 }
 
 // newQoverySecretEditRequestFromDomain takes the domain request secret.UpsertRequest and turns it into a qovery.SecretEditRequest to make the api call.
 func newQoverySecretEditRequestFromDomain(request secret.UpsertRequest) qovery.SecretEditRequest {
 	return qovery.SecretEditRequest{
-		Key:   request.Key,
-		Value: &request.Value,
-		// shouldnt we have a description here?
-		// Description: *qovery.NewNullableString(&request.Description),
+		Key:         request.Key,
+		Value:       &request.Value,
+		Description: *qovery.NewNullableString(&request.Description),
 	}
 }

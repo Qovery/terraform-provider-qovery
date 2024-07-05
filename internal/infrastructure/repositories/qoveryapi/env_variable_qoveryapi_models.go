@@ -9,7 +9,7 @@ func newQoveryEnvVariableRequestFromDomain(request variable.UpsertRequest, isSec
 	return qovery.VariableRequest{
 		Key:              request.Key,
 		Value:            request.Value,
-		MountPath:        qovery.NullableString{}, //TODO: no mountpath?
+		MountPath:        qovery.NullableString{},
 		IsSecret:         isSecret,
 		VariableScope:    parentScope,
 		VariableParentId: parentId,

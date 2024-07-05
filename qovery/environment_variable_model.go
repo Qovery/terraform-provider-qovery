@@ -186,10 +186,10 @@ func (e EnvironmentVariable) toDiffDeleteRequest() variable.DiffDeleteRequest {
 
 func fromEnvironmentVariable(v *qovery.EnvironmentVariable) EnvironmentVariable {
 	return EnvironmentVariable{
-		Id:    FromString(v.Id),
-		Key:   FromString(v.Key),
-		Value: FromStringPointer(v.Value),
-		// TODO add desc
+		Id:          FromString(v.Id),
+		Key:         FromString(v.Key),
+		Value:       FromStringPointer(v.Value),
+		Description: FromNullableString(v.Description),
 	}
 }
 
