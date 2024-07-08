@@ -81,7 +81,10 @@ func (p environmentSecretsQoveryAPI) Delete(ctx context.Context, environmentID s
 func (p environmentSecretsQoveryAPI) CreateAlias(ctx context.Context, environmentId string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
 	v, resp, err := p.client.EnvironmentSecretAPI.
 		CreateEnvironmentSecretAlias(ctx, environmentId, aliasedSecretId).
-		Key(qovery.Key{Key: request.Key}).
+		Key(qovery.Key{
+			Key:         request.Key,
+			Description: *qovery.NewNullableString(&request.Description),
+		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceEnvironmentSecret, environmentId, resp, err)
@@ -93,7 +96,10 @@ func (p environmentSecretsQoveryAPI) CreateAlias(ctx context.Context, environmen
 func (p environmentSecretsQoveryAPI) CreateOverride(ctx context.Context, environmentId string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
 	v, resp, err := p.client.EnvironmentSecretAPI.
 		CreateEnvironmentSecretOverride(ctx, environmentId, overriddenSecretId).
-		Value(qovery.Value{Value: &request.Value}).
+		Value(qovery.Value{
+			Value:       &request.Value,
+			Description: *qovery.NewNullableString(&request.Description),
+		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceEnvironmentSecret, environmentId, resp, err)
