@@ -100,7 +100,7 @@ func convertDomainEnvironmentToEnvironment(ctx context.Context, state Environmen
 		ClusterId:                    FromString(env.ClusterID.String()),
 		Name:                         FromString(env.Name),
 		Mode:                         fromClientEnum(env.Mode),
-		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(ctx, env.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(env.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, env.EnvironmentVariables, variable.ScopeEnvironment, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, env.EnvironmentVariables, variable.ScopeEnvironment, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, env.EnvironmentVariables, variable.ScopeEnvironment, "OVERRIDE").toTerraformSet(ctx),

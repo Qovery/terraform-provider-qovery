@@ -450,7 +450,7 @@ func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) H
 		Source:                       &source,
 		ValuesOverride:               &valuesOverride,
 		Ports:                        ports,
-		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(ctx, helm.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(helm.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, helm.EnvironmentVariables, variable.ScopeHelm, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, helm.EnvironmentVariables, variable.ScopeHelm, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, helm.EnvironmentVariables, variable.ScopeHelm, "OVERRIDE").toTerraformSet(ctx),
