@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -94,7 +95,7 @@ func (ss SecretList) diffRequest(old SecretList) secret.DiffRequest {
 
 	for _, s := range old {
 		if updatedVar := ss.find(ToString(s.Key)); updatedVar != nil {
-			if updatedVar.Value != s.Value {
+			if updatedVar.Value != s.Value || updatedVar.Description != s.Description {
 				diff.Update = append(diff.Update, s.toDiffUpdateRequest(*updatedVar))
 			}
 		} else {
@@ -254,6 +255,9 @@ func convertDomainSecretToSecret(s secret.Secret, state *Secret) Secret {
 	}
 	if state != nil {
 		sec.Value = state.Value
+		if state.Description.IsNull() {
+			sec.Description = basetypes.NewStringNull()
+		}
 	}
 	return sec
 }
