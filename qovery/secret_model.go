@@ -195,6 +195,9 @@ func fromSecret(v *qovery.Secret, state *Secret) Secret {
 	}
 	if state != nil {
 		sec.Value = state.Value
+		if state.Description.IsNull() {
+			sec.Description = basetypes.NewStringNull()
+		}
 	}
 	return sec
 }

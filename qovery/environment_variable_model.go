@@ -184,12 +184,16 @@ func (e EnvironmentVariable) toDiffDeleteRequest() variable.DiffDeleteRequest {
 	}
 }
 
-func fromEnvironmentVariable(v *qovery.EnvironmentVariable) EnvironmentVariable {
+func fromEnvironmentVariable(v *qovery.EnvironmentVariable, currentVariable *EnvironmentVariable) EnvironmentVariable {
+	description := FromNullableString(v.Description)
+	if currentVariable != nil && currentVariable.Description.IsNull() {
+		description = basetypes.NewStringNull()
+	}
 	return EnvironmentVariable{
 		Id:          FromString(v.Id),
 		Key:         FromString(v.Key),
 		Value:       FromStringPointer(v.Value),
-		Description: FromNullableString(v.Description),
+		Description: description,
 	}
 }
 
@@ -199,7 +203,7 @@ func fromEnvironmentVariableList(vars []*qovery.EnvironmentVariable, scope qover
 		if v.Scope != scope || string(v.VariableType) != variableType {
 			continue
 		}
-		list = append(list, fromEnvironmentVariable(v))
+		list = append(list, fromEnvironmentVariable(v, nil))
 	}
 
 	if len(list) == 0 {
@@ -208,13 +212,15 @@ func fromEnvironmentVariableList(vars []*qovery.EnvironmentVariable, scope qover
 	return list
 }
 
-func fromEnvironmentVariableListWithNullableInitialState(initialState types.Set, vars []*qovery.EnvironmentVariable, scope qovery.APIVariableScopeEnum, variableType string) EnvironmentVariableList {
+func fromEnvironmentVariableListWithNullableInitialState(ctx context.Context, initialState types.Set, vars []*qovery.EnvironmentVariable, scope qovery.APIVariableScopeEnum, variableType string) EnvironmentVariableList {
 	list := make([]EnvironmentVariable, 0, len(vars))
+	variableMap := buildVariableMap(ctx, initialState)
 	for _, v := range vars {
 		if v.Scope != scope || string(v.VariableType) != variableType {
 			continue
 		}
-		list = append(list, fromEnvironmentVariable(v))
+		currentVariable := variableMap[v.Key]
+		list = append(list, fromEnvironmentVariable(v, &currentVariable))
 	}
 
 	// Return nil only if list is empty and original state is nil
