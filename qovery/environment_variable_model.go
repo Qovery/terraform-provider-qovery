@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"context"
+	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -66,7 +67,7 @@ func (vars EnvironmentVariableList) diffRequest(old EnvironmentVariableList) var
 
 	for _, e := range old {
 		if updatedVar := vars.find(ToString(e.Key)); updatedVar != nil {
-			if updatedVar.Value != e.Value {
+			if updatedVar.Value != e.Value || updatedVar.Description != e.Description {
 				diff.Update = append(diff.Update, e.toDiffUpdateRequest(*updatedVar))
 			}
 		} else {
@@ -92,7 +93,7 @@ func (vars EnvironmentVariableList) diff(old EnvironmentVariableList) client.Env
 
 	for _, e := range old {
 		if updatedVar := vars.find(ToString(e.Key)); updatedVar != nil {
-			if updatedVar.Value != e.Value {
+			if updatedVar.Value != e.Value || updatedVar.Description != e.Description {
 				diff.Update = append(diff.Update, e.toUpdateRequest(*updatedVar))
 			}
 		} else {
@@ -247,13 +248,13 @@ func toEnvironmentVariableList(vars types.Set) EnvironmentVariableList {
 	return environmentVariables
 }
 
-func convertDomainVariablesToEnvironmentVariableList(vars variable.Variables, scope variable.Scope, variableType string) EnvironmentVariableList {
+func convertDomainVariablesToEnvironmentVariableList(ctx context.Context, vars variable.Variables, scope variable.Scope, variableType string) EnvironmentVariableList {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
 		if v.Scope != scope || v.Type != variableType {
 			continue
 		}
-		list = append(list, convertDomainVariableToEnvironmentVariable(v))
+		list = append(list, convertDomainVariableToEnvironmentVariable(ctx, v, nil))
 	}
 
 	if len(list) == 0 {
@@ -262,13 +263,13 @@ func convertDomainVariablesToEnvironmentVariableList(vars variable.Variables, sc
 	return list
 }
 
-func convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(initialState types.Set, vars variable.Variables, scope variable.Scope, variableType string) EnvironmentVariableList {
+func convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx context.Context, initialState types.Set, vars variable.Variables, scope variable.Scope, variableType string) EnvironmentVariableList {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
 		if v.Scope != scope || v.Type != variableType {
 			continue
 		}
-		list = append(list, convertDomainVariableToEnvironmentVariable(v))
+		list = append(list, convertDomainVariableToEnvironmentVariable(ctx, v, &initialState))
 	}
 
 	// Return nil only if list is empty and original state is nil
@@ -279,11 +280,22 @@ func convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ini
 	return list
 }
 
-func convertDomainVariableToEnvironmentVariable(v variable.Variable) EnvironmentVariable {
+func convertDomainVariableToEnvironmentVariable(ctx context.Context, v variable.Variable, initialState *types.Set) EnvironmentVariable {
+	description := FromString(v.Description)
+	if initialState != nil {
+		initialVariables := make([]EnvironmentVariable, 0, len(initialState.Elements()))
+		initialState.ElementsAs(ctx, &initialVariables, false)
+		for _, stateVariable := range initialVariables {
+			// TODO use a map instead
+			if stateVariable.Key.ValueString() == v.Key && stateVariable.Description.IsNull() {
+				description = basetypes.NewStringNull()
+			}
+		}
+	}
 	return EnvironmentVariable{
 		Id:          FromString(v.ID.String()),
 		Key:         FromString(v.Key),
 		Value:       FromString(v.Value),
-		Description: FromString(v.Description),
+		Description: description,
 	}
 }

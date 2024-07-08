@@ -13,10 +13,10 @@ import (
 )
 
 var secretAttrTypes = map[string]attr.Type{
-	"id":    types.StringType,
-	"key":   types.StringType,
-	"value": types.StringType,
-	// TODO add desc
+	"id":          types.StringType,
+	"key":         types.StringType,
+	"value":       types.StringType,
+	"description": types.StringType,
 }
 
 type SecretList []Secret
