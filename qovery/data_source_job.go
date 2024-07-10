@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -171,6 +172,15 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 							},
 						},
 					},
+					"lifecycle_type": schema.StringAttribute{
+						Description: descriptions.NewStringEnumDescription(
+							"Type of the lifecycle job.",
+							clientEnumToStringArray(qovery.AllowedJobLifecycleTypeEnumEnumValues),
+							nil,
+						),
+						Optional: true,
+						Computed: true,
+					},
 					"cronjob": schema.SingleNestedAttribute{
 						Description: "Job's cron.",
 						Optional:    true,
@@ -233,6 +243,10 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 						Attributes: map[string]schema.Attribute{
 							"dockerfile_path": schema.StringAttribute{
 								Description: "Job's docker source dockerfile path.",
+								Optional:    true,
+							},
+							"dockerfile_raw": schema.StringAttribute{
+								Description: "Inline Dockerfile to inject for building the image",
 								Optional:    true,
 							},
 							"git_repository": schema.SingleNestedAttribute{

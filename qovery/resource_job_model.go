@@ -47,6 +47,7 @@ func JobSourceFromDomainJobSource(j job.Source) JobSource {
 				GitTokenId: FromStringPointer(j.Docker.GitRepository.GitTokenId),
 			},
 			DockerFilePath: FromStringPointer(j.Docker.DockerFilePath),
+			DockerfileRaw:  FromStringPointer(j.Docker.DockerFileRaw),
 		}
 	}
 
@@ -66,10 +67,11 @@ func JobSourceFromDomainJobSource(j job.Source) JobSource {
 }
 
 type JobSchedule struct {
-	OnStart  *ExecutionCommand `tfsdk:"on_start"`
-	OnStop   *ExecutionCommand `tfsdk:"on_stop"`
-	OnDelete *ExecutionCommand `tfsdk:"on_delete"`
-	CronJob  *JobScheduleCron  `tfsdk:"cronjob"`
+	OnStart       *ExecutionCommand `tfsdk:"on_start"`
+	OnStop        *ExecutionCommand `tfsdk:"on_stop"`
+	OnDelete      *ExecutionCommand `tfsdk:"on_delete"`
+	LifecycleType types.String      `tfsdk:"lifecycle_type"`
+	CronJob       *JobScheduleCron  `tfsdk:"cronjob"`
 }
 
 func (s JobSchedule) toUpsertRequest() job.JobSchedule {
@@ -115,11 +117,18 @@ func (s JobSchedule) toUpsertRequest() job.JobSchedule {
 		scheduledAt = &s
 	}
 
+	var lifecycleType *qovery.JobLifecycleTypeEnum = nil
+	if !s.LifecycleType.IsNull() {
+		lfType, _ := qovery.NewJobLifecycleTypeEnumFromValue(ToString(s.LifecycleType))
+		lifecycleType = lfType
+	}
+
 	return job.JobSchedule{
-		OnStart:  onStart,
-		OnStop:   onStop,
-		OnDelete: onDelete,
-		CronJob:  scheduledAt,
+		OnStart:       onStart,
+		OnStop:        onStop,
+		OnDelete:      onDelete,
+		LifecycleType: lifecycleType,
+		CronJob:       scheduledAt,
 	}
 }
 
@@ -166,11 +175,18 @@ func JobScheduleFromDomainJobSchedule(s job.JobSchedule) JobSchedule {
 		cronJob = &c
 	}
 
+	var lifecycleType types.String
+	if s.LifecycleType == nil {
+		lifecycleType = types.StringNull()
+	} else {
+		lifecycleType = FromString(string(*s.LifecycleType))
+	}
 	return JobSchedule{
-		OnStart:  onStart,
-		OnStop:   onStop,
-		OnDelete: onDelete,
-		CronJob:  cronJob,
+		OnStart:       onStart,
+		OnStop:        onStop,
+		OnDelete:      onDelete,
+		LifecycleType: lifecycleType,
+		CronJob:       cronJob,
 	}
 }
 

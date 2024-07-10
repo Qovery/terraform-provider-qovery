@@ -294,6 +294,7 @@ Optional:
 Optional:
 
 - `dockerfile_path` (String) Job's docker source dockerfile path.
+- `dockerfile_raw` (String) Inline Dockerfile to inject for building the image
 
 Read-Only:
 
@@ -342,6 +343,8 @@ Read-Only:
 Optional:
 
 - `cronjob` (Attributes) Job's cron. (see [below for nested schema](#nestedatt--schedule--cronjob))
+- `lifecycle_type` (String) Type of the lifecycle job.
+	- Can be: `CLOUDFORMATION`, `GENERIC`, `TERRAFORM`.
 - `on_delete` (Attributes) Job's schedule on delete. (see [below for nested schema](#nestedatt--schedule--on_delete))
 - `on_start` (Attributes) Job's schedule on start. (see [below for nested schema](#nestedatt--schedule--on_start))
 - `on_stop` (Attributes) Job's schedule on stop. (see [below for nested schema](#nestedatt--schedule--on_stop))
