@@ -267,6 +267,10 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							Description: "Value of the environment variable.",
 							Computed:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -288,6 +292,10 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							Description: "Value of the environment variable.",
 							Required:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+							Optional:    true,
+						},
 					},
 				},
 			},
@@ -308,6 +316,10 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							Description: "Name of the variable to alias.",
 							Required:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable alias.",
+							Optional:    true,
+						},
 					},
 				},
 			},
@@ -327,6 +339,10 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable override.",
 							Required:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable override.",
+							Optional:    true,
 						},
 					},
 				},
@@ -349,6 +365,10 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							Required:    true,
 							Sensitive:   true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the secret.",
+							Optional:    true,
+						},
 					},
 				},
 			},
@@ -368,6 +388,10 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 						"value": schema.StringAttribute{
 							Description: "Name of the secret to alias.",
 							Required:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the secret alias.",
+							Optional:    true,
 						},
 					},
 				},
@@ -389,6 +413,10 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							Description: "Value of the secret override.",
 							Required:    true,
 							Sensitive:   true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the secret override.",
+							Optional:    true,
 						},
 					},
 				},

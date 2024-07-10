@@ -82,7 +82,10 @@ func (c *Client) updateApplicationEnvironmentVariableAliases(
 		aliasedVariableId := environmentVariablesByName[*(variable.Value)].Id
 		_, res, err = c.api.ApplicationEnvironmentVariableAPI.
 			CreateApplicationEnvironmentVariableAlias(ctx, applicationID, aliasedVariableId).
-			Key(qovery.Key{Key: variable.Key}).
+			Key(qovery.Key{
+				Key:         variable.Key,
+				Description: variable.Description,
+			}).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
 			return apierrors.NewCreateError(apierrors.APIResourceApplicationEnvironmentAliasVariable, variable.Key, res, err)
@@ -95,7 +98,10 @@ func (c *Client) updateApplicationEnvironmentVariableAliases(
 		aliasedVariableId := environmentVariablesByName[*(variable.Value)].Id
 		_, res, err := c.api.ApplicationEnvironmentVariableAPI.
 			CreateApplicationEnvironmentVariableAlias(ctx, applicationID, aliasedVariableId).
-			Key(qovery.Key{Key: variable.Key}).
+			Key(qovery.Key{
+				Key:         variable.Key,
+				Description: variable.Description,
+			}).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
 			return apierrors.NewCreateError(apierrors.APIResourceApplicationEnvironmentAliasVariable, variable.Key, res, err)
@@ -136,7 +142,10 @@ func (c *Client) updateApplicationEnvironmentVariableOverrides(
 		overriddenVariableId := environmentVariablesByName[variable.Key].Id
 		_, res, err = c.api.ApplicationEnvironmentVariableAPI.
 			CreateApplicationEnvironmentVariableOverride(ctx, applicationID, overriddenVariableId).
-			Value(qovery.Value{Value: variable.Value}).
+			Value(qovery.Value{
+				Value:       variable.Value,
+				Description: variable.Description,
+			}).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
 			return apierrors.NewCreateError(apierrors.APIResourceApplicationEnvironmentOverrideVariable, variable.Key, res, err)
@@ -149,7 +158,10 @@ func (c *Client) updateApplicationEnvironmentVariableOverrides(
 		overriddenVariableId := environmentVariablesByName[variable.Key].Id
 		_, res, err := c.api.ApplicationEnvironmentVariableAPI.
 			CreateApplicationEnvironmentVariableOverride(ctx, applicationID, overriddenVariableId).
-			Value(qovery.Value{Value: variable.Value}).
+			Value(qovery.Value{
+				Value:       variable.Value,
+				Description: variable.Description,
+			}).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
 			return apierrors.NewCreateError(apierrors.APIResourceApplicationEnvironmentOverrideVariable, variable.Key, res, err)
@@ -191,7 +203,10 @@ func (c *Client) updateApplicationSecretAliases(
 		aliasedSecretId := secretsByName[*(secret.Value)].Id
 		_, res, err := c.api.ApplicationSecretAPI.
 			CreateApplicationSecretAlias(ctx, applicationID, aliasedSecretId).
-			Key(qovery.Key{Key: secret.Key}).
+			Key(qovery.Key{
+				Key:         secret.Key,
+				Description: secret.Description,
+			}).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
 			return apierrors.NewCreateError(apierrors.APIResourceApplicationSecretAlias, secret.Key, res, err)
@@ -204,7 +219,10 @@ func (c *Client) updateApplicationSecretAliases(
 		aliasedSecretId := secretsByName[*(secret.Value)].Id
 		_, res, err := c.api.ApplicationSecretAPI.
 			CreateApplicationSecretAlias(ctx, applicationID, aliasedSecretId).
-			Key(qovery.Key{Key: secret.Key}).
+			Key(qovery.Key{
+				Key:         secret.Key,
+				Description: secret.Description,
+			}).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
 			return apierrors.NewCreateError(apierrors.APIResourceApplicationSecretAlias, secret.Key, res, err)
@@ -246,7 +264,10 @@ func (c *Client) updateApplicationSecretOverrides(
 		overriddenSecretId := secretsByName[secret.Key].Id
 		_, res, err := c.api.ApplicationSecretAPI.
 			CreateApplicationSecretOverride(ctx, applicationID, overriddenSecretId).
-			Value(qovery.Value{Value: secret.Value}).
+			Value(qovery.Value{
+				Value:       secret.Value,
+				Description: secret.Description,
+			}).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
 			return apierrors.NewCreateError(apierrors.APIResourceApplicationSecretOverride, secret.Key, res, err)
@@ -259,7 +280,10 @@ func (c *Client) updateApplicationSecretOverrides(
 		overriddenSecretId := secretsByName[secret.Key].Id
 		_, res, err := c.api.ApplicationSecretAPI.
 			CreateApplicationSecretOverride(ctx, applicationID, overriddenSecretId).
-			Value(qovery.Value{Value: secret.Value}).
+			Value(qovery.Value{
+				Value:       secret.Value,
+				Description: secret.Description,
+			}).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
 			return apierrors.NewCreateError(apierrors.APIResourceApplicationSecretOverride, secret.Key, res, err)

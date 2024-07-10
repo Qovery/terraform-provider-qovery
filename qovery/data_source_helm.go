@@ -77,6 +77,10 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 							Description: "Value of the environment variable.",
 							Computed:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -96,6 +100,10 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable.",
+							Computed:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
 							Computed:    true,
 						},
 					},
@@ -119,6 +127,10 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 							Description: "Name of the variable to alias.",
 							Computed:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -137,6 +149,10 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable override.",
+							Computed:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
 							Computed:    true,
 						},
 					},
@@ -160,6 +176,10 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 							Computed:    true,
 							Sensitive:   true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -178,6 +198,10 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 						},
 						"value": schema.StringAttribute{
 							Description: "Name of the secret to alias.",
+							Computed:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
 							Computed:    true,
 						},
 					},
@@ -200,6 +224,10 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 							Description: "Value of the secret override.",
 							Computed:    true,
 							Sensitive:   true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+							Computed:    true,
 						},
 					},
 				},

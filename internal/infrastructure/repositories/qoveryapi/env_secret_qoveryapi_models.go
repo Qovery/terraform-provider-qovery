@@ -13,6 +13,7 @@ func newQoveryEnvSecretVariableRequestFromDomain(request secret.UpsertRequest, p
 		IsSecret:         true,
 		VariableScope:    parentScope,
 		VariableParentId: parentId,
+		Description:      *qovery.NewNullableString(&request.Description),
 	}
 }
 
@@ -36,17 +37,19 @@ func newDomainEnvSecretFromQovery(v *qovery.VariableResponse) (*secret.Secret, e
 	}
 
 	return secret.NewSecret(secret.NewSecretParams{
-		SecretID: v.GetId(),
-		Scope:    string(v.Scope),
-		Key:      v.GetKey(),
-		Type:     string(v.VariableType),
+		SecretID:    v.GetId(),
+		Scope:       string(v.Scope),
+		Key:         v.GetKey(),
+		Type:        string(v.VariableType),
+		Description: *v.Description,
 	})
 }
 
 func newQoveryEnvSecretEditRequestFromDomain(request secret.UpsertRequest) qovery.VariableEditRequest {
 	return qovery.VariableEditRequest{
-		Key:   request.Key,
-		Value: request.Value,
+		Key:         request.Key,
+		Value:       request.Value,
+		Description: *qovery.NewNullableString(&request.Description),
 	}
 }
 
@@ -55,6 +58,7 @@ func newQoveryEnvSecretCreateAliasRequestFromDomain(request secret.UpsertRequest
 		Key:           request.Key,
 		AliasScope:    parentScope,
 		AliasParentId: parentId,
+		Description:   *qovery.NewNullableString(&request.Description),
 	}
 }
 
@@ -63,5 +67,6 @@ func newQoveryEnvSecretCreateOverrideRequestFromDomain(request secret.UpsertRequ
 		Value:            request.Value,
 		OverrideScope:    parentScope,
 		OverrideParentId: parentId,
+		Description:      *qovery.NewNullableString(&request.Description),
 	}
 }

@@ -97,6 +97,10 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 							Description: "Value of the environment variable.",
 							Computed:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -116,6 +120,10 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable.",
+							Computed:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
 							Computed:    true,
 						},
 					},
@@ -139,6 +147,10 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 							Description: "Name of the variable to alias.",
 							Computed:    true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -158,6 +170,10 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"value": schema.StringAttribute{
 							Description: "Value of the environment variable override.",
+							Computed:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
 							Computed:    true,
 						},
 					},
@@ -182,6 +198,10 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 							Computed:    true,
 							Sensitive:   true,
 						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+							Computed:    true,
+						},
 					},
 				},
 			},
@@ -201,6 +221,10 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						},
 						"value": schema.StringAttribute{
 							Description: "Name of the secret to alias.",
+							Computed:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
 							Computed:    true,
 						},
 					},
@@ -223,6 +247,10 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 							Description: "Value of the secret override.",
 							Computed:    true,
 							Sensitive:   true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable.",
+							Computed:    true,
 						},
 					},
 				},

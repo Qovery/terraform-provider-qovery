@@ -27,26 +27,33 @@ func newDomainSecretFromQovery(v *qovery.Secret) (*secret.Secret, error) {
 		return nil, secret.ErrNilSecret
 	}
 
+	description := ""
+	if v.Description.IsSet() {
+		description = *v.Description.Get()
+	}
 	return secret.NewSecret(secret.NewSecretParams{
-		SecretID: v.GetId(),
-		Scope:    string(v.Scope),
-		Key:      v.GetKey(),
-		Type:     string(*v.VariableType),
+		SecretID:    v.GetId(),
+		Scope:       string(v.Scope),
+		Key:         v.GetKey(),
+		Type:        string(*v.VariableType),
+		Description: description,
 	})
 }
 
 // newQoverySecretRequestFromDomain takes the domain request secret.UpsertRequest and turns it into a qovery.SecretRequest to make the api call.
 func newQoverySecretRequestFromDomain(request secret.UpsertRequest) qovery.SecretRequest {
 	return qovery.SecretRequest{
-		Key:   request.Key,
-		Value: &request.Value,
+		Key:         request.Key,
+		Value:       &request.Value,
+		Description: *qovery.NewNullableString(&request.Description),
 	}
 }
 
 // newQoverySecretEditRequestFromDomain takes the domain request secret.UpsertRequest and turns it into a qovery.SecretEditRequest to make the api call.
 func newQoverySecretEditRequestFromDomain(request secret.UpsertRequest) qovery.SecretEditRequest {
 	return qovery.SecretEditRequest{
-		Key:   request.Key,
-		Value: &request.Value,
+		Key:         request.Key,
+		Value:       &request.Value,
+		Description: *qovery.NewNullableString(&request.Description),
 	}
 }

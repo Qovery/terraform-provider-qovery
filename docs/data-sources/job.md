@@ -72,6 +72,7 @@ Read-Only:
 
 Read-Only:
 
+- `description` (String) Description of the environment variable.
 - `id` (String) Id of the environment variable alias.
 - `key` (String) Name of the environment variable alias.
 - `value` (String) Name of the variable to alias.
@@ -82,6 +83,7 @@ Read-Only:
 
 Read-Only:
 
+- `description` (String) Description of the environment variable.
 - `id` (String) Id of the environment variable override.
 - `key` (String) Name of the environment variable override.
 - `value` (String) Value of the environment variable override.
@@ -92,6 +94,7 @@ Read-Only:
 
 Read-Only:
 
+- `description` (String) Description of the environment variable.
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
@@ -249,6 +252,7 @@ Optional:
 
 Read-Only:
 
+- `description` (String) Description of the environment variable.
 - `id` (String) Id of the secret alias.
 - `key` (String) Name of the secret alias.
 - `value` (String) Name of the secret to alias.
@@ -259,6 +263,7 @@ Read-Only:
 
 Read-Only:
 
+- `description` (String) Description of the environment variable.
 - `id` (String) Id of the secret override.
 - `key` (String) Name of the secret override.
 - `value` (String, Sensitive) Value of the secret override.
@@ -269,6 +274,7 @@ Read-Only:
 
 Read-Only:
 
+- `description` (String) Description of the environment variable.
 - `id` (String) Id of the secret.
 - `key` (String) Key of the secret.
 - `value` (String, Sensitive) Value of the secret.
@@ -324,6 +330,7 @@ Read-Only:
 
 Read-Only:
 
+- `description` (String) Description of the environment variable.
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.

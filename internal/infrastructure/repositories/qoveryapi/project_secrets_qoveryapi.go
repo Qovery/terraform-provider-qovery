@@ -81,7 +81,10 @@ func (p projectSecretsQoveryAPI) Delete(ctx context.Context, projectID string, c
 func (p projectSecretsQoveryAPI) CreateAlias(ctx context.Context, projectId string, request secret.UpsertRequest, aliasedSecretId string) (*secret.Secret, error) {
 	v, resp, err := p.client.ProjectSecretAPI.
 		CreateProjectSecretAlias(ctx, projectId, aliasedSecretId).
-		Key(qovery.Key{Key: request.Key}).
+		Key(qovery.Key{
+			Key:         request.Key,
+			Description: *qovery.NewNullableString(&request.Description),
+		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceProjectSecret, projectId, resp, err)
@@ -92,7 +95,10 @@ func (p projectSecretsQoveryAPI) CreateAlias(ctx context.Context, projectId stri
 func (p projectSecretsQoveryAPI) CreateOverride(ctx context.Context, projectId string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
 	v, resp, err := p.client.ProjectSecretAPI.
 		CreateProjectSecretOverride(ctx, projectId, overriddenSecretId).
-		Value(qovery.Value{Value: &request.Value}).
+		Value(qovery.Value{
+			Value:       &request.Value,
+			Description: *qovery.NewNullableString(&request.Description),
+		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 300 {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceProjectSecret, projectId, resp, err)

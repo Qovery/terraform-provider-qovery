@@ -48,11 +48,12 @@ func (vv Variables) IsValid() bool {
 }
 
 type Variable struct {
-	ID    uuid.UUID `validate:"required"`
-	Scope Scope     `validate:"required"`
-	Key   string    `validate:"required"`
-	Value string
-	Type  string
+	ID          uuid.UUID `validate:"required"`
+	Scope       Scope     `validate:"required"`
+	Key         string    `validate:"required"`
+	Value       string
+	Type        string
+	Description string
 }
 
 // Validate returns an error to tell whether the Variable domain model is valid or not.
@@ -68,11 +69,12 @@ func (v Variable) IsValid() bool {
 // NewVariableParams represents the arguments needed to create a Variable.
 type NewVariablesParams = []NewVariableParams
 type NewVariableParams struct {
-	VariableID string
-	Scope      string
-	Key        string
-	Value      string
-	Type       string
+	VariableID  string
+	Scope       string
+	Key         string
+	Value       string
+	Type        string
+	Description string
 }
 
 // NewVariable returns a new instance of a Variable domain model.
@@ -92,11 +94,12 @@ func NewVariable(params NewVariableParams) (*Variable, error) {
 	}
 
 	v := &Variable{
-		ID:    variableUUID,
-		Key:   params.Key,
-		Value: params.Value,
-		Scope: *scope,
-		Type:  params.Type,
+		ID:          variableUUID,
+		Key:         params.Key,
+		Value:       params.Value,
+		Scope:       *scope,
+		Type:        params.Type,
+		Description: params.Description,
 	}
 
 	if err := v.Validate(); err != nil {
@@ -108,8 +111,9 @@ func NewVariable(params NewVariableParams) (*Variable, error) {
 
 // UpsertRequest represents the parameters needed to create & update a Variable.
 type UpsertRequest struct {
-	Key   string `validate:"required"`
-	Value string
+	Key         string `validate:"required"`
+	Value       string
+	Description string
 }
 
 // Validate returns an error to tell whether the UpsertRequest is valid or not.

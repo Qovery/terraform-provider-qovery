@@ -59,7 +59,7 @@ The acceptance tests require a `QOVERY_API_TOKEN` environment variable to be set
 It corresponds to your JWT token on the Qovery's console and can be acquired using the [qovery-cli](https://github.com/Qovery/qovery-cli) with the following command (needs [jq](https://stedolan.github.io/jq/download/)): 
 
 ```shell
-qovery auth ; cat ~/.qovery/context.json | jq .access_token | cut -d '"' -f2 | sed 's/.*Authorization: Bearer \(*\)/\1/' | tr -d '\n'
+qovery auth ; cat ~/.qovery/context.json | jq -r .access_token | sed 's/.*Authorization: Bearer \(*\)/\1/' | tr -d '\n'
 ```
 
 This JWT needs to be put inside a `.env` file at the root of the repository. 
