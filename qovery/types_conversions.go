@@ -46,7 +46,8 @@ type ClientEnum interface {
 		gittoken.GitTokenType |
 		helmRepository.Kind |
 		helm.Protocol |
-		qovery.OrganizationAnnotationsGroupScopeEnum
+		qovery.OrganizationAnnotationsGroupScopeEnum |
+		qovery.JobLifecycleTypeEnum
 }
 
 func clientEnumToStringArray[T ClientEnum](enum []T) []string {

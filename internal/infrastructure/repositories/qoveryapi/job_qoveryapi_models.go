@@ -1,7 +1,6 @@
 package qoveryapi
 
 import (
-	"encoding/json"
 	"github.com/pkg/errors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"time"
@@ -42,11 +41,6 @@ type AggregateJobResponse struct {
 	ScheduleLifecycle   *qovery.LifecycleJobResponseAllOfSchedule
 	AnnotationsGroupIds []string
 	LabelsGroupIds      []string
-}
-
-func unmarshal[T any](input interface{}, output *T) error {
-	jsonString, _ := json.Marshal(input)
-	return json.Unmarshal(jsonString, output)
 }
 
 func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobResponse {
@@ -191,6 +185,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 	var onStop *execution_command.NewExecutionCommandParams = nil
 	var onDelete *execution_command.NewExecutionCommandParams = nil
 	var cronJob *job.NewJobScheduleCronParams = nil
+	var lifecycleType *qovery.JobLifecycleTypeEnum = nil
 	if j.ScheduleLifecycle != nil {
 		if j.ScheduleLifecycle.OnStart != nil {
 			onStart = &execution_command.NewExecutionCommandParams{
@@ -210,6 +205,8 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 				Arguments:  j.ScheduleLifecycle.OnDelete.Arguments,
 			}
 		}
+
+		lifecycleType = j.ScheduleLifecycle.LifecycleType
 	}
 	if j.ScheduleCron != nil {
 		cronJob = &job.NewJobScheduleCronParams{
@@ -222,10 +219,11 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 	}
 
 	var jobSchedule = job.NewJobScheduleParams{
-		OnStart:  onStart,
-		OnStop:   onStop,
-		OnDelete: onDelete,
-		CronJob:  cronJob,
+		OnStart:       onStart,
+		OnStop:        onStop,
+		OnDelete:      onDelete,
+		LifecycleType: lifecycleType,
+		CronJob:       cronJob,
 	}
 
 	var maxNbRestart = job.DefaultMaxNbRestart
@@ -343,10 +341,11 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 			Image:  *qovery.NewNullableJobRequestAllOfSourceImage(image),
 		},
 		Schedule: &qovery.JobRequestAllOfSchedule{
-			OnStart:  scheduleOnStart,
-			OnStop:   scheduleOnStop,
-			OnDelete: scheduleOnDelete,
-			Cronjob:  scheduleCron,
+			OnStart:       scheduleOnStart,
+			OnStop:        scheduleOnStop,
+			OnDelete:      scheduleOnDelete,
+			LifecycleType: request.Schedule.LifecycleType,
+			Cronjob:       scheduleCron,
 		},
 		AutoDeploy:        request.AutoDeploy,
 		Healthchecks:      request.Healthchecks,

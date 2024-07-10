@@ -3,9 +3,9 @@ package qovery
 import (
 	"context"
 	"fmt"
-
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
@@ -206,6 +206,15 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 							},
 						},
 					},
+					"lifecycle_type": schema.StringAttribute{
+						Description: descriptions.NewStringEnumDescription(
+							"Type of the lifecycle job.",
+							clientEnumToStringArray(qovery.AllowedJobLifecycleTypeEnumEnumValues),
+							nil,
+						),
+						Optional: true,
+						Computed: true,
+					},
 					"cronjob": schema.SingleNestedAttribute{
 						Description: "Job's cron.",
 						Optional:    true,
@@ -265,6 +274,10 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 						Attributes: map[string]schema.Attribute{
 							"dockerfile_path": schema.StringAttribute{
 								Description: "Job's docker source dockerfile path.",
+								Optional:    true,
+							},
+							"dockerfile_raw": schema.StringAttribute{
+								Description: "Inline Dockerfile to inject for building the image",
 								Optional:    true,
 							},
 							"git_repository": schema.SingleNestedAttribute{
