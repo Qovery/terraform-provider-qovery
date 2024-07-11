@@ -20,6 +20,7 @@ type Helm struct {
 	ID                           types.String         `tfsdk:"id"`
 	EnvironmentID                types.String         `tfsdk:"environment_id"`
 	Name                         types.String         `tfsdk:"name"`
+	IconUri                      types.String         `tfsdk:"icon_uri"`
 	TimeoutSec                   types.Int64          `tfsdk:"timeout_sec"`
 	AutoPreview                  types.Bool           `tfsdk:"auto_preview"`
 	AutoDeploy                   types.Bool           `tfsdk:"auto_deploy"`
@@ -195,6 +196,7 @@ func (h Helm) toUpsertRepositoryRequest(customDomainsDiff client.CustomDomainsDi
 
 	return &helm.UpsertRepositoryRequest{
 		Name:                      ToString(h.Name),
+		IconUri:                   ToStringPointer(h.IconUri),
 		TimeoutSec:                ToInt32Pointer(h.TimeoutSec),
 		AutoPreview:               *qovery.NewNullableBool(ToBoolPointer(h.AutoPreview)),
 		AutoDeploy:                ToBool(h.AutoDeploy),
@@ -451,6 +453,7 @@ func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) H
 		ID:                           FromString(helm.ID.String()),
 		EnvironmentID:                FromString(helm.EnvironmentID.String()),
 		Name:                         FromString(helm.Name),
+		IconUri:                      FromString(helm.IconUri),
 		TimeoutSec:                   FromInt32Pointer(helm.TimeoutSec),
 		AutoPreview:                  FromBool(helm.AutoPreview),
 		AutoDeploy:                   FromBool(helm.AutoDeploy),

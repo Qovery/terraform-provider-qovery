@@ -27,6 +27,7 @@ type Repository interface {
 type UpsertRepositoryRequest struct {
 	RegistryID           string `validate:"required"`
 	Name                 string `validate:"required"`
+	IconUri              *string
 	ImageName            string `validate:"required"`
 	Tag                  string `validate:"required"`
 	AutoPreview          *bool

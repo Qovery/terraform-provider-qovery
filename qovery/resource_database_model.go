@@ -15,6 +15,7 @@ type Database struct {
 	Id                  types.String `tfsdk:"id"`
 	EnvironmentId       types.String `tfsdk:"environment_id"`
 	Name                types.String `tfsdk:"name"`
+	IconUri             types.String `tfsdk:"icon_uri"`
 	Type                types.String `tfsdk:"type"`
 	Version             types.String `tfsdk:"version"`
 	Mode                types.String `tfsdk:"mode"`
@@ -74,6 +75,7 @@ func (d Database) toCreateDatabaseRequest() (*client.DatabaseCreateParams, error
 	return &client.DatabaseCreateParams{
 		DatabaseRequest: qovery.DatabaseRequest{
 			Name:              ToString(d.Name),
+			IconUri:           ToStringPointer(d.IconUri),
 			Type:              *dbType,
 			Version:           ToString(d.Version),
 			Mode:              *mode,
@@ -120,6 +122,7 @@ func (d Database) toUpdateDatabaseRequest() (*client.DatabaseUpdateParams, error
 	return &client.DatabaseUpdateParams{
 		DatabaseEditRequest: qovery.DatabaseEditRequest{
 			Name:              ToStringPointer(d.Name),
+			IconUri:           ToStringPointer(d.IconUri),
 			Version:           ToStringPointer(d.Version),
 			Accessibility:     accessibility,
 			Cpu:               ToInt32Pointer(d.CPU),
@@ -138,6 +141,7 @@ func convertResponseToDatabase(ctx context.Context, state Database, res *client.
 		Id:                  FromString(res.DatabaseResponse.Id),
 		EnvironmentId:       FromString(res.DatabaseResponse.Environment.Id),
 		Name:                FromString(res.DatabaseResponse.Name),
+		IconUri:             FromString(res.DatabaseResponse.IconUri),
 		Type:                fromClientEnum(res.DatabaseResponse.Type),
 		Version:             FromString(res.DatabaseResponse.Version),
 		Mode:                fromClientEnum(res.DatabaseResponse.Mode),

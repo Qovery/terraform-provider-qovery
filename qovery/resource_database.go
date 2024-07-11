@@ -108,6 +108,11 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Description: "Name of the database.",
 				Required:    true,
 			},
+			"icon_uri": schema.StringAttribute{
+				Description: "Icon URI representing the database.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"type": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
 					"Type of the database [NOTE: can't be updated after creation].",

@@ -69,6 +69,11 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Description: "Name of the container.",
 				Computed:    true,
 			},
+			"icon_uri": schema.StringAttribute{
+				Description: "Icon URI representing the container.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"image_name": schema.StringAttribute{
 				Description: "Name of the container image.",
 				Computed:    true,

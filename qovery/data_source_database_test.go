@@ -25,6 +25,7 @@ func TestAcc_DatabaseDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_database.test", "id", getTestDatabaseID()),
 					resource.TestCheckResourceAttr("data.qovery_database.test", "environment_id", getTestEnvironmentID()),
 					resource.TestCheckResourceAttr("data.qovery_database.test", "name", "redis"),
+					resource.TestCheckResourceAttr("data.qovery_database.test", "icon_uri", "app://qovery-console/database"),
 					resource.TestCheckResourceAttr("data.qovery_database.test", "type", "REDIS"),
 					resource.TestCheckResourceAttr("data.qovery_database.test", "version", "6.2"),
 					resource.TestCheckResourceAttr("data.qovery_database.test", "mode", "CONTAINER"),

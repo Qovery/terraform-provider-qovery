@@ -66,6 +66,11 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 				Description: "Name of the job.",
 				Computed:    true,
 			},
+			"icon_uri": schema.StringAttribute{
+				Description: "Icon URI representing the job.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"CPU of the job in millicores (m) [1000m = 1 CPU].",

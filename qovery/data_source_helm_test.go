@@ -25,6 +25,7 @@ func TestAcc_HelmDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_helm.test", "id", getTestHelmID()),
 					resource.TestCheckResourceAttr("data.qovery_helm.test", "environment_id", getTestEnvironmentID()),
 					resource.TestCheckResourceAttr("data.qovery_helm.test", "name", "test-helm"),
+					resource.TestCheckResourceAttr("data.qovery_helm.test", "icon_uri", "app://qovery-console/helm"),
 					resource.TestCheckResourceAttr("data.qovery_helm.test", "arguments.0", "--atomic"),
 					resource.TestCheckResourceAttr("data.qovery_helm.test", "arguments.1", "--debug"),
 					resource.TestCheckResourceAttr("data.qovery_helm.test", "arguments.2", "--wait"),

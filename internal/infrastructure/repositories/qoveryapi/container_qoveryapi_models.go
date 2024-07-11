@@ -52,6 +52,7 @@ func newDomainContainerFromQovery(
 		EnvironmentID:          c.Environment.Id,
 		RegistryID:             c.Registry.Id,
 		Name:                   c.Name,
+		IconUri:                c.IconUri,
 		ImageName:              c.ImageName,
 		Tag:                    c.Tag,
 		AutoPreview:            c.AutoPreview,
@@ -98,6 +99,7 @@ func newQoveryContainerRequestFromDomain(request container.UpsertRepositoryReque
 	return &qovery.ContainerRequest{
 		RegistryId:          request.RegistryID,
 		Name:                request.Name,
+		IconUri:             request.IconUri,
 		ImageName:           request.ImageName,
 		Tag:                 request.Tag,
 		Entrypoint:          request.Entrypoint,

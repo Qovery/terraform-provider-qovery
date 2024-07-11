@@ -162,6 +162,7 @@ You can find complete examples within these repositories:
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this application. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this application. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
+- `icon_uri` (String) Icon URI representing the application.
 - `labels_group_ids` (Set of String) List of labels group ids
 - `max_running_instances` (Number) Maximum number of instances running for the application.
 	- Must be: `>= -1`.

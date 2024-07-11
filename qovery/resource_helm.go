@@ -80,6 +80,11 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Description: "Name of the helm.",
 				Required:    true,
 			},
+			"icon_uri": schema.StringAttribute{
+				Description: "Icon URI representing the helm service.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"timeout_sec": schema.Int64Attribute{
 				Description: "Helm timeout in seconds",
 				Optional:    true,

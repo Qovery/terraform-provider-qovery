@@ -23,6 +23,7 @@ type Repository interface {
 
 type UpsertRepositoryRequest struct {
 	Name                      string `validate:"required"`
+	IconUri                   *string
 	TimeoutSec                *int32
 	AutoPreview               qovery.NullableBool
 	AutoDeploy                bool

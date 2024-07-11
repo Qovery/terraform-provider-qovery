@@ -63,6 +63,7 @@ type Job struct {
 	ID                           uuid.UUID `validate:"required"`
 	EnvironmentID                uuid.UUID `validate:"required"`
 	Name                         string
+	IconUri                      string
 	CPU                          int32
 	Memory                       int32
 	MaxNbRestart                 int32
@@ -148,6 +149,7 @@ type NewJobParams struct {
 	EnvironmentID        string
 	Name                 string
 	CPU                  int32
+	IconUri              string
 	Memory               int32
 	MaxNbRestart         *int32
 	MaxDurationSeconds   *int32
@@ -210,6 +212,7 @@ func NewJob(params NewJobParams) (*Job, error) {
 		ID:                   jobUUID,
 		EnvironmentID:        environmentUUID,
 		Name:                 params.Name,
+		IconUri:              params.IconUri,
 		AutoPreview:          params.AutoPreview,
 		CPU:                  params.CPU,
 		Memory:               params.Memory,
