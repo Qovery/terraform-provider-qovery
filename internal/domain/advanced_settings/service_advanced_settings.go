@@ -224,7 +224,7 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 	putRequest.Header.Set("Authorization", apiToken)
 	putRequest.Header.Set("Content-Type", "application/json")
 	putRequest.Header.Set("Accept", "application/json")
-	getRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
+	putRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respPostAdvancedSettings, err := httpClient.Do(putRequest)
 
