@@ -45,6 +45,8 @@ type testEnvironment struct {
 	ContainerRegistryID               string `env:"TEST_CONTAINER_REGISTRY_ID,required"`
 	ContainerID                       string `env:"TEST_CONTAINER_ID,required"`
 	JobID                             string `env:"TEST_JOB_ID,required"`
+	HelmID                            string `env:"TEST_HELM_ID,required"`
+	HelmRepositoryID                  string `env:"TEST_HELM_REPOSITORY_ID,required"`
 	QoveryHost                        string `env:"TEST_QOVERY_HOST,required"`
 	QoverySandboxGitTokenId           string `env:"TEST_QOVERY_SANDBOX_GIT_TOKEN_ID,required"`
 }
@@ -136,6 +138,14 @@ func getTestContainerID() string {
 
 func getTestJobID() string {
 	return os.Getenv("TEST_JOB_ID")
+}
+
+func getTestHelmID() string {
+	return os.Getenv("TEST_HELM_ID")
+}
+
+func getTestHelmRepositoryID() string {
+	return os.Getenv("TEST_HELM_REPOSITORY_ID")
 }
 
 func getTestQoveryHost() string {

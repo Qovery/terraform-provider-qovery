@@ -3,6 +3,12 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/AlekSi/pointer"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
+	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -270,6 +276,196 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 						"value": schema.StringAttribute{
 							Description: "Value of the deployment restriction",
 							Computed:    true,
+						},
+					},
+				},
+			},
+			"timeout_sec": schema.Int64Attribute{
+				Description: "Helm timeout in second",
+				Optional:    true,
+				Computed:    true,
+			},
+			"auto_preview": schema.BoolAttribute{
+				Description: "Specify if the environment preview option is activated or not for this helm.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"auto_deploy": schema.BoolAttribute{
+				Description: " Specify if the service will be automatically updated on every new commit on the branch.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"arguments": schema.SetAttribute{
+				Description: "Helm arguments",
+				ElementType: types.StringType,
+				Optional:    true,
+				Computed:    true,
+			},
+			"allow_cluster_wide_resources": schema.BoolAttribute{
+				Description: "Allow this chart to deploy resources outside of this environment namespace (including CRDs or non-namespaced resources)",
+				Computed:    true,
+			},
+			"source": schema.SingleNestedAttribute{
+				Description: "Helm chart from a Helm repository or from a git repository",
+				Computed:    true,
+				Attributes: map[string]schema.Attribute{
+					"helm_repository": schema.SingleNestedAttribute{
+						Description: "Helm repositories can be private or public",
+						Optional:    true,
+						Attributes: map[string]schema.Attribute{
+							"helm_repository_id": schema.StringAttribute{
+								Description: "helm repository id",
+								Required:    true,
+							},
+							"chart_name": schema.StringAttribute{
+								Description: "Chart name",
+								Required:    true,
+							},
+							"chart_version": schema.StringAttribute{
+								Description: "Chart version",
+								Required:    true,
+							},
+						},
+					},
+					"git_repository": schema.SingleNestedAttribute{
+						Description: "Git repository",
+						Optional:    true,
+						Attributes: map[string]schema.Attribute{
+							"url": schema.StringAttribute{
+								Description: "Helm's source git repository URL",
+								Required:    true,
+							},
+							"branch": schema.StringAttribute{
+								Description: "Helm's source git repository branch",
+								Optional:    true,
+								Computed:    true,
+							},
+							"root_path": schema.StringAttribute{
+								Description: "Helm's source git repository root path",
+								Optional:    true,
+								Computed:    true,
+							},
+							"git_token_id": schema.StringAttribute{
+								Description: "The git token ID to be used",
+								Optional:    true,
+								Computed:    true,
+							},
+						},
+					},
+				},
+			},
+			"values_override": schema.SingleNestedAttribute{
+				Description: "Define your own overrides to customize the helm chart behaviour.",
+				Computed:    true,
+				Attributes: map[string]schema.Attribute{
+					"set": schema.MapAttribute{
+						ElementType: types.StringType,
+						Optional:    true,
+					},
+					"set_string": schema.MapAttribute{
+						ElementType: types.StringType,
+						Optional:    true,
+					},
+					"set_json": schema.MapAttribute{
+						ElementType: types.StringType,
+						Optional:    true,
+					},
+					"file": schema.SingleNestedAttribute{
+						Description: "Define the overrides by selecting a YAML file from a git repository (preferred) or by passing raw YAML files.",
+						Optional:    true,
+						Attributes: map[string]schema.Attribute{
+							"raw": schema.MapNestedAttribute{
+								Description: "Raw YAML files",
+								Optional:    true,
+								NestedObject: schema.NestedAttributeObject{
+									Attributes: map[string]schema.Attribute{
+										"content": schema.StringAttribute{
+											Description: "content of the file",
+											Required:    true,
+										},
+									},
+								},
+							},
+							"git_repository": schema.SingleNestedAttribute{
+								Description: "YAML file from a git repository",
+								Optional:    true,
+								Attributes: map[string]schema.Attribute{
+									"url": schema.StringAttribute{
+										Description: "YAML file git repository URL",
+										Required:    true,
+									},
+									"branch": schema.StringAttribute{
+										Description: "YAML file git repository branch",
+										Required:    true,
+									},
+									"paths": schema.SetAttribute{
+										Description: "YAML files git repository paths",
+										Required:    true,
+										ElementType: types.StringType,
+									},
+									"git_token_id": schema.StringAttribute{
+										Description: "The git token ID to be used",
+										Optional:    true,
+										Computed:    true,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			"ports": schema.MapNestedAttribute{
+				Description: "List of ports linked to this helm.",
+				Computed:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"service_name": schema.StringAttribute{
+							Description: "",
+							Required:    true,
+						},
+						"namespace": schema.StringAttribute{
+							Description: "",
+							Optional:    true,
+						},
+						"internal_port": schema.Int64Attribute{
+							Description: descriptions.NewInt64MinMaxDescription(
+								"Internal port of the container.",
+								port.MinPort,
+								port.MaxPort,
+								nil,
+							),
+							Required: true,
+							Validators: []validator.Int64{
+								validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
+							},
+						},
+						"external_port": schema.Int64Attribute{
+							Description: descriptions.NewInt64MinMaxDescription(
+								"External port of the container.\n\t- Required if: `ports.publicly_accessible=true`.",
+								port.MinPort,
+								port.MaxPort,
+								nil,
+							),
+							Required: true,
+							Validators: []validator.Int64{
+								validators.Int64MinMaxValidator{Min: port.MinPort, Max: port.MaxPort},
+							},
+						},
+						"protocol": schema.StringAttribute{
+							Description: descriptions.NewStringEnumDescription(
+								"Protocol used for the port of the container.",
+								helmPortProtocols,
+								pointer.ToString(helm.DefaultProtocol.String()),
+							),
+							Validators: []validator.String{
+								validators.NewStringEnumValidator(helmPortProtocols),
+							},
+							Optional: true,
+							Computed: true,
+						},
+						"is_default": schema.BoolAttribute{
+							Description: "If this port will be used for the root domain",
+							Required:    true,
 						},
 					},
 				},
