@@ -128,7 +128,7 @@ resource "qovery_helm" "my_helm" {
 
 - `advanced_settings_json` (String) Advanced settings.
 - `arguments` (Set of String) Helm arguments
-- `auto_deploy` (Boolean) Specify if the service will be automatically updated on every new commit on the branch.
+- `auto_deploy` (Boolean) Specify if service will be automatically updated on every new commit on the branch.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this helm.
 - `deployment_restrictions` (Attributes Set) List of deployment restrictions (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `deployment_stage_id` (String) Id of the deployment stage.
@@ -139,7 +139,7 @@ resource "qovery_helm" "my_helm" {
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this helm. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_overrides` (Attributes Set) List of secret overrides linked to this helm. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes Set) List of secrets linked to this helm. (see [below for nested schema](#nestedatt--secrets))
-- `timeout_sec` (Number) Helm timeout in second
+- `timeout_sec` (Number) Helm timeout in seconds
 
 ### Read-Only
 
@@ -186,7 +186,7 @@ Required:
 
 Optional:
 
-- `file` (Attributes) Define the overrides by selecting a YAML file from a git repository (preferred) or by passing raw YAML files. (see [below for nested schema](#nestedatt--values_override--file))
+- `file` (Attributes) Define overrides by selecting a YAML file from a git repository (preferred) or by passing raw YAML files. (see [below for nested schema](#nestedatt--values_override--file))
 - `set` (Map of String)
 - `set_json` (Map of String)
 - `set_string` (Map of String)

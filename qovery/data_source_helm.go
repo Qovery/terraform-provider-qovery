@@ -281,7 +281,7 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 				},
 			},
 			"timeout_sec": schema.Int64Attribute{
-				Description: "Helm timeout in second",
+				Description: "Helm timeout in seconds",
 				Optional:    true,
 				Computed:    true,
 			},
@@ -291,7 +291,7 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 				Computed:    true,
 			},
 			"auto_deploy": schema.BoolAttribute{
-				Description: " Specify if the service will be automatically updated on every new commit on the branch.",
+				Description: " Specify the service will be automatically updated on every new commit on the branch.",
 				Optional:    true,
 				Computed:    true,
 			},
@@ -371,7 +371,7 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 						Optional:    true,
 					},
 					"file": schema.SingleNestedAttribute{
-						Description: "Define the overrides by selecting a YAML file from a git repository (preferred) or by passing raw YAML files.",
+						Description: "Define overrides by selecting a YAML file from a git repository (preferred) or by passing raw YAML files.",
 						Optional:    true,
 						Attributes: map[string]schema.Attribute{
 							"raw": schema.MapNestedAttribute{
