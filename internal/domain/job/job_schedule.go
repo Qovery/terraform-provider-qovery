@@ -75,7 +75,7 @@ type NewJobScheduleParams struct {
 }
 
 func NewJobSchedule(params NewJobScheduleParams) (*JobSchedule, error) {
-	var err error = nil
+	var err error
 
 	var onStart *execution_command.ExecutionCommand = nil
 	if params.OnStart != nil {

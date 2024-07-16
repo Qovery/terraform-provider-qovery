@@ -82,7 +82,7 @@ type NewJobSourceParams struct {
 }
 
 func NewJobSource(params NewJobSourceParams) (*Source, error) {
-	var err error = nil
+	var err error
 
 	var img *image.Image = nil
 	if params.Image != nil {

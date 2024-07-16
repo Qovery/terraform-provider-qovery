@@ -71,6 +71,9 @@ func (c secretService) Update(
 		return nil, errors.Wrap(err, variable.ErrFailedToListVariables.Error())
 	}
 	secretsForCurrentScope, err := c.secretRepository.List(ctx, resourceID)
+	if err != nil {
+		return nil, err
+	}
 	var secretsByNameForAliases = make(map[string]secret.Secret)
 	var secretsByNameForOverrides = make(map[string]secret.Secret)
 	for _, secretForCurrentScope := range secretsForCurrentScope {
