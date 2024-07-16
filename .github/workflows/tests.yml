@@ -178,7 +178,11 @@ jobs:
           TEST_CONTAINER_REGISTRY_ID: ${{ secrets.TEST_CONTAINER_REGISTRY_ID }}
           TEST_CONTAINER_ID: ${{ secrets.TEST_CONTAINER_ID }}
           TEST_JOB_ID: ${{ secrets.TEST_JOB_ID }}
+          TEST_HELM_ID: ${{ secrets.TEST_HELM_ID }}
+          TEST_HELM_REPOSITORY_ID: ${{ secrets.TEST_HELM_REPOSITORY_ID }}
           TEST_AWS_ECR_URL: ${{ secrets.TEST_AWS_ECR_URL }}
           TEST_QOVERY_HOST: ${{ secrets.TEST_QOVERY_HOST }}
           TEST_QOVERY_SANDBOX_GIT_TOKEN_ID: ${{ secrets.TEST_QOVERY_SANDBOX_GIT_TOKEN_ID }}
+          TEST_ANNOTATIONS_GROUP_ID: ${{ secrets.TEST_ANNOTATIONS_GROUP_ID }}
+          TEST_LABELS_GROUP_ID: ${{ secrets.TEST_LABELS_GROUP_ID }}
         run: task testacc

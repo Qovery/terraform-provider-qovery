@@ -58,6 +58,7 @@ func (r helmRepositoryDataSource) Schema(_ context.Context, _ datasource.SchemaR
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the helm repository.",
+				Optional:    true,
 				Computed:    true,
 			},
 			"kind": schema.StringAttribute{
@@ -66,14 +67,21 @@ func (r helmRepositoryDataSource) Schema(_ context.Context, _ datasource.SchemaR
 					helmRepositoryKinds,
 					nil,
 				),
+				Optional: true,
 				Computed: true,
 			},
 			"url": schema.StringAttribute{
 				Description: "URL of the helm repository.",
+				Optional:    true,
 				Computed:    true,
 			},
 			"description": schema.StringAttribute{
 				Description: "Description of the helm repository.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"skip_tls_verification": schema.BoolAttribute{
+				Description: "Bypass tls certificate verification when connecting to repository",
 				Optional:    true,
 				Computed:    true,
 			},

@@ -23,7 +23,7 @@ func newAnnotationsGroupDataSource() datasource.DataSource {
 }
 
 func (d annotationsGroupDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_ annotationsGroup"
+	resp.TypeName = req.ProviderTypeName + "_annotations_group"
 }
 
 func (d *annotationsGroupDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
@@ -50,7 +50,7 @@ func (d annotationsGroupDataSource) Schema(_ context.Context, _ datasource.Schem
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the annotations group",
-				Computed:    true,
+				Required:    true,
 			},
 			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
@@ -58,16 +58,16 @@ func (d annotationsGroupDataSource) Schema(_ context.Context, _ datasource.Schem
 			},
 			"name": schema.StringAttribute{
 				Description: "name of the annotations group",
-				Required:    true,
+				Optional:    true,
 			},
 			"annotations": schema.MapAttribute{
 				Description: "annotations",
-				Required:    true,
+				Optional:    true,
 				ElementType: types.StringType,
 			},
 			"scopes": schema.SetAttribute{
 				Description: "scopes of the annotations group",
-				Required:    true,
+				Optional:    true,
 				ElementType: types.StringType,
 			},
 		},

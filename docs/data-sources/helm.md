@@ -18,6 +18,9 @@ data "qovery_helm" "my_helm" {
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
+- `arguments` (Set of String) Helm arguments
+- `auto_deploy` (Boolean) Specify the service will be automatically updated on every new commit on the branch.
+- `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this helm.
 - `deployment_restrictions` (Attributes Set) List of deployment restrictions (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_aliases))
@@ -26,14 +29,19 @@ data "qovery_helm" "my_helm" {
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this helm. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_overrides` (Attributes Set) List of secret overrides linked to this helm. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes Set) List of secrets linked to this helm. (see [below for nested schema](#nestedatt--secrets))
+- `timeout_sec` (Number) Helm timeout in seconds
 
 ### Read-Only
 
+- `allow_cluster_wide_resources` (Boolean) Allow this chart to deploy resources outside of this environment namespace (including CRDs or non-namespaced resources)
 - `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this helm. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
 - `external_host` (String) The helm external FQDN host [NOTE: only if your helm is using a publicly accessible port].
 - `internal_host` (String) The helm internal host.
 - `name` (String) Name of the helm.
+- `ports` (Attributes Map) List of ports linked to this helm. (see [below for nested schema](#nestedatt--ports))
+- `source` (Attributes) Helm chart from a Helm repository or from a git repository (see [below for nested schema](#nestedatt--source))
+- `values_override` (Attributes) Define your own overrides to customize the helm chart behaviour. (see [below for nested schema](#nestedatt--values_override))
 
 <a id="nestedatt--deployment_restrictions"></a>
 ### Nested Schema for `deployment_restrictions`
@@ -121,4 +129,98 @@ Read-Only:
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
+
+
+<a id="nestedatt--ports"></a>
+### Nested Schema for `ports`
+
+Required:
+
+- `external_port` (Number) External port of the container.
+	- Required if: `ports.publicly_accessible=true`.
+	- Must be: `>= 1` and `<= 65535`.
+- `internal_port` (Number) Internal port of the container.
+	- Must be: `>= 1` and `<= 65535`.
+- `is_default` (Boolean) If this port will be used for the root domain
+- `service_name` (String)
+
+Optional:
+
+- `namespace` (String)
+- `protocol` (String) Protocol used for the port of the container.
+	- Can be: `GRPC`, `HTTP`.
+	- Default: `HTTP`.
+
+
+<a id="nestedatt--source"></a>
+### Nested Schema for `source`
+
+Optional:
+
+- `git_repository` (Attributes) Git repository (see [below for nested schema](#nestedatt--source--git_repository))
+- `helm_repository` (Attributes) Helm repositories can be private or public (see [below for nested schema](#nestedatt--source--helm_repository))
+
+<a id="nestedatt--source--git_repository"></a>
+### Nested Schema for `source.git_repository`
+
+Required:
+
+- `url` (String) Helm's source git repository URL
+
+Optional:
+
+- `branch` (String) Helm's source git repository branch
+- `git_token_id` (String) The git token ID to be used
+- `root_path` (String) Helm's source git repository root path
+
+
+<a id="nestedatt--source--helm_repository"></a>
+### Nested Schema for `source.helm_repository`
+
+Required:
+
+- `chart_name` (String) Chart name
+- `chart_version` (String) Chart version
+- `helm_repository_id` (String) helm repository id
+
+
+
+<a id="nestedatt--values_override"></a>
+### Nested Schema for `values_override`
+
+Optional:
+
+- `file` (Attributes) Define overrides by selecting a YAML file from a git repository (preferred) or by passing raw YAML files. (see [below for nested schema](#nestedatt--values_override--file))
+- `set` (Map of String)
+- `set_json` (Map of String)
+- `set_string` (Map of String)
+
+<a id="nestedatt--values_override--file"></a>
+### Nested Schema for `values_override.file`
+
+Optional:
+
+- `git_repository` (Attributes) YAML file from a git repository (see [below for nested schema](#nestedatt--values_override--file--git_repository))
+- `raw` (Attributes Map) Raw YAML files (see [below for nested schema](#nestedatt--values_override--file--raw))
+
+<a id="nestedatt--values_override--file--git_repository"></a>
+### Nested Schema for `values_override.file.git_repository`
+
+Required:
+
+- `branch` (String) YAML file git repository branch
+- `paths` (Set of String) YAML files git repository paths
+- `url` (String) YAML file git repository URL
+
+Optional:
+
+- `git_token_id` (String) The git token ID to be used
+
+
+<a id="nestedatt--values_override--file--raw"></a>
+### Nested Schema for `values_override.file.raw`
+
+Required:
+
+- `content` (String) content of the file
 
