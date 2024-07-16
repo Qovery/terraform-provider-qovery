@@ -56,6 +56,7 @@ type Helm struct {
 	DeploymentStageID            string
 	AdvancedSettingsJson         string
 	JobDeploymentRestrictions    []deploymentrestriction.ServiceDeploymentRestriction
+	CustomDomains                []*qovery.CustomDomain
 }
 
 type SourceResponse struct {
@@ -108,6 +109,7 @@ type NewHelmParams struct {
 	Secrets                   secret.NewSecretsParams
 	DeploymentStageID         string
 	AdvancedSettingsJson      string
+	CustomDomains             []*qovery.CustomDomain
 }
 
 func NewHelm(params NewHelmParams) (*Helm, error) {
@@ -163,6 +165,7 @@ func NewHelm(params NewHelmParams) (*Helm, error) {
 		Ports:                     ports,
 		DeploymentStageID:         params.DeploymentStageID,
 		AdvancedSettingsJson:      params.AdvancedSettingsJson,
+		CustomDomains:             params.CustomDomains,
 	}
 
 	environmentVariables := make(variable.Variables, len(params.EnvironmentVariables))

@@ -5,6 +5,7 @@ package helm
 import (
 	"context"
 	"github.com/qovery/qovery-client-go"
+	"github.com/qovery/terraform-provider-qovery/client"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
@@ -33,6 +34,7 @@ type UpsertRepositoryRequest struct {
 	Secrets                   []secret.UpsertRequest
 	DeploymentStageID         string
 	AdvancedSettingsJson      string
+	CustomDomains             client.CustomDomainsDiff
 }
 
 func (r UpsertRepositoryRequest) Validate() error {

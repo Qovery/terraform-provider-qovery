@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/qovery/terraform-provider-qovery/client"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -39,6 +40,7 @@ type Helm struct {
 	DeploymentStageId            types.String         `tfsdk:"deployment_stage_id"`
 	AdvancedSettingsJson         types.String         `tfsdk:"advanced_settings_json"`
 	DeploymentRestrictions       types.Set            `tfsdk:"deployment_restrictions"`
+	CustomDomains                types.Set            `tfsdk:"custom_domains"`
 }
 
 type HelmSource struct {
@@ -119,6 +121,10 @@ func (j Helm) DeploymentRestrictionDiff(deploymentRestrictionsState *types.Set) 
 	return deploymentrestriction.ToDeploymentRestrictionDiff(j.DeploymentRestrictions, deploymentRestrictionsState)
 }
 
+func (h Helm) CustomDomainsList() CustomDomainList {
+	return toCustomDomainList(h.CustomDomains)
+}
+
 func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, error) {
 	var stateEnvironmentVariables EnvironmentVariableList
 	var stateEnvironmentVariableAliases EnvironmentVariableList
@@ -127,6 +133,7 @@ func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, e
 	var stateSecretAliases SecretList
 	var stateSecretOverrides SecretList
 	var stateDeploymentRestrictions types.Set
+	var stateCustomDomains CustomDomainList
 
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
@@ -136,9 +143,10 @@ func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, e
 		stateSecretAliases = state.SecretAliasesList()
 		stateSecretOverrides = state.SecretOverridesList()
 		stateDeploymentRestrictions = state.DeploymentRestrictions
+		stateCustomDomains = state.CustomDomainsList()
 	}
 
-	helmRequest, err := h.toUpsertRepositoryRequest()
+	helmRequest, err := h.toUpsertRepositoryRequest(h.CustomDomainsList().diff(stateCustomDomains))
 	if err != nil {
 		return nil, err
 	}
@@ -160,7 +168,7 @@ func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, e
 	}, nil
 }
 
-func (h Helm) toUpsertRepositoryRequest() (*helm.UpsertRepositoryRequest, error) {
+func (h Helm) toUpsertRepositoryRequest(customDomainsDiff client.CustomDomainsDiff) (*helm.UpsertRepositoryRequest, error) {
 	var ports *[]helm.Port = nil
 	if h.Ports != nil {
 		portLists := make([]helm.Port, 0, len(*h.Ports))
@@ -197,6 +205,7 @@ func (h Helm) toUpsertRepositoryRequest() (*helm.UpsertRepositoryRequest, error)
 		DeploymentStageID:         ToString(h.DeploymentStageId),
 		Ports:                     ports,
 		AdvancedSettingsJson:      ToString(h.AdvancedSettingsJson),
+		CustomDomains:             customDomainsDiff,
 	}, nil
 }
 
@@ -462,5 +471,6 @@ func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) H
 		DeploymentStageId:            FromString(helm.DeploymentStageID),
 		AdvancedSettingsJson:         FromString(helm.AdvancedSettingsJson),
 		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, helm.JobDeploymentRestrictions),
+		CustomDomains:                fromCustomDomainList(state.CustomDomains, helm.CustomDomains).toTerraformSet(ctx),
 	}
 }

@@ -454,6 +454,34 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 					},
 				},
 			},
+			"custom_domains": schema.SetNestedAttribute{
+				Description: "List of custom domains linked to this helm.",
+				Optional:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the custom domain.",
+							Computed:    true,
+						},
+						"domain": schema.StringAttribute{
+							Description: "Your custom domain.",
+							Required:    true,
+						},
+						"generate_certificate": schema.BoolAttribute{
+							Description: "Qovery will generate and manage the certificate for this domain.",
+							Required:    true,
+						},
+						"validation_domain": schema.StringAttribute{
+							Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
+							Computed:    true,
+						},
+						"status": schema.StringAttribute{
+							Description: "Status of the custom domain.",
+							Computed:    true,
+						},
+					},
+				},
+			},
 			"external_host": schema.StringAttribute{
 				Description: "The helm external FQDN host [NOTE: only if your helm is using a publicly accessible port].",
 				Computed:    true,
