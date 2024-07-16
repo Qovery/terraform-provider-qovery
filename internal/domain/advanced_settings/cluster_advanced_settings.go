@@ -37,9 +37,12 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(organization
 	getDefaultAdvancedSettingsRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respGetDefaultAdvancedSettings, err := httpClient.Do(getDefaultAdvancedSettingsRequest)
+	if err != nil {
+		return nil, err
+	}
 	defer respGetDefaultAdvancedSettings.Body.Close()
 
-	if err != nil || respGetDefaultAdvancedSettings.StatusCode >= 400 {
+	if respGetDefaultAdvancedSettings.StatusCode >= 400 {
 		return nil, errors.New("Cannot get default cluster advanced settings :" + respGetDefaultAdvancedSettings.Status)
 	}
 
@@ -62,9 +65,12 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(organization
 	getRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respGetAdvancedSettings, err := httpClient.Do(getRequest)
+	if err != nil {
+		return nil, err
+	}
 	defer respGetAdvancedSettings.Body.Close()
 
-	if err != nil || respGetAdvancedSettings.StatusCode >= 400 {
+	if respGetAdvancedSettings.StatusCode >= 400 {
 		return nil, errors.New("Cannot get cluster advanced settings :" + respGetAdvancedSettings.Status)
 	}
 
@@ -78,10 +84,14 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(organization
 	//
 	// Compute the Diff
 	currentAdvancedSettingsHashMap := make(map[string]interface{})
-	json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap)
+	if err := json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap); err != nil {
+		return nil, err
+	}
 
 	defaultAdvancedSettingsHashMap := make(map[string]interface{})
-	json.Unmarshal([]byte(defaultAdvancedSettingsStringJson), &defaultAdvancedSettingsHashMap)
+	if err := json.Unmarshal([]byte(defaultAdvancedSettingsStringJson), &defaultAdvancedSettingsHashMap); err != nil {
+		return nil, err
+	}
 
 	overriddenAdvancedSettings := make(map[string]interface{})
 	// Prepare hashmap with target advanced settings
@@ -114,7 +124,9 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 	// Get cluster advanced settings
 	urlAdvancedSettings := host + "/organization/" + organizationId + "/cluster/" + clusterId + "/advancedSettings"
 	overridenAdvancedSettingsHashMap := make(map[string]interface{})
-	json.Unmarshal([]byte(advancedSettingsJson), &overridenAdvancedSettingsHashMap)
+	if err := json.Unmarshal([]byte(advancedSettingsJson), &overridenAdvancedSettingsHashMap); err != nil {
+		return err
+	}
 
 	getRequest, err := http.NewRequest("GET", urlAdvancedSettings, nil)
 	if err != nil {
@@ -125,9 +137,12 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 	getRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respGetAdvancedSettings, err := httpClient.Do(getRequest)
+	if err != nil {
+		return err
+	}
 	defer respGetAdvancedSettings.Body.Close()
 
-	if err != nil || respGetAdvancedSettings.StatusCode >= 400 {
+	if respGetAdvancedSettings.StatusCode >= 400 {
 		return errors.New("Cannot get cluster advanced settings :" + respGetAdvancedSettings.Status)
 	}
 	clusterAdvancedSettings, err := io.ReadAll(respGetAdvancedSettings.Body)
@@ -140,7 +155,9 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 	//
 	// Compute final http body to send to satisfy PUT endpoint
 	currentAdvancedSettingsHashMap := make(map[string]interface{})
-	json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap)
+	if err := json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap); err != nil {
+		return err
+	}
 
 	for k, v := range currentAdvancedSettingsHashMap {
 		_, exists := overridenAdvancedSettingsHashMap[k]
@@ -167,9 +184,13 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 
 	respPostAdvancedSettings, err := httpClient.Do(putRequest)
 
+	if err != nil {
+		return err
+	}
+
 	defer respPostAdvancedSettings.Body.Close()
 
-	if err != nil || respPostAdvancedSettings.StatusCode >= 400 {
+	if respPostAdvancedSettings.StatusCode >= 400 {
 		body, _ := io.ReadAll(respPostAdvancedSettings.Body)
 		return errors.New("Cannot update cluster advanced settings :" + string(body))
 	}

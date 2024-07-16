@@ -83,9 +83,12 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 	getDefaultAdvancedSettingsRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respGetDefaultAdvancedSettings, err := httpClient.Do(getDefaultAdvancedSettingsRequest)
+	if err != nil {
+		return nil, err
+	}
 	defer respGetDefaultAdvancedSettings.Body.Close()
 
-	if err != nil || respGetDefaultAdvancedSettings.StatusCode >= 400 {
+	if respGetDefaultAdvancedSettings.StatusCode >= 400 {
 		return nil, errors.New("Cannot get default advanced settings :" + respGetDefaultAdvancedSettings.Status)
 	}
 
@@ -111,9 +114,12 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 	getRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respGetAdvancedSettings, err := httpClient.Do(getRequest)
+	if err != nil {
+		return nil, err
+	}
 	defer respGetAdvancedSettings.Body.Close()
 
-	if err != nil || respGetAdvancedSettings.StatusCode >= 400 {
+	if respGetAdvancedSettings.StatusCode >= 400 {
 		return nil, errors.New("Cannot get advanced settings :" + respGetAdvancedSettings.Status)
 	}
 
@@ -127,13 +133,19 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 	//
 	// Compute the Diff
 	advancedSettingsFromStateHashMap := make(map[string]interface{})
-	json.Unmarshal([]byte(advancedSettingsFromState), &advancedSettingsFromStateHashMap)
+	if err := json.Unmarshal([]byte(advancedSettingsFromState), &advancedSettingsFromStateHashMap); err != nil {
+		return nil, err
+	}
 
 	currentAdvancedSettingsHashMap := make(map[string]interface{})
-	json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap)
+	if err := json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap); err != nil {
+		return nil, err
+	}
 
 	defaultAdvancedSettingsHashMap := make(map[string]interface{})
-	json.Unmarshal([]byte(defaultAdvancedSettingsStringJson), &defaultAdvancedSettingsHashMap)
+	if err := json.Unmarshal([]byte(defaultAdvancedSettingsStringJson), &defaultAdvancedSettingsHashMap); err != nil {
+		return nil, err
+	}
 
 	overriddenAdvancedSettings := make(map[string]interface{})
 	// Prepare hashmap with target advanced settings
@@ -175,7 +187,9 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 	}
 
 	overridenAdvancedSettingsHashMap := make(map[string]interface{})
-	json.Unmarshal([]byte(advancedSettingsJson), &overridenAdvancedSettingsHashMap)
+	if err := json.Unmarshal([]byte(advancedSettingsJson), &overridenAdvancedSettingsHashMap); err != nil {
+		return err
+	}
 
 	getRequest, err := http.NewRequest("GET", *urlAdvancedSettings, nil)
 	if err != nil {
@@ -186,6 +200,9 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 	getRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respGetAdvancedSettings, err := httpClient.Do(getRequest)
+	if err != nil {
+		return err
+	}
 	defer respGetAdvancedSettings.Body.Close()
 
 	if err != nil || respGetAdvancedSettings.StatusCode >= 400 {
@@ -201,7 +218,9 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 	//
 	// Compute final http body to send to satisfy PUT endpoint
 	currentAdvancedSettingsHashMap := make(map[string]interface{})
-	json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap)
+	if err := json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap); err != nil {
+		return err
+	}
 
 	for k, v := range currentAdvancedSettingsHashMap {
 		_, exists := overridenAdvancedSettingsHashMap[k]
@@ -228,9 +247,13 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 
 	respPostAdvancedSettings, err := httpClient.Do(putRequest)
 
+	if err != nil {
+		return err
+	}
+
 	defer respPostAdvancedSettings.Body.Close()
 
-	if err != nil || respPostAdvancedSettings.StatusCode >= 400 {
+	if respPostAdvancedSettings.StatusCode >= 400 {
 		body, _ := io.ReadAll(respPostAdvancedSettings.Body)
 		return errors.New("Cannot update service advanced settings :" + string(body))
 	}
