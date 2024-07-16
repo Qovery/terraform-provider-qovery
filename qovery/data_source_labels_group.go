@@ -22,7 +22,7 @@ func newLabelsGroupDataSource() datasource.DataSource {
 }
 
 func (d labelsGroupDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
-	resp.TypeName = req.ProviderTypeName + "_ labelsGroup"
+	resp.TypeName = req.ProviderTypeName + "_labels_group"
 }
 
 func (d *labelsGroupDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
@@ -48,7 +48,7 @@ func (d labelsGroupDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the labels group",
-				Computed:    true,
+				Required:    true,
 			},
 			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
@@ -56,11 +56,11 @@ func (d labelsGroupDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 			},
 			"name": schema.StringAttribute{
 				Description: "name of the labels group",
-				Required:    true,
+				Optional:    true,
 			},
 			"labels": schema.SetNestedAttribute{
 				Description: "labels",
-				Required:    true,
+				Optional:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"key": schema.StringAttribute{

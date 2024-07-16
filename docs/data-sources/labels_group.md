@@ -1,4 +1,4 @@
-# qovery_ labelsGroup (Data Source)
+# qovery_labels_group (Data Source)
 
 Provides a Qovery labels group resource
 

@@ -49,6 +49,8 @@ type testEnvironment struct {
 	HelmRepositoryID                  string `env:"TEST_HELM_REPOSITORY_ID,required"`
 	QoveryHost                        string `env:"TEST_QOVERY_HOST,required"`
 	QoverySandboxGitTokenId           string `env:"TEST_QOVERY_SANDBOX_GIT_TOKEN_ID,required"`
+	AnnotationsGroupID                string `env:"TEST_ANNOTATIONS_GROUP_ID,required"`
+	LabelssGroupID                    string `env:"TEST_LABELS_GROUP_ID,required"`
 }
 
 var (
@@ -154,6 +156,14 @@ func getTestQoveryHost() string {
 
 func getTestQoverySandboxGitTokenID() string {
 	return os.Getenv("TEST_QOVERY_SANDBOX_GIT_TOKEN_ID")
+}
+
+func getTestAnnotationsGroupID() string {
+	return os.Getenv("TEST_ANNOTATIONS_GROUP_ID")
+}
+
+func getTestLabelsGroupID() string {
+	return os.Getenv("TEST_LABELS_GROUP_ID")
 }
 
 func generateTestName(testName string) string {
