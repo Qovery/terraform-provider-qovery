@@ -50,7 +50,6 @@ func (s newDeploymentService) Create(ctx context.Context, params newdeployment.N
 		if err != nil {
 			return nil, errors.Wrap(err, newdeployment.ErrFailedToCheckDeploymentStatus.Error())
 		}
-		break
 	case newdeployment.STOPPED:
 		// Do nothing: no need to stop environment as it has just been created
 		break
@@ -85,19 +84,16 @@ func (s newDeploymentService) Update(ctx context.Context, params newdeployment.N
 		if err != nil {
 			return nil, errors.Wrap(err, newdeployment.ErrFailedToCreateDeployment.Error())
 		}
-		break
 	case newdeployment.STOPPED:
 		_, err = s.newDeploymentEnvironmentRepository.Stop(ctx, *deployment)
 		if err != nil {
 			return nil, errors.Wrap(err, newdeployment.ErrFailedToCreateDeployment.Error())
 		}
-		break
 	case newdeployment.RESTARTED:
 		_, err = s.newDeploymentEnvironmentRepository.Restart(ctx, *deployment)
 		if err != nil {
 			return nil, errors.Wrap(err, newdeployment.ErrFailedToCreateDeployment.Error())
 		}
-		break
 	}
 
 	err = s.deploymentStatusRepository.WaitForExpectedDesiredState(ctx, *deployment)
