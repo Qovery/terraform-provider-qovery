@@ -138,7 +138,7 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 	overriddenAdvancedSettings := make(map[string]interface{})
 	// Prepare hashmap with target advanced settings
 	for k, v := range currentAdvancedSettingsHashMap {
-		defaultValue, _ := defaultAdvancedSettingsHashMap[k]
+		defaultValue := defaultAdvancedSettingsHashMap[k]
 		// if the value has been overridden
 		if !reflect.DeepEqual(defaultValue, v) {
 			overriddenAdvancedSettings[k] = v
