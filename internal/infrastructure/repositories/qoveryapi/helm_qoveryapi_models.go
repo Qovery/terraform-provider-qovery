@@ -1,8 +1,9 @@
 package qoveryapi
 
 import (
-	"github.com/pkg/errors"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/qovery/qovery-client-go"
 

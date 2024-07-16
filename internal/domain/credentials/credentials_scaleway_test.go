@@ -20,9 +20,9 @@ func TestUpsertScalewayRequest_Validate(t *testing.T) {
 		{
 			TestName: "fail_with_invalid_name",
 			Request: credentials.UpsertScalewayRequest{
-				ScalewayProjectID: gofakeit.Word(),
-				ScalewayAccessKey: gofakeit.Word(),
-				ScalewaySecretKey: gofakeit.Word(),
+				ScalewayProjectID:      gofakeit.Word(),
+				ScalewayAccessKey:      gofakeit.Word(),
+				ScalewaySecretKey:      gofakeit.Word(),
 				ScalewayOrganizationID: gofakeit.Word(),
 			},
 			ExpectedError: credentials.ErrInvalidUpsertScalewayRequest,
@@ -30,9 +30,9 @@ func TestUpsertScalewayRequest_Validate(t *testing.T) {
 		{
 			TestName: "fail_with_invalid_scaleway_project_id",
 			Request: credentials.UpsertScalewayRequest{
-				Name:              gofakeit.Name(),
-				ScalewayAccessKey: gofakeit.Word(),
-				ScalewaySecretKey: gofakeit.Word(),
+				Name:                   gofakeit.Name(),
+				ScalewayAccessKey:      gofakeit.Word(),
+				ScalewaySecretKey:      gofakeit.Word(),
 				ScalewayOrganizationID: gofakeit.Word(),
 			},
 			ExpectedError: credentials.ErrInvalidUpsertScalewayRequest,
@@ -40,9 +40,9 @@ func TestUpsertScalewayRequest_Validate(t *testing.T) {
 		{
 			TestName: "fail_with_scaleway_access_key",
 			Request: credentials.UpsertScalewayRequest{
-				Name:              gofakeit.Name(),
-				ScalewayProjectID: gofakeit.Word(),
-				ScalewaySecretKey: gofakeit.Word(),
+				Name:                   gofakeit.Name(),
+				ScalewayProjectID:      gofakeit.Word(),
+				ScalewaySecretKey:      gofakeit.Word(),
 				ScalewayOrganizationID: gofakeit.Word(),
 			},
 			ExpectedError: credentials.ErrInvalidUpsertScalewayRequest,
@@ -50,9 +50,9 @@ func TestUpsertScalewayRequest_Validate(t *testing.T) {
 		{
 			TestName: "fail_with_scaleway_secret_key",
 			Request: credentials.UpsertScalewayRequest{
-				Name:              gofakeit.Name(),
-				ScalewayProjectID: gofakeit.Word(),
-				ScalewayAccessKey: gofakeit.Word(),
+				Name:                   gofakeit.Name(),
+				ScalewayProjectID:      gofakeit.Word(),
+				ScalewayAccessKey:      gofakeit.Word(),
 				ScalewayOrganizationID: gofakeit.Word(),
 			},
 			ExpectedError: credentials.ErrInvalidUpsertScalewayRequest,
@@ -60,10 +60,10 @@ func TestUpsertScalewayRequest_Validate(t *testing.T) {
 		{
 			TestName: "success",
 			Request: credentials.UpsertScalewayRequest{
-				Name:              gofakeit.Name(),
-				ScalewayProjectID: gofakeit.Word(),
-				ScalewayAccessKey: gofakeit.Word(),
-				ScalewaySecretKey: gofakeit.Word(),
+				Name:                   gofakeit.Name(),
+				ScalewayProjectID:      gofakeit.Word(),
+				ScalewayAccessKey:      gofakeit.Word(),
+				ScalewaySecretKey:      gofakeit.Word(),
 				ScalewayOrganizationID: gofakeit.Word(),
 			},
 		},

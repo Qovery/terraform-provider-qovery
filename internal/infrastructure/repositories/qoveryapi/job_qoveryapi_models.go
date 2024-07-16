@@ -1,9 +1,10 @@
 package qoveryapi
 
 import (
+	"time"
+
 	"github.com/pkg/errors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/qovery/qovery-client-go"
