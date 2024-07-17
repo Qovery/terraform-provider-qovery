@@ -72,6 +72,27 @@ jobs:
       - name: Build
         run: task build
 
+  lint:
+    name: Lint Terraform Provider
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up Task
+        uses: arduino/setup-task@v1
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Check out source code
+        uses: actions/checkout@v3
+
+      - name: Lint
+        run: task lint
+
   generate:
     name: Generate Documentation
     runs-on: ubuntu-latest
