@@ -64,9 +64,16 @@ func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl
 }
 
 // ReadServiceAdvancedSettings Get only overridden advanced settings
-func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsFromState string) (*string, error) {
+func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsJsonParam string) (*string, error) {
 	httpClient := &http.Client{}
 	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
+
+	var advancedSettingsJson string
+	if advancedSettingsJsonParam == "" {
+		advancedSettingsJson = "{}"
+	} else {
+		advancedSettingsJson = advancedSettingsJsonParam
+	}
 
 	//
 	// Get default service advanced settings
@@ -133,7 +140,7 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 	//
 	// Compute the Diff
 	advancedSettingsFromStateHashMap := make(map[string]interface{})
-	if err := json.Unmarshal([]byte(advancedSettingsFromState), &advancedSettingsFromStateHashMap); err != nil {
+	if err := json.Unmarshal([]byte(advancedSettingsJson), &advancedSettingsFromStateHashMap); err != nil {
 		return nil, err
 	}
 
@@ -175,9 +182,16 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 }
 
 // UpdateServiceAdvancedSettings Update advanced settings by computing the whole http body
-func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsJson string) error {
+func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsJsonParam string) error {
 	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
 	httpClient := &http.Client{}
+
+	var advancedSettingsJson string
+	if advancedSettingsJsonParam == "" {
+		advancedSettingsJson = "{}"
+	} else {
+		advancedSettingsJson = advancedSettingsJsonParam
+	}
 
 	//
 	// Get service advanced settings

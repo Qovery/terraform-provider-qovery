@@ -115,10 +115,17 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(organization
 }
 
 // UpdateServiceAdvancedSettings Update advanced settings by computing the whole http body
-func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizationId string, clusterId string, advancedSettingsJson string) error {
+func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizationId string, clusterId string, advancedSettingsJsonParam string) error {
 	httpClient := &http.Client{}
 	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
 	var host = c.apiConfig.Servers[0].URL
+
+	var advancedSettingsJson string
+	if advancedSettingsJsonParam == "" {
+		advancedSettingsJson = "{}"
+	} else {
+		advancedSettingsJson = advancedSettingsJsonParam
+	}
 
 	//
 	// Get cluster advanced settings
