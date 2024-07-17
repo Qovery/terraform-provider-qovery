@@ -172,7 +172,7 @@ func (s jobService) Delete(ctx context.Context, jobID string) error {
 		return errors.Wrap(err, job.ErrFailedToDeleteJob.Error())
 	}
 
-	if err := wait(ctx, waitNotFoundFunc(s.jobDeploymentService, jobID), nil); err != nil {
+	if err := wait(ctx, waitNotFoundFunc(s.jobDeploymentService, jobID)); err != nil {
 		return errors.Wrap(err, job.ErrFailedToDeleteJob.Error())
 	}
 
