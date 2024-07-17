@@ -1,11 +1,14 @@
 package helm
 
 import (
+	"fmt"
+	"strings"
+
+	"github.com/AlekSi/pointer"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
-
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
@@ -29,6 +32,7 @@ var (
 	ErrInvalidHelmValuesOverride            = errors.New("invalid helm values override param")
 	ErrInvalidPortProtocol                  = errors.New("invalid port protocol param")
 	ErrInvalidUpsertRequest                 = errors.New("invalid helm upsert request")
+	ErrFailedToSetHosts                     = errors.New("failed to set hosts")
 )
 
 type Helm struct {
@@ -229,6 +233,10 @@ func (h *Helm) SetEnvironmentVariables(vars variable.Variables) error {
 	h.EnvironmentVariables = envVars
 	h.BuiltInEnvironmentVariables = builtIn
 
+	if err := h.SetHosts(vars); err != nil {
+		return nil
+	}
+
 	return nil
 }
 
@@ -262,4 +270,29 @@ func (h *Helm) SetState(st status.State) error {
 	h.State = st
 
 	return nil
+}
+
+func (h *Helm) SetHosts(vars variable.Variables) error {
+	if len(vars) == 0 {
+		return nil
+	}
+
+	hostExternalKey := fmt.Sprintf("QOVERY_HELM_Z%s_HOST_EXTERNAL", strings.ToUpper(strings.Split(h.ID.String(), "-")[0]))
+	hostInternalKey := fmt.Sprintf("QOVERY_HELM_Z%s_HOST_INTERNAL", strings.ToUpper(strings.Split(h.ID.String(), "-")[0]))
+
+	for _, v := range vars {
+		if v.Key == hostExternalKey {
+			h.ExternalHost = pointer.ToString(v.Value)
+			continue
+		}
+		if v.Key == hostInternalKey {
+			h.InternalHost = pointer.ToString(v.Value)
+			continue
+		}
+		if h.ExternalHost != nil && h.InternalHost != nil {
+			return nil
+		}
+	}
+
+	return ErrFailedToSetHosts
 }
