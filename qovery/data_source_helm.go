@@ -470,6 +470,34 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 					},
 				},
 			},
+			"custom_domains": schema.SetNestedAttribute{
+				Description: "List of custom domains linked to this container.",
+				Optional:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the custom domain.",
+							Computed:    true,
+						},
+						"domain": schema.StringAttribute{
+							Description: "Your custom domain.",
+							Computed:    true,
+						},
+						"validation_domain": schema.StringAttribute{
+							Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
+							Computed:    true,
+						},
+						"generate_certificate": schema.BoolAttribute{
+							Description: "Qovery will generate and manage the certificate for this domain.",
+							Optional:    true,
+						},
+						"status": schema.StringAttribute{
+							Description: "Status of the custom domain.",
+							Computed:    true,
+						},
+					},
+				},
+			},
 		},
 	}
 }

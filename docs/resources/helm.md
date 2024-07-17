@@ -130,6 +130,7 @@ resource "qovery_helm" "my_helm" {
 - `arguments` (Set of String) Helm arguments
 - `auto_deploy` (Boolean) Specify if service will be automatically updated on every new commit on the branch.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this helm.
+- `custom_domains` (Attributes Set) List of custom domains linked to this helm. (see [below for nested schema](#nestedatt--custom_domains))
 - `deployment_restrictions` (Attributes Set) List of deployment restrictions (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_aliases))
@@ -221,6 +222,21 @@ Required:
 - `content` (String) content of the file
 
 
+
+
+<a id="nestedatt--custom_domains"></a>
+### Nested Schema for `custom_domains`
+
+Required:
+
+- `domain` (String) Your custom domain.
+- `generate_certificate` (Boolean) Qovery will generate and manage the certificate for this domain.
+
+Read-Only:
+
+- `id` (String) Id of the custom domain.
+- `status` (String) Status of the custom domain.
+- `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
 
 
 <a id="nestedatt--deployment_restrictions"></a>

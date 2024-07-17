@@ -47,6 +47,23 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, request.Name, resp, err)
 	}
 
+	// Create custom domains
+	if !request.CustomDomains.IsEmpty() {
+		for _, customDomain := range request.CustomDomains.Create {
+			_, resp, err := c.client.HelmCustomDomainAPI.
+				CreateHelmCustomDomain(ctx, newHelm.Id).
+				CustomDomainRequest(
+					qovery.CustomDomainRequest{
+						Domain:              customDomain.Domain,
+						GenerateCertificate: customDomain.GenerateCertificate,
+					}).
+				Execute()
+			if err != nil || resp.StatusCode >= 400 {
+				return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelmCustomDomain, request.Name, resp, err)
+			}
+		}
+	}
+
 	// Attach helm to deployment stage
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newHelm.Id).Execute()
@@ -67,7 +84,13 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, newHelm.Id, resp, err)
 	}
 
-	return newDomainHelmFromQovery(newHelm, deploymentStage.Id, request.AdvancedSettingsJson)
+	// Get custom domains
+	customDomains, _, err := c.client.HelmCustomDomainAPI.ListHelmCustomDomain(ctx, newHelm.Id).Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelmCustomDomain, newHelm.Id, resp, err)
+	}
+
+	return newDomainHelmFromQovery(newHelm, deploymentStage.Id, request.AdvancedSettingsJson, customDomains)
 }
 
 // Get calls Qovery's API to retrieve a helm using the given helmID.
@@ -90,7 +113,13 @@ func (c helmQoveryAPI) Get(ctx context.Context, helmID string, advancedSettingsJ
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceHelm, helmID, nil, err)
 	}
 
-	return newDomainHelmFromQovery(helm, deploymentStage.Id, *advancedSettingsAsJson)
+	// Get custom domains
+	customDomains, _, err := c.client.HelmCustomDomainAPI.ListHelmCustomDomain(ctx, helm.Id).Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelmCustomDomain, helm.Id, resp, err)
+	}
+
+	return newDomainHelmFromQovery(helm, deploymentStage.Id, *advancedSettingsAsJson, customDomains)
 }
 
 // Update calls Qovery's API to update a helm using the given helmID and request.
@@ -106,6 +135,43 @@ func (c helmQoveryAPI) Update(ctx context.Context, helmID string, request helm.U
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceHelm, helmID, resp, err)
+	}
+
+	// Create custom domains
+	if !request.CustomDomains.IsEmpty() {
+		for _, customDomain := range request.CustomDomains.Delete {
+			_, err := c.client.HelmCustomDomainAPI.
+				DeleteHelmCustomDomain(ctx, helmID, customDomain.Id).Execute()
+			if err != nil || resp.StatusCode >= 400 {
+				return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelmCustomDomain, request.Name, resp, err)
+			}
+		}
+		for _, customDomain := range request.CustomDomains.Update {
+			_, resp, err := c.client.HelmCustomDomainAPI.
+				EditHelmCustomDomain(ctx, helmID, customDomain.Id).
+				CustomDomainRequest(
+					qovery.CustomDomainRequest{
+						Domain:              customDomain.Domain,
+						GenerateCertificate: customDomain.GenerateCertificate,
+					}).
+				Execute()
+			if err != nil || resp.StatusCode >= 400 {
+				return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelmCustomDomain, request.Name, resp, err)
+			}
+		}
+		for _, customDomain := range request.CustomDomains.Create {
+			_, resp, err := c.client.HelmCustomDomainAPI.
+				CreateHelmCustomDomain(ctx, helmID).
+				CustomDomainRequest(
+					qovery.CustomDomainRequest{
+						Domain:              customDomain.Domain,
+						GenerateCertificate: customDomain.GenerateCertificate,
+					}).
+				Execute()
+			if err != nil || resp.StatusCode >= 400 {
+				return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelmCustomDomain, request.Name, resp, err)
+			}
+		}
 	}
 
 	// Attach helm to deployment stage
@@ -128,7 +194,13 @@ func (c helmQoveryAPI) Update(ctx context.Context, helmID string, request helm.U
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, helmID, resp, err)
 	}
 
-	return newDomainHelmFromQovery(helm, deploymentStage.Id, request.AdvancedSettingsJson)
+	// Get custom domains
+	customDomains, _, err := c.client.HelmCustomDomainAPI.ListHelmCustomDomain(ctx, helm.Id).Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelmCustomDomain, helm.Id, resp, err)
+	}
+
+	return newDomainHelmFromQovery(helm, deploymentStage.Id, request.AdvancedSettingsJson, customDomains)
 }
 
 // Delete calls Qovery's API to deletes a helm using the given helmID.
