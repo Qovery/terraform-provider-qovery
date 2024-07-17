@@ -25,7 +25,7 @@ func newDomainLabelsGroupFromQovery(labelsGroupResponse *qovery.OrganizationLabe
 	}, nil
 }
 
-func newQoveryLabelsGroupRequestFromDomain(request labels_group.UpsertRequest) (*qovery.OrganizationLabelsGroupCreateRequest, error) {
+func newQoveryLabelsGroupRequestFromDomain(request labels_group.UpsertRequest) *qovery.OrganizationLabelsGroupCreateRequest {
 	labels := make([]qovery.Label, 0, len(request.Labels))
 	for _, label := range request.Labels {
 		labels = append(labels, qovery.Label{Key: label.Key, Value: label.Value, PropagateToCloudProvider: label.PropagateToCloudProvider})
@@ -34,7 +34,7 @@ func newQoveryLabelsGroupRequestFromDomain(request labels_group.UpsertRequest) (
 	return &qovery.OrganizationLabelsGroupCreateRequest{
 		Name:   request.Name,
 		Labels: labels,
-	}, nil
+	}
 }
 
 func NewQoveryServiceLabelsGroupRequestFromDomain(labelsGroupIds []string) ([]qovery.ServiceLabelRequest, error) {

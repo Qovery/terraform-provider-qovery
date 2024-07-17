@@ -3,7 +3,6 @@ package qoveryapi
 import (
 	"context"
 
-	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
@@ -26,10 +25,7 @@ func newLabelsGroupQoveryAPI(client *qovery.APIClient) (labels_group.Repository,
 }
 
 func (c labelsGroupQoveryAPI) Create(ctx context.Context, organizationId string, request labels_group.UpsertRequest) (*labels_group.LabelsGroup, error) {
-	req, err := newQoveryLabelsGroupRequestFromDomain(request)
-	if err != nil {
-		return nil, errors.Wrap(err, labels_group.ErrInvalidLabelsGroupRequest.Error())
-	}
+	req := newQoveryLabelsGroupRequestFromDomain(request)
 
 	newLabelsGroup, resp, err := c.client.OrganizationLabelsGroupAPI.
 		CreateOrganizationLabelsGroup(ctx, organizationId).
@@ -54,10 +50,7 @@ func (c labelsGroupQoveryAPI) Get(ctx context.Context, organizationGroupId strin
 }
 
 func (c labelsGroupQoveryAPI) Update(ctx context.Context, organizationGroupId string, labelsGroupId string, request labels_group.UpsertRequest) (*labels_group.LabelsGroup, error) {
-	req, err := newQoveryLabelsGroupRequestFromDomain(request)
-	if err != nil {
-		return nil, errors.Wrap(err, labels_group.ErrInvalidLabelsGroupRequest.Error())
-	}
+	req := newQoveryLabelsGroupRequestFromDomain(request)
 
 	labelsGroup, resp, err := c.client.OrganizationLabelsGroupAPI.
 		EditOrganizationLabelsGroup(ctx, organizationGroupId, labelsGroupId).
