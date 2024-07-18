@@ -12,8 +12,8 @@ type Protocol string
 const (
 	ProtocolHTTP Protocol = "HTTP"
 	ProtocolGRPC Protocol = "GRPC"
-	ProtocolTCP Protocol = "TCP"
-	ProtocolUDP Protocol = "UDP"
+	ProtocolTCP  Protocol = "TCP"
+	ProtocolUDP  Protocol = "UDP"
 )
 
 // AllowedProtocolValues contains all the valid values of a Protocol.

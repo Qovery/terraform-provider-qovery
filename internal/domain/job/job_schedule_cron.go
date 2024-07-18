@@ -22,13 +22,6 @@ func (c JobScheduleCron) Validate() error {
 		return errors.Wrap(errors.New("cron string format is invalid"), ErrInvalidJobScheduleCronScheduleParam.Error())
 	}
 
-	if err := c.Command.Validate(); err != nil {
-		{
-			return errors.Wrap(err, ErrInvalidJobScheduleOnStartParam.Error())
-		}
-		return ErrInvalidJobScheduleCronCommandParam
-	}
-
 	return nil
 }
 

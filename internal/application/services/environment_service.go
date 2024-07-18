@@ -157,7 +157,7 @@ func (s environmentService) Delete(ctx context.Context, environmentID string) er
 		return nil
 	}
 
-	if err := wait(ctx, waitFinalStateFunc(s.environmentDeploymentService, environmentID), nil); err != nil {
+	if err := wait(ctx, waitFinalStateFunc(s.environmentDeploymentService, environmentID)); err != nil {
 		return errors.Wrap(err, environment.ErrFailedToDeleteEnvironment.Error())
 	}
 
@@ -165,7 +165,7 @@ func (s environmentService) Delete(ctx context.Context, environmentID string) er
 		return errors.Wrap(err, environment.ErrFailedToDeleteEnvironment.Error())
 	}
 
-	if err := wait(ctx, waitNotFoundFunc(s.environmentDeploymentService, environmentID), nil); err != nil {
+	if err := wait(ctx, waitNotFoundFunc(s.environmentDeploymentService, environmentID)); err != nil {
 		return errors.Wrap(err, environment.ErrFailedToDeleteEnvironment.Error())
 	}
 

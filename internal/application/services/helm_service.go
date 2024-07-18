@@ -172,7 +172,7 @@ func (s helmService) Delete(ctx context.Context, helmID string) error {
 		return errors.Wrap(err, helm.ErrFailedToDeleteHelm.Error())
 	}
 
-	if err := wait(ctx, waitNotFoundFunc(s.helmDeploymentService, helmID), nil); err != nil {
+	if err := wait(ctx, waitNotFoundFunc(s.helmDeploymentService, helmID)); err != nil {
 		return errors.Wrap(err, helm.ErrFailedToDeleteHelm.Error())
 	}
 

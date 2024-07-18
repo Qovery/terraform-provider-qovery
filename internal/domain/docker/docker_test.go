@@ -30,7 +30,7 @@ func TestDockerValidate(t *testing.T) {
 		t.Run(tc.description, func(t *testing.T) {
 			// execute:
 			i := docker.Docker{
-				GitRepository:  git_repository.GitRepository(tc.gitRepository),
+				GitRepository:  tc.gitRepository,
 				DockerFilePath: tc.dockerFilePath,
 			}
 

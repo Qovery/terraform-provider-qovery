@@ -1,8 +1,9 @@
 package qoveryapi
 
 import (
-	"github.com/pkg/errors"
 	"time"
+
+	"github.com/pkg/errors"
 
 	"github.com/qovery/qovery-client-go"
 
@@ -188,15 +189,9 @@ func newQoveryHelmRequestFromDomain(request helm.UpsertRepositoryRequest) (*qove
 		return nil, errors.Wrap(err, helm.ErrInvalidUpsertRequest.Error())
 	}
 
-	source, err := newQoveryHelmSourceRequestFromDomain(request.Source)
-	if err != nil {
-		return nil, errors.Wrap(err, helm.ErrInvalidUpsertRequest.Error())
-	}
+	source := newQoveryHelmSourceRequestFromDomain(request.Source)
 
-	fileValuesOverride, err := newQoveryFileValuesOverrideRequestFromDomain(request.ValuesOverride.File)
-	if err != nil {
-		return nil, errors.Wrap(err, helm.ErrInvalidUpsertRequest.Error())
-	}
+	fileValuesOverride := newQoveryFileValuesOverrideRequestFromDomain(request.ValuesOverride.File)
 
 	return &qovery.HelmRequest{
 		Name:                      request.Name,
@@ -216,7 +211,7 @@ func newQoveryHelmRequestFromDomain(request helm.UpsertRepositoryRequest) (*qove
 	}, nil
 }
 
-func newQoveryHelmSourceRequestFromDomain(source helm.Source) (*qovery.HelmRequestAllOfSource, error) {
+func newQoveryHelmSourceRequestFromDomain(source helm.Source) *qovery.HelmRequestAllOfSource {
 
 	var gitRepositorySource *qovery.HelmRequestAllOfSourceOneOf = nil
 	if source.GitRepository != nil {
@@ -258,12 +253,12 @@ func newQoveryHelmSourceRequestFromDomain(source helm.Source) (*qovery.HelmReque
 		HelmRequestAllOfSourceOneOf1: helmRepositorySource,
 	}
 
-	return &s, nil
+	return &s
 }
 
-func newQoveryFileValuesOverrideRequestFromDomain(file *helm.ValuesOverrideFile) (*qovery.NullableHelmRequestAllOfValuesOverrideFile, error) {
+func newQoveryFileValuesOverrideRequestFromDomain(file *helm.ValuesOverrideFile) *qovery.NullableHelmRequestAllOfValuesOverrideFile {
 	if file == nil {
-		return &qovery.NullableHelmRequestAllOfValuesOverrideFile{}, nil
+		return &qovery.NullableHelmRequestAllOfValuesOverrideFile{}
 	}
 
 	f := qovery.NullableHelmRequestAllOfValuesOverrideFile{}
@@ -298,7 +293,7 @@ func newQoveryFileValuesOverrideRequestFromDomain(file *helm.ValuesOverrideFile)
 		v.SetRaw(r)
 	}
 
-	return &f, nil
+	return &f
 }
 
 func newQoveryHelmPortsRequestFromDomain(ports *[]helm.Port) (*[]qovery.HelmPortRequestPortsInner, error) {

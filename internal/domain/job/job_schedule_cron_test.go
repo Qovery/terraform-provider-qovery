@@ -1,8 +1,9 @@
 package job_test
 
 import (
-	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 	"testing"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/stretchr/testify/assert"
 

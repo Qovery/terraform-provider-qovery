@@ -88,7 +88,7 @@ func (c deploymentService) Deploy(ctx context.Context, resourceID string, versio
 		}
 	}
 
-	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateDeployed), nil); err != nil {
+	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateDeployed)); err != nil {
 		return nil, errors.Wrap(err, deployment.ErrFailedToDeploy.Error())
 	}
 
@@ -101,7 +101,7 @@ func (c deploymentService) Redeploy(ctx context.Context, resourceID string) (*st
 		return nil, errors.Wrap(err, deployment.ErrFailedToRedeploy.Error())
 	}
 
-	if err := c.wait(ctx, c.waitFinalStateFunc(resourceID), nil); err != nil {
+	if err := c.wait(ctx, c.waitFinalStateFunc(resourceID)); err != nil {
 		return nil, errors.Wrap(err, deployment.ErrFailedToRedeploy.Error())
 	}
 
@@ -120,7 +120,7 @@ func (c deploymentService) Redeploy(ctx context.Context, resourceID string) (*st
 		}
 	}
 
-	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateDeployed), nil); err != nil {
+	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateDeployed)); err != nil {
 		return nil, errors.Wrap(err, deployment.ErrFailedToRedeploy.Error())
 	}
 
@@ -148,7 +148,7 @@ func (c deploymentService) Stop(ctx context.Context, resourceID string) (*status
 		}
 	}
 
-	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateStopped), nil); err != nil {
+	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateStopped)); err != nil {
 		return nil, errors.Wrap(err, deployment.ErrFailedToStop.Error())
 	}
 
@@ -168,37 +168,8 @@ func (c deploymentService) checkResourceID(resourceID string) error {
 	return nil
 }
 
-func (c deploymentService) wait(ctx context.Context, f waitFunc, timeout *time.Duration) error {
-	if timeout == nil {
-		timeout = pointer.ToDuration(defaultWaitTimeout)
-	}
-
-	// Run the function once before waiting
-	ok, err := f(ctx)
-	if err != nil {
-		return err
-	}
-	if ok {
-		return nil
-	}
-
-	ticker := time.NewTicker(10 * time.Second)
-	timeoutTicker := time.NewTicker(*timeout)
-
-	for {
-		select {
-		case <-timeoutTicker.C:
-			return nil
-		case <-ticker.C:
-			ok, err := f(ctx)
-			if err != nil {
-				return err
-			}
-			if ok {
-				return nil
-			}
-		}
-	}
+func (c deploymentService) wait(ctx context.Context, f waitFunc) error {
+	return wait(ctx, f)
 }
 
 func (c deploymentService) waitDesiredStateFunc(resourceID string, desiredState status.State) waitFunc {
@@ -250,10 +221,8 @@ func waitNotFoundFunc(deploymentRepository deployment.Repository, resourceID str
 	}
 }
 
-func wait(ctx context.Context, f waitFunc, timeout *time.Duration) error {
-	if timeout == nil {
-		timeout = pointer.ToDuration(defaultWaitTimeout)
-	}
+func wait(ctx context.Context, f waitFunc) error {
+	timeout := pointer.ToDuration(defaultWaitTimeout)
 
 	// Run the function once before waiting
 	ok, err := f(ctx)

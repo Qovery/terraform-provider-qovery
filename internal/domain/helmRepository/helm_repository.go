@@ -1,11 +1,12 @@
 package helmRepository
 
 import (
+	"net/url"
+
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
-	"net/url"
 )
 
 var (

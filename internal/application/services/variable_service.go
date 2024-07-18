@@ -66,6 +66,9 @@ func (c variableService) Update(
 		return nil, errors.Wrap(err, variable.ErrFailedToListVariables.Error())
 	}
 	environmentVariablesForCurrentScope, err := c.variableRepository.List(ctx, resourceID)
+	if err != nil {
+		return nil, err
+	}
 	// TODO (mzo) set authorized scopes in current method params (for env & prj)
 	var environmentVariablesByNameForAliases = make(map[string]variable.Variable)
 	var environmentVariablesByNameForOverrides = make(map[string]variable.Variable)

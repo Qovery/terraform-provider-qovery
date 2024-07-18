@@ -2,7 +2,6 @@ package qoveryapi
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
@@ -103,7 +102,7 @@ func (d deploymentStatusQoveryAPI) newEnvironmentWaitForTerminalStateBeforeDeplo
 		}
 
 		// Unexpected status
-		return false, errors.New(fmt.Sprintf("Unexpected deployment status having status: %s", status.State))
+		return false, fmt.Errorf("Unexpected deployment status having status: %s", status.State)
 	}
 }
 
@@ -125,13 +124,13 @@ func (d deploymentStatusQoveryAPI) newEnvironmentWaitForExpectedDesiredState(env
 			return false, nil
 		// Finished with error
 		case "BUILD_ERROR", "DEPLOYMENT_ERROR", "DELETE_ERROR", "STOP_ERROR", "RESTART_ERROR":
-			return false, errors.New(fmt.Sprintf("Environment deployment failed with final status: %s", status.State))
+			return false, fmt.Errorf("Environment deployment failed with final status: %s", status.State)
 		// Finished with success
 		case "STOPPED", "DEPLOYED", "DELETED", "RESTARTED", "CANCELED":
 			return true, nil
 		}
 
 		// Unexpected status
-		return false, errors.New(fmt.Sprintf("Unexpected deployment status having status: %s", status.State))
+		return false, fmt.Errorf("Unexpected deployment status having status: %s", status.State)
 	}
 }

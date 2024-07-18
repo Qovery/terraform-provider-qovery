@@ -150,7 +150,7 @@ func (s containerService) Delete(ctx context.Context, containerID string) error 
 		return errors.Wrap(err, container.ErrFailedToDeleteContainer.Error())
 	}
 
-	if err := wait(ctx, waitNotFoundFunc(s.containerDeploymentService, containerID), nil); err != nil {
+	if err := wait(ctx, waitNotFoundFunc(s.containerDeploymentService, containerID)); err != nil {
 		return errors.Wrap(err, container.ErrFailedToDeleteContainer.Error())
 	}
 

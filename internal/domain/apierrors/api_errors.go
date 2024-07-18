@@ -104,9 +104,9 @@ func (e APIError) errorPayload() *apiErrorPayload {
 // NewAPIErrorFromError tries to cast an error into an APIError.
 // This is useful when working with APIError passed as an `error` type to get the actual APIError type.
 func NewAPIErrorFromError(err error) *APIError {
-	switch err.(type) {
+	switch err := err.(type) {
 	case *APIError:
-		return err.(*APIError)
+		return err
 	default:
 		return nil
 	}
