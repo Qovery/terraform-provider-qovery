@@ -234,7 +234,7 @@ func (h *Helm) SetEnvironmentVariables(vars variable.Variables) error {
 	h.BuiltInEnvironmentVariables = builtIn
 
 	if err := h.SetHosts(vars); err != nil {
-		return nil
+		return err
 	}
 
 	return nil
