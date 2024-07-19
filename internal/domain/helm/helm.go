@@ -294,5 +294,10 @@ func (h *Helm) SetHosts(vars variable.Variables) error {
 		}
 	}
 
-	return ErrFailedToSetHosts
+	// One of hte host_external or the host_internal has to be present
+	if h.ExternalHost == nil && h.InternalHost == nil {
+		return ErrFailedToSetHosts
+	}
+
+	return nil
 }
