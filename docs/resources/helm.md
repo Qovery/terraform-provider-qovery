@@ -233,6 +233,13 @@ Required:
 - `domain` (String) Your custom domain.
 - `generate_certificate` (Boolean) Qovery will generate and manage the certificate for this domain.
 
+Optional:
+
+- `use_cdn` (Boolean) Indicates if the custom domain is behind a CDN (i.e Cloudflare).
+This will condition the way we are checking CNAME before & during a deployment:
+ * If `true` then we only check the domain points to an IP
+ * If `false` then we check that the domain resolves to the correct service Load Balancer
+
 Read-Only:
 
 - `id` (String) Id of the custom domain.
