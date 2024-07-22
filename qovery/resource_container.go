@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -15,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
@@ -453,6 +455,13 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 						"generate_certificate": schema.BoolAttribute{
 							Description: "Qovery will generate and manage the certificate for this domain.",
 							Optional:    true,
+						},
+						"use_cdn": schema.BoolAttribute{
+							Description: "Indicates if the custom domain is behind a CDN (i.e Cloudflare).\n" +
+								"This will condition the way we are checking CNAME before & during a deployment:\n" +
+								" * If `true` then we only check the domain points to an IP\n" +
+								" * If `false` then we check that the domain resolves to the correct service Load Balancer",
+							Optional: true,
 						},
 						"validation_domain": schema.StringAttribute{
 							Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",

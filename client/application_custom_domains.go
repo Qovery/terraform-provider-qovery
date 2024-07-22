@@ -28,23 +28,23 @@ func (c *Client) updateApplicationCustomDomains(ctx context.Context, application
 		}
 	}
 
-	for _, variable := range request.Update {
+	for _, customDomainToUpdate := range request.Update {
 		_, res, err := c.api.CustomDomainAPI.
-			EditCustomDomain(ctx, applicationID, variable.Id).
-			CustomDomainRequest(variable.CustomDomainRequest).
+			EditCustomDomain(ctx, applicationID, customDomainToUpdate.Id).
+			CustomDomainRequest(customDomainToUpdate.CustomDomainRequest).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
-			return apierrors.NewUpdateError(apierrors.APIResourceApplicationCustomDomain, variable.Id, res, err)
+			return apierrors.NewUpdateError(apierrors.APIResourceApplicationCustomDomain, customDomainToUpdate.Id, res, err)
 		}
 	}
 
-	for _, variable := range request.Create {
+	for _, customDomainToCreate := range request.Create {
 		_, res, err := c.api.CustomDomainAPI.
 			CreateApplicationCustomDomain(ctx, applicationID).
-			CustomDomainRequest(variable.CustomDomainRequest).
+			CustomDomainRequest(customDomainToCreate.CustomDomainRequest).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
-			return apierrors.NewCreateError(apierrors.APIResourceApplicationCustomDomain, variable.Domain, res, err)
+			return apierrors.NewCreateError(apierrors.APIResourceApplicationCustomDomain, customDomainToCreate.Domain, res, err)
 		}
 	}
 	return nil

@@ -55,6 +55,7 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 					qovery.CustomDomainRequest{
 						Domain:              customDomain.Domain,
 						GenerateCertificate: customDomain.GenerateCertificate,
+						UseCdn:              customDomain.UseCdn,
 					}).
 				Execute()
 			if err != nil || resp.StatusCode >= 400 {
@@ -153,6 +154,7 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 					qovery.CustomDomainRequest{
 						Domain:              customDomain.Domain,
 						GenerateCertificate: customDomain.GenerateCertificate,
+						UseCdn:              customDomain.UseCdn,
 					}).
 				Execute()
 			if err != nil || resp.StatusCode >= 400 {
@@ -166,6 +168,7 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 					qovery.CustomDomainRequest{
 						Domain:              customDomain.Domain,
 						GenerateCertificate: customDomain.GenerateCertificate,
+						UseCdn:              customDomain.UseCdn,
 					}).
 				Execute()
 			if err != nil || resp.StatusCode >= 400 {

@@ -16,6 +16,7 @@ var customDomainAttrTypes = map[string]attr.Type{
 	"validation_domain":    types.StringType,
 	"status":               types.StringType,
 	"generate_certificate": types.BoolType,
+	"use_cdn":              types.BoolType,
 }
 
 type CustomDomainList []CustomDomain
@@ -71,12 +72,12 @@ func (domains CustomDomainList) diff(oldDomains CustomDomainList) client.CustomD
 		}
 	}
 
-	for _, d := range domains {
-		do := oldDomains.find(ToString(d.Domain))
-		if do == nil {
-			diff.Create = append(diff.Create, d.toCreateRequest())
-		} else if do.GenerateCertificate != d.GenerateCertificate {
-			diff.Update = append(diff.Update, do.toUpdateRequest(d))
+	for _, domain := range domains {
+		oldDomain := oldDomains.find(ToString(domain.Domain))
+		if oldDomain == nil {
+			diff.Create = append(diff.Create, domain.toCreateRequest())
+		} else if oldDomain.GenerateCertificate != domain.GenerateCertificate || oldDomain.UseCdn != domain.UseCdn {
+			diff.Update = append(diff.Update, oldDomain.toUpdateRequest(domain))
 		}
 	}
 
@@ -89,6 +90,7 @@ type CustomDomain struct {
 	ValidationDomain    types.String `tfsdk:"validation_domain"`
 	Status              types.String `tfsdk:"status"`
 	GenerateCertificate types.Bool   `tfsdk:"generate_certificate"`
+	UseCdn              types.Bool   `tfsdk:"use_cdn"`
 }
 
 func (d CustomDomain) toTerraformObject() types.Object {
@@ -98,6 +100,7 @@ func (d CustomDomain) toTerraformObject() types.Object {
 		"validation_domain":    d.ValidationDomain,
 		"status":               d.Status,
 		"generate_certificate": d.GenerateCertificate,
+		"use_cdn":              d.GenerateCertificate,
 	}
 	terraformObjectValue, diagnostics := types.ObjectValue(customDomainAttrTypes, attributes)
 	if diagnostics.HasError() {
@@ -131,21 +134,30 @@ func (d CustomDomain) toDeleteRequest() client.CustomDomainDeleteRequest {
 	}
 }
 
-func fromCustomDomain(plan *CustomDomain, d *qovery.CustomDomain) CustomDomain {
+func fromCustomDomain(plan *CustomDomain, domain *qovery.CustomDomain) CustomDomain {
 	var generateCertificate *bool
 	if plan != nil && (plan.GenerateCertificate.IsNull() || plan.GenerateCertificate.IsUnknown()) {
 		// as GenerateCertificate is optional, terraform expect to receive null if GenerateCertificate is not defined in the plan
 		generateCertificate = nil
 	} else {
-		generateCertificate = &d.GenerateCertificate
+		generateCertificate = &domain.GenerateCertificate
+	}
+
+	var useCdn *bool
+	if plan != nil && (plan.UseCdn.IsNull() || plan.UseCdn.IsUnknown()) {
+		// as UseCdn is optional, terraform expect to receive null if UseCdn is not defined in the plan
+		useCdn = nil
+	} else {
+		useCdn = domain.UseCdn
 	}
 
 	return CustomDomain{
-		Id:                  FromString(d.Id),
-		Domain:              FromString(d.Domain),
-		ValidationDomain:    FromStringPointer(d.ValidationDomain),
-		Status:              fromClientEnumPointer(d.Status),
+		Id:                  FromString(domain.Id),
+		Domain:              FromString(domain.Domain),
+		ValidationDomain:    FromStringPointer(domain.ValidationDomain),
+		Status:              fromClientEnumPointer(domain.Status),
 		GenerateCertificate: FromBoolPointer(generateCertificate),
+		UseCdn:              FromBoolPointer(useCdn),
 	}
 }
 
@@ -179,6 +191,7 @@ func toCustomDomain(v types.Object) CustomDomain {
 		ValidationDomain:    v.Attributes()["validation_domain"].(types.String),
 		Status:              v.Attributes()["status"].(types.String),
 		GenerateCertificate: v.Attributes()["generate_certificate"].(types.Bool),
+		UseCdn:              v.Attributes()["use_cdn"].(types.Bool),
 	}
 }
 

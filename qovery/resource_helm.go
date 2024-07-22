@@ -476,6 +476,13 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 							Description: "Qovery will generate and manage the certificate for this domain.",
 							Required:    true,
 						},
+						"use_cdn": schema.BoolAttribute{
+							Description: "Indicates if the custom domain is behind a CDN (i.e Cloudflare).\n" +
+								"This will condition the way we are checking CNAME before & during a deployment:\n" +
+								" * If `true` then we only check the domain points to an IP\n" +
+								" * If `false` then we check that the domain resolves to the correct service Load Balancer",
+							Optional: true,
+						},
 						"validation_domain": schema.StringAttribute{
 							Description: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
 							Computed:    true,
