@@ -15,7 +15,7 @@ import (
 type apiErrorPayload struct {
 	Status    int    `json:"status"`
 	Error     string `json:"error"`
-	Message   string `json:"message"`
+	Message   string `json:"detail"`
 	Timestamp string `json:"timestamp"`
 	Path      string `json:"path"`
 }
