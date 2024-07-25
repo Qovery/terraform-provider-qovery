@@ -123,6 +123,11 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Description: "Name of the application.",
 				Required:    true,
 			},
+			"icon_uri": schema.StringAttribute{
+				Description: "Icon URI representing the application.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"git_repository": schema.SingleNestedAttribute{
 				Description: "Git repository of the application.",
 				Required:    true,

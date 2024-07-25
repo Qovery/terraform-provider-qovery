@@ -229,6 +229,7 @@ type Job struct {
 	ID                           types.String  `tfsdk:"id"`
 	EnvironmentID                types.String  `tfsdk:"environment_id"`
 	Name                         types.String  `tfsdk:"name"`
+	IconUri                      types.String  `tfsdk:"icon_uri"`
 	CPU                          types.Int64   `tfsdk:"cpu"`
 	Memory                       types.Int64   `tfsdk:"memory"`
 	MaxDurationSeconds           types.Int64   `tfsdk:"max_duration_seconds"`
@@ -334,6 +335,7 @@ func (j Job) toUpsertRepositoryRequest() job.UpsertRepositoryRequest {
 
 	return job.UpsertRepositoryRequest{
 		Name:                 ToString(j.Name),
+		IconUri:              ToStringPointer(j.IconUri),
 		AutoPreview:          ToBoolPointer(j.AutoPreview),
 		CPU:                  ToInt32Pointer(j.CPU),
 		Memory:               ToInt32Pointer(j.Memory),
@@ -365,6 +367,7 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		ID:                           FromString(job.ID.String()),
 		EnvironmentID:                FromString(job.EnvironmentID.String()),
 		Name:                         FromString(job.Name),
+		IconUri:                      FromString(job.IconUri),
 		CPU:                          FromInt32(job.CPU),
 		Memory:                       FromInt32(job.Memory),
 		MaxNbRestart:                 FromInt32(job.MaxNbRestart),

@@ -26,6 +26,7 @@ func TestAcc_JobDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_job.test", "id", getTestJobID()),
 					resource.TestCheckResourceAttr("data.qovery_job.test", "environment_id", getTestEnvironmentID()),
 					resource.TestCheckResourceAttr("data.qovery_job.test", "name", "cron-job"),
+					resource.TestCheckResourceAttr("data.qovery_job.test", "icon_uri", "app://qovery-console/cron-job"),
 					resource.TestCheckResourceAttr("data.qovery_job.test", "auto_preview", "true"),
 					resource.TestCheckResourceAttr("data.qovery_job.test", "cpu", "100"),
 					resource.TestCheckResourceAttr("data.qovery_job.test", "memory", "256"),

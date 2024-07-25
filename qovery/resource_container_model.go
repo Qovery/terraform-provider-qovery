@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
@@ -17,6 +18,7 @@ type Container struct {
 	EnvironmentID                types.String  `tfsdk:"environment_id"`
 	RegistryID                   types.String  `tfsdk:"registry_id"`
 	Name                         types.String  `tfsdk:"name"`
+	IconUri                      types.String  `tfsdk:"icon_uri"`
 	ImageName                    types.String  `tfsdk:"image_name"`
 	Tag                          types.String  `tfsdk:"tag"`
 	Entrypoint                   types.String  `tfsdk:"entrypoint"`
@@ -148,6 +150,7 @@ func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomD
 	return container.UpsertRepositoryRequest{
 		RegistryID:           ToString(cont.RegistryID),
 		Name:                 ToString(cont.Name),
+		IconUri:              ToStringPointer(cont.IconUri),
 		ImageName:            ToString(cont.ImageName),
 		Tag:                  ToString(cont.Tag),
 		AutoPreview:          ToBoolPointer(cont.AutoPreview),
@@ -176,6 +179,7 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		EnvironmentID:                FromString(container.EnvironmentID.String()),
 		RegistryID:                   FromString(container.RegistryID.String()),
 		Name:                         FromString(container.Name),
+		IconUri:                      FromString(container.IconUri),
 		ImageName:                    FromString(container.ImageName),
 		Tag:                          FromString(container.Tag),
 		CPU:                          FromInt32(container.CPU),

@@ -28,6 +28,7 @@ type AggregateJobResponse struct {
 	MaximumMemory       int32
 	Name                string
 	Description         *string
+	IconUri             string
 	Cpu                 int32
 	Memory              int32
 	MaxNbRestart        *int32
@@ -72,6 +73,7 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 			MaximumMemory:       jobResponse.CronJobResponse.MaximumMemory,
 			Name:                jobResponse.CronJobResponse.Name,
 			Description:         jobResponse.CronJobResponse.Description,
+			IconUri:             jobResponse.CronJobResponse.IconUri,
 			Cpu:                 jobResponse.CronJobResponse.Cpu,
 			Memory:              jobResponse.CronJobResponse.Memory,
 			MaxNbRestart:        jobResponse.CronJobResponse.MaxNbRestart,
@@ -112,6 +114,7 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 			MaximumMemory:       jobResponse.LifecycleJobResponse.MaximumMemory,
 			Name:                jobResponse.LifecycleJobResponse.Name,
 			Description:         jobResponse.LifecycleJobResponse.Description,
+			IconUri:             jobResponse.LifecycleJobResponse.IconUri,
 			Cpu:                 jobResponse.LifecycleJobResponse.Cpu,
 			Memory:              jobResponse.LifecycleJobResponse.Memory,
 			MaxNbRestart:        jobResponse.LifecycleJobResponse.MaxNbRestart,
@@ -243,6 +246,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 		JobID:                j.Id,
 		EnvironmentID:        j.EnvironmentId,
 		Name:                 j.Name,
+		IconUri:              j.IconUri,
 		AutoPreview:          j.AutoPreview,
 		CPU:                  j.Cpu,
 		Memory:               j.Memory,
@@ -331,6 +335,7 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 
 	return &qovery.JobRequest{
 		Name:               request.Name,
+		IconUri:            request.IconUri,
 		AutoPreview:        request.AutoPreview,
 		Cpu:                request.CPU,
 		Memory:             request.Memory,

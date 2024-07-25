@@ -65,6 +65,7 @@ type Container struct {
 	EnvironmentID               uuid.UUID `validate:"required"`
 	RegistryID                  uuid.UUID `validate:"required"`
 	Name                        string    `validate:"required"`
+	IconUri                     string    `validate:"required"`
 	ImageName                   string    `validate:"required"`
 	Tag                         string    `validate:"required"`
 	CPU                         int32     `validate:"required"`
@@ -119,6 +120,7 @@ type NewContainerParams struct {
 	EnvironmentID          string
 	RegistryID             string
 	Name                   string
+	IconUri                string
 	ImageName              string
 	Tag                    string
 	CPU                    int32
@@ -176,6 +178,7 @@ func NewContainer(params NewContainerParams) (*Container, error) {
 		EnvironmentID:        environmentUUID,
 		RegistryID:           registryUUID,
 		Name:                 params.Name,
+		IconUri:              params.IconUri,
 		ImageName:            params.ImageName,
 		Tag:                  params.Tag,
 		AutoPreview:          params.AutoPreview,

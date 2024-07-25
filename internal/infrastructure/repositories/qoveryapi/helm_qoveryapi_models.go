@@ -18,6 +18,7 @@ type AggregateHelmResponse struct {
 	UpdatedAt                 *time.Time
 	Name                      string
 	Description               *string
+	IconUri                   string
 	TimeoutSec                *int32
 	AutoPreview               bool
 	AutoDeploy                bool
@@ -43,6 +44,7 @@ func getAggregateHelmResponse(helmResponse *qovery.HelmResponse) AggregateHelmRe
 		UpdatedAt:                 helmResponse.UpdatedAt,
 		Name:                      helmResponse.Name,
 		Description:               helmResponse.Description,
+		IconUri:                   helmResponse.IconUri,
 		TimeoutSec:                helmResponse.TimeoutSec,
 		AutoPreview:               helmResponse.AutoPreview,
 		AutoDeploy:                helmResponse.AutoDeploy,
@@ -168,6 +170,7 @@ func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageI
 		HelmID:                    h.Id,
 		EnvironmentID:             h.EnvironmentId,
 		Name:                      h.Name,
+		IconUri:                   h.IconUri,
 		TimeoutSec:                h.TimeoutSec,
 		AutoPreview:               h.AutoPreview,
 		AutoDeploy:                h.AutoDeploy,
@@ -195,6 +198,7 @@ func newQoveryHelmRequestFromDomain(request helm.UpsertRepositoryRequest) (*qove
 
 	return &qovery.HelmRequest{
 		Name:                      request.Name,
+		IconUri:                   request.IconUri,
 		TimeoutSec:                request.TimeoutSec,
 		AutoPreview:               request.AutoPreview,
 		AutoDeploy:                request.AutoDeploy,

@@ -67,6 +67,11 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				Description: "Name of the application.",
 				Computed:    true,
 			},
+			"icon_uri": schema.StringAttribute{
+				Description: "Icon URI representing the application.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"git_repository": schema.SingleNestedAttribute{
 				Description: "Git repository of the application.",
 				Computed:    true,

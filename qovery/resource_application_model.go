@@ -17,6 +17,7 @@ type Application struct {
 	Id                           types.String              `tfsdk:"id"`
 	EnvironmentId                types.String              `tfsdk:"environment_id"`
 	Name                         types.String              `tfsdk:"name"`
+	IconUri                      types.String              `tfsdk:"icon_uri"`
 	GitRepository                *ApplicationGitRepository `tfsdk:"git_repository"`
 	BuildMode                    types.String              `tfsdk:"build_mode"`
 	DockerfilePath               types.String              `tfsdk:"dockerfile_path"`
@@ -143,6 +144,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 	return &client.ApplicationCreateParams{
 		ApplicationRequest: qovery.ApplicationRequest{
 			Name:                ToString(app.Name),
+			IconUri:             ToStringPointer(app.IconUri),
 			BuildMode:           buildMode,
 			DockerfilePath:      ToNullableString(app.DockerfilePath),
 			BuildpackLanguage:   ToNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
@@ -248,6 +250,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 
 	applicationEditRequest := qovery.ApplicationEditRequest{
 		Name:                ToStringPointer(app.Name),
+		IconUri:             ToStringPointer(app.IconUri),
 		BuildMode:           buildMode,
 		DockerfilePath:      ToNullableString(app.DockerfilePath),
 		BuildpackLanguage:   ToNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
@@ -288,6 +291,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		Id:                           FromString(app.ApplicationResponse.Id),
 		EnvironmentId:                FromString(app.ApplicationResponse.Environment.Id),
 		Name:                         FromString(app.ApplicationResponse.Name),
+		IconUri:                      FromString(app.ApplicationResponse.IconUri),
 		BuildMode:                    fromClientEnumPointer(app.ApplicationResponse.BuildMode),
 		DockerfilePath:               FromNullableString(app.ApplicationResponse.DockerfilePath),
 		BuildpackLanguage:            FromNullableNullableBuildPackLanguageEnum(app.ApplicationResponse.BuildpackLanguage),

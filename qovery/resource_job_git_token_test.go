@@ -4,6 +4,7 @@
 package qovery_test
 
 import (
+	"fmt"
 	"regexp"
 	"testing"
 
@@ -27,6 +28,7 @@ func TestAcc_JobGitToken(t *testing.T) {
 					testName,
 					qovery.Job{
 						Name:               qovery.FromString(generateTestName(testName)),
+						IconUri:            qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName))),
 						AutoPreview:        qovery.FromBool(false),
 						CPU:                qovery.FromInt32(500),
 						Memory:             qovery.FromInt32(512),

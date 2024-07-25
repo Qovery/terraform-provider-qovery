@@ -26,6 +26,7 @@ func TestAcc_ApplicationDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_application.test", "id", getTestApplicationID()),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "environment_id", getTestEnvironmentID()),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "name", "test-http-server"),
+					resource.TestCheckResourceAttr("data.qovery_application.test", "icon_uri", "app://qovery-console/application"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "git_repository.url", applicationRepositoryURL),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "git_repository.branch", applicationBranch),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "git_repository.root_path", "/"),

@@ -79,6 +79,11 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Description: "Name of the container.",
 				Required:    true,
 			},
+			"icon_uri": schema.StringAttribute{
+				Description: "Icon URI representing the container.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"image_name": schema.StringAttribute{
 				Description: "Name of the container image.",
 				Required:    true,

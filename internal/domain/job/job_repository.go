@@ -24,6 +24,7 @@ type Repository interface {
 // UpsertRepositoryRequest represents the parameters needed to create & update a Job.
 type UpsertRepositoryRequest struct {
 	Name                 string `validate:"required"`
+	IconUri              *string
 	AutoPreview          *bool
 	Entrypoint           *string
 	CPU                  *int32

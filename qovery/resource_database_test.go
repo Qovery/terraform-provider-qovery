@@ -31,6 +31,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					testName,
 					qovery.Database{
 						Name:          qovery.FromString(generateTestName(testName)),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName))),
 						Type:          qovery.FromString("REDIS"),
 						Version:       qovery.FromString("6.2"),
 						Mode:          qovery.FromString("CONTAINER"),
@@ -62,6 +63,39 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					testName,
 					qovery.Database{
 						Name:          qovery.FromString(generateTestName(testName) + "-updated"),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName))),
+						Type:          qovery.FromString("REDIS"),
+						Version:       qovery.FromString("6.2"),
+						Mode:          qovery.FromString("CONTAINER"),
+						Accessibility: qovery.FromString("PUBLIC"),
+						CPU:           qovery.FromInt32(250),
+						Memory:        qovery.FromInt32(256),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromStringPointer(nil),
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryDatabaseExists("qovery_database.test"),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", fmt.Sprintf("%s-updated", generateTestName(testName))),
+					resource.TestCheckResourceAttr("qovery_database.test", "type", "REDIS"),
+					resource.TestCheckResourceAttr("qovery_database.test", "version", "6.2"),
+					resource.TestCheckResourceAttr("qovery_database.test", "mode", "CONTAINER"),
+					resource.TestCheckResourceAttr("qovery_database.test", "accessibility", "PUBLIC"),
+					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
+					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
+					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp2-0"),
+				),
+			},
+			// Update iconUri
+			{
+				Config: GetDatabaseConfigFromModel(
+					testName,
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName) + "-updated"),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						Type:          qovery.FromString("REDIS"),
 						Version:       qovery.FromString("6.2"),
 						Mode:          qovery.FromString("CONTAINER"),
@@ -93,6 +127,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					testName,
 					qovery.Database{
 						Name:          qovery.FromString(generateTestName(testName)),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						Type:          qovery.FromString("REDIS"),
 						Version:       qovery.FromString("6.2"),
 						Mode:          qovery.FromString("CONTAINER"),
@@ -124,6 +159,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					testName,
 					qovery.Database{
 						Name:          qovery.FromString(generateTestName(testName)),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						Type:          qovery.FromString("REDIS"),
 						Version:       qovery.FromString("6.2"),
 						Mode:          qovery.FromString("CONTAINER"),
@@ -155,6 +191,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					testName,
 					qovery.Database{
 						Name:          qovery.FromString(generateTestName(testName)),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						Type:          qovery.FromString("REDIS"),
 						Version:       qovery.FromString("7.0"),
 						Mode:          qovery.FromString("CONTAINER"),
@@ -199,6 +236,7 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					testName,
 					qovery.Database{
 						Name:          qovery.FromString(generateTestName(testName)),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName))),
 						Type:          qovery.FromString("POSTGRESQL"),
 						Version:       qovery.FromString("13"),
 						Mode:          qovery.FromString("MANAGED"),
@@ -230,6 +268,39 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					testName,
 					qovery.Database{
 						Name:          qovery.FromString(generateTestName(testName) + "-updated"),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName))),
+						Type:          qovery.FromString("POSTGRESQL"),
+						Version:       qovery.FromString("13"),
+						Mode:          qovery.FromString("MANAGED"),
+						Accessibility: qovery.FromString("PUBLIC"),
+						CPU:           qovery.FromInt32(250),
+						Memory:        qovery.FromInt32(256),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromString("db.t3.micro"),
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryDatabaseExists("qovery_database.test"),
+					resource.TestCheckResourceAttr("qovery_database.test", "name", fmt.Sprintf("%s-updated", generateTestName(testName))),
+					resource.TestCheckResourceAttr("qovery_database.test", "type", "POSTGRESQL"),
+					resource.TestCheckResourceAttr("qovery_database.test", "version", "13"),
+					resource.TestCheckResourceAttr("qovery_database.test", "mode", "MANAGED"),
+					resource.TestCheckResourceAttr("qovery_database.test", "accessibility", "PUBLIC"),
+					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
+					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
+					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "db.t3.micro"),
+				),
+			},
+			// Update iconUri
+			{
+				Config: GetDatabaseConfigFromModel(
+					testName,
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName) + "-updated"),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						Type:          qovery.FromString("POSTGRESQL"),
 						Version:       qovery.FromString("13"),
 						Mode:          qovery.FromString("MANAGED"),
@@ -261,6 +332,7 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					testName,
 					qovery.Database{
 						Name:          qovery.FromString(generateTestName(testName)),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						Type:          qovery.FromString("POSTGRESQL"),
 						Version:       qovery.FromString("13"),
 						Mode:          qovery.FromString("MANAGED"),
@@ -292,6 +364,7 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					testName,
 					qovery.Database{
 						Name:          qovery.FromString(generateTestName(testName)),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						Type:          qovery.FromString("POSTGRESQL"),
 						Version:       qovery.FromString("13"),
 						Mode:          qovery.FromString("MANAGED"),
@@ -323,6 +396,7 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					testName,
 					qovery.Database{
 						Name:          qovery.FromString(generateTestName(testName)),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						Type:          qovery.FromString("POSTGRESQL"),
 						Version:       qovery.FromString("13"),
 						Mode:          qovery.FromString("MANAGED"),
@@ -353,6 +427,7 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					testName,
 					qovery.Database{
 						Name:          qovery.FromString(generateTestName(testName)),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						Type:          qovery.FromString("POSTGRESQL"),
 						Version:       qovery.FromString("13"),
 						Mode:          qovery.FromString("MANAGED"),
@@ -383,6 +458,7 @@ func TestAcc_DatabaseManaged(t *testing.T) {
 					testName,
 					qovery.Database{
 						Name:          qovery.FromString(generateTestName(testName)),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						Type:          qovery.FromString("POSTGRESQL"),
 						Version:       qovery.FromString("14"),
 						Mode:          qovery.FromString("MANAGED"),
@@ -425,6 +501,7 @@ func TestAcc_DatabaseImport(t *testing.T) {
 					testName,
 					qovery.Database{
 						Name:          qovery.FromString(generateTestName(testName)),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName))),
 						Type:          qovery.FromString("REDIS"),
 						Version:       qovery.FromString("6.2"),
 						Mode:          qovery.FromString("CONTAINER"),
@@ -516,6 +593,7 @@ func GetDatabaseConfigFromModel(testName string, db qovery.Database) string {
 resource "qovery_database" "test" {
 	environment_id = qovery_environment.test.id
 	name = {{ .Database.Name.String }}
+	icon_uri = {{ .Database.IconUri.String }}
 	type = {{ .Database.Type.String }}
 	version = {{ .Database.Version.String }}
 	mode = {{ .Database.Mode.String }}

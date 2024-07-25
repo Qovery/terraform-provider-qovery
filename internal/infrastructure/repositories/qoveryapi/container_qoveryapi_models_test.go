@@ -1,6 +1,7 @@
 package qoveryapi
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/AlekSi/pointer"
@@ -48,6 +49,7 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 					gofakeit.Word(),
 				},
 				Name:                gofakeit.Name(),
+				IconUri:             fmt.Sprintf("app://qovery-console/%v", gofakeit.Name()),
 				ImageName:           gofakeit.Name(),
 				Tag:                 gofakeit.Word(),
 				Entrypoint:          pointer.ToString(gofakeit.Word()),

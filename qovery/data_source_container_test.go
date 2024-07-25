@@ -27,6 +27,7 @@ func TestAcc_ContainerDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_container.test", "environment_id", getTestEnvironmentID()),
 					resource.TestCheckResourceAttr("data.qovery_container.test", "registry_id", getTestContainerRegistryID()),
 					resource.TestCheckResourceAttr("data.qovery_container.test", "name", "test-container"),
+					resource.TestCheckResourceAttr("data.qovery_container.test", "icon_uri", "app://qovery-console/container"),
 					resource.TestCheckResourceAttr("data.qovery_container.test", "image_name", containerImageName),
 					resource.TestCheckResourceAttr("data.qovery_container.test", "tag", containerTag),
 					resource.TestCheckResourceAttr("data.qovery_container.test", "cpu", "500"),
