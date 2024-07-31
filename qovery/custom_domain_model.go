@@ -100,7 +100,7 @@ func (d CustomDomain) toTerraformObject() types.Object {
 		"validation_domain":    d.ValidationDomain,
 		"status":               d.Status,
 		"generate_certificate": d.GenerateCertificate,
-		"use_cdn":              d.GenerateCertificate,
+		"use_cdn":              d.UseCdn,
 	}
 	terraformObjectValue, diagnostics := types.ObjectValue(customDomainAttrTypes, attributes)
 	if diagnostics.HasError() {
@@ -114,6 +114,7 @@ func (d CustomDomain) toCreateRequest() client.CustomDomainCreateRequest {
 		CustomDomainRequest: qovery.CustomDomainRequest{
 			Domain:              ToString(d.Domain),
 			GenerateCertificate: ToBool(d.GenerateCertificate),
+			UseCdn:              ToBoolPointer(d.UseCdn),
 		},
 	}
 }
@@ -124,6 +125,7 @@ func (d CustomDomain) toUpdateRequest(new CustomDomain) client.CustomDomainUpdat
 		CustomDomainRequest: qovery.CustomDomainRequest{
 			Domain:              ToString(new.Domain),
 			GenerateCertificate: ToBool(new.GenerateCertificate),
+			UseCdn:              ToBoolPointer(new.UseCdn),
 		},
 	}
 }

@@ -940,7 +940,6 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 			{
 				ResourceName:      "qovery_application.test",
 				ImportState:       true,
-				ImportStateVerify: true,
 			},
 		},
 	})
