@@ -56,6 +56,7 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 					qovery.CustomDomainRequest{
 						Domain:              customDomain.Domain,
 						GenerateCertificate: customDomain.GenerateCertificate,
+						UseCdn:              customDomain.UseCdn,
 					}).
 				Execute()
 			if err != nil || resp.StatusCode >= 400 {
@@ -153,6 +154,7 @@ func (c helmQoveryAPI) Update(ctx context.Context, helmID string, request helm.U
 					qovery.CustomDomainRequest{
 						Domain:              customDomain.Domain,
 						GenerateCertificate: customDomain.GenerateCertificate,
+						UseCdn:              customDomain.UseCdn,
 					}).
 				Execute()
 			if err != nil || resp.StatusCode >= 400 {
@@ -166,6 +168,7 @@ func (c helmQoveryAPI) Update(ctx context.Context, helmID string, request helm.U
 					qovery.CustomDomainRequest{
 						Domain:              customDomain.Domain,
 						GenerateCertificate: customDomain.GenerateCertificate,
+						UseCdn:              customDomain.UseCdn,
 					}).
 				Execute()
 			if err != nil || resp.StatusCode >= 400 {
