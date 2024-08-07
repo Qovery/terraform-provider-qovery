@@ -213,11 +213,11 @@ func getAwsCredentialsToDelete(ctx context.Context, apiClient *qovery.APIClient,
 
 	awsCredsToDelete := make([]credentials, 0, len(awsCreds.GetResults()))
 	for _, c := range awsCreds.GetResults() {
-		credsName := strings.ToLower(c.GetName())
+		credsName := strings.ToLower(c.AwsClusterCredentials.GetName())
 		if strings.Contains(credsName, testPrefix) {
 			awsCredsToDelete = append(awsCredsToDelete, credentials{
-				ID:   c.GetId(),
-				Name: c.GetName(),
+				ID:   c.AwsClusterCredentials.GetId(),
+				Name: c.AwsClusterCredentials.GetName(),
 			})
 		}
 	}
@@ -235,11 +235,11 @@ func getScalewayCredentialsToDelete(ctx context.Context, apiClient *qovery.APICl
 
 	scalewayCredsToDelete := make([]credentials, 0, len(scalewayCreds.GetResults()))
 	for _, c := range scalewayCreds.GetResults() {
-		credsName := strings.ToLower(c.GetName())
+		credsName := strings.ToLower(c.ScalewayClusterCredentials.GetName())
 		if strings.Contains(credsName, testPrefix) {
 			scalewayCredsToDelete = append(scalewayCredsToDelete, credentials{
-				ID:   c.GetId(),
-				Name: c.GetName(),
+				ID:   c.ScalewayClusterCredentials.GetId(),
+				Name: c.ScalewayClusterCredentials.GetName(),
 			})
 		}
 	}

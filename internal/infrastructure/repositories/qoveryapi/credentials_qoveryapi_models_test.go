@@ -29,8 +29,14 @@ func TestNewDomainCredentialsFromQovery(t *testing.T) {
 			TestName:       "fail_with_empty_organization_id",
 			OrganizationID: "",
 			Credentials: &qovery.ClusterCredentials{
-				Id:   gofakeit.UUID(),
-				Name: gofakeit.Name(),
+				AwsClusterCredentials:      nil,
+				ScalewayClusterCredentials: nil,
+				GenericClusterCredentials: &qovery.GenericClusterCredentials{
+					Id:                   gofakeit.UUID(),
+					Name:                 gofakeit.Name(),
+					ObjectType:           "OTHER",
+					AdditionalProperties: map[string]interface{}{},
+				},
 			},
 			ExpectedError: credentials.ErrInvalidCredentialsOrganizationID,
 		},
@@ -38,8 +44,14 @@ func TestNewDomainCredentialsFromQovery(t *testing.T) {
 			TestName:       "success",
 			OrganizationID: gofakeit.UUID(),
 			Credentials: &qovery.ClusterCredentials{
-				Id:   gofakeit.UUID(),
-				Name: gofakeit.Name(),
+				AwsClusterCredentials:      nil,
+				ScalewayClusterCredentials: nil,
+				GenericClusterCredentials: &qovery.GenericClusterCredentials{
+					Id:                   gofakeit.UUID(),
+					Name:                 gofakeit.Name(),
+					ObjectType:           "OTHER",
+					AdditionalProperties: map[string]interface{}{},
+				},
 			},
 		},
 	}
@@ -58,8 +70,8 @@ func TestNewDomainCredentialsFromQovery(t *testing.T) {
 			assert.NotNil(t, creds)
 			assert.True(t, creds.IsValid())
 			assert.Equal(t, tc.OrganizationID, creds.OrganizationID.String())
-			assert.Equal(t, tc.Credentials.Id, creds.ID.String())
-			assert.Equal(t, tc.Credentials.Name, creds.Name)
+			assert.Equal(t, tc.Credentials.GenericClusterCredentials.Id, creds.ID.String())
+			assert.Equal(t, tc.Credentials.GenericClusterCredentials.Name, creds.Name)
 		})
 	}
 }
