@@ -11,20 +11,8 @@ type Client struct {
 }
 
 func New(token string, version string, host string) *Client {
-	cfg := qovery.NewConfiguration()
-	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Token %s", token))
-	cfg.AddDefaultHeader("content-type", "application/json")
-
-	cfg.UserAgent = fmt.Sprintf("terraform-provider-qovery/%s", version)
-	cfg.Servers = qovery.ServerConfigurations{
-		{
-			URL:         host,
-			Description: "No description provided",
-		},
-	}
-
 	return &Client{
-		qovery.NewAPIClient(cfg),
+		NewQoveryAPIClient(token, version, host),
 	}
 }
 
@@ -34,7 +22,7 @@ func NewQoveryAPIClient(token string, version string, host string) *qovery.APICl
 	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Token %s", token))
 	cfg.AddDefaultHeader("content-type", "application/json")
 
-	cfg.UserAgent = fmt.Sprintf("terraform-provider-qovery/%s", version)
+	cfg.UserAgent = fmt.Sprintf("Terraform provider %s", version)
 	cfg.Servers = qovery.ServerConfigurations{
 		{
 			URL:         host,

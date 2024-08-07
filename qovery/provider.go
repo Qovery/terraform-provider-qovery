@@ -2,7 +2,6 @@ package qovery
 
 import (
 	"context"
-	"fmt"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
@@ -18,8 +17,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/qovery/qovery-client-go"
-
 	"github.com/qovery/terraform-provider-qovery/internal/application/services"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
@@ -253,12 +250,4 @@ func New(version string) func() provider.Provider {
 			version: version,
 		}
 	}
-}
-
-func NewQoveryAPIClient(token string, version string) *qovery.APIClient {
-	cfg := qovery.NewConfiguration()
-	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Token %s", token))
-	cfg.AddDefaultHeader("content-type", "application/json")
-	cfg.UserAgent = fmt.Sprintf("terraform-provider-qovery/%s", version)
-	return qovery.NewAPIClient(cfg)
 }
