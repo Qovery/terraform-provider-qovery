@@ -90,7 +90,7 @@ func WithQoveryAPI(apiToken string, providerVersion string, host string) Configu
 	return func(repos *Repositories) error {
 		qoveryAPI, err := qoveryapi.New(
 			qoveryapi.WithQoveryAPIToken(apiToken),
-			qoveryapi.WithUserAgent(fmt.Sprintf("terraform-provider-qovery/%s", providerVersion)),
+			qoveryapi.WithUserAgent(fmt.Sprintf("Terraform provider %s", providerVersion)),
 			qoveryapi.WithServerHost(host),
 		)
 		if err != nil {
