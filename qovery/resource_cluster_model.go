@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
+
 	"github.com/qovery/terraform-provider-qovery/client"
 )
 
@@ -227,20 +228,7 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeatureResponse) types.Object 
 				v = &f.GetValueObject().ClusterFeatureAwsExistingVpcResponse.Value
 			}
 
-			attrTypes := make(map[string]attr.Type)
-			attrTypes["aws_vpc_eks_id"] = types.StringType
-			attrTypes["eks_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
-			attrTypes["eks_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
-			attrTypes["eks_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
-			attrTypes["rds_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
-			attrTypes["rds_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
-			attrTypes["rds_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
-			attrTypes["documentdb_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
-			attrTypes["documentdb_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
-			attrTypes["documentdb_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
-			attrTypes["elasticache_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
-			attrTypes["elasticache_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
-			attrTypes["elasticache_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
+			attrTypes := createExistingVpcFeatureAttrTypes()
 
 			if v == nil {
 				terraformObjectValue := types.ObjectNull(attrTypes)
@@ -249,10 +237,6 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeatureResponse) types.Object 
 				continue
 			}
 
-			// tf has a default value for it, but the api does not return this feature , as exiting vpc super seed it
-			// So set the default value to match what tf expect and not break existing clients
-			attributes[featureKeyVpcSubnet] = FromStringPointer(&clusterFeatureVpcSubnetDefault)
-			attributeTypes[featureKeyVpcSubnet] = types.StringType
 			attrVals := make(map[string]attr.Value)
 			attrVals["aws_vpc_eks_id"] = FromStringPointer(&v.AwsVpcEksId)
 			attrVals["eks_subnets_zone_a_ids"] = FromStringArray(v.EksSubnetsZoneAIds)
@@ -274,6 +258,11 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeatureResponse) types.Object 
 			}
 			attributes[featureKeyExistingVpc] = terraformObjectValue
 			attributeTypes[featureKeyExistingVpc] = terraformObjectValue.Type(context.Background())
+
+			// tf has a default value for it, but the api does not return this feature , as exiting vpc super seed it
+			// So set the default value to match what tf expect and not break existing clients
+			attributes[featureKeyVpcSubnet] = FromStringPointer(&clusterFeatureVpcSubnetDefault)
+			attributeTypes[featureKeyVpcSubnet] = types.StringType
 		case featureIdKarpenter:
 			var v *qovery.ClusterFeatureKarpenterParameters = nil
 			if f.GetValueObject().ClusterFeatureKarpenterParametersResponse != nil {
@@ -299,17 +288,28 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeatureResponse) types.Object 
 		}
 	}
 
-	// The object should be fill even if no feature is present, but will be mark as Null
-	// (e.g SCW clusters don't have any feature)
-	isNull := false
-	if len(attributes) == 0 && len(attributeTypes) == 0 {
-		isNull = true
+	// All attributes should be fill even if no feature is present.
+	// This is mandatory to satisfy the terraform framework schema.
+
+	if attributes[featureKeyVpcSubnet] == nil {
 		defaultFeatureKeyVpcSubnet := ""
-		defaultFeatureKeyStaticIP := false
 		attributes[featureKeyVpcSubnet] = FromStringPointer(&defaultFeatureKeyVpcSubnet)
 		attributeTypes[featureKeyVpcSubnet] = types.StringType
+	}
+
+	if attributes[featureKeyStaticIP] == nil {
+		defaultFeatureKeyStaticIP := false
 		attributes[featureKeyStaticIP] = FromBoolPointer(&defaultFeatureKeyStaticIP)
 		attributeTypes[featureKeyStaticIP] = types.BoolType
+	}
+
+	// featureKeyExistingVpc includes actually 2 entries: featureKeyExistingVpc and featureKeyVpcSubnet
+	if attributes[featureKeyExistingVpc] == nil {
+		existingVpcAttrTypes := createExistingVpcFeatureAttrTypes()
+		attributes[featureKeyExistingVpc] = types.ObjectNull(existingVpcAttrTypes)
+		attributeTypes[featureKeyExistingVpc] = attributes[featureKeyExistingVpc].Type(context.Background())
+		attributes[featureKeyVpcSubnet] = FromStringPointer(&clusterFeatureVpcSubnetDefault)
+		attributeTypes[featureKeyVpcSubnet] = types.StringType
 	}
 
 	// create default karpenter feature if not set yet
@@ -319,11 +319,6 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeatureResponse) types.Object 
 		terraformObjectValue := types.ObjectNull(attrTypes)
 		attributes[featureKeyKarpenter] = terraformObjectValue
 		attributeTypes[featureKeyKarpenter] = terraformObjectValue.Type(context.Background())
-	}
-
-	if isNull {
-		// Early return object null
-		return types.ObjectNull(attributeTypes)
 	}
 
 	terraformObjectValue, diagnostics := types.ObjectValue(attributeTypes, attributes)
@@ -432,6 +427,25 @@ func createKarpenterFeatureAttrTypes() map[string]attr.Type {
 	attrTypes["spot_enabled"] = types.BoolType
 	attrTypes["disk_size_in_gib"] = types.Int64Type
 	attrTypes["default_service_architecture"] = types.StringType
+
+	return attrTypes
+}
+
+func createExistingVpcFeatureAttrTypes() map[string]attr.Type {
+	attrTypes := make(map[string]attr.Type)
+	attrTypes["aws_vpc_eks_id"] = types.StringType
+	attrTypes["eks_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["eks_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["eks_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["rds_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["rds_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["rds_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["documentdb_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["documentdb_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["documentdb_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["elasticache_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["elasticache_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["elasticache_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
 
 	return attrTypes
 }
