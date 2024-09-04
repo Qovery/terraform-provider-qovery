@@ -552,8 +552,15 @@ func (r containerResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
+	// Hack to know if this method is triggered through an import
+	// EnvironmentID is always present except when importing the resource
+	var isTriggeredFromImport = false
+	if state.EnvironmentID.IsNull() {
+		isTriggeredFromImport = true
+	}
+
 	// Get container from the API
-	cont, err := r.containerService.Get(ctx, state.ID.ValueString(), state.AdvancedSettingsJson.ValueString())
+	cont, err := r.containerService.Get(ctx, state.ID.ValueString(), state.AdvancedSettingsJson.ValueString(), isTriggeredFromImport)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container read", err.Error())
 		return

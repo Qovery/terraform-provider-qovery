@@ -121,25 +121,25 @@ func (_c *JobRepository_Delete_Call) RunAndReturn(run func(context.Context, stri
 	return _c
 }
 
-// Get provides a mock function with given fields: ctx, jobID, advancedSettingsJsonFromState
-func (_m *JobRepository) Get(ctx context.Context, jobID string, advancedSettingsJsonFromState string) (*job.Job, error) {
-	ret := _m.Called(ctx, jobID, advancedSettingsJsonFromState)
+// Get provides a mock function with given fields: ctx, jobID, advancedSettingsJsonFromState, isTriggeredFromImport
+func (_m *JobRepository) Get(ctx context.Context, jobID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*job.Job, error) {
+	ret := _m.Called(ctx, jobID, advancedSettingsJsonFromState, isTriggeredFromImport)
 
 	var r0 *job.Job
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*job.Job, error)); ok {
-		return rf(ctx, jobID, advancedSettingsJsonFromState)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, bool) (*job.Job, error)); ok {
+		return rf(ctx, jobID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *job.Job); ok {
-		r0 = rf(ctx, jobID, advancedSettingsJsonFromState)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, bool) *job.Job); ok {
+		r0 = rf(ctx, jobID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*job.Job)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, jobID, advancedSettingsJsonFromState)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, bool) error); ok {
+		r1 = rf(ctx, jobID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -156,13 +156,14 @@ type JobRepository_Get_Call struct {
 //   - ctx context.Context
 //   - jobID string
 //   - advancedSettingsJsonFromState string
-func (_e *JobRepository_Expecter) Get(ctx interface{}, jobID interface{}, advancedSettingsJsonFromState interface{}) *JobRepository_Get_Call {
-	return &JobRepository_Get_Call{Call: _e.mock.On("Get", ctx, jobID, advancedSettingsJsonFromState)}
+//   - isTriggeredFromImport bool
+func (_e *JobRepository_Expecter) Get(ctx interface{}, jobID interface{}, advancedSettingsJsonFromState interface{}, isTriggeredFromImport interface{}) *JobRepository_Get_Call {
+	return &JobRepository_Get_Call{Call: _e.mock.On("Get", ctx, jobID, advancedSettingsJsonFromState, isTriggeredFromImport)}
 }
 
-func (_c *JobRepository_Get_Call) Run(run func(ctx context.Context, jobID string, advancedSettingsJsonFromState string)) *JobRepository_Get_Call {
+func (_c *JobRepository_Get_Call) Run(run func(ctx context.Context, jobID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool)) *JobRepository_Get_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(bool))
 	})
 	return _c
 }
@@ -172,7 +173,7 @@ func (_c *JobRepository_Get_Call) Return(_a0 *job.Job, _a1 error) *JobRepository
 	return _c
 }
 
-func (_c *JobRepository_Get_Call) RunAndReturn(run func(context.Context, string, string) (*job.Job, error)) *JobRepository_Get_Call {
+func (_c *JobRepository_Get_Call) RunAndReturn(run func(context.Context, string, string, bool) (*job.Job, error)) *JobRepository_Get_Call {
 	_c.Call.Return(run)
 	return _c
 }

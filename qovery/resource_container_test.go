@@ -61,6 +61,12 @@ func TestAcc_Container(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container.test", "advanced_settings_json", "{\"network.ingress.proxy_body_size_mb\":101}"),
 				),
 			},
+			// Check Import
+			{
+				ResourceName:      "qovery_container.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 			// Update name
 			{
 				Config: testAccContainerDefaultConfigWithName(
@@ -91,12 +97,6 @@ func TestAcc_Container(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_container.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
-			},
-			// Check Import
-			{
-				ResourceName:      "qovery_container.test",
-				ImportState:       true,
-				ImportStateVerify: true,
 			},
 		},
 	})
@@ -1401,7 +1401,7 @@ func testAccQoveryContainerExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("container.id not found")
 		}
 
-		_, err := qoveryServices.Container.Get(context.TODO(), rs.Primary.ID, "{}")
+		_, err := qoveryServices.Container.Get(context.TODO(), rs.Primary.ID, "{}", false)
 		if err != nil {
 			return err
 		}
@@ -1420,7 +1420,7 @@ func testAccQoveryContainerDestroy(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("container.id not found")
 		}
 
-		_, err := qoveryServices.Container.Get(context.TODO(), rs.Primary.ID, "{}")
+		_, err := qoveryServices.Container.Get(context.TODO(), rs.Primary.ID, "{}", false)
 		if err == nil {
 			return fmt.Errorf("found container but expected it to be deleted")
 		}

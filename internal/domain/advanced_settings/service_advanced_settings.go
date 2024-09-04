@@ -64,7 +64,7 @@ func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl
 }
 
 // ReadServiceAdvancedSettings Get only overridden advanced settings
-func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsJsonFromState string) (*string, error) {
+func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, error) {
 	httpClient := &http.Client{}
 	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
 
@@ -161,7 +161,7 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 		// if the value is not in the state ignore it
 		// otherwise if an advanced setting has been modified in the UI we don't want to show the diff
 		_, ok := advancedSettingsFromStateHashMap[advanced_setting_name]
-		if !ok {
+		if !isTriggeredFromImport && !ok {
 			continue
 		}
 		// if the value has been overridden

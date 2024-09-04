@@ -121,25 +121,25 @@ func (_c *HelmRepository_Delete_Call) RunAndReturn(run func(context.Context, str
 	return _c
 }
 
-// Get provides a mock function with given fields: ctx, helmID, advancedSettingsJsonFromState
-func (_m *HelmRepository) Get(ctx context.Context, helmID string, advancedSettingsJsonFromState string) (*helm.Helm, error) {
-	ret := _m.Called(ctx, helmID, advancedSettingsJsonFromState)
+// Get provides a mock function with given fields: ctx, helmID, advancedSettingsJsonFromState, isTriggeredFromImport
+func (_m *HelmRepository) Get(ctx context.Context, helmID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*helm.Helm, error) {
+	ret := _m.Called(ctx, helmID, advancedSettingsJsonFromState, isTriggeredFromImport)
 
 	var r0 *helm.Helm
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) (*helm.Helm, error)); ok {
-		return rf(ctx, helmID, advancedSettingsJsonFromState)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, bool) (*helm.Helm, error)); ok {
+		return rf(ctx, helmID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, string) *helm.Helm); ok {
-		r0 = rf(ctx, helmID, advancedSettingsJsonFromState)
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, bool) *helm.Helm); ok {
+		r0 = rf(ctx, helmID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*helm.Helm)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
-		r1 = rf(ctx, helmID, advancedSettingsJsonFromState)
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, bool) error); ok {
+		r1 = rf(ctx, helmID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -156,13 +156,14 @@ type HelmRepository_Get_Call struct {
 //   - ctx context.Context
 //   - helmID string
 //   - advancedSettingsJsonFromState string
-func (_e *HelmRepository_Expecter) Get(ctx interface{}, helmID interface{}, advancedSettingsJsonFromState interface{}) *HelmRepository_Get_Call {
-	return &HelmRepository_Get_Call{Call: _e.mock.On("Get", ctx, helmID, advancedSettingsJsonFromState)}
+//   - isTriggeredFromImport bool
+func (_e *HelmRepository_Expecter) Get(ctx interface{}, helmID interface{}, advancedSettingsJsonFromState interface{}, isTriggeredFromImport interface{}) *HelmRepository_Get_Call {
+	return &HelmRepository_Get_Call{Call: _e.mock.On("Get", ctx, helmID, advancedSettingsJsonFromState, isTriggeredFromImport)}
 }
 
-func (_c *HelmRepository_Get_Call) Run(run func(ctx context.Context, helmID string, advancedSettingsJsonFromState string)) *HelmRepository_Get_Call {
+func (_c *HelmRepository_Get_Call) Run(run func(ctx context.Context, helmID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool)) *HelmRepository_Get_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(string))
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(bool))
 	})
 	return _c
 }
@@ -172,7 +173,7 @@ func (_c *HelmRepository_Get_Call) Return(_a0 *helm.Helm, _a1 error) *HelmReposi
 	return _c
 }
 
-func (_c *HelmRepository_Get_Call) RunAndReturn(run func(context.Context, string, string) (*helm.Helm, error)) *HelmRepository_Get_Call {
+func (_c *HelmRepository_Get_Call) RunAndReturn(run func(context.Context, string, string, bool) (*helm.Helm, error)) *HelmRepository_Get_Call {
 	_c.Call.Return(run)
 	return _c
 }

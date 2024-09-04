@@ -583,8 +583,15 @@ func (r jobResource) Read(ctx context.Context, req resource.ReadRequest, resp *r
 		return
 	}
 
+	// Hack to know if this method is triggered through an import
+	// EnvironmentID is always present except when importing the resource
+	var isTriggeredFromImport = false
+	if state.EnvironmentID.IsNull() {
+		isTriggeredFromImport = true
+	}
+
 	// Get job from the API
-	cont, err := r.jobService.Get(ctx, state.ID.ValueString(), state.AdvancedSettingsJson.ValueString())
+	cont, err := r.jobService.Get(ctx, state.ID.ValueString(), state.AdvancedSettingsJson.ValueString(), isTriggeredFromImport)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on job read", err.Error())
 		return

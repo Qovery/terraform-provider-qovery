@@ -21,7 +21,7 @@ var (
 // Service represents the interface to implement to handle the domain logic of an Job.
 type Service interface {
 	Create(ctx context.Context, environmentID string, request UpsertServiceRequest) (*Job, error)
-	Get(ctx context.Context, jobID string, advancedSettingsJsonFromState string) (*Job, error)
+	Get(ctx context.Context, jobID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*Job, error)
 	Update(ctx context.Context, jobID string, request UpsertServiceRequest) (*Job, error)
 	Delete(ctx context.Context, jobID string) error
 }

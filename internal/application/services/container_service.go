@@ -86,12 +86,12 @@ func (s containerService) Create(ctx context.Context, environmentID string, requ
 }
 
 // Get handles the domain logic to retrieve a container.
-func (s containerService) Get(ctx context.Context, containerID string, advancedSettingsJsonFromState string) (*container.Container, error) {
+func (s containerService) Get(ctx context.Context, containerID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*container.Container, error) {
 	if err := s.checkID(containerID); err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToGetContainer.Error())
 	}
 
-	cont, err := s.containerRepository.Get(ctx, containerID, advancedSettingsJsonFromState)
+	cont, err := s.containerRepository.Get(ctx, containerID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToGetContainer.Error())
 	}

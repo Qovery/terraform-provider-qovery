@@ -20,7 +20,7 @@ var (
 
 type Service interface {
 	Create(ctx context.Context, environmentID string, request UpsertServiceRequest) (*Helm, error)
-	Get(ctx context.Context, helmID string, advancedSettingsJsonFromState string) (*Helm, error)
+	Get(ctx context.Context, helmID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*Helm, error)
 	Update(ctx context.Context, helmID string, request UpsertServiceRequest) (*Helm, error)
 	Delete(ctx context.Context, helmID string) error
 }

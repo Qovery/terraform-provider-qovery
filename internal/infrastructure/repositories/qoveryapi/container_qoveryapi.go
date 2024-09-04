@@ -94,7 +94,7 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 }
 
 // Get calls Qovery's API to retrieve a container using the given containerID.
-func (c containerQoveryAPI) Get(ctx context.Context, containerID string, advancedSettingsJsonFromState string) (*container.Container, error) {
+func (c containerQoveryAPI) Get(ctx context.Context, containerID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*container.Container, error) {
 	container, resp, err := c.client.ContainerMainCallsAPI.
 		GetContainer(ctx, containerID).
 		Execute()
@@ -109,7 +109,7 @@ func (c containerQoveryAPI) Get(ctx context.Context, containerID string, advance
 	}
 
 	// Get advanced settings
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(domain.CONTAINER, container.Id, advancedSettingsJsonFromState)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(domain.CONTAINER, container.Id, advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceContainer, containerID, nil, err)
 	}
