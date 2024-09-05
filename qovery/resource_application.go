@@ -670,8 +670,15 @@ func (r applicationResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
+	// Hack to know if this method is triggered through an import
+	// EnvironmentID is always present except when importing the resource
+	var isTriggeredFromImport = false
+	if state.EnvironmentId.IsNull() {
+		isTriggeredFromImport = true
+	}
+
 	// Get application from the API
-	application, apiErr := r.client.GetApplication(ctx, state.Id.ValueString(), state.AdvancedSettingsJson.ValueString())
+	application, apiErr := r.client.GetApplication(ctx, state.Id.ValueString(), state.AdvancedSettingsJson.ValueString(), isTriggeredFromImport)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return

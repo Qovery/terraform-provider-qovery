@@ -77,7 +77,7 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 }
 
 // Get calls Qovery's API to retrieve a job using the given jobID.
-func (c jobQoveryAPI) Get(ctx context.Context, jobID string, advancedSettingsJsonFromState string) (*job.Job, error) {
+func (c jobQoveryAPI) Get(ctx context.Context, jobID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*job.Job, error) {
 	job, resp, err := c.client.JobMainCallsAPI.
 		GetJob(ctx, jobID).
 		Execute()
@@ -91,7 +91,7 @@ func (c jobQoveryAPI) Get(ctx context.Context, jobID string, advancedSettingsJso
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(domain.JOB, jobID, advancedSettingsJsonFromState)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(domain.JOB, jobID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, nil, err)
 	}

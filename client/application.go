@@ -98,7 +98,7 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 	)
 }
 
-func (c *Client) GetApplication(ctx context.Context, applicationID string, advancedSettingsFromState string) (*ApplicationResponse, *apierrors.APIError) {
+func (c *Client) GetApplication(ctx context.Context, applicationID string, advancedSettingsFromState string, isTriggeredFromImport bool) (*ApplicationResponse, *apierrors.APIError) {
 	application, res, err := c.api.ApplicationMainCallsAPI.
 		GetApplication(ctx, applicationID).
 		Execute()
@@ -131,7 +131,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string, advan
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
 
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).ReadServiceAdvancedSettings(domain.APPLICATION, applicationID, advancedSettingsFromState)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).ReadServiceAdvancedSettings(domain.APPLICATION, applicationID, advancedSettingsFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, nil, err)
 	}

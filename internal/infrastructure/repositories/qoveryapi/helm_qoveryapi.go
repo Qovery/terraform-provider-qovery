@@ -95,7 +95,7 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 }
 
 // Get calls Qovery's API to retrieve a helm using the given helmID.
-func (c helmQoveryAPI) Get(ctx context.Context, helmID string, advancedSettingsJsonFromState string) (*helm.Helm, error) {
+func (c helmQoveryAPI) Get(ctx context.Context, helmID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*helm.Helm, error) {
 	helm, resp, err := c.client.HelmMainCallsAPI.
 		GetHelm(ctx, helmID).
 		Execute()
@@ -109,7 +109,7 @@ func (c helmQoveryAPI) Get(ctx context.Context, helmID string, advancedSettingsJ
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceHelm, helmID, resp, err)
 	}
 
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(domain.HELM, helmID, advancedSettingsJsonFromState)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(domain.HELM, helmID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceHelm, helmID, nil, err)
 	}

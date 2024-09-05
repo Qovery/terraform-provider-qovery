@@ -102,12 +102,12 @@ func (s helmService) Create(ctx context.Context, environmentID string, request h
 }
 
 // Get handles the domain logic to retrieve a helm.
-func (s helmService) Get(ctx context.Context, helmID string, advancedSettingsJsonFromState string) (*helm.Helm, error) {
+func (s helmService) Get(ctx context.Context, helmID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*helm.Helm, error) {
 	if err := s.checkID(helmID); err != nil {
 		return nil, errors.Wrap(err, helm.ErrFailedToGetHelm.Error())
 	}
 
-	fetchedHelm, err := s.helmRepository.Get(ctx, helmID, advancedSettingsJsonFromState)
+	fetchedHelm, err := s.helmRepository.Get(ctx, helmID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, errors.Wrap(err, helm.ErrFailedToGetHelm.Error())
 	}

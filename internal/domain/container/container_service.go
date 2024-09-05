@@ -20,7 +20,7 @@ var (
 // Service represents the interface to implement to handle the domain logic of an Container.
 type Service interface {
 	Create(ctx context.Context, environmentID string, request UpsertServiceRequest) (*Container, error)
-	Get(ctx context.Context, containerID string, advancedSettingsJsonFromState string) (*Container, error)
+	Get(ctx context.Context, containerID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*Container, error)
 	Update(ctx context.Context, containerID string, request UpsertServiceRequest) (*Container, error)
 	Delete(ctx context.Context, containerID string) error
 }

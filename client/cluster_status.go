@@ -8,7 +8,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-func (c *Client) getClusterStatus(ctx context.Context, organizationID string, clusterID string) (*qovery.ClusterStatusGet, *apierrors.APIError) {
+func (c *Client) getClusterStatus(ctx context.Context, organizationID string, clusterID string) (*qovery.ClusterStatus, *apierrors.APIError) {
 	status, res, err := c.api.ClustersAPI.
 		GetClusterStatus(ctx, organizationID, clusterID).
 		Execute()

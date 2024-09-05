@@ -143,6 +143,12 @@ func TestAcc_Application(t *testing.T) {
 					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
+			// Check Import
+			{
+				ResourceName:      "qovery_application.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 			// Update auto_preview
 			{
 				Config: testAccApplicationDefaultConfigWithAutoPreview(
@@ -211,12 +217,6 @@ func TestAcc_Application(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
-			},
-			// Check Import
-			{
-				ResourceName:      "qovery_application.test",
-				ImportState:       true,
-				ImportStateVerify: true,
 			},
 		},
 	})
@@ -938,8 +938,8 @@ func TestAcc_ApplicationWithCustomDomains(t *testing.T) {
 			},
 			// Check Import
 			{
-				ResourceName:      "qovery_application.test",
-				ImportState:       true,
+				ResourceName: "qovery_application.test",
+				ImportState:  true,
 			},
 		},
 	})
@@ -985,6 +985,12 @@ func TestAcc_ApplicationRedeployOnEnvironmentUpdate(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
+			},
+			// Check Import
+			{
+				ResourceName:      "qovery_application.test",
+				ImportState:       true,
+				ImportStateVerify: true,
 			},
 			// Update environment env variables
 			{
@@ -1061,12 +1067,6 @@ func TestAcc_ApplicationRedeployOnEnvironmentUpdate(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
 					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
-			},
-			// Check Import
-			{
-				ResourceName:      "qovery_application.test",
-				ImportState:       true,
-				ImportStateVerify: true,
 			},
 		},
 	})
@@ -1357,7 +1357,7 @@ func testAccQoveryApplicationExists(resourceName string) resource.TestCheckFunc 
 			return fmt.Errorf("application.id not found")
 		}
 
-		_, apiErr := apiClient.GetApplication(context.TODO(), rs.Primary.ID, "{}")
+		_, apiErr := apiClient.GetApplication(context.TODO(), rs.Primary.ID, "{}", false)
 		if apiErr != nil {
 			return apiErr
 		}
@@ -1376,7 +1376,7 @@ func testAccQoveryApplicationDestroy(resourceName string) resource.TestCheckFunc
 			return fmt.Errorf("application.id not found")
 		}
 
-		_, apiErr := apiClient.GetApplication(context.TODO(), rs.Primary.ID, "{}")
+		_, apiErr := apiClient.GetApplication(context.TODO(), rs.Primary.ID, "{}", false)
 		if apiErr == nil {
 			return fmt.Errorf("found application but expected it to be deleted")
 		}

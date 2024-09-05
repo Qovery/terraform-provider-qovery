@@ -526,7 +526,7 @@ func (d helmDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 	}
 
 	// Get helm from API
-	h, err := d.helmService.Get(ctx, data.ID.ValueString(), data.AdvancedSettingsJson.ValueString())
+	h, err := d.helmService.Get(ctx, data.ID.ValueString(), data.AdvancedSettingsJson.ValueString(), true)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on helm read", err.Error())
 		return

@@ -495,7 +495,7 @@ func testAccQoveryHelmExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("helm.id not found")
 		}
 
-		_, err := qoveryServices.Helm.Get(context.TODO(), rs.Primary.ID, "{}")
+		_, err := qoveryServices.Helm.Get(context.TODO(), rs.Primary.ID, "{}", false)
 		if err != nil {
 			return err
 		}
@@ -514,7 +514,7 @@ func testAccQoveryHelmDestroy(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("helm.id not found")
 		}
 
-		_, err := qoveryServices.Helm.Get(context.TODO(), rs.Primary.ID, "{}")
+		_, err := qoveryServices.Helm.Get(context.TODO(), rs.Primary.ID, "{}", false)
 		if err == nil {
 			return fmt.Errorf("found helm but expected it to be deleted")
 		}

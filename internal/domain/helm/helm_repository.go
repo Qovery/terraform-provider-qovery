@@ -6,17 +6,19 @@ import (
 	"context"
 
 	"github.com/qovery/qovery-client-go"
+
 	"github.com/qovery/terraform-provider-qovery/client"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
 type Repository interface {
 	Create(ctx context.Context, environmentID string, request UpsertRepositoryRequest) (*Helm, error)
-	Get(ctx context.Context, helmID string, advancedSettingsJsonFromState string) (*Helm, error)
+	Get(ctx context.Context, helmID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*Helm, error)
 	Update(ctx context.Context, helmID string, request UpsertRepositoryRequest) (*Helm, error)
 	Delete(ctx context.Context, helmID string) error
 }

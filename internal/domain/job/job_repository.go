@@ -16,7 +16,7 @@ import (
 // Repository represents the interface to implement to handle the persistence of a Job.
 type Repository interface {
 	Create(ctx context.Context, environmentID string, request UpsertRepositoryRequest) (*Job, error)
-	Get(ctx context.Context, jobID string, advancedSettingsJsonFromState string) (*Job, error)
+	Get(ctx context.Context, jobID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*Job, error)
 	Update(ctx context.Context, jobID string, request UpsertRepositoryRequest) (*Job, error)
 	Delete(ctx context.Context, jobID string) error
 }
