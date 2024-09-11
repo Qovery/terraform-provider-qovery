@@ -144,18 +144,18 @@ func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageI
 	ports := make([]helm.NewHelmPortParams, 0, len(h.Ports))
 	for _, port := range h.Ports {
 		if port.HelmPortResponseWithServiceName != nil {
-			portVithServiceName := port.HelmPortResponseWithServiceName
-			if portVithServiceName.Name != nil && portVithServiceName.IsDefault != nil {
-				protocol := string(portVithServiceName.Protocol)
+			portWithServiceName := port.HelmPortResponseWithServiceName
+			if portWithServiceName.Name != nil && portWithServiceName.IsDefault != nil {
+				protocol := string(portWithServiceName.Protocol)
 
 				pt := helm.NewHelmPortParams{
-					Name:         *portVithServiceName.Name,
-					InternalPort: portVithServiceName.InternalPort,
-					ExternalPort: portVithServiceName.ExternalPort,
-					ServiceName:  portVithServiceName.ServiceName,
-					Namespace:    portVithServiceName.Namespace,
+					Name:         *portWithServiceName.Name,
+					InternalPort: portWithServiceName.InternalPort,
+					ExternalPort: portWithServiceName.ExternalPort,
+					ServiceName:  portWithServiceName.ServiceName,
+					Namespace:    portWithServiceName.Namespace,
 					Protocol:     protocol,
-					IsDefault:    *portVithServiceName.IsDefault,
+					IsDefault:    *portWithServiceName.IsDefault,
 				}
 
 				ports = append(ports, pt)
