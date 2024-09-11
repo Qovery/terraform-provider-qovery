@@ -143,20 +143,23 @@ func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageI
 
 	ports := make([]helm.NewHelmPortParams, 0, len(h.Ports))
 	for _, port := range h.Ports {
-		if port.Name != nil && port.IsDefault != nil {
-			protocol := string(port.Protocol)
+		if port.HelmPortResponseWithServiceName != nil {
+			portWithServiceName := port.HelmPortResponseWithServiceName
+			if portWithServiceName.Name != nil && portWithServiceName.IsDefault != nil {
+				protocol := string(portWithServiceName.Protocol)
 
-			pt := helm.NewHelmPortParams{
-				Name:         *port.Name,
-				InternalPort: port.InternalPort,
-				ExternalPort: port.ExternalPort,
-				ServiceName:  port.ServiceName,
-				Namespace:    port.Namespace,
-				Protocol:     protocol,
-				IsDefault:    *port.IsDefault,
+				pt := helm.NewHelmPortParams{
+					Name:         *portWithServiceName.Name,
+					InternalPort: portWithServiceName.InternalPort,
+					ExternalPort: portWithServiceName.ExternalPort,
+					ServiceName:  portWithServiceName.ServiceName,
+					Namespace:    portWithServiceName.Namespace,
+					Protocol:     protocol,
+					IsDefault:    *portWithServiceName.IsDefault,
+				}
+
+				ports = append(ports, pt)
 			}
-
-			ports = append(ports, pt)
 		}
 	}
 
@@ -320,7 +323,7 @@ func newQoveryHelmPortsRequestFromDomain(ports *[]helm.Port) (*[]qovery.HelmPort
 			Name:         &portName,
 			InternalPort: port.InternalPort,
 			ExternalPort: port.ExternalPort,
-			ServiceName:  port.ServiceName,
+			ServiceName:  &port.ServiceName,
 			Namespace:    port.Namespace,
 			Protocol:     protocol,
 			IsDefault:    &isDefault,
