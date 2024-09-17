@@ -36,6 +36,7 @@ type Cluster struct {
 	DiskSize             types.Int64  `tfsdk:"disk_size"`
 	MinRunningNodes      types.Int64  `tfsdk:"min_running_nodes"`
 	MaxRunningNodes      types.Int64  `tfsdk:"max_running_nodes"`
+	Production           types.Bool   `tfsdk:"production"`
 	Features             types.Object `tfsdk:"features"`
 	RoutingTables        types.Set    `tfsdk:"routing_table"`
 	State                types.String `tfsdk:"state"`
@@ -163,6 +164,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			DiskSize:                 ToInt64Pointer(c.DiskSize),
 			MinRunningNodes:          ToInt32Pointer(c.MinRunningNodes),
 			MaxRunningNodes:          ToInt32Pointer(c.MaxRunningNodes),
+			Production:               ToBoolPointer(c.Production),
 			Features:                 features,
 		},
 		ClusterRoutingTable:  routingTable.toUpsertRequest(),
@@ -188,6 +190,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		DiskSize:             FromInt32Pointer(res.ClusterResponse.DiskSize),
 		MinRunningNodes:      FromInt32Pointer(res.ClusterResponse.MinRunningNodes),
 		MaxRunningNodes:      FromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
+		Production:           FromBoolPointer(res.ClusterResponse.Production),
 		Features:             fromQoveryClusterFeatures(res.ClusterResponse.Features),
 		RoutingTables:        routingTable.toTerraformSet(ctx, initialPlan.RoutingTables),
 		State:                fromClientEnumPointer(res.ClusterResponse.Status),

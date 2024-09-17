@@ -77,6 +77,7 @@ You can find complete examples within these repositories:
 - `min_running_nodes` (Number) Minimum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters, and not set for Karpenter-enabled clusters].
 	- Must be: `>= 1`.
 	- Default: `3`.
+- `production` (Boolean) Specific flag to indicate that this cluster is a production one.
 - `routing_table` (Attributes Set) List of routes of the cluster. (see [below for nested schema](#nestedatt--routing_table))
 - `state` (String) State of the cluster.
 	- Can be: `DEPLOYED`, `STOPPED`.

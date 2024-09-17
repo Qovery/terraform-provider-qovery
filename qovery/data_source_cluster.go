@@ -95,6 +95,11 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 				Optional: true,
 				Computed: true,
 			},
+			"production": schema.BoolAttribute{
+				Description: "Specific flag to indicate that this cluster is a production one.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"instance_type": schema.StringAttribute{
 				Description: "Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`, and not set for Karpenter-enabled clusters",
 				Optional:    true,
