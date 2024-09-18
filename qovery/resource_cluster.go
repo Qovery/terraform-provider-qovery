@@ -4,10 +4,11 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -24,8 +25,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &clusterResource{}
-var _ resource.ResourceWithImportState = clusterResource{}
+var (
+	_ resource.ResourceWithConfigure   = &clusterResource{}
+	_ resource.ResourceWithImportState = clusterResource{}
+)
 
 var (
 	// Cluster State
@@ -153,6 +156,12 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Validators: []validator.String{
 					validators.NewStringEnumValidator(clusterKubernetesModes),
 				},
+			},
+			"production": schema.BoolAttribute{
+				Description: "Specific flag to indicate that this cluster is a production one.",
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(false),
 			},
 			"instance_type": schema.StringAttribute{
 				Description: "Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`, and not set for Karpenter-enabled clusters",

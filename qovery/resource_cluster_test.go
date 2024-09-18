@@ -44,6 +44,7 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "false"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "DEPLOYED"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "advanced_settings", "{ loki.log_retention_in_week = 1 }"),
@@ -69,6 +70,7 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "false"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "DEPLOYED"),
 				),
@@ -93,6 +95,7 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "false"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "STOPPED"),
 				),
@@ -118,6 +121,7 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_LARGE"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "4"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "11"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "false"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "DEPLOYED"),
 				),
@@ -151,6 +155,7 @@ func TestAcc_ClusterWithKubernetesMode(t *testing.T) {
 					"AWS",
 					"eu-west-3",
 					"T3A_SMALL",
+					true,
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
@@ -163,6 +168,7 @@ func TestAcc_ClusterWithKubernetesMode(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MT3A_SMALLEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "1"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "1"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "true"),
 					resource.TestCheckNoResourceAttr("qovery_cluster.test", "features.vpc_subnet"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "DEPLOYED"),
 				),
@@ -213,6 +219,7 @@ func TestAcc_ClusterWithVpcPeering(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "false"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.42.0.0/16"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "routing_table.0.description", "route-0"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "routing_table.0.destination", "172.30.0.0/16"),
@@ -253,6 +260,7 @@ func TestAcc_ClusterWithStaticIP(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "false"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "true"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "DEPLOYED"),
 				),
@@ -347,7 +355,7 @@ resource "qovery_cluster" "test" {
 	)
 }
 
-func testAccClusterDefaultK3SConfig(testName string, cloudProvider string, region string, instanceType string) string {
+func testAccClusterDefaultK3SConfig(testName string, cloudProvider string, region string, instanceType string, production bool) string {
 	return fmt.Sprintf(`
 resource "qovery_cluster" "test" {
   credentials_id = "%s"
@@ -359,8 +367,9 @@ resource "qovery_cluster" "test" {
   kubernetes_mode = "K3S"
   min_running_nodes = 1
   max_running_nodes = 1
+  production = %t
 }
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType,
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, production,
 	)
 }
 
