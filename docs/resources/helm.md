@@ -127,7 +127,7 @@ resource "qovery_helm" "my_helm" {
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
-- `arguments` (Set of String) Helm arguments
+- `arguments` (List of String) Helm arguments
 - `auto_deploy` (Boolean) Specify if service will be automatically updated on every new commit on the branch.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this helm.
 - `custom_domains` (Attributes Set) List of custom domains linked to this helm. (see [below for nested schema](#nestedatt--custom_domains))
