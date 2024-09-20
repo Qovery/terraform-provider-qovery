@@ -302,7 +302,7 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 				Optional:    true,
 				Computed:    true,
 			},
-			"arguments": schema.SetAttribute{
+			"arguments": schema.ListAttribute{
 				Description: "Helm arguments",
 				ElementType: types.StringType,
 				Optional:    true,

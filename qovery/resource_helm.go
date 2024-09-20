@@ -10,8 +10,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -102,13 +102,13 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Optional:    true,
 				Computed:    true,
 			},
-			"arguments": schema.SetAttribute{
+			"arguments": schema.ListAttribute{
 				Description: "Helm arguments",
 				ElementType: types.StringType,
 				Optional:    true,
 				Computed:    true,
-				Default: setdefault.StaticValue(
-					types.SetValueMust(
+				Default: listdefault.StaticValue(
+					types.ListValueMust(
 						types.StringType,
 						[]attr.Value{
 							types.StringValue("--wait"),

@@ -24,7 +24,7 @@ type Helm struct {
 	TimeoutSec                   types.Int64          `tfsdk:"timeout_sec"`
 	AutoPreview                  types.Bool           `tfsdk:"auto_preview"`
 	AutoDeploy                   types.Bool           `tfsdk:"auto_deploy"`
-	Arguments                    types.Set            `tfsdk:"arguments"`
+	Arguments                    types.List           `tfsdk:"arguments"` // List, order is important here
 	AllowClusterWideResources    types.Bool           `tfsdk:"allow_cluster_wide_resources"`
 	Source                       *HelmSource          `tfsdk:"source"`
 	ValuesOverride               *HelmValuesOverride  `tfsdk:"values_override"`
@@ -200,7 +200,7 @@ func (h Helm) toUpsertRepositoryRequest(customDomainsDiff client.CustomDomainsDi
 		TimeoutSec:                ToInt32Pointer(h.TimeoutSec),
 		AutoPreview:               *qovery.NewNullableBool(ToBoolPointer(h.AutoPreview)),
 		AutoDeploy:                ToBool(h.AutoDeploy),
-		Arguments:                 ToStringArrayFromSet(h.Arguments),
+		Arguments:                 ToStringArray(h.Arguments),
 		AllowClusterWideResources: ToBool(h.AllowClusterWideResources),
 		Source:                    h.Source.toUpsertRequest(),
 		ValuesOverride:            h.ValuesOverride.toUpsertRequest(),
@@ -457,7 +457,7 @@ func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) H
 		TimeoutSec:                   FromInt32Pointer(helm.TimeoutSec),
 		AutoPreview:                  FromBool(helm.AutoPreview),
 		AutoDeploy:                   FromBool(helm.AutoDeploy),
-		Arguments:                    FromStringSet(helm.Arguments),
+		Arguments:                    FromStringArray(helm.Arguments),
 		AllowClusterWideResources:    FromBool(helm.AllowClusterWideResources),
 		Source:                       &source,
 		ValuesOverride:               &valuesOverride,
