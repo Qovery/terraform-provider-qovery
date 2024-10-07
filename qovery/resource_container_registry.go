@@ -117,6 +117,10 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 						Description: "Required if kind is `SCALEWAY_CR`.",
 						Optional:    true,
 					},
+					"scaleway_project_id": schema.StringAttribute{
+						Description: "Required if kind is `SCALEWAY_CR`.",
+						Optional:    true,
+					},
 					"username": schema.StringAttribute{
 						Description: "Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.",
 						Optional:    true,

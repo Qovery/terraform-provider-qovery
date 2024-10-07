@@ -22,6 +22,7 @@ type ContainerRegistryConfig struct {
 	Region            types.String `tfsdk:"region"`
 	ScalewayAccessKey types.String `tfsdk:"scaleway_access_key"`
 	ScalewaySecretKey types.String `tfsdk:"scaleway_secret_key"`
+	ScalewayProjectId types.String `tfsdk:"scaleway_project_id"`
 	Username          types.String `tfsdk:"username"`
 	Password          types.String `tfsdk:"password"`
 }
@@ -46,6 +47,7 @@ func (p ContainerRegistry) toUpsertRequest() registry.UpsertRequest {
 			Region:            ToStringPointer(p.Config.Region),
 			ScalewayAccessKey: ToStringPointer(p.Config.ScalewayAccessKey),
 			ScalewaySecretKey: ToStringPointer(p.Config.ScalewaySecretKey),
+			ScalewayProjectId: ToStringPointer(p.Config.ScalewayProjectId),
 			Username:          ToStringPointer(p.Config.Username),
 			Password:          ToStringPointer(p.Config.Password),
 		}
