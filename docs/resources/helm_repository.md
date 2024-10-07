@@ -57,6 +57,7 @@ Optional:
 - `password` (String) Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.
 - `region` (String) Required if kind is `ECR` or `SCALEWAY_CR`.
 - `scaleway_access_key` (String) Required if kind is `SCALEWAY_CR`.
+- `scaleway_project_id` (String) Required if kind is `SCALEWAY_CR`.
 - `scaleway_secret_key` (String) Required if kind is `SCALEWAY_CR`.
 - `secret_access_key` (String) Required if kind is `ECR` or `PUBLIC_ECR`.
 - `username` (String) Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.
