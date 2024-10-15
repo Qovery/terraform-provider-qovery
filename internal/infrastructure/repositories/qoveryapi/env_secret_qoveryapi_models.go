@@ -48,7 +48,7 @@ func newDomainEnvSecretFromQovery(v *qovery.VariableResponse) (*secret.Secret, e
 func newQoveryEnvSecretEditRequestFromDomain(request secret.UpsertRequest) qovery.VariableEditRequest {
 	return qovery.VariableEditRequest{
 		Key:         request.Key,
-		Value:       request.Value,
+		Value:       *qovery.NewNullableString(&request.Value),
 		Description: *qovery.NewNullableString(&request.Description),
 	}
 }
