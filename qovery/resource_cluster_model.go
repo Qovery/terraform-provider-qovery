@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/pkg/errors"
@@ -115,7 +116,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 	features := toQoveryClusterFeatures(c.Features, c.KubernetesMode.String())
 	if features != nil {
 		for _, f := range features {
-			if f.Id != nil && *f.Id == featureIdKarpenter {
+			if f.Id != nil && *f.Id == featureIdKarpenter && state == nil {
 				if !c.InstanceType.IsUnknown() {
 					return nil, errors.New("instance_type must not be defined when Karpenter feature is enabled")
 				}
@@ -397,10 +398,16 @@ func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterReques
 				fmt.Println("Error:", err)
 			}
 
+			qoveryNodePools, err := toQoveryNodePools(v)
+			if err != nil {
+				fmt.Println("Error:", err)
+			}
+
 			feature := qovery.ClusterFeatureKarpenterParameters{
 				SpotEnabled:                ToBool(v.Attributes()["spot_enabled"].(types.Bool)),
 				DiskSizeInGib:              ToInt32(v.Attributes()["disk_size_in_gib"].(types.Int64)),
 				DefaultServiceArchitecture: arch,
+				QoveryNodePools:            qoveryNodePools,
 			}
 			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
 				ClusterFeatureKarpenterParameters: &feature,
@@ -414,6 +421,119 @@ func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterReques
 	}
 
 	return features
+}
+
+func toQoveryNodePools(obj types.Object) (*qovery.KarpenterNodePool, error) {
+	karpenterNodePool := qovery.KarpenterNodePool{}
+	karpenterNodePool.Requirements = []qovery.KarpenterNodePoolRequirement{}
+
+	requirements, err := extractRequirementsFromTypesObject(obj)
+	if err != nil {
+		return nil, fmt.Errorf("failed to extract requirements from types.Object: %v", err)
+	}
+
+	for _, req := range requirements {
+		key, ok := req["key"].(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid key type")
+		}
+
+		var karpenterKey qovery.KarpenterNodePoolRequirementKey
+		switch key {
+		case "InstanceFamily":
+			karpenterKey = qovery.KARPENTERNODEPOOLREQUIREMENTKEY_INSTANCE_FAMILY
+		case "InstanceSize":
+			karpenterKey = qovery.KARPENTERNODEPOOLREQUIREMENTKEY_INSTANCE_SIZE
+		case "Arch":
+			karpenterKey = qovery.KARPENTERNODEPOOLREQUIREMENTKEY_ARCH
+		default:
+			return nil, fmt.Errorf("unsupported key: %s", key)
+		}
+
+		operator, ok := req["operator"].(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid operator type")
+		}
+
+		var karpenterOperator qovery.KarpenterNodePoolRequirementOperator
+		switch operator {
+		case "In":
+			karpenterOperator = qovery.KARPENTERNODEPOOLREQUIREMENTOPERATOR_IN
+		default:
+			return nil, fmt.Errorf("unsupported operator: %s", operator)
+		}
+
+		values, ok := req["values"].([]string)
+		if !ok {
+			return nil, fmt.Errorf("invalid values type")
+		}
+
+		requirement := qovery.KarpenterNodePoolRequirement{
+			Key:      karpenterKey,
+			Operator: karpenterOperator,
+			Values:   values,
+		}
+
+		karpenterNodePool.Requirements = append(karpenterNodePool.Requirements, requirement)
+	}
+
+	return &karpenterNodePool, nil
+}
+
+func extractRequirementsFromTypesObject(obj types.Object) ([]map[string]interface{}, error) {
+	qoveryNodePools, exists := obj.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
+	if !exists {
+		return nil, fmt.Errorf("qovery_node_pools field not found")
+	}
+
+	requirementsAttr, exists := qoveryNodePools.Attributes()["requirements"]
+	if !exists {
+		return nil, fmt.Errorf("requirements field not found")
+	}
+
+	requirementsList, ok := requirementsAttr.(basetypes.ListValue)
+	if !ok {
+		return nil, fmt.Errorf("requirements field is not a list")
+	}
+
+	result := make([]map[string]interface{}, 0, len(requirementsList.Elements()))
+	for _, reqAttr := range requirementsList.Elements() {
+		reqMap, err := convertObjectToMap(reqAttr)
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, reqMap)
+	}
+
+	return result, nil
+}
+
+func convertObjectToMap(obj attr.Value) (map[string]interface{}, error) {
+	reqObject, ok := obj.(basetypes.ObjectValue)
+	if !ok {
+		return nil, fmt.Errorf("requirement is not an object")
+	}
+
+	reqMap := make(map[string]interface{})
+
+	for key, attr := range reqObject.Attributes() {
+		switch v := attr.(type) {
+		case basetypes.StringValue:
+			reqMap[key] = v.ValueString()
+		case basetypes.ListValue:
+			values := make([]string, len(v.Elements()))
+			for i, elem := range v.Elements() {
+				if strVal, ok := elem.(basetypes.StringValue); ok {
+					values[i] = strVal.ValueString()
+				}
+			}
+			reqMap[key] = values
+		default:
+			return nil, fmt.Errorf("unsupported attribute type for key %s", key)
+		}
+	}
+
+	return reqMap, nil
 }
 
 func toCpuArchitectureEnum(arch string) (qovery.CpuArchitectureEnum, error) {
@@ -430,6 +550,19 @@ func createKarpenterFeatureAttrTypes() map[string]attr.Type {
 	attrTypes["spot_enabled"] = types.BoolType
 	attrTypes["disk_size_in_gib"] = types.Int64Type
 	attrTypes["default_service_architecture"] = types.StringType
+	attrTypes["qovery_node_pools"] = types.ObjectType{
+		AttrTypes: map[string]attr.Type{
+			"requirements": types.ListType{
+				ElemType: types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"key":      types.StringType,
+						"operator": types.StringType,
+						"values":   types.ListType{ElemType: types.StringType},
+					},
+				},
+			},
+		},
+	}
 
 	return attrTypes
 }
@@ -455,10 +588,83 @@ func createExistingVpcFeatureAttrTypes() map[string]attr.Type {
 
 func createKarpenterFeatureAttrValue(v *qovery.ClusterFeatureKarpenterParameters) map[string]attr.Value {
 	attrVals := make(map[string]attr.Value)
-	if v != nil {
-		attrVals["spot_enabled"] = FromBoolPointer(&v.SpotEnabled)
-		attrVals["disk_size_in_gib"] = FromInt32(v.DiskSizeInGib)
-		attrVals["default_service_architecture"] = FromString(string(v.DefaultServiceArchitecture))
+	var diags diag.Diagnostics
+
+	if v == nil {
+		return attrVals
+	}
+
+	attrVals["spot_enabled"] = FromBoolPointer(&v.SpotEnabled)
+	attrVals["disk_size_in_gib"] = FromInt32(v.DiskSizeInGib)
+	attrVals["default_service_architecture"] = FromString(string(v.DefaultServiceArchitecture))
+
+	if v.QoveryNodePools != nil {
+		requirementsAttrList := make([]attr.Value, len(v.QoveryNodePools.Requirements))
+
+		for i, req := range v.QoveryNodePools.Requirements {
+			reqAttrVals := make(map[string]attr.Value)
+
+			reqAttrVals["key"] = types.StringValue(string(req.Key))
+			reqAttrVals["operator"] = types.StringValue(string(req.Operator))
+
+			valuesAttrList := make([]attr.Value, len(req.Values))
+			for j, val := range req.Values {
+				valuesAttrList[j] = types.StringValue(val)
+			}
+			reqAttrVals["values"], diags = types.ListValue(types.StringType, valuesAttrList)
+			if diags.HasError() {
+				return nil
+			}
+
+			reqObjectValue, diag := types.ObjectValue(map[string]attr.Type{
+				"key":      types.StringType,
+				"operator": types.StringType,
+				"values":   types.ListType{ElemType: types.StringType},
+			}, reqAttrVals)
+
+			if diag.HasError() {
+				return nil
+			}
+
+			requirementsAttrList[i] = reqObjectValue
+		}
+
+		qoveryNodePoolsAttrVals := make(map[string]attr.Value)
+		qoveryNodePoolsAttrVals["requirements"], diags = types.ListValue(types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"key":      types.StringType,
+				"operator": types.StringType,
+				"values":   types.ListType{ElemType: types.StringType},
+			},
+		}, requirementsAttrList)
+
+		if diags.HasError() {
+			return nil
+		}
+
+		attrVals["qovery_node_pools"], diags = types.ObjectValue(map[string]attr.Type{
+			"requirements": types.ListType{ElemType: types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"key":      types.StringType,
+					"operator": types.StringType,
+					"values":   types.ListType{ElemType: types.StringType},
+				},
+			}},
+		}, qoveryNodePoolsAttrVals)
+
+		if diags.HasError() {
+			return nil
+		}
+	} else {
+		attrVals["qovery_node_pools"] = types.ObjectNull(map[string]attr.Type{
+			"requirements": types.ListType{ElemType: types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"key":      types.StringType,
+					"operator": types.StringType,
+					"values":   types.ListType{ElemType: types.StringType},
+				},
+			}},
+		})
 	}
 
 	return attrVals
