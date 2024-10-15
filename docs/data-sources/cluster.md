@@ -92,6 +92,28 @@ Required:
 - `disk_size_in_gib` (Number)
 - `spot_enabled` (Boolean) Enable spot instances
 
+Optional:
+
+- `qovery_node_pools` (Attributes) Karpenter node pool configuration (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools))
+
+<a id="nestedatt--features--karpenter--qovery_node_pools"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools`
+
+Required:
+
+- `requirements` (Attributes List) List of requirements for the node pool (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--requirements))
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--requirements"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.requirements`
+
+Required:
+
+- `key` (String) The key of the requirement (e.g., InstanceFamily, InstanceSize, Arch)
+- `operator` (String) The operator for the requirement (e.g., In)
+- `values` (List of String) List of values for the requirement
+
+
+
 
 
 <a id="nestedatt--routing_table"></a>

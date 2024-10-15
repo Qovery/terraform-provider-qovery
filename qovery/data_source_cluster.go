@@ -3,7 +3,9 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -250,6 +252,44 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 								Description: "The default architecture of service",
 								Required:    true,
 								Computed:    false,
+							},
+							"qovery_node_pools": schema.SingleNestedAttribute{
+								Description: "Karpenter node pool configuration",
+								Optional:    true,
+								Computed:    false,
+								Attributes: map[string]schema.Attribute{
+									"requirements": schema.ListNestedAttribute{
+										Description: "List of requirements for the node pool",
+										Required:    true,
+										Computed:    false,
+										NestedObject: schema.NestedAttributeObject{
+											Attributes: map[string]schema.Attribute{
+												"key": schema.StringAttribute{
+													Description: "The key of the requirement (e.g., InstanceFamily, InstanceSize, Arch)",
+													Required:    true,
+													Computed:    false,
+													Validators: []validator.String{
+														validators.NewStringEnumValidator([]string{"InstanceFamily", "InstanceSize", "Arch"}),
+													},
+												},
+												"operator": schema.StringAttribute{
+													Description: "The operator for the requirement (e.g., In)",
+													Required:    true,
+													Computed:    false,
+													Validators: []validator.String{
+														validators.NewStringEnumValidator([]string{"In"}),
+													},
+												},
+												"values": schema.ListAttribute{
+													Description: "List of values for the requirement",
+													Required:    true,
+													Computed:    false,
+													ElementType: types.StringType,
+												},
+											},
+										},
+									},
+								},
 							},
 						},
 					},
