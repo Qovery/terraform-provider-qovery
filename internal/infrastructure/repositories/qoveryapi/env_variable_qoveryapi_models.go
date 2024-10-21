@@ -72,7 +72,7 @@ func newDomainEnvVariableFromQovery(v *qovery.VariableResponse) (*variable.Varia
 func newQoveryEnvVariableEditRequestFromDomain(request variable.UpsertRequest) qovery.VariableEditRequest {
 	return qovery.VariableEditRequest{
 		Key:         request.Key,
-		Value:       request.Value,
+		Value:       *qovery.NewNullableString(&request.Value),
 		Description: *qovery.NewNullableString(&request.Description),
 	}
 }
