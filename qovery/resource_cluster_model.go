@@ -116,7 +116,11 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 	features := toQoveryClusterFeatures(c.Features, c.KubernetesMode.String())
 	if features != nil {
 		for _, f := range features {
-			if f.Id != nil && *f.Id == featureIdKarpenter && state == nil {
+			if f.Id != nil && *f.Id == featureIdKarpenter {
+				if state != nil && !IsKarpenterAlreadyInstalled(state) {
+					return nil, errors.New("It is not possible to migrate to Karpenter using terraform")
+				}
+
 				if !c.InstanceType.IsUnknown() {
 					return nil, errors.New("instance_type must not be defined when Karpenter feature is enabled")
 				}
@@ -173,6 +177,22 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		ForceUpdate:          forceUpdate,
 		DesiredState:         *desiredState,
 	}, nil
+}
+
+func IsKarpenterAlreadyInstalled(state *Cluster) bool {
+	if state == nil {
+		return false
+	}
+
+	oldFeatures := toQoveryClusterFeatures(state.Features, state.KubernetesMode.String())
+	if oldFeatures != nil {
+		for _, f := range oldFeatures {
+			if f.Id != nil && *f.Id == featureIdKarpenter {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, initialPlan Cluster) Cluster {
