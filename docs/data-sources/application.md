@@ -23,9 +23,6 @@ data "qovery_application" "my_application" {
 - `auto_deploy` (Boolean) Specify if the application will be automatically updated after receiving a new image tag.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
 	- Default: `false`.
-- `buildpack_language` (String) Buildpack Language framework.
-	- Required if: `build_mode="BUILDPACKS"`.
-	- Can be: `CLOJURE`, `GO`, `GRADLE`, `GRAILS`, `JAVA`, `JVM`, `NODE_JS`, `PHP`, `PLAY`, `PYTHON`, `SCALA`.
 - `cpu` (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 10`.
 	- Default: `500`.
@@ -58,8 +55,8 @@ data "qovery_application" "my_application" {
 ### Read-Only
 
 - `build_mode` (String) Build Mode of the application.
-	- Can be: `BUILDPACKS`, `DOCKER`.
-	- Default: `BUILDPACKS`.
+	- Can be: `DOCKER`.
+	- Default: `DOCKER`.
 - `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this application. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
 - `external_host` (String) The application external FQDN host [NOTE: only if your application is using a publicly accessible port].

@@ -21,7 +21,6 @@ type Application struct {
 	GitRepository                *ApplicationGitRepository `tfsdk:"git_repository"`
 	BuildMode                    types.String              `tfsdk:"build_mode"`
 	DockerfilePath               types.String              `tfsdk:"dockerfile_path"`
-	BuildpackLanguage            types.String              `tfsdk:"buildpack_language"`
 	CPU                          types.Int64               `tfsdk:"cpu"`
 	Memory                       types.Int64               `tfsdk:"memory"`
 	MinRunningInstances          types.Int64               `tfsdk:"min_running_instances"`
@@ -147,7 +146,6 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			IconUri:             ToStringPointer(app.IconUri),
 			BuildMode:           buildMode,
 			DockerfilePath:      ToNullableString(app.DockerfilePath),
-			BuildpackLanguage:   ToNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
 			Cpu:                 ToInt32Pointer(app.CPU),
 			Memory:              ToInt32Pointer(app.Memory),
 			MinRunningInstances: ToInt32Pointer(app.MinRunningInstances),
@@ -253,7 +251,6 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		IconUri:             ToStringPointer(app.IconUri),
 		BuildMode:           buildMode,
 		DockerfilePath:      ToNullableString(app.DockerfilePath),
-		BuildpackLanguage:   ToNullableNullableBuildPackLanguageEnum(app.BuildpackLanguage),
 		Cpu:                 ToInt32Pointer(app.CPU),
 		Memory:              ToInt32Pointer(app.Memory),
 		MinRunningInstances: ToInt32Pointer(app.MinRunningInstances),
@@ -294,7 +291,6 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		IconUri:                      FromString(app.ApplicationResponse.IconUri),
 		BuildMode:                    fromClientEnumPointer(app.ApplicationResponse.BuildMode),
 		DockerfilePath:               FromNullableString(app.ApplicationResponse.DockerfilePath),
-		BuildpackLanguage:            FromNullableNullableBuildPackLanguageEnum(app.ApplicationResponse.BuildpackLanguage),
 		CPU:                          FromInt32Pointer(app.ApplicationResponse.Cpu),
 		Memory:                       FromInt32Pointer(app.ApplicationResponse.Memory),
 		MinRunningInstances:          FromInt32Pointer(app.ApplicationResponse.MinRunningInstances),

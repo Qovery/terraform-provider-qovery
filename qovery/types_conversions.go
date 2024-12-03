@@ -27,7 +27,6 @@ type ClientEnum interface {
 	environment.Mode |
 		organization.Plan |
 		port.Protocol |
-		qovery.BuildPackLanguageEnum |
 		qovery.CloudProviderEnum |
 		qovery.CustomDomainStatusEnum |
 		qovery.DatabaseAccessibilityEnum |
@@ -76,20 +75,6 @@ func fromClientEnumPointer[T ClientEnum](v *T) types.String {
 
 func StringAsPointer(v string) *string {
 	return &v
-}
-
-//
-// Convert Terraform types to Go types
-//
-
-func ToNullableNullableBuildPackLanguageEnum(v types.String) qovery.NullableBuildPackLanguageEnum {
-	enum, err := qovery.NewBuildPackLanguageEnumFromValue(v.ValueString())
-	if err != nil || v.IsNull() || v.IsUnknown() {
-		s := qovery.NewNullableBuildPackLanguageEnum(nil)
-		return *s
-	}
-	s := qovery.NewNullableBuildPackLanguageEnum(enum)
-	return *s
 }
 
 func ToNullableString(v types.String) qovery.NullableString {
@@ -167,17 +152,6 @@ func ToStringArrayFromSet(v types.Set) []string {
 	}
 
 	return array
-}
-
-//
-// Convert Go types to Terraform types
-//
-
-func FromNullableNullableBuildPackLanguageEnum(v qovery.NullableBuildPackLanguageEnum) types.String {
-	if v.Get() == nil {
-		return FromStringPointer(nil)
-	}
-	return FromString(string(*v.Get()))
 }
 
 func FromString(v string) types.String {

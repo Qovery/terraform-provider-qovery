@@ -32,7 +32,6 @@ func TestAcc_ApplicationDataSource(t *testing.T) {
 					resource.TestCheckResourceAttr("data.qovery_application.test", "git_repository.root_path", "/"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "build_mode", "DOCKER"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "dockerfile_path", "Dockerfile"),
-					resource.TestCheckNoResourceAttr("data.qovery_application.test", "buildpack_language"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "cpu", "500"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "memory", "512"),
 					resource.TestCheckResourceAttr("data.qovery_application.test", "min_running_instances", "1"),

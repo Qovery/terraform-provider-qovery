@@ -35,10 +35,7 @@ var (
 
 	// Application Build Mode
 	applicationBuildModes       = clientEnumToStringArray(qovery.AllowedBuildModeEnumEnumValues)
-	applicationBuildModeDefault = string(qovery.BUILDMODEENUM_BUILDPACKS)
-
-	// Application BuildPack
-	applicationBuildPackLanguages = clientEnumToStringArray(qovery.AllowedBuildPackLanguageEnumEnumValues)
+	applicationBuildModeDefault = string(qovery.BUILDMODEENUM_DOCKER)
 
 	// Application CPU
 	applicationCPUMin     int64 = 10  // in MB
@@ -177,17 +174,6 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			"dockerfile_path": schema.StringAttribute{
 				Description: "Dockerfile Path of the application.\n\t- Required if: `build_mode=\"DOCKER\"`.",
 				Optional:    true,
-			},
-			"buildpack_language": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Buildpack Language framework.\n\t- Required if: `build_mode=\"BUILDPACKS\"`.",
-					applicationBuildPackLanguages,
-					nil,
-				),
-				Optional: true,
-				Validators: []validator.String{
-					validators.NewStringEnumValidator(applicationBuildPackLanguages),
-				},
 			},
 			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
