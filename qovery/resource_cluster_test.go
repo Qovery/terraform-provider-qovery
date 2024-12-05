@@ -280,7 +280,7 @@ func testAccQoveryClusterExists(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("cluster.id not found")
 		}
 
-		_, apiErr := apiClient.GetCluster(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
+		_, apiErr := apiClient.GetCluster(context.TODO(), getTestOrganizationID(), rs.Primary.ID, "{}", false)
 		if apiErr != nil {
 			return apiErr
 		}
@@ -299,7 +299,7 @@ func testAccQoveryClusterDestroy(resourceName string) resource.TestCheckFunc {
 			return fmt.Errorf("cluster.id not found")
 		}
 
-		_, apiErr := apiClient.GetCluster(context.TODO(), getTestOrganizationID(), rs.Primary.ID)
+		_, apiErr := apiClient.GetCluster(context.TODO(), getTestOrganizationID(), rs.Primary.ID, "{}", false)
 		if apiErr == nil {
 			return fmt.Errorf("found cluster but expected it to be deleted")
 		}
