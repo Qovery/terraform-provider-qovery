@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -344,7 +345,7 @@ func (d clusterDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	}
 
 	// Get cluster from the API
-	cluster, apiErr := d.client.GetCluster(ctx, data.OrganizationId.ValueString(), data.Id.ValueString())
+	cluster, apiErr := d.client.GetCluster(ctx, data.OrganizationId.ValueString(), data.Id.ValueString(), data.AdvancedSettingsJson.ValueString())
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
