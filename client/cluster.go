@@ -37,7 +37,7 @@ func (c *Client) CreateCluster(ctx context.Context, organizationID string, param
 	return c.updateCluster(ctx, organizationID, cluster, params)
 }
 
-func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterID string, advancedSettingsFromState string) (*ClusterResponse, *apierrors.APIError) {
+func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterID string, advancedSettingsFromState string, isTriggeredFromImport bool) (*ClusterResponse, *apierrors.APIError) {
 	cluster, apiErr := c.getClusterByID(ctx, organizationID, clusterID)
 	if apiErr != nil {
 		return nil, apiErr
@@ -55,7 +55,7 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 		return nil, apiErr
 	}
 
-	advancedSettingsJson, err := advanced_settings.NewClusterAdvancedSettingsService(c.api.GetConfig()).ReadClusterAdvancedSettings(organizationID, clusterID, advancedSettingsFromState)
+	advancedSettingsJson, err := advanced_settings.NewClusterAdvancedSettingsService(c.api.GetConfig()).ReadClusterAdvancedSettings(organizationID, clusterID, advancedSettingsFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadError(apierrors.APIResourceClusterAdvancedSettings, cluster.Id, nil, err)
 	}

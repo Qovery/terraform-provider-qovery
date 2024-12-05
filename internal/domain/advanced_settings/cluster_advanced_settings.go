@@ -24,6 +24,7 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(
 	organizationId string,
 	clusterId string,
 	advancedSettingsJsonFromState string,
+	isTriggeredFromImport bool,
 ) (*string, error) {
 	httpClient := &http.Client{}
 	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
@@ -114,6 +115,11 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(
 		defaultValue := defaultAdvancedSettingsHashMap[advanced_setting_name]
 		// if the value is not in the state ignore it
 		// otherwise if an advanced setting has been modified in the UI we don't want to show the diff
+		_, ok := advancedSettingsFromStateHashMap[advanced_setting_name]
+		if !isTriggeredFromImport && !ok {
+			continue
+		}
+		// if the value has been overridden
 		if !reflect.DeepEqual(defaultValue, advanced_setting_value) {
 			overriddenAdvancedSettings[advanced_setting_name] = advanced_setting_value
 		} else {

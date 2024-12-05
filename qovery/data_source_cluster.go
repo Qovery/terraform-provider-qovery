@@ -345,7 +345,7 @@ func (d clusterDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	}
 
 	// Get cluster from the API
-	cluster, apiErr := d.client.GetCluster(ctx, data.OrganizationId.ValueString(), data.Id.ValueString(), data.AdvancedSettingsJson.ValueString())
+	cluster, apiErr := d.client.GetCluster(ctx, data.OrganizationId.ValueString(), data.Id.ValueString(), data.AdvancedSettingsJson.ValueString(), true)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
