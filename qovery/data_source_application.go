@@ -116,15 +116,6 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				Optional:    true,
 				Computed:    true,
 			},
-			"buildpack_language": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Buildpack Language framework.\n\t- Required if: `build_mode=\"BUILDPACKS\"`.",
-					applicationBuildPackLanguages,
-					nil,
-				),
-				Optional: true,
-				Computed: true,
-			},
 			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"CPU of the application in millicores (m) [1000m = 1 CPU].",

@@ -145,11 +145,8 @@ You can find complete examples within these repositories:
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
 	- Default: `false`.
 - `build_mode` (String) Build Mode of the application.
-	- Can be: `BUILDPACKS`, `DOCKER`.
-	- Default: `BUILDPACKS`.
-- `buildpack_language` (String) Buildpack Language framework.
-	- Required if: `build_mode="BUILDPACKS"`.
-	- Can be: `CLOJURE`, `GO`, `GRADLE`, `GRAILS`, `JAVA`, `JVM`, `NODE_JS`, `PHP`, `PLAY`, `PYTHON`, `SCALA`.
+	- Can be: `DOCKER`.
+	- Default: `DOCKER`.
 - `cpu` (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 10`.
 	- Default: `500`.
