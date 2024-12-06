@@ -20,11 +20,22 @@ func NewClusterAdvancedSettingsService(apiConfig *qovery.Configuration) *Cluster
 }
 
 // ReadServiceAdvancedSettings Get only overridden advanced settings
-func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(organizationId string, clusterId string) (*string, error) {
+func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(
+	organizationId string,
+	clusterId string,
+	advancedSettingsJsonFromState string,
+	isTriggeredFromImport bool,
+) (*string, error) {
 	httpClient := &http.Client{}
 	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
 	var host = c.apiConfig.Servers[0].URL
 
+	var clusterAdvancedSettingsState string
+	if advancedSettingsJsonFromState == "" {
+		clusterAdvancedSettingsState = "{}"
+	} else {
+		clusterAdvancedSettingsState = advancedSettingsJsonFromState
+	}
 	//
 	// Get default cluster advanced settings
 	defaultAdvancedSettingsUrl := host + "/defaultClusterAdvancedSettings"
@@ -83,6 +94,11 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(organization
 
 	//
 	// Compute the Diff
+	advancedSettingsFromStateHashMap := make(map[string]interface{})
+	if err := json.Unmarshal([]byte(clusterAdvancedSettingsState), &advancedSettingsFromStateHashMap); err != nil {
+		return nil, err
+	}
+
 	currentAdvancedSettingsHashMap := make(map[string]interface{})
 	if err := json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap); err != nil {
 		return nil, err
@@ -95,11 +111,23 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(organization
 
 	overriddenAdvancedSettings := make(map[string]interface{})
 	// Prepare hashmap with target advanced settings
-	for k, v := range currentAdvancedSettingsHashMap {
-		defaultValue := defaultAdvancedSettingsHashMap[k]
+	for advanced_setting_name, advanced_setting_value := range currentAdvancedSettingsHashMap {
+		defaultValue := defaultAdvancedSettingsHashMap[advanced_setting_name]
+		// if the value is not in the state ignore it
+		// otherwise if an advanced setting has been modified in the UI we don't want to show the diff
+		_, ok := advancedSettingsFromStateHashMap[advanced_setting_name]
+		if !isTriggeredFromImport && !ok {
+			continue
+		}
 		// if the value has been overridden
-		if !reflect.DeepEqual(defaultValue, v) {
-			overriddenAdvancedSettings[k] = v
+		if !reflect.DeepEqual(defaultValue, advanced_setting_value) {
+			overriddenAdvancedSettings[advanced_setting_name] = advanced_setting_value
+		} else {
+			// if the value is in the state
+			v, ok := advancedSettingsFromStateHashMap[advanced_setting_name]
+			if ok {
+				overriddenAdvancedSettings[advanced_setting_name] = v
+			}
 		}
 	}
 
