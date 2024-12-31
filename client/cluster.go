@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"

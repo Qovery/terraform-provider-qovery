@@ -45,12 +45,12 @@ type Cluster struct {
 }
 
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
-	clusterFeatures := toQoveryClusterFeatures(c.Features, c.KubernetesMode.String())
+	clusterFeatures, _ := toQoveryClusterFeatures(c.Features, c.KubernetesMode.String())
 	if state == nil {
 		return len(clusterFeatures) > 0
 	}
 
-	stateFeature := toQoveryClusterFeatures(state.Features, c.KubernetesMode.String())
+	stateFeature, _ := toQoveryClusterFeatures(state.Features, c.KubernetesMode.String())
 	if len(clusterFeatures) != len(stateFeature) {
 		return true
 	}
@@ -113,7 +113,11 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 
 	routingTable := toClusterRouteList(c.RoutingTables)
 
-	features := toQoveryClusterFeatures(c.Features, c.KubernetesMode.String())
+	features, err := toQoveryClusterFeatures(c.Features, c.KubernetesMode.String())
+	if err != nil {
+		return nil, err
+	}
+
 	if features != nil {
 		for _, f := range features {
 			if f.Id != nil && *f.Id == featureIdKarpenter {
@@ -184,7 +188,7 @@ func IsKarpenterAlreadyInstalled(state *Cluster) bool {
 		return false
 	}
 
-	oldFeatures := toQoveryClusterFeatures(state.Features, state.KubernetesMode.String())
+	oldFeatures, _ := toQoveryClusterFeatures(state.Features, state.KubernetesMode.String())
 	if oldFeatures != nil {
 		for _, f := range oldFeatures {
 			if f.Id != nil && *f.Id == featureIdKarpenter {
@@ -212,22 +216,25 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		MinRunningNodes:      FromInt32Pointer(res.ClusterResponse.MinRunningNodes),
 		MaxRunningNodes:      FromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
 		Production:           FromBoolPointer(res.ClusterResponse.Production),
-		Features:             fromQoveryClusterFeatures(res.ClusterResponse.Features),
+		Features:             fromQoveryClusterFeatures(res.ClusterResponse.Features, initialPlan),
 		RoutingTables:        routingTable.toTerraformSet(ctx, initialPlan.RoutingTables),
 		State:                fromClientEnumPointer(res.ClusterResponse.Status),
 		AdvancedSettingsJson: FromString(res.AdvancedSettingsJson),
 	}
 }
 
-func fromQoveryClusterFeatures(ff []qovery.ClusterFeatureResponse) types.Object {
-	if ff == nil {
+func fromQoveryClusterFeatures(
+	clusterFeatures []qovery.ClusterFeatureResponse,
+	initialPlan Cluster,
+) types.Object {
+	if clusterFeatures == nil {
 		// Early return object null without attribute types
 		return types.ObjectNull(make(map[string]attr.Type))
 	}
 
 	attributes := make(map[string]attr.Value)
 	attributeTypes := make(map[string]attr.Type)
-	for _, f := range ff {
+	for _, f := range clusterFeatures {
 		if f.Id == nil {
 			continue
 		}
@@ -288,20 +295,20 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeatureResponse) types.Object 
 			attributes[featureKeyVpcSubnet] = FromStringPointer(&clusterFeatureVpcSubnetDefault)
 			attributeTypes[featureKeyVpcSubnet] = types.StringType
 		case featureIdKarpenter:
-			var v *qovery.ClusterFeatureKarpenterParameters = nil
+			var karpenterParameters *qovery.ClusterFeatureKarpenterParameters = nil
 			if f.GetValueObject().ClusterFeatureKarpenterParametersResponse != nil {
-				v = &f.GetValueObject().ClusterFeatureKarpenterParametersResponse.Value
+				karpenterParameters = &f.GetValueObject().ClusterFeatureKarpenterParametersResponse.Value
 			}
 
 			attrTypes := createKarpenterFeatureAttrTypes()
-			if v == nil {
+			if karpenterParameters == nil {
 				terraformObjectValue := types.ObjectNull(attrTypes)
 				attributes[featureKeyKarpenter] = terraformObjectValue
 				attributeTypes[featureKeyKarpenter] = terraformObjectValue.Type(context.Background())
 				continue
 			}
 
-			attrVals := createKarpenterFeatureAttrValue(v)
+			attrVals := createKarpenterFeatureAttrValue(karpenterParameters)
 
 			terraformObjectValue, diagnostics := types.ObjectValue(attrTypes, attrVals)
 			if diagnostics.HasError() {
@@ -352,9 +359,9 @@ func fromQoveryClusterFeatures(ff []qovery.ClusterFeatureResponse) types.Object 
 	return terraformObjectValue
 }
 
-func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterRequestFeaturesInner {
+func toQoveryClusterFeatures(f types.Object, mode string) ([]qovery.ClusterRequestFeaturesInner, error) {
 	if f.IsNull() || f.IsUnknown() || mode == "K3S" {
-		return nil
+		return nil, nil
 	}
 
 	features := make([]qovery.ClusterRequestFeaturesInner, 0, len(f.Attributes()))
@@ -415,12 +422,12 @@ func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterReques
 			defaultServiceArchitecture := v.Attributes()["default_service_architecture"].(types.String).ValueString()
 			arch, err := toCpuArchitectureEnum(defaultServiceArchitecture)
 			if err != nil {
-				fmt.Println("Error:", err)
+				return nil, err
 			}
 
 			qoveryNodePools, err := toQoveryNodePools(v)
 			if err != nil {
-				fmt.Println("Error:", err)
+				return nil, err
 			}
 
 			feature := qovery.ClusterFeatureKarpenterParameters{
@@ -440,13 +447,14 @@ func toQoveryClusterFeatures(f types.Object, mode string) []qovery.ClusterReques
 		}
 	}
 
-	return features
+	return features, nil
 }
 
 func toQoveryNodePools(obj types.Object) (*qovery.KarpenterNodePool, error) {
 	karpenterNodePool := qovery.KarpenterNodePool{}
 	karpenterNodePool.Requirements = []qovery.KarpenterNodePoolRequirement{}
 
+	// Set requirements
 	requirements, err := extractRequirementsFromTypesObject(obj)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract requirements from types.Object: %v", err)
@@ -497,6 +505,20 @@ func toQoveryNodePools(obj types.Object) (*qovery.KarpenterNodePool, error) {
 		karpenterNodePool.Requirements = append(karpenterNodePool.Requirements, requirement)
 	}
 
+	// Set stable node pool override
+	stableOverride, err := extractStableNodePoolOverrideFromTypesObject(obj)
+	if err != nil {
+		return nil, err
+	}
+	karpenterNodePool.StableOverride = stableOverride
+
+	// Set default node pool override
+	defaultOverride, err := extractDefaultNodePoolOverrideFromTypesObject(obj)
+	if err != nil {
+		return nil, err
+	}
+	karpenterNodePool.DefaultOverride = defaultOverride
+
 	return &karpenterNodePool, nil
 }
 
@@ -526,6 +548,136 @@ func extractRequirementsFromTypesObject(obj types.Object) ([]map[string]interfac
 	}
 
 	return result, nil
+}
+
+func extractStableNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.KarpenterStableNodePoolOverride, error) {
+	qoveryNodePools, exists := obj.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
+	if !exists {
+		return nil, fmt.Errorf("qovery_node_pools field not found")
+	}
+
+	stableOverrideAttr, exists := qoveryNodePools.Attributes()["stable_override"]
+	if !exists {
+		return nil, nil
+	}
+
+	if stableOverrideAttr.IsNull() {
+		// It means stable_override is not defined
+		// No issue as this field is optional
+		return nil, nil
+	}
+
+	stableOverride, ok := stableOverrideAttr.(basetypes.ObjectValue)
+	if !ok {
+		return nil, fmt.Errorf("stable_override field cannot be parsed to Object")
+	}
+
+	var qoveryStableOverride = qovery.KarpenterStableNodePoolOverride{}
+
+	// Set consolidation
+	consolidationAttr, exists := stableOverride.Attributes()["consolidation"]
+
+	// The consolidation is allowed to be null
+	if exists && !consolidationAttr.IsNull() {
+		consolidation, ok := consolidationAttr.(basetypes.ObjectValue)
+		if !ok {
+			return nil, fmt.Errorf("consolidation field cannot be parsed to Object")
+		}
+
+		consolidationEnabled := consolidation.Attributes()["enabled"].(basetypes.BoolValue)
+		consolidationDays := consolidation.Attributes()["days"].(basetypes.ListValue)
+		consolidationStartTime := consolidation.Attributes()["start_time"].(basetypes.StringValue)
+		consolidationDuration := consolidation.Attributes()["duration"].(basetypes.StringValue)
+
+		// Converts consolidation days (string) to expected enum type (WeekdayEnum)
+		consolidationWeekDayEnumList := make([]qovery.WeekdayEnum, 0)
+		for _, value := range consolidationDays.Elements() {
+			valueAsString := value.(basetypes.StringValue).ValueString()
+			fromValue, err := qovery.NewWeekdayEnumFromValue(valueAsString)
+			if err != nil {
+				return nil, fmt.Errorf("cannot convert '%s' to WeekdayEnum", valueAsString)
+			}
+			consolidationWeekDayEnumList = append(consolidationWeekDayEnumList, *fromValue)
+		}
+
+		qoveryConsolidation := qovery.NewKarpenterNodePoolConsolidation(
+			consolidationEnabled.ValueBool(),
+			consolidationWeekDayEnumList,
+			consolidationStartTime.ValueString(),
+			consolidationDuration.ValueString(),
+		)
+		qoveryStableOverride.Consolidation = qoveryConsolidation
+	}
+
+	// Set limits
+	limitsAttr, exists := stableOverride.Attributes()["limits"]
+
+	// The limits are allowed to be null
+	if exists && !limitsAttr.IsNull() {
+		limits, ok := limitsAttr.(basetypes.ObjectValue)
+		if !ok {
+			return nil, fmt.Errorf("limits field cannot be parsed to Object")
+		}
+
+		limitsCpu := limits.Attributes()["max_cpu_in_vcpu"].(basetypes.Int64Value)
+		limitsRam := limits.Attributes()["max_memory_in_gibibytes"].(basetypes.Int64Value)
+
+		qoveryLimits := qovery.NewKarpenterNodePoolLimits(int32(limitsCpu.ValueInt64()), int32(limitsRam.ValueInt64()))
+		qoveryStableOverride.Limits = qoveryLimits
+	}
+
+	// To avoid over-checking conditions when converting the API response to Terraform object, forbid the stable_override block if both consolidation and limits are undefined
+	if consolidationAttr.IsNull() && limitsAttr.IsNull() {
+		return nil, fmt.Errorf("if `qovery_node_pools.stable_override` is defined, you must define at least its `consolidation` or its `limits`")
+	}
+
+	return &qoveryStableOverride, nil
+}
+
+func extractDefaultNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.KarpenterDefaultNodePoolOverride, error) {
+	qoveryNodePools, exists := obj.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
+	if !exists {
+		return nil, fmt.Errorf("qovery_node_pools field not found")
+	}
+
+	defaultOverrideAttr, exists := qoveryNodePools.Attributes()["default_override"]
+	if !exists {
+		return nil, nil
+	}
+
+	if defaultOverrideAttr.IsNull() {
+		// It means stable_override is not defined
+		// No issue as this field is optional
+		return nil, nil
+	}
+
+	defaultOverride, ok := defaultOverrideAttr.(basetypes.ObjectValue)
+	if !ok {
+		return nil, fmt.Errorf("default_override field cannot be parsed to Object")
+	}
+
+	var qoveryDefaultOverride = qovery.KarpenterDefaultNodePoolOverride{}
+
+	// Set limits
+	limitsAttr, exists := defaultOverride.Attributes()["limits"]
+
+	// To avoid over-checking conditions when converting the API response to Terraform object, forbid the default_override block if limits are not defined
+	if !exists || limitsAttr.IsNull() {
+		return nil, fmt.Errorf("if `qovery_node_pools.default_override` is defined, you must define its `limits`")
+	}
+
+	limits, ok := limitsAttr.(basetypes.ObjectValue)
+	if !ok {
+		return nil, fmt.Errorf("limits field cannot be parsed to Object")
+	}
+
+	limitsCpu := limits.Attributes()["max_cpu_in_vcpu"].(basetypes.Int64Value)
+	limitsRam := limits.Attributes()["max_memory_in_gibibytes"].(basetypes.Int64Value)
+
+	qoveryLimits := qovery.NewKarpenterNodePoolLimits(int32(limitsCpu.ValueInt64()), int32(limitsRam.ValueInt64()))
+	qoveryDefaultOverride.Limits = qoveryLimits
+
+	return &qoveryDefaultOverride, nil
 }
 
 func convertObjectToMap(obj attr.Value) (map[string]interface{}, error) {
@@ -581,6 +733,36 @@ func createKarpenterFeatureAttrTypes() map[string]attr.Type {
 					},
 				},
 			},
+			"stable_override": types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"consolidation": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"enabled": types.BoolType,
+							"days": types.ListType{
+								ElemType: types.StringType,
+							},
+							"start_time": types.StringType,
+							"duration":   types.StringType,
+						},
+					},
+					"limits": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"max_cpu_in_vcpu":         types.Int64Type,
+							"max_memory_in_gibibytes": types.Int64Type,
+						},
+					},
+				},
+			},
+			"default_override": types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"limits": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"max_cpu_in_vcpu":         types.Int64Type,
+							"max_memory_in_gibibytes": types.Int64Type,
+						},
+					},
+				},
+			},
 		},
 	}
 
@@ -606,22 +788,23 @@ func createExistingVpcFeatureAttrTypes() map[string]attr.Type {
 	return attrTypes
 }
 
-func createKarpenterFeatureAttrValue(v *qovery.ClusterFeatureKarpenterParameters) map[string]attr.Value {
+func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpenterParameters) map[string]attr.Value {
 	attrVals := make(map[string]attr.Value)
 	var diags diag.Diagnostics
 
-	if v == nil {
+	if karpenterParameters == nil {
 		return attrVals
 	}
 
-	attrVals["spot_enabled"] = FromBoolPointer(&v.SpotEnabled)
-	attrVals["disk_size_in_gib"] = FromInt32(v.DiskSizeInGib)
-	attrVals["default_service_architecture"] = FromString(string(v.DefaultServiceArchitecture))
+	attrVals["spot_enabled"] = FromBoolPointer(&karpenterParameters.SpotEnabled)
+	attrVals["disk_size_in_gib"] = FromInt32(karpenterParameters.DiskSizeInGib)
+	attrVals["default_service_architecture"] = FromString(string(karpenterParameters.DefaultServiceArchitecture))
 
-	if v.QoveryNodePools != nil {
-		requirementsAttrList := make([]attr.Value, len(v.QoveryNodePools.Requirements))
+	if karpenterParameters.QoveryNodePools != nil {
+		// Inject requirements
+		requirementsAttrList := make([]attr.Value, len(karpenterParameters.QoveryNodePools.Requirements))
 
-		for i, req := range v.QoveryNodePools.Requirements {
+		for i, req := range karpenterParameters.QoveryNodePools.Requirements {
 			reqAttrVals := make(map[string]attr.Value)
 
 			reqAttrVals["key"] = types.StringValue(string(req.Key))
@@ -662,6 +845,158 @@ func createKarpenterFeatureAttrValue(v *qovery.ClusterFeatureKarpenterParameters
 			return nil
 		}
 
+		// Inject stable_override
+		// Set non null stable_override only if the api returns a non null consolidation or a non null limits
+		if karpenterParameters.QoveryNodePools.StableOverride != nil &&
+			(karpenterParameters.QoveryNodePools.StableOverride.Consolidation != nil || karpenterParameters.QoveryNodePools.StableOverride.Limits != nil) {
+			var stableOverrideConsolidationAttr basetypes.ObjectValue
+			var stableOverrideLimitsAttr basetypes.ObjectValue
+			consolidation := karpenterParameters.QoveryNodePools.StableOverride.Consolidation
+			limits := karpenterParameters.QoveryNodePools.StableOverride.Limits
+
+			if consolidation != nil {
+				daysAttr := make([]attr.Value, len(consolidation.Days))
+				for i, day := range consolidation.Days {
+					daysAttr[i] = types.StringValue(string(day))
+				}
+				stableOverrideConsolidationAttr = types.ObjectValueMust(
+					map[string]attr.Type{
+						"enabled": types.BoolType,
+						"days": types.ListType{
+							ElemType: types.StringType,
+						},
+						"start_time": types.StringType,
+						"duration":   types.StringType,
+					},
+					map[string]attr.Value{
+						"enabled":    types.BoolValue(consolidation.Enabled),
+						"days":       types.ListValueMust(types.StringType, daysAttr),
+						"start_time": types.StringValue(consolidation.StartTime),
+						"duration":   types.StringValue(consolidation.Duration),
+					},
+				)
+			} else {
+				stableOverrideConsolidationAttr = types.ObjectNull(map[string]attr.Type{
+					"enabled": types.BoolType,
+					"days": types.ListType{
+						ElemType: types.StringType,
+					},
+					"start_time": types.StringType,
+					"duration":   types.StringType,
+				})
+			}
+
+			if limits != nil {
+				stableOverrideLimitsAttr = types.ObjectValueMust(
+					map[string]attr.Type{
+						"max_cpu_in_vcpu":         types.Int64Type,
+						"max_memory_in_gibibytes": types.Int64Type,
+					},
+					map[string]attr.Value{
+						"max_cpu_in_vcpu":         types.Int64Value(int64(limits.MaxCpuInVcpu)),
+						"max_memory_in_gibibytes": types.Int64Value(int64(limits.MaxMemoryInGibibytes)),
+					},
+				)
+			} else {
+				stableOverrideLimitsAttr = types.ObjectNull(map[string]attr.Type{
+					"max_cpu_in_vcpu":         types.Int64Type,
+					"max_memory_in_gibibytes": types.Int64Type,
+				})
+			}
+
+			stableOverrideAttr := types.ObjectValueMust(
+				map[string]attr.Type{
+					"consolidation": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"enabled": types.BoolType,
+							"days": types.ListType{
+								ElemType: types.StringType,
+							},
+							"start_time": types.StringType,
+							"duration":   types.StringType,
+						},
+					},
+					"limits": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"max_cpu_in_vcpu":         types.Int64Type,
+							"max_memory_in_gibibytes": types.Int64Type,
+						},
+					},
+				},
+				map[string]attr.Value{
+					"consolidation": stableOverrideConsolidationAttr,
+					"limits":        stableOverrideLimitsAttr,
+				},
+			)
+
+			qoveryNodePoolsAttrVals["stable_override"] = stableOverrideAttr
+		} else {
+			qoveryNodePoolsAttrVals["stable_override"] = types.ObjectNull(
+				map[string]attr.Type{
+					"consolidation": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"enabled": types.BoolType,
+							"days": types.ListType{
+								ElemType: types.StringType,
+							},
+							"start_time": types.StringType,
+							"duration":   types.StringType,
+						},
+					},
+					"limits": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"max_cpu_in_vcpu":         types.Int64Type,
+							"max_memory_in_gibibytes": types.Int64Type,
+						},
+					},
+				},
+			)
+		}
+
+		// Inject default override
+		var defaultOverrideLimitsAttr basetypes.ObjectValue
+
+		if karpenterParameters.QoveryNodePools.DefaultOverride != nil {
+			limits := karpenterParameters.QoveryNodePools.DefaultOverride.Limits
+			defaultOverrideLimitsAttr = types.ObjectValueMust(
+				map[string]attr.Type{
+					"max_cpu_in_vcpu":         types.Int64Type,
+					"max_memory_in_gibibytes": types.Int64Type,
+				},
+				map[string]attr.Value{
+					"max_cpu_in_vcpu":         types.Int64Value(int64(limits.MaxCpuInVcpu)),
+					"max_memory_in_gibibytes": types.Int64Value(int64(limits.MaxMemoryInGibibytes)),
+				},
+			)
+
+			defaultOverrideAttr := types.ObjectValueMust(
+				map[string]attr.Type{
+					"limits": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"max_cpu_in_vcpu":         types.Int64Type,
+							"max_memory_in_gibibytes": types.Int64Type,
+						},
+					},
+				},
+				map[string]attr.Value{
+					"limits": defaultOverrideLimitsAttr,
+				},
+			)
+			qoveryNodePoolsAttrVals["default_override"] = defaultOverrideAttr
+		} else {
+			qoveryNodePoolsAttrVals["default_override"] = types.ObjectNull(
+				map[string]attr.Type{
+					"limits": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"max_cpu_in_vcpu":         types.Int64Type,
+							"max_memory_in_gibibytes": types.Int64Type,
+						},
+					},
+				},
+			)
+		}
+
+		// Inject qovery_node_pools
 		attrVals["qovery_node_pools"], diags = types.ObjectValue(map[string]attr.Type{
 			"requirements": types.ListType{ElemType: types.ObjectType{
 				AttrTypes: map[string]attr.Type{
@@ -670,12 +1005,44 @@ func createKarpenterFeatureAttrValue(v *qovery.ClusterFeatureKarpenterParameters
 					"values":   types.ListType{ElemType: types.StringType},
 				},
 			}},
+			"stable_override": types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"consolidation": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"enabled": types.BoolType,
+							"days": types.ListType{
+								ElemType: types.StringType,
+							},
+							"start_time": types.StringType,
+							"duration":   types.StringType,
+						},
+					},
+					"limits": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"max_cpu_in_vcpu":         types.Int64Type,
+							"max_memory_in_gibibytes": types.Int64Type,
+						},
+					},
+				},
+			},
+			"default_override": types.ObjectType{
+				AttrTypes: map[string]attr.Type{
+					"limits": types.ObjectType{
+						AttrTypes: map[string]attr.Type{
+							"max_cpu_in_vcpu":         types.Int64Type,
+							"max_memory_in_gibibytes": types.Int64Type,
+						},
+					},
+				},
+			},
 		}, qoveryNodePoolsAttrVals)
 
 		if diags.HasError() {
 			return nil
 		}
 	} else {
+		// TODO (COR-XXX) Should return an error (early return) if node pool is not set as it should be mandatory now on core side
+		// To display a message to say we will deprecate it soon
 		attrVals["qovery_node_pools"] = types.ObjectNull(map[string]attr.Type{
 			"requirements": types.ListType{ElemType: types.ObjectType{
 				AttrTypes: map[string]attr.Type{
