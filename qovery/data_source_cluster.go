@@ -290,6 +290,80 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 											},
 										},
 									},
+									"stable_override": schema.SingleNestedAttribute{
+										Description: "Defines some overridden options for Qovery stable node pool",
+										Optional:    true,
+										Computed:    false,
+										Attributes: map[string]schema.Attribute{
+											"consolidation": schema.SingleNestedAttribute{
+												Description: "Specifies the period to consolidate nodes (by default, no consolidation happens)",
+												Optional:    true,
+												Computed:    false,
+												Attributes: map[string]schema.Attribute{
+													"enabled": schema.BoolAttribute{
+														Description: "Indicates if the consolidation defines here must be applied",
+														Required:    true,
+														Computed:    false,
+													},
+													"days": schema.ListAttribute{
+														Description: "A list of days where the consolidation must be triggered",
+														Required:    true,
+														Computed:    false,
+														ElementType: types.StringType,
+													},
+													"start_time": schema.StringAttribute{
+														Description: "The start time where the consolidation must begin. It must follow the ISO-8601 time format: `PThh:mm`",
+														Required:    true,
+														Computed:    false,
+													},
+													"duration": schema.StringAttribute{
+														Description: "The period during the consolidation will be applied. It must follow the ISO-8601 duration format: `PThhHmmM`",
+														Required:    true,
+														Computed:    false,
+													},
+												},
+											},
+											"limits": schema.SingleNestedAttribute{
+												Description: "Specifies the limits to apply on the stable node pool",
+												Optional:    true,
+												Attributes: map[string]schema.Attribute{
+													"max_cpu_in_vcpu": schema.Int64Attribute{
+														Description: "The maximum number of cpu cores to be used inside the stable node pool",
+														Required:    true,
+														Computed:    false,
+													},
+													"max_memory_in_gibibytes": schema.Int64Attribute{
+														Description: "The maximum number of memory to be used inside the stable node pool",
+														Required:    true,
+														Computed:    false,
+													},
+												},
+											},
+										},
+									},
+									"default_override": schema.SingleNestedAttribute{
+										Description: "Defines some overridden options for Qovery default node pool",
+										Optional:    true,
+										Computed:    false,
+										Attributes: map[string]schema.Attribute{
+											"limits": schema.SingleNestedAttribute{
+												Description: "Specifies the limits to apply on the default node pool",
+												Optional:    true,
+												Attributes: map[string]schema.Attribute{
+													"max_cpu_in_vcpu": schema.Int64Attribute{
+														Description: "The maximum number of cpu cores to be used inside the default node pool",
+														Required:    true,
+														Computed:    false,
+													},
+													"max_memory_in_gibibytes": schema.Int64Attribute{
+														Description: "The maximum number of memory to be used inside the default node pool",
+														Required:    true,
+														Computed:    false,
+													},
+												},
+											},
+										},
+									},
 								},
 							},
 						},

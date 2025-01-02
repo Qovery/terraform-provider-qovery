@@ -142,14 +142,65 @@ Required:
 
 - `requirements` (Attributes List) List of requirements for the node pool (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--requirements))
 
+Optional:
+
+- `default_override` (Attributes) Defines some overriden options for Qovery default node pool (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override))
+- `stable_override` (Attributes) Defines some overriden options for Qovery stable node pool (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override))
+
 <a id="nestedatt--features--karpenter--qovery_node_pools--requirements"></a>
-### Nested Schema for `features.karpenter.qovery_node_pools.requirements`
+### Nested Schema for `features.karpenter.qovery_node_pools.stable_override`
 
 Required:
 
 - `key` (String) The key of the requirement (e.g., InstanceFamily, InstanceSize, Arch)
 - `operator` (String) The operator for the requirement (e.g., In)
 - `values` (List of String) List of values for the requirement
+
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--default_override"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.stable_override`
+
+Optional:
+
+- `limits` (Attributes) Specifies the limits to apply on the default node pool (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--limits))
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--stable_override--limits"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.stable_override.limits`
+
+Required:
+
+- `max_cpu_in_vcpu` (Number)
+- `max_memory_in_gibibytes` (Number)
+
+
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--stable_override"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.stable_override`
+
+Optional:
+
+- `consolidation` (Attributes) Specifies the period to consolidate nodes (by default, no consolidation happens) (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation))
+- `limits` (Attributes) Specifies the limits to apply on the stable node pool (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--limits))
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.stable_override.consolidation`
+
+Required:
+
+- `days` (List of String)
+- `duration` (String)
+- `enabled` (Boolean)
+- `start_time` (String)
+
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--stable_override--limits"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.stable_override.limits`
+
+Required:
+
+- `max_cpu_in_vcpu` (Number)
+- `max_memory_in_gibibytes` (Number)
+
 
 
 
