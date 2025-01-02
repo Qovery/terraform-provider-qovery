@@ -109,7 +109,7 @@ Optional:
 - `stable_override` (Attributes) Defines some overridden options for Qovery stable node pool (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override))
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--requirements"></a>
-### Nested Schema for `features.karpenter.qovery_node_pools.stable_override`
+### Nested Schema for `features.karpenter.qovery_node_pools.requirements`
 
 Required:
 
@@ -119,14 +119,14 @@ Required:
 
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--default_override"></a>
-### Nested Schema for `features.karpenter.qovery_node_pools.stable_override`
+### Nested Schema for `features.karpenter.qovery_node_pools.default_override`
 
 Optional:
 
-- `limits` (Attributes) Specifies the limits to apply on the default node pool (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--limits))
+- `limits` (Attributes) Specifies the limits to apply on the default node pool (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override--limits))
 
-<a id="nestedatt--features--karpenter--qovery_node_pools--stable_override--limits"></a>
-### Nested Schema for `features.karpenter.qovery_node_pools.stable_override.limits`
+<a id="nestedatt--features--karpenter--qovery_node_pools--default_override--limits"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.default_override.limits`
 
 Required:
 
