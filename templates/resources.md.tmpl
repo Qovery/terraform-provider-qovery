@@ -6,7 +6,7 @@
 ## Example
 {{ tffile .ExampleFile }}
 
-{{ with $path := printf "/examples/resources/%s/examples.md" .Name -}}
+{{ with $path := printf "./examples/resources/%s/examples.md" .Name -}}
 {{- with $content := codefile "" $path -}}
 {{- if lt 10 (len (plainmarkdown $content)) -}}
 You can find complete examples within these repositories:
