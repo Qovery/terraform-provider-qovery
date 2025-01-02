@@ -1,3 +1,3 @@
-golang 1.19
+golang 1.23
 task 3.38.0
-golangci-lint 1.49.0
+golangci-lint 1.63.1

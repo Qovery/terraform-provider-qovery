@@ -5,8 +5,8 @@ version: '3'
 vars:
   BINARY_FOLDER: bin
   BINARY_NAME: terraform-provider-qovery
-  GOLANGCI_LINT_VERSION: v1.49.0
-  MOCKERY_VERSION: v2.22.1
+  GOLANGCI_LINT_VERSION: v1.63.1
+  MOCKERY_VERSION: v2.50.2
 
 dotenv: ['.env']
 
