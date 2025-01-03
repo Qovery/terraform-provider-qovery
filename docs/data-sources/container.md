@@ -143,7 +143,7 @@ Optional:
 - `tcp` (Attributes) Check that the given port accepting connection (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--tcp))
 
 <a id="nestedatt--healthchecks--liveness_probe--type--exec"></a>
-### Nested Schema for `healthchecks.liveness_probe.type.tcp`
+### Nested Schema for `healthchecks.liveness_probe.type.exec`
 
 Required:
 
@@ -151,7 +151,7 @@ Required:
 
 
 <a id="nestedatt--healthchecks--liveness_probe--type--grpc"></a>
-### Nested Schema for `healthchecks.liveness_probe.type.tcp`
+### Nested Schema for `healthchecks.liveness_probe.type.grpc`
 
 Required:
 
@@ -163,7 +163,7 @@ Optional:
 
 
 <a id="nestedatt--healthchecks--liveness_probe--type--http"></a>
-### Nested Schema for `healthchecks.liveness_probe.type.tcp`
+### Nested Schema for `healthchecks.liveness_probe.type.http`
 
 Required:
 
@@ -212,7 +212,7 @@ Optional:
 - `tcp` (Attributes) Check that the given port accepting connection (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--tcp))
 
 <a id="nestedatt--healthchecks--readiness_probe--type--exec"></a>
-### Nested Schema for `healthchecks.readiness_probe.type.tcp`
+### Nested Schema for `healthchecks.readiness_probe.type.exec`
 
 Required:
 
@@ -220,7 +220,7 @@ Required:
 
 
 <a id="nestedatt--healthchecks--readiness_probe--type--grpc"></a>
-### Nested Schema for `healthchecks.readiness_probe.type.tcp`
+### Nested Schema for `healthchecks.readiness_probe.type.grpc`
 
 Required:
 
@@ -232,7 +232,7 @@ Optional:
 
 
 <a id="nestedatt--healthchecks--readiness_probe--type--http"></a>
-### Nested Schema for `healthchecks.readiness_probe.type.tcp`
+### Nested Schema for `healthchecks.readiness_probe.type.http`
 
 Required:
 
