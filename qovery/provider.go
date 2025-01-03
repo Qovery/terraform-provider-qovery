@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/custom_organization_role"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
@@ -95,6 +96,9 @@ type qProvider struct {
 
 	// labelsGroupService is an instance of a labels_group.Service that handles the domain logic.
 	labelsGroupService labels_group.Service
+
+	// customOrganizationRoleService is an instance of a customOrganizationRole.Service that handles the domain logic.
+	customOrganizationRoleService custom_organization_role.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -178,6 +182,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.helmRepositoryService = domainServices.HelmRepository
 	p.annotationsGroupService = domainServices.AnnotationsGroup
 	p.labelsGroupService = domainServices.LabelsGroup
+	p.customOrganizationRoleService = domainServices.CustomOrganizationRole
 
 	resp.DataSourceData = p
 	resp.ResourceData = p
@@ -203,6 +208,7 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newHelmRepositoryResource,
 		newAnnotationsGroupResource,
 		newLabelsGroupResource,
+		newCustomOrganizationRoleResource,
 	}
 }
 
