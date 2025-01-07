@@ -23,13 +23,13 @@ import (
 var version = "dev"
 
 func main() {
-	var debugMode bool
-	flag.BoolVar(&debugMode, "debug", false, "set to true to run the provider with support for debuggers like delve")
+	var debugMod bool
+	flag.BoolVar(&debugMod, "debug", false, "set to true to run the provider with support for debuggers like delve")
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
 		Address: "registry.terraform.io/Qovery/qovery",
-		Debug:   debugMode,
+		Debug:   debugMod,
 	}
 
 	if err := providerserver.Serve(context.Background(), qovery.New(version), opts); err != nil {
