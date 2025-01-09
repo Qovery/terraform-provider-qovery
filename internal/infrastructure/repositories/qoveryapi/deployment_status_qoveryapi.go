@@ -46,6 +46,14 @@ func (d deploymentStatusQoveryAPI) WaitForExpectedDesiredState(ctx context.Conte
 	return nil
 }
 
+func (d deploymentStatusQoveryAPI) CheckEnvironmentExists(ctx context.Context, environmentID uuid.UUID) (error, int) {
+	_, response, err := d.client.EnvironmentMainCallsAPI.GetEnvironment(ctx, environmentID.String()).Execute()
+	if err != nil || response.StatusCode >= 400 {
+		return err, response.StatusCode
+	}
+	return nil, response.StatusCode
+}
+
 type waitFunc func(ctx context.Context) (bool, error)
 
 func waitWithDefaultTimeout(ctx context.Context, f waitFunc) error {

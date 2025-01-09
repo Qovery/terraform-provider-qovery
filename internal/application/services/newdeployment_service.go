@@ -2,6 +2,9 @@ package services
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/pkg/errors"
 
@@ -108,6 +111,16 @@ func (s newDeploymentService) Delete(ctx context.Context, params newdeployment.N
 	deployment, err := newdeployment.NewDeployment(params)
 	if err != nil {
 		return err
+	}
+
+	err, statusCode := s.deploymentStatusRepository.CheckEnvironmentExists(ctx, *deployment.EnvironmentID)
+	if err != nil || statusCode >= 400 {
+		if statusCode == 404 {
+			message := fmt.Sprintf("The target environment %s doesn't exist anymore so the DELETE deployment cannot be triggered. You can ignore this warning if you have deleted previously your environment", *deployment.EnvironmentID)
+			tflog.Warn(ctx, message, map[string]interface{}{"environment_id": *deployment.EnvironmentID})
+			return nil
+		}
+		return errors.Wrap(err, newdeployment.ErrFailedToDeleteDeployment.Error())
 	}
 
 	err = s.deploymentStatusRepository.WaitForTerminatedState(ctx, *deployment.EnvironmentID)
