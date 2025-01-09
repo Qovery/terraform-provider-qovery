@@ -17,4 +17,5 @@ type EnvironmentRepository interface {
 type DeploymentStatusRepository interface {
 	WaitForTerminatedState(ctx context.Context, environmentId uuid.UUID) error
 	WaitForExpectedDesiredState(ctx context.Context, newDeployment Deployment) error
+	CheckEnvironmentExists(ctx context.Context, environmentId uuid.UUID) (error, int)
 }
