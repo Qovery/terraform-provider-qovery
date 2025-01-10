@@ -461,7 +461,7 @@ func toQoveryNodePools(obj types.Object) (*qovery.KarpenterNodePool, error) {
 	}
 
 	if len(requirements) == 0 {
-		return nil, fmt.Errorf("Requirements must be set")
+		return nil, fmt.Errorf("karpenter nodepool requirements are mandatory: they must be set among [InstanceFamily, InstanceSize, Arch]")
 	}
 
 	// Check that requirements are correctly set
