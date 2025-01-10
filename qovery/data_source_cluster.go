@@ -256,7 +256,7 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 							},
 							"qovery_node_pools": schema.SingleNestedAttribute{
 								Description: "Karpenter node pool configuration",
-								Optional:    true,
+								Required:    true,
 								Computed:    false,
 								Attributes: map[string]schema.Attribute{
 									"requirements": schema.ListNestedAttribute{
