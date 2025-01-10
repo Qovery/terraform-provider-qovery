@@ -128,11 +128,8 @@ Required:
 
 - `default_service_architecture` (String) The default architecture of service
 - `disk_size_in_gib` (Number)
-- `spot_enabled` (Boolean) Enable spot instances
-
-Optional:
-
 - `qovery_node_pools` (Attributes) Karpenter node pool configuration (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools))
+- `spot_enabled` (Boolean) Enable spot instances
 
 <a id="nestedatt--features--karpenter--qovery_node_pools"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools`
