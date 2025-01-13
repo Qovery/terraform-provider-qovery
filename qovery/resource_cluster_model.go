@@ -434,7 +434,7 @@ func toQoveryClusterFeatures(f types.Object, mode string) ([]qovery.ClusterReque
 				SpotEnabled:                ToBool(v.Attributes()["spot_enabled"].(types.Bool)),
 				DiskSizeInGib:              ToInt32(v.Attributes()["disk_size_in_gib"].(types.Int64)),
 				DefaultServiceArchitecture: arch,
-				QoveryNodePools:            qoveryNodePools,
+				QoveryNodePools:            *qoveryNodePools,
 			}
 			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
 				ClusterFeatureKarpenterParameters: &feature,
