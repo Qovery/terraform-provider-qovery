@@ -127,6 +127,7 @@ Optional:
 
 Required:
 
+- `enabled` (Boolean) Enabled the limit
 - `max_cpu_in_vcpu` (Number) The maximum number of cpu cores to be used inside the default node pool
 - `max_memory_in_gibibytes` (Number) The maximum number of memory to be used inside the default node pool
 
@@ -156,6 +157,7 @@ Required:
 
 Required:
 
+- `enabled` (Boolean) Enabled the limit
 - `max_cpu_in_vcpu` (Number) The maximum number of cpu cores to be used inside the stable node pool
 - `max_memory_in_gibibytes` (Number) The maximum number of memory to be used inside the stable node pool
 

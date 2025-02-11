@@ -165,6 +165,7 @@ Optional:
 
 Required:
 
+- `enabled` (Boolean) Enabled the limit
 - `max_cpu_in_vcpu` (Number)
 - `max_memory_in_gibibytes` (Number)
 
@@ -194,6 +195,7 @@ Required:
 
 Required:
 
+- `enabled` (Boolean) Enabled the limit
 - `max_cpu_in_vcpu` (Number)
 - `max_memory_in_gibibytes` (Number)
 
