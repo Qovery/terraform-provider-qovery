@@ -614,6 +614,10 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Optional:    true,
 				ElementType: types.StringType,
 			},
+			"docker_target_build_stage": schema.StringAttribute{
+				Description: "The target build stage in the Dockerfile to build",
+				Optional:    true,
+			},
 		},
 	}
 }

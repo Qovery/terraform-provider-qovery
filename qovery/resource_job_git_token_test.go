@@ -43,7 +43,8 @@ func TestAcc_JobGitToken(t *testing.T) {
 									RootPath:   qovery.FromString("/"),
 									GitTokenId: qovery.FromString(getTestQoverySandboxGitTokenID()),
 								},
-								DockerFilePath: qovery.FromString("./Dockerfile"),
+								DockerFilePath:         qovery.FromString("./Dockerfile"),
+								DockerTargetBuildStage: qovery.FromString("Build"),
 							},
 						},
 						Schedule: &qovery.JobSchedule{
@@ -73,6 +74,7 @@ func TestAcc_JobGitToken(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_job.test", "max_nb_restart", "0"),
 					resource.TestCheckNoResourceAttr("qovery_job.test", "port"),
 					resource.TestCheckResourceAttr("qovery_job.test", "source.docker.dockerfile_path", "./Dockerfile"),
+					resource.TestCheckResourceAttr("qovery_job.test", "source.docker.docker_target_build_stage", "Build"),
 					resource.TestCheckResourceAttr("qovery_job.test", "source.docker.git_repository.url", "https://github.com/Qovery/test_http_server.git"),
 					resource.TestCheckResourceAttr("qovery_job.test", "source.docker.git_repository.branch", "master"),
 					resource.TestCheckResourceAttr("qovery_job.test", "source.docker.git_repository.root_path", "/"),

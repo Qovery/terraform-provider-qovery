@@ -511,6 +511,9 @@ resource "qovery_job" "test" {
         {{ with .DockerFilePath }}	
 		dockerfile_path = {{ .String }}
         {{ end }}
+        {{ with .DockerTargetBuildStage }}	
+		docker_target_build_stage = {{ .String }}
+        {{ end }}
 		{{ with .GitRepository }}
 		git_repository = {
 			{{ with .Url }}

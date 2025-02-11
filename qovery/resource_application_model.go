@@ -47,6 +47,7 @@ type Application struct {
 	DeploymentRestrictions       types.Set                 `tfsdk:"deployment_restrictions"`
 	AnnotationsGroupIds          types.Set                 `tfsdk:"annotations_group_ids"`
 	LabelsGroupIds               types.Set                 `tfsdk:"labels_group_ids"`
+	DockerTargetBuildStage       types.String              `tfsdk:"docker_target_build_stage"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
@@ -142,24 +143,25 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 
 	return &client.ApplicationCreateParams{
 		ApplicationRequest: qovery.ApplicationRequest{
-			Name:                ToString(app.Name),
-			IconUri:             ToStringPointer(app.IconUri),
-			BuildMode:           buildMode,
-			DockerfilePath:      ToNullableString(app.DockerfilePath),
-			Cpu:                 ToInt32Pointer(app.CPU),
-			Memory:              ToInt32Pointer(app.Memory),
-			MinRunningInstances: ToInt32Pointer(app.MinRunningInstances),
-			MaxRunningInstances: ToInt32Pointer(app.MaxRunningInstances),
-			AutoPreview:         ToBoolPointer(app.AutoPreview),
-			GitRepository:       app.GitRepository.toCreateRequest(),
-			Storage:             storage,
-			Ports:               ports,
-			Entrypoint:          ToStringPointer(app.Entrypoint),
-			Arguments:           ToStringArray(app.Arguments),
-			Healthchecks:        app.Healthchecks.toHealthchecksRequest(),
-			AutoDeploy:          *qovery.NewNullableBool(ToBoolPointer(app.AutoDeploy)),
-			AnnotationsGroups:   annotationsGroups,
-			LabelsGroups:        labelsGroups,
+			Name:                   ToString(app.Name),
+			IconUri:                ToStringPointer(app.IconUri),
+			BuildMode:              buildMode,
+			DockerfilePath:         ToNullableString(app.DockerfilePath),
+			Cpu:                    ToInt32Pointer(app.CPU),
+			Memory:                 ToInt32Pointer(app.Memory),
+			MinRunningInstances:    ToInt32Pointer(app.MinRunningInstances),
+			MaxRunningInstances:    ToInt32Pointer(app.MaxRunningInstances),
+			AutoPreview:            ToBoolPointer(app.AutoPreview),
+			GitRepository:          app.GitRepository.toCreateRequest(),
+			Storage:                storage,
+			Ports:                  ports,
+			Entrypoint:             ToStringPointer(app.Entrypoint),
+			Arguments:              ToStringArray(app.Arguments),
+			Healthchecks:           app.Healthchecks.toHealthchecksRequest(),
+			AutoDeploy:             *qovery.NewNullableBool(ToBoolPointer(app.AutoDeploy)),
+			AnnotationsGroups:      annotationsGroups,
+			LabelsGroups:           labelsGroups,
+			DockerTargetBuildStage: ToNullableString(app.DockerTargetBuildStage),
 		},
 		EnvironmentVariablesDiff:         app.EnvironmentVariableList().diff(nil),
 		EnvironmentVariableAliasesDiff:   app.EnvironmentVariableAliasList().diff(nil),
@@ -247,24 +249,25 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 	}
 
 	applicationEditRequest := qovery.ApplicationEditRequest{
-		Name:                ToStringPointer(app.Name),
-		IconUri:             ToStringPointer(app.IconUri),
-		BuildMode:           buildMode,
-		DockerfilePath:      ToNullableString(app.DockerfilePath),
-		Cpu:                 ToInt32Pointer(app.CPU),
-		Memory:              ToInt32Pointer(app.Memory),
-		MinRunningInstances: ToInt32Pointer(app.MinRunningInstances),
-		MaxRunningInstances: ToInt32Pointer(app.MaxRunningInstances),
-		AutoPreview:         ToBoolPointer(app.AutoPreview),
-		GitRepository:       app.GitRepository.toUpdateRequest(),
-		Storage:             applicationStorageRequest,
-		Ports:               ports,
-		Entrypoint:          ToStringPointer(app.Entrypoint),
-		Arguments:           ToStringArray(app.Arguments),
-		Healthchecks:        app.Healthchecks.toHealthchecksRequest(),
-		AutoDeploy:          *qovery.NewNullableBool(ToBoolPointer(app.AutoDeploy)),
-		AnnotationsGroups:   annotationsGroups,
-		LabelsGroups:        labelsGroups,
+		Name:                   ToStringPointer(app.Name),
+		IconUri:                ToStringPointer(app.IconUri),
+		BuildMode:              buildMode,
+		DockerfilePath:         ToNullableString(app.DockerfilePath),
+		Cpu:                    ToInt32Pointer(app.CPU),
+		Memory:                 ToInt32Pointer(app.Memory),
+		MinRunningInstances:    ToInt32Pointer(app.MinRunningInstances),
+		MaxRunningInstances:    ToInt32Pointer(app.MaxRunningInstances),
+		AutoPreview:            ToBoolPointer(app.AutoPreview),
+		GitRepository:          app.GitRepository.toUpdateRequest(),
+		Storage:                applicationStorageRequest,
+		Ports:                  ports,
+		Entrypoint:             ToStringPointer(app.Entrypoint),
+		Arguments:              ToStringArray(app.Arguments),
+		Healthchecks:           app.Healthchecks.toHealthchecksRequest(),
+		AutoDeploy:             *qovery.NewNullableBool(ToBoolPointer(app.AutoDeploy)),
+		AnnotationsGroups:      annotationsGroups,
+		LabelsGroups:           labelsGroups,
+		DockerTargetBuildStage: ToNullableString(app.DockerTargetBuildStage),
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:           applicationEditRequest,
@@ -318,6 +321,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, app.ApplicationDeploymentRestrictions),
 		AnnotationsGroupIds:          fromAnnotationsGroupResponseList(ctx, state.AnnotationsGroupIds, app.ApplicationResponse.AnnotationsGroups),
 		LabelsGroupIds:               fromLabelsGroupResponseList(ctx, state.LabelsGroupIds, app.ApplicationResponse.LabelsGroups),
+		DockerTargetBuildStage:       FromNullableString(app.ApplicationResponse.DockerTargetBuildStage),
 	}
 }
 

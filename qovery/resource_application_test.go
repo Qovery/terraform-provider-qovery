@@ -214,6 +214,41 @@ func TestAcc_Application(t *testing.T) {
 					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
+			// Update docker_target_build_stage
+			{
+				Config: testAccApplicationDefaultWithDockerTargetBuildStage(
+					testName,
+					"Builder",
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", "master"),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.git_token_id", getTestQoverySandboxGitTokenID()),
+					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "secrets.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "external_host"),
+					resource.TestMatchResourceAttr("qovery_application.test", "internal_host", regexp.MustCompile(`^app-z`)),
+					resource.TestCheckResourceAttr("qovery_application.test", "advanced_settings_json", "{\"build.timeout_max_sec\":1700}"),
+					resource.TestCheckResourceAttr("qovery_application.test", "docker_target_build_stage", "Builder"),
+				),
+			},
 		},
 	})
 }
@@ -1596,6 +1631,28 @@ resource "qovery_application" "test" {
 		Storage:       qovery.FromInt32(10),
 		InstanceType:  qovery.FromStringPointer(nil),
 	}), generateTestName(testName), applicationRepositoryURL,
+	)
+}
+
+func testAccApplicationDefaultWithDockerTargetBuildStage(testName string, dockerTargetBuildStage string) string {
+
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_application" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  build_mode = "DOCKER"
+  dockerfile_path = "Dockerfile"
+  git_repository = {
+    url = "%s"
+    git_token_id = "%s"
+  }
+  healthchecks = {}
+  advanced_settings_json = jsonencode({"build.timeout_max_sec": 1700})
+  docker_target_build_stage = "%s"
+}
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(), dockerTargetBuildStage,
 	)
 }
 

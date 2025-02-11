@@ -152,6 +152,7 @@ You can find complete examples within these repositories:
 - `custom_domains` (Attributes Set) List of custom domains linked to this application. (see [below for nested schema](#nestedatt--custom_domains))
 - `deployment_restrictions` (Attributes Set) List of deployment restrictions (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `deployment_stage_id` (String) Id of the deployment stage.
+- `docker_target_build_stage` (String) The target build stage in the Dockerfile to build
 - `dockerfile_path` (String) Dockerfile Path of the application.
 	- Required if: `build_mode="DOCKER"`.
 - `entrypoint` (String) Entrypoint of the application.

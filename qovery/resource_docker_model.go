@@ -6,15 +6,17 @@ import (
 )
 
 type Docker struct {
-	GitRepository  GitRepository `tfsdk:"git_repository"`
-	DockerFilePath types.String  `tfsdk:"dockerfile_path"`
-	DockerfileRaw  types.String  `tfsdk:"dockerfile_raw"`
+	GitRepository          GitRepository `tfsdk:"git_repository"`
+	DockerFilePath         types.String  `tfsdk:"dockerfile_path"`
+	DockerfileRaw          types.String  `tfsdk:"dockerfile_raw"`
+	DockerTargetBuildStage types.String  `tfsdk:"docker_target_build_stage"`
 }
 
 func (d Docker) toUpsertRequest() *docker.Docker {
 	return &docker.Docker{
-		GitRepository:  d.GitRepository.toUpsertRequest(),
-		DockerFilePath: ToStringPointer(d.DockerFilePath),
-		DockerFileRaw:  ToStringPointer(d.DockerfileRaw),
+		GitRepository:          d.GitRepository.toUpsertRequest(),
+		DockerFilePath:         ToStringPointer(d.DockerFilePath),
+		DockerFileRaw:          ToStringPointer(d.DockerfileRaw),
+		DockerTargetBuildStage: ToStringPointer(d.DockerTargetBuildStage),
 	}
 }
