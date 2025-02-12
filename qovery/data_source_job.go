@@ -278,6 +278,10 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 									},
 								},
 							},
+							"docker_target_build_stage": schema.StringAttribute{
+								Description: "The target build stage in the Dockerfile to build",
+								Optional:    true,
+							},
 						},
 					},
 				},

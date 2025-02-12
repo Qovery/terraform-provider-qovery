@@ -309,6 +309,10 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 									},
 								},
 							},
+							"docker_target_build_stage": schema.StringAttribute{
+								Description: "The target build stage in the Dockerfile to build",
+								Optional:    true,
+							},
 						},
 					},
 				},

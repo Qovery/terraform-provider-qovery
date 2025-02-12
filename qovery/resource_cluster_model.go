@@ -640,10 +640,11 @@ func extractStableNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Kar
 			return nil, fmt.Errorf("limits field cannot be parsed to Object")
 		}
 
+		enabled := limits.Attributes()["enabled"].(basetypes.BoolValue)
 		limitsCpu := limits.Attributes()["max_cpu_in_vcpu"].(basetypes.Int64Value)
 		limitsRam := limits.Attributes()["max_memory_in_gibibytes"].(basetypes.Int64Value)
 
-		qoveryLimits := qovery.NewKarpenterNodePoolLimits(int32(limitsCpu.ValueInt64()), int32(limitsRam.ValueInt64()))
+		qoveryLimits := qovery.NewKarpenterNodePoolLimits(enabled.ValueBool(), int32(limitsCpu.ValueInt64()), int32(limitsRam.ValueInt64()))
 		qoveryStableOverride.Limits = qoveryLimits
 	}
 
@@ -692,10 +693,11 @@ func extractDefaultNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Ka
 		return nil, fmt.Errorf("limits field cannot be parsed to Object")
 	}
 
+	enabled := limits.Attributes()["enabled"].(basetypes.BoolValue)
 	limitsCpu := limits.Attributes()["max_cpu_in_vcpu"].(basetypes.Int64Value)
 	limitsRam := limits.Attributes()["max_memory_in_gibibytes"].(basetypes.Int64Value)
 
-	qoveryLimits := qovery.NewKarpenterNodePoolLimits(int32(limitsCpu.ValueInt64()), int32(limitsRam.ValueInt64()))
+	qoveryLimits := qovery.NewKarpenterNodePoolLimits(enabled.ValueBool(), int32(limitsCpu.ValueInt64()), int32(limitsRam.ValueInt64()))
 	qoveryDefaultOverride.Limits = qoveryLimits
 
 	return &qoveryDefaultOverride, nil
@@ -768,6 +770,7 @@ func createKarpenterFeatureAttrTypes() map[string]attr.Type {
 					},
 					"limits": types.ObjectType{
 						AttrTypes: map[string]attr.Type{
+							"enabled":                 types.BoolType,
 							"max_cpu_in_vcpu":         types.Int64Type,
 							"max_memory_in_gibibytes": types.Int64Type,
 						},
@@ -778,6 +781,7 @@ func createKarpenterFeatureAttrTypes() map[string]attr.Type {
 				AttrTypes: map[string]attr.Type{
 					"limits": types.ObjectType{
 						AttrTypes: map[string]attr.Type{
+							"enabled":                 types.BoolType,
 							"max_cpu_in_vcpu":         types.Int64Type,
 							"max_memory_in_gibibytes": types.Int64Type,
 						},
@@ -909,16 +913,19 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 		if limits != nil {
 			stableOverrideLimitsAttr = types.ObjectValueMust(
 				map[string]attr.Type{
+					"enabled":                 types.BoolType,
 					"max_cpu_in_vcpu":         types.Int64Type,
 					"max_memory_in_gibibytes": types.Int64Type,
 				},
 				map[string]attr.Value{
+					"enabled":                 types.BoolValue(limits.Enabled),
 					"max_cpu_in_vcpu":         types.Int64Value(int64(limits.MaxCpuInVcpu)),
 					"max_memory_in_gibibytes": types.Int64Value(int64(limits.MaxMemoryInGibibytes)),
 				},
 			)
 		} else {
 			stableOverrideLimitsAttr = types.ObjectNull(map[string]attr.Type{
+				"enabled":                 types.BoolType,
 				"max_cpu_in_vcpu":         types.Int64Type,
 				"max_memory_in_gibibytes": types.Int64Type,
 			})
@@ -938,6 +945,7 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 				},
 				"limits": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
+						"enabled":                 types.BoolType,
 						"max_cpu_in_vcpu":         types.Int64Type,
 						"max_memory_in_gibibytes": types.Int64Type,
 					},
@@ -965,6 +973,7 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 				},
 				"limits": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
+						"enabled":                 types.BoolType,
 						"max_cpu_in_vcpu":         types.Int64Type,
 						"max_memory_in_gibibytes": types.Int64Type,
 					},
@@ -980,10 +989,12 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 		limits := karpenterParameters.QoveryNodePools.DefaultOverride.Limits
 		defaultOverrideLimitsAttr = types.ObjectValueMust(
 			map[string]attr.Type{
+				"enabled":                 types.BoolType,
 				"max_cpu_in_vcpu":         types.Int64Type,
 				"max_memory_in_gibibytes": types.Int64Type,
 			},
 			map[string]attr.Value{
+				"enabled":                 types.BoolValue(limits.Enabled),
 				"max_cpu_in_vcpu":         types.Int64Value(int64(limits.MaxCpuInVcpu)),
 				"max_memory_in_gibibytes": types.Int64Value(int64(limits.MaxMemoryInGibibytes)),
 			},
@@ -993,6 +1004,7 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 			map[string]attr.Type{
 				"limits": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
+						"enabled":                 types.BoolType,
 						"max_cpu_in_vcpu":         types.Int64Type,
 						"max_memory_in_gibibytes": types.Int64Type,
 					},
@@ -1008,6 +1020,7 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 			map[string]attr.Type{
 				"limits": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
+						"enabled":                 types.BoolType,
 						"max_cpu_in_vcpu":         types.Int64Type,
 						"max_memory_in_gibibytes": types.Int64Type,
 					},
@@ -1039,6 +1052,7 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 				},
 				"limits": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
+						"enabled":                 types.BoolType,
 						"max_cpu_in_vcpu":         types.Int64Type,
 						"max_memory_in_gibibytes": types.Int64Type,
 					},
@@ -1049,6 +1063,7 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 			AttrTypes: map[string]attr.Type{
 				"limits": types.ObjectType{
 					AttrTypes: map[string]attr.Type{
+						"enabled":                 types.BoolType,
 						"max_cpu_in_vcpu":         types.Int64Type,
 						"max_memory_in_gibibytes": types.Int64Type,
 					},

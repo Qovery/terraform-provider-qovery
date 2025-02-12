@@ -46,8 +46,9 @@ func JobSourceFromDomainJobSource(j job.Source) JobSource {
 				RootPath:   FromStringPointer(j.Docker.GitRepository.RootPath),
 				GitTokenId: FromStringPointer(j.Docker.GitRepository.GitTokenId),
 			},
-			DockerFilePath: FromStringPointer(j.Docker.DockerFilePath),
-			DockerfileRaw:  FromStringPointer(j.Docker.DockerFileRaw),
+			DockerFilePath:         FromStringPointer(j.Docker.DockerFilePath),
+			DockerfileRaw:          FromStringPointer(j.Docker.DockerFileRaw),
+			DockerTargetBuildStage: FromStringPointer(j.Docker.DockerTargetBuildStage),
 		}
 	}
 

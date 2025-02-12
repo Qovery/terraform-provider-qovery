@@ -526,6 +526,10 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				Optional:    true,
 				ElementType: types.StringType,
 			},
+			"docker_target_build_stage": schema.StringAttribute{
+				Description: "The target build stage in the Dockerfile to build",
+				Optional:    true,
+			},
 		},
 	}
 }

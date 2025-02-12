@@ -523,6 +523,7 @@ Required:
 
 Optional:
 
+- `docker_target_build_stage` (String) The target build stage in the Dockerfile to build
 - `dockerfile_path` (String) Job's docker source dockerfile path.
 - `dockerfile_raw` (String) Inline Dockerfile to inject for building the image
 

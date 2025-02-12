@@ -175,8 +175,9 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 				RootPath:   j.Source.Docker.GitRepository.RootPath,
 				GitTokenId: j.Source.Docker.GitRepository.GitTokenId.Get(),
 			},
-			DockerFilePath: j.Source.Docker.DockerfilePath.Get(),
-			DockerFileRaw:  j.Source.Docker.DockerfileRaw.Get(),
+			DockerFilePath:         j.Source.Docker.DockerfilePath.Get(),
+			DockerFileRaw:          j.Source.Docker.DockerfileRaw.Get(),
+			DockerTargetBuildStage: j.Source.Docker.DockerTargetBuildStage.Get(),
 		}
 	}
 
@@ -269,8 +270,9 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 	var docker *qovery.JobRequestAllOfSourceDocker = nil
 	if request.Source.Docker != nil {
 		docker = &qovery.JobRequestAllOfSourceDocker{
-			DockerfilePath: *qovery.NewNullableString(request.Source.Docker.DockerFilePath),
-			DockerfileRaw:  *qovery.NewNullableString(request.Source.Docker.DockerFileRaw),
+			DockerfilePath:         *qovery.NewNullableString(request.Source.Docker.DockerFilePath),
+			DockerfileRaw:          *qovery.NewNullableString(request.Source.Docker.DockerFileRaw),
+			DockerTargetBuildStage: *qovery.NewNullableString(request.Source.Docker.DockerTargetBuildStage),
 			GitRepository: &qovery.ApplicationGitRepositoryRequest{
 				Url:        request.Source.Docker.GitRepository.Url,
 				Branch:     request.Source.Docker.GitRepository.Branch,

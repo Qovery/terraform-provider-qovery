@@ -327,6 +327,11 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 												Description: "Specifies the limits to apply on the stable node pool",
 												Optional:    true,
 												Attributes: map[string]schema.Attribute{
+													"enabled": schema.BoolAttribute{
+														Description: "Enabled the limit",
+														Required:    true,
+														Computed:    false,
+													},
 													"max_cpu_in_vcpu": schema.Int64Attribute{
 														Description: "The maximum number of cpu cores to be used inside the stable node pool",
 														Required:    true,
@@ -350,6 +355,11 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 												Description: "Specifies the limits to apply on the default node pool",
 												Optional:    true,
 												Attributes: map[string]schema.Attribute{
+													"enabled": schema.BoolAttribute{
+														Description: "Enabled the limit",
+														Required:    true,
+														Computed:    false,
+													},
 													"max_cpu_in_vcpu": schema.Int64Attribute{
 														Description: "The maximum number of cpu cores to be used inside the default node pool",
 														Required:    true,

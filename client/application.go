@@ -55,6 +55,7 @@ type ApplicationUpdateParams struct {
 	SecretOverridesDiff              SecretsDiff
 	AdvancedSettingsJson             string
 	DeploymentRestrictionsDiff       deploymentrestriction.ServiceDeploymentRestrictionsDiff
+	DockerTargetBuildStage           *string
 }
 
 func (c *Client) CreateApplication(ctx context.Context, environmentID string, params *ApplicationCreateParams) (*ApplicationResponse, *apierrors.APIError) {
