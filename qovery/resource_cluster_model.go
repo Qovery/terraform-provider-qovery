@@ -283,6 +283,10 @@ func fromQoveryClusterFeatures(
 			attrVals["elasticache_subnets_zone_b_ids"] = FromStringArray(v.DocumentdbSubnetsZoneBIds)
 			attrVals["elasticache_subnets_zone_c_ids"] = FromStringArray(v.DocumentdbSubnetsZoneCIds)
 
+			attrVals["eks_karpenter_fargate_subnets_zone_a_ids"] = FromStringArray(v.EksKarpenterFargateSubnetsZoneAIds)
+			attrVals["eks_karpenter_fargate_subnets_zone_b_ids"] = FromStringArray(v.EksKarpenterFargateSubnetsZoneBIds)
+			attrVals["eks_karpenter_fargate_subnets_zone_c_ids"] = FromStringArray(v.EksKarpenterFargateSubnetsZoneCIds)
+
 			terraformObjectValue, diagnostics := types.ObjectValue(attrTypes, attrVals)
 			if diagnostics.HasError() {
 				panic(fmt.Errorf("bad %s feature: %s", featureKeyExistingVpc, diagnostics.Errors()))
@@ -391,19 +395,22 @@ func toQoveryClusterFeatures(f types.Object, mode string) ([]qovery.ClusterReque
 		v := f.Attributes()[featureKeyExistingVpc].(types.Object)
 		if !v.IsNull() {
 			feature := qovery.ClusterFeatureAwsExistingVpc{
-				AwsVpcEksId:                ToString(v.Attributes()["aws_vpc_eks_id"].(types.String)),
-				EksSubnetsZoneAIds:         ToStringArray(v.Attributes()["eks_subnets_zone_a_ids"].(types.List)),
-				EksSubnetsZoneBIds:         ToStringArray(v.Attributes()["eks_subnets_zone_b_ids"].(types.List)),
-				EksSubnetsZoneCIds:         ToStringArray(v.Attributes()["eks_subnets_zone_c_ids"].(types.List)),
-				RdsSubnetsZoneAIds:         ToStringArray(v.Attributes()["rds_subnets_zone_a_ids"].(types.List)),
-				RdsSubnetsZoneBIds:         ToStringArray(v.Attributes()["rds_subnets_zone_b_ids"].(types.List)),
-				RdsSubnetsZoneCIds:         ToStringArray(v.Attributes()["rds_subnets_zone_c_ids"].(types.List)),
-				DocumentdbSubnetsZoneAIds:  ToStringArray(v.Attributes()["documentdb_subnets_zone_a_ids"].(types.List)),
-				DocumentdbSubnetsZoneBIds:  ToStringArray(v.Attributes()["documentdb_subnets_zone_b_ids"].(types.List)),
-				DocumentdbSubnetsZoneCIds:  ToStringArray(v.Attributes()["documentdb_subnets_zone_c_ids"].(types.List)),
-				ElasticacheSubnetsZoneAIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_a_ids"].(types.List)),
-				ElasticacheSubnetsZoneBIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_b_ids"].(types.List)),
-				ElasticacheSubnetsZoneCIds: ToStringArray(v.Attributes()["elasticache_subnets_zone_c_ids"].(types.List)),
+				AwsVpcEksId:                        ToString(v.Attributes()["aws_vpc_eks_id"].(types.String)),
+				EksSubnetsZoneAIds:                 ToStringArray(v.Attributes()["eks_subnets_zone_a_ids"].(types.List)),
+				EksSubnetsZoneBIds:                 ToStringArray(v.Attributes()["eks_subnets_zone_b_ids"].(types.List)),
+				EksSubnetsZoneCIds:                 ToStringArray(v.Attributes()["eks_subnets_zone_c_ids"].(types.List)),
+				RdsSubnetsZoneAIds:                 ToStringArray(v.Attributes()["rds_subnets_zone_a_ids"].(types.List)),
+				RdsSubnetsZoneBIds:                 ToStringArray(v.Attributes()["rds_subnets_zone_b_ids"].(types.List)),
+				RdsSubnetsZoneCIds:                 ToStringArray(v.Attributes()["rds_subnets_zone_c_ids"].(types.List)),
+				DocumentdbSubnetsZoneAIds:          ToStringArray(v.Attributes()["documentdb_subnets_zone_a_ids"].(types.List)),
+				DocumentdbSubnetsZoneBIds:          ToStringArray(v.Attributes()["documentdb_subnets_zone_b_ids"].(types.List)),
+				DocumentdbSubnetsZoneCIds:          ToStringArray(v.Attributes()["documentdb_subnets_zone_c_ids"].(types.List)),
+				ElasticacheSubnetsZoneAIds:         ToStringArray(v.Attributes()["elasticache_subnets_zone_a_ids"].(types.List)),
+				ElasticacheSubnetsZoneBIds:         ToStringArray(v.Attributes()["elasticache_subnets_zone_b_ids"].(types.List)),
+				ElasticacheSubnetsZoneCIds:         ToStringArray(v.Attributes()["elasticache_subnets_zone_c_ids"].(types.List)),
+				EksKarpenterFargateSubnetsZoneAIds: ToStringArray(v.Attributes()["eks_karpenter_fargate_subnets_zone_a_ids"].(types.List)),
+				EksKarpenterFargateSubnetsZoneBIds: ToStringArray(v.Attributes()["eks_karpenter_fargate_subnets_zone_b_ids"].(types.List)),
+				EksKarpenterFargateSubnetsZoneCIds: ToStringArray(v.Attributes()["eks_karpenter_fargate_subnets_zone_c_ids"].(types.List)),
 			}
 			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
 				ClusterFeatureAwsExistingVpc: &feature,
@@ -809,6 +816,9 @@ func createExistingVpcFeatureAttrTypes() map[string]attr.Type {
 	attrTypes["elasticache_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
 	attrTypes["elasticache_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
 	attrTypes["elasticache_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["eks_karpenter_fargate_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["eks_karpenter_fargate_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["eks_karpenter_fargate_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
 
 	return attrTypes
 }
