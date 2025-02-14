@@ -295,6 +295,24 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								Optional:    true,
 								Computed:    true,
 							},
+							"eks_karpenter_fargate_subnets_zone_a_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for EKS fargate zone a. Must have to be private and connected to internet through a NAT Gateway",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    false,
+							},
+							"eks_karpenter_fargate_subnets_zone_b_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for EKS fargate zone b. Must have to be private and connected to internet through a NAT Gateway",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    false,
+							},
+							"eks_karpenter_fargate_subnets_zone_c_ids": schema.ListAttribute{
+								Description: "Ids of the subnets for EKS fargate zone c. Must have to be private and connected to internet through a NAT Gateway",
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    false,
+							},
 						},
 					},
 					"karpenter": schema.SingleNestedAttribute{
