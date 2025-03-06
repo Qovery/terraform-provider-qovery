@@ -29,8 +29,9 @@ func TestNewDomainCredentialsFromQovery(t *testing.T) {
 			TestName:       "fail_with_empty_organization_id",
 			OrganizationID: "",
 			Credentials: &qovery.ClusterCredentials{
-				AwsClusterCredentials:      nil,
-				ScalewayClusterCredentials: nil,
+				AwsStaticClusterCredentials: nil,
+				AwsRoleClusterCredentials:   nil,
+				ScalewayClusterCredentials:  nil,
 				GenericClusterCredentials: &qovery.GenericClusterCredentials{
 					Id:                   gofakeit.UUID(),
 					Name:                 gofakeit.Name(),
@@ -44,8 +45,9 @@ func TestNewDomainCredentialsFromQovery(t *testing.T) {
 			TestName:       "success",
 			OrganizationID: gofakeit.UUID(),
 			Credentials: &qovery.ClusterCredentials{
-				AwsClusterCredentials:      nil,
-				ScalewayClusterCredentials: nil,
+				AwsStaticClusterCredentials: nil,
+				AwsRoleClusterCredentials:   nil,
+				ScalewayClusterCredentials:  nil,
 				GenericClusterCredentials: &qovery.GenericClusterCredentials{
 					Id:                   gofakeit.UUID(),
 					Name:                 gofakeit.Name(),
@@ -86,9 +88,20 @@ func TestNewQoveryAwsCredentialsRequestFromDomain(t *testing.T) {
 		{
 			TestName: "success",
 			Request: credentials.UpsertAwsRequest{
-				Name:            gofakeit.Name(),
-				AccessKeyID:     gofakeit.Word(),
-				SecretAccessKey: gofakeit.Word(),
+				Name: gofakeit.Name(),
+				StaticCredentials: &credentials.AwsStaticCredentials{
+					AccessKeyID:     gofakeit.Word(),
+					SecretAccessKey: gofakeit.Word(),
+				},
+			},
+		},
+		{
+			TestName: "success",
+			Request: credentials.UpsertAwsRequest{
+				Name: gofakeit.Name(),
+				RoleCredentials: &credentials.AwsRoleCredentials{
+					RoleArn: gofakeit.Word(),
+				},
 			},
 		},
 	}
@@ -98,9 +111,15 @@ func TestNewQoveryAwsCredentialsRequestFromDomain(t *testing.T) {
 		t.Run(tc.TestName, func(t *testing.T) {
 			req := newQoveryAwsCredentialsRequestFromDomain(tc.Request)
 
-			assert.Equal(t, tc.Request.Name, req.Name)
-			assert.Equal(t, tc.Request.AccessKeyID, req.AccessKeyId)
-			assert.Equal(t, tc.Request.SecretAccessKey, req.SecretAccessKey)
+			if tc.Request.StaticCredentials != nil {
+				assert.Equal(t, tc.Request.Name, req.AwsStaticCredentialsRequest.Name)
+				assert.Equal(t, tc.Request.StaticCredentials.AccessKeyID, req.AwsStaticCredentialsRequest.AccessKeyId)
+				assert.Equal(t, tc.Request.StaticCredentials.SecretAccessKey, req.AwsStaticCredentialsRequest.SecretAccessKey)
+			}
+			if tc.Request.RoleCredentials != nil {
+				assert.Equal(t, tc.Request.Name, req.AwsRoleCredentialsRequest.Name)
+				assert.Equal(t, tc.Request.RoleCredentials.RoleArn, req.AwsRoleCredentialsRequest.RoleArn)
+			}
 		})
 	}
 }

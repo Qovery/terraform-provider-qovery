@@ -12,6 +12,7 @@ type AWSCredentials struct {
 	Name            types.String `tfsdk:"name"`
 	AccessKeyId     types.String `tfsdk:"access_key_id"`
 	SecretAccessKey types.String `tfsdk:"secret_access_key"`
+	RoleArn         types.String `tfsdk:"role_arn"`
 }
 
 type AWSCredentialsDataSource struct {
@@ -21,10 +22,20 @@ type AWSCredentialsDataSource struct {
 }
 
 func (creds AWSCredentials) toUpsertAwsRequest() credentials.UpsertAwsRequest {
+	if creds.RoleArn.IsNull() {
+		return credentials.UpsertAwsRequest{
+			Name: ToString(creds.Name),
+			StaticCredentials: &credentials.AwsStaticCredentials{
+				AccessKeyID:     ToString(creds.AccessKeyId),
+				SecretAccessKey: ToString(creds.SecretAccessKey),
+			},
+		}
+	}
 	return credentials.UpsertAwsRequest{
-		Name:            ToString(creds.Name),
-		AccessKeyID:     ToString(creds.AccessKeyId),
-		SecretAccessKey: ToString(creds.SecretAccessKey),
+		Name: ToString(creds.Name),
+		RoleCredentials: &credentials.AwsRoleCredentials{
+			RoleArn: ToString(creds.RoleArn),
+		},
 	}
 }
 

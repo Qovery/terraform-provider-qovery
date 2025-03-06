@@ -23,9 +23,13 @@ resource "qovery_aws_credentials" "my_aws_creds" {
 
 ### Required
 
-- `access_key_id` (String, Sensitive) Your AWS access key id.
 - `name` (String) Name of the aws credentials.
 - `organization_id` (String) Id of the organization.
+
+### Optional
+
+- `access_key_id` (String) Your AWS access key id.
+- `role_arn` (String) Your AWS role that you want Qovery to assume. You can't specify access/secret_key if you use a role
 - `secret_access_key` (String, Sensitive) Your AWS secret access key.
 
 ### Read-Only

@@ -70,13 +70,18 @@ func (r awsCredentialsResource) Schema(_ context.Context, _ resource.SchemaReque
 			},
 			"access_key_id": schema.StringAttribute{
 				Description: "Your AWS access key id.",
-				Required:    true,
-				Sensitive:   true,
+				Optional:    true,
+				Sensitive:   false,
 			},
 			"secret_access_key": schema.StringAttribute{
 				Description: "Your AWS secret access key.",
-				Required:    true,
+				Optional:    true,
 				Sensitive:   true,
+			},
+			"role_arn": schema.StringAttribute{
+				Description: "Your AWS role that you want Qovery to assume. You can't specify access/secret_key if you use a role",
+				Optional:    true,
+				Sensitive:   false,
 			},
 		},
 	}
