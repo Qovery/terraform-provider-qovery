@@ -12,7 +12,13 @@ func newDomainCredentialsFromQovery(organizationID string, creds *qovery.Cluster
 		return nil, credentials.ErrNilCredentials
 	}
 	switch castedCreds := creds.GetActualInstance().(type) {
-	case *qovery.AwsClusterCredentials:
+	case *qovery.AwsStaticClusterCredentials:
+		return credentials.NewCredentials(credentials.NewCredentialsParams{
+			CredentialsID:  castedCreds.GetId(),
+			OrganizationID: organizationID,
+			Name:           castedCreds.GetName(),
+		})
+	case *qovery.AwsRoleClusterCredentials:
 		return credentials.NewCredentials(credentials.NewCredentialsParams{
 			CredentialsID:  castedCreds.GetId(),
 			OrganizationID: organizationID,
@@ -37,11 +43,23 @@ func newDomainCredentialsFromQovery(organizationID string, creds *qovery.Cluster
 
 // newQoveryAwsCredentialsRequestFromDomain takes the domain request credentials.UpsertAwsRequest and turns it into a qovery.AwsCredentialsRequest to make the api call.
 func newQoveryAwsCredentialsRequestFromDomain(request credentials.UpsertAwsRequest) qovery.AwsCredentialsRequest {
-	return qovery.AwsCredentialsRequest{
-		Name:            request.Name,
-		AccessKeyId:     request.AccessKeyID,
-		SecretAccessKey: request.SecretAccessKey,
+	req := qovery.AwsCredentialsRequest{}
+
+	if creds := request.StaticCredentials; creds != nil {
+		req.AwsStaticCredentialsRequest = &qovery.AwsStaticCredentialsRequest{
+			Name:            request.Name,
+			AccessKeyId:     creds.AccessKeyID,
+			SecretAccessKey: creds.SecretAccessKey,
+		}
 	}
+	if creds := request.RoleCredentials; creds != nil {
+		req.AwsRoleCredentialsRequest = &qovery.AwsRoleCredentialsRequest{
+			Name:    request.Name,
+			RoleArn: creds.RoleArn,
+		}
+	}
+
+	return req
 }
 
 // newQoveryScalewayCredentialsRequestFromDomain takes the domain request credentials.UpsertScalewayRequest and turns it into a qovery.ScalewayCredentialsRequest to make the api call.

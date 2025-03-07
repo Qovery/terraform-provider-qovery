@@ -9,11 +9,19 @@ var (
 	ErrInvalidUpsertAwsRequest = errors.New("invalid credentials upsert aws request")
 )
 
-// UpsertAwsRequest represents the parameters needed to create & update AWS Credentials.
-type UpsertAwsRequest struct {
-	Name            string `validate:"required"`
+type AwsStaticCredentials struct {
 	AccessKeyID     string `validate:"required"`
 	SecretAccessKey string `validate:"required"`
+}
+type AwsRoleCredentials struct {
+	RoleArn string `validate:"required"`
+}
+
+// UpsertAwsRequest represents the parameters needed to create & update AWS Credentials.
+type UpsertAwsRequest struct {
+	Name              string `validate:"required"`
+	StaticCredentials *AwsStaticCredentials
+	RoleCredentials   *AwsRoleCredentials
 }
 
 // Validate returns an error to tell whether the UpsertAwsRequest is valid or not.

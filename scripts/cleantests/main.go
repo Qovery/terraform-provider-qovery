@@ -213,11 +213,21 @@ func getAwsCredentialsToDelete(ctx context.Context, apiClient *qovery.APIClient,
 
 	awsCredsToDelete := make([]credentials, 0, len(awsCreds.GetResults()))
 	for _, c := range awsCreds.GetResults() {
-		credsName := strings.ToLower(c.AwsClusterCredentials.GetName())
-		if strings.Contains(credsName, testPrefix) {
+		var name string
+		var id string
+		if c.AwsStaticClusterCredentials != nil {
+			name = strings.ToLower(c.AwsStaticClusterCredentials.GetName())
+			id = c.AwsStaticClusterCredentials.GetId()
+		}
+		if c.AwsRoleClusterCredentials != nil {
+			name = strings.ToLower(c.AwsRoleClusterCredentials.GetName())
+			id = c.AwsRoleClusterCredentials.GetId()
+		}
+
+		if strings.Contains(name, testPrefix) {
 			awsCredsToDelete = append(awsCredsToDelete, credentials{
-				ID:   c.AwsClusterCredentials.GetId(),
-				Name: c.AwsClusterCredentials.GetName(),
+				ID:   id,
+				Name: name,
 			})
 		}
 	}
