@@ -18,7 +18,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/qovery/qovery-client-go v0.0.0-20250306112009-859ddc414827
 	github.com/schollz/progressbar/v3 v3.18.0
-	github.com/sethvargo/go-envconfig v1.1.0
+	github.com/sethvargo/go-envconfig v1.1.1
 	github.com/stretchr/testify v1.10.0
 	golang.org/x/exp v0.0.0-20230626212559-97b1e661b5df
 )
