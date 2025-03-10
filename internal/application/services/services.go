@@ -3,6 +3,7 @@ package services
 import (
 	"github.com/pkg/errors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/custom_organization_role"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
@@ -51,6 +52,7 @@ type Services struct {
 	AnnotationsGroup             annotations_group.Service
 	LabelsGroup                  labels_group.Service
 	DeploymentRestrictionService deploymentrestriction.DeploymentRestrictionService
+	CustomOrganizationRole       custom_organization_role.Service
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -222,6 +224,11 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
+	customOrganizationRole, err := NewCustomOrganizationRoleService(services.repos.CustomOrganizationRoleRepository)
+	if err != nil {
+		return nil, err
+	}
+
 	services.CredentialsAws = credentialsAwsService
 	services.CredentialsScaleway = credentialsScalewayService
 	services.Organization = organizationService
@@ -238,6 +245,7 @@ func New(configs ...Configuration) (*Services, error) {
 	services.DeploymentRestrictionService = deploymentRestrictionService
 	services.AnnotationsGroup = annotationsGroupService
 	services.LabelsGroup = labelsGroupService
+	services.CustomOrganizationRole = customOrganizationRole
 
 	return services, nil
 }
