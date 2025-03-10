@@ -38,6 +38,7 @@ func (d deploymentStatusQoveryAPI) WaitForTerminatedState(ctx context.Context, e
 
 func (d deploymentStatusQoveryAPI) WaitForExpectedDesiredState(ctx context.Context, newDeployment newdeployment.Deployment) error {
 	checkEnvironmentStatus := d.newEnvironmentWaitForExpectedDesiredState(*newDeployment.EnvironmentID, newDeployment.DesiredState)
+	time.Sleep(5 * time.Second) // wait for the deployment request to be processed (prevent from race condition)
 	err := waitWithDefaultTimeout(ctx, checkEnvironmentStatus)
 	if err != nil {
 		return err
