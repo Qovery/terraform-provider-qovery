@@ -26,8 +26,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &helmResource{}
-var _ resource.ResourceWithImportState = helmResource{}
+var (
+	_ resource.ResourceWithConfigure   = &helmResource{}
+	_ resource.ResourceWithImportState = helmResource{}
+)
 
 var helmPortProtocols = clientEnumToStringArray(helm.AllowedProtocols)
 
@@ -80,6 +82,10 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Description: "Name of the helm.",
 				Required:    true,
 			},
+			"description": schema.StringAttribute{
+				Description: "Description of the helm.",
+				Required:    true,
+			},
 			"icon_uri": schema.StringAttribute{
 				Description: "Icon URI representing the helm service.",
 				Optional:    true,
@@ -90,7 +96,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Optional:    true,
 				Computed:    true,
 				Default:     int64default.StaticInt64(helm.DefaultTimeoutSec),
-				//Required: true,
+				// Required: true,
 			},
 			"auto_preview": schema.BoolAttribute{
 				Description: "Specify if the environment preview option is activated or not for this helm.",
@@ -580,7 +586,7 @@ func (r helmResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 
 	// Hack to know if this method is triggered through an import
 	// EnvironmentID is always present except when importing the resource
-	var isTriggeredFromImport = false
+	isTriggeredFromImport := false
 	if state.EnvironmentID.IsNull() {
 		isTriggeredFromImport = true
 	}

@@ -25,6 +25,7 @@ type Repository interface {
 
 type UpsertRepositoryRequest struct {
 	Name                      string `validate:"required"`
+	Description               *string
 	IconUri                   *string
 	TimeoutSec                *int32
 	AutoPreview               qovery.NullableBool
@@ -42,7 +43,6 @@ type UpsertRepositoryRequest struct {
 }
 
 func (r UpsertRepositoryRequest) Validate() error {
-
 	if err := validator.New().Struct(r); err != nil {
 		return errors.Wrap(err, ErrInvalidHelmUpsertRequest.Error())
 	}

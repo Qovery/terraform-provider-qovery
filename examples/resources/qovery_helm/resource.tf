@@ -2,6 +2,7 @@ resource "qovery_helm" "my_helm" {
   # Required
   environment_id               = qovery_environment.my_environment.id
   name                         = "test-helm"
+  description                  = "test-helm description"
   allow_cluster_wide_resources = false
 
   source = {

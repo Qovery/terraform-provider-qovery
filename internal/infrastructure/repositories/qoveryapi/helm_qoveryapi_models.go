@@ -62,7 +62,7 @@ func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageI
 		return nil, variable.ErrNilVariable
 	}
 
-	var h = getAggregateHelmResponse(helmResponse)
+	h := getAggregateHelmResponse(helmResponse)
 
 	var helmSourceGitRepository *helm.NewHelmSourceGitRepository = nil
 	if git := h.Source.Git; git != nil {
@@ -134,7 +134,7 @@ func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageI
 		GitRepository: gitRepository,
 	}
 
-	var valuesOverride = helm.NewHelmValuesOverrideParams{
+	valuesOverride := helm.NewHelmValuesOverrideParams{
 		Set:       h.ValuesOverride.Set,
 		SetString: h.ValuesOverride.SetString,
 		SetJson:   h.ValuesOverride.SetJson,
@@ -173,6 +173,7 @@ func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageI
 		HelmID:                    h.Id,
 		EnvironmentID:             h.EnvironmentId,
 		Name:                      h.Name,
+		Description:               h.Description,
 		IconUri:                   h.IconUri,
 		TimeoutSec:                h.TimeoutSec,
 		AutoPreview:               h.AutoPreview,
@@ -201,6 +202,7 @@ func newQoveryHelmRequestFromDomain(request helm.UpsertRepositoryRequest) (*qove
 
 	return &qovery.HelmRequest{
 		Name:                      request.Name,
+		Description:               request.Description,
 		IconUri:                   request.IconUri,
 		TimeoutSec:                request.TimeoutSec,
 		AutoPreview:               request.AutoPreview,
@@ -219,7 +221,6 @@ func newQoveryHelmRequestFromDomain(request helm.UpsertRepositoryRequest) (*qove
 }
 
 func newQoveryHelmSourceRequestFromDomain(source helm.Source) *qovery.HelmRequestAllOfSource {
-
 	var gitRepositorySource *qovery.HelmRequestAllOfSourceOneOf = nil
 	if source.GitRepository != nil {
 		gitTokenId := qovery.NullableString{}

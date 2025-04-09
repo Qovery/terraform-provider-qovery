@@ -39,6 +39,7 @@ type Helm struct {
 	ID                           uuid.UUID `validate:"required"`
 	EnvironmentID                uuid.UUID `validate:"required"`
 	Name                         string
+	Description                  *string
 	IconUri                      string
 	TimeoutSec                   *int32
 	AutoPreview                  bool
@@ -101,6 +102,7 @@ type NewHelmParams struct {
 	HelmID                    string
 	EnvironmentID             string
 	Name                      string
+	Description               *string
 	IconUri                   string
 	TimeoutSec                *int32
 	AutoPreview               bool
@@ -161,6 +163,7 @@ func NewHelm(params NewHelmParams) (*Helm, error) {
 		ID:                        helmUUID,
 		EnvironmentID:             environmentUUID,
 		Name:                      params.Name,
+		Description:               params.Description,
 		IconUri:                   params.IconUri,
 		TimeoutSec:                params.TimeoutSec,
 		AutoPreview:               params.AutoPreview,
