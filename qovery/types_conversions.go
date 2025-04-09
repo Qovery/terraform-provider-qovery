@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"fmt"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 
@@ -28,6 +29,7 @@ type ClientEnum interface {
 		organization.Plan |
 		port.Protocol |
 		qovery.CloudProviderEnum |
+		qovery.CloudVendorEnum |
 		qovery.CustomDomainStatusEnum |
 		qovery.DatabaseAccessibilityEnum |
 		qovery.DatabaseModeEnum |
@@ -50,7 +52,6 @@ type ClientEnum interface {
 }
 
 func clientEnumToStringArray[T ClientEnum](enum []T) []string {
-
 	arr := make([]string, len(enum))
 	for idx, e := range enum {
 		arr[idx] = fmt.Sprintf("%s", e)
@@ -211,7 +212,7 @@ func FromStringArray(array []string) types.List {
 		return basetypes.NewListNull(types.StringType)
 	}
 
-	var elements = make([]attr.Value, 0, len(array))
+	elements := make([]attr.Value, 0, len(array))
 	for _, v := range array {
 		elements = append(elements, FromString(v))
 	}
@@ -224,7 +225,7 @@ func FromStringSet(array []string) types.Set {
 		return basetypes.NewSetNull(types.StringType)
 	}
 
-	var elements = make([]attr.Value, 0, len(array))
+	elements := make([]attr.Value, 0, len(array))
 	for _, v := range array {
 		elements = append(elements, FromString(v))
 	}
