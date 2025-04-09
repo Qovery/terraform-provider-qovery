@@ -14,6 +14,7 @@ resource "qovery_helm" "my_helm" {
   # Required
   environment_id               = qovery_environment.my_environment.id
   name                         = "test-helm"
+  description                  = "test-helm description"
   allow_cluster_wide_resources = false
 
   source = {
@@ -124,6 +125,7 @@ resource "qovery_helm" "my_helm" {
 ### Required
 
 - `allow_cluster_wide_resources` (Boolean) Allow this chart to deploy resources outside of this environment namespace (including CRDs or non-namespaced resources)
+- `description` (String) Description of the helm.
 - `environment_id` (String) Id of the environment.
 - `name` (String) Name of the helm.
 - `source` (Attributes) Helm chart from a Helm repository or from a git repository (see [below for nested schema](#nestedatt--source))

@@ -68,6 +68,10 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 				Description: "Name of the helm.",
 				Computed:    true,
 			},
+			"description": schema.StringAttribute{
+				Description: "Description of the helm.",
+				Computed:    true,
+			},
 			"icon_uri": schema.StringAttribute{
 				Description: "Icon URI representing the helm service.",
 				Optional:    true,

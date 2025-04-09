@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/qovery/terraform-provider-qovery/client"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -20,6 +21,7 @@ type Helm struct {
 	ID                           types.String         `tfsdk:"id"`
 	EnvironmentID                types.String         `tfsdk:"environment_id"`
 	Name                         types.String         `tfsdk:"name"`
+	Description                  types.String         `tfsdk:"description"`
 	IconUri                      types.String         `tfsdk:"icon_uri"`
 	TimeoutSec                   types.Int64          `tfsdk:"timeout_sec"`
 	AutoPreview                  types.Bool           `tfsdk:"auto_preview"`
@@ -97,9 +99,11 @@ type HelmPort struct {
 func (h Helm) EnvironmentVariableList() EnvironmentVariableList {
 	return toEnvironmentVariableList(h.EnvironmentVariables)
 }
+
 func (h Helm) EnvironmentVariableAliasesList() EnvironmentVariableList {
 	return toEnvironmentVariableList(h.EnvironmentVariableAliases)
 }
+
 func (h Helm) EnvironmentVariableOverridesList() EnvironmentVariableList {
 	return toEnvironmentVariableList(h.EnvironmentVariableOverrides)
 }
@@ -111,9 +115,11 @@ func (h Helm) BuiltInEnvironmentVariableList() EnvironmentVariableList {
 func (h Helm) SecretList() SecretList {
 	return ToSecretList(h.Secrets)
 }
+
 func (h Helm) SecretAliasesList() SecretList {
 	return ToSecretList(h.SecretAliases)
 }
+
 func (h Helm) SecretOverridesList() SecretList {
 	return ToSecretList(h.SecretOverrides)
 }
@@ -196,6 +202,7 @@ func (h Helm) toUpsertRepositoryRequest(customDomainsDiff client.CustomDomainsDi
 
 	return &helm.UpsertRepositoryRequest{
 		Name:                      ToString(h.Name),
+		Description:               ToStringPointer(h.Description),
 		IconUri:                   ToStringPointer(h.IconUri),
 		TimeoutSec:                ToInt32Pointer(h.TimeoutSec),
 		AutoPreview:               *qovery.NewNullableBool(ToBoolPointer(h.AutoPreview)),
@@ -399,7 +406,6 @@ func HelmValuesOverrideFromDomainHelmValuesOverride(ctx context.Context, h helm.
 func HelmSourceFromDomainHelmSource(source helm.Source) HelmSource {
 	var helmSourceGitRepository *HelmSourceGitRepository = nil
 	if source.GitRepository != nil {
-
 		helmSourceGitRepository = &HelmSourceGitRepository{
 			Url:        FromString(source.GitRepository.Url),
 			Branch:     FromStringPointer(source.GitRepository.Branch),
@@ -410,7 +416,6 @@ func HelmSourceFromDomainHelmSource(source helm.Source) HelmSource {
 
 	var helmSourceHelmRepository *HelmSourceHelmRepository
 	if source.HelmRepository != nil {
-
 		helmSourceHelmRepository = &HelmSourceHelmRepository{
 			HelmRepositoryId: FromString(source.HelmRepository.RepositoryId),
 			HelmChartName:    FromString(source.HelmRepository.ChartName),
@@ -453,6 +458,7 @@ func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) H
 		ID:                           FromString(helm.ID.String()),
 		EnvironmentID:                FromString(helm.EnvironmentID.String()),
 		Name:                         FromString(helm.Name),
+		Description:                  FromStringPointer(helm.Description),
 		IconUri:                      FromString(helm.IconUri),
 		TimeoutSec:                   FromInt32Pointer(helm.TimeoutSec),
 		AutoPreview:                  FromBool(helm.AutoPreview),

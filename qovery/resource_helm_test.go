@@ -22,14 +22,12 @@ import (
 	"github.com/qovery/terraform-provider-qovery/qovery"
 )
 
-const ()
-
 func generateHelmVariableSet(key string, value string) types.Set {
-	var values = types.ObjectValueMust(attributes, map[string]attr.Value{
+	values := types.ObjectValueMust(attributes, map[string]attr.Value{
 		"key":   qovery.FromString(key),
 		"value": qovery.FromString(value),
 	})
-	var elements = make([]attr.Value, 0, 1)
+	elements := make([]attr.Value, 0, 1)
 	elements = append(elements, values)
 	return types.SetValueMust(
 		variableObjectType,
@@ -52,6 +50,7 @@ func TestAcc_Helm(t *testing.T) {
 					testName,
 					qovery.Helm{
 						Name:                      qovery.FromString(generateTestName(testName)),
+						Description:               qovery.FromString("helm chart description"),
 						IconUri:                   qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName))),
 						TimeoutSec:                qovery.FromInt64(600),
 						AutoPreview:               qovery.FromBool(false),
@@ -79,6 +78,7 @@ func TestAcc_Helm(t *testing.T) {
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryHelmExists("qovery_helm.test"),
 					resource.TestCheckResourceAttr("qovery_helm.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_helm.test", "description", "helm chart description"),
 					resource.TestCheckResourceAttr("qovery_helm.test", "icon_uri", fmt.Sprintf("app://qovery-console/%s", generateTestName(testName))),
 					resource.TestCheckResourceAttr("qovery_helm.test", "timeout_sec", "600"),
 					resource.TestCheckResourceAttr("qovery_helm.test", "auto_preview", "false"),
@@ -117,6 +117,7 @@ func TestAcc_Helm(t *testing.T) {
 					testName,
 					qovery.Helm{
 						Name:                      qovery.FromString(generateTestName(testName) + "-updated"),
+						Description:               qovery.FromString("helm chart description updated"),
 						IconUri:                   qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName))),
 						TimeoutSec:                qovery.FromInt64(600),
 						AutoPreview:               qovery.FromBool(false),
@@ -140,6 +141,7 @@ func TestAcc_Helm(t *testing.T) {
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryHelmExists("qovery_helm.test"),
 					resource.TestCheckResourceAttr("qovery_helm.test", "name", fmt.Sprintf("%s-updated", generateTestName(testName))),
+					resource.TestCheckResourceAttr("qovery_helm.test", "description", fmt.Sprintf("helm chart description updated")),
 					resource.TestCheckResourceAttr("qovery_helm.test", "icon_uri", fmt.Sprintf("app://qovery-console/%s", generateTestName(testName))),
 					resource.TestCheckResourceAttr("qovery_helm.test", "timeout_sec", "600"),
 					resource.TestCheckResourceAttr("qovery_helm.test", "auto_preview", "false"),
@@ -169,6 +171,7 @@ func TestAcc_Helm(t *testing.T) {
 					testName,
 					qovery.Helm{
 						Name:                      qovery.FromString(generateTestName(testName) + "-updated"),
+						Description:               qovery.FromString("helm chart description updated"),
 						IconUri:                   qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						TimeoutSec:                qovery.FromInt64(600),
 						AutoPreview:               qovery.FromBool(false),
@@ -192,6 +195,7 @@ func TestAcc_Helm(t *testing.T) {
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryHelmExists("qovery_helm.test"),
 					resource.TestCheckResourceAttr("qovery_helm.test", "name", fmt.Sprintf("%s-updated", generateTestName(testName))),
+					resource.TestCheckResourceAttr("qovery_helm.test", "description", "helm chart description updated"),
 					resource.TestCheckResourceAttr("qovery_helm.test", "icon_uri", fmt.Sprintf("app://qovery-console/%s-updated", generateTestName(testName))),
 					resource.TestCheckResourceAttr("qovery_helm.test", "timeout_sec", "600"),
 					resource.TestCheckResourceAttr("qovery_helm.test", "auto_preview", "false"),
@@ -221,6 +225,7 @@ func TestAcc_Helm(t *testing.T) {
 					testName,
 					qovery.Helm{
 						Name:                      qovery.FromString(generateTestName(testName) + "-updated"),
+						Description:               qovery.FromString("helm chart description updated"),
 						IconUri:                   qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						TimeoutSec:                qovery.FromInt64(600),
 						AutoPreview:               qovery.FromBool(false),
@@ -259,6 +264,7 @@ func TestAcc_Helm(t *testing.T) {
 					testName,
 					qovery.Helm{
 						Name:                      qovery.FromString(generateTestName(testName) + "-updated"),
+						Description:               qovery.FromString("helm chart description updated"),
 						IconUri:                   qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						TimeoutSec:                qovery.FromInt64(600),
 						AutoPreview:               qovery.FromBool(false),
@@ -293,6 +299,7 @@ func TestAcc_Helm(t *testing.T) {
 					testName,
 					qovery.Helm{
 						Name:                      qovery.FromString(generateTestName(testName) + "-values-file-raw"),
+						Description:               qovery.FromString("helm chart description values file raw"),
 						IconUri:                   qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
 						TimeoutSec:                qovery.FromInt64(600),
 						AutoPreview:               qovery.FromBool(false),
@@ -322,6 +329,7 @@ func TestAcc_Helm(t *testing.T) {
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryHelmExists("qovery_helm.test"),
 					resource.TestCheckResourceAttr("qovery_helm.test", "name", generateTestName(testName)+"-values-file-raw"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "description", "helm chart description values file raw"),
 					resource.TestCheckResourceAttr("qovery_helm.test", "icon_uri", fmt.Sprintf("app://qovery-console/%s-updated", generateTestName(testName))),
 					resource.TestCheckResourceAttr("qovery_helm.test", "timeout_sec", "600"),
 					resource.TestCheckResourceAttr("qovery_helm.test", "auto_preview", "false"),
@@ -384,6 +392,7 @@ func getHelmConfigFromModel(testName string, helm qovery.Helm) string {
 resource "qovery_helm" "test" {
   environment_id = qovery_environment.test.id
   name = {{ .Helm.Name.String }}
+  description = {{ .Helm.Description.String }}
   icon_uri = {{ .Helm.IconUri.String }}
   timeout_sec = {{ .Helm.TimeoutSec }}
   auto_preview = {{ .Helm.AutoPreview }}
