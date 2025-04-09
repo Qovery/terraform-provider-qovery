@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -102,6 +103,7 @@ func (c Cluster) hasRoutingTableDiff(state *Cluster) bool {
 
 func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertParams, error) {
 	cloudProvider, err := qovery.NewCloudProviderEnumFromValue(ToString(c.CloudProvider))
+	cloudVendor, err := qovery.NewCloudVendorEnumFromValue(ToString(c.CloudProvider))
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +166,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		ClusterCloudProviderRequest: clusterCloudProviderRequest,
 		ClusterRequest: qovery.ClusterRequest{
 			Name:                     ToString(c.Name),
-			CloudProvider:            *cloudProvider,
+			CloudProvider:            *cloudVendor,
 			CloudProviderCredentials: clusterCloudProviderRequest,
 			Region:                   ToString(c.Region),
 			Description:              ToStringPointer(c.Description),
@@ -600,7 +602,7 @@ func extractStableNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Kar
 		return nil, fmt.Errorf("stable_override field cannot be parsed to Object")
 	}
 
-	var qoveryStableOverride = qovery.KarpenterStableNodePoolOverride{}
+	qoveryStableOverride := qovery.KarpenterStableNodePoolOverride{}
 
 	// Set consolidation
 	consolidationAttr, exists := stableOverride.Attributes()["consolidation"]
@@ -685,7 +687,7 @@ func extractDefaultNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Ka
 		return nil, fmt.Errorf("default_override field cannot be parsed to Object")
 	}
 
-	var qoveryDefaultOverride = qovery.KarpenterDefaultNodePoolOverride{}
+	qoveryDefaultOverride := qovery.KarpenterDefaultNodePoolOverride{}
 
 	// Set limits
 	limitsAttr, exists := defaultOverride.Attributes()["limits"]
