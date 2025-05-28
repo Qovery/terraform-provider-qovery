@@ -499,30 +499,29 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Optional:    true,
 				Computed:    true,
 			},
-			"outputs": schema.SingleNestedAttribute{
-				Description: "Cluster outputs.",
+			"infrastructure_outputs": schema.SingleNestedAttribute{
+				Description: "Outputs related to the underlying Kubernetes infrastructure. These values are only available once the cluster is deployed.",
 				Computed:    true,
 				Attributes: map[string]schema.Attribute{
-					"cluster_id": schema.StringAttribute{
-						Computed: true,
-					},
 					"cluster_name": schema.StringAttribute{
-						Computed: true,
+						Description: "The name of the Kubernetes cluster. Available after deployment for all providers.",
+						Computed:    true,
 					},
 					"cluster_arn": schema.StringAttribute{
-						Computed: true,
+						Description: "The ARN of the AWS cluster. Only available for AWS after deployment.",
+						Computed:    true,
+					},
+					"cluster_self_link": schema.StringAttribute{
+						Description: "The self-link of the GCP cluster. Only available for GCP after deployment.",
+						Computed:    true,
 					},
 					"cluster_oidc_issuer": schema.StringAttribute{
-						Computed: true,
+						Description: "The OIDC issuer URL for the cluster. Available for AWS and Azure after deployment.",
+						Computed:    true,
 					},
 					"vpc_id": schema.StringAttribute{
-						Computed: true,
-					},
-					"network": schema.StringAttribute{
-						Computed: true,
-					},
-					"private_network_id": schema.StringAttribute{
-						Computed: true,
+						Description: "The VPC ID used by the cluster. Only available for AWS after deployment.",
+						Computed:    true,
 					},
 				},
 			},
