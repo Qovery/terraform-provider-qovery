@@ -61,7 +61,7 @@ var (
 	// Cluster Kubernetes Mode
 	clusterKubernetesModes = clientEnumToStringArray([]qovery.KubernetesEnum{
 		qovery.KUBERNETESENUM_MANAGED,
-		qovery.KUBERNETESENUM_K3_S,
+		qovery.KUBERNETESENUM_SELF_MANAGED,
 	})
 	clusterKubernetesModeDefault = string(qovery.KUBERNETESENUM_MANAGED)
 )
@@ -498,6 +498,33 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Description: "Advanced settings of the cluster.",
 				Optional:    true,
 				Computed:    true,
+			},
+			"outputs": schema.SingleNestedAttribute{
+				Description: "Cluster outputs.",
+				Computed:    true,
+				Attributes: map[string]schema.Attribute{
+					"cluster_id": schema.StringAttribute{
+						Computed: true,
+					},
+					"cluster_name": schema.StringAttribute{
+						Computed: true,
+					},
+					"cluster_arn": schema.StringAttribute{
+						Computed: true,
+					},
+					"cluster_oidc_issuer": schema.StringAttribute{
+						Computed: true,
+					},
+					"vpc_id": schema.StringAttribute{
+						Computed: true,
+					},
+					"network": schema.StringAttribute{
+						Computed: true,
+					},
+					"private_network_id": schema.StringAttribute{
+						Computed: true,
+					},
+				},
 			},
 		},
 	}
