@@ -167,7 +167,7 @@ func (c *Client) updateCluster(ctx context.Context, organizationID string, clust
 	}
 	cluster.Status = clusterStatus
 
-	// Get cluster from the API because after the updateClusterStatus (that may deploy the cluster)n, the InfrastructureOutputs can change.
+	// Get cluster because after the updateClusterStatus (that may deploy the cluster), the InfrastructureOutputs can change.
 	updatedCluster, apiErr := c.getClusterByID(ctx, organizationID, cluster.Id)
 	if apiErr == nil {
 		cluster.InfrastructureOutputs = updatedCluster.InfrastructureOutputs
