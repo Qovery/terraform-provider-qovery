@@ -17,6 +17,7 @@ const (
 	ScopeProject     Scope = "PROJECT"
 	ScopeJob         Scope = "JOB"
 	ScopeHelm        Scope = "HELM"
+	ScopeTerraform   Scope = "TERRAFORM"
 )
 
 // AllowedScopeValues contains all the valid values of a Scope.
@@ -28,6 +29,7 @@ var AllowedScopeValues = []Scope{
 	ScopeProject,
 	ScopeJob,
 	ScopeHelm,
+	ScopeTerraform,
 }
 
 // String returns the string value of a Scope.

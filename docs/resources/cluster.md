@@ -192,7 +192,7 @@ You can find complete examples within these repositories:
 ### Required
 
 - `cloud_provider` (String) Cloud provider of the cluster.
-	- Can be: `AWS`, `GCP`, `ON_PREMISE`, `SCW`.
+	- Can be: `AWS`, `AZURE`, `GCP`, `ON_PREMISE`, `SCW`.
 - `credentials_id` (String) Id of the credentials.
 - `name` (String) Name of the cluster.
 - `organization_id` (String) Id of the organization.
@@ -207,7 +207,7 @@ You can find complete examples within these repositories:
 - `features` (Attributes) Features of the cluster. (see [below for nested schema](#nestedatt--features))
 - `instance_type` (String) Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`, and not set for Karpenter-enabled clusters
 - `kubernetes_mode` (String) Kubernetes mode of the cluster.
-	- Can be: `K3S`, `MANAGED`.
+	- Can be: `MANAGED`, `SELF_MANAGED`.
 	- Default: `MANAGED`.
 - `max_running_nodes` (Number) Maximum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters; and not set for Karpenter-enabled clusters]
 	- Must be: `>= 1`.
@@ -224,6 +224,7 @@ You can find complete examples within these repositories:
 ### Read-Only
 
 - `id` (String) Id of the cluster.
+- `infrastructure_outputs` (Attributes) Outputs related to the underlying Kubernetes infrastructure. These values are only available once the cluster is deployed. (see [below for nested schema](#nestedatt--infrastructure_outputs))
 
 <a id="nestedatt--features"></a>
 ### Nested Schema for `features`
@@ -354,6 +355,18 @@ Required:
 - `description` (String) Description of the route.
 - `destination` (String) Destination of the route.
 - `target` (String) Target of the route.
+
+
+<a id="nestedatt--infrastructure_outputs"></a>
+### Nested Schema for `infrastructure_outputs`
+
+Read-Only:
+
+- `cluster_arn` (String) The ARN of the AWS cluster. Only available for AWS after deployment.
+- `cluster_name` (String) The name of the Kubernetes cluster. Available after deployment for all providers.
+- `cluster_oidc_issuer` (String) The OIDC issuer URL for the cluster. Available for AWS and Azure after deployment.
+- `cluster_self_link` (String) The self-link of the GCP cluster. Only available for GCP after deployment.
+- `vpc_id` (String) The VPC ID used by the cluster. Only available for AWS after deployment.
 ## Import
 ```shell
 terraform import qovery_cluster.my_cluster "<organization_id>,<cluster_id>"

@@ -19,6 +19,7 @@ const (
 	KindPublicECR           Kind = "PUBLIC_ECR"
 	KindGenericCR           Kind = "GENERIC_CR"
 	KindGcpArtifactRegistry Kind = "GCP_ARTIFACT_REGISTRY"
+	KindAzureCr             Kind = "AZURE_CR"
 )
 
 // AllowedKindValues contains all the valid values of a Kind.
@@ -32,6 +33,7 @@ var AllowedKindValues = []Kind{
 	KindPublicECR,
 	KindGenericCR,
 	KindGcpArtifactRegistry,
+	KindAzureCr,
 }
 
 // String returns the string value of a Kind.

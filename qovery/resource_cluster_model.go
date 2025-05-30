@@ -26,23 +26,24 @@ const (
 )
 
 type Cluster struct {
-	Id                   types.String `tfsdk:"id"`
-	OrganizationId       types.String `tfsdk:"organization_id"`
-	CredentialsId        types.String `tfsdk:"credentials_id"`
-	Name                 types.String `tfsdk:"name"`
-	CloudProvider        types.String `tfsdk:"cloud_provider"`
-	Region               types.String `tfsdk:"region"`
-	Description          types.String `tfsdk:"description"`
-	KubernetesMode       types.String `tfsdk:"kubernetes_mode"`
-	InstanceType         types.String `tfsdk:"instance_type"`
-	DiskSize             types.Int64  `tfsdk:"disk_size"`
-	MinRunningNodes      types.Int64  `tfsdk:"min_running_nodes"`
-	MaxRunningNodes      types.Int64  `tfsdk:"max_running_nodes"`
-	Production           types.Bool   `tfsdk:"production"`
-	Features             types.Object `tfsdk:"features"`
-	RoutingTables        types.Set    `tfsdk:"routing_table"`
-	State                types.String `tfsdk:"state"`
-	AdvancedSettingsJson types.String `tfsdk:"advanced_settings_json"`
+	Id                    types.String `tfsdk:"id"`
+	OrganizationId        types.String `tfsdk:"organization_id"`
+	CredentialsId         types.String `tfsdk:"credentials_id"`
+	Name                  types.String `tfsdk:"name"`
+	CloudProvider         types.String `tfsdk:"cloud_provider"`
+	Region                types.String `tfsdk:"region"`
+	Description           types.String `tfsdk:"description"`
+	KubernetesMode        types.String `tfsdk:"kubernetes_mode"`
+	InstanceType          types.String `tfsdk:"instance_type"`
+	DiskSize              types.Int64  `tfsdk:"disk_size"`
+	MinRunningNodes       types.Int64  `tfsdk:"min_running_nodes"`
+	MaxRunningNodes       types.Int64  `tfsdk:"max_running_nodes"`
+	Production            types.Bool   `tfsdk:"production"`
+	Features              types.Object `tfsdk:"features"`
+	RoutingTables         types.Set    `tfsdk:"routing_table"`
+	State                 types.String `tfsdk:"state"`
+	AdvancedSettingsJson  types.String `tfsdk:"advanced_settings_json"`
+	InfrastructureOutputs types.Object `tfsdk:"infrastructure_outputs"`
 }
 
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
@@ -205,24 +206,76 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 	routingTable := fromClusterRoutingTable(res.ClusterRoutingTable)
 
 	return Cluster{
-		Id:                   FromString(res.ClusterResponse.Id),
-		CredentialsId:        FromStringPointer(res.ClusterInfo.Credentials.Id),
-		OrganizationId:       FromString(res.OrganizationID),
-		Name:                 FromString(res.ClusterResponse.Name),
-		CloudProvider:        fromClientEnum(res.ClusterResponse.CloudProvider),
-		Region:               FromString(res.ClusterResponse.Region),
-		Description:          FromStringPointer(res.ClusterResponse.Description),
-		KubernetesMode:       fromClientEnumPointer(res.ClusterResponse.Kubernetes),
-		InstanceType:         FromStringPointer(res.ClusterResponse.InstanceType),
-		DiskSize:             FromInt32Pointer(res.ClusterResponse.DiskSize),
-		MinRunningNodes:      FromInt32Pointer(res.ClusterResponse.MinRunningNodes),
-		MaxRunningNodes:      FromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
-		Production:           FromBoolPointer(res.ClusterResponse.Production),
-		Features:             fromQoveryClusterFeatures(res.ClusterResponse.Features, initialPlan),
-		RoutingTables:        routingTable.toTerraformSet(ctx, initialPlan.RoutingTables),
-		State:                fromClientEnumPointer(res.ClusterResponse.Status),
-		AdvancedSettingsJson: FromString(res.AdvancedSettingsJson),
+		Id:                    FromString(res.ClusterResponse.Id),
+		CredentialsId:         FromStringPointer(res.ClusterInfo.Credentials.Id),
+		OrganizationId:        FromString(res.OrganizationID),
+		Name:                  FromString(res.ClusterResponse.Name),
+		CloudProvider:         fromClientEnum(res.ClusterResponse.CloudProvider),
+		Region:                FromString(res.ClusterResponse.Region),
+		Description:           FromStringPointer(res.ClusterResponse.Description),
+		KubernetesMode:        fromClientEnumPointer(res.ClusterResponse.Kubernetes),
+		InstanceType:          FromStringPointer(res.ClusterResponse.InstanceType),
+		DiskSize:              FromInt32Pointer(res.ClusterResponse.DiskSize),
+		MinRunningNodes:       FromInt32Pointer(res.ClusterResponse.MinRunningNodes),
+		MaxRunningNodes:       FromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
+		Production:            FromBoolPointer(res.ClusterResponse.Production),
+		Features:              fromQoveryClusterFeatures(res.ClusterResponse.Features, initialPlan),
+		RoutingTables:         routingTable.toTerraformSet(ctx, initialPlan.RoutingTables),
+		State:                 fromClientEnumPointer(res.ClusterResponse.Status),
+		AdvancedSettingsJson:  FromString(res.AdvancedSettingsJson),
+		InfrastructureOutputs: fromQoveryClusterOutput(res.ClusterResponse.InfrastructureOutputs),
 	}
+}
+
+func fromQoveryClusterOutput(
+	infrastructureOutputs *qovery.InfrastructureOutputs,
+) types.Object {
+	// Define the schema once for consistency
+	attrTypes := map[string]attr.Type{
+		"cluster_name":        types.StringType,
+		"cluster_arn":         types.StringType,
+		"cluster_self_link":   types.StringType,
+		"cluster_oidc_issuer": types.StringType,
+		"vpc_id":              types.StringType,
+	}
+
+	// Default null values
+	values := map[string]attr.Value{
+		"cluster_name":        types.StringNull(),
+		"cluster_arn":         types.StringNull(),
+		"cluster_self_link":   types.StringNull(),
+		"cluster_oidc_issuer": types.StringNull(),
+		"vpc_id":              types.StringNull(),
+	}
+
+	if infrastructureOutputs == nil {
+		return types.ObjectValueMust(attrTypes, values)
+	}
+
+	switch {
+	case infrastructureOutputs.AksInfrastructureOutputs != nil:
+		out := infrastructureOutputs.AksInfrastructureOutputs
+		values["cluster_name"] = types.StringValue(out.ClusterName)
+		values["cluster_oidc_issuer"] = types.StringValue(out.ClusterOidcIssuer)
+
+	case infrastructureOutputs.EksInfrastructureOutputs != nil:
+		out := infrastructureOutputs.EksInfrastructureOutputs
+		values["cluster_name"] = types.StringValue(out.ClusterName)
+		values["cluster_arn"] = types.StringValue(out.ClusterArn)
+		values["cluster_oidc_issuer"] = types.StringValue(out.ClusterOidcIssuer)
+		values["vpc_id"] = types.StringValue(out.VpcId)
+
+	case infrastructureOutputs.GkeInfrastructureOutputs != nil:
+		out := infrastructureOutputs.GkeInfrastructureOutputs
+		values["cluster_name"] = types.StringValue(out.ClusterName)
+		values["cluster_self_link"] = types.StringValue(out.ClusterSelfLink)
+
+	case infrastructureOutputs.KapsuleInfrastructureOutputs != nil:
+		out := infrastructureOutputs.KapsuleInfrastructureOutputs
+		values["cluster_name"] = types.StringValue(out.ClusterName)
+	}
+
+	return types.ObjectValueMust(attrTypes, values)
 }
 
 func fromQoveryClusterFeatures(
