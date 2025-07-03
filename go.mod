@@ -6,7 +6,7 @@ toolchain go1.23.4
 
 require (
 	github.com/AlekSi/pointer v1.2.0
-	github.com/adhocore/gronx v1.19.5
+	github.com/adhocore/gronx v1.19.6
 	github.com/brianvoe/gofakeit/v6 v6.20.2
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/google/uuid v1.6.0
