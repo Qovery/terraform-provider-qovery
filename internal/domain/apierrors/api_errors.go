@@ -13,11 +13,8 @@ import (
 // apiErrorPayload represents the error payload that comes from Qovery's API client.
 // It is used to get the actual error message from the api.
 type apiErrorPayload struct {
-	Status    int    `json:"status"`
-	Error     string `json:"error"`
-	Message   string `json:"detail"`
-	Timestamp string `json:"timestamp"`
-	Path      string `json:"path"`
+	Status  int    `json:"status"`
+	Message string `json:"detail"`
 }
 
 // APIError represents an error that comes from Qovery's API client.
