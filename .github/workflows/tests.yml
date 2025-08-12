@@ -38,7 +38,7 @@ jobs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
     steps:
       - name: Check out source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Branch name
         uses: nelonoel/branch-name@v1.0.1
@@ -67,7 +67,7 @@ jobs:
           version: ${{ env.TASK_VERSION }}
 
       - name: Check out source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Build
         run: task build
@@ -88,7 +88,7 @@ jobs:
           version: ${{ env.TASK_VERSION }}
 
       - name: Check out source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Lint
         run: task lint
@@ -114,7 +114,7 @@ jobs:
           version: ${{ env.TASK_VERSION }}
 
       - name: Check out source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Generate documentation
         env:
@@ -141,7 +141,7 @@ jobs:
           version: ${{ env.TASK_VERSION }}
 
       - name: Check out source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Generate mocks
         run: task mocks
@@ -181,7 +181,7 @@ jobs:
           version: ${{ env.TASK_VERSION }}
 
       - name: Check out source code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Run acceptance tests
         timeout-minutes: 120
