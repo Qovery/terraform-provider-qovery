@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/custom_organization_role"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
@@ -37,36 +38,37 @@ var (
 type Configuration func(repos *Repositories) error
 
 type Repositories struct {
-	CredentialsAws                 credentials.AwsRepository
-	CredentialsScaleway            credentials.ScalewayRepository
-	Organization                   organization.Repository
-	Project                        project.Repository
-	ProjectEnvironmentVariable     variable.Repository
-	ProjectSecret                  secret.Repository
-	Container                      container.Repository
-	ContainerDeployment            deployment.Repository
-	ContainerEnvironmentVariable   variable.Repository
-	ContainerSecret                secret.Repository
-	ContainerRegistry              registry.Repository
-	Job                            job.Repository
-	JobDeployment                  deployment.Repository
-	JobEnvironmentVariable         variable.Repository
-	JobSecret                      secret.Repository
-	Environment                    environment.Repository
-	EnvironmentDeployment          deployment.Repository
-	EnvironmentEnvironmentVariable variable.Repository
-	EnvironmentSecret              secret.Repository
-	DeploymentStage                deploymentstage.Repository
-	DeploymentEnvironment          newdeployment.EnvironmentRepository
-	DeploymentStatus               newdeployment.DeploymentStatusRepository
-	QoveryClient                   *qovery.APIClient
-	Helm                           helm.Repository
-	HelmDeployment                 deployment.Repository
-	HelmEnvironmentVariable        variable.Repository
-	HelmSecret                     secret.Repository
-	HelmRepository                 helmRepository.Repository
-	AnnotationsGroupRepository     annotations_group.Repository
-	LabelsGroupRepository          labels_group.Repository
+	CredentialsAws                   credentials.AwsRepository
+	CredentialsScaleway              credentials.ScalewayRepository
+	Organization                     organization.Repository
+	Project                          project.Repository
+	ProjectEnvironmentVariable       variable.Repository
+	ProjectSecret                    secret.Repository
+	Container                        container.Repository
+	ContainerDeployment              deployment.Repository
+	ContainerEnvironmentVariable     variable.Repository
+	ContainerSecret                  secret.Repository
+	ContainerRegistry                registry.Repository
+	Job                              job.Repository
+	JobDeployment                    deployment.Repository
+	JobEnvironmentVariable           variable.Repository
+	JobSecret                        secret.Repository
+	Environment                      environment.Repository
+	EnvironmentDeployment            deployment.Repository
+	EnvironmentEnvironmentVariable   variable.Repository
+	EnvironmentSecret                secret.Repository
+	DeploymentStage                  deploymentstage.Repository
+	DeploymentEnvironment            newdeployment.EnvironmentRepository
+	DeploymentStatus                 newdeployment.DeploymentStatusRepository
+	QoveryClient                     *qovery.APIClient
+	Helm                             helm.Repository
+	HelmDeployment                   deployment.Repository
+	HelmEnvironmentVariable          variable.Repository
+	HelmSecret                       secret.Repository
+	HelmRepository                   helmRepository.Repository
+	AnnotationsGroupRepository       annotations_group.Repository
+	LabelsGroupRepository            labels_group.Repository
+	CustomOrganizationRoleRepository custom_organization_role.Repository
 }
 
 func New(configs ...Configuration) (*Repositories, error) {
@@ -127,6 +129,7 @@ func WithQoveryAPI(apiToken string, providerVersion string, host string) Configu
 		repos.HelmRepository = qoveryAPI.HelmRepository
 		repos.AnnotationsGroupRepository = qoveryAPI.AnnotationsGroup
 		repos.LabelsGroupRepository = qoveryAPI.LabelsGroup
+		repos.CustomOrganizationRoleRepository = qoveryAPI.CustomOrganizationRole
 
 		return nil
 	}

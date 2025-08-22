@@ -2,6 +2,7 @@ package qoveryapi
 
 import (
 	"fmt"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/custom_organization_role"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
@@ -73,6 +74,7 @@ type QoveryAPI struct {
 	HelmRepository                 helmRepository.Repository
 	AnnotationsGroup               annotations_group.Repository
 	LabelsGroup                    labels_group.Repository
+	CustomOrganizationRole         custom_organization_role.Repository
 }
 
 // New returns a new instance of QoveryAPI and applies the given configs.
@@ -228,6 +230,11 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	customOrganizationRoleAPI, err := newCustomOrganizationRoleQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create a new QoveryAPI instance.
 	qoveryAPI := &QoveryAPI{
 		Client:                         apiClient,
@@ -260,6 +267,7 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		HelmRepository:                 helmRepositoryAPI,
 		AnnotationsGroup:               annotationsGroupAPI,
 		LabelsGroup:                    labelsGroupAPI,
+		CustomOrganizationRole:         customOrganizationRoleAPI,
 	}
 
 	// Apply all the configs to the qoveryAPI instance.
