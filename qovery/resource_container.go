@@ -251,8 +251,12 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							Computed: true,
 						},
 						"is_default": schema.BoolAttribute{
-							Description: "If this port will be used for the root domain",
-							Required:    true,
+							Description: "If this port will be used for the root domain. Note: the API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).",
+							Optional:    true,
+							Computed:    true,
+							PlanModifiers: []planmodifier.Bool{
+								SmartAllowApiOverride(),
+							},
 						},
 					},
 				},
