@@ -30,6 +30,25 @@ func (r UpsertAwsRequest) Validate() error {
 		return errors.Wrap(err, ErrInvalidUpsertAwsRequest.Error())
 	}
 
+	// Validate that at least one credential type is provided
+	if r.StaticCredentials == nil && r.RoleCredentials == nil {
+		return errors.Wrap(errors.New("either StaticCredentials or RoleCredentials must be provided"), ErrInvalidUpsertAwsRequest.Error())
+	}
+
+	// Validate StaticCredentials if provided
+	if r.StaticCredentials != nil {
+		if err := validator.New().Struct(r.StaticCredentials); err != nil {
+			return errors.Wrap(err, ErrInvalidUpsertAwsRequest.Error())
+		}
+	}
+
+	// Validate RoleCredentials if provided
+	if r.RoleCredentials != nil {
+		if err := validator.New().Struct(r.RoleCredentials); err != nil {
+			return errors.Wrap(err, ErrInvalidUpsertAwsRequest.Error())
+		}
+	}
+
 	return nil
 }
 

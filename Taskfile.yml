@@ -1,14 +1,14 @@
 # https://taskfile.dev
 
-version: '3'
+version: "3"
 
 vars:
   BINARY_FOLDER: bin
   BINARY_NAME: terraform-provider-qovery
-  GOLANGCI_LINT_VERSION: v1.63.1
+  GOLANGCI_LINT_VERSION: v1.64.8
   MOCKERY_VERSION: v2.50.2
 
-dotenv: ['.env']
+dotenv: [".env"]
 
 tasks:
   mocks:
@@ -34,7 +34,7 @@ tasks:
       - go.mod
       - go.sum
     generates:
-      - '{{.BINARY_FOLDER}}/{{.BINARY_NAME}}'
+      - "{{.BINARY_FOLDER}}/{{.BINARY_NAME}}"
 
   install:
     deps:
@@ -98,12 +98,12 @@ tasks:
       - golangci-lint version | grep {{.GOLANGCI_LINT_VERSION}}
 
   install-mockery:
-      desc: Install the mockery tool
-      cmds:
-        - go install github.com/vektra/mockery/v2@{{.MOCKERY_VERSION}}
-      status:
-        - which mockery
-        - mockery --version | grep {{.MOCKERY_VERSION}}
+    desc: Install the mockery tool
+    cmds:
+      - go install github.com/vektra/mockery/v2@{{.MOCKERY_VERSION}}
+    status:
+      - which mockery
+      - mockery --version | grep {{.MOCKERY_VERSION}}
 
   install-dev-override:
     desc: Set up an override allowing a local version of the provider to be used

@@ -15,6 +15,7 @@ const (
 	KindScalewayCR          Kind = "SCALEWAY_CR"
 	KindDockerHub           Kind = "DOCKER_HUB"
 	KindGithubCr            Kind = "GITHUB_CR"
+	KindGithubEnterpriseCr  Kind = "GITHUB_ENTERPRISE_CR"
 	KindGitlabCr            Kind = "GITLAB_CR"
 	KindPublicECR           Kind = "PUBLIC_ECR"
 	KindGenericCR           Kind = "GENERIC_CR"
@@ -29,6 +30,7 @@ var AllowedKindValues = []Kind{
 	KindScalewayCR,
 	KindDockerHub,
 	KindGithubCr,
+	KindGithubEnterpriseCr,
 	KindGitlabCr,
 	KindPublicECR,
 	KindGenericCR,

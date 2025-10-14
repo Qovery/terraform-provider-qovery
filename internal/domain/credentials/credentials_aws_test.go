@@ -23,34 +23,59 @@ func TestUpsertAwsRequest_Validate(t *testing.T) {
 		{
 			TestName: "fail_with_invalid_name",
 			Request: credentials.UpsertAwsRequest{
-				AccessKeyID:     gofakeit.Word(),
-				SecretAccessKey: gofakeit.Word(),
+				StaticCredentials: &credentials.AwsStaticCredentials{
+					AccessKeyID:     gofakeit.Word(),
+					SecretAccessKey: gofakeit.Word(),
+				},
 			},
 			ExpectedError: credentials.ErrInvalidUpsertAwsRequest,
 		},
 		{
 			TestName: "fail_with_invalid_access_key_id",
 			Request: credentials.UpsertAwsRequest{
-				Name:            gofakeit.Name(),
-				SecretAccessKey: gofakeit.Word(),
+				Name: gofakeit.Name(),
+				StaticCredentials: &credentials.AwsStaticCredentials{
+					SecretAccessKey: gofakeit.Word(),
+				},
 			},
 			ExpectedError: credentials.ErrInvalidUpsertAwsRequest,
 		},
 		{
 			TestName: "fail_with_secret_access_key",
 			Request: credentials.UpsertAwsRequest{
-				Name:        gofakeit.Name(),
-				AccessKeyID: gofakeit.Word(),
+				Name: gofakeit.Name(),
+				StaticCredentials: &credentials.AwsStaticCredentials{
+					AccessKeyID: gofakeit.Word(),
+				},
 			},
 			ExpectedError: credentials.ErrInvalidUpsertAwsRequest,
 		},
 		{
-			TestName: "success",
+			TestName: "success_with_static_credentials",
+			Request: credentials.UpsertAwsRequest{
+				Name: gofakeit.Name(),
+				StaticCredentials: &credentials.AwsStaticCredentials{
+					AccessKeyID:     gofakeit.Word(),
+					SecretAccessKey: gofakeit.Word(),
+				},
+			},
+		},
+		{
+			TestName: "success_with_role_credentials",
+			Request: credentials.UpsertAwsRequest{
+				Name: gofakeit.Name(),
+				RoleCredentials: &credentials.AwsRoleCredentials{
+					RoleArn: gofakeit.Word(),
+				},
+			},
+		},
+		{
+			TestName: "fail_with_missing_role_arn",
 			Request: credentials.UpsertAwsRequest{
 				Name:            gofakeit.Name(),
-				AccessKeyID:     gofakeit.Word(),
-				SecretAccessKey: gofakeit.Word(),
+				RoleCredentials: &credentials.AwsRoleCredentials{},
 			},
+			ExpectedError: credentials.ErrInvalidUpsertAwsRequest,
 		},
 	}
 

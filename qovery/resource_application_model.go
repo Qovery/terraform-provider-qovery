@@ -141,6 +141,11 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
 	}
 
+	gitRepository, err := app.GitRepository.toCreateRequest()
+	if err != nil {
+		return nil, err
+	}
+
 	return &client.ApplicationCreateParams{
 		ApplicationRequest: qovery.ApplicationRequest{
 			Name:                   ToString(app.Name),
@@ -152,7 +157,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			MinRunningInstances:    ToInt32Pointer(app.MinRunningInstances),
 			MaxRunningInstances:    ToInt32Pointer(app.MaxRunningInstances),
 			AutoPreview:            ToBoolPointer(app.AutoPreview),
-			GitRepository:          app.GitRepository.toCreateRequest(),
+			GitRepository:          gitRepository,
 			Storage:                storage,
 			Ports:                  ports,
 			Entrypoint:             ToStringPointer(app.Entrypoint),
@@ -248,6 +253,11 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
 	}
 
+	gitRepository, err := app.GitRepository.toUpdateRequest()
+	if err != nil {
+		return nil, err
+	}
+
 	applicationEditRequest := qovery.ApplicationEditRequest{
 		Name:                   ToStringPointer(app.Name),
 		IconUri:                ToStringPointer(app.IconUri),
@@ -258,7 +268,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		MinRunningInstances:    ToInt32Pointer(app.MinRunningInstances),
 		MaxRunningInstances:    ToInt32Pointer(app.MaxRunningInstances),
 		AutoPreview:            ToBoolPointer(app.AutoPreview),
-		GitRepository:          app.GitRepository.toUpdateRequest(),
+		GitRepository:          gitRepository,
 		Storage:                applicationStorageRequest,
 		Ports:                  ports,
 		Entrypoint:             ToStringPointer(app.Entrypoint),
@@ -332,18 +342,28 @@ type ApplicationGitRepository struct {
 	GitTokenId types.String `tfsdk:"git_token_id"`
 }
 
-func (repo ApplicationGitRepository) toCreateRequest() qovery.ApplicationGitRepositoryRequest {
+func (repo ApplicationGitRepository) toCreateRequest() (qovery.ApplicationGitRepositoryRequest, error) {
+	url := ToString(repo.URL)
+	provider, err := detectGitProviderFromURL(url)
+	if err != nil {
+		return qovery.ApplicationGitRepositoryRequest{}, err
+	}
+
 	return qovery.ApplicationGitRepositoryRequest{
-		Url:        ToString(repo.URL),
+		Url:        url,
 		RootPath:   ToStringPointer(repo.RootPath),
 		Branch:     ToStringPointer(repo.Branch),
 		GitTokenId: *qovery.NewNullableString(ToStringPointer(repo.GitTokenId)),
-	}
+		Provider:   provider,
+	}, nil
 }
 
-func (repo ApplicationGitRepository) toUpdateRequest() *qovery.ApplicationGitRepositoryRequest {
-	req := repo.toCreateRequest()
-	return &req
+func (repo ApplicationGitRepository) toUpdateRequest() (*qovery.ApplicationGitRepositoryRequest, error) {
+	req, err := repo.toCreateRequest()
+	if err != nil {
+		return nil, err
+	}
+	return &req, nil
 }
 
 func convertResponseToApplicationGitRepository(gitRepository *qovery.ApplicationGitRepository) *ApplicationGitRepository {
