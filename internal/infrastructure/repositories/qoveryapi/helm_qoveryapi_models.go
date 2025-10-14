@@ -198,7 +198,10 @@ func newQoveryHelmRequestFromDomain(request helm.UpsertRepositoryRequest) (*qove
 
 	source := newQoveryHelmSourceRequestFromDomain(request.Source)
 
-	fileValuesOverride := newQoveryFileValuesOverrideRequestFromDomain(request.ValuesOverride.File)
+	fileValuesOverride, err := newQoveryFileValuesOverrideRequestFromDomain(request.ValuesOverride.File)
+	if err != nil {
+		return nil, errors.Wrap(err, helm.ErrInvalidUpsertRequest.Error())
+	}
 
 	return &qovery.HelmRequest{
 		Name:                      request.Name,
@@ -264,9 +267,9 @@ func newQoveryHelmSourceRequestFromDomain(source helm.Source) *qovery.HelmReques
 	return &s
 }
 
-func newQoveryFileValuesOverrideRequestFromDomain(file *helm.ValuesOverrideFile) *qovery.NullableHelmRequestAllOfValuesOverrideFile {
+func newQoveryFileValuesOverrideRequestFromDomain(file *helm.ValuesOverrideFile) (*qovery.NullableHelmRequestAllOfValuesOverrideFile, error) {
 	if file == nil {
-		return &qovery.NullableHelmRequestAllOfValuesOverrideFile{}
+		return &qovery.NullableHelmRequestAllOfValuesOverrideFile{}, nil
 	}
 
 	f := qovery.NullableHelmRequestAllOfValuesOverrideFile{}
@@ -274,12 +277,18 @@ func newQoveryFileValuesOverrideRequestFromDomain(file *helm.ValuesOverrideFile)
 	f.Set(&v)
 
 	if file.GitRepository != nil {
+		provider, err := detectGitProviderFromURL(file.GitRepository.Url)
+		if err != nil {
+			return nil, errors.Wrap(err, helm.ErrInvalidUpsertRequest.Error())
+		}
+
 		g := qovery.HelmRequestAllOfValuesOverrideFileGit{
 			Paths: file.GitRepository.Paths,
 			GitRepository: qovery.ApplicationGitRepositoryRequest{
 				Url:        file.GitRepository.Url,
 				Branch:     &file.GitRepository.Branch,
 				GitTokenId: *qovery.NewNullableString(file.GitRepository.GitToken),
+				Provider:   provider,
 			},
 		}
 		v.SetGit(g)
@@ -301,7 +310,7 @@ func newQoveryFileValuesOverrideRequestFromDomain(file *helm.ValuesOverrideFile)
 		v.SetRaw(r)
 	}
 
-	return &f
+	return &f, nil
 }
 
 func newQoveryHelmPortsRequestFromDomain(ports *[]helm.Port) (*[]qovery.HelmPortRequestPortsInner, error) {
