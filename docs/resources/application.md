@@ -445,7 +445,6 @@ Required:
 
 - `internal_port` (Number) Internal port of the application.
 	- Must be: `>= 1` and `<= 65535`.
-- `is_default` (Boolean) If this port will be used for the root domain
 - `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this application.
 
 Optional:
@@ -453,6 +452,7 @@ Optional:
 - `external_port` (Number) External port of the application.
 	- Required if: `ports.publicly_accessible=true`.
 	- Must be: `>= 1` and `<= 65535`.
+- `is_default` (Boolean) If this port will be used for the root domain. Note: the API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).
 - `name` (String) Name of the port.
 - `protocol` (String) Protocol used for the port of the application.
 	- Can be: `GRPC`, `HTTP`, `TCP`, `UDP`.
