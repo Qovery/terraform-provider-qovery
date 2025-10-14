@@ -706,7 +706,7 @@ func extractStableNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Kar
 		limitsCpu := limits.Attributes()["max_cpu_in_vcpu"].(basetypes.Int64Value)
 		limitsRam := limits.Attributes()["max_memory_in_gibibytes"].(basetypes.Int64Value)
 
-		qoveryLimits := qovery.NewKarpenterNodePoolLimits(enabled.ValueBool(), int32(limitsCpu.ValueInt64()), int32(limitsRam.ValueInt64()))
+		qoveryLimits := qovery.NewKarpenterNodePoolLimits(enabled.ValueBool(), int32(limitsCpu.ValueInt64()), int32(limitsRam.ValueInt64()), 0)
 		qoveryStableOverride.Limits = qoveryLimits
 	}
 
@@ -759,7 +759,7 @@ func extractDefaultNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Ka
 	limitsCpu := limits.Attributes()["max_cpu_in_vcpu"].(basetypes.Int64Value)
 	limitsRam := limits.Attributes()["max_memory_in_gibibytes"].(basetypes.Int64Value)
 
-	qoveryLimits := qovery.NewKarpenterNodePoolLimits(enabled.ValueBool(), int32(limitsCpu.ValueInt64()), int32(limitsRam.ValueInt64()))
+	qoveryLimits := qovery.NewKarpenterNodePoolLimits(enabled.ValueBool(), int32(limitsCpu.ValueInt64()), int32(limitsRam.ValueInt64()), 0)
 	qoveryDefaultOverride.Limits = qoveryLimits
 
 	return &qoveryDefaultOverride, nil
