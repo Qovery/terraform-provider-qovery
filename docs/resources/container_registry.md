@@ -36,7 +36,7 @@ resource "qovery_container_registry" "my_container_registry" {
 ### Required
 
 - `kind` (String) Kind of the container registry.
-	- Can be: `AZURE_CR`, `DOCKER_HUB`, `DOCR`, `ECR`, `GCP_ARTIFACT_REGISTRY`, `GENERIC_CR`, `GITHUB_CR`, `GITLAB_CR`, `PUBLIC_ECR`, `SCALEWAY_CR`.
+	- Can be: `AZURE_CR`, `DOCKER_HUB`, `DOCR`, `ECR`, `GCP_ARTIFACT_REGISTRY`, `GENERIC_CR`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, `PUBLIC_ECR`, `SCALEWAY_CR`.
 - `name` (String) Name of the container registry.
 - `organization_id` (String) Id of the organization.
 - `url` (String) URL of the container registry.

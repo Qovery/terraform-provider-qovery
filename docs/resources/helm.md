@@ -329,11 +329,11 @@ Required:
 	- Must be: `>= 1` and `<= 65535`.
 - `internal_port` (Number) Internal port of the container.
 	- Must be: `>= 1` and `<= 65535`.
-- `is_default` (Boolean) If this port will be used for the root domain
 - `service_name` (String)
 
 Optional:
 
+- `is_default` (Boolean) If this port will be used for the root domain. Note: the API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).
 - `namespace` (String)
 - `protocol` (String) Protocol used for the port of the container.
 	- Can be: `GRPC`, `HTTP`.

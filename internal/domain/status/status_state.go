@@ -22,6 +22,7 @@ const (
 	StateDeploying         State = "DEPLOYING"
 	StateDeploymentError   State = "DEPLOYMENT_ERROR"
 	StateDeploymentQueued  State = "DEPLOYMENT_QUEUED"
+	StateExecuting         State = "EXECUTING"
 	StateQueued            State = "QUEUED"
 	StateReady             State = "READY"
 	StateStopped           State = "STOPPED"
@@ -53,6 +54,7 @@ var AllowedStateValues = []State{
 	StateDeploying,
 	StateDeploymentError,
 	StateDeploymentQueued,
+	StateExecuting,
 	StateQueued,
 	StateReady,
 	StateStopped,

@@ -269,6 +269,11 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery.JobRequest, error) {
 	var docker *qovery.JobRequestAllOfSourceDocker = nil
 	if request.Source.Docker != nil {
+		provider, err := detectGitProviderFromURL(request.Source.Docker.GitRepository.Url)
+		if err != nil {
+			return nil, errors.Wrap(err, job.ErrInvalidJobUpsertRequest.Error())
+		}
+
 		docker = &qovery.JobRequestAllOfSourceDocker{
 			DockerfilePath:         *qovery.NewNullableString(request.Source.Docker.DockerFilePath),
 			DockerfileRaw:          *qovery.NewNullableString(request.Source.Docker.DockerFileRaw),
@@ -278,6 +283,7 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 				Branch:     request.Source.Docker.GitRepository.Branch,
 				RootPath:   request.Source.Docker.GitRepository.RootPath,
 				GitTokenId: *qovery.NewNullableString(request.Source.Docker.GitRepository.GitTokenId),
+				Provider:   provider,
 			},
 		}
 	}
