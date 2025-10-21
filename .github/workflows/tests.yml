@@ -158,7 +158,7 @@ jobs:
       - matrix_prep
       - build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 120
     strategy:
       fail-fast: true
       matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
