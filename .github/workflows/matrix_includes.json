@@ -1,21 +1,5 @@
 [
   {
-    "terraform": "1.4.*'",
-    "runOnBranch": "always"
-  },
-  {
-    "terraform": "1.5.*'",
-    "runOnBranch": "always"
-  },
-  {
-    "terraform": "1.6.*'",
-    "runOnBranch": "always"
-  },
-  {
-    "terraform": "1.7.*'",
-    "runOnBranch": "always"
-  },
-  {
     "terraform": "1.8.*'",
     "runOnBranch": "always"
   },
