@@ -5,16 +5,16 @@ name: Tests
 # Optionally, you can turn it on using a schedule for regular testing.
 on:
   push:
-    branches: [ main ]
+    branches: [main]
     paths-ignore:
-      - 'README.md'
-      - '.gitignore'
+      - "README.md"
+      - ".gitignore"
   pull_request:
-      # The branches below must be a subset of the branches above
-      branches: [ main ]
-      paths-ignore:
-        - 'README.md'
-        - '.gitignore'
+    # The branches below must be a subset of the branches above
+    branches: [main]
+    paths-ignore:
+      - "README.md"
+      - ".gitignore"
 
 # Testing only needs permissions to read the repository contents.
 permissions:
@@ -48,7 +48,7 @@ jobs:
         uses: JoshuaTheMiller/conditional-build-matrix@v1.0.1
         with:
           # The simple branch name can be used in the filter now!
-          filter: '[?runOnBranch==`${{ env.BRANCH_NAME }}` || runOnBranch==`always`]'
+          filter: "[?runOnBranch==`${{ env.BRANCH_NAME }}` || runOnBranch==`always`]"
 
   # Ensure project builds before running testing matrix
   build:
@@ -182,6 +182,9 @@ jobs:
 
       - name: Check out source code
         uses: actions/checkout@v3
+
+      - name: Install gotestsum
+        run: task install-gotestsum
 
       - name: Run acceptance tests
         timeout-minutes: 120

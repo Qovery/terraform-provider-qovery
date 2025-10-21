@@ -7,6 +7,7 @@ vars:
   BINARY_NAME: terraform-provider-qovery
   GOLANGCI_LINT_VERSION: v1.64.8
   MOCKERY_VERSION: v2.50.2
+  GOTESTSUM_VERSION: v1.13.0
 
 dotenv: [".env"]
 
@@ -48,10 +49,12 @@ tasks:
 
   testacc:
     desc: Run acceptance tests
+    deps:
+      - install-gotestsum
     env:
       TF_ACC: true
     cmds:
-      - go test -tags=integration -v -cover -timeout 2h ./...
+      - gotestsum --format testname --jsonfile test-output.json --rerun-fails=2 --packages="./..." -- -tags=integration -cover -timeout 2h -parallel 1
 
   docs:
     desc: Update the generated documentation
@@ -76,6 +79,12 @@ tasks:
       - ./scripts/fetch_instance_types.sh
     generates:
       - qovery/data/cluster_instance_types/*.json
+
+  clean-tests:
+    desc: Clean up leftover test resources from Qovery organization
+    dir: scripts/cleantests
+    cmds:
+      - go run main.go
 
   lint:
     desc: Run linters
@@ -104,6 +113,14 @@ tasks:
     status:
       - which mockery
       - mockery --version | grep {{.MOCKERY_VERSION}}
+
+  install-gotestsum:
+    desc: Install the gotestsum tool
+    cmds:
+      - go install gotest.tools/gotestsum@{{.GOTESTSUM_VERSION}}
+    status:
+      - which gotestsum
+      - gotestsum --version | grep {{.GOTESTSUM_VERSION}}
 
   install-dev-override:
     desc: Set up an override allowing a local version of the provider to be used

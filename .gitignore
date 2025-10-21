@@ -48,3 +48,6 @@ override.tf.json
 .terraformrc
 terraform.rc
 terraform
+
+# Ignore test output json file
+test-output.json
