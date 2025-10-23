@@ -52,33 +52,33 @@ func main() {
 		log.Fatalf("failed to parse environment variables: %s", err)
 	}
 	if err := validator.New().Struct(env); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("failed to validate environment variables: %v", err)
 	}
 
 	var apiClient = newQoveryAPIClient(env.QoveryAPIToken)
 
 	if err := cleanAwsCredentials(ctx, apiClient, env.TestOrganizationID); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("failed to clean AWS credentials: %v", err)
 	}
 
 	if err := cleanScalewayCredentials(ctx, apiClient, env.TestOrganizationID); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("failed to clean Scaleway credentials: %v", err)
 	}
 
 	if err := cleanProjects(ctx, apiClient, env.TestOrganizationID); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("failed to clean projects: %v", err)
 	}
 
 	if err := cleanContainerRegistry(ctx, apiClient, env.TestOrganizationID); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("failed to clean container registries: %v", err)
 	}
 
 	if err := cleanAnnotationsGroups(ctx, apiClient, env.TestOrganizationID); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("failed to clean annotations groups: %v", err)
 	}
 
 	if err := cleanLabelsGroups(ctx, apiClient, env.TestOrganizationID); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("failed to clean labels groups: %v", err)
 	}
 }
 
