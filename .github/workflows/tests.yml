@@ -162,7 +162,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
-      max-parallel: 1
+      max-parallel: 3
     steps:
       - name: Set up Go
         uses: actions/setup-go@v3
