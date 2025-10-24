@@ -32,6 +32,16 @@ type registry struct {
 	Name string
 }
 
+type annotationsGroup struct {
+	ID   string
+	Name string
+}
+
+type labelsGroup struct {
+	ID   string
+	Name string
+}
+
 const testPrefix = "testacc"
 
 func main() {
@@ -42,25 +52,33 @@ func main() {
 		log.Fatalf("failed to parse environment variables: %s", err)
 	}
 	if err := validator.New().Struct(env); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("failed to validate environment variables: %v", err)
 	}
 
 	var apiClient = newQoveryAPIClient(env.QoveryAPIToken)
 
 	if err := cleanAwsCredentials(ctx, apiClient, env.TestOrganizationID); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("failed to clean AWS credentials: %v", err)
 	}
 
 	if err := cleanScalewayCredentials(ctx, apiClient, env.TestOrganizationID); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("failed to clean Scaleway credentials: %v", err)
 	}
 
 	if err := cleanProjects(ctx, apiClient, env.TestOrganizationID); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("failed to clean projects: %v", err)
 	}
 
 	if err := cleanContainerRegistry(ctx, apiClient, env.TestOrganizationID); err != nil {
-		log.Fatalf(err.Error())
+		log.Fatalf("failed to clean container registries: %v", err)
+	}
+
+	if err := cleanAnnotationsGroups(ctx, apiClient, env.TestOrganizationID); err != nil {
+		log.Fatalf("failed to clean annotations groups: %v", err)
+	}
+
+	if err := cleanLabelsGroups(ctx, apiClient, env.TestOrganizationID); err != nil {
+		log.Fatalf("failed to clean labels groups: %v", err)
 	}
 }
 
@@ -84,7 +102,11 @@ func cleanProjects(ctx context.Context, apiClient *qovery.APIClient, organizatio
 	fmt.Printf("Deleting %d projects...\n", len(projects))
 	for _, project := range projects {
 		if strings.Contains(project.Name, testPrefix) {
-			bar.Describe(fmt.Sprintf("%s...", project.Name[0:50]))
+			maxSize := len(project.Name)
+			if maxSize > 50 {
+				maxSize = 50
+			}
+			bar.Describe(fmt.Sprintf("%s...", project.Name[0:maxSize]))
 
 			_, err := apiClient.ProjectMainCallsAPI.
 				DeleteProject(ctx, project.ID).
@@ -110,7 +132,11 @@ func cleanAwsCredentials(ctx context.Context, apiClient *qovery.APIClient, organ
 	fmt.Printf("Deleting %d aws credentials...\n", len(awsCreds))
 	for _, creds := range awsCreds {
 		if strings.Contains(creds.Name, testPrefix) {
-			bar.Describe(fmt.Sprintf("%s...", creds.Name[0:50]))
+			maxSize := len(creds.Name)
+			if maxSize > 50 {
+				maxSize = 50
+			}
+			bar.Describe(fmt.Sprintf("%s...", creds.Name[0:maxSize]))
 
 			_, err := apiClient.CloudProviderCredentialsAPI.
 				DeleteAWSCredentials(ctx, creds.ID, organizationID).
@@ -136,7 +162,11 @@ func cleanScalewayCredentials(ctx context.Context, apiClient *qovery.APIClient, 
 	fmt.Printf("Deleting %d scaleway credentials...\n", len(scalewayCreds))
 	for _, creds := range scalewayCreds {
 		if strings.Contains(creds.Name, testPrefix) {
-			bar.Describe(fmt.Sprintf("%s...", creds.Name[0:50]))
+			maxSize := len(creds.Name)
+			if maxSize > 50 {
+				maxSize = 50
+			}
+			bar.Describe(fmt.Sprintf("%s...", creds.Name[0:maxSize]))
 
 			_, err := apiClient.CloudProviderCredentialsAPI.
 				DeleteScalewayCredentials(ctx, creds.ID, organizationID).
@@ -277,4 +307,108 @@ func getContainerRegitriesToDelete(ctx context.Context, apiClient *qovery.APICli
 	}
 
 	return registriesToDelete, nil
+}
+
+func cleanAnnotationsGroups(ctx context.Context, apiClient *qovery.APIClient, organizationID string) error {
+	annotationsGroups, err := getAnnotationsGroupsToDelete(ctx, apiClient, organizationID)
+	if err != nil {
+		return err
+	}
+
+	bar := progressbar.Default(int64(len(annotationsGroups)))
+	fmt.Printf("Deleting %d annotations groups...\n", len(annotationsGroups))
+	for _, group := range annotationsGroups {
+		if strings.Contains(group.Name, testPrefix) {
+			maxSize := len(group.Name)
+			if maxSize > 50 {
+				maxSize = 50
+			}
+			bar.Describe(fmt.Sprintf("%s...", group.Name[0:maxSize]))
+
+			_, err := apiClient.OrganizationAnnotationsGroupAPI.
+				DeleteOrganizationAnnotationsGroup(ctx, organizationID, group.ID).
+				Execute()
+			if err != nil {
+				return err
+			}
+
+			bar.Add(1)
+		}
+	}
+
+	return nil
+}
+
+func cleanLabelsGroups(ctx context.Context, apiClient *qovery.APIClient, organizationID string) error {
+	labelsGroups, err := getLabelsGroupsToDelete(ctx, apiClient, organizationID)
+	if err != nil {
+		return err
+	}
+
+	bar := progressbar.Default(int64(len(labelsGroups)))
+	fmt.Printf("Deleting %d labels groups...\n", len(labelsGroups))
+	for _, group := range labelsGroups {
+		if strings.Contains(group.Name, testPrefix) {
+			maxSize := len(group.Name)
+			if maxSize > 50 {
+				maxSize = 50
+			}
+			bar.Describe(fmt.Sprintf("%s...", group.Name[0:maxSize]))
+
+			_, err := apiClient.OrganizationLabelsGroupAPI.
+				DeleteOrganizationLabelsGroup(ctx, organizationID, group.ID).
+				Execute()
+			if err != nil {
+				return err
+			}
+
+			bar.Add(1)
+		}
+	}
+
+	return nil
+}
+
+func getAnnotationsGroupsToDelete(ctx context.Context, apiClient *qovery.APIClient, organizationID string) ([]annotationsGroup, error) {
+	groups, _, err := apiClient.OrganizationAnnotationsGroupAPI.
+		ListOrganizationAnnotationsGroup(ctx, organizationID).
+		Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	groupsToDelete := make([]annotationsGroup, 0, len(groups.GetResults()))
+	for _, g := range groups.GetResults() {
+		groupName := strings.ToLower(g.GetName())
+		if strings.Contains(groupName, testPrefix) {
+			groupsToDelete = append(groupsToDelete, annotationsGroup{
+				ID:   g.GetId(),
+				Name: g.GetName(),
+			})
+		}
+	}
+
+	return groupsToDelete, nil
+}
+
+func getLabelsGroupsToDelete(ctx context.Context, apiClient *qovery.APIClient, organizationID string) ([]labelsGroup, error) {
+	groups, _, err := apiClient.OrganizationLabelsGroupAPI.
+		ListOrganizationLabelsGroup(ctx, organizationID).
+		Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	groupsToDelete := make([]labelsGroup, 0, len(groups.GetResults()))
+	for _, g := range groups.GetResults() {
+		groupName := strings.ToLower(g.GetName())
+		if strings.Contains(groupName, testPrefix) {
+			groupsToDelete = append(groupsToDelete, labelsGroup{
+				ID:   g.GetId(),
+				Name: g.GetName(),
+			})
+		}
+	}
+
+	return groupsToDelete, nil
 }

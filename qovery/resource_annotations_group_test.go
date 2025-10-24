@@ -18,10 +18,6 @@ import (
 	"github.com/qovery/terraform-provider-qovery/qovery"
 )
 
-const (
-	test_annotations_name = "annotations for testing terraform provider"
-)
-
 func generateAnnotationsMap(keysAndValues ...string) map[string]string {
 	if len(keysAndValues)%2 != 0 {
 		panic("keysAndValues error")
@@ -44,6 +40,7 @@ func generateScopesList(values ...string) []string {
 func TestAcc_AnnotationsGroup(t *testing.T) {
 	t.Parallel()
 	testName := "annotations group"
+	annotationsName := generateTestName("annotations")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -56,14 +53,14 @@ func TestAcc_AnnotationsGroup(t *testing.T) {
 					testName,
 					qovery.AnnotationsGroup{
 						OrganizationId: qovery.FromString(getTestOrganizationID()),
-						Name:           qovery.FromString(test_annotations_name),
+						Name:           qovery.FromString(annotationsName),
 						Annotations:    generateAnnotationsMap("key1", "value1"),
 						Scopes:         append([]string{}, "PODS"),
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryAnnotationsGroupExists(getTestOrganizationID(), "qovery_annotations_group.test"),
-					resource.TestCheckResourceAttr("qovery_annotations_group.test", "name", test_annotations_name),
+					resource.TestCheckResourceAttr("qovery_annotations_group.test", "name", annotationsName),
 					resource.TestCheckResourceAttr("qovery_annotations_group.test", "annotations.key1", "value1"),
 					resource.TestCheckResourceAttr("qovery_annotations_group.test", "scopes.0", "PODS"),
 				),
@@ -74,14 +71,14 @@ func TestAcc_AnnotationsGroup(t *testing.T) {
 					testName,
 					qovery.AnnotationsGroup{
 						OrganizationId: qovery.FromString(getTestOrganizationID()),
-						Name:           qovery.FromString(test_annotations_name + "-updated"),
+						Name:           qovery.FromString(annotationsName + "-updated"),
 						Annotations:    generateAnnotationsMap("key1", "value1"),
 						Scopes:         append([]string{}, "PODS"),
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryAnnotationsGroupExists(getTestOrganizationID(), "qovery_annotations_group.test"),
-					resource.TestCheckResourceAttr("qovery_annotations_group.test", "name", test_annotations_name+"-updated"),
+					resource.TestCheckResourceAttr("qovery_annotations_group.test", "name", annotationsName+"-updated"),
 					resource.TestCheckResourceAttr("qovery_annotations_group.test", "annotations.key1", "value1"),
 					resource.TestCheckResourceAttr("qovery_annotations_group.test", "scopes.0", "PODS"),
 				),
@@ -92,14 +89,14 @@ func TestAcc_AnnotationsGroup(t *testing.T) {
 					testName,
 					qovery.AnnotationsGroup{
 						OrganizationId: qovery.FromString(getTestOrganizationID()),
-						Name:           qovery.FromString(test_annotations_name + "-updated"),
+						Name:           qovery.FromString(annotationsName + "-updated"),
 						Annotations:    generateAnnotationsMap("key1", "value1"),
 						Scopes:         append([]string{}, "DEPLOYMENTS"),
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryAnnotationsGroupExists(getTestOrganizationID(), "qovery_annotations_group.test"),
-					resource.TestCheckResourceAttr("qovery_annotations_group.test", "name", test_annotations_name+"-updated"),
+					resource.TestCheckResourceAttr("qovery_annotations_group.test", "name", annotationsName+"-updated"),
 					resource.TestCheckResourceAttr("qovery_annotations_group.test", "annotations.key1", "value1"),
 					resource.TestCheckResourceAttr("qovery_annotations_group.test", "scopes.0", "DEPLOYMENTS"),
 				),
@@ -110,14 +107,14 @@ func TestAcc_AnnotationsGroup(t *testing.T) {
 					testName,
 					qovery.AnnotationsGroup{
 						OrganizationId: qovery.FromString(getTestOrganizationID()),
-						Name:           qovery.FromString(test_annotations_name + "-updated"),
+						Name:           qovery.FromString(annotationsName + "-updated"),
 						Annotations:    generateAnnotationsMap("key1", "value1", "key2", "value2"),
 						Scopes:         append([]string{}, "DEPLOYMENTS"),
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryAnnotationsGroupExists(getTestOrganizationID(), "qovery_annotations_group.test"),
-					resource.TestCheckResourceAttr("qovery_annotations_group.test", "name", test_annotations_name+"-updated"),
+					resource.TestCheckResourceAttr("qovery_annotations_group.test", "name", annotationsName+"-updated"),
 					resource.TestCheckResourceAttr("qovery_annotations_group.test", "annotations.key1", "value1"),
 					resource.TestCheckResourceAttr("qovery_annotations_group.test", "annotations.key2", "value2"),
 					resource.TestCheckResourceAttr("qovery_annotations_group.test", "scopes.0", "DEPLOYMENTS"),

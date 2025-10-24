@@ -18,13 +18,10 @@ import (
 	"github.com/qovery/terraform-provider-qovery/qovery"
 )
 
-const (
-	test_labels_name = "labels for testing terraform provider"
-)
-
 func TestAcc_LabelsGroup(t *testing.T) {
 	t.Parallel()
 	testName := "labels group"
+	labelsName := generateTestName("labels")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -37,12 +34,12 @@ func TestAcc_LabelsGroup(t *testing.T) {
 					testName,
 					qovery.LabelsGroup{
 						OrganizationId: qovery.FromString(getTestOrganizationID()),
-						Name:           qovery.FromString(test_labels_name),
+						Name:           qovery.FromString(labelsName),
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryLabelsGroupExists(getTestOrganizationID(), "qovery_labels_group.test"),
-					resource.TestCheckResourceAttr("qovery_labels_group.test", "name", test_labels_name),
+					resource.TestCheckResourceAttr("qovery_labels_group.test", "name", labelsName),
 					resource.TestCheckResourceAttr("qovery_labels_group.test", "labels.0.key", "key1"),
 					resource.TestCheckResourceAttr("qovery_labels_group.test", "labels.0.value", "value1"),
 					resource.TestCheckResourceAttr("qovery_labels_group.test", "labels.0.propagate_to_cloud_provider", "false"),
@@ -57,12 +54,12 @@ func TestAcc_LabelsGroup(t *testing.T) {
 					testName,
 					qovery.LabelsGroup{
 						OrganizationId: qovery.FromString(getTestOrganizationID()),
-						Name:           qovery.FromString(test_labels_name + "-updated"),
+						Name:           qovery.FromString(labelsName + "-updated"),
 					},
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryLabelsGroupExists(getTestOrganizationID(), "qovery_labels_group.test"),
-					resource.TestCheckResourceAttr("qovery_labels_group.test", "name", test_labels_name+"-updated"),
+					resource.TestCheckResourceAttr("qovery_labels_group.test", "name", labelsName+"-updated"),
 					resource.TestCheckResourceAttr("qovery_labels_group.test", "labels.0.key", "key1"),
 					resource.TestCheckResourceAttr("qovery_labels_group.test", "labels.0.value", "value1"),
 					resource.TestCheckResourceAttr("qovery_labels_group.test", "labels.0.propagate_to_cloud_provider", "false"),

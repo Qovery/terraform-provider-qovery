@@ -25,7 +25,7 @@ func TestAcc_ScalewayCredentialsDataSource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.qovery_scaleway_credentials.test", "id", getTestScalewayCredentialsID()),
 					resource.TestCheckResourceAttr("data.qovery_scaleway_credentials.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("data.qovery_scaleway_credentials.test", "name", "Scaleway"),
+					resource.TestCheckResourceAttr("data.qovery_scaleway_credentials.test", "name", "terraform-provider-test-scaleway"),
 				),
 			},
 		},
