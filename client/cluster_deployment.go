@@ -21,7 +21,14 @@ func (c *Client) deployCluster(ctx context.Context, organizationID string, clust
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
-	clusterStatus, apiError := c.getClusterStatus(ctx, organizationID, cluster.Id)
+
+	// Wrap final status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var clusterStatus *qovery.ClusterStatus
+	apiError := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		clusterStatus, err = c.getClusterStatus(ctx, organizationID, cluster.Id)
+		return err
+	})
 	if apiError != nil {
 		return nil, apiError
 	}
@@ -29,7 +36,13 @@ func (c *Client) deployCluster(ctx context.Context, organizationID string, clust
 }
 
 func (c *Client) stopCluster(ctx context.Context, organizationID string, cluster *qovery.Cluster) (*qovery.ClusterStateEnum, *apierrors.APIError) {
-	status, apiErr := c.getClusterStatus(ctx, organizationID, cluster.Id)
+	// Wrap initial status check with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var status *qovery.ClusterStatus
+	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		status, err = c.getClusterStatus(ctx, organizationID, cluster.Id)
+		return err
+	})
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -51,7 +64,14 @@ func (c *Client) stopCluster(ctx context.Context, organizationID string, cluster
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
-	clusterStatus, apiError := c.getClusterStatus(ctx, organizationID, cluster.Id)
+
+	// Wrap final status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var clusterStatus *qovery.ClusterStatus
+	apiError := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		clusterStatus, err = c.getClusterStatus(ctx, organizationID, cluster.Id)
+		return err
+	})
 	if apiError != nil {
 		return nil, apiErr
 	}

@@ -63,7 +63,13 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 		return nil, apierrors.NewReadError(apierrors.APIResourceDatabase, databaseID, res, err)
 	}
 
-	status, apiErr := c.getDatabaseStatus(ctx, databaseID)
+	// Wrap status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var status *qovery.Status
+	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		status, err = c.getDatabaseStatus(ctx, databaseID)
+		return err
+	})
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -204,7 +210,13 @@ func (c *Client) updateDatabase(ctx context.Context, database *qovery.Database, 
 }
 
 func (c *Client) deployDatabase(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
-	status, apiErr := c.getDatabaseStatus(ctx, databaseID)
+	// Wrap initial status check with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var status *qovery.Status
+	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		status, err = c.getDatabaseStatus(ctx, databaseID)
+		return err
+	})
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -227,11 +239,25 @@ func (c *Client) deployDatabase(ctx context.Context, databaseID string) (*qovery
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
-	return c.getDatabaseStatus(ctx, databaseID)
+
+	// Wrap final status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var finalStatus *qovery.Status
+	finalErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		finalStatus, err = c.getDatabaseStatus(ctx, databaseID)
+		return err
+	})
+	return finalStatus, finalErr
 }
 
 func (c *Client) stopDatabase(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
-	status, apiErr := c.getDatabaseStatus(ctx, databaseID)
+	// Wrap initial status check with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var status *qovery.Status
+	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		status, err = c.getDatabaseStatus(ctx, databaseID)
+		return err
+	})
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -252,7 +278,15 @@ func (c *Client) stopDatabase(ctx context.Context, databaseID string) (*qovery.S
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
-	return c.getDatabaseStatus(ctx, databaseID)
+
+	// Wrap final status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var finalStatus *qovery.Status
+	finalErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		finalStatus, err = c.getDatabaseStatus(ctx, databaseID)
+		return err
+	})
+	return finalStatus, finalErr
 }
 
 func (c *Client) redeployDatabase(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
@@ -272,5 +306,13 @@ func (c *Client) redeployDatabase(ctx context.Context, databaseID string) (*qove
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
-	return c.getDatabaseStatus(ctx, databaseID)
+
+	// Wrap final status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var finalStatus *qovery.Status
+	finalErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		finalStatus, err = c.getDatabaseStatus(ctx, databaseID)
+		return err
+	})
+	return finalStatus, finalErr
 }
