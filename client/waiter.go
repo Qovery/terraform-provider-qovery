@@ -3,6 +3,7 @@ package client
 import (
 	"context"
 	"fmt"
+	"math/rand"
 	"strings"
 	"time"
 
@@ -11,17 +12,41 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-const defaultWaitTimeout = 4 * time.Hour
+const (
+	defaultWaitTimeout = 4 * time.Hour
+	maxRetryAttempts   = 3
+	initialBackoff     = 2 * time.Second
+	maxBackoff         = 30 * time.Second
+	backoffMultiplier  = 2
+	jitterFactor       = 0.5 // ±50% randomization for equal jitter
+)
 
 type waitFunc func(ctx context.Context) (bool, *apierrors.APIError)
+
+// applyJitter applies equal jitter to the backoff duration to prevent thundering herd.
+// Equal jitter formula: (backoff / 2) + random(0, backoff / 2)
+// This provides a balance between predictability and distribution of retry attempts.
+func applyJitter(backoff time.Duration) time.Duration {
+	if backoff <= 0 {
+		return 0
+	}
+
+	half := backoff / 2
+	if half <= 0 {
+		return backoff
+	}
+
+	jitter := time.Duration(rand.Int63n(int64(half)))
+	return half + jitter
+}
 
 func wait(ctx context.Context, f waitFunc, timeout *time.Duration) *apierrors.APIError {
 	if timeout == nil {
 		timeout = toDurationPointer(defaultWaitTimeout)
 	}
 
-	// Run the function once before waiting
-	ok, apiErr := f(ctx)
+	// Run the function once before waiting, with retry logic for transient errors
+	ok, apiErr := retryOnTransientError(ctx, f)
 	if apiErr != nil {
 		return apiErr
 	}
@@ -37,7 +62,7 @@ func wait(ctx context.Context, f waitFunc, timeout *time.Duration) *apierrors.AP
 		case <-timeoutTicker.C:
 			return nil
 		case <-ticker.C:
-			ok, apiErr := f(ctx)
+			ok, apiErr := retryOnTransientError(ctx, f)
 			if apiErr != nil {
 				return apiErr
 			}
@@ -46,6 +71,48 @@ func wait(ctx context.Context, f waitFunc, timeout *time.Duration) *apierrors.AP
 			}
 		}
 	}
+}
+
+// retryOnTransientError retries a waitFunc with exponential backoff if it encounters transient errors
+func retryOnTransientError(ctx context.Context, f waitFunc) (bool, *apierrors.APIError) {
+	var lastErr *apierrors.APIError
+	backoff := initialBackoff
+
+	for attempt := 0; attempt < maxRetryAttempts; attempt++ {
+		ok, apiErr := f(ctx)
+
+		// Success case
+		if apiErr == nil {
+			return ok, nil
+		}
+
+		// If error is not retryable, return immediately
+		if !apierrors.IsRetryable(apiErr) {
+			return false, apiErr
+		}
+
+		lastErr = apiErr
+
+		// Don't sleep after the last attempt
+		if attempt < maxRetryAttempts-1 {
+			// Apply jitter to prevent thundering herd problem
+			backoffWithJitter := applyJitter(backoff)
+
+			select {
+			case <-ctx.Done():
+				return false, lastErr
+			case <-time.After(backoffWithJitter):
+				// Calculate next backoff with exponential growth
+				backoff = backoff * backoffMultiplier
+				if backoff > maxBackoff {
+					backoff = maxBackoff
+				}
+			}
+		}
+	}
+
+	// All retries exhausted
+	return false, lastErr
 }
 
 func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, expected qovery.StateEnum) waitFunc {

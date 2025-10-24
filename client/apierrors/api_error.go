@@ -3,16 +3,16 @@ package apierrors
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 )
 
 type APIError struct {
-	err        error
-	action     APIAction
-	resource   APIResource
-	resourceID string
-	res        *http.Response
+	err          error
+	action       APIAction
+	resource     APIResource
+	resourceID   string
+	res          *http.Response
+	bufferedBody []byte
 }
 
 func IsNotFound(e *APIError) bool {
@@ -62,17 +62,12 @@ func (e APIError) Detail() string {
 }
 
 func (e APIError) errorPayload() *errorPayload {
-	if e.err == nil || e.res == nil {
-		return nil
-	}
-
-	body, err := io.ReadAll(e.res.Body)
-	if err != nil {
+	if e.err == nil || len(e.bufferedBody) == 0 {
 		return nil
 	}
 
 	var payload errorPayload
-	if err := json.Unmarshal(body, &payload); err != nil {
+	if err := json.Unmarshal(e.bufferedBody, &payload); err != nil {
 		return nil
 	}
 

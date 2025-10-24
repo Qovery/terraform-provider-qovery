@@ -174,12 +174,3 @@ func generateRandomName(testName string) string {
 	return fmt.Sprintf("%s-%s-%s", testNamePrefix, testName, uuid.NewString())
 }
 
-func isCIMainBranch() bool {
-	return os.Getenv("CI") == "true" && os.Getenv("GITHUB_REF_NAME") == "main"
-}
-
-func skipInCIUnlessMainBranch(t *testing.T) {
-	if !isCIMainBranch() {
-		t.SkipNow()
-	}
-}
