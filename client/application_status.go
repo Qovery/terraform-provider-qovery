@@ -30,7 +30,13 @@ func (c *Client) updateApplicationStatus(ctx context.Context, application *qover
 		return nil, apiErr
 	}
 
-	status, apiErr := c.getApplicationStatus(ctx, application.Id)
+	// Wrap status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var status *qovery.Status
+	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		status, err = c.getApplicationStatus(ctx, application.Id)
+		return err
+	})
 	if apiErr != nil {
 		return nil, apiErr
 	}

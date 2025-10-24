@@ -9,7 +9,13 @@ import (
 )
 
 func (c *Client) deployApplication(ctx context.Context, application *qovery.Application) (*qovery.Status, *apierrors.APIError) {
-	status, apiErr := c.getApplicationStatus(ctx, application.Id)
+	// Wrap initial status check with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var status *qovery.Status
+	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		status, err = c.getApplicationStatus(ctx, application.Id)
+		return err
+	})
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -35,11 +41,25 @@ func (c *Client) deployApplication(ctx context.Context, application *qovery.Appl
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
-	return c.getApplicationStatus(ctx, application.Id)
+
+	// Wrap final status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var finalStatus *qovery.Status
+	finalErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		finalStatus, err = c.getApplicationStatus(ctx, application.Id)
+		return err
+	})
+	return finalStatus, finalErr
 }
 
 func (c *Client) stopApplication(ctx context.Context, application *qovery.Application) (*qovery.Status, *apierrors.APIError) {
-	status, apiErr := c.getApplicationStatus(ctx, application.Id)
+	// Wrap initial status check with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var status *qovery.Status
+	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		status, err = c.getApplicationStatus(ctx, application.Id)
+		return err
+	})
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -60,7 +80,15 @@ func (c *Client) stopApplication(ctx context.Context, application *qovery.Applic
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
-	return c.getApplicationStatus(ctx, application.Id)
+
+	// Wrap final status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var finalStatus *qovery.Status
+	finalErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		finalStatus, err = c.getApplicationStatus(ctx, application.Id)
+		return err
+	})
+	return finalStatus, finalErr
 }
 
 func (c *Client) redeployApplication(ctx context.Context, application *qovery.Application) (*qovery.Status, *apierrors.APIError) {
@@ -85,5 +113,13 @@ func (c *Client) redeployApplication(ctx context.Context, application *qovery.Ap
 	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
 		return nil, apiErr
 	}
-	return c.getApplicationStatus(ctx, application.Id)
+
+	// Wrap final status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
+	var finalStatus *qovery.Status
+	finalErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err *apierrors.APIError
+		finalStatus, err = c.getApplicationStatus(ctx, application.Id)
+		return err
+	})
+	return finalStatus, finalErr
 }
