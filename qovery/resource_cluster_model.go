@@ -302,8 +302,30 @@ func fromQoveryClusterFeatures(
 			}
 			attributeTypes[featureKeyVpcSubnet] = types.StringType
 		case featureIdStaticIP:
+			// Handle both old (ClusterFeatureBooleanResponse) and new (ClusterFeatureStaticIpResponse) formats
+			staticIPValue := false
+			staticIPSet := false
+
+			// Try old format first (backward compatibility)
 			if f.GetValueObject().ClusterFeatureBooleanResponse != nil {
-				attributes[featureKeyStaticIP] = FromBool(f.GetValueObject().ClusterFeatureBooleanResponse.Value)
+				staticIPValue = f.GetValueObject().ClusterFeatureBooleanResponse.Value
+				staticIPSet = true
+			} else if f.GetValueObject().ClusterFeatureStaticIpResponse != nil {
+				// Handle new format
+				staticIpResp := f.GetValueObject().ClusterFeatureStaticIpResponse
+				if staticIpResp.Value.ClusterFeatureStaticIpCommon != nil {
+					// Common format (AWS, GCP)
+					staticIPValue = staticIpResp.Value.ClusterFeatureStaticIpCommon.IsEnabled
+					staticIPSet = true
+				} else if staticIpResp.Value.ClusterFeatureStaticIpScaleway != nil {
+					// Scaleway format
+					staticIPValue = staticIpResp.Value.ClusterFeatureStaticIpScaleway.IsEnabled
+					staticIPSet = true
+				}
+			}
+
+			if staticIPSet {
+				attributes[featureKeyStaticIP] = FromBoolPointer(&staticIPValue)
 			} else {
 				attributes[featureKeyStaticIP] = basetypes.NewBoolNull()
 			}
