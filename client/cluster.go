@@ -71,12 +71,18 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 func (c *Client) UpdateCluster(ctx context.Context, organizationID string, clusterID string, params *ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
 	// INFO (cor-775) As DiskSize is defaulted when no value is present in the request, we need to set it to current value
 	// This is due to the attribute `disk_size` that was not there before
-	if params.ClusterRequest.DiskSize == nil {
+	// INFO: Same logic applies for MetricsParameters - preserve value set via console without exposing it in Terraform state
+	if params.ClusterRequest.DiskSize == nil || params.ClusterRequest.MetricsParameters == nil {
 		cluster, apiErr := c.getClusterByID(ctx, organizationID, clusterID)
 		if apiErr != nil {
 			return nil, apiErr
 		}
-		params.ClusterRequest.DiskSize = cluster.DiskSize
+		if params.ClusterRequest.DiskSize == nil {
+			params.ClusterRequest.DiskSize = cluster.DiskSize
+		}
+		if params.ClusterRequest.MetricsParameters == nil {
+			params.ClusterRequest.MetricsParameters = cluster.MetricsParameters
+		}
 	}
 	cluster, res, err := c.api.ClustersAPI.
 		EditCluster(ctx, organizationID, clusterID).
