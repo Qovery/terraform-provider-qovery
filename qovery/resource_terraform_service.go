@@ -424,9 +424,6 @@ func (r terraformServiceResource) ModifyPlan(ctx context.Context, req resource.M
 
 // Helper function for descriptions
 func toInt64Pointer(i int32) *int64 {
-	if i == 0 {
-		return nil
-	}
 	i64 := int64(i)
 	return &i64
 }

@@ -76,6 +76,7 @@ Read-Only:
 	- Default: `1000`.
 - `gpu` (Number) Number of GPUs for the terraform job.
 	- Must be: `>= 0`.
+	- Default: `0`.
 - `ram_mib` (Number) RAM of the terraform job in MiB [1024 MiB = 1GiB].
 	- Must be: `>= 1`.
 	- Default: `1024`.
