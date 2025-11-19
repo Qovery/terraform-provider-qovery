@@ -2,32 +2,31 @@ package qovery
 
 import (
 	"context"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
 	"os"
-
-	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
-
-	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
+	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/qovery/terraform-provider-qovery/internal/application/services"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/application/services"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/terraformservice"
 )
 
 const APITokenEnvName = "QOVERY_API_TOKEN"
@@ -95,6 +94,9 @@ type qProvider struct {
 
 	// labelsGroupService is an instance of a labels_group.Service that handles the domain logic.
 	labelsGroupService labels_group.Service
+
+	// terraformServiceService is an instance of a terraformservice.Service that handles the domain logic.
+	terraformServiceService terraformservice.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -178,6 +180,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.helmRepositoryService = domainServices.HelmRepository
 	p.annotationsGroupService = domainServices.AnnotationsGroup
 	p.labelsGroupService = domainServices.LabelsGroup
+	p.terraformServiceService = domainServices.TerraformService
 
 	resp.DataSourceData = p
 	resp.ResourceData = p
@@ -203,6 +206,7 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newHelmRepositoryResource,
 		newAnnotationsGroupResource,
 		newLabelsGroupResource,
+		newTerraformServiceResource,
 	}
 }
 
