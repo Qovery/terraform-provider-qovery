@@ -12,18 +12,18 @@ import (
 )
 
 const (
-	DefaultCPU         int32  = 1000
-	MinCPU             int32  = 10
-	DefaultRAM         int32  = 1024
-	MinRAM             int32  = 1
-	DefaultGPU         int32  = 0
-	MinGPU             int32  = 0
-	DefaultStorage     int32  = 20
-	MinStorage         int32  = 1
-	DefaultRootPath    string = "/"
-	DefaultIconURI     string = "app://qovery-console/terraform"
-	DefaultTimeoutSec  int32  = 1800
-	MinTimeoutSec      int32  = 0
+	DefaultCPU        int32  = 1000
+	MinCPU            int32  = 10
+	DefaultRAM        int32  = 1024
+	MinRAM            int32  = 1
+	DefaultGPU        int32  = 0
+	MinGPU            int32  = 0
+	DefaultStorage    int32  = 20
+	MinStorage        int32  = 1
+	DefaultRootPath   string = "/"
+	DefaultIconURI    string = "app://qovery-console/terraform"
+	DefaultTimeoutSec int32  = 1800
+	MinTimeoutSec     int32  = 0
 )
 
 var (
@@ -81,18 +81,18 @@ func (e Engine) Validate() error {
 
 // TerraformService represents a Terraform service domain entity
 type TerraformService struct {
-	ID                    uuid.UUID              `validate:"required"`
-	EnvironmentID         uuid.UUID              `validate:"required"`
-	Name                  string                 `validate:"required"`
-	Description           string                 `validate:"required"`
+	ID                    uuid.UUID `validate:"required"`
+	EnvironmentID         uuid.UUID `validate:"required"`
+	Name                  string    `validate:"required"`
+	Description           string    `validate:"required"`
 	AutoDeploy            bool
-	GitRepository         GitRepository          `validate:"required"`
+	GitRepository         GitRepository `validate:"required"`
 	TfVarFiles            []string
 	Variables             []Variable
-	Backend               Backend                `validate:"required"`
-	Engine                Engine                 `validate:"required"`
-	ProviderVersion       ProviderVersion        `validate:"required"`
-	JobResources          JobResources           `validate:"required"`
+	Backend               Backend         `validate:"required"`
+	Engine                Engine          `validate:"required"`
+	ProviderVersion       ProviderVersion `validate:"required"`
+	JobResources          JobResources    `validate:"required"`
 	TimeoutSec            *int32
 	IconURI               string
 	UseClusterCredentials bool
@@ -104,7 +104,7 @@ type TerraformService struct {
 
 // GitRepository represents the git repository configuration
 type GitRepository struct {
-	URL        string     `validate:"required"`
+	URL        string `validate:"required"`
 	Branch     string
 	RootPath   string
 	GitTokenID *uuid.UUID

@@ -23,6 +23,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/terraformservice"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
@@ -73,6 +74,7 @@ type QoveryAPI struct {
 	HelmRepository                 helmRepository.Repository
 	AnnotationsGroup               annotations_group.Repository
 	LabelsGroup                    labels_group.Repository
+	TerraformService               terraformservice.Repository
 }
 
 // New returns a new instance of QoveryAPI and applies the given configs.
@@ -228,6 +230,11 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	terraformServiceAPI, err := newTerraformServiceQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create a new QoveryAPI instance.
 	qoveryAPI := &QoveryAPI{
 		Client:                         apiClient,
@@ -260,6 +267,7 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		HelmRepository:                 helmRepositoryAPI,
 		AnnotationsGroup:               annotationsGroupAPI,
 		LabelsGroup:                    labelsGroupAPI,
+		TerraformService:               terraformServiceAPI,
 	}
 
 	// Apply all the configs to the qoveryAPI instance.

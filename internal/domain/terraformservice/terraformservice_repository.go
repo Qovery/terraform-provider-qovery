@@ -20,16 +20,16 @@ type Repository interface {
 
 // UpsertRepositoryRequest represents the parameters needed to create & update a TerraformService.
 type UpsertRepositoryRequest struct {
-	Name                  string              `validate:"required"`
-	Description           string              `validate:"required"`
+	Name                  string `validate:"required"`
+	Description           string `validate:"required"`
 	AutoDeploy            bool
-	GitRepository         GitRepository       `validate:"required"`
+	GitRepository         GitRepository `validate:"required"`
 	TfVarFiles            []string
 	Variables             []Variable
-	Backend               Backend             `validate:"required"`
-	Engine                Engine              `validate:"required"`
-	ProviderVersion       ProviderVersion     `validate:"required"`
-	JobResources          JobResources        `validate:"required"`
+	Backend               Backend         `validate:"required"`
+	Engine                Engine          `validate:"required"`
+	ProviderVersion       ProviderVersion `validate:"required"`
+	JobResources          JobResources    `validate:"required"`
 	TimeoutSec            *int32
 	IconURI               string
 	UseClusterCredentials bool
