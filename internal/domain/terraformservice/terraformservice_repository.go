@@ -21,7 +21,7 @@ type Repository interface {
 // UpsertRepositoryRequest represents the parameters needed to create & update a TerraformService.
 type UpsertRepositoryRequest struct {
 	Name                  string `validate:"required"`
-	Description           string `validate:"required"`
+	Description           *string
 	AutoDeploy            bool
 	GitRepository         GitRepository `validate:"required"`
 	TfVarFiles            []string
@@ -42,11 +42,6 @@ func (r UpsertRepositoryRequest) Validate() error {
 	// Validate name
 	if r.Name == "" {
 		return ErrInvalidTerraformServiceNameParam
-	}
-
-	// Validate description
-	if r.Description == "" {
-		return ErrInvalidTerraformServiceDescriptionParam
 	}
 
 	// Validate git repository

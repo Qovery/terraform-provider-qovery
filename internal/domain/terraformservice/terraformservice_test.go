@@ -50,7 +50,7 @@ func TestTerraformService_Validate(t *testing.T) {
 				ID:              uuid.New(),
 				EnvironmentID:   uuid.New(),
 				Name:            "test-service",
-				Description:     "Test description",
+				Description:     stringPtr("Test description"),
 				AutoDeploy:      true,
 				GitRepository:   validGitRepo,
 				TfVarFiles:      []string{"/terraform/prod.tfvars"},
@@ -67,7 +67,7 @@ func TestTerraformService_Validate(t *testing.T) {
 				ID:              uuid.New(),
 				EnvironmentID:   uuid.New(),
 				Name:            "",
-				Description:     "Test description",
+				Description:     stringPtr("Test description"),
 				GitRepository:   validGitRepo,
 				Backend:         validBackend,
 				Engine:          terraformservice.EngineTerraform,
@@ -82,7 +82,7 @@ func TestTerraformService_Validate(t *testing.T) {
 				ID:              uuid.New(),
 				EnvironmentID:   uuid.New(),
 				Name:            "123-456",
-				Description:     "Test description",
+				Description:     stringPtr("Test description"),
 				GitRepository:   validGitRepo,
 				Backend:         validBackend,
 				Engine:          terraformservice.EngineTerraform,
@@ -97,14 +97,14 @@ func TestTerraformService_Validate(t *testing.T) {
 				ID:              uuid.New(),
 				EnvironmentID:   uuid.New(),
 				Name:            "test-service",
-				Description:     "",
+				Description:     nil,
 				GitRepository:   validGitRepo,
 				Backend:         validBackend,
 				Engine:          terraformservice.EngineTerraform,
 				ProviderVersion: validProviderVersion,
 				JobResources:    validJobResources,
 			},
-			expectError: true,
+			expectError: false,
 		},
 		{
 			name: "both backends specified",
@@ -112,7 +112,7 @@ func TestTerraformService_Validate(t *testing.T) {
 				ID:            uuid.New(),
 				EnvironmentID: uuid.New(),
 				Name:          "test-service",
-				Description:   "Test description",
+				Description:   stringPtr("Test description"),
 				GitRepository: validGitRepo,
 				Backend: terraformservice.Backend{
 					Kubernetes:   &terraformservice.KubernetesBackend{},
@@ -130,7 +130,7 @@ func TestTerraformService_Validate(t *testing.T) {
 				ID:              uuid.New(),
 				EnvironmentID:   uuid.New(),
 				Name:            "test-service",
-				Description:     "Test description",
+				Description:     stringPtr("Test description"),
 				GitRepository:   validGitRepo,
 				Backend:         terraformservice.Backend{},
 				Engine:          terraformservice.EngineTerraform,
@@ -145,7 +145,7 @@ func TestTerraformService_Validate(t *testing.T) {
 				ID:            uuid.New(),
 				EnvironmentID: uuid.New(),
 				Name:          "test-service",
-				Description:   "Test description",
+				Description:   stringPtr("Test description"),
 				GitRepository: terraformservice.GitRepository{
 					URL:      "https://github.com/org/repo",
 					Branch:   "main",
@@ -165,7 +165,7 @@ func TestTerraformService_Validate(t *testing.T) {
 				ID:            uuid.New(),
 				EnvironmentID: uuid.New(),
 				Name:          "test-service",
-				Description:   "Test description",
+				Description:   stringPtr("Test description"),
 				GitRepository: validGitRepo,
 				TfVarFiles:    []string{"/../prod.tfvars"},
 				Backend:       validBackend,
@@ -181,7 +181,7 @@ func TestTerraformService_Validate(t *testing.T) {
 				ID:            uuid.New(),
 				EnvironmentID: uuid.New(),
 				Name:          "test-service",
-				Description:   "Test description",
+				Description:   stringPtr("Test description"),
 				GitRepository: validGitRepo,
 				Backend:       validBackend,
 				Engine:        terraformservice.EngineTerraform,
@@ -201,7 +201,7 @@ func TestTerraformService_Validate(t *testing.T) {
 				ID:              uuid.New(),
 				EnvironmentID:   uuid.New(),
 				Name:            "test-service",
-				Description:     "Test description",
+				Description:     stringPtr("Test description"),
 				GitRepository:   validGitRepo,
 				Backend:         validBackend,
 				Engine:          "INVALID",
@@ -427,7 +427,7 @@ func TestUpsertRepositoryRequest_Validate(t *testing.T) {
 			name: "valid request",
 			request: terraformservice.UpsertRepositoryRequest{
 				Name:            "test-service",
-				Description:     "Test description",
+				Description:     stringPtr("Test description"),
 				AutoDeploy:      true,
 				GitRepository:   validGitRepo,
 				Backend:         validBackend,
@@ -441,7 +441,7 @@ func TestUpsertRepositoryRequest_Validate(t *testing.T) {
 			name: "missing name",
 			request: terraformservice.UpsertRepositoryRequest{
 				Name:            "",
-				Description:     "Test description",
+				Description:     stringPtr("Test description"),
 				GitRepository:   validGitRepo,
 				Backend:         validBackend,
 				Engine:          terraformservice.EngineTerraform,
@@ -454,7 +454,7 @@ func TestUpsertRepositoryRequest_Validate(t *testing.T) {
 			name: "invalid backend",
 			request: terraformservice.UpsertRepositoryRequest{
 				Name:            "test-service",
-				Description:     "Test description",
+				Description:     stringPtr("Test description"),
 				GitRepository:   validGitRepo,
 				Backend:         terraformservice.Backend{},
 				Engine:          terraformservice.EngineTerraform,
@@ -475,4 +475,9 @@ func TestUpsertRepositoryRequest_Validate(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Helper function to create string pointers
+func stringPtr(s string) *string {
+	return &s
 }

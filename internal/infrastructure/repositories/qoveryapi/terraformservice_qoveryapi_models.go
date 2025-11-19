@@ -74,10 +74,16 @@ func newQoveryTerraformRequestFromDomain(request terraformservice.UpsertReposito
 	// Build engine
 	engine := qovery.TerraformEngineEnum(request.Engine)
 
+	// Build description (handle nil pointer)
+	description := ""
+	if request.Description != nil {
+		description = *request.Description
+	}
+
 	// Build the main request
 	req := qovery.NewTerraformRequest(
 		request.Name,
-		request.Description,
+		description,
 		request.AutoDeploy,
 		filesSource,
 		*variablesSource,
@@ -211,7 +217,7 @@ func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, adv
 		ID:                    id,
 		EnvironmentID:         envID,
 		Name:                  response.Name,
-		Description:           "",
+		Description:           response.Description,
 		AutoDeploy:            response.AutoDeploy,
 		GitRepository:         gitRepo,
 		TfVarFiles:            response.TerraformVariablesSource.TfVarFilePaths,
@@ -228,10 +234,6 @@ func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, adv
 	}
 
 	// Optional fields
-	if response.Description != nil {
-		service.Description = *response.Description
-	}
-
 	if response.TimeoutSec > 0 {
 		timeout := response.TimeoutSec
 		service.TimeoutSec = &timeout

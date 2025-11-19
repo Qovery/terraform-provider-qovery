@@ -84,7 +84,7 @@ type TerraformService struct {
 	ID                    uuid.UUID `validate:"required"`
 	EnvironmentID         uuid.UUID `validate:"required"`
 	Name                  string    `validate:"required"`
-	Description           string    `validate:"required"`
+	Description           *string
 	AutoDeploy            bool
 	GitRepository         GitRepository `validate:"required"`
 	TfVarFiles            []string
@@ -232,11 +232,6 @@ func (t TerraformService) Validate() error {
 	hasLetter := regexp.MustCompile(`[a-zA-Z]`).MatchString(t.Name)
 	if !hasLetter {
 		return ErrInvalidTerraformServiceNameParam
-	}
-
-	// Validate description
-	if t.Description == "" {
-		return ErrInvalidTerraformServiceDescriptionParam
 	}
 
 	// Validate git repository

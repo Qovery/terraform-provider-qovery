@@ -78,7 +78,7 @@ func (t TerraformService) toUpsertServiceRequest(state *TerraformService) (*terr
 func (t TerraformService) toUpsertRepositoryRequest() terraformservice.UpsertRepositoryRequest {
 	return terraformservice.UpsertRepositoryRequest{
 		Name:                  ToString(t.Name),
-		Description:           ToString(t.Description),
+		Description:           ToStringPointer(t.Description),
 		AutoDeploy:            ToBool(t.AutoDeploy),
 		GitRepository:         t.GitRepository.toDomain(),
 		TfVarFiles:            ToStringArray(t.TfVarFiles),
@@ -211,7 +211,7 @@ func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan T
 		ID:                      FromString(ts.ID.String()),
 		EnvironmentID:           FromString(ts.EnvironmentID.String()),
 		Name:                    FromString(ts.Name),
-		Description:             FromString(ts.Description),
+		Description:             FromStringPointer(ts.Description),
 		AutoDeploy:              FromBool(ts.AutoDeploy),
 		GitRepository:           fromGitRepository(ts.GitRepository),
 		TfVarFiles:              FromStringArray(ts.TfVarFiles),
