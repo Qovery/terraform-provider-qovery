@@ -42,7 +42,7 @@ func (c terraformServiceQoveryAPI) Create(ctx context.Context, environmentID str
 		CreateTerraform(ctx, environmentID).
 		TerraformRequest(*req).
 		Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, request.Name, resp, err)
 	}
 
@@ -60,7 +60,7 @@ func (c terraformServiceQoveryAPI) Get(ctx context.Context, terraformServiceID s
 	terraform, resp, err := c.client.TerraformMainCallsAPI.
 		GetTerraform(ctx, terraformServiceID).
 		Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceTerraformService, terraformServiceID, resp, err)
 	}
 
@@ -83,7 +83,7 @@ func (c terraformServiceQoveryAPI) Update(ctx context.Context, terraformServiceI
 		EditTerraform(ctx, terraformServiceID).
 		TerraformRequest(*req).
 		Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceTerraformService, terraformServiceID, resp, err)
 	}
 
@@ -101,8 +101,8 @@ func (c terraformServiceQoveryAPI) Delete(ctx context.Context, terraformServiceI
 	_, resp, err := c.client.TerraformMainCallsAPI.
 		GetTerraform(ctx, terraformServiceID).
 		Execute()
-	if err != nil || resp.StatusCode >= 400 {
-		if resp.StatusCode == 404 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
+		if resp != nil && resp.StatusCode == 404 {
 			// if the terraform service is not found, then it has already been deleted
 			return nil
 		}
@@ -112,7 +112,7 @@ func (c terraformServiceQoveryAPI) Delete(ctx context.Context, terraformServiceI
 	resp, err = c.client.TerraformMainCallsAPI.
 		DeleteTerraform(ctx, terraformServiceID).
 		Execute()
-	if err != nil || resp.StatusCode >= 300 {
+	if err != nil || (resp != nil && resp.StatusCode >= 300) {
 		return apierrors.NewDeleteAPIError(apierrors.APIResourceTerraformService, terraformServiceID, resp, err)
 	}
 
@@ -124,7 +124,7 @@ func (c terraformServiceQoveryAPI) List(ctx context.Context, environmentID strin
 	terraformList, resp, err := c.client.TerraformsAPI.
 		ListTerraforms(ctx, environmentID).
 		Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceTerraformService, environmentID, resp, err)
 	}
 
