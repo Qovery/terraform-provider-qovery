@@ -5,4 +5,5 @@ const (
 	CONTAINER   int = 1
 	JOB         int = 2
 	HELM        int = 3
+	TERRAFORM   int = 4
 )
