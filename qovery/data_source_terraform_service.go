@@ -240,6 +240,7 @@ func (d terraformServiceDataSource) Read(ctx context.Context, req datasource.Rea
 		ctx,
 		ToString(data.ID),
 		ToString(data.AdvancedSettingsJson),
+		false,
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on terraform service read", err.Error())

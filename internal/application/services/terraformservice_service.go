@@ -47,12 +47,12 @@ func (s terraformServiceService) Create(ctx context.Context, environmentID strin
 }
 
 // Get handles the domain logic to retrieve a terraform service.
-func (s terraformServiceService) Get(ctx context.Context, terraformServiceID string, advancedSettingsJsonFromState string) (*terraformservice.TerraformService, error) {
+func (s terraformServiceService) Get(ctx context.Context, terraformServiceID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*terraformservice.TerraformService, error) {
 	if err := s.checkID(terraformServiceID); err != nil {
 		return nil, errors.Wrap(err, terraformservice.ErrFailedToGetTerraformService.Error())
 	}
 
-	fetchedTerraformService, err := s.terraformServiceRepository.Get(ctx, terraformServiceID, advancedSettingsJsonFromState, false)
+	fetchedTerraformService, err := s.terraformServiceRepository.Get(ctx, terraformServiceID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, errors.Wrap(err, terraformservice.ErrFailedToGetTerraformService.Error())
 	}

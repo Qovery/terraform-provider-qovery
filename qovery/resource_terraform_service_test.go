@@ -194,7 +194,7 @@ func testAccQoveryTerraformServiceExists(resourceName string) resource.TestCheck
 			return fmt.Errorf("terraform_service.id not found")
 		}
 
-		_, err := qoveryServices.TerraformService.Get(context.TODO(), rs.Primary.ID, "{}")
+		_, err := qoveryServices.TerraformService.Get(context.TODO(), rs.Primary.ID, "{}", false)
 		if err != nil {
 			return err
 		}
@@ -213,7 +213,7 @@ func testAccQoveryTerraformServiceDestroy(resourceName string) resource.TestChec
 			return fmt.Errorf("terraform_service.id not found")
 		}
 
-		_, err := qoveryServices.TerraformService.Get(context.TODO(), rs.Primary.ID, "{}")
+		_, err := qoveryServices.TerraformService.Get(context.TODO(), rs.Primary.ID, "{}", false)
 		if err == nil {
 			return fmt.Errorf("found terraform service but expected it to be deleted")
 		}

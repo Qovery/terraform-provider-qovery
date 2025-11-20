@@ -112,7 +112,7 @@ func (c terraformServiceQoveryAPI) Delete(ctx context.Context, terraformServiceI
 	resp, err = c.client.TerraformMainCallsAPI.
 		DeleteTerraform(ctx, terraformServiceID).
 		Execute()
-	if err != nil || (resp != nil && resp.StatusCode >= 300) {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return apierrors.NewDeleteAPIError(apierrors.APIResourceTerraformService, terraformServiceID, resp, err)
 	}
 

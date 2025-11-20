@@ -318,10 +318,15 @@ func (r terraformServiceResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	// Get terraform service from API
+	var isTriggeredFromImport = false
+	if state.AdvancedSettingsJson.IsNull() {
+		isTriggeredFromImport = true
+	}
 	terraformSvc, err := r.terraformServiceService.Get(
 		ctx,
 		ToString(state.ID),
 		ToString(state.AdvancedSettingsJson),
+		isTriggeredFromImport,
 	)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on terraform service read", err.Error())

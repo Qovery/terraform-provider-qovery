@@ -18,7 +18,7 @@ var (
 // Service represents the interface to implement to handle the domain logic of a TerraformService.
 type Service interface {
 	Create(ctx context.Context, environmentID string, request UpsertServiceRequest) (*TerraformService, error)
-	Get(ctx context.Context, terraformServiceID string, advancedSettingsJsonFromState string) (*TerraformService, error)
+	Get(ctx context.Context, terraformServiceID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*TerraformService, error)
 	Update(ctx context.Context, terraformServiceID string, request UpsertServiceRequest) (*TerraformService, error)
 	Delete(ctx context.Context, terraformServiceID string) error
 	List(ctx context.Context, environmentID string) ([]TerraformService, error)

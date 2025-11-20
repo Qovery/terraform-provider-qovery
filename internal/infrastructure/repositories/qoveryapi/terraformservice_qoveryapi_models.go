@@ -212,6 +212,12 @@ func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, adv
 	// Extract engine
 	engine := terraformservice.Engine(response.Engine)
 
+	// Extract tfvar files
+	tfVarFiles := make([]string, 0)
+	if response.TerraformVariablesSource.TfVarFilePaths != nil {
+		tfVarFiles = response.TerraformVariablesSource.TfVarFilePaths
+	}
+
 	// Build the domain model
 	service := &terraformservice.TerraformService{
 		ID:                    id,
@@ -220,7 +226,7 @@ func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, adv
 		Description:           response.Description,
 		AutoDeploy:            response.AutoDeploy,
 		GitRepository:         gitRepo,
-		TfVarFiles:            response.TerraformVariablesSource.TfVarFilePaths,
+		TfVarFiles:            tfVarFiles,
 		Variables:             variables,
 		Backend:               backend,
 		Engine:                engine,

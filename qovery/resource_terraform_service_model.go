@@ -69,20 +69,30 @@ type TerraformVariable struct {
 
 // toUpsertServiceRequest converts Terraform model to domain service request
 func (t TerraformService) toUpsertServiceRequest(state *TerraformService) (*terraformservice.UpsertServiceRequest, error) {
+	req, err := t.toUpsertRepositoryRequest()
+	if err != nil {
+		return nil, err
+	}
+
 	return &terraformservice.UpsertServiceRequest{
-		TerraformServiceUpsertRequest: t.toUpsertRepositoryRequest(),
+		TerraformServiceUpsertRequest: req,
 	}, nil
 }
 
 // toUpsertRepositoryRequest converts Terraform model to domain repository request
-func (t TerraformService) toUpsertRepositoryRequest() terraformservice.UpsertRepositoryRequest {
+func (t TerraformService) toUpsertRepositoryRequest() (terraformservice.UpsertRepositoryRequest, error) {
+	variables, err := toVariableArray(t.Variables)
+	if err != nil {
+		return terraformservice.UpsertRepositoryRequest{}, err
+	}
+
 	return terraformservice.UpsertRepositoryRequest{
 		Name:                  ToString(t.Name),
 		Description:           ToStringPointer(t.Description),
 		AutoDeploy:            ToBool(t.AutoDeploy),
 		GitRepository:         t.GitRepository.toDomain(),
 		TfVarFiles:            ToStringArray(t.TfVarFiles),
-		Variables:             toVariableArray(t.Variables),
+		Variables:             variables,
 		Backend:               t.Backend.toDomain(),
 		Engine:                terraformservice.Engine(ToString(t.Engine)),
 		ProviderVersion:       t.ProviderVersion.toDomain(),
@@ -92,7 +102,7 @@ func (t TerraformService) toUpsertRepositoryRequest() terraformservice.UpsertRep
 		UseClusterCredentials: ToBool(t.UseClusterCredentials),
 		ActionExtraArguments:  toActionExtraArguments(t.ActionExtraArguments),
 		AdvancedSettingsJson:  ToString(t.AdvancedSettingsJson),
-	}
+	}, nil
 }
 
 // toDomain converts Terraform git repository to domain
@@ -166,13 +176,15 @@ func (j *TerraformJobResources) toDomain() terraformservice.JobResources {
 }
 
 // toVariableArray converts Terraform variables set to domain array
-func toVariableArray(variablesSet types.Set) []terraformservice.Variable {
+func toVariableArray(variablesSet types.Set) ([]terraformservice.Variable, error) {
 	if variablesSet.IsNull() || variablesSet.IsUnknown() {
-		return []terraformservice.Variable{}
+		return []terraformservice.Variable{}, nil
 	}
 
 	var tfVars []TerraformVariable
-	variablesSet.ElementsAs(context.Background(), &tfVars, false)
+	if diags := variablesSet.ElementsAs(context.Background(), &tfVars, false); diags.HasError() {
+		return nil, errors.Errorf("failed to convert terraform variables: %v", diags)
+	}
 
 	variables := make([]terraformservice.Variable, 0, len(tfVars))
 	for _, v := range tfVars {
@@ -183,7 +195,7 @@ func toVariableArray(variablesSet types.Set) []terraformservice.Variable {
 		})
 	}
 
-	return variables
+	return variables, nil
 }
 
 // toActionExtraArguments converts Terraform map to domain map
