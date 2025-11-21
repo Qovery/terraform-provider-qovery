@@ -124,7 +124,6 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 						"value": schema.StringAttribute{
 							Description: "Variable value.",
 							Required:    true,
-							Sensitive:   true,
 						},
 						"secret": schema.BoolAttribute{
 							Description: "Is this variable a secret.",

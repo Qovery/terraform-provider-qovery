@@ -227,7 +227,7 @@ func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan T
 		AutoDeploy:              FromBool(ts.AutoDeploy),
 		GitRepository:           fromGitRepository(ts.GitRepository),
 		TfVarFiles:              FromStringArray(ts.TfVarFiles),
-		Variables:               fromVariableArray(ctx, ts.Variables),
+		Variables:               fromVariableArray(ctx, plan.Variables, ts.Variables),
 		Backend:                 fromBackend(ts.Backend),
 		Engine:                  FromString(string(ts.Engine)),
 		ProviderVersion:         fromProviderVersion(ts.ProviderVersion),
@@ -291,9 +291,13 @@ func fromJobResources(j terraformservice.JobResources) *TerraformJobResources {
 	}
 }
 
-// fromVariableArray converts domain variables to Terraform set
-func fromVariableArray(ctx context.Context, variables []terraformservice.Variable) types.Set {
+// fromVariableArray converts domain variables to Terraform set while preserving sensitive values from plan
+func fromVariableArray(ctx context.Context, planVars types.Set, variables []terraformservice.Variable) types.Set {
+	// If API returns no variables but plan has variables, preserve the plan (API might not return them)
 	if len(variables) == 0 {
+		if !planVars.IsNull() && !planVars.IsUnknown() && len(planVars.Elements()) > 0 {
+			return planVars
+		}
 		return types.SetNull(types.ObjectType{
 			AttrTypes: map[string]attr.Type{
 				"key":    types.StringType,
@@ -303,8 +307,41 @@ func fromVariableArray(ctx context.Context, variables []terraformservice.Variabl
 		})
 	}
 
+	// Build a map of existing variables from plan state (keyed by variable key)
+	planVarMap := make(map[string]types.Object)
+	if !planVars.IsNull() && !planVars.IsUnknown() {
+		planVarElements := planVars.Elements()
+		for _, elem := range planVarElements {
+			if objVal, ok := elem.(types.Object); ok {
+				attrs := objVal.Attributes()
+				if keyAttr, exists := attrs["key"]; exists {
+					if keyStr, ok := keyAttr.(types.String); ok && !keyStr.IsNull() {
+						planVarMap[keyStr.ValueString()] = objVal
+					}
+				}
+			}
+		}
+	}
+
+	// Process all variables from plan first (to ensure we include any that were in plan but not in API response)
+	processedKeys := make(map[string]bool)
 	tfVars := make([]attr.Value, 0, len(variables))
+
+	// For each variable from the API, check if it exists in plan and use plan's value
 	for _, v := range variables {
+		varValue := FromString(v.Value)
+
+		// Always check plan for this variable to preserve sensitive values
+		if planVar, exists := planVarMap[v.Key]; exists {
+			attrs := planVar.Attributes()
+			if valueAttr, ok := attrs["value"]; ok {
+				if valueStr, ok := valueAttr.(types.String); ok {
+					// Preserve the value from plan to maintain sensitivity
+					varValue = valueStr
+				}
+			}
+		}
+
 		objValue, diag := types.ObjectValue(
 			map[string]attr.Type{
 				"key":    types.StringType,
@@ -313,7 +350,7 @@ func fromVariableArray(ctx context.Context, variables []terraformservice.Variabl
 			},
 			map[string]attr.Value{
 				"key":    FromString(v.Key),
-				"value":  FromString(v.Value),
+				"value":  varValue,
 				"secret": FromBool(v.Secret),
 			},
 		)
@@ -327,6 +364,7 @@ func fromVariableArray(ctx context.Context, variables []terraformservice.Variabl
 			})
 		}
 		tfVars = append(tfVars, objValue)
+		processedKeys[v.Key] = true
 	}
 
 	setValue, diag := types.SetValue(

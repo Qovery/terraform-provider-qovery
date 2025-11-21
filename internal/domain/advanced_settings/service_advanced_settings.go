@@ -35,8 +35,10 @@ func (c ServiceAdvancedSettingsService) computeServiceAdvancedSettingsUrl(servic
 		urlAdvancedSettings = host + "/job/" + serviceId + "/advancedSettings"
 	case domain.HELM:
 		urlAdvancedSettings = host + "/helm/" + serviceId + "/advancedSettings"
+	case domain.TERRAFORM:
+		urlAdvancedSettings = host + "/terraform/" + serviceId + "/advancedSettings"
 	default:
-		return nil, errors.New("serviceType must be one of APPLICATION / CONTAINER / JOB / HELM")
+		return nil, errors.New("serviceType must be one of APPLICATION / CONTAINER / JOB / HELM / TERRAFORM")
 	}
 
 	return &urlAdvancedSettings, nil
@@ -56,8 +58,10 @@ func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl
 		urlAdvancedSettings = host + "/defaultJobAdvancedSettings"
 	case domain.HELM:
 		urlAdvancedSettings = host + "/defaultHelmAdvancedSettings"
+	case domain.TERRAFORM:
+		urlAdvancedSettings = host + "/defaultTerraformAdvancedSettings"
 	default:
-		return nil, errors.New("serviceType must be one of APPLICATION / CONTAINER / JOB / HELM")
+		return nil, errors.New("serviceType must be one of APPLICATION / CONTAINER / JOB / HELM / TERRAFORM")
 	}
 
 	return &urlAdvancedSettings, nil

@@ -8,14 +8,12 @@ import (
 	"fmt"
 	"regexp"
 	"testing"
-	"text/template"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
-	"github.com/qovery/terraform-provider-qovery/qovery"
 )
 
 func TestAcc_TerraformService(t *testing.T) {
@@ -49,7 +47,7 @@ func TestAcc_TerraformService(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "job_resources.storage_gib", "20"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "timeout_sec", "1800"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "use_cluster_credentials", "false"),
-					resource.TestCheckResourceAttrSet("qovery_terraform_service.test", "backend.kubernetes"),
+					resource.TestCheckResourceAttr("qovery_terraform_service.test", "backend.kubernetes.%", "0"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "tfvar_files.#", "0"),
 				),
 			},
@@ -100,8 +98,8 @@ func TestAcc_TerraformServiceUserProvidedBackend(t *testing.T) {
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryTerraformServiceExists("qovery_terraform_service.test"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttrSet("qovery_terraform_service.test", "backend.user_provided"),
-					resource.TestCheckNoResourceAttr("qovery_terraform_service.test", "backend.kubernetes"),
+					resource.TestCheckResourceAttr("qovery_terraform_service.test", "backend.user_provided.%", "0"),
+					resource.TestCheckNoResourceAttr("qovery_terraform_service.test", "backend.kubernetes.%"),
 				),
 			},
 		},
