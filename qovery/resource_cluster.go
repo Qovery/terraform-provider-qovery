@@ -313,6 +313,11 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								Optional:    true,
 								Computed:    false,
 							},
+							"eks_create_nodes_in_private_subnet": schema.BoolAttribute{
+								Description: "Whether to create EKS nodes in private subnet",
+								Optional:    true,
+								Computed:    true,
+							},
 						},
 					},
 					"karpenter": schema.SingleNestedAttribute{
@@ -569,7 +574,7 @@ func (r clusterResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	// Hack to know if this method is triggered through an import
 	// CredentialsId is always present except when importing the resource
-	var isTriggeredFromImport = false
+	isTriggeredFromImport := false
 	if state.CredentialsId.IsNull() {
 		isTriggeredFromImport = true
 	}

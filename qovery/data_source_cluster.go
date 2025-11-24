@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -250,7 +251,13 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 								ElementType: types.StringType,
 								Optional:    true,
 								Computed:    false,
-							}},
+							},
+							"eks_create_nodes_in_private_subnet": schema.BoolAttribute{
+								Description: "Specifies whether to create EKS nodes in private subnets",
+								Optional:    true,
+								Computed:    true,
+							},
+						},
 					},
 					"karpenter": schema.SingleNestedAttribute{
 						Optional:    true,
