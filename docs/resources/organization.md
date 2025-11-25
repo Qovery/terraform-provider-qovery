@@ -27,7 +27,7 @@ resource "qovery_organization" "my_organization" {
 
 - `name` (String) Name of the organization.
 - `plan` (String) Plan of the organization.
-	- Can be: `BUSINESS`, `ENTERPRISE`, `ENTERPRISE_YEARLY`, `FREE`, `PROFESSIONAL`, `TEAM`, `TEAM_YEARLY`.
+	- Can be: `BUSINESS`, `BUSINESS_2025`, `ENTERPRISE`, `ENTERPRISE_2025`, `ENTERPRISE_YEARLY`, `FREE`, `PROFESSIONAL`, `TEAM`, `TEAM_2025`, `TEAM_YEARLY`, `USER_2025`.
 
 ### Optional
 

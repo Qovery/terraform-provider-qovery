@@ -76,6 +76,7 @@ Optional:
 - `documentdb_subnets_zone_a_ids` (List of String) Ids of the subnets for document db
 - `documentdb_subnets_zone_b_ids` (List of String) Ids of the subnets for document db
 - `documentdb_subnets_zone_c_ids` (List of String) Ids of the subnets for document db
+- `eks_create_nodes_in_private_subnet` (Boolean) Specifies whether to create EKS nodes in private subnets
 - `eks_karpenter_fargate_subnets_zone_a_ids` (List of String) Ids of the subnets for EKS fargate zone a. Must have to be private and connected to internet through a NAT Gateway
 - `eks_karpenter_fargate_subnets_zone_b_ids` (List of String) Ids of the subnets for EKS fargate zone b. Must have to be private and connected to internet through a NAT Gateway
 - `eks_karpenter_fargate_subnets_zone_c_ids` (List of String) Ids of the subnets for EKS fargate zone c. Must have to be private and connected to internet through a NAT Gateway

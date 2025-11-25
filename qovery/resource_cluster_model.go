@@ -341,6 +341,7 @@ func fromQoveryClusterFeatures(
 			attrVals["eks_karpenter_fargate_subnets_zone_a_ids"] = FromStringArray(v.EksKarpenterFargateSubnetsZoneAIds)
 			attrVals["eks_karpenter_fargate_subnets_zone_b_ids"] = FromStringArray(v.EksKarpenterFargateSubnetsZoneBIds)
 			attrVals["eks_karpenter_fargate_subnets_zone_c_ids"] = FromStringArray(v.EksKarpenterFargateSubnetsZoneCIds)
+			attrVals["eks_create_nodes_in_private_subnet"] = FromBoolPointer(v.EksCreateNodesInPrivateSubnet)
 
 			terraformObjectValue, diagnostics := types.ObjectValue(attrTypes, attrVals)
 			if diagnostics.HasError() {
@@ -466,6 +467,7 @@ func toQoveryClusterFeatures(f types.Object, mode string) ([]qovery.ClusterReque
 				EksKarpenterFargateSubnetsZoneAIds: ToStringArray(v.Attributes()["eks_karpenter_fargate_subnets_zone_a_ids"].(types.List)),
 				EksKarpenterFargateSubnetsZoneBIds: ToStringArray(v.Attributes()["eks_karpenter_fargate_subnets_zone_b_ids"].(types.List)),
 				EksKarpenterFargateSubnetsZoneCIds: ToStringArray(v.Attributes()["eks_karpenter_fargate_subnets_zone_c_ids"].(types.List)),
+				EksCreateNodesInPrivateSubnet:      ToBoolPointer(v.Attributes()["eks_create_nodes_in_private_subnet"].(types.Bool)),
 			}
 			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
 				ClusterFeatureAwsExistingVpc: &feature,
@@ -874,6 +876,7 @@ func createExistingVpcFeatureAttrTypes() map[string]attr.Type {
 	attrTypes["eks_karpenter_fargate_subnets_zone_a_ids"] = types.ListType{ElemType: types.StringType}
 	attrTypes["eks_karpenter_fargate_subnets_zone_b_ids"] = types.ListType{ElemType: types.StringType}
 	attrTypes["eks_karpenter_fargate_subnets_zone_c_ids"] = types.ListType{ElemType: types.StringType}
+	attrTypes["eks_create_nodes_in_private_subnet"] = types.BoolType
 
 	return attrTypes
 }
