@@ -39,8 +39,8 @@ func TestAcc_TerraformService(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "git_repository.branch", "main"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "git_repository.root_path", "/s3_terraform_unique"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "engine", "TERRAFORM"),
-					resource.TestCheckResourceAttr("qovery_terraform_service.test", "provider_version.explicit_version", "1.5.0"),
-					resource.TestCheckResourceAttr("qovery_terraform_service.test", "provider_version.read_from_terraform_block", "false"),
+					resource.TestCheckResourceAttr("qovery_terraform_service.test", "engine_version.explicit_version", "1.5.0"),
+					resource.TestCheckResourceAttr("qovery_terraform_service.test", "engine_version.read_from_terraform_block", "false"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "job_resources.cpu_milli", "1000"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "job_resources.ram_mib", "1024"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "job_resources.gpu", "0"),
@@ -248,7 +248,7 @@ resource "qovery_terraform_service" "test" {
 
   engine = "TERRAFORM"
 
-  provider_version = {
+  engine_version = {
     explicit_version          = "1.5.0"
     read_from_terraform_block = false
   }
@@ -303,7 +303,7 @@ resource "qovery_terraform_service" "test" {
 
   engine = "TERRAFORM"
 
-  provider_version = {
+  engine_version = {
     explicit_version          = "1.5.0"
     read_from_terraform_block = false
   }
@@ -345,7 +345,7 @@ resource "qovery_terraform_service" "test" {
 
   engine = "TERRAFORM"
 
-  provider_version = {
+  engine_version = {
     explicit_version          = "1.5.0"
     read_from_terraform_block = false
   }
@@ -387,7 +387,7 @@ resource "qovery_terraform_service" "test" {
 
   engine = "TERRAFORM"
 
-  provider_version = {
+  engine_version = {
     explicit_version          = "1.5.0"
     read_from_terraform_block = false
   }
@@ -433,7 +433,7 @@ resource "qovery_terraform_service" "test" {
 
   engine = "OPEN_TOFU"
 
-  provider_version = {
+  engine_version = {
     explicit_version          = "1.6.0"
     read_from_terraform_block = false
   }
@@ -475,7 +475,7 @@ resource "qovery_terraform_service" "test" {
 
   engine = "TERRAFORM"
 
-  provider_version = {
+  engine_version = {
     explicit_version          = "1.5.0"
     read_from_terraform_block = false
   }

@@ -24,12 +24,12 @@ data "qovery_terraform_service" "my_terraform_service" {
 - `created_at` (String) Creation date of the terraform service.
 - `description` (String) Description of the terraform service.
 - `engine` (String) Terraform engine (TERRAFORM or OPEN_TOFU).
+- `engine_version` (Attributes) Terraform/OpenTofu engine version configuration. (see [below for nested schema](#nestedatt--engine_version))
 - `environment_id` (String) Id of the environment.
 - `git_repository` (Attributes) Terraform service git repository configuration. (see [below for nested schema](#nestedatt--git_repository))
 - `icon_uri` (String) Icon URI representing the terraform service.
 - `job_resources` (Attributes) Resource allocation for the Terraform job. (see [below for nested schema](#nestedatt--job_resources))
 - `name` (String) Name of the terraform service.
-- `provider_version` (Attributes) Terraform provider version configuration. (see [below for nested schema](#nestedatt--provider_version))
 - `tfvar_files` (List of String) List of .tfvars file paths relative to the root path.
 - `timeout_sec` (Number) Timeout in seconds for Terraform operations.
 	- Must be: `>= 0`.
@@ -53,6 +53,15 @@ Read-Only:
 <a id="nestedatt--backend--user_provided"></a>
 ### Nested Schema for `backend.user_provided`
 
+
+
+<a id="nestedatt--engine_version"></a>
+### Nested Schema for `engine_version`
+
+Read-Only:
+
+- `explicit_version` (String) Explicit version to use for the Terraform/OpenTofu binary.
+- `read_from_terraform_block` (Boolean) Whether to read the version from the terraform block in the code.
 
 
 <a id="nestedatt--git_repository"></a>
@@ -83,15 +92,6 @@ Read-Only:
 - `storage_gib` (Number) Storage of the terraform job in GiB [1 GiB = 1024 MiB].
 	- Must be: `>= 1`.
 	- Default: `20`.
-
-
-<a id="nestedatt--provider_version"></a>
-### Nested Schema for `provider_version`
-
-Read-Only:
-
-- `explicit_version` (String) Explicit version to use for the Terraform/OpenTofu binary.
-- `read_from_terraform_block` (Boolean) Whether to read the version from the terraform block in the code.
 
 
 <a id="nestedatt--variable"></a>

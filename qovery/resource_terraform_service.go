@@ -157,8 +157,8 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 					validators.NewStringEnumValidator([]string{"TERRAFORM", "OPEN_TOFU"}),
 				},
 			},
-			"provider_version": schema.SingleNestedAttribute{
-				Description: "Terraform provider version configuration.",
+			"engine_version": schema.SingleNestedAttribute{
+				Description: "Terraform/OpenTofu engine version configuration.",
 				Required:    true,
 				Attributes: map[string]schema.Attribute{
 					"explicit_version": schema.StringAttribute{

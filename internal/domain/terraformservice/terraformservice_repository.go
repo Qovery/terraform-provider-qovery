@@ -26,10 +26,10 @@ type UpsertRepositoryRequest struct {
 	GitRepository         GitRepository `validate:"required"`
 	TfVarFiles            []string
 	Variables             []Variable
-	Backend               Backend         `validate:"required"`
-	Engine                Engine          `validate:"required"`
-	ProviderVersion       ProviderVersion `validate:"required"`
-	JobResources          JobResources    `validate:"required"`
+	Backend               Backend       `validate:"required"`
+	Engine                Engine        `validate:"required"`
+	EngineVersion         EngineVersion `validate:"required"`
+	JobResources          JobResources  `validate:"required"`
 	TimeoutSec            *int32
 	IconURI               string
 	UseClusterCredentials bool
@@ -59,8 +59,8 @@ func (r UpsertRepositoryRequest) Validate() error {
 		return errors.Wrap(err, ErrInvalidTerraformServiceUpsertRequest.Error())
 	}
 
-	// Validate provider version
-	if err := r.ProviderVersion.Validate(); err != nil {
+	// Validate engine version
+	if err := r.EngineVersion.Validate(); err != nil {
 		return errors.Wrap(err, ErrInvalidTerraformServiceUpsertRequest.Error())
 	}
 

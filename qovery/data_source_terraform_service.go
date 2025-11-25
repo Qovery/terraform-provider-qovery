@@ -138,8 +138,8 @@ func (d terraformServiceDataSource) Schema(_ context.Context, _ datasource.Schem
 				Description: "Terraform engine (TERRAFORM or OPEN_TOFU).",
 				Computed:    true,
 			},
-			"provider_version": schema.SingleNestedAttribute{
-				Description: "Terraform provider version configuration.",
+			"engine_version": schema.SingleNestedAttribute{
+				Description: "Terraform/OpenTofu engine version configuration.",
 				Computed:    true,
 				Attributes: map[string]schema.Attribute{
 					"explicit_version": schema.StringAttribute{

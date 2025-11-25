@@ -20,10 +20,10 @@ type TerraformService struct {
 	GitRepository           *TerraformGitRepository   `tfsdk:"git_repository"`
 	TfVarFiles              types.List                `tfsdk:"tfvar_files"`
 	Variables               types.Set                 `tfsdk:"variable"`
-	Backend                 *TerraformBackend         `tfsdk:"backend"`
-	Engine                  types.String              `tfsdk:"engine"`
-	ProviderVersion         *TerraformProviderVersion `tfsdk:"provider_version"`
-	JobResources            *TerraformJobResources    `tfsdk:"job_resources"`
+	Backend                 *TerraformBackend       `tfsdk:"backend"`
+	Engine                  types.String            `tfsdk:"engine"`
+	EngineVersion           *TerraformEngineVersion `tfsdk:"engine_version"`
+	JobResources            *TerraformJobResources  `tfsdk:"job_resources"`
 	TimeoutSec              types.Int64               `tfsdk:"timeout_sec"`
 	IconURI                 types.String              `tfsdk:"icon_uri"`
 	UseClusterCredentials   types.Bool                `tfsdk:"use_cluster_credentials"`
@@ -49,7 +49,7 @@ type TerraformKubernetesBackend struct{}
 
 type TerraformUserProvidedBackend struct{}
 
-type TerraformProviderVersion struct {
+type TerraformEngineVersion struct {
 	ExplicitVersion        types.String `tfsdk:"explicit_version"`
 	ReadFromTerraformBlock types.Bool   `tfsdk:"read_from_terraform_block"`
 }
@@ -95,7 +95,7 @@ func (t TerraformService) toUpsertRepositoryRequest() (terraformservice.UpsertRe
 		Variables:             variables,
 		Backend:               t.Backend.toDomain(),
 		Engine:                terraformservice.Engine(ToString(t.Engine)),
-		ProviderVersion:       t.ProviderVersion.toDomain(),
+		EngineVersion:         t.EngineVersion.toDomain(),
 		JobResources:          t.JobResources.toDomain(),
 		TimeoutSec:            ToInt32Pointer(t.TimeoutSec),
 		IconURI:               ToString(t.IconURI),
@@ -144,13 +144,13 @@ func (b *TerraformBackend) toDomain() terraformservice.Backend {
 	return backend
 }
 
-// toDomain converts Terraform provider version to domain
-func (p *TerraformProviderVersion) toDomain() terraformservice.ProviderVersion {
+// toDomain converts Terraform engine version to domain
+func (p *TerraformEngineVersion) toDomain() terraformservice.EngineVersion {
 	if p == nil {
-		return terraformservice.ProviderVersion{}
+		return terraformservice.EngineVersion{}
 	}
 
-	return terraformservice.ProviderVersion{
+	return terraformservice.EngineVersion{
 		ExplicitVersion:        ToString(p.ExplicitVersion),
 		ReadFromTerraformBlock: ToBool(p.ReadFromTerraformBlock),
 	}
@@ -230,7 +230,7 @@ func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan T
 		Variables:               fromVariableArray(ctx, plan.Variables, ts.Variables),
 		Backend:                 fromBackend(ts.Backend),
 		Engine:                  FromString(string(ts.Engine)),
-		ProviderVersion:         fromProviderVersion(ts.ProviderVersion),
+		EngineVersion:           fromEngineVersion(ts.EngineVersion),
 		JobResources:            fromJobResources(ts.JobResources),
 		TimeoutSec:              FromInt32Pointer(ts.TimeoutSec),
 		IconURI:                 FromString(ts.IconURI),
@@ -273,9 +273,9 @@ func fromBackend(b terraformservice.Backend) *TerraformBackend {
 	return backend
 }
 
-// fromProviderVersion converts domain provider version to Terraform
-func fromProviderVersion(p terraformservice.ProviderVersion) *TerraformProviderVersion {
-	return &TerraformProviderVersion{
+// fromEngineVersion converts domain engine version to Terraform
+func fromEngineVersion(p terraformservice.EngineVersion) *TerraformEngineVersion {
+	return &TerraformEngineVersion{
 		ExplicitVersion:        FromString(p.ExplicitVersion),
 		ReadFromTerraformBlock: FromBool(p.ReadFromTerraformBlock),
 	}

@@ -23,7 +23,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 
   engine = "TERRAFORM"
 
-  provider_version = {
+  engine_version = {
     explicit_version = "1.5.0"
   }
 
@@ -60,7 +60,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 
   engine = "TERRAFORM"
 
-  provider_version = {
+  engine_version = {
     explicit_version = "1.5.0"
   }
 
@@ -114,7 +114,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 
   engine = "TERRAFORM"
 
-  provider_version = {
+  engine_version = {
     explicit_version          = "1.5.0"
     read_from_terraform_block = false
   }

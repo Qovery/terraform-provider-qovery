@@ -57,10 +57,10 @@ func newQoveryTerraformRequestFromDomain(request terraformservice.UpsertReposito
 		backend = qovery.TerraformBackendOneOf1AsTerraformBackend(userProvidedBackend)
 	}
 
-	// Build provider_version
-	providerVersion := qovery.NewTerraformProviderVersion(request.ProviderVersion.ExplicitVersion)
-	if request.ProviderVersion.ReadFromTerraformBlock {
-		providerVersion.ReadFromTerraformBlock = &request.ProviderVersion.ReadFromTerraformBlock
+	// Build engine_version
+	engineVersion := qovery.NewTerraformProviderVersion(request.EngineVersion.ExplicitVersion)
+	if request.EngineVersion.ReadFromTerraformBlock {
+		engineVersion.ReadFromTerraformBlock = &request.EngineVersion.ReadFromTerraformBlock
 	}
 
 	// Build job_resources
@@ -89,7 +89,7 @@ func newQoveryTerraformRequestFromDomain(request terraformservice.UpsertReposito
 		*variablesSource,
 		backend,
 		engine,
-		*providerVersion,
+		*engineVersion,
 		*jobResources,
 	)
 
@@ -192,13 +192,13 @@ func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, adv
 		backend.UserProvided = &terraformservice.UserProvidedBackend{}
 	}
 
-	// Extract provider version
-	providerVersion := terraformservice.ProviderVersion{
+	// Extract engine version
+	engineVersion := terraformservice.EngineVersion{
 		ExplicitVersion:        response.ProviderVersion.ExplicitVersion,
 		ReadFromTerraformBlock: false,
 	}
 	if response.ProviderVersion.ReadFromTerraformBlock != nil {
-		providerVersion.ReadFromTerraformBlock = *response.ProviderVersion.ReadFromTerraformBlock
+		engineVersion.ReadFromTerraformBlock = *response.ProviderVersion.ReadFromTerraformBlock
 	}
 
 	// Extract job resources
@@ -230,7 +230,7 @@ func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, adv
 		Variables:             variables,
 		Backend:               backend,
 		Engine:                engine,
-		ProviderVersion:       providerVersion,
+		EngineVersion:         engineVersion,
 		JobResources:          jobResources,
 		IconURI:               response.IconUri,
 		UseClusterCredentials: false,

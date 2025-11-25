@@ -53,8 +53,8 @@ var (
 	ErrMultipleBackendTypes = errors.New("cannot specify multiple backend types")
 	// ErrInvalidEngineParam is returned if the engine param is invalid.
 	ErrInvalidTerraformServiceEngineParam = errors.New("invalid engine param")
-	// ErrInvalidProviderVersionParam is returned if the provider version param is invalid.
-	ErrInvalidTerraformServiceProviderVersionParam = errors.New("invalid provider version param")
+	// ErrInvalidEngineVersionParam is returned if the engine version param is invalid.
+	ErrInvalidTerraformServiceEngineVersionParam = errors.New("invalid engine version param")
 	// ErrInvalidJobResourcesParam is returned if the job resources param is invalid.
 	ErrInvalidTerraformServiceJobResourcesParam = errors.New("invalid job resources param")
 	// ErrInvalidUpsertRequest is returned if the upsert request is invalid.
@@ -89,10 +89,10 @@ type TerraformService struct {
 	GitRepository         GitRepository `validate:"required"`
 	TfVarFiles            []string
 	Variables             []Variable
-	Backend               Backend         `validate:"required"`
-	Engine                Engine          `validate:"required"`
-	ProviderVersion       ProviderVersion `validate:"required"`
-	JobResources          JobResources    `validate:"required"`
+	Backend               Backend       `validate:"required"`
+	Engine                Engine        `validate:"required"`
+	EngineVersion         EngineVersion `validate:"required"`
+	JobResources          JobResources  `validate:"required"`
 	TimeoutSec            *int32
 	IconURI               string
 	UseClusterCredentials bool
@@ -174,20 +174,20 @@ func (b Backend) Validate() error {
 	return nil
 }
 
-// ProviderVersion represents the Terraform provider version configuration
-type ProviderVersion struct {
+// EngineVersion represents the Terraform/OpenTofu engine version configuration
+type EngineVersion struct {
 	ExplicitVersion        string `validate:"required"`
 	ReadFromTerraformBlock bool
 }
 
-// Validate validates the ProviderVersion
-func (p ProviderVersion) Validate() error {
+// Validate validates the EngineVersion
+func (p EngineVersion) Validate() error {
 	if p.ExplicitVersion == "" {
 		return errors.New("explicit_version is required")
 	}
 
 	if err := validator.New().Struct(p); err != nil {
-		return errors.Wrap(err, "invalid provider version")
+		return errors.Wrap(err, "invalid engine version")
 	}
 
 	return nil
@@ -273,9 +273,9 @@ func (t TerraformService) Validate() error {
 		return err
 	}
 
-	// Validate provider version
-	if err := t.ProviderVersion.Validate(); err != nil {
-		return errors.Wrap(err, ErrInvalidTerraformServiceProviderVersionParam.Error())
+	// Validate engine version
+	if err := t.EngineVersion.Validate(); err != nil {
+		return errors.Wrap(err, ErrInvalidTerraformServiceEngineVersionParam.Error())
 	}
 
 	// Validate job resources

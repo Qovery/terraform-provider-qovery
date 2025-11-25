@@ -50,7 +50,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
   # Engine configuration
   engine = "TERRAFORM" # or "OPEN_TOFU"
 
-  provider_version = {
+  engine_version = {
     explicit_version          = "1.5.0"
     read_from_terraform_block = false
   }
@@ -115,7 +115,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 
   engine = "TERRAFORM"
 
-  provider_version = {
+  engine_version = {
     explicit_version = "1.5.0"
   }
 
@@ -149,7 +149,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 
   engine = "TERRAFORM"
 
-  provider_version = {
+  engine_version = {
     explicit_version = "1.5.0"
   }
 
@@ -200,7 +200,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 
   engine = "TERRAFORM"
 
-  provider_version = {
+  engine_version = {
     explicit_version          = "1.5.0"
     read_from_terraform_block = false
   }
@@ -242,11 +242,11 @@ resource "qovery_terraform_service" "my_terraform_service" {
 - `auto_deploy` (Boolean) Specify if the terraform service will be automatically updated on every new commit.
 - `backend` (Attributes) Terraform backend configuration. Exactly one backend type must be specified. (see [below for nested schema](#nestedatt--backend))
 - `engine` (String) Terraform engine to use (TERRAFORM or OPEN_TOFU).
+- `engine_version` (Attributes) Terraform/OpenTofu engine version configuration. (see [below for nested schema](#nestedatt--engine_version))
 - `environment_id` (String) Id of the environment.
 - `git_repository` (Attributes) Terraform service git repository configuration. (see [below for nested schema](#nestedatt--git_repository))
 - `job_resources` (Attributes) Resource allocation for the Terraform job. (see [below for nested schema](#nestedatt--job_resources))
 - `name` (String) Name of the terraform service.
-- `provider_version` (Attributes) Terraform provider version configuration. (see [below for nested schema](#nestedatt--provider_version))
 - `tfvar_files` (List of String) List of .tfvars file paths relative to the root path.
 
 ### Optional
@@ -284,6 +284,18 @@ Optional:
 
 
 
+<a id="nestedatt--engine_version"></a>
+### Nested Schema for `engine_version`
+
+Required:
+
+- `explicit_version` (String) Explicit version to use for the Terraform/OpenTofu binary.
+
+Optional:
+
+- `read_from_terraform_block` (Boolean) Whether to read the version from the terraform block in the code.
+
+
 <a id="nestedatt--git_repository"></a>
 ### Nested Schema for `git_repository`
 
@@ -315,18 +327,6 @@ Optional:
 - `storage_gib` (Number) Storage of the terraform job in GiB [1 GiB = 1024 MiB]. WARNING: Cannot be reduced after creation.
 	- Must be: `>= 1`.
 	- Default: `20`.
-
-
-<a id="nestedatt--provider_version"></a>
-### Nested Schema for `provider_version`
-
-Required:
-
-- `explicit_version` (String) Explicit version to use for the Terraform/OpenTofu binary.
-
-Optional:
-
-- `read_from_terraform_block` (Boolean) Whether to read the version from the terraform block in the code.
 
 
 <a id="nestedatt--variable"></a>

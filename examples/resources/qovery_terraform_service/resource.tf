@@ -38,7 +38,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
   # Engine configuration
   engine = "TERRAFORM" # or "OPEN_TOFU"
 
-  provider_version = {
+  engine_version = {
     explicit_version          = "1.5.0"
     read_from_terraform_block = false
   }
