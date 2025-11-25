@@ -18,9 +18,9 @@ resource "qovery_terraform_service" "my_terraform_service" {
   auto_deploy    = true
 
   git_repository = {
-    url       = "https://github.com/Qovery/terraform-examples.git"
+    url       = "https://github.com/Qovery/terraform_service_engine_testing.git"
     branch    = "main"
-    root_path = "/"
+    root_path = "/s3_terraform_unique"
     # git_token_id = qovery_git_token.my_git_token.id  # Optional, for private repos
   }
 
