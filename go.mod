@@ -1,6 +1,6 @@
 module github.com/qovery/terraform-provider-qovery
 
-go 1.25.3
+go 1.25.4
 
 require (
 	github.com/AlekSi/pointer v1.2.0
