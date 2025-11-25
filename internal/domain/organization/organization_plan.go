@@ -12,22 +12,30 @@ type Plan string
 const (
 	PlanFree             Plan = "FREE"
 	PlanTeam             Plan = "TEAM"
-	PlanTTeamYearly      Plan = "TEAM_YEARLY"
+	PlanTeamYearly       Plan = "TEAM_YEARLY"
 	PlanEnterprise       Plan = "ENTERPRISE"
 	PlanEnterpriseYearly Plan = "ENTERPRISE_YEARLY"
 	PlanProfessional     Plan = "PROFESSIONAL"
 	PlanBusiness         Plan = "BUSINESS"
+	PlanUser2025         Plan = "USER_2025"
+	PlanTeam2025         Plan = "TEAM_2025"
+	PlanBusiness2025     Plan = "BUSINESS_2025"
+	PlanEnterprise2025   Plan = "ENTERPRISE_2025"
 )
 
 // AllowedPlanValues contains all the valid values of a Plan.
 var AllowedPlanValues = []Plan{
 	PlanFree,
 	PlanTeam,
-	PlanTTeamYearly,
+	PlanTeamYearly,
 	PlanEnterprise,
 	PlanEnterpriseYearly,
 	PlanProfessional,
 	PlanBusiness,
+	PlanUser2025,
+	PlanTeam2025,
+	PlanBusiness2025,
+	PlanEnterprise2025,
 }
 
 // String returns the string value of a Plan.
