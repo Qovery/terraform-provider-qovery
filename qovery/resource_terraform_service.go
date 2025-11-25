@@ -77,7 +77,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			},
 			"description": schema.StringAttribute{
 				Description: "Description of the terraform service.",
-				Required:    true,
+				Optional:    true,
 			},
 			"auto_deploy": schema.BoolAttribute{
 				Description: "Specify if the terraform service will be automatically updated on every new commit.",
@@ -317,10 +317,8 @@ func (r terraformServiceResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	// Get terraform service from API
-	var isTriggeredFromImport = false
-	if state.AdvancedSettingsJson.IsNull() {
-		isTriggeredFromImport = true
-	}
+	// Detect import: during import, EnvironmentID is null since only ID is provided
+	var isTriggeredFromImport = state.EnvironmentID.IsNull()
 	terraformSvc, err := r.terraformServiceService.Get(
 		ctx,
 		ToString(state.ID),
