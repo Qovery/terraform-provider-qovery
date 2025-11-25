@@ -241,7 +241,6 @@ resource "qovery_terraform_service" "my_terraform_service" {
 
 - `auto_deploy` (Boolean) Specify if the terraform service will be automatically updated on every new commit.
 - `backend` (Attributes) Terraform backend configuration. Exactly one backend type must be specified. (see [below for nested schema](#nestedatt--backend))
-- `description` (String) Description of the terraform service.
 - `engine` (String) Terraform engine to use (TERRAFORM or OPEN_TOFU).
 - `environment_id` (String) Id of the environment.
 - `git_repository` (Attributes) Terraform service git repository configuration. (see [below for nested schema](#nestedatt--git_repository))
@@ -254,6 +253,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 
 - `action_extra_arguments` (Map of List of String) Extra CLI arguments for specific Terraform actions (plan, apply, destroy).
 - `advanced_settings_json` (String) Advanced settings in JSON format.
+- `description` (String) Description of the terraform service.
 - `icon_uri` (String) Icon URI representing the terraform service.
 - `timeout_sec` (Number) Timeout in seconds for Terraform operations.
 	- Must be: `>= 0`.
@@ -335,7 +335,7 @@ Optional:
 Required:
 
 - `key` (String) Variable key.
-- `value` (String, Sensitive) Variable value.
+- `value` (String) Variable value.
 
 Optional:
 
