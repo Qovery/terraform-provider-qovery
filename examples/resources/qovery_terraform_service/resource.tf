@@ -12,19 +12,19 @@ resource "qovery_terraform_service" "my_terraform_service" {
     # git_token_id = qovery_git_token.my_git_token.id  # Optional, for private repos
   }
 
-  tfvar_files = []
+  tfvars_files = []
 
   # Optional: Variables
-  variable = [
+  variables = [
     {
-      key    = "AWS_REGION"
-      value  = "us-east-1"
-      secret = false
+      key       = "AWS_REGION"
+      value     = "us-east-1"
+      is_secret = false
     },
     {
-      key    = "DATABASE_PASSWORD"
-      value  = "supersecret"
-      secret = true
+      key       = "DATABASE_PASSWORD"
+      value     = "supersecret"
+      is_secret = true
     }
   ]
 
@@ -52,7 +52,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
   }
 
   # Optional settings
-  timeout_sec             = 1800
+  timeout_seconds         = 1800
   icon_uri                = "app://qovery-console/terraform"
   use_cluster_credentials = false
 

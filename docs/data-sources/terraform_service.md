@@ -30,13 +30,13 @@ data "qovery_terraform_service" "my_terraform_service" {
 - `icon_uri` (String) Icon URI representing the terraform service.
 - `job_resources` (Attributes) Resource allocation for the Terraform job. (see [below for nested schema](#nestedatt--job_resources))
 - `name` (String) Name of the terraform service.
-- `tfvar_files` (List of String) List of .tfvars file paths relative to the root path.
-- `timeout_sec` (Number) Timeout in seconds for Terraform operations.
+- `tfvars_files` (List of String) List of .tfvars file paths relative to the root path.
+- `timeout_seconds` (Number) Timeout in seconds for Terraform operations.
 	- Must be: `>= 0`.
 	- Default: `1800`.
 - `updated_at` (String) Last update date of the terraform service.
 - `use_cluster_credentials` (Boolean) Use cluster credentials for cloud provider authentication.
-- `variable` (Attributes Set) Terraform variables. (see [below for nested schema](#nestedatt--variable))
+- `variables` (Attributes Set) Terraform variables. (see [below for nested schema](#nestedatt--variables))
 
 <a id="nestedatt--backend"></a>
 ### Nested Schema for `backend`
@@ -94,12 +94,12 @@ Read-Only:
 	- Default: `20`.
 
 
-<a id="nestedatt--variable"></a>
-### Nested Schema for `variable`
+<a id="nestedatt--variables"></a>
+### Nested Schema for `variables`
 
 Read-Only:
 
+- `is_secret` (Boolean) Is this variable a secret.
 - `key` (String) Variable key.
-- `secret` (Boolean) Is this variable a secret.
 - `value` (String, Sensitive) Variable value.
 

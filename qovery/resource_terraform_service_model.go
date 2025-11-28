@@ -18,13 +18,13 @@ type TerraformService struct {
 	Description             types.String              `tfsdk:"description"`
 	AutoDeploy              types.Bool                `tfsdk:"auto_deploy"`
 	GitRepository           *TerraformGitRepository   `tfsdk:"git_repository"`
-	TfVarFiles              types.List                `tfsdk:"tfvar_files"`
-	Variables               types.Set                 `tfsdk:"variable"`
+	TfVarFiles              types.List                `tfsdk:"tfvars_files"`
+	Variables               types.Set                 `tfsdk:"variables"`
 	Backend                 *TerraformBackend       `tfsdk:"backend"`
 	Engine                  types.String            `tfsdk:"engine"`
 	EngineVersion           *TerraformEngineVersion `tfsdk:"engine_version"`
 	JobResources            *TerraformJobResources  `tfsdk:"job_resources"`
-	TimeoutSec              types.Int64               `tfsdk:"timeout_sec"`
+	TimeoutSec              types.Int64               `tfsdk:"timeout_seconds"`
 	IconURI                 types.String              `tfsdk:"icon_uri"`
 	UseClusterCredentials   types.Bool                `tfsdk:"use_cluster_credentials"`
 	ActionExtraArguments    types.Map                 `tfsdk:"action_extra_arguments"`
@@ -62,9 +62,9 @@ type TerraformJobResources struct {
 }
 
 type TerraformVariable struct {
-	Key    types.String `tfsdk:"key"`
-	Value  types.String `tfsdk:"value"`
-	Secret types.Bool   `tfsdk:"secret"`
+	Key      types.String `tfsdk:"key"`
+	Value    types.String `tfsdk:"value"`
+	IsSecret types.Bool   `tfsdk:"is_secret"`
 }
 
 // toUpsertServiceRequest converts Terraform model to domain service request
@@ -191,7 +191,7 @@ func toVariableArray(variablesSet types.Set) ([]terraformservice.Variable, error
 		variables = append(variables, terraformservice.Variable{
 			Key:    ToString(v.Key),
 			Value:  ToString(v.Value),
-			Secret: ToBool(v.Secret),
+			Secret: ToBool(v.IsSecret),
 		})
 	}
 
@@ -300,9 +300,9 @@ func fromVariableArray(ctx context.Context, planVars types.Set, variables []terr
 		}
 		return types.SetNull(types.ObjectType{
 			AttrTypes: map[string]attr.Type{
-				"key":    types.StringType,
-				"value":  types.StringType,
-				"secret": types.BoolType,
+				"key":       types.StringType,
+				"value":     types.StringType,
+				"is_secret": types.BoolType,
 			},
 		})
 	}
@@ -344,22 +344,22 @@ func fromVariableArray(ctx context.Context, planVars types.Set, variables []terr
 
 		objValue, diag := types.ObjectValue(
 			map[string]attr.Type{
-				"key":    types.StringType,
-				"value":  types.StringType,
-				"secret": types.BoolType,
+				"key":       types.StringType,
+				"value":     types.StringType,
+				"is_secret": types.BoolType,
 			},
 			map[string]attr.Value{
-				"key":    FromString(v.Key),
-				"value":  varValue,
-				"secret": FromBool(v.Secret),
+				"key":       FromString(v.Key),
+				"value":     varValue,
+				"is_secret": FromBool(v.Secret),
 			},
 		)
 		if diag.HasError() {
 			return types.SetNull(types.ObjectType{
 				AttrTypes: map[string]attr.Type{
-					"key":    types.StringType,
-					"value":  types.StringType,
-					"secret": types.BoolType,
+					"key":       types.StringType,
+					"value":     types.StringType,
+					"is_secret": types.BoolType,
 				},
 			})
 		}
@@ -370,9 +370,9 @@ func fromVariableArray(ctx context.Context, planVars types.Set, variables []terr
 	setValue, diag := types.SetValue(
 		types.ObjectType{
 			AttrTypes: map[string]attr.Type{
-				"key":    types.StringType,
-				"value":  types.StringType,
-				"secret": types.BoolType,
+				"key":       types.StringType,
+				"value":     types.StringType,
+				"is_secret": types.BoolType,
 			},
 		},
 		tfVars,
@@ -380,9 +380,9 @@ func fromVariableArray(ctx context.Context, planVars types.Set, variables []terr
 	if diag.HasError() {
 		return types.SetNull(types.ObjectType{
 			AttrTypes: map[string]attr.Type{
-				"key":    types.StringType,
-				"value":  types.StringType,
-				"secret": types.BoolType,
+				"key":       types.StringType,
+				"value":     types.StringType,
+				"is_secret": types.BoolType,
 			},
 		})
 	}

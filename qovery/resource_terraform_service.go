@@ -107,12 +107,12 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 					},
 				},
 			},
-			"tfvar_files": schema.ListAttribute{
+			"tfvars_files": schema.ListAttribute{
 				Description: "List of .tfvars file paths relative to the root path.",
 				Required:    true,
 				ElementType: types.StringType,
 			},
-			"variable": schema.SetNestedAttribute{
+			"variables": schema.SetNestedAttribute{
 				Description: "Terraform variables.",
 				Optional:    true,
 				NestedObject: schema.NestedAttributeObject{
@@ -125,7 +125,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 							Description: "Variable value.",
 							Required:    true,
 						},
-						"secret": schema.BoolAttribute{
+						"is_secret": schema.BoolAttribute{
 							Description: "Is this variable a secret.",
 							Optional:    true,
 							Computed:    true,
@@ -231,7 +231,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 					},
 				},
 			},
-			"timeout_sec": schema.Int64Attribute{
+			"timeout_seconds": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Timeout in seconds for Terraform operations.",
 					int64(terraformservice.MinTimeoutSec),

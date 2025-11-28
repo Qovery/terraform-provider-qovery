@@ -45,10 +45,10 @@ func TestAcc_TerraformService(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "job_resources.ram_mib", "1024"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "job_resources.gpu", "0"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "job_resources.storage_gib", "20"),
-					resource.TestCheckResourceAttr("qovery_terraform_service.test", "timeout_sec", "1800"),
+					resource.TestCheckResourceAttr("qovery_terraform_service.test", "timeout_seconds", "1800"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "use_cluster_credentials", "false"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "backend.kubernetes.%", "0"),
-					resource.TestCheckResourceAttr("qovery_terraform_service.test", "tfvar_files.#", "0"),
+					resource.TestCheckResourceAttr("qovery_terraform_service.test", "tfvars_files.#", "0"),
 				),
 			},
 			// Update with variables
@@ -59,14 +59,14 @@ func TestAcc_TerraformService(t *testing.T) {
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
 					testAccQoveryTerraformServiceExists("qovery_terraform_service.test"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "name", generateTestName(testName)+"-updated"),
-					resource.TestCheckTypeSetElemNestedAttrs("qovery_terraform_service.test", "variable.*", map[string]string{
-						"key":    "AWS_REGION",
-						"value":  "us-east-1",
-						"secret": "false",
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_terraform_service.test", "variables.*", map[string]string{
+						"key":       "AWS_REGION",
+						"value":     "us-east-1",
+						"is_secret": "false",
 					}),
-					resource.TestCheckTypeSetElemNestedAttrs("qovery_terraform_service.test", "variable.*", map[string]string{
-						"key":    "DATABASE_PASSWORD",
-						"secret": "true",
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_terraform_service.test", "variables.*", map[string]string{
+						"key":       "DATABASE_PASSWORD",
+						"is_secret": "true",
 					}),
 				),
 			},
@@ -75,7 +75,7 @@ func TestAcc_TerraformService(t *testing.T) {
 				ResourceName:            "qovery_terraform_service.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"variable"},
+				ImportStateVerifyIgnore: []string{"variables"},
 			},
 		},
 	})
@@ -240,7 +240,7 @@ resource "qovery_terraform_service" "test" {
     root_path = "/"
   }
 
-  tfvar_files = []
+  tfvars_files = []
 
   backend = {
     kubernetes = {}
@@ -260,7 +260,7 @@ resource "qovery_terraform_service" "test" {
     storage_gib = 20
   }
 
-  timeout_sec             = 1800
+  timeout_seconds         = 1800
   use_cluster_credentials = false
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName))
@@ -282,18 +282,18 @@ resource "qovery_terraform_service" "test" {
     root_path = "/"
   }
 
-  tfvar_files = []
+  tfvars_files = []
 
-  variable = [
+  variables = [
     {
-      key    = "AWS_REGION"
-      value  = "us-east-1"
-      secret = false
+      key       = "AWS_REGION"
+      value     = "us-east-1"
+      is_secret = false
     },
     {
-      key    = "DATABASE_PASSWORD"
-      value  = "supersecret123"
-      secret = true
+      key       = "DATABASE_PASSWORD"
+      value     = "supersecret123"
+      is_secret = true
     }
   ]
 
@@ -315,7 +315,7 @@ resource "qovery_terraform_service" "test" {
     storage_gib = 20
   }
 
-  timeout_sec             = 1800
+  timeout_seconds         = 1800
   use_cluster_credentials = false
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName))
@@ -337,7 +337,7 @@ resource "qovery_terraform_service" "test" {
     root_path = "/"
   }
 
-  tfvar_files = []
+  tfvars_files = []
 
   backend = {
     user_provided = {}
@@ -357,7 +357,7 @@ resource "qovery_terraform_service" "test" {
     storage_gib = 20
   }
 
-  timeout_sec             = 1800
+  timeout_seconds         = 1800
   use_cluster_credentials = false
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName))
@@ -379,7 +379,7 @@ resource "qovery_terraform_service" "test" {
     root_path = "/"
   }
 
-  tfvar_files = []
+  tfvars_files = []
 
   backend = {
     kubernetes = {}
@@ -399,7 +399,7 @@ resource "qovery_terraform_service" "test" {
     storage_gib = 20
   }
 
-  timeout_sec             = 1800
+  timeout_seconds         = 1800
   use_cluster_credentials = false
 
   advanced_settings_json = jsonencode({
@@ -425,7 +425,7 @@ resource "qovery_terraform_service" "test" {
     root_path = "/"
   }
 
-  tfvar_files = []
+  tfvars_files = []
 
   backend = {
     kubernetes = {}
@@ -445,7 +445,7 @@ resource "qovery_terraform_service" "test" {
     storage_gib = 20
   }
 
-  timeout_sec             = 1800
+  timeout_seconds         = 1800
   use_cluster_credentials = false
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName))
@@ -467,7 +467,7 @@ resource "qovery_terraform_service" "test" {
     root_path = "/"
   }
 
-  tfvar_files = []
+  tfvars_files = []
 
   backend = {
     kubernetes = {}
@@ -487,7 +487,7 @@ resource "qovery_terraform_service" "test" {
     storage_gib = 10  # Reduced from 20
   }
 
-  timeout_sec             = 1800
+  timeout_seconds         = 1800
   use_cluster_credentials = false
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName))

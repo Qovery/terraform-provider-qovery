@@ -24,19 +24,19 @@ resource "qovery_terraform_service" "my_terraform_service" {
     # git_token_id = qovery_git_token.my_git_token.id  # Optional, for private repos
   }
 
-  tfvar_files = []
+  tfvars_files = []
 
   # Optional: Variables
-  variable = [
+  variables = [
     {
-      key    = "AWS_REGION"
-      value  = "us-east-1"
-      secret = false
+      key       = "AWS_REGION"
+      value     = "us-east-1"
+      is_secret = false
     },
     {
-      key    = "DATABASE_PASSWORD"
-      value  = "supersecret"
-      secret = true
+      key       = "DATABASE_PASSWORD"
+      value     = "supersecret"
+      is_secret = true
     }
   ]
 
@@ -64,7 +64,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
   }
 
   # Optional settings
-  timeout_sec             = 1800
+  timeout_seconds         = 1800
   icon_uri                = "app://qovery-console/terraform"
   use_cluster_credentials = false
 
@@ -247,7 +247,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 - `git_repository` (Attributes) Terraform service git repository configuration. (see [below for nested schema](#nestedatt--git_repository))
 - `job_resources` (Attributes) Resource allocation for the Terraform job. (see [below for nested schema](#nestedatt--job_resources))
 - `name` (String) Name of the terraform service.
-- `tfvar_files` (List of String) List of .tfvars file paths relative to the root path.
+- `tfvars_files` (List of String) List of .tfvars file paths relative to the root path.
 
 ### Optional
 
@@ -255,11 +255,11 @@ resource "qovery_terraform_service" "my_terraform_service" {
 - `advanced_settings_json` (String) Advanced settings in JSON format.
 - `description` (String) Description of the terraform service.
 - `icon_uri` (String) Icon URI representing the terraform service.
-- `timeout_sec` (Number) Timeout in seconds for Terraform operations.
+- `timeout_seconds` (Number) Timeout in seconds for Terraform operations.
 	- Must be: `>= 0`.
 	- Default: `1800`.
 - `use_cluster_credentials` (Boolean) Use cluster credentials for cloud provider authentication.
-- `variable` (Attributes Set) Terraform variables. (see [below for nested schema](#nestedatt--variable))
+- `variables` (Attributes Set) Terraform variables. (see [below for nested schema](#nestedatt--variables))
 
 ### Read-Only
 
@@ -329,8 +329,8 @@ Optional:
 	- Default: `20`.
 
 
-<a id="nestedatt--variable"></a>
-### Nested Schema for `variable`
+<a id="nestedatt--variables"></a>
+### Nested Schema for `variables`
 
 Required:
 
@@ -339,7 +339,7 @@ Required:
 
 Optional:
 
-- `secret` (Boolean) Is this variable a secret.
+- `is_secret` (Boolean) Is this variable a secret.
 ## Import
 ```shell
 terraform import qovery_terraform_service.my_terraform_service "<terraform_service_id>"
