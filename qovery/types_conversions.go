@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
@@ -231,4 +232,15 @@ func FromStringSet(array []string) types.Set {
 	}
 	value, _ := basetypes.NewSetValue(types.StringType, elements)
 	return value
+}
+
+func FromTime(t time.Time) types.String {
+	return FromString(t.Format(time.RFC3339))
+}
+
+func FromTimePointer(t *time.Time) types.String {
+	if t == nil {
+		return basetypes.NewStringNull()
+	}
+	return FromTime(*t)
 }

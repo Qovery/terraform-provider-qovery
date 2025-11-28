@@ -25,6 +25,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/terraformservice"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 	"github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories/qoveryapi"
 )
@@ -67,6 +68,7 @@ type Repositories struct {
 	HelmRepository                 helmRepository.Repository
 	AnnotationsGroupRepository     annotations_group.Repository
 	LabelsGroupRepository          labels_group.Repository
+	TerraformService               terraformservice.Repository
 }
 
 func New(configs ...Configuration) (*Repositories, error) {
@@ -127,6 +129,7 @@ func WithQoveryAPI(apiToken string, providerVersion string, host string) Configu
 		repos.HelmRepository = qoveryAPI.HelmRepository
 		repos.AnnotationsGroupRepository = qoveryAPI.AnnotationsGroup
 		repos.LabelsGroupRepository = qoveryAPI.LabelsGroup
+		repos.TerraformService = qoveryAPI.TerraformService
 
 		return nil
 	}

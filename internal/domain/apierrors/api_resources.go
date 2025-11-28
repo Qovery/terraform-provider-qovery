@@ -48,4 +48,5 @@ const (
 	APIResourceHelmCustomDomain               APIResource = "helm custom domain"
 	APIResourceAnnotationsGroup               APIResource = "annotations group"
 	APIResourceLabelsGroup                    APIResource = "labels group"
+	APIResourceTerraformService               APIResource = "terraform service"
 )

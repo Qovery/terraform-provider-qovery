@@ -19,6 +19,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/terraformservice"
 	"github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories"
 )
 
@@ -51,6 +52,7 @@ type Services struct {
 	AnnotationsGroup             annotations_group.Service
 	LabelsGroup                  labels_group.Service
 	DeploymentRestrictionService deploymentrestriction.DeploymentRestrictionService
+	TerraformService             terraformservice.Service
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -222,6 +224,11 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
+	terraformServiceService, err := NewTerraformServiceService(services.repos.TerraformService)
+	if err != nil {
+		return nil, err
+	}
+
 	services.CredentialsAws = credentialsAwsService
 	services.CredentialsScaleway = credentialsScalewayService
 	services.Organization = organizationService
@@ -238,6 +245,7 @@ func New(configs ...Configuration) (*Services, error) {
 	services.DeploymentRestrictionService = deploymentRestrictionService
 	services.AnnotationsGroup = annotationsGroupService
 	services.LabelsGroup = labelsGroupService
+	services.TerraformService = terraformServiceService
 
 	return services, nil
 }

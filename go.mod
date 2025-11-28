@@ -1,6 +1,6 @@
 module github.com/qovery/terraform-provider-qovery
 
-go 1.25.3
+go 1.25.4
 
 require (
 	github.com/AlekSi/pointer v1.2.0
@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.9.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.38.1
 	github.com/pkg/errors v0.9.1
-	github.com/qovery/qovery-client-go v0.0.0-20251120121113-0aad5fc682ab
+	github.com/qovery/qovery-client-go v0.0.0-20251128140442-9e166d13908d
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/sethvargo/go-envconfig v1.1.0
 	github.com/stretchr/testify v1.11.1
