@@ -3,6 +3,8 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"net"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -23,27 +25,33 @@ const (
 	featureKeyExistingVpc = "existing_vpc"
 	featureIdKarpenter    = "KARPENTER"
 	featureKeyKarpenter   = "karpenter"
+
+	// Infrastructure charts parameter keys
+	infraChartsNginxKey       = "nginx_parameters"
+	infraChartsCertManagerKey = "cert_manager_parameters"
+	infraChartsMetalLbKey     = "metal_lb_parameters"
 )
 
 type Cluster struct {
-	Id                    types.String `tfsdk:"id"`
-	OrganizationId        types.String `tfsdk:"organization_id"`
-	CredentialsId         types.String `tfsdk:"credentials_id"`
-	Name                  types.String `tfsdk:"name"`
-	CloudProvider         types.String `tfsdk:"cloud_provider"`
-	Region                types.String `tfsdk:"region"`
-	Description           types.String `tfsdk:"description"`
-	KubernetesMode        types.String `tfsdk:"kubernetes_mode"`
-	InstanceType          types.String `tfsdk:"instance_type"`
-	DiskSize              types.Int64  `tfsdk:"disk_size"`
-	MinRunningNodes       types.Int64  `tfsdk:"min_running_nodes"`
-	MaxRunningNodes       types.Int64  `tfsdk:"max_running_nodes"`
-	Production            types.Bool   `tfsdk:"production"`
-	Features              types.Object `tfsdk:"features"`
-	RoutingTables         types.Set    `tfsdk:"routing_table"`
-	State                 types.String `tfsdk:"state"`
-	AdvancedSettingsJson  types.String `tfsdk:"advanced_settings_json"`
-	InfrastructureOutputs types.Object `tfsdk:"infrastructure_outputs"`
+	Id                             types.String `tfsdk:"id"`
+	OrganizationId                 types.String `tfsdk:"organization_id"`
+	CredentialsId                  types.String `tfsdk:"credentials_id"`
+	Name                           types.String `tfsdk:"name"`
+	CloudProvider                  types.String `tfsdk:"cloud_provider"`
+	Region                         types.String `tfsdk:"region"`
+	Description                    types.String `tfsdk:"description"`
+	KubernetesMode                 types.String `tfsdk:"kubernetes_mode"`
+	InstanceType                   types.String `tfsdk:"instance_type"`
+	DiskSize                       types.Int64  `tfsdk:"disk_size"`
+	MinRunningNodes                types.Int64  `tfsdk:"min_running_nodes"`
+	MaxRunningNodes                types.Int64  `tfsdk:"max_running_nodes"`
+	Production                     types.Bool   `tfsdk:"production"`
+	Features                       types.Object `tfsdk:"features"`
+	RoutingTables                  types.Set    `tfsdk:"routing_table"`
+	State                          types.String `tfsdk:"state"`
+	AdvancedSettingsJson           types.String `tfsdk:"advanced_settings_json"`
+	InfrastructureOutputs          types.Object `tfsdk:"infrastructure_outputs"`
+	InfrastructureChartsParameters types.Object `tfsdk:"infrastructure_charts_parameters"`
 }
 
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
@@ -102,6 +110,17 @@ func (c Cluster) hasRoutingTableDiff(state *Cluster) bool {
 	return false
 }
 
+func (c Cluster) hasInfraChartsParamsDiff(state *Cluster) bool {
+	if c.InfrastructureChartsParameters.IsNull() || c.InfrastructureChartsParameters.IsUnknown() {
+		return state != nil && !state.InfrastructureChartsParameters.IsNull() && !state.InfrastructureChartsParameters.IsUnknown()
+	}
+	if state == nil || state.InfrastructureChartsParameters.IsNull() || state.InfrastructureChartsParameters.IsUnknown() {
+		return true
+	}
+	// Compare the object values
+	return !c.InfrastructureChartsParameters.Equal(state.InfrastructureChartsParameters)
+}
+
 func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertParams, error) {
 	cloudProvider, err := qovery.NewCloudProviderEnumFromValue(ToString(c.CloudProvider))
 	cloudVendor, err := qovery.NewCloudVendorEnumFromValue(ToString(c.CloudProvider))
@@ -116,9 +135,95 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 
 	routingTable := toClusterRouteList(c.RoutingTables)
 
+	// Handle PARTIALLY_MANAGED (EKS Anywhere) mode validations
+	isPartiallyManaged := kubernetesMode != nil && *kubernetesMode == qovery.KUBERNETESENUM_PARTIALLY_MANAGED
+
+	// Convert infrastructure charts parameters
+	var infraChartsParams *qovery.ClusterInfrastructureChartsParameters
+	if !c.InfrastructureChartsParameters.IsNull() && !c.InfrastructureChartsParameters.IsUnknown() {
+		infraChartsParams, err = toQoveryInfrastructureChartsParameters(c.InfrastructureChartsParameters)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to parse infrastructure_charts_parameters")
+		}
+	}
+
+	// Validation for PARTIALLY_MANAGED mode
+	if isPartiallyManaged {
+		// infrastructure_charts_parameters is required for PARTIALLY_MANAGED
+		if infraChartsParams == nil {
+			return nil, errors.New("infrastructure_charts_parameters is required when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
+		}
+
+		// Validate that metal_lb_parameters.ip_address_pools is not empty
+		if infraChartsParams.MetalLbParameters == nil || len(infraChartsParams.MetalLbParameters.IpAddressPools) == 0 {
+			return nil, errors.New("infrastructure_charts_parameters.metal_lb_parameters.ip_address_pools is required and must not be empty for PARTIALLY_MANAGED mode")
+		}
+
+		// Features are not allowed for PARTIALLY_MANAGED mode
+		if !c.Features.IsNull() && !c.Features.IsUnknown() {
+			featuresAttrs := c.Features.Attributes()
+			// Check if any feature is actually set (not just defaults)
+			hasNonDefaultFeatures := false
+
+			if vpcSubnet, ok := featuresAttrs[featureKeyVpcSubnet]; ok {
+				if !vpcSubnet.IsNull() && !vpcSubnet.IsUnknown() {
+					vpcSubnetStr := vpcSubnet.(types.String).ValueString()
+					if vpcSubnetStr != "" && vpcSubnetStr != clusterFeatureVpcSubnetDefault {
+						hasNonDefaultFeatures = true
+					}
+				}
+			}
+			if staticIP, ok := featuresAttrs[featureKeyStaticIP]; ok {
+				if !staticIP.IsNull() && !staticIP.IsUnknown() && staticIP.(types.Bool).ValueBool() {
+					hasNonDefaultFeatures = true
+				}
+			}
+			if existingVpc, ok := featuresAttrs[featureKeyExistingVpc]; ok {
+				if !existingVpc.IsNull() && !existingVpc.IsUnknown() {
+					// Check if existing_vpc has actual content (aws_vpc_eks_id is required)
+					existingVpcObj := existingVpc.(types.Object)
+					if !existingVpcObj.IsNull() && len(existingVpcObj.Attributes()) > 0 {
+						if vpcId, hasVpcId := existingVpcObj.Attributes()["aws_vpc_eks_id"]; hasVpcId {
+							if !vpcId.IsNull() && !vpcId.IsUnknown() {
+								hasNonDefaultFeatures = true
+							}
+						}
+					}
+				}
+			}
+			if karpenter, ok := featuresAttrs[featureKeyKarpenter]; ok {
+				if !karpenter.IsNull() && !karpenter.IsUnknown() {
+					// Check if karpenter has actual content (spot_enabled is required)
+					karpenterObj := karpenter.(types.Object)
+					if !karpenterObj.IsNull() && len(karpenterObj.Attributes()) > 0 {
+						if spotEnabled, hasSpot := karpenterObj.Attributes()["spot_enabled"]; hasSpot {
+							if !spotEnabled.IsNull() && !spotEnabled.IsUnknown() {
+								hasNonDefaultFeatures = true
+							}
+						}
+					}
+				}
+			}
+
+			if hasNonDefaultFeatures {
+				return nil, errors.New("features (vpc_subnet, static_ip, existing_vpc, karpenter) are not supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
+			}
+		}
+	} else {
+		// infrastructure_charts_parameters should not be set for non-PARTIALLY_MANAGED modes
+		if infraChartsParams != nil {
+			return nil, errors.New("infrastructure_charts_parameters is only supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
+		}
+	}
+
 	features, err := toQoveryClusterFeatures(c.Features, c.KubernetesMode.String())
 	if err != nil {
 		return nil, err
+	}
+
+	// For PARTIALLY_MANAGED mode, clear features to avoid sending them to API
+	if isPartiallyManaged {
+		features = nil
 	}
 
 	if features != nil {
@@ -156,7 +261,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		}
 	}
 
-	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state)
+	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || c.hasInfraChartsParamsDiff(state)
 
 	desiredState, err := qovery.NewClusterStateEnumFromValue(ToString(c.State))
 	if err != nil {
@@ -166,18 +271,19 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 	return &client.ClusterUpsertParams{
 		ClusterCloudProviderRequest: clusterCloudProviderRequest,
 		ClusterRequest: qovery.ClusterRequest{
-			Name:                     ToString(c.Name),
-			CloudProvider:            *cloudVendor,
-			CloudProviderCredentials: clusterCloudProviderRequest,
-			Region:                   ToString(c.Region),
-			Description:              ToStringPointer(c.Description),
-			Kubernetes:               kubernetesMode,
-			InstanceType:             ToStringPointer(c.InstanceType),
-			DiskSize:                 ToInt64Pointer(c.DiskSize),
-			MinRunningNodes:          ToInt32Pointer(c.MinRunningNodes),
-			MaxRunningNodes:          ToInt32Pointer(c.MaxRunningNodes),
-			Production:               ToBoolPointer(c.Production),
-			Features:                 features,
+			Name:                           ToString(c.Name),
+			CloudProvider:                  *cloudVendor,
+			CloudProviderCredentials:       clusterCloudProviderRequest,
+			Region:                         ToString(c.Region),
+			Description:                    ToStringPointer(c.Description),
+			Kubernetes:                     kubernetesMode,
+			InstanceType:                   ToStringPointer(c.InstanceType),
+			DiskSize:                       ToInt64Pointer(c.DiskSize),
+			MinRunningNodes:                ToInt32Pointer(c.MinRunningNodes),
+			MaxRunningNodes:                ToInt32Pointer(c.MaxRunningNodes),
+			Production:                     ToBoolPointer(c.Production),
+			Features:                       features,
+			InfrastructureChartsParameters: infraChartsParams,
 		},
 		ClusterRoutingTable:  routingTable.toUpsertRequest(),
 		AdvancedSettingsJson: ToString(c.AdvancedSettingsJson),
@@ -205,26 +311,52 @@ func IsKarpenterAlreadyInstalled(state *Cluster) bool {
 func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, initialPlan Cluster) Cluster {
 	routingTable := fromClusterRoutingTable(res.ClusterRoutingTable)
 
-	return Cluster{
-		Id:                    FromString(res.ClusterResponse.Id),
-		CredentialsId:         FromStringPointer(res.ClusterInfo.Credentials.Id),
-		OrganizationId:        FromString(res.OrganizationID),
-		Name:                  FromString(res.ClusterResponse.Name),
-		CloudProvider:         fromClientEnum(res.ClusterResponse.CloudProvider),
-		Region:                FromString(res.ClusterResponse.Region),
-		Description:           FromStringPointer(res.ClusterResponse.Description),
-		KubernetesMode:        fromClientEnumPointer(res.ClusterResponse.Kubernetes),
-		InstanceType:          FromStringPointer(res.ClusterResponse.InstanceType),
-		DiskSize:              FromInt32Pointer(res.ClusterResponse.DiskSize),
-		MinRunningNodes:       FromInt32Pointer(res.ClusterResponse.MinRunningNodes),
-		MaxRunningNodes:       FromInt32Pointer(res.ClusterResponse.MaxRunningNodes),
-		Production:            FromBoolPointer(res.ClusterResponse.Production),
-		Features:              fromQoveryClusterFeatures(res.ClusterResponse.Features, initialPlan),
-		RoutingTables:         routingTable.toTerraformSet(ctx, initialPlan.RoutingTables),
-		State:                 fromClientEnumPointer(res.ClusterResponse.Status),
-		AdvancedSettingsJson:  FromString(res.AdvancedSettingsJson),
-		InfrastructureOutputs: fromQoveryClusterOutput(res.ClusterResponse.InfrastructureOutputs),
+	// Check if cluster is PARTIALLY_MANAGED (EKS Anywhere)
+	isPartiallyManaged := res.ClusterResponse.Kubernetes != nil &&
+		*res.ClusterResponse.Kubernetes == qovery.KUBERNETESENUM_PARTIALLY_MANAGED
+
+	cluster := Cluster{
+		Id:                             FromString(res.ClusterResponse.Id),
+		CredentialsId:                  FromStringPointer(res.ClusterInfo.Credentials.Id),
+		OrganizationId:                 FromString(res.OrganizationID),
+		Name:                           FromString(res.ClusterResponse.Name),
+		CloudProvider:                  fromClientEnum(res.ClusterResponse.CloudProvider),
+		Region:                         FromString(res.ClusterResponse.Region),
+		Description:                    FromStringPointer(res.ClusterResponse.Description),
+		KubernetesMode:                 fromClientEnumPointer(res.ClusterResponse.Kubernetes),
+		Production:                     FromBoolPointer(res.ClusterResponse.Production),
+		State:                          fromClientEnumPointer(res.ClusterResponse.Status),
+		AdvancedSettingsJson:           FromString(res.AdvancedSettingsJson),
+		InfrastructureChartsParameters: fromQoveryInfrastructureChartsParameters(res.ClusterResponse.InfrastructureChartsParameters),
 	}
+
+	// For PARTIALLY_MANAGED (EKS Anywhere) clusters, these fields are not applicable
+	// Return null values to avoid spurious terraform plan changes
+	if isPartiallyManaged {
+		cluster.InstanceType = types.StringNull()
+		cluster.DiskSize = types.Int64Null()
+		cluster.MinRunningNodes = types.Int64Null()
+		cluster.MaxRunningNodes = types.Int64Null()
+		cluster.Features = types.ObjectNull(createFeaturesAttrTypes())
+		cluster.RoutingTables = types.SetNull(types.ObjectType{AttrTypes: clusterRouteAttrTypes})
+		cluster.InfrastructureOutputs = types.ObjectNull(map[string]attr.Type{
+			"cluster_name":        types.StringType,
+			"cluster_arn":         types.StringType,
+			"cluster_self_link":   types.StringType,
+			"cluster_oidc_issuer": types.StringType,
+			"vpc_id":              types.StringType,
+		})
+	} else {
+		cluster.InstanceType = FromStringPointer(res.ClusterResponse.InstanceType)
+		cluster.DiskSize = FromInt32Pointer(res.ClusterResponse.DiskSize)
+		cluster.MinRunningNodes = FromInt32Pointer(res.ClusterResponse.MinRunningNodes)
+		cluster.MaxRunningNodes = FromInt32Pointer(res.ClusterResponse.MaxRunningNodes)
+		cluster.Features = fromQoveryClusterFeatures(res.ClusterResponse.Features, initialPlan)
+		cluster.RoutingTables = routingTable.toTerraformSet(ctx, initialPlan.RoutingTables)
+		cluster.InfrastructureOutputs = fromQoveryClusterOutput(res.ClusterResponse.InfrastructureOutputs)
+	}
+
+	return cluster
 }
 
 func fromQoveryClusterOutput(
@@ -858,6 +990,16 @@ func createKarpenterFeatureAttrTypes() map[string]attr.Type {
 	return attrTypes
 }
 
+// createFeaturesAttrTypes returns the attribute types for the features object
+func createFeaturesAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		featureKeyVpcSubnet:   types.StringType,
+		featureKeyStaticIP:    types.BoolType,
+		featureKeyExistingVpc: types.ObjectType{AttrTypes: createExistingVpcFeatureAttrTypes()},
+		featureKeyKarpenter:   types.ObjectType{AttrTypes: createKarpenterFeatureAttrTypes()},
+	}
+}
+
 func createExistingVpcFeatureAttrTypes() map[string]attr.Type {
 	attrTypes := make(map[string]attr.Type)
 	attrTypes["aws_vpc_eks_id"] = types.StringType
@@ -1145,4 +1287,222 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 	}
 
 	return attrVals
+}
+
+// Infrastructure Charts Parameters helper functions
+
+// validateIPAddressPool validates IP address pool format (single IP or IP-IP range)
+func validateIPAddressPool(pool string) error {
+	pool = strings.TrimSpace(pool)
+	if pool == "" {
+		return fmt.Errorf("IP address pool cannot be empty")
+	}
+
+	// Check if it's a range (IP-IP format)
+	if strings.Contains(pool, "-") {
+		parts := strings.Split(pool, "-")
+		if len(parts) != 2 {
+			return fmt.Errorf("invalid IP range format '%s': expected 'IP-IP'", pool)
+		}
+		startIP := net.ParseIP(strings.TrimSpace(parts[0]))
+		endIP := net.ParseIP(strings.TrimSpace(parts[1]))
+		if startIP == nil {
+			return fmt.Errorf("invalid start IP in range '%s'", pool)
+		}
+		if endIP == nil {
+			return fmt.Errorf("invalid end IP in range '%s'", pool)
+		}
+		// Ensure both are IPv4
+		if startIP.To4() == nil {
+			return fmt.Errorf("start IP '%s' is not a valid IPv4 address", parts[0])
+		}
+		if endIP.To4() == nil {
+			return fmt.Errorf("end IP '%s' is not a valid IPv4 address", parts[1])
+		}
+	} else {
+		// Single IP
+		ip := net.ParseIP(pool)
+		if ip == nil {
+			return fmt.Errorf("invalid IP address '%s'", pool)
+		}
+		if ip.To4() == nil {
+			return fmt.Errorf("IP '%s' is not a valid IPv4 address", pool)
+		}
+	}
+	return nil
+}
+
+// createInfrastructureChartsParametersAttrTypes returns the attribute types for infrastructure charts parameters
+func createInfrastructureChartsParametersAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		infraChartsNginxKey: types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"replica_count":                               types.Int64Type,
+				"default_ssl_certificate":                     types.StringType,
+				"publish_status_address":                      types.StringType,
+				"annotation_metal_lb_load_balancer_ips":       types.StringType,
+				"annotation_external_dns_kubernetes_target":   types.StringType,
+			},
+		},
+		infraChartsCertManagerKey: types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"kubernetes_namespace": types.StringType,
+			},
+		},
+		infraChartsMetalLbKey: types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"ip_address_pools": types.ListType{ElemType: types.StringType},
+			},
+		},
+	}
+}
+
+// toQoveryInfrastructureChartsParameters converts Terraform infrastructure charts parameters to Qovery API format
+func toQoveryInfrastructureChartsParameters(obj types.Object) (*qovery.ClusterInfrastructureChartsParameters, error) {
+	if obj.IsNull() || obj.IsUnknown() {
+		return nil, nil
+	}
+
+	params := qovery.NewClusterInfrastructureChartsParameters()
+
+	// Parse nginx parameters
+	if nginxAttr, ok := obj.Attributes()[infraChartsNginxKey]; ok && !nginxAttr.IsNull() {
+		nginxObj := nginxAttr.(types.Object)
+		nginxParams := qovery.NewClusterInfrastructureNginxChartParameters()
+
+		if v, ok := nginxObj.Attributes()["replica_count"]; ok && !v.IsNull() && !v.IsUnknown() {
+			val := int32(v.(types.Int64).ValueInt64())
+			nginxParams.ReplicaCount = &val
+		}
+		if v, ok := nginxObj.Attributes()["default_ssl_certificate"]; ok && !v.IsNull() && !v.IsUnknown() {
+			val := v.(types.String).ValueString()
+			nginxParams.DefaultSslCertificate = &val
+		}
+		if v, ok := nginxObj.Attributes()["publish_status_address"]; ok && !v.IsNull() && !v.IsUnknown() {
+			val := v.(types.String).ValueString()
+			nginxParams.PublishStatusAddress = &val
+		}
+		if v, ok := nginxObj.Attributes()["annotation_metal_lb_load_balancer_ips"]; ok && !v.IsNull() && !v.IsUnknown() {
+			val := v.(types.String).ValueString()
+			nginxParams.AnnotationMetalLbLoadBalancerIps = &val
+		}
+		if v, ok := nginxObj.Attributes()["annotation_external_dns_kubernetes_target"]; ok && !v.IsNull() && !v.IsUnknown() {
+			val := v.(types.String).ValueString()
+			nginxParams.AnnotationExternalDnsKubernetesTarget = &val
+		}
+		params.NginxParameters = nginxParams
+	}
+
+	// Parse cert manager parameters
+	if certManagerAttr, ok := obj.Attributes()[infraChartsCertManagerKey]; ok && !certManagerAttr.IsNull() {
+		certManagerObj := certManagerAttr.(types.Object)
+		certManagerParams := qovery.NewClusterInfrastructureCertManagerChartParameters()
+
+		if v, ok := certManagerObj.Attributes()["kubernetes_namespace"]; ok && !v.IsNull() && !v.IsUnknown() {
+			val := v.(types.String).ValueString()
+			certManagerParams.KubernetesNamespace = &val
+		}
+		params.CertManagerParameters = certManagerParams
+	}
+
+	// Parse metal LB parameters
+	if metalLbAttr, ok := obj.Attributes()[infraChartsMetalLbKey]; ok && !metalLbAttr.IsNull() {
+		metalLbObj := metalLbAttr.(types.Object)
+		metalLbParams := qovery.NewClusterInfrastructureMetalLbChartParameters()
+
+		if v, ok := metalLbObj.Attributes()["ip_address_pools"]; ok && !v.IsNull() && !v.IsUnknown() {
+			poolsList := v.(types.List)
+			pools := make([]string, 0, len(poolsList.Elements()))
+			for _, elem := range poolsList.Elements() {
+				pool := elem.(types.String).ValueString()
+				// Validate IP pool format
+				if err := validateIPAddressPool(pool); err != nil {
+					return nil, fmt.Errorf("invalid ip_address_pools: %w", err)
+				}
+				pools = append(pools, pool)
+			}
+			metalLbParams.IpAddressPools = pools
+		}
+		params.MetalLbParameters = metalLbParams
+	}
+
+	return params, nil
+}
+
+// fromQoveryInfrastructureChartsParameters converts Qovery API infrastructure charts parameters to Terraform format
+func fromQoveryInfrastructureChartsParameters(params *qovery.ClusterInfrastructureChartsParameters) types.Object {
+	attrTypes := createInfrastructureChartsParametersAttrTypes()
+
+	if params == nil {
+		return types.ObjectNull(attrTypes)
+	}
+
+	attrVals := make(map[string]attr.Value)
+
+	// Convert nginx parameters
+	nginxAttrTypes := attrTypes[infraChartsNginxKey].(types.ObjectType).AttrTypes
+	if params.NginxParameters != nil {
+		nginx := params.NginxParameters
+		nginxVals := map[string]attr.Value{
+			"replica_count":                             types.Int64Null(),
+			"default_ssl_certificate":                   types.StringNull(),
+			"publish_status_address":                    types.StringNull(),
+			"annotation_metal_lb_load_balancer_ips":     types.StringNull(),
+			"annotation_external_dns_kubernetes_target": types.StringNull(),
+		}
+		if nginx.ReplicaCount != nil {
+			nginxVals["replica_count"] = types.Int64Value(int64(*nginx.ReplicaCount))
+		}
+		if nginx.DefaultSslCertificate != nil {
+			nginxVals["default_ssl_certificate"] = types.StringValue(*nginx.DefaultSslCertificate)
+		}
+		if nginx.PublishStatusAddress != nil {
+			nginxVals["publish_status_address"] = types.StringValue(*nginx.PublishStatusAddress)
+		}
+		if nginx.AnnotationMetalLbLoadBalancerIps != nil {
+			nginxVals["annotation_metal_lb_load_balancer_ips"] = types.StringValue(*nginx.AnnotationMetalLbLoadBalancerIps)
+		}
+		if nginx.AnnotationExternalDnsKubernetesTarget != nil {
+			nginxVals["annotation_external_dns_kubernetes_target"] = types.StringValue(*nginx.AnnotationExternalDnsKubernetesTarget)
+		}
+		attrVals[infraChartsNginxKey] = types.ObjectValueMust(nginxAttrTypes, nginxVals)
+	} else {
+		attrVals[infraChartsNginxKey] = types.ObjectNull(nginxAttrTypes)
+	}
+
+	// Convert cert manager parameters
+	certManagerAttrTypes := attrTypes[infraChartsCertManagerKey].(types.ObjectType).AttrTypes
+	if params.CertManagerParameters != nil {
+		certManager := params.CertManagerParameters
+		certManagerVals := map[string]attr.Value{
+			"kubernetes_namespace": types.StringNull(),
+		}
+		if certManager.KubernetesNamespace != nil {
+			certManagerVals["kubernetes_namespace"] = types.StringValue(*certManager.KubernetesNamespace)
+		}
+		attrVals[infraChartsCertManagerKey] = types.ObjectValueMust(certManagerAttrTypes, certManagerVals)
+	} else {
+		attrVals[infraChartsCertManagerKey] = types.ObjectNull(certManagerAttrTypes)
+	}
+
+	// Convert metal LB parameters
+	metalLbAttrTypes := attrTypes[infraChartsMetalLbKey].(types.ObjectType).AttrTypes
+	if params.MetalLbParameters != nil {
+		metalLb := params.MetalLbParameters
+		metalLbVals := map[string]attr.Value{
+			"ip_address_pools": types.ListNull(types.StringType),
+		}
+		if len(metalLb.IpAddressPools) > 0 {
+			poolVals := make([]attr.Value, len(metalLb.IpAddressPools))
+			for i, pool := range metalLb.IpAddressPools {
+				poolVals[i] = types.StringValue(pool)
+			}
+			metalLbVals["ip_address_pools"] = types.ListValueMust(types.StringType, poolVals)
+		}
+		attrVals[infraChartsMetalLbKey] = types.ObjectValueMust(metalLbAttrTypes, metalLbVals)
+	} else {
+		attrVals[infraChartsMetalLbKey] = types.ObjectNull(metalLbAttrTypes)
+	}
+
+	return types.ObjectValueMust(attrTypes, attrVals)
 }

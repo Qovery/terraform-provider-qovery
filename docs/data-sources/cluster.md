@@ -26,7 +26,7 @@ data "qovery_cluster" "my_cluster" {
 - `features` (Attributes) Features of the cluster. (see [below for nested schema](#nestedatt--features))
 - `instance_type` (String) Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`, and not set for Karpenter-enabled clusters
 - `kubernetes_mode` (String) Kubernetes mode of the cluster.
-	- Can be: `MANAGED`, `SELF_MANAGED`.
+	- Can be: `MANAGED`, `PARTIALLY_MANAGED`, `SELF_MANAGED`.
 	- Default: `MANAGED`.
 - `max_running_nodes` (Number) Maximum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters, and not set for Karpenter-enabled clusters]
 	- Must be: `>= 1`.
@@ -45,6 +45,7 @@ data "qovery_cluster" "my_cluster" {
 - `cloud_provider` (String) Cloud provider of the cluster.
 	- Can be: `AWS`, `AZURE`, `GCP`, `ON_PREMISE`, `SCW`.
 - `credentials_id` (String) Id of the credentials.
+- `infrastructure_charts_parameters` (Attributes) Infrastructure charts parameters for PARTIALLY_MANAGED (EKS Anywhere) clusters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters))
 - `infrastructure_outputs` (Attributes) Outputs related to the underlying Kubernetes infrastructure. These values are only available once the cluster is deployed. (see [below for nested schema](#nestedatt--infrastructure_outputs))
 - `name` (String) Name of the cluster.
 - `region` (String) Region of the cluster.
@@ -179,6 +180,44 @@ Read-Only:
 - `description` (String) Description of the route.
 - `destination` (String) Destination of the route.
 - `target` (String) Target of the route.
+
+
+<a id="nestedatt--infrastructure_charts_parameters"></a>
+### Nested Schema for `infrastructure_charts_parameters`
+
+Read-Only:
+
+- `cert_manager_parameters` (Attributes) Cert-manager parameters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--cert_manager_parameters))
+- `metal_lb_parameters` (Attributes) MetalLB load balancer parameters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--metal_lb_parameters))
+- `nginx_parameters` (Attributes) Nginx ingress controller parameters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--nginx_parameters))
+
+<a id="nestedatt--infrastructure_charts_parameters--cert_manager_parameters"></a>
+### Nested Schema for `infrastructure_charts_parameters.cert_manager_parameters`
+
+Read-Only:
+
+- `kubernetes_namespace` (String) Kubernetes namespace for cert-manager.
+
+
+<a id="nestedatt--infrastructure_charts_parameters--metal_lb_parameters"></a>
+### Nested Schema for `infrastructure_charts_parameters.metal_lb_parameters`
+
+Read-Only:
+
+- `ip_address_pools` (List of String) List of IP address pools.
+
+
+<a id="nestedatt--infrastructure_charts_parameters--nginx_parameters"></a>
+### Nested Schema for `infrastructure_charts_parameters.nginx_parameters`
+
+Read-Only:
+
+- `annotation_external_dns_kubernetes_target` (String) External DNS Kubernetes target annotation.
+- `annotation_metal_lb_load_balancer_ips` (String) MetalLB load balancer IP annotation.
+- `default_ssl_certificate` (String) Default SSL certificate.
+- `publish_status_address` (String) Public IP address for status publishing.
+- `replica_count` (Number) Number of Nginx replicas.
+
 
 
 <a id="nestedatt--infrastructure_outputs"></a>

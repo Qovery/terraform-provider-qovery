@@ -182,6 +182,54 @@ resource "qovery_cluster" "cluster" {
     "scaleway.enable_private_network_migration" : false,
   })
 }
+
+################
+# EKS Anywhere #
+################
+
+# AWS Credentials for EKS Anywhere
+resource "qovery_aws_credentials" "eks_anywhere_creds" {
+  organization_id   = qovery_organization.my_organization.id
+  name              = "My EKS Anywhere credentials"
+  access_key_id     = var.access_key_id
+  secret_access_key = var.secret_access_key
+}
+
+# EKS Anywhere (PARTIALLY_MANAGED) Cluster example
+resource "qovery_cluster" "eks_anywhere_cluster" {
+  organization_id = qovery_organization.my_organization.id
+  credentials_id  = qovery_aws_credentials.eks_anywhere_creds.id
+  name            = "my-eks-anywhere-cluster"
+  cloud_provider  = "AWS"
+  region          = "on-premise"
+  kubernetes_mode = "PARTIALLY_MANAGED"
+
+  description = "EKS Anywhere cluster managed by Qovery"
+
+  # Required for PARTIALLY_MANAGED mode
+  infrastructure_charts_parameters = {
+    nginx_parameters = {
+      replica_count                             = 2
+      default_ssl_certificate                   = "qovery/letsencrypt-acme-qovery-cert"
+      publish_status_address                    = "192.168.1.100"
+      annotation_metal_lb_load_balancer_ips     = "192.168.1.100"
+      annotation_external_dns_kubernetes_target = "192.168.1.100"
+    }
+    cert_manager_parameters = {
+      kubernetes_namespace = "qovery"
+    }
+    metal_lb_parameters = {
+      ip_address_pools = ["192.168.1.100-192.168.1.110"]
+    }
+  }
+
+  state = "DEPLOYED"
+
+  depends_on = [
+    qovery_organization.my_organization,
+    qovery_aws_credentials.eks_anywhere_creds
+  ]
+}
 ```
 
 You can find complete examples within these repositories:
@@ -205,9 +253,10 @@ You can find complete examples within these repositories:
 	- Default: ``.
 - `disk_size` (Number)
 - `features` (Attributes) Features of the cluster. (see [below for nested schema](#nestedatt--features))
+- `infrastructure_charts_parameters` (Attributes) Infrastructure charts parameters for PARTIALLY_MANAGED (EKS Anywhere) clusters. Required when kubernetes_mode is PARTIALLY_MANAGED. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters))
 - `instance_type` (String) Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`, and not set for Karpenter-enabled clusters
 - `kubernetes_mode` (String) Kubernetes mode of the cluster.
-	- Can be: `MANAGED`, `SELF_MANAGED`.
+	- Can be: `MANAGED`, `PARTIALLY_MANAGED`, `SELF_MANAGED`.
 	- Default: `MANAGED`.
 - `max_running_nodes` (Number) Maximum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters; and not set for Karpenter-enabled clusters]
 	- Must be: `>= 1`.
@@ -345,6 +394,44 @@ Required:
 
 
 
+
+
+
+<a id="nestedatt--infrastructure_charts_parameters"></a>
+### Nested Schema for `infrastructure_charts_parameters`
+
+Optional:
+
+- `cert_manager_parameters` (Attributes) Cert-manager parameters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--cert_manager_parameters))
+- `metal_lb_parameters` (Attributes) MetalLB load balancer parameters. Required for PARTIALLY_MANAGED mode. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--metal_lb_parameters))
+- `nginx_parameters` (Attributes) Nginx ingress controller parameters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--nginx_parameters))
+
+<a id="nestedatt--infrastructure_charts_parameters--cert_manager_parameters"></a>
+### Nested Schema for `infrastructure_charts_parameters.cert_manager_parameters`
+
+Optional:
+
+- `kubernetes_namespace` (String) Kubernetes namespace for cert-manager (e.g., 'cert-manager').
+
+
+<a id="nestedatt--infrastructure_charts_parameters--metal_lb_parameters"></a>
+### Nested Schema for `infrastructure_charts_parameters.metal_lb_parameters`
+
+Required:
+
+- `ip_address_pools` (List of String) List of IP address pools in CIDR notation or IP range format (e.g., '192.168.1.100-192.168.1.200').
+
+
+<a id="nestedatt--infrastructure_charts_parameters--nginx_parameters"></a>
+### Nested Schema for `infrastructure_charts_parameters.nginx_parameters`
+
+Optional:
+
+- `annotation_external_dns_kubernetes_target` (String) External DNS Kubernetes target annotation.
+- `annotation_metal_lb_load_balancer_ips` (String) MetalLB load balancer IP annotation.
+- `default_ssl_certificate` (String) Default SSL certificate (e.g., 'cert-manager/letsencrypt-acme-qovery-cert').
+- `publish_status_address` (String) Public IP address for status publishing.
+- `replica_count` (Number) Number of Nginx replicas.
 
 
 

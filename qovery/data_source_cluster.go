@@ -465,6 +465,59 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 					},
 				},
 			},
+			"infrastructure_charts_parameters": schema.SingleNestedAttribute{
+				Description: "Infrastructure charts parameters for PARTIALLY_MANAGED (EKS Anywhere) clusters.",
+				Computed:    true,
+				Attributes: map[string]schema.Attribute{
+					"nginx_parameters": schema.SingleNestedAttribute{
+						Description: "Nginx ingress controller parameters.",
+						Computed:    true,
+						Attributes: map[string]schema.Attribute{
+							"replica_count": schema.Int64Attribute{
+								Description: "Number of Nginx replicas.",
+								Computed:    true,
+							},
+							"default_ssl_certificate": schema.StringAttribute{
+								Description: "Default SSL certificate.",
+								Computed:    true,
+							},
+							"publish_status_address": schema.StringAttribute{
+								Description: "Public IP address for status publishing.",
+								Computed:    true,
+							},
+							"annotation_metal_lb_load_balancer_ips": schema.StringAttribute{
+								Description: "MetalLB load balancer IP annotation.",
+								Computed:    true,
+							},
+							"annotation_external_dns_kubernetes_target": schema.StringAttribute{
+								Description: "External DNS Kubernetes target annotation.",
+								Computed:    true,
+							},
+						},
+					},
+					"cert_manager_parameters": schema.SingleNestedAttribute{
+						Description: "Cert-manager parameters.",
+						Computed:    true,
+						Attributes: map[string]schema.Attribute{
+							"kubernetes_namespace": schema.StringAttribute{
+								Description: "Kubernetes namespace for cert-manager.",
+								Computed:    true,
+							},
+						},
+					},
+					"metal_lb_parameters": schema.SingleNestedAttribute{
+						Description: "MetalLB load balancer parameters.",
+						Computed:    true,
+						Attributes: map[string]schema.Attribute{
+							"ip_address_pools": schema.ListAttribute{
+								Description: "List of IP address pools.",
+								ElementType: types.StringType,
+								Computed:    true,
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }

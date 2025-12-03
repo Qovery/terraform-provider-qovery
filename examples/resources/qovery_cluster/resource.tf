@@ -170,3 +170,48 @@ resource "qovery_cluster" "cluster" {
     "scaleway.enable_private_network_migration" : false,
   })
 }
+
+################
+# EKS Anywhere #
+################
+
+resource "qovery_aws_credentials" "eks_anywhere_creds" {
+  organization_id   = qovery_organization.my_organization.id
+  name              = "My EKS Anywhere credentials"
+  access_key_id     = var.access_key_id
+  secret_access_key = var.secret_access_key
+}
+
+resource "qovery_cluster" "eks_anywhere_cluster" {
+  organization_id = qovery_organization.my_organization.id
+  credentials_id  = qovery_aws_credentials.eks_anywhere_creds.id
+  name            = "my-eks-anywhere-cluster"
+  cloud_provider  = "AWS"
+  region          = "on-premise"
+  kubernetes_mode = "PARTIALLY_MANAGED"
+
+  description = "EKS Anywhere cluster managed by Qovery"
+
+  infrastructure_charts_parameters = {
+    nginx_parameters = {
+      replica_count                             = 2
+      default_ssl_certificate                   = "qovery/letsencrypt-acme-qovery-cert"
+      publish_status_address                    = "192.168.1.100"
+      annotation_metal_lb_load_balancer_ips     = "192.168.1.100"
+      annotation_external_dns_kubernetes_target = "192.168.1.100"
+    }
+    cert_manager_parameters = {
+      kubernetes_namespace = "qovery"
+    }
+    metal_lb_parameters = {
+      ip_address_pools = ["192.168.1.100-192.168.1.110"]
+    }
+  }
+
+  state = "DEPLOYED"
+
+  depends_on = [
+    qovery_organization.my_organization,
+    qovery_aws_credentials.eks_anywhere_creds
+  ]
+}

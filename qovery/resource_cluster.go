@@ -62,6 +62,7 @@ var (
 	clusterKubernetesModes = clientEnumToStringArray([]qovery.KubernetesEnum{
 		qovery.KUBERNETESENUM_MANAGED,
 		qovery.KUBERNETESENUM_SELF_MANAGED,
+		qovery.KUBERNETESENUM_PARTIALLY_MANAGED,
 	})
 	clusterKubernetesModeDefault = string(qovery.KUBERNETESENUM_MANAGED)
 )
@@ -527,6 +528,59 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					"vpc_id": schema.StringAttribute{
 						Description: "The VPC ID used by the cluster. Only available for AWS after deployment.",
 						Computed:    true,
+					},
+				},
+			},
+			"infrastructure_charts_parameters": schema.SingleNestedAttribute{
+				Description: "Infrastructure charts parameters for PARTIALLY_MANAGED (EKS Anywhere) clusters. Required when kubernetes_mode is PARTIALLY_MANAGED.",
+				Optional:    true,
+				Attributes: map[string]schema.Attribute{
+					"nginx_parameters": schema.SingleNestedAttribute{
+						Description: "Nginx ingress controller parameters.",
+						Optional:    true,
+						Attributes: map[string]schema.Attribute{
+							"replica_count": schema.Int64Attribute{
+								Description: "Number of Nginx replicas.",
+								Optional:    true,
+							},
+							"default_ssl_certificate": schema.StringAttribute{
+								Description: "Default SSL certificate (e.g., 'cert-manager/letsencrypt-acme-qovery-cert').",
+								Optional:    true,
+							},
+							"publish_status_address": schema.StringAttribute{
+								Description: "Public IP address for status publishing.",
+								Optional:    true,
+							},
+							"annotation_metal_lb_load_balancer_ips": schema.StringAttribute{
+								Description: "MetalLB load balancer IP annotation.",
+								Optional:    true,
+							},
+							"annotation_external_dns_kubernetes_target": schema.StringAttribute{
+								Description: "External DNS Kubernetes target annotation.",
+								Optional:    true,
+							},
+						},
+					},
+					"cert_manager_parameters": schema.SingleNestedAttribute{
+						Description: "Cert-manager parameters.",
+						Optional:    true,
+						Attributes: map[string]schema.Attribute{
+							"kubernetes_namespace": schema.StringAttribute{
+								Description: "Kubernetes namespace for cert-manager (e.g., 'cert-manager').",
+								Optional:    true,
+							},
+						},
+					},
+					"metal_lb_parameters": schema.SingleNestedAttribute{
+						Description: "MetalLB load balancer parameters. Required for PARTIALLY_MANAGED mode.",
+						Optional:    true,
+						Attributes: map[string]schema.Attribute{
+							"ip_address_pools": schema.ListAttribute{
+								Description: "List of IP address pools as single IPs or IP range format (e.g., '192.168.1.100' or '192.168.1.100-192.168.1.200').",
+								ElementType: types.StringType,
+								Required:    true,
+							},
+						},
 					},
 				},
 			},
