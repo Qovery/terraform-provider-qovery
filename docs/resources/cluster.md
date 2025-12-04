@@ -83,46 +83,6 @@ resource "qovery_cluster" "cluster" {
   ]
 }
 
-# AWS Cluster without Karpenter example (soon deprecated)
-resource "qovery_cluster" "cluster" {
-  # Required
-  organization_id = qovery_organization.my_organization.id
-  credentials_id  = qovery_aws_credentials.my_aws_creds.id
-  name            = "test_terraform_provider"
-  cloud_provider  = "AWS"
-  region          = "eu-west-3"
-  instance_type   = "T3A_MEDIUM"
-
-  # Optional
-  description       = "My cluster description"
-  min_running_nodes = 3
-  max_running_nodes = 10
-  features = {
-    vpc_subnet = "10.0.0.0/16"
-  }
-  routing_table = [
-    {
-      description = "RDS database peering"
-      destination = "172.30.0.0/16"
-      target      = "pcx-06f8f5512c91e389c"
-    }
-  ]
-
-  advanced_settings_json = jsonencode({
-    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings
-    # you can only indicate settings that you need to override
-    "aws.vpc.flow_logs_retention_days" : 100,
-    "aws.vpc.enable_s3_flow_logs" : true
-  })
-
-  state = "DEPLOYED"
-
-  depends_on = [
-    qovery_organization.my_organization,
-    qovery_aws_credentials.my_aws_creds
-  ]
-}
-
 #######
 # GCP #
 #######
@@ -187,7 +147,6 @@ resource "qovery_cluster" "cluster" {
 # EKS Anywhere #
 ################
 
-# AWS Credentials for EKS Anywhere
 resource "qovery_aws_credentials" "eks_anywhere_creds" {
   organization_id   = qovery_organization.my_organization.id
   name              = "My EKS Anywhere credentials"
@@ -195,7 +154,6 @@ resource "qovery_aws_credentials" "eks_anywhere_creds" {
   secret_access_key = var.secret_access_key
 }
 
-# EKS Anywhere (PARTIALLY_MANAGED) Cluster example
 resource "qovery_cluster" "eks_anywhere_cluster" {
   organization_id = qovery_organization.my_organization.id
   credentials_id  = qovery_aws_credentials.eks_anywhere_creds.id
@@ -206,7 +164,6 @@ resource "qovery_cluster" "eks_anywhere_cluster" {
 
   description = "EKS Anywhere cluster managed by Qovery"
 
-  # Required for PARTIALLY_MANAGED mode
   infrastructure_charts_parameters = {
     nginx_parameters = {
       replica_count                             = 2
@@ -419,7 +376,7 @@ Optional:
 
 Required:
 
-- `ip_address_pools` (List of String) List of IP address pools in CIDR notation or IP range format (e.g., '192.168.1.100-192.168.1.200').
+- `ip_address_pools` (List of String) List of IP address pools as single IPs or IP range format (e.g., '192.168.1.100' or '192.168.1.100-192.168.1.200').
 
 
 <a id="nestedatt--infrastructure_charts_parameters--nginx_parameters"></a>
