@@ -47,6 +47,7 @@ data "qovery_cluster" "my_cluster" {
 - `credentials_id` (String) Id of the credentials.
 - `infrastructure_charts_parameters` (Attributes) Infrastructure charts parameters for PARTIALLY_MANAGED (EKS Anywhere) clusters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters))
 - `infrastructure_outputs` (Attributes) Outputs related to the underlying Kubernetes infrastructure. These values are only available once the cluster is deployed. (see [below for nested schema](#nestedatt--infrastructure_outputs))
+- `kubeconfig` (String, Sensitive) Kubeconfig for connecting to the cluster. Only available for PARTIALLY_MANAGED (EKS Anywhere) clusters.
 - `name` (String) Name of the cluster.
 - `region` (String) Region of the cluster.
 
