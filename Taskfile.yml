@@ -47,7 +47,7 @@ tasks:
     deps:
       - install-gotestsum
     cmds:
-      - gotestsum --format testdox --jsonfile test-output.json --rerun-fails=2 --packages="./..." -- -tags=unit -cover -timeout 2h -parallel 1
+      - gotestsum --format testname --jsonfile test-output.json --rerun-fails=2 --packages="./..." -- -tags=unit -cover -timeout 2h -parallel 1
 
   testacc:
     desc: Run acceptance tests
@@ -56,7 +56,7 @@ tasks:
     env:
       TF_ACC: true
     cmds:
-      - gotestsum --format testdox --jsonfile test-output.json --rerun-fails=2 --packages="./..." -- -tags=integration -cover -timeout 2h -parallel 1
+      - gotestsum --format testname --jsonfile test-output.json --rerun-fails=2 --packages="./..." -- -tags=integration -cover -timeout 2h -parallel 1
 
   docs:
     desc: Update the generated documentation

@@ -1,11 +1,13 @@
-# Qovery Terraform Provider 
+# Qovery Terraform Provider
+
+[![Tests](https://github.com/qovery/terraform-provider-qovery/actions/workflows/tests.yml/badge.svg)](https://github.com/qovery/terraform-provider-qovery/actions/workflows/tests.yml)
 
 - Documentation: https://registry.terraform.io/providers/qovery/qovery/latest
 
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html) >= 1.0
-- [Go](https://golang.org/doc/install) >= 1.19 (to build the provider)
+- [Go](https://golang.org/doc/install) >= 1.25 (to build the provider)
 - [Task](https://taskfile.dev) v3 (to run Taskfile commands)
 - [jq](https://stedolan.github.io/jq/download/) (to parse json from curl api calls)
 
@@ -18,6 +20,19 @@
 ```shell
 task build
 ```
+
+## Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `task build` | Build the provider binary |
+| `task install` | Build and install dev override |
+| `task test` | Run unit tests |
+| `task testacc` | Run acceptance tests |
+| `task lint` | Run linters |
+| `task docs` | Generate documentation |
+| `task mocks` | Generate test mocks |
+| `task clean-tests` | Clean up test resources |
 
 ## Developing The Provider
 
