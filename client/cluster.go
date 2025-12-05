@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
@@ -71,8 +72,8 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 func (c *Client) UpdateCluster(ctx context.Context, organizationID string, clusterID string, params *ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
 	// INFO (cor-775) As DiskSize is defaulted when no value is present in the request, we need to set it to current value
 	// This is due to the attribute `disk_size` that was not there before
-	// INFO: Same logic applies for MetricsParameters and InfrastructureChartsParameters - preserve value set via console without exposing it in Terraform state
-	if params.ClusterRequest.DiskSize == nil || params.ClusterRequest.MetricsParameters == nil || params.ClusterRequest.InfrastructureChartsParameters == nil {
+	// INFO: Same logic applies for MetricsParameters - preserve value set via console without exposing it in Terraform state
+	if params.ClusterRequest.DiskSize == nil || params.ClusterRequest.MetricsParameters == nil {
 		cluster, apiErr := c.getClusterByID(ctx, organizationID, clusterID)
 		if apiErr != nil {
 			return nil, apiErr
@@ -82,9 +83,6 @@ func (c *Client) UpdateCluster(ctx context.Context, organizationID string, clust
 		}
 		if params.ClusterRequest.MetricsParameters == nil {
 			params.ClusterRequest.MetricsParameters = cluster.MetricsParameters
-		}
-		if params.ClusterRequest.InfrastructureChartsParameters == nil {
-			params.ClusterRequest.InfrastructureChartsParameters = cluster.InfrastructureChartsParameters
 		}
 	}
 	cluster, res, err := c.api.ClustersAPI.
