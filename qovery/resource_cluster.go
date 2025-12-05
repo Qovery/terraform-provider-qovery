@@ -62,6 +62,7 @@ var (
 	clusterKubernetesModes = clientEnumToStringArray([]qovery.KubernetesEnum{
 		qovery.KUBERNETESENUM_MANAGED,
 		qovery.KUBERNETESENUM_SELF_MANAGED,
+		qovery.KUBERNETESENUM_PARTIALLY_MANAGED,
 	})
 	clusterKubernetesModeDefault = string(qovery.KUBERNETESENUM_MANAGED)
 )
@@ -504,6 +505,11 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Optional:    true,
 				Computed:    true,
 			},
+			"kubeconfig": schema.StringAttribute{
+				Description: "Kubeconfig for connecting to the cluster. Required for PARTIALLY_MANAGED (EKS Anywhere) clusters.",
+				Optional:    true,
+				Sensitive:   true,
+			},
 			"infrastructure_outputs": schema.SingleNestedAttribute{
 				Description: "Outputs related to the underlying Kubernetes infrastructure. These values are only available once the cluster is deployed.",
 				Computed:    true,
@@ -527,6 +533,59 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					"vpc_id": schema.StringAttribute{
 						Description: "The VPC ID used by the cluster. Only available for AWS after deployment.",
 						Computed:    true,
+					},
+				},
+			},
+			"infrastructure_charts_parameters": schema.SingleNestedAttribute{
+				Description: "Infrastructure charts parameters for PARTIALLY_MANAGED (EKS Anywhere) clusters. Required when kubernetes_mode is PARTIALLY_MANAGED.",
+				Optional:    true,
+				Attributes: map[string]schema.Attribute{
+					"nginx_parameters": schema.SingleNestedAttribute{
+						Description: "Nginx ingress controller parameters.",
+						Optional:    true,
+						Attributes: map[string]schema.Attribute{
+							"replica_count": schema.Int64Attribute{
+								Description: "Number of Nginx replicas.",
+								Optional:    true,
+							},
+							"default_ssl_certificate": schema.StringAttribute{
+								Description: "Default SSL certificate (e.g., 'cert-manager/letsencrypt-acme-qovery-cert').",
+								Optional:    true,
+							},
+							"publish_status_address": schema.StringAttribute{
+								Description: "Public IP address for status publishing.",
+								Optional:    true,
+							},
+							"annotation_metal_lb_load_balancer_ips": schema.StringAttribute{
+								Description: "MetalLB load balancer IP annotation.",
+								Optional:    true,
+							},
+							"annotation_external_dns_kubernetes_target": schema.StringAttribute{
+								Description: "External DNS Kubernetes target annotation.",
+								Optional:    true,
+							},
+						},
+					},
+					"cert_manager_parameters": schema.SingleNestedAttribute{
+						Description: "Cert-manager parameters.",
+						Optional:    true,
+						Attributes: map[string]schema.Attribute{
+							"kubernetes_namespace": schema.StringAttribute{
+								Description: "Kubernetes namespace for cert-manager (e.g., 'cert-manager').",
+								Optional:    true,
+							},
+						},
+					},
+					"metal_lb_parameters": schema.SingleNestedAttribute{
+						Description: "MetalLB load balancer parameters. Required for PARTIALLY_MANAGED mode.",
+						Optional:    true,
+						Attributes: map[string]schema.Attribute{
+							"ip_address_pools": schema.ListAttribute{
+								Description: "List of IP address pools as single IPs or IP range format (e.g., '192.168.1.100' or '192.168.1.100-192.168.1.200').",
+								ElementType: types.StringType,
+								Required:    true,
+							},
+						},
 					},
 				},
 			},
@@ -555,8 +614,28 @@ func (r clusterResource) Create(ctx context.Context, req resource.CreateRequest,
 		return
 	}
 
+	// For PARTIALLY_MANAGED clusters, set the kubeconfig
+	if plan.KubernetesMode.ValueString() == "PARTIALLY_MANAGED" && !plan.Kubeconfig.IsNull() && plan.Kubeconfig.ValueString() != "" {
+		apiErr = r.client.SetClusterKubeconfig(ctx, plan.OrganizationId.ValueString(), cluster.ClusterResponse.Id, plan.Kubeconfig.ValueString())
+		if apiErr != nil {
+			resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+			return
+		}
+	}
+
 	// Initialize state values
 	state := convertResponseToCluster(ctx, cluster, plan)
+
+	// For PARTIALLY_MANAGED clusters, fetch the kubeconfig from API to ensure state matches
+	if plan.KubernetesMode.ValueString() == "PARTIALLY_MANAGED" {
+		kubeconfig, apiErr := r.client.GetClusterKubeconfig(ctx, plan.OrganizationId.ValueString(), cluster.ClusterResponse.Id)
+		if apiErr != nil {
+			tflog.Warn(ctx, "failed to fetch kubeconfig after create", map[string]interface{}{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
+		} else {
+			state.Kubeconfig = types.StringValue(kubeconfig)
+		}
+	}
+
 	tflog.Trace(ctx, "created cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
 
 	// Set state
@@ -587,6 +666,18 @@ func (r clusterResource) Read(ctx context.Context, req resource.ReadRequest, res
 	}
 
 	state = convertResponseToCluster(ctx, cluster, state)
+
+	// For PARTIALLY_MANAGED clusters, fetch the kubeconfig
+	if cluster.ClusterResponse.Kubernetes != nil && *cluster.ClusterResponse.Kubernetes == qovery.KUBERNETESENUM_PARTIALLY_MANAGED {
+		kubeconfig, apiErr := r.client.GetClusterKubeconfig(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
+		if apiErr != nil {
+			// Log warning but don't fail - kubeconfig might not be set yet
+			tflog.Warn(ctx, "failed to fetch kubeconfig for PARTIALLY_MANAGED cluster", map[string]interface{}{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
+		} else {
+			state.Kubeconfig = types.StringValue(kubeconfig)
+		}
+	}
+
 	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
 
 	// Set state
@@ -614,8 +705,32 @@ func (r clusterResource) Update(ctx context.Context, req resource.UpdateRequest,
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
 		return
 	}
+
+	// For PARTIALLY_MANAGED clusters, update the kubeconfig if changed
+	if plan.KubernetesMode.ValueString() == "PARTIALLY_MANAGED" && !plan.Kubeconfig.IsNull() && plan.Kubeconfig.ValueString() != "" {
+		// Only update if kubeconfig has changed
+		if state.Kubeconfig.IsNull() || plan.Kubeconfig.ValueString() != state.Kubeconfig.ValueString() {
+			apiErr = r.client.SetClusterKubeconfig(ctx, state.OrganizationId.ValueString(), state.Id.ValueString(), plan.Kubeconfig.ValueString())
+			if apiErr != nil {
+				resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+				return
+			}
+		}
+	}
+
 	// Update state values
 	state = convertResponseToCluster(ctx, cluster, plan)
+
+	// For PARTIALLY_MANAGED clusters, fetch the kubeconfig from API to ensure state matches
+	if plan.KubernetesMode.ValueString() == "PARTIALLY_MANAGED" {
+		kubeconfig, apiErr := r.client.GetClusterKubeconfig(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
+		if apiErr != nil {
+			tflog.Warn(ctx, "failed to fetch kubeconfig after update", map[string]interface{}{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
+		} else {
+			state.Kubeconfig = types.StringValue(kubeconfig)
+		}
+	}
+
 	tflog.Trace(ctx, "updated cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
 
 	// Set state

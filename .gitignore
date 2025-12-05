@@ -16,6 +16,7 @@ bin
 # AI
 CLAUDE.md
 .cursor/
+.cursorrules
 
 # .tfstate files
 *.tfstate
