@@ -190,3 +190,24 @@ func (c *Client) updateCluster(ctx context.Context, organizationID string, clust
 		AdvancedSettingsJson: params.AdvancedSettingsJson,
 	}, nil
 }
+
+func (c *Client) GetClusterKubeconfig(ctx context.Context, organizationID string, clusterID string) (string, *apierrors.APIError) {
+	kubeconfig, res, err := c.api.ClustersAPI.
+		GetClusterKubeconfig(ctx, organizationID, clusterID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return "", apierrors.NewReadError(apierrors.APIResourceCluster, clusterID, res, err)
+	}
+	return kubeconfig, nil
+}
+
+func (c *Client) SetClusterKubeconfig(ctx context.Context, organizationID string, clusterID string, kubeconfig string) *apierrors.APIError {
+	res, err := c.api.ClustersAPI.
+		EditClusterKubeconfig(ctx, organizationID, clusterID).
+		Body(kubeconfig).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return apierrors.NewUpdateError(apierrors.APIResourceCluster, clusterID, res, err)
+	}
+	return nil
+}

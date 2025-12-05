@@ -152,6 +152,8 @@ resource "qovery_cluster" "eks_anywhere_cluster" {
 
   description = "EKS Anywhere cluster managed by Qovery"
 
+  kubeconfig = file("${path.module}/kubeconfig.yaml")
+
   infrastructure_charts_parameters = {
     nginx_parameters = {
       replica_count                             = 2

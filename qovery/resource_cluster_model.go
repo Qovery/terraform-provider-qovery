@@ -50,6 +50,7 @@ type Cluster struct {
 	RoutingTables                  types.Set    `tfsdk:"routing_table"`
 	State                          types.String `tfsdk:"state"`
 	AdvancedSettingsJson           types.String `tfsdk:"advanced_settings_json"`
+	Kubeconfig                     types.String `tfsdk:"kubeconfig"`
 	InfrastructureOutputs          types.Object `tfsdk:"infrastructure_outputs"`
 	InfrastructureChartsParameters types.Object `tfsdk:"infrastructure_charts_parameters"`
 }
@@ -149,6 +150,11 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 
 	// Validation for PARTIALLY_MANAGED mode
 	if isPartiallyManaged {
+		// kubeconfig is required for PARTIALLY_MANAGED
+		if c.Kubeconfig.IsNull() || c.Kubeconfig.IsUnknown() || c.Kubeconfig.ValueString() == "" {
+			return nil, errors.New("kubeconfig is required when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
+		}
+
 		// infrastructure_charts_parameters is required for PARTIALLY_MANAGED
 		if infraChartsParams == nil {
 			return nil, errors.New("infrastructure_charts_parameters is required when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
@@ -346,6 +352,8 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 			"cluster_oidc_issuer": types.StringType,
 			"vpc_id":              types.StringType,
 		})
+		// Preserve kubeconfig from initialPlan - it's fetched separately via API in Read operation
+		cluster.Kubeconfig = initialPlan.Kubeconfig
 	} else {
 		cluster.InstanceType = FromStringPointer(res.ClusterResponse.InstanceType)
 		cluster.DiskSize = FromInt32Pointer(res.ClusterResponse.DiskSize)
@@ -354,6 +362,8 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		cluster.Features = fromQoveryClusterFeatures(res.ClusterResponse.Features, initialPlan)
 		cluster.RoutingTables = routingTable.toTerraformSet(ctx, initialPlan.RoutingTables)
 		cluster.InfrastructureOutputs = fromQoveryClusterOutput(res.ClusterResponse.InfrastructureOutputs)
+		// Kubeconfig is not applicable for non-PARTIALLY_MANAGED clusters
+		cluster.Kubeconfig = types.StringNull()
 	}
 
 	return cluster

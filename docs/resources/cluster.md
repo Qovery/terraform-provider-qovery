@@ -164,6 +164,8 @@ resource "qovery_cluster" "eks_anywhere_cluster" {
 
   description = "EKS Anywhere cluster managed by Qovery"
 
+  kubeconfig = file("${path.module}/kubeconfig.yaml")
+
   infrastructure_charts_parameters = {
     nginx_parameters = {
       replica_count                             = 2
@@ -212,6 +214,7 @@ You can find complete examples within these repositories:
 - `features` (Attributes) Features of the cluster. (see [below for nested schema](#nestedatt--features))
 - `infrastructure_charts_parameters` (Attributes) Infrastructure charts parameters for PARTIALLY_MANAGED (EKS Anywhere) clusters. Required when kubernetes_mode is PARTIALLY_MANAGED. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters))
 - `instance_type` (String) Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`, and not set for Karpenter-enabled clusters
+- `kubeconfig` (String, Sensitive) Kubeconfig for connecting to the cluster. Required for PARTIALLY_MANAGED (EKS Anywhere) clusters.
 - `kubernetes_mode` (String) Kubernetes mode of the cluster.
 	- Can be: `MANAGED`, `PARTIALLY_MANAGED`, `SELF_MANAGED`.
 	- Default: `MANAGED`.
