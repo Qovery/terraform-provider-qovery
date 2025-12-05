@@ -439,6 +439,11 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 				Optional:    true,
 				Computed:    true,
 			},
+			"kubeconfig": schema.StringAttribute{
+				Description: "Kubeconfig for connecting to the cluster. Only available for PARTIALLY_MANAGED (EKS Anywhere) clusters.",
+				Computed:    true,
+				Sensitive:   true,
+			},
 			"infrastructure_outputs": schema.SingleNestedAttribute{
 				Description: "Outputs related to the underlying Kubernetes infrastructure. These values are only available once the cluster is deployed.",
 				Computed:    true,
