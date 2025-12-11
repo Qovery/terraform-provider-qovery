@@ -70,6 +70,9 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the terraform service.",

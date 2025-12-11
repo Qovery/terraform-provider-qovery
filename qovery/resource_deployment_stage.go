@@ -64,6 +64,9 @@ func (r deploymentStageResource) Schema(_ context.Context, _ resource.SchemaRequ
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the deployment stage.",
