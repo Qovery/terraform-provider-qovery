@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"strings"
 	"time"
@@ -18,7 +17,6 @@ const (
 	initialBackoff     = 2 * time.Second
 	maxBackoff         = 30 * time.Second
 	backoffMultiplier  = 2
-	jitterFactor       = 0.5 // ±50% randomization for equal jitter
 )
 
 type waitFunc func(ctx context.Context) (bool, *apierrors.APIError)
@@ -117,25 +115,14 @@ func retryOnTransientError(ctx context.Context, f waitFunc) (bool, *apierrors.AP
 
 func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, expected qovery.StateEnum) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
-		maxRetry := 5
-		var status *qovery.Status
-		var apiErr *apierrors.APIError
-		for tryCount := 0; tryCount < maxRetry; tryCount++ {
-			status, apiErr = client.getApplicationStatus(ctx, applicationID)
-			if apiErr != nil {
-				if apierrors.IsNotFound(apiErr) && expected == qovery.STATEENUM_DELETED {
-					return true, nil
-				}
-				return false, apiErr
+		status, apiErr := client.getApplicationStatus(ctx, applicationID)
+		if apiErr != nil {
+			if apierrors.IsNotFound(apiErr) && expected == qovery.STATEENUM_DELETED {
+				return true, nil
 			}
-			isExpectedState := status.State == expected
-			if !isExpectedState && isEnvFinalState(status.State) {
-				time.Sleep(5 * time.Second)
-				continue
-			}
-			return isExpectedState, nil
+			return false, apiErr
 		}
-		return false, apierrors.NewDeployError(apierrors.APIResourceApplication, applicationID, nil, fmt.Errorf("expected status '%s' but got '%s'", expected, status.State))
+		return status.State == expected, nil
 	}
 }
 
@@ -174,25 +161,14 @@ func newClusterFinalStateCheckerWaitFunc(client *Client, organizationID string, 
 
 func newDatabaseStatusCheckerWaitFunc(client *Client, databaseID string, expected qovery.StateEnum) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
-		maxRetry := 5
-		var status *qovery.Status
-		var apiErr *apierrors.APIError
-		for tryCount := 0; tryCount < maxRetry; tryCount++ {
-			status, apiErr = client.getDatabaseStatus(ctx, databaseID)
-			if apiErr != nil {
-				if apierrors.IsNotFound(apiErr) && expected == qovery.STATEENUM_DELETED {
-					return true, nil
-				}
-				return false, apiErr
+		status, apiErr := client.getDatabaseStatus(ctx, databaseID)
+		if apiErr != nil {
+			if apierrors.IsNotFound(apiErr) && expected == qovery.STATEENUM_DELETED {
+				return true, nil
 			}
-			isExpectedState := status.State == expected
-			if !isExpectedState && isEnvFinalState(status.State) {
-				time.Sleep(5 * time.Second)
-				continue
-			}
-			return isExpectedState, nil
+			return false, apiErr
 		}
-		return false, apierrors.NewDeployError(apierrors.APIResourceDatabase, databaseID, nil, fmt.Errorf("expected status '%s' but got '%s'", expected, status.State))
+		return status.State == expected, nil
 	}
 }
 
