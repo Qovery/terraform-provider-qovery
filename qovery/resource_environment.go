@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 
@@ -71,6 +72,9 @@ func (r environmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			"cluster_id": schema.StringAttribute{
 				Description: "Id of the cluster [NOTE: can't be updated after creation].",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the environment.",

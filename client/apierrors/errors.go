@@ -1,8 +1,10 @@
 package apierrors
 
 import (
+	"fmt"
 	"io"
 	"net/http"
+	"time"
 )
 
 func NewError(action APIAction, resource APIResource, resourceID string, res *http.Response, err error) *APIError {
@@ -54,4 +56,39 @@ func NewRedeployError(resource APIResource, resourceID string, res *http.Respons
 
 func NewDeployError(resource APIResource, resourceID string, res *http.Response, err error) *APIError {
 	return NewError(APIActionDeploy, resource, resourceID, res, err)
+}
+
+// NewUnexpectedStateError creates an error for when a resource reaches an unexpected state
+func NewUnexpectedStateError(resource APIResource, resourceID string, expected, actual interface{}) *APIError {
+	err := fmt.Errorf("%s '%s' reached state %v but expected %v", resource, resourceID, actual, expected)
+	return &APIError{
+		err:        err,
+		action:     APIActionRead,
+		resource:   resource,
+		resourceID: resourceID,
+		res:        nil,
+	}
+}
+
+// NewUnexpectedClusterStateError creates an error for when a cluster reaches an unexpected state
+func NewUnexpectedClusterStateError(orgID, clusterID string, expected, actual interface{}) *APIError {
+	err := fmt.Errorf("cluster '%s' in organization '%s' reached state %v but expected %v", clusterID, orgID, actual, expected)
+	return &APIError{
+		err:        err,
+		action:     APIActionRead,
+		resource:   APIResourceCluster,
+		resourceID: clusterID,
+		res:        nil,
+	}
+}
+
+// NewTimeoutError creates an error for when an operation times out
+func NewTimeoutError(timeout time.Duration) *APIError {
+	err := fmt.Errorf("operation did not complete within %s", timeout)
+	return &APIError{
+		err:      err,
+		action:   APIActionRead,
+		resource: "",
+		res:      nil,
+	}
 }

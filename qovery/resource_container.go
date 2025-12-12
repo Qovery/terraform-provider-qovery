@@ -72,6 +72,9 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"registry_id": schema.StringAttribute{
 				Description: "Id of the registry.",

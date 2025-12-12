@@ -73,6 +73,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
 				Required:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.RequiresReplace(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the job.",
