@@ -2,6 +2,8 @@ package qoveryapi
 
 import (
 	"context"
+	"strings"
+	"time"
 
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
@@ -144,21 +146,127 @@ func (c deploymentStageQoveryAPI) Update(ctx context.Context, deploymentStageID 
 }
 
 func (c deploymentStageQoveryAPI) Delete(ctx context.Context, deploymentStageID string) error {
-	_, resp, err := c.client.DeploymentStageMainCallsAPI.GetDeploymentStage(ctx, deploymentStageID).Execute()
+	// 1. Get deployment stage to retrieve environment ID
+	stage, resp, err := c.client.DeploymentStageMainCallsAPI.GetDeploymentStage(ctx, deploymentStageID).Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		if resp.StatusCode == 404 {
-			// if the deployment stage is not found, then it has already been deleted
+			// Stage already deleted
 			return nil
 		}
 		return apierrors.NewReadAPIError(apierrors.APIResourceDeploymentStage, deploymentStageID, resp, err)
 	}
 
-	resp, err = c.client.DeploymentStageMainCallsAPI.
-		DeleteDeploymentStage(ctx, deploymentStageID).
-		Execute()
-	if err != nil || resp.StatusCode >= 300 {
+	// 2. Wait for environment to be in a stable state
+	if err := c.waitForEnvironmentFinalState(ctx, stage.Environment.Id); err != nil {
+		return errors.Wrap(err, "failed to wait for environment final state")
+	}
+
+	// 3. Attempt deletion with exponential backoff retry
+	maxRetries := 10
+	backoff := 2 * time.Second
+
+	for attempt := 0; attempt < maxRetries; attempt++ {
+		resp, err = c.client.DeploymentStageMainCallsAPI.DeleteDeploymentStage(ctx, deploymentStageID).Execute()
+
+		// Success case
+		if err == nil && resp.StatusCode < 300 {
+			// 4. Wait for deployment stage to be fully deleted
+			if err := c.waitForDeploymentStageDeletion(ctx, deploymentStageID); err != nil {
+				return errors.Wrap(err, "deployment stage delete initiated but failed to confirm deletion")
+			}
+			return nil
+		}
+
+		// Check if it's the "must be empty" error
+		if resp != nil && resp.StatusCode == 400 {
+			// Parse error to check if it's the "must be empty" error
+			if err != nil && strings.Contains(err.Error(), "must empty of service") {
+				// Retry with exponential backoff
+				if attempt < maxRetries-1 {
+					select {
+					case <-time.After(backoff):
+						backoff *= 2
+						if backoff > 30*time.Second {
+							backoff = 30 * time.Second
+						}
+						continue
+					case <-ctx.Done():
+						return ctx.Err()
+					}
+				}
+			}
+		}
+
+		// Other error - return immediately
 		return apierrors.NewDeleteAPIError(apierrors.APIResourceDeploymentStage, deploymentStageID, resp, err)
 	}
 
-	return nil
+	// All retries exhausted
+	return apierrors.NewDeleteAPIError(
+		apierrors.APIResourceDeploymentStage,
+		deploymentStageID,
+		resp,
+		errors.New("deployment stage still has services attached after retries"),
+	)
+}
+
+// waitForEnvironmentFinalState polls until the environment reaches a stable state
+func (c deploymentStageQoveryAPI) waitForEnvironmentFinalState(ctx context.Context, environmentID string) error {
+	timeout := time.After(2 * time.Hour)
+	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-timeout:
+			return nil // Timeout - proceed anyway
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			status, resp, err := c.client.EnvironmentMainCallsAPI.GetEnvironmentStatus(ctx, environmentID).Execute()
+			if err != nil || resp.StatusCode >= 400 {
+				// If we can't get status, continue anyway
+				return nil
+			}
+
+			if c.isEnvironmentInFinalState(status.State) {
+				return nil
+			}
+		}
+	}
+}
+
+// isEnvironmentInFinalState checks if environment is in a stable state
+func (c deploymentStageQoveryAPI) isEnvironmentInFinalState(state qovery.StateEnum) bool {
+	stateStr := string(state)
+	// Not in processing/waiting/queued state
+	return !strings.HasSuffix(stateStr, "ING") &&
+		!strings.Contains(stateStr, "_WAITING") &&
+		!strings.Contains(stateStr, "_QUEUED")
+}
+
+// waitForDeploymentStageDeletion polls until the deployment stage is deleted (404)
+func (c deploymentStageQoveryAPI) waitForDeploymentStageDeletion(ctx context.Context, deploymentStageID string) error {
+	timeout := time.After(10 * time.Minute)
+	ticker := time.NewTicker(5 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-timeout:
+			return errors.New("timeout waiting for deployment stage deletion")
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			_, resp, err := c.client.DeploymentStageMainCallsAPI.GetDeploymentStage(ctx, deploymentStageID).Execute()
+			if resp != nil && resp.StatusCode == 404 {
+				// Stage is deleted
+				return nil
+			}
+			if err != nil && resp != nil && resp.StatusCode >= 500 {
+				// Server error - continue polling
+				continue
+			}
+		}
+	}
 }
