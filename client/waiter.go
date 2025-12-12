@@ -58,7 +58,7 @@ func wait(ctx context.Context, f waitFunc, timeout *time.Duration) *apierrors.AP
 	for {
 		select {
 		case <-timeoutTicker.C:
-			return nil
+			return apierrors.NewTimeoutError(*timeout)
 		case <-ticker.C:
 			ok, apiErr := retryOnTransientError(ctx, f)
 			if apiErr != nil {
@@ -122,7 +122,24 @@ func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, e
 			}
 			return false, apiErr
 		}
-		return status.State == expected, nil
+
+		// Check if reached expected state
+		if status.State == expected {
+			return true, nil
+		}
+
+		// Check if in terminal error state
+		if isEnvErrorState(status.State) {
+			return false, apierrors.NewUnexpectedStateError(
+				apierrors.APIResourceApplication,
+				applicationID,
+				expected,
+				status.State,
+			)
+		}
+
+		// Still in progress, continue waiting
+		return false, nil
 	}
 }
 
@@ -145,7 +162,26 @@ func newClusterStatusCheckerWaitFunc(client *Client, organizationID string, clus
 			}
 			return false, apiErr
 		}
-		return status.GetStatus() == expected || isStatusError(status.GetStatus()), nil
+
+		currentState := status.GetStatus()
+
+		// Check if reached expected state
+		if currentState == expected {
+			return true, nil
+		}
+
+		// Check if in terminal error state (and we're not expecting an error state)
+		if isClusterErrorState(currentState) && !isClusterErrorState(expected) {
+			return false, apierrors.NewUnexpectedClusterStateError(
+				organizationID,
+				clusterID,
+				expected,
+				currentState,
+			)
+		}
+
+		// Still in progress, continue waiting
+		return false, nil
 	}
 }
 
@@ -168,7 +204,24 @@ func newDatabaseStatusCheckerWaitFunc(client *Client, databaseID string, expecte
 			}
 			return false, apiErr
 		}
-		return status.State == expected, nil
+
+		// Check if reached expected state
+		if status.State == expected {
+			return true, nil
+		}
+
+		// Check if in terminal error state
+		if isEnvErrorState(status.State) {
+			return false, apierrors.NewUnexpectedStateError(
+				apierrors.APIResourceDatabase,
+				databaseID,
+				expected,
+				status.State,
+			)
+		}
+
+		// Still in progress, continue waiting
+		return false, nil
 	}
 }
 
@@ -210,6 +263,14 @@ func isEnvQueuedState(state qovery.StateEnum) bool {
 	return strings.Contains(string(state), "_QUEUED")
 }
 
+// isEnvErrorState checks if the state indicates a terminal error
+func isEnvErrorState(state qovery.StateEnum) bool {
+	stateStr := string(state)
+	return strings.HasSuffix(stateStr, "_ERROR") ||
+		strings.Contains(stateStr, "FAILED") ||
+		strings.Contains(stateStr, "ERROR")
+}
+
 func isFinalState(state qovery.ClusterStateEnum) bool {
 	return !isProcessingState(state) &&
 		!isWaitingState(state) &&
@@ -230,6 +291,11 @@ func isWaitingState(state qovery.ClusterStateEnum) bool {
 
 func isQueuedState(state qovery.ClusterStateEnum) bool {
 	return strings.Contains(string(state), "_QUEUED")
+}
+
+// isClusterErrorState checks if cluster state indicates a terminal error
+func isClusterErrorState(state qovery.ClusterStateEnum) bool {
+	return strings.HasSuffix(string(state), "_ERROR")
 }
 
 func toDurationPointer(d time.Duration) *time.Duration {
