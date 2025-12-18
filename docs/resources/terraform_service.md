@@ -109,6 +109,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 - `action_extra_arguments` (Map of List of String) Extra CLI arguments for specific Terraform actions (plan, apply, destroy).
 - `advanced_settings_json` (String) Advanced settings in JSON format.
 - `description` (String) Description of the terraform service.
+- `dockerfile_fragment` (Attributes) Custom Dockerfile commands to inject during build. Use this to install additional tools or binaries needed by your Terraform configuration. Exactly one of 'file' or 'inline' must be specified. (see [below for nested schema](#nestedatt--dockerfile_fragment))
 - `icon_uri` (String) Icon URI representing the terraform service.
 - `timeout_seconds` (Number) Timeout in seconds for Terraform operations.
 	- Must be: `>= 0`.
@@ -182,6 +183,31 @@ Optional:
 - `storage_gib` (Number) Storage of the terraform job in GiB [1 GiB = 1024 MiB]. WARNING: Cannot be reduced after creation.
 	- Must be: `>= 1`.
 	- Default: `20`.
+
+
+<a id="nestedatt--dockerfile_fragment"></a>
+### Nested Schema for `dockerfile_fragment`
+
+Optional:
+
+- `file` (Attributes) Reference to a Dockerfile fragment file in the Git repository. (see [below for nested schema](#nestedatt--dockerfile_fragment--file))
+- `inline` (Attributes) Inline Dockerfile commands to inject. (see [below for nested schema](#nestedatt--dockerfile_fragment--inline))
+
+<a id="nestedatt--dockerfile_fragment--file"></a>
+### Nested Schema for `dockerfile_fragment.file`
+
+Required:
+
+- `path` (String) Absolute path to the Dockerfile fragment file within the repository (must start with /).
+
+
+<a id="nestedatt--dockerfile_fragment--inline"></a>
+### Nested Schema for `dockerfile_fragment.inline`
+
+Required:
+
+- `content` (String) Dockerfile commands to inject (e.g., RUN, COPY, ADD). Maximum 64KB.
+
 
 
 <a id="nestedatt--variables"></a>

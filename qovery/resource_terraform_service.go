@@ -259,6 +259,32 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 				Computed:    true,
 				Default:     booldefault.StaticBool(false),
 			},
+			"dockerfile_fragment": schema.SingleNestedAttribute{
+				Description: "Custom Dockerfile commands to inject during build. Use this to install additional tools or binaries needed by your Terraform configuration. Exactly one of 'file' or 'inline' must be specified.",
+				Optional:    true,
+				Attributes: map[string]schema.Attribute{
+					"file": schema.SingleNestedAttribute{
+						Description: "Reference to a Dockerfile fragment file in the Git repository.",
+						Optional:    true,
+						Attributes: map[string]schema.Attribute{
+							"path": schema.StringAttribute{
+								Description: "Absolute path to the Dockerfile fragment file within the repository (must start with /).",
+								Required:    true,
+							},
+						},
+					},
+					"inline": schema.SingleNestedAttribute{
+						Description: "Inline Dockerfile commands to inject.",
+						Optional:    true,
+						Attributes: map[string]schema.Attribute{
+							"content": schema.StringAttribute{
+								Description: "Dockerfile commands to inject (e.g., RUN, COPY, ADD). Maximum 64KB.",
+								Required:    true,
+							},
+						},
+					},
+				},
+			},
 			"action_extra_arguments": schema.MapAttribute{
 				Description: "Extra CLI arguments for specific Terraform actions (plan, apply, destroy).",
 				Optional:    true,

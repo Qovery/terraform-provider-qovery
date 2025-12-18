@@ -111,6 +111,19 @@ func newQoveryTerraformRequestFromDomain(request terraformservice.UpsertReposito
 		req.ActionExtraArguments = &request.ActionExtraArguments
 	}
 
+	// Dockerfile fragment
+	if request.DockerfileFragment != nil {
+		if request.DockerfileFragment.File != nil {
+			fileFragment := qovery.NewDockerfileFragmentFile("file", request.DockerfileFragment.File.Path)
+			fragment := qovery.DockerfileFragmentFileAsTerraformRequestDockerfileFragment(fileFragment)
+			req.DockerfileFragment = *qovery.NewNullableTerraformRequestDockerfileFragment(&fragment)
+		} else if request.DockerfileFragment.Inline != nil {
+			inlineFragment := qovery.NewDockerfileFragmentInline("inline", request.DockerfileFragment.Inline.Content)
+			fragment := qovery.DockerfileFragmentInlineAsTerraformRequestDockerfileFragment(inlineFragment)
+			req.DockerfileFragment = *qovery.NewNullableTerraformRequestDockerfileFragment(&fragment)
+		}
+	}
+
 	return req, nil
 }
 
@@ -253,6 +266,26 @@ func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, adv
 
 	if response.UpdatedAt != nil {
 		service.UpdatedAt = response.UpdatedAt
+	}
+
+	// Extract dockerfile fragment
+	if response.DockerfileFragment.IsSet() {
+		fragment := response.DockerfileFragment.Get()
+		if fragment != nil {
+			if fragment.DockerfileFragmentFile != nil {
+				service.DockerfileFragment = &terraformservice.DockerfileFragment{
+					File: &terraformservice.DockerfileFragmentFile{
+						Path: fragment.DockerfileFragmentFile.Path,
+					},
+				}
+			} else if fragment.DockerfileFragmentInline != nil {
+				service.DockerfileFragment = &terraformservice.DockerfileFragment{
+					Inline: &terraformservice.DockerfileFragmentInline{
+						Content: fragment.DockerfileFragmentInline.Content,
+					},
+				}
+			}
+		}
 	}
 
 	return service, nil

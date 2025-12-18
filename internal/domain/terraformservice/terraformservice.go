@@ -96,6 +96,7 @@ type TerraformService struct {
 	TimeoutSec            *int32
 	IconURI               string
 	UseClusterCredentials bool
+	DockerfileFragment    *DockerfileFragment
 	ActionExtraArguments  map[string][]string
 	AdvancedSettingsJson  string
 	CreatedAt             time.Time
@@ -201,6 +202,60 @@ type JobResources struct {
 	StorageGiB int32 `validate:"required,min=1"`
 }
 
+// DockerfileFragment represents custom Dockerfile commands to inject during build
+type DockerfileFragment struct {
+	File   *DockerfileFragmentFile
+	Inline *DockerfileFragmentInline
+}
+
+// DockerfileFragmentFile represents a file-based Dockerfile fragment
+type DockerfileFragmentFile struct {
+	Path string `validate:"required"`
+}
+
+// DockerfileFragmentInline represents an inline Dockerfile fragment
+type DockerfileFragmentInline struct {
+	Content string `validate:"required"`
+}
+
+// Validate validates the DockerfileFragment
+func (d *DockerfileFragment) Validate() error {
+	if d == nil {
+		return nil // Optional field
+	}
+
+	hasFile := d.File != nil
+	hasInline := d.Inline != nil
+
+	if hasFile && hasInline {
+		return errors.New("cannot specify both file and inline dockerfile fragment types")
+	}
+
+	if !hasFile && !hasInline {
+		return errors.New("exactly one dockerfile fragment type must be specified: file or inline")
+	}
+
+	if hasFile {
+		if d.File.Path == "" {
+			return errors.New("dockerfile fragment file path is required")
+		}
+		// Validate path starts with /
+		if !strings.HasPrefix(d.File.Path, "/") {
+			return errors.New("dockerfile fragment file path must be an absolute path starting with /")
+		}
+		// Check for directory traversal
+		if strings.Contains(d.File.Path, "..") || strings.Contains(d.File.Path, "~") {
+			return errors.New("dockerfile fragment file path cannot contain directory traversal sequences (.., ~)")
+		}
+	}
+
+	if hasInline && d.Inline.Content == "" {
+		return errors.New("dockerfile fragment inline content is required")
+	}
+
+	return nil
+}
+
 // Validate validates the JobResources
 func (j JobResources) Validate() error {
 	if j.CPUMilli < MinCPU {
@@ -281,6 +336,11 @@ func (t TerraformService) Validate() error {
 	// Validate job resources
 	if err := t.JobResources.Validate(); err != nil {
 		return errors.Wrap(err, ErrInvalidTerraformServiceJobResourcesParam.Error())
+	}
+
+	// Validate dockerfile fragment (optional)
+	if err := t.DockerfileFragment.Validate(); err != nil {
+		return errors.Wrap(err, "invalid dockerfile_fragment")
 	}
 
 	// Validate timeout

@@ -27,6 +27,7 @@ type TerraformService struct {
 	TimeoutSec              types.Int64               `tfsdk:"timeout_seconds"`
 	IconURI                 types.String              `tfsdk:"icon_uri"`
 	UseClusterCredentials   types.Bool                `tfsdk:"use_cluster_credentials"`
+	DockerfileFragment      *TerraformDockerfileFragment  `tfsdk:"dockerfile_fragment"`
 	ActionExtraArguments    types.Map                 `tfsdk:"action_extra_arguments"`
 	AdvancedSettingsJson    types.String              `tfsdk:"advanced_settings_json"`
 	CreatedAt               types.String              `tfsdk:"created_at"`
@@ -59,6 +60,19 @@ type TerraformJobResources struct {
 	RAMMiB     types.Int64 `tfsdk:"ram_mib"`
 	GPU        types.Int64 `tfsdk:"gpu"`
 	StorageGiB types.Int64 `tfsdk:"storage_gib"`
+}
+
+type TerraformDockerfileFragment struct {
+	File   *TerraformDockerfileFragmentFile   `tfsdk:"file"`
+	Inline *TerraformDockerfileFragmentInline `tfsdk:"inline"`
+}
+
+type TerraformDockerfileFragmentFile struct {
+	Path types.String `tfsdk:"path"`
+}
+
+type TerraformDockerfileFragmentInline struct {
+	Content types.String `tfsdk:"content"`
 }
 
 type TerraformVariable struct {
@@ -100,6 +114,7 @@ func (t TerraformService) toUpsertRepositoryRequest() (terraformservice.UpsertRe
 		TimeoutSec:            ToInt32Pointer(t.TimeoutSec),
 		IconURI:               ToString(t.IconURI),
 		UseClusterCredentials: ToBool(t.UseClusterCredentials),
+		DockerfileFragment:    t.DockerfileFragment.toDomain(),
 		ActionExtraArguments:  toActionExtraArguments(t.ActionExtraArguments),
 		AdvancedSettingsJson:  ToString(t.AdvancedSettingsJson),
 	}, nil
@@ -175,6 +190,32 @@ func (j *TerraformJobResources) toDomain() terraformservice.JobResources {
 	}
 }
 
+// toDomain converts Terraform dockerfile fragment to domain
+func (d *TerraformDockerfileFragment) toDomain() *terraformservice.DockerfileFragment {
+	if d == nil {
+		return nil
+	}
+
+	fragment := &terraformservice.DockerfileFragment{}
+	if d.File != nil {
+		fragment.File = &terraformservice.DockerfileFragmentFile{
+			Path: ToString(d.File.Path),
+		}
+	}
+	if d.Inline != nil {
+		fragment.Inline = &terraformservice.DockerfileFragmentInline{
+			Content: ToString(d.Inline.Content),
+		}
+	}
+
+	// Return nil if neither is set
+	if fragment.File == nil && fragment.Inline == nil {
+		return nil
+	}
+
+	return fragment
+}
+
 // toVariableArray converts Terraform variables set to domain array
 func toVariableArray(variablesSet types.Set) ([]terraformservice.Variable, error) {
 	if variablesSet.IsNull() || variablesSet.IsUnknown() {
@@ -235,6 +276,7 @@ func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan T
 		TimeoutSec:              FromInt32Pointer(ts.TimeoutSec),
 		IconURI:                 FromString(ts.IconURI),
 		UseClusterCredentials:   FromBool(ts.UseClusterCredentials),
+		DockerfileFragment:      fromDockerfileFragment(ts.DockerfileFragment),
 		ActionExtraArguments:    fromActionExtraArguments(ctx, ts.ActionExtraArguments),
 		AdvancedSettingsJson:    FromString(ts.AdvancedSettingsJson),
 		CreatedAt:               FromTime(ts.CreatedAt),
@@ -289,6 +331,32 @@ func fromJobResources(j terraformservice.JobResources) *TerraformJobResources {
 		GPU:        FromInt32(j.GPU),
 		StorageGiB: FromInt32(j.StorageGiB),
 	}
+}
+
+// fromDockerfileFragment converts domain dockerfile fragment to Terraform
+func fromDockerfileFragment(d *terraformservice.DockerfileFragment) *TerraformDockerfileFragment {
+	if d == nil {
+		return nil
+	}
+
+	fragment := &TerraformDockerfileFragment{}
+	if d.File != nil {
+		fragment.File = &TerraformDockerfileFragmentFile{
+			Path: FromString(d.File.Path),
+		}
+	}
+	if d.Inline != nil {
+		fragment.Inline = &TerraformDockerfileFragmentInline{
+			Content: FromString(d.Inline.Content),
+		}
+	}
+
+	// Return nil if neither is set
+	if fragment.File == nil && fragment.Inline == nil {
+		return nil
+	}
+
+	return fragment
 }
 
 // fromVariableArray converts domain variables to Terraform set while preserving sensitive values from plan
