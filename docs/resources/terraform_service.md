@@ -75,6 +75,20 @@ resource "qovery_terraform_service" "my_terraform_service" {
   #   destroy = ["-auto-approve"]
   # }
 
+  # Optional: Custom Dockerfile fragment to install additional tools
+  # Use file-based for fragments stored in the Git repository:
+  # dockerfile_fragment = {
+  #   file = {
+  #     path = "/custom-build.dockerfile"
+  #   }
+  # }
+  # OR inline for fragments defined directly:
+  # dockerfile_fragment = {
+  #   inline = {
+  #     content = "RUN apt-get update && apt-get install -y --no-install-recommends awscli && rm -rf /var/lib/apt/lists/*"
+  #   }
+  # }
+
   # Optional: Advanced settings
   advanced_settings_json = jsonencode({
     # Non-exhaustive list, the complete list is available in Qovery API doc
@@ -109,6 +123,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 - `action_extra_arguments` (Map of List of String) Extra CLI arguments for specific Terraform actions (plan, apply, destroy).
 - `advanced_settings_json` (String) Advanced settings in JSON format.
 - `description` (String) Description of the terraform service.
+- `dockerfile_fragment` (Attributes) Custom Dockerfile commands to inject during build. Use this to install additional tools or binaries needed by your Terraform configuration. Exactly one of 'file' or 'inline' must be specified. (see [below for nested schema](#nestedatt--dockerfile_fragment))
 - `icon_uri` (String) Icon URI representing the terraform service.
 - `timeout_seconds` (Number) Timeout in seconds for Terraform operations.
 	- Must be: `>= 0`.
@@ -137,6 +152,29 @@ Optional:
 <a id="nestedatt--backend--user_provided"></a>
 ### Nested Schema for `backend.user_provided`
 
+
+
+<a id="nestedatt--dockerfile_fragment"></a>
+### Nested Schema for `dockerfile_fragment`
+
+Optional:
+
+- `file` (Attributes) Reference to a Dockerfile fragment file in the Git repository. (see [below for nested schema](#nestedatt--dockerfile_fragment--file))
+- `inline` (Attributes) Inline Dockerfile commands to inject. (see [below for nested schema](#nestedatt--dockerfile_fragment--inline))
+
+<a id="nestedatt--dockerfile_fragment--file"></a>
+### Nested Schema for `dockerfile_fragment.file`
+
+Required:
+
+- `path` (String) Absolute path to the Dockerfile fragment file within the repository (must start with /).
+
+<a id="nestedatt--dockerfile_fragment--inline"></a>
+### Nested Schema for `dockerfile_fragment.inline`
+
+Required:
+
+- `content` (String) Dockerfile commands to inject (e.g., RUN, COPY, ADD).
 
 
 <a id="nestedatt--engine_version"></a>

@@ -33,6 +33,7 @@ type UpsertRepositoryRequest struct {
 	TimeoutSec            *int32
 	IconURI               string
 	UseClusterCredentials bool
+	DockerfileFragment    *DockerfileFragment
 	ActionExtraArguments  map[string][]string
 	AdvancedSettingsJson  string
 }
@@ -82,6 +83,13 @@ func (r UpsertRepositoryRequest) Validate() error {
 			errors.New("timeout_sec must be at least 0"),
 			ErrInvalidTerraformServiceUpsertRequest.Error(),
 		)
+	}
+
+	// Validate dockerfile fragment (optional)
+	if r.DockerfileFragment != nil {
+		if err := r.DockerfileFragment.Validate(); err != nil {
+			return errors.Wrap(err, ErrInvalidTerraformServiceUpsertRequest.Error())
+		}
 	}
 
 	if err := validator.New().Struct(r); err != nil {
