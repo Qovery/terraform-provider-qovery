@@ -179,6 +179,46 @@ func TestAcc_TerraformServiceStorageImmutability(t *testing.T) {
 	})
 }
 
+func TestAcc_TerraformServiceWithDeploymentStage(t *testing.T) {
+	t.Parallel()
+	testName := "terraform-service-deploy-stage"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryTerraformServiceDestroy("qovery_terraform_service.test"),
+		Steps: []resource.TestStep{
+			// Create with deployment stage
+			{
+				Config: testAccTerraformServiceWithDeploymentStageConfig(testName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryTerraformServiceExists("qovery_terraform_service.test"),
+					resource.TestCheckResourceAttr("qovery_terraform_service.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttrSet("qovery_terraform_service.test", "deployment_stage_id"),
+					resource.TestCheckResourceAttrPair("qovery_terraform_service.test", "deployment_stage_id", "qovery_deployment_stage.test", "id"),
+				),
+			},
+			// Update to a different deployment stage
+			{
+				Config: testAccTerraformServiceWithDeploymentStageUpdatedConfig(testName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryTerraformServiceExists("qovery_terraform_service.test"),
+					resource.TestCheckResourceAttrSet("qovery_terraform_service.test", "deployment_stage_id"),
+					resource.TestCheckResourceAttrPair("qovery_terraform_service.test", "deployment_stage_id", "qovery_deployment_stage.test_2", "id"),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName:      "qovery_terraform_service.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 // Helper functions
 
 func testAccQoveryTerraformServiceExists(resourceName string) resource.TestCheckFunc {
@@ -491,4 +531,106 @@ resource "qovery_terraform_service" "test" {
   use_cluster_credentials = false
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName))
+}
+
+func testAccTerraformServiceWithDeploymentStageConfig(testName string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_deployment_stage" "test" {
+  environment_id = qovery_environment.test.id
+  name           = "%s-stage"
+}
+
+resource "qovery_terraform_service" "test" {
+  environment_id      = qovery_environment.test.id
+  deployment_stage_id = qovery_deployment_stage.test.id
+  name                = "%s"
+  description         = "Terraform service with deployment stage"
+  auto_deploy         = true
+
+  git_repository = {
+    url       = "https://github.com/Qovery/terraform-examples.git"
+    branch    = "main"
+    root_path = "/"
+  }
+
+  tfvars_files = []
+
+  backend = {
+    kubernetes = {}
+  }
+
+  engine = "TERRAFORM"
+
+  engine_version = {
+    explicit_version          = "1.5.0"
+    read_from_terraform_block = false
+  }
+
+  job_resources = {
+    cpu_milli   = 1000
+    ram_mib     = 1024
+    gpu         = 0
+    storage_gib = 20
+  }
+
+  timeout_seconds         = 1800
+  use_cluster_credentials = false
+}
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), generateTestName(testName))
+}
+
+func testAccTerraformServiceWithDeploymentStageUpdatedConfig(testName string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_deployment_stage" "test" {
+  environment_id = qovery_environment.test.id
+  name           = "%s-stage"
+}
+
+resource "qovery_deployment_stage" "test_2" {
+  environment_id = qovery_environment.test.id
+  name           = "%s-stage-2"
+  is_after       = qovery_deployment_stage.test.id
+}
+
+resource "qovery_terraform_service" "test" {
+  environment_id      = qovery_environment.test.id
+  deployment_stage_id = qovery_deployment_stage.test_2.id
+  name                = "%s"
+  description         = "Terraform service with updated deployment stage"
+  auto_deploy         = true
+
+  git_repository = {
+    url       = "https://github.com/Qovery/terraform-examples.git"
+    branch    = "main"
+    root_path = "/"
+  }
+
+  tfvars_files = []
+
+  backend = {
+    kubernetes = {}
+  }
+
+  engine = "TERRAFORM"
+
+  engine_version = {
+    explicit_version          = "1.5.0"
+    read_from_terraform_block = false
+  }
+
+  job_resources = {
+    cpu_milli   = 1000
+    ram_mib     = 1024
+    gpu         = 0
+    storage_gib = 20
+  }
+
+  timeout_seconds         = 1800
+  use_cluster_credentials = false
+}
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), generateTestName(testName), generateTestName(testName))
 }
