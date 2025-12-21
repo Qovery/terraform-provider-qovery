@@ -83,7 +83,8 @@ func (e Engine) Validate() error {
 type TerraformService struct {
 	ID                    uuid.UUID `validate:"required"`
 	EnvironmentID         uuid.UUID `validate:"required"`
-	Name                  string    `validate:"required"`
+	DeploymentStageID     string
+	Name                  string `validate:"required"`
 	Description           *string
 	AutoDeploy            bool
 	GitRepository         GitRepository `validate:"required"`
