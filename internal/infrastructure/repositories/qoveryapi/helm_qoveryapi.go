@@ -68,7 +68,7 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 	// Attach helm to deployment stage
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newHelm.Id).Execute()
-		if err != nil || response.StatusCode >= 400 {
+		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, request.Name, resp, err)
 		}
 	}
@@ -81,7 +81,7 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 
 	// Get helm deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, newHelm.Id).Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, newHelm.Id, resp, err)
 	}
 
@@ -105,7 +105,7 @@ func (c helmQoveryAPI) Get(ctx context.Context, helmID string, advancedSettingsJ
 
 	// Get helm deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, helmID).Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceHelm, helmID, resp, err)
 	}
 
@@ -180,7 +180,7 @@ func (c helmQoveryAPI) Update(ctx context.Context, helmID string, request helm.U
 	// Attach helm to deployment stage
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, helmID).Execute()
-		if err != nil || response.StatusCode >= 400 {
+		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, request.Name, resp, err)
 		}
 	}
@@ -193,7 +193,7 @@ func (c helmQoveryAPI) Update(ctx context.Context, helmID string, request helm.U
 
 	// Get helm deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, helmID).Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, helmID, resp, err)
 	}
 

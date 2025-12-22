@@ -49,7 +49,7 @@ func (c terraformServiceQoveryAPI) Create(ctx context.Context, environmentID str
 	// Attach terraform service to deployment stage
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newTerraform.Id).Execute()
-		if err != nil || response.StatusCode >= 400 {
+		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, request.Name, response, err)
 		}
 	}
@@ -62,7 +62,7 @@ func (c terraformServiceQoveryAPI) Create(ctx context.Context, environmentID str
 
 	// Get terraform service deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, newTerraform.Id).Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, newTerraform.Id, resp, err)
 	}
 
@@ -80,7 +80,7 @@ func (c terraformServiceQoveryAPI) Get(ctx context.Context, terraformServiceID s
 
 	// Get terraform service deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, terraform.Id).Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceTerraformService, terraform.Id, resp, err)
 	}
 
@@ -110,7 +110,7 @@ func (c terraformServiceQoveryAPI) Update(ctx context.Context, terraformServiceI
 	// Attach terraform service to deployment stage
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, terraform.Id).Execute()
-		if err != nil || response.StatusCode >= 400 {
+		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceTerraformService, request.Name, response, err)
 		}
 	}
@@ -123,7 +123,7 @@ func (c terraformServiceQoveryAPI) Update(ctx context.Context, terraformServiceI
 
 	// Get terraform service deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, terraform.Id).Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceTerraformService, terraform.Id, resp, err)
 	}
 

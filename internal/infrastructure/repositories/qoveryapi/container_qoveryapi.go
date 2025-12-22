@@ -67,7 +67,7 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 	// Attach container to deployment stage
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newContainer.Id).Execute()
-		if err != nil || response.StatusCode >= 400 {
+		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, request.Name, resp, err)
 		}
 	}
@@ -80,7 +80,7 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 
 	// Get container deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, newContainer.Id).Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, newContainer.Id, resp, err)
 	}
 
@@ -104,7 +104,7 @@ func (c containerQoveryAPI) Get(ctx context.Context, containerID string, advance
 
 	// Get container deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, container.Id).Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, container.Id, resp, err)
 	}
 
@@ -180,7 +180,7 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 	// Attach container to deployment stage
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, container.Id).Execute()
-		if err != nil || response.StatusCode >= 400 {
+		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceContainer, request.Name, resp, err)
 		}
 	}
@@ -193,7 +193,7 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 
 	// Get container deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, container.Id).Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceContainer, container.Id, resp, err)
 	}
 
