@@ -23,6 +23,7 @@ type UpsertRepositoryRequest struct {
 	Name                  string `validate:"required"`
 	Description           *string
 	AutoDeploy            bool
+	DeploymentStageID     string
 	GitRepository         GitRepository `validate:"required"`
 	TfVarFiles            []string
 	Variables             []Variable

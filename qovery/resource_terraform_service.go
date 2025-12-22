@@ -74,6 +74,11 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
+			"deployment_stage_id": schema.StringAttribute{
+				Description: "Id of the deployment stage.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"name": schema.StringAttribute{
 				Description: "Name of the terraform service.",
 				Required:    true,

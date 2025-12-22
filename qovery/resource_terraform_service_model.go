@@ -14,6 +14,7 @@ import (
 type TerraformService struct {
 	ID                      types.String              `tfsdk:"id"`
 	EnvironmentID           types.String              `tfsdk:"environment_id"`
+	DeploymentStageId       types.String              `tfsdk:"deployment_stage_id"`
 	Name                    types.String              `tfsdk:"name"`
 	Description             types.String              `tfsdk:"description"`
 	AutoDeploy              types.Bool                `tfsdk:"auto_deploy"`
@@ -90,6 +91,7 @@ func (t TerraformService) toUpsertRepositoryRequest() (terraformservice.UpsertRe
 		Name:                  ToString(t.Name),
 		Description:           ToStringPointer(t.Description),
 		AutoDeploy:            ToBool(t.AutoDeploy),
+		DeploymentStageID:     ToString(t.DeploymentStageId),
 		GitRepository:         t.GitRepository.toDomain(),
 		TfVarFiles:            ToStringArray(t.TfVarFiles),
 		Variables:             variables,
@@ -222,6 +224,7 @@ func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan T
 	return TerraformService{
 		ID:                      FromString(ts.ID.String()),
 		EnvironmentID:           FromString(ts.EnvironmentID.String()),
+		DeploymentStageId:       FromString(ts.DeploymentStageID),
 		Name:                    FromString(ts.Name),
 		Description:             FromStringPointer(ts.Description),
 		AutoDeploy:              FromBool(ts.AutoDeploy),

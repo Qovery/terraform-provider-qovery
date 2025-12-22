@@ -56,8 +56,8 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 	// Attach job to deployment stage
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newJobId).Execute()
-		if err != nil || response.StatusCode >= 400 {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, resp, err)
+		if err != nil || (response != nil && response.StatusCode >= 400) {
+			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, response, err)
 		}
 	}
 
@@ -69,7 +69,7 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 
 	// Get job deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, newJobId).Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, newJobId, resp, err)
 	}
 
@@ -87,7 +87,7 @@ func (c jobQoveryAPI) Get(ctx context.Context, jobID string, advancedSettingsJso
 
 	// Get job deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, jobID).Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
@@ -117,8 +117,8 @@ func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.Upse
 	// Attach job to deployment stage
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, jobID).Execute()
-		if err != nil || response.StatusCode >= 400 {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, resp, err)
+		if err != nil || (response != nil && response.StatusCode >= 400) {
+			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceJob, request.Name, response, err)
 		}
 	}
 
@@ -130,7 +130,7 @@ func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.Upse
 
 	// Get job deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, jobID).Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
