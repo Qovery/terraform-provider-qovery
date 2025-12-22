@@ -57,7 +57,7 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newJobId).Execute()
 		if err != nil || (response != nil && response.StatusCode >= 400) {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, resp, err)
+			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, response, err)
 		}
 	}
 
@@ -118,7 +118,7 @@ func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.Upse
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, jobID).Execute()
 		if err != nil || (response != nil && response.StatusCode >= 400) {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, resp, err)
+			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceJob, request.Name, response, err)
 		}
 	}
 

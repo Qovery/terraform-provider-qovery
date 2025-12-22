@@ -68,7 +68,7 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newContainer.Id).Execute()
 		if err != nil || (response != nil && response.StatusCode >= 400) {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, request.Name, resp, err)
+			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, request.Name, response, err)
 		}
 	}
 
@@ -85,8 +85,8 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 	}
 
 	// Get custom domains
-	customDomains, _, err := c.client.ContainerCustomDomainAPI.ListContainerCustomDomain(ctx, newContainer.Id).Execute()
-	if err != nil || resp.StatusCode >= 400 {
+	customDomains, resp, err := c.client.ContainerCustomDomainAPI.ListContainerCustomDomain(ctx, newContainer.Id).Execute()
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainerCustomDomain, newContainer.Id, resp, err)
 	}
 
@@ -115,9 +115,9 @@ func (c containerQoveryAPI) Get(ctx context.Context, containerID string, advance
 	}
 
 	// Get custom domains
-	customDomains, _, err := c.client.ContainerCustomDomainAPI.ListContainerCustomDomain(ctx, container.Id).Execute()
-	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainerCustomDomain, container.Id, resp, err)
+	customDomains, resp, err := c.client.ContainerCustomDomainAPI.ListContainerCustomDomain(ctx, container.Id).Execute()
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceContainerCustomDomain, container.Id, resp, err)
 	}
 
 	return newDomainContainerFromQovery(container, deploymentStage.Id, *advancedSettingsAsJson, customDomains)
@@ -181,7 +181,7 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 	if len(request.DeploymentStageID) > 0 {
 		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, container.Id).Execute()
 		if err != nil || (response != nil && response.StatusCode >= 400) {
-			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceContainer, request.Name, resp, err)
+			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceContainer, request.Name, response, err)
 		}
 	}
 
@@ -198,9 +198,9 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 	}
 
 	// Get custom domains
-	customDomains, _, err := c.client.ContainerCustomDomainAPI.ListContainerCustomDomain(ctx, container.Id).Execute()
-	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainerCustomDomain, container.Id, resp, err)
+	customDomains, resp, err := c.client.ContainerCustomDomainAPI.ListContainerCustomDomain(ctx, container.Id).Execute()
+	if err != nil || (resp != nil && resp.StatusCode >= 400) {
+		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceContainerCustomDomain, container.Id, resp, err)
 	}
 
 	return newDomainContainerFromQovery(container, deploymentStage.Id, request.AdvancedSettingsJson, customDomains)
