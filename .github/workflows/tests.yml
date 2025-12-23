@@ -15,6 +15,8 @@ on:
     paths-ignore:
       - "README.md"
       - ".gitignore"
+  schedule:
+    - cron: '0 6 * * 1-5'  # 6:00 UTC, Mon-Fri (7am France winter)
 
 # Testing only needs permissions to read the repository contents.
 permissions:
@@ -216,3 +218,54 @@ jobs:
           TEST_ANNOTATIONS_GROUP_ID: ${{ secrets.TEST_ANNOTATIONS_GROUP_ID }}
           TEST_LABELS_GROUP_ID: ${{ secrets.TEST_LABELS_GROUP_ID }}
         run: task testacc
+
+  # Notify Slack after scheduled test runs
+  notify-slack:
+    name: Notify Slack
+    needs: [test]
+    if: always() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "${{ needs.test.result == 'success' && ':white_check_mark:' || ':x:' }} *Scheduled Terraform Provider Tests*\nStatus: *${{ needs.test.result }}*"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Branch:*\nmain"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Trigger:*\nScheduled (6:00 UTC)"
+                    }
+                  ]
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
