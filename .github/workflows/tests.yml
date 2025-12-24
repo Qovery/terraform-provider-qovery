@@ -16,7 +16,7 @@ on:
       - "README.md"
       - ".gitignore"
   schedule:
-    - cron: '0 6 * * 1-5'  # 6:00 UTC, Mon-Fri (7am France winter)
+    - cron: '0 9 * * 1-5'  # 9:00 UTC, Mon-Fri (10am France winter)
 
 # Testing only needs permissions to read the repository contents.
 permissions:
