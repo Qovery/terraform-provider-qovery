@@ -1,3 +1,5 @@
+//go:generate mockery --testonly --with-expecter --name=Repository --structname=LabelsGroupRepository --filename=labels_group_repository_mock.go --output=../../infrastructure/repositories/mocks_test/ --outpkg=mocks_test
+
 package labels_group
 
 import (

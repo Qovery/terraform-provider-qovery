@@ -1,6 +1,6 @@
 package helmRepository
 
-//go:generate mockery --testonly --with-expecter --name=Repository --structname=RegistryRepository --filename=registry_repository_mock.go --output=../../infrastructure/repositories/mocks_test/ --outpkg=mocks_test
+//go:generate mockery --testonly --with-expecter --name=Repository --structname=HelmRepositoryRepository --filename=helm_repository_repository_mock.go --output=../../infrastructure/repositories/mocks_test/ --outpkg=mocks_test
 
 import (
 	"context"

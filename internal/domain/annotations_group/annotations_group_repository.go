@@ -1,3 +1,5 @@
+//go:generate mockery --testonly --with-expecter --name=Repository --structname=AnnotationsGroupRepository --filename=annotations_group_repository_mock.go --output=../../infrastructure/repositories/mocks_test/ --outpkg=mocks_test
+
 package annotations_group
 
 import (
