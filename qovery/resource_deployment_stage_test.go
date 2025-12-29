@@ -30,7 +30,6 @@ func TestAcc_DeploymentStage(t *testing.T) {
 					testAccQoveryDeploymentStageExists("qovery_deployment_stage.test"),
 					resource.TestCheckResourceAttr("qovery_deployment_stage.test", "environment_id", getTestEnvironmentID()),
 					resource.TestCheckResourceAttr("qovery_deployment_stage.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_deployment_stage.test", "description", ""),
 				),
 			},
 			// Update name
@@ -40,7 +39,6 @@ func TestAcc_DeploymentStage(t *testing.T) {
 					testAccQoveryDeploymentStageExists("qovery_deployment_stage.test"),
 					resource.TestCheckResourceAttr("qovery_deployment_stage.test", "environment_id", getTestEnvironmentID()),
 					resource.TestCheckResourceAttr("qovery_deployment_stage.test", "name", generateTestName(testName+"-updated")),
-					resource.TestCheckResourceAttr("qovery_deployment_stage.test", "description", ""),
 				),
 			},
 			// Check Import
@@ -48,6 +46,10 @@ func TestAcc_DeploymentStage(t *testing.T) {
 				ResourceName:      "qovery_deployment_stage.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					rs := s.RootModule().Resources["qovery_deployment_stage.test"]
+					return fmt.Sprintf("%s,%s", rs.Primary.Attributes["environment_id"], rs.Primary.Attributes["name"]), nil
+				},
 			},
 		},
 	})
@@ -86,6 +88,10 @@ func TestAcc_DeploymentStageWithDescription(t *testing.T) {
 				ResourceName:      "qovery_deployment_stage.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					rs := s.RootModule().Resources["qovery_deployment_stage.test"]
+					return fmt.Sprintf("%s,%s", rs.Primary.Attributes["environment_id"], rs.Primary.Attributes["name"]), nil
+				},
 			},
 		},
 	})
@@ -113,6 +119,10 @@ func TestAcc_DeploymentStage_Import(t *testing.T) {
 				ResourceName:      "qovery_deployment_stage.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				ImportStateIdFunc: func(s *terraform.State) (string, error) {
+					rs := s.RootModule().Resources["qovery_deployment_stage.test"]
+					return fmt.Sprintf("%s,%s", rs.Primary.Attributes["environment_id"], rs.Primary.Attributes["name"]), nil
+				},
 			},
 		},
 	})

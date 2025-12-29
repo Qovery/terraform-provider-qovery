@@ -41,32 +41,33 @@ resource "qovery_terraform_service" "source" {
   name           = "%s"
   auto_deploy    = false
 
-  source {
-    git_repository {
-      url       = "https://github.com/Qovery/terraform-provider-qovery.git"
-      branch    = "main"
-      root_path = "/"
-    }
+  git_repository = {
+    url       = "https://github.com/Qovery/terraform-provider-qovery.git"
+    branch    = "main"
+    root_path = "/"
   }
 
-  backend {
-    kubernetes {}
+  tfvars_files = []
+
+  backend = {
+    kubernetes = {}
   }
 
   engine = "TERRAFORM"
-  engine_version {
-    version = "1.5.7"
+  engine_version = {
+    explicit_version          = "1.5.7"
+    read_from_terraform_block = false
   }
 
-  resources {
-    cpu    = 500
-    memory = 512
+  job_resources = {
+    cpu_milli   = 500
+    ram_mib     = 512
+    storage_gib = 1
   }
 }
 
 data "qovery_terraform_service" "test" {
-  id             = qovery_terraform_service.source.id
-  environment_id = qovery_terraform_service.source.environment_id
+  id = qovery_terraform_service.source.id
 }
 `, getTestEnvironmentID(), generateTestName(testName))
 }

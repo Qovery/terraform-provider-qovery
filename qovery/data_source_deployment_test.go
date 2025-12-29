@@ -72,7 +72,9 @@ resource "qovery_deployment" "source" {
 }
 
 data "qovery_deployment" "test" {
-  id = qovery_deployment.source.id
+  id             = qovery_deployment.source.id
+  environment_id = qovery_environment.test.id
+  desired_state  = "STOPPED"
 }
 `,
 		testAccEnvironmentDefaultConfig("ds-deployment-environment"),

@@ -54,7 +54,7 @@ func (r gitTokenDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 			},
 			"organization_id": schema.StringAttribute{
 				Description: "Id of the organization.",
-				Computed:    true,
+				Required:    true,
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the git token.",
