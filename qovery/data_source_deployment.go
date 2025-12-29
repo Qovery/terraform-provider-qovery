@@ -54,7 +54,7 @@ func (r deploymentDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 			},
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Computed:    true,
+				Required:    true,
 			},
 			"version": schema.StringAttribute{
 				Description: "Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'RUNNING' state)",
@@ -66,7 +66,7 @@ func (r deploymentDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 					"Desired state of the deployment.",
 					deploymentStates,
 					nil),
-				Computed: true,
+				Required: true,
 			},
 		},
 	}

@@ -53,7 +53,7 @@ func (r deploymentStageDataSource) Schema(_ context.Context, _ datasource.Schema
 			},
 			"environment_id": schema.StringAttribute{
 				Description: "Id of the environment.",
-				Computed:    true,
+				Required:    true,
 			},
 			"name": schema.StringAttribute{
 				Description: "Name of the deployment stage.",
