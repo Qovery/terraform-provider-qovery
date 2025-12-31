@@ -40,6 +40,7 @@ type Configuration func(repos *Repositories) error
 type Repositories struct {
 	CredentialsAws                 credentials.AwsRepository
 	CredentialsScaleway            credentials.ScalewayRepository
+	CredentialsGcp                 credentials.GcpRepository
 	Organization                   organization.Repository
 	Project                        project.Repository
 	ProjectEnvironmentVariable     variable.Repository
@@ -101,6 +102,7 @@ func WithQoveryAPI(apiToken string, providerVersion string, host string) Configu
 
 		repos.CredentialsAws = qoveryAPI.CredentialsAws
 		repos.CredentialsScaleway = qoveryAPI.CredentialsScaleway
+		repos.CredentialsGcp = qoveryAPI.CredentialsGcp
 		repos.Organization = qoveryAPI.Organization
 		repos.Project = qoveryAPI.Project
 		repos.ProjectEnvironmentVariable = qoveryAPI.ProjectEnvironmentVariable

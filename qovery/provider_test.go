@@ -36,6 +36,7 @@ type testEnvironment struct {
 	ScalewayCredentialsOrganizationID string `env:"TEST_SCALEWAY_CREDENTIALS_ORGANIZATION_ID,required"`
 	ScalewayCredentialsAccessKey      string `env:"TEST_SCALEWAY_CREDENTIALS_ACCESS_KEY,required"`
 	ScalewayCredentialsSecretKey      string `env:"TEST_SCALEWAY_CREDENTIALS_SECRET_KEY,required"`
+	GcpCredentials                    string `env:"TEST_GCP_CREDENTIALS"`
 	ClusterID                         string `env:"TEST_CLUSTER_ID,required"`
 	ProjectID                         string `env:"TEST_PROJECT_ID,required"`
 	EnvironmentID                     string `env:"TEST_ENVIRONMENT_ID,required"`
@@ -106,6 +107,10 @@ func getTestScalewayCredentialsSecretKey() string {
 	return os.Getenv("TEST_SCALEWAY_CREDENTIALS_SECRET_KEY")
 }
 
+func getTestGCPCredentials() string {
+	return os.Getenv("TEST_GCP_CREDENTIALS")
+}
+
 func getTestClusterID() string {
 	return os.Getenv("TEST_CLUSTER_ID")
 }
@@ -173,4 +178,3 @@ func generateTestName(testName string) string {
 func generateRandomName(testName string) string {
 	return fmt.Sprintf("%s-%s-%s", testNamePrefix, testName, uuid.NewString())
 }
-

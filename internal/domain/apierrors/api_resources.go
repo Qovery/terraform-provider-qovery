@@ -37,6 +37,7 @@ const (
 	APIResourceProjectEnvironmentVariable     APIResource = "project environment variable"
 	APIResourceProjectSecret                  APIResource = "project secret"
 	APIResourceScalewayCredentials            APIResource = "scaleway credentials"
+	APIResourceGCPCredentials                 APIResource = "gcp credentials"
 	APIResourceDeploymentStage                APIResource = "deployment stage"
 	APIResourceDeployment                     APIResource = "deployment"
 	APIGitToken                               APIResource = "git token"

@@ -47,6 +47,7 @@ type QoveryAPI struct {
 
 	CredentialsAws                 credentials.AwsRepository
 	CredentialsScaleway            credentials.ScalewayRepository
+	CredentialsGcp                 credentials.GcpRepository
 	Organization                   organization.Repository
 	Project                        project.Repository
 	ProjectEnvironmentVariable     variable.Repository
@@ -91,6 +92,11 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 	}
 
 	credentialsScalewayAPI, err := newCredentialsScalewayQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	credentialsGcpAPI, err := newCredentialsGcpQoveryAPI(apiClient)
 	if err != nil {
 		return nil, err
 	}
@@ -240,6 +246,7 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		Client:                         apiClient,
 		CredentialsAws:                 credentialsAwsAPI,
 		CredentialsScaleway:            credentialsScalewayAPI,
+		CredentialsGcp:                 credentialsGcpAPI,
 		Organization:                   organizationAPI,
 		Project:                        projectAPI,
 		ProjectEnvironmentVariable:     projectEnvironmentVariableAPI,

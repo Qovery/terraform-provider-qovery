@@ -30,6 +30,12 @@ func newDomainCredentialsFromQovery(organizationID string, creds *qovery.Cluster
 			OrganizationID: organizationID,
 			Name:           castedCreds.GetName(),
 		})
+	case *qovery.GcpStaticClusterCredentials:
+		return credentials.NewCredentials(credentials.NewCredentialsParams{
+			CredentialsID:  castedCreds.GetId(),
+			OrganizationID: organizationID,
+			Name:           castedCreds.GetName(),
+		})
 	case *qovery.GenericClusterCredentials:
 		return credentials.NewCredentials(credentials.NewCredentialsParams{
 			CredentialsID:  castedCreds.GetId(),
@@ -70,5 +76,13 @@ func newQoveryScalewayCredentialsRequestFromDomain(request credentials.UpsertSca
 		ScalewayAccessKey:      request.ScalewayAccessKey,
 		ScalewaySecretKey:      request.ScalewaySecretKey,
 		ScalewayOrganizationId: request.ScalewayOrganizationID,
+	}
+}
+
+// newQoveryGcpCredentialsRequestFromDomain takes the domain request credentials.UpsertGcpRequest and turns it into a qovery.GcpCredentialsRequest to make the api call.
+func newQoveryGcpCredentialsRequestFromDomain(request credentials.UpsertGcpRequest) qovery.GcpCredentialsRequest {
+	return qovery.GcpCredentialsRequest{
+		Name:           request.Name,
+		GcpCredentials: request.GcpCredentials,
 	}
 }
