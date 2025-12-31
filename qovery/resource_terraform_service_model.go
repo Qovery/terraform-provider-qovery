@@ -12,26 +12,26 @@ import (
 )
 
 type TerraformService struct {
-	ID                      types.String              `tfsdk:"id"`
-	EnvironmentID           types.String              `tfsdk:"environment_id"`
-	DeploymentStageId       types.String              `tfsdk:"deployment_stage_id"`
-	Name                    types.String              `tfsdk:"name"`
-	Description             types.String              `tfsdk:"description"`
-	AutoDeploy              types.Bool                `tfsdk:"auto_deploy"`
-	GitRepository           *TerraformGitRepository   `tfsdk:"git_repository"`
-	TfVarFiles              types.List                `tfsdk:"tfvars_files"`
-	Variables               types.Set                 `tfsdk:"variables"`
-	Backend                 *TerraformBackend       `tfsdk:"backend"`
-	Engine                  types.String            `tfsdk:"engine"`
-	EngineVersion           *TerraformEngineVersion `tfsdk:"engine_version"`
-	JobResources            *TerraformJobResources  `tfsdk:"job_resources"`
-	TimeoutSec              types.Int64               `tfsdk:"timeout_seconds"`
-	IconURI                 types.String              `tfsdk:"icon_uri"`
-	UseClusterCredentials   types.Bool                `tfsdk:"use_cluster_credentials"`
-	ActionExtraArguments    types.Map                 `tfsdk:"action_extra_arguments"`
-	AdvancedSettingsJson    types.String              `tfsdk:"advanced_settings_json"`
-	CreatedAt               types.String              `tfsdk:"created_at"`
-	UpdatedAt               types.String              `tfsdk:"updated_at"`
+	ID                    types.String            `tfsdk:"id"`
+	EnvironmentID         types.String            `tfsdk:"environment_id"`
+	DeploymentStageId     types.String            `tfsdk:"deployment_stage_id"`
+	Name                  types.String            `tfsdk:"name"`
+	Description           types.String            `tfsdk:"description"`
+	AutoDeploy            types.Bool              `tfsdk:"auto_deploy"`
+	GitRepository         *TerraformGitRepository `tfsdk:"git_repository"`
+	TfVarFiles            types.List              `tfsdk:"tfvars_files"`
+	Variables             types.Set               `tfsdk:"variables"`
+	Backend               *TerraformBackend       `tfsdk:"backend"`
+	Engine                types.String            `tfsdk:"engine"`
+	EngineVersion         *TerraformEngineVersion `tfsdk:"engine_version"`
+	JobResources          *TerraformJobResources  `tfsdk:"job_resources"`
+	TimeoutSec            types.Int64             `tfsdk:"timeout_seconds"`
+	IconURI               types.String            `tfsdk:"icon_uri"`
+	UseClusterCredentials types.Bool              `tfsdk:"use_cluster_credentials"`
+	ActionExtraArguments  types.Map               `tfsdk:"action_extra_arguments"`
+	AdvancedSettingsJson  types.String            `tfsdk:"advanced_settings_json"`
+	CreatedAt             types.String            `tfsdk:"created_at"`
+	UpdatedAt             types.String            `tfsdk:"updated_at"`
 }
 
 type TerraformGitRepository struct {
@@ -222,26 +222,26 @@ func toActionExtraArguments(argsMap types.Map) map[string][]string {
 // convertDomainTerraformServiceToTerraformService converts domain entity to Terraform model
 func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan TerraformService, ts *terraformservice.TerraformService) TerraformService {
 	return TerraformService{
-		ID:                      FromString(ts.ID.String()),
-		EnvironmentID:           FromString(ts.EnvironmentID.String()),
-		DeploymentStageId:       FromString(ts.DeploymentStageID),
-		Name:                    FromString(ts.Name),
-		Description:             FromStringPointer(ts.Description),
-		AutoDeploy:              FromBool(ts.AutoDeploy),
-		GitRepository:           fromGitRepository(ts.GitRepository),
-		TfVarFiles:              FromStringArray(ts.TfVarFiles),
-		Variables:               fromVariableArray(ctx, plan.Variables, ts.Variables),
-		Backend:                 fromBackend(ts.Backend),
-		Engine:                  FromString(string(ts.Engine)),
-		EngineVersion:           fromEngineVersion(ts.EngineVersion),
-		JobResources:            fromJobResources(ts.JobResources),
-		TimeoutSec:              FromInt32Pointer(ts.TimeoutSec),
-		IconURI:                 FromString(ts.IconURI),
-		UseClusterCredentials:   FromBool(ts.UseClusterCredentials),
-		ActionExtraArguments:    fromActionExtraArguments(ctx, ts.ActionExtraArguments),
-		AdvancedSettingsJson:    FromString(ts.AdvancedSettingsJson),
-		CreatedAt:               FromTime(ts.CreatedAt),
-		UpdatedAt:               FromTimePointer(ts.UpdatedAt),
+		ID:                    FromString(ts.ID.String()),
+		EnvironmentID:         FromString(ts.EnvironmentID.String()),
+		DeploymentStageId:     FromString(ts.DeploymentStageID),
+		Name:                  FromString(ts.Name),
+		Description:           FromStringPointer(ts.Description),
+		AutoDeploy:            FromBool(ts.AutoDeploy),
+		GitRepository:         fromGitRepository(ts.GitRepository),
+		TfVarFiles:            FromStringArray(ts.TfVarFiles),
+		Variables:             fromVariableArray(ctx, plan.Variables, ts.Variables),
+		Backend:               fromBackend(ts.Backend),
+		Engine:                FromString(string(ts.Engine)),
+		EngineVersion:         fromEngineVersion(ts.EngineVersion),
+		JobResources:          fromJobResources(ts.JobResources),
+		TimeoutSec:            FromInt32Pointer(ts.TimeoutSec),
+		IconURI:               FromString(ts.IconURI),
+		UseClusterCredentials: FromBool(ts.UseClusterCredentials),
+		ActionExtraArguments:  fromActionExtraArguments(ctx, ts.ActionExtraArguments),
+		AdvancedSettingsJson:  FromString(ts.AdvancedSettingsJson),
+		CreatedAt:             FromTime(ts.CreatedAt),
+		UpdatedAt:             FromTimePointer(ts.UpdatedAt),
 	}
 }
 
