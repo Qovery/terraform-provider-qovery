@@ -255,6 +255,29 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		}
 	}
 
+	// Validation: Require Karpenter for new EKS clusters
+	if state == nil { // This is a new cluster creation
+		isAWS := ToString(c.CloudProvider) == "AWS"
+		isManaged := kubernetesMode != nil && *kubernetesMode == qovery.KUBERNETESENUM_MANAGED
+
+		if isAWS && isManaged {
+			// Check if Karpenter is enabled
+			karpenterEnabled := false
+			if features != nil {
+				for _, f := range features {
+					if f.Id != nil && *f.Id == featureIdKarpenter {
+						karpenterEnabled = true
+						break
+					}
+				}
+			}
+
+			if !karpenterEnabled {
+				return nil, errors.New("Karpenter is required for new EKS (AWS MANAGED) clusters. Please configure the Karpenter feature in the cluster configuration")
+			}
+		}
+	}
+
 	var clusterCloudProviderRequest *qovery.ClusterCloudProviderInfoRequest
 	if state == nil || c.CredentialsId != state.CredentialsId {
 		clusterCloudProviderRequest = &qovery.ClusterCloudProviderInfoRequest{
