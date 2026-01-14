@@ -15,6 +15,74 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
+// TestAcc_AWSClusterConfigOnly creates an AWS cluster without deploying it (config only)
+// This is faster and cheaper than deploying a full cluster
+// Uses Karpenter which is required for new AWS EKS clusters
+// Note: state=STOPPED prevents deployment, but API returns READY for never-deployed clusters
+// causing expected drift on refresh (hence ExpectNonEmptyPlan)
+func TestAcc_AWSClusterConfigOnly(t *testing.T) {
+	t.Parallel()
+	testName := "aws-cluster-config-only"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
+		Steps: []resource.TestStep{
+			// Create cluster config only (no deployment triggered)
+			{
+				Config: testAccAWSClusterWithKarpenterConfigWithState(
+					testName,
+					"eu-west-3",
+					"STOPPED",
+				),
+				ExpectNonEmptyPlan: true, // API returns READY for never-deployed clusters
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAWSCredentialsID()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "region", "eu-west-3"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
+				),
+			},
+		},
+	})
+}
+
+// TestAcc_GCPClusterConfigOnly creates a GCP cluster without deploying it (config only)
+// GCP uses AUTO_PILOT mode where node counts are managed automatically by the cloud provider
+// Note: state=STOPPED prevents deployment, but API returns READY for never-deployed clusters
+func TestAcc_GCPClusterConfigOnly(t *testing.T) {
+	t.Parallel()
+	testName := "gcp-cluster-config-only"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
+		Steps: []resource.TestStep{
+			// Create GCP cluster config only (no deployment triggered)
+			{
+				Config: testAccGCPClusterConfigWithState(
+					testName,
+					"europe-west9",
+					"STOPPED",
+				),
+				ExpectNonEmptyPlan: true, // API returns READY for never-deployed clusters
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestGCPCredentialsID()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "GCP"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "region", "europe-west9"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "AUTO_PILOT"),
+				),
+			},
+		},
+	})
+}
+
 // FIXME: disabled until ttl advanced setting has been implemented for cleaning
 func TestAcc_Cluster(t *testing.T) {
 	t.SkipNow()
@@ -435,4 +503,61 @@ func convertRoutingTableToString(routingTable map[string]string) string {
 		idx++
 	}
 	return fmt.Sprintf("[%s]", strings.Join(routes, ","))
+}
+
+func testAccGCPClusterConfigWithState(testName string, region string, state string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id  = "%s"
+  organization_id = "%s"
+  name            = "%s"
+  cloud_provider  = "GCP"
+  region          = "%s"
+  instance_type   = "AUTO_PILOT"
+  state           = "%s"
+}
+`, getTestGCPCredentialsID(), getTestOrganizationID(), generateTestName(testName), region, state,
+	)
+}
+
+func testAccAWSClusterWithKarpenterConfigWithState(testName string, region string, state string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id  = "%s"
+  organization_id = "%s"
+  name            = "%s"
+  cloud_provider  = "AWS"
+  region          = "%s"
+  state           = "%s"
+
+  features = {
+    vpc_subnet = "10.0.0.0/16"
+    karpenter = {
+      spot_enabled                 = true
+      disk_size_in_gib             = 50
+      default_service_architecture = "AMD64"
+      qovery_node_pools = {
+        requirements = [
+          {
+            key      = "InstanceSize"
+            operator = "In"
+            values   = ["small", "medium", "large", "xlarge", "2xlarge"]
+          },
+          {
+            key      = "InstanceFamily"
+            operator = "In"
+            values   = ["t3", "t3a", "m5", "m5a", "m6i", "c5", "c5a"]
+          },
+          {
+            key      = "Arch"
+            operator = "In"
+            values   = ["AMD64"]
+          }
+        ]
+      }
+    }
+  }
+}
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), region, state,
+	)
 }

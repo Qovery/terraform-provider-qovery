@@ -16,7 +16,7 @@ on:
       - "README.md"
       - ".gitignore"
   schedule:
-    - cron: '0 9 * * 1-5'  # 9:00 UTC, Mon-Fri (10am France winter)
+    - cron: "0 9 * * 1-5" # 9:00 UTC, Mon-Fri (10am France winter)
 
 # Testing only needs permissions to read the repository contents.
 permissions:
@@ -153,18 +153,44 @@ jobs:
           git diff --compact-summary --exit-code || \
             (echo; echo "Unexpected difference in directories after code generation. Run 'task mocks' command and commit."; exit 1)
 
+  # Run unit tests
+  unit-test:
+    name: Unit Tests
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - name: Set up Task
+        uses: arduino/setup-task@v1
+        with:
+          version: ${{ env.TASK_VERSION }}
+
+      - name: Check out source code
+        uses: actions/checkout@v3
+
+      - name: Install gotestsum
+        run: task install-gotestsum
+
+      - name: Run unit tests
+        run: task test
+
   # Run acceptance tests in a matrix with Terraform CLI versions
   test:
     name: Terraform Provider Acceptance Tests
     needs:
       - matrix_prep
-      - build
+      - unit-test
     runs-on: ubuntu-latest
     timeout-minutes: 120
     strategy:
       fail-fast: true
       matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
-      max-parallel: 3
+      max-parallel: 1
     steps:
       - name: Set up Go
         uses: actions/setup-go@v3
@@ -217,6 +243,8 @@ jobs:
           TEST_QOVERY_SANDBOX_GIT_TOKEN_ID: ${{ secrets.TEST_QOVERY_SANDBOX_GIT_TOKEN_ID }}
           TEST_ANNOTATIONS_GROUP_ID: ${{ secrets.TEST_ANNOTATIONS_GROUP_ID }}
           TEST_LABELS_GROUP_ID: ${{ secrets.TEST_LABELS_GROUP_ID }}
+          TEST_GCP_CREDENTIALS_ID: ${{ secrets.TEST_GCP_CREDENTIALS_ID }}
+          TEST_GCP_CREDENTIALS: ${{ secrets.TEST_GCP_CREDENTIALS }}
         run: task testacc
 
   # Notify Slack after scheduled test runs

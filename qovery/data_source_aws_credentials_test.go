@@ -25,7 +25,7 @@ func TestAcc_AWSCredentialsDataSource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.qovery_aws_credentials.test", "id", getTestAWSCredentialsID()),
 					resource.TestCheckResourceAttr("data.qovery_aws_credentials.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("data.qovery_aws_credentials.test", "name", "Qovery Sandbox"),
+					resource.TestCheckResourceAttr("data.qovery_aws_credentials.test", "name", "terraform-provider-test-aws"),
 				),
 			},
 		},

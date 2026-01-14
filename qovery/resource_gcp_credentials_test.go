@@ -107,7 +107,10 @@ func testAccGCPCredentialsDefaultConfig(testName string, gcpCredentials string) 
 resource "qovery_gcp_credentials" "test" {
   organization_id = "%s"
   name = "%s"
-  gcp_credentials = "%s"
+  gcp_credentials = chomp(<<-EOF
+%s
+EOF
+  )
 }
 `, getTestOrganizationID(), generateTestName(testName), gcpCredentials,
 	)

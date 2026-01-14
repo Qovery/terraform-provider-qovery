@@ -65,6 +65,10 @@ func main() {
 		log.Fatalf("failed to clean Scaleway credentials: %v", err)
 	}
 
+	if err := cleanGcpCredentials(ctx, apiClient, env.TestOrganizationID); err != nil {
+		log.Fatalf("failed to clean GCP credentials: %v", err)
+	}
+
 	if err := cleanProjects(ctx, apiClient, env.TestOrganizationID); err != nil {
 		log.Fatalf("failed to clean projects: %v", err)
 	}
@@ -182,6 +186,36 @@ func cleanScalewayCredentials(ctx context.Context, apiClient *qovery.APIClient, 
 	return nil
 }
 
+func cleanGcpCredentials(ctx context.Context, apiClient *qovery.APIClient, organizationID string) error {
+	gcpCreds, err := getGcpCredentialsToDelete(ctx, apiClient, organizationID)
+	if err != nil {
+		return err
+	}
+
+	bar := progressbar.Default(int64(len(gcpCreds)))
+	fmt.Printf("Deleting %d gcp credentials...\n", len(gcpCreds))
+	for _, creds := range gcpCreds {
+		if strings.Contains(creds.Name, testPrefix) {
+			maxSize := len(creds.Name)
+			if maxSize > 50 {
+				maxSize = 50
+			}
+			bar.Describe(fmt.Sprintf("%s...", creds.Name[0:maxSize]))
+
+			_, err := apiClient.CloudProviderCredentialsAPI.
+				DeleteGcpCredentials(ctx, creds.ID, organizationID).
+				Execute()
+			if err != nil {
+				return err
+			}
+
+			bar.Add(1)
+		}
+	}
+
+	return nil
+}
+
 func cleanContainerRegistry(ctx context.Context, apiClient *qovery.APIClient, organizationID string) error {
 	registries, err := getContainerRegitriesToDelete(ctx, apiClient, organizationID)
 	if err != nil {
@@ -285,6 +319,28 @@ func getScalewayCredentialsToDelete(ctx context.Context, apiClient *qovery.APICl
 	}
 
 	return scalewayCredsToDelete, nil
+}
+
+func getGcpCredentialsToDelete(ctx context.Context, apiClient *qovery.APIClient, organizationID string) ([]credentials, error) {
+	gcpCreds, _, err := apiClient.CloudProviderCredentialsAPI.
+		ListGcpCredentials(ctx, organizationID).
+		Execute()
+	if err != nil {
+		return nil, err
+	}
+
+	gcpCredsToDelete := make([]credentials, 0, len(gcpCreds.GetResults()))
+	for _, c := range gcpCreds.GetResults() {
+		credsName := strings.ToLower(c.GcpStaticClusterCredentials.GetName())
+		if strings.Contains(credsName, testPrefix) {
+			gcpCredsToDelete = append(gcpCredsToDelete, credentials{
+				ID:   c.GcpStaticClusterCredentials.GetId(),
+				Name: c.GcpStaticClusterCredentials.GetName(),
+			})
+		}
+	}
+
+	return gcpCredsToDelete, nil
 }
 
 func getContainerRegitriesToDelete(ctx context.Context, apiClient *qovery.APIClient, organizationID string) ([]registry, error) {

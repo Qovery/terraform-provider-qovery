@@ -12,48 +12,32 @@ import (
 
 func TestAcc_GcpCredentialsDataSource(t *testing.T) {
 	t.Parallel()
-	testName := "gcp-credentials-data-source"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		Steps: []resource.TestStep{
-			// Create credentials first, then read via data source
+			// Read testing
 			{
 				Config: testAccGCPCredentialsDataSourceConfig(
-					testName,
-					getTestGCPCredentials(),
+					getTestGCPCredentialsID(),
+					getTestOrganizationID(),
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					resource.TestCheckResourceAttrPair(
-						"data.qovery_gcp_credentials.test", "id",
-						"qovery_gcp_credentials.test", "id",
-					),
-					resource.TestCheckResourceAttrPair(
-						"data.qovery_gcp_credentials.test", "organization_id",
-						"qovery_gcp_credentials.test", "organization_id",
-					),
-					resource.TestCheckResourceAttrPair(
-						"data.qovery_gcp_credentials.test", "name",
-						"qovery_gcp_credentials.test", "name",
-					),
+					resource.TestCheckResourceAttr("data.qovery_gcp_credentials.test", "id", getTestGCPCredentialsID()),
+					resource.TestCheckResourceAttr("data.qovery_gcp_credentials.test", "organization_id", getTestOrganizationID()),
+					resource.TestCheckResourceAttr("data.qovery_gcp_credentials.test", "name", "terraform-provider-test-gcp"),
 				),
 			},
 		},
 	})
 }
 
-func testAccGCPCredentialsDataSourceConfig(testName string, gcpCredentials string) string {
+func testAccGCPCredentialsDataSourceConfig(credentialsID string, organizationID string) string {
 	return fmt.Sprintf(`
-resource "qovery_gcp_credentials" "test" {
-  organization_id = "%s"
-  name = "%s"
-  gcp_credentials = "%s"
-}
-
 data "qovery_gcp_credentials" "test" {
-  id              = qovery_gcp_credentials.test.id
-  organization_id = qovery_gcp_credentials.test.organization_id
+  id              = "%s"
+  organization_id = "%s"
 }
-`, getTestOrganizationID(), generateTestName(testName), gcpCredentials,
+`, credentialsID, organizationID,
 	)
 }
