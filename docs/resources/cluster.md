@@ -31,7 +31,7 @@ resource "qovery_aws_credentials" "aws_creds" {
 # AWS Cluster with Karpenter example
 resource "qovery_cluster" "cluster" {
   organization_id = qovery_organization.my_organization.id
-  credentials_id  = qovery_aws_credentials.my_aws_creds.id
+  credentials_id  = qovery_aws_credentials.aws_creds.id
   name            = "test_terraform_provider"
   cloud_provider  = "AWS"
   region          = "us-east-2"
@@ -76,19 +76,22 @@ resource "qovery_cluster" "cluster" {
   })
 
   state = "DEPLOYED"
-
-  depends_on = [
-    qovery_organization.my_organization,
-    qovery_aws_credentials.my_aws_creds
-  ]
 }
 
 #######
 # GCP #
 #######
 
-resource "qovery_cluster" "cluster" {
+# GCP Credentials
+resource "qovery_gcp_credentials" "gcp_creds" {
   organization_id = qovery_organization.my_organization.id
+  name            = "My GCP credentials"
+  gcp_credentials = file("${path.module}/service-account.json")
+}
+
+resource "qovery_cluster" "gcp_cluster" {
+  organization_id = qovery_organization.my_organization.id
+  credentials_id  = qovery_gcp_credentials.gcp_creds.id
   name            = "test_terraform_provider"
   cloud_provider  = "GCP"
   region          = "europe-west9"
@@ -123,7 +126,7 @@ resource "qovery_scaleway_credentials" "scw_creds" {
 
 resource "qovery_cluster" "cluster" {
   organization_id = qovery_organization.organization.id
-  credentials_id  = qovery_aws_credentials.scw_creds.id
+  credentials_id  = qovery_scaleway_credentials.scw_creds.id
   name            = "test_terraform_provider"
   cloud_provider  = "SCW"
   region          = "pl-waw-1"
@@ -183,11 +186,6 @@ resource "qovery_cluster" "eks_anywhere_cluster" {
   }
 
   state = "DEPLOYED"
-
-  depends_on = [
-    qovery_organization.my_organization,
-    qovery_aws_credentials.eks_anywhere_creds
-  ]
 }
 ```
 
