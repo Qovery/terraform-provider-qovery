@@ -1370,11 +1370,11 @@ func createInfrastructureChartsParametersAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		infraChartsNginxKey: types.ObjectType{
 			AttrTypes: map[string]attr.Type{
-				"replica_count":                               types.Int64Type,
-				"default_ssl_certificate":                     types.StringType,
-				"publish_status_address":                      types.StringType,
-				"annotation_metal_lb_load_balancer_ips":       types.StringType,
-				"annotation_external_dns_kubernetes_target":   types.StringType,
+				"replica_count":                             types.Int64Type,
+				"default_ssl_certificate":                   types.StringType,
+				"publish_status_address":                    types.StringType,
+				"annotation_metal_lb_load_balancer_ips":     types.StringType,
+				"annotation_external_dns_kubernetes_target": types.StringType,
 			},
 		},
 		infraChartsCertManagerKey: types.ObjectType{

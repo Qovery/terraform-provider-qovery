@@ -60,6 +60,9 @@ type qProvider struct {
 	// scalewayCredentialsService is an instance of a credentials.ScalewayService that handles the domain logic.
 	scalewayCredentialsService credentials.ScalewayService
 
+	// gcpCredentialsService is an instance of a credentials.GcpService that handles the domain logic.
+	gcpCredentialsService credentials.GcpService
+
 	// projectService is an instance of a project.Service that handles the domain logic.
 	projectService project.Service
 
@@ -168,6 +171,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.organizationService = domainServices.Organization
 	p.awsCredentialsService = domainServices.CredentialsAws
 	p.scalewayCredentialsService = domainServices.CredentialsScaleway
+	p.gcpCredentialsService = domainServices.CredentialsGcp
 	p.projectService = domainServices.Project
 	p.containerService = domainServices.Container
 	p.jobService = domainServices.Job
@@ -196,6 +200,7 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newOrganizationResource,
 		newProjectResource,
 		newScalewayCredentialsResource,
+		newGcpCredentialsResource,
 		newContainerResource,
 		newContainerRegistryResource,
 		newJobResource,
@@ -224,6 +229,7 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 		newTerraformServiceDataSource,
 		newProjectDataSource,
 		newScalewayCredentialsDataSource,
+		newGcpCredentialsDataSource,
 		newDeploymentStageDataSource,
 		newDeploymentDataSource,
 		newGitTokenDataSource,
