@@ -110,6 +110,32 @@ resource "qovery_cluster" "gcp_cluster" {
   })
 }
 
+#########
+# Azure #
+#########
+
+# Azure credentials must be created via the Qovery console (provisioning requires server-side scripts).
+# Use data source to reference existing credentials.
+data "qovery_azure_credentials" "azure_creds" {
+  id              = var.azure_credentials_id
+  organization_id = qovery_organization.my_organization.id
+}
+
+# Azure AKS Cluster
+resource "qovery_cluster" "azure_cluster" {
+  organization_id = qovery_organization.my_organization.id
+  credentials_id  = data.qovery_azure_credentials.azure_creds.id
+  name            = "my-azure-cluster"
+  cloud_provider  = "AZURE"
+  region          = "westeurope"
+  state           = "DEPLOYED"
+
+  description       = "Azure AKS cluster managed by Qovery"
+  instance_type     = "Standard_B2s_v2"
+  min_running_nodes = 3
+  max_running_nodes = 10
+}
+
 ############
 # Scaleway #
 ############

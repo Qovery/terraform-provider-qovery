@@ -34,8 +34,8 @@ func IsBadRequest(e *APIError) bool {
 }
 
 type errorPayload struct {
-	Status    int    `json:"status"`
-	Message   string `json:"detail"`
+	Status  int    `json:"status"`
+	Message string `json:"detail"`
 }
 
 func (e APIError) Error() string {

@@ -245,6 +245,7 @@ jobs:
           TEST_LABELS_GROUP_ID: ${{ secrets.TEST_LABELS_GROUP_ID }}
           TEST_GCP_CREDENTIALS_ID: ${{ secrets.TEST_GCP_CREDENTIALS_ID }}
           TEST_GCP_CREDENTIALS: ${{ secrets.TEST_GCP_CREDENTIALS }}
+          TEST_AZURE_CREDENTIALS_ID: ${{ secrets.TEST_AZURE_CREDENTIALS_ID }}
         run: task testacc
 
   # Notify Slack after scheduled test runs
