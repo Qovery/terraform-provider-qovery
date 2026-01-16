@@ -39,6 +39,7 @@ type Services struct {
 	CredentialsAws               credentials.AwsService
 	CredentialsScaleway          credentials.ScalewayService
 	CredentialsGcp               credentials.GcpService
+	CredentialsAzure             credentials.AzureService
 	Organization                 organization.Service
 	Project                      project.Service
 	Container                    container.Service
@@ -86,6 +87,11 @@ func New(configs ...Configuration) (*Services, error) {
 	}
 
 	credentialsGcpService, err := NewCredentialsGcpService(services.repos.CredentialsGcp)
+	if err != nil {
+		return nil, err
+	}
+
+	credentialsAzureService, err := NewCredentialsAzureService(services.repos.CredentialsAzure)
 	if err != nil {
 		return nil, err
 	}
@@ -238,6 +244,7 @@ func New(configs ...Configuration) (*Services, error) {
 	services.CredentialsAws = credentialsAwsService
 	services.CredentialsScaleway = credentialsScalewayService
 	services.CredentialsGcp = credentialsGcpService
+	services.CredentialsAzure = credentialsAzureService
 	services.Organization = organizationService
 	services.Project = projectService
 	services.Container = containerService

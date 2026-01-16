@@ -333,7 +333,7 @@ func TestApplyJitter_Distribution(t *testing.T) {
 
 	// With equal jitter, average should be around 3/4 of backoff (midpoint between backoff/2 and backoff)
 	expectedAvg := (backoff / 2) + (backoff / 4) // 75% of backoff
-	tolerance := backoff / 10                     // Allow 10% variance
+	tolerance := backoff / 10                    // Allow 10% variance
 
 	assert.InDelta(t, int64(expectedAvg), int64(avg), float64(tolerance),
 		"average jittered backoff should be around 75%% of original backoff")

@@ -38,6 +38,9 @@ type testEnvironment struct {
 	ScalewayCredentialsSecretKey      string `env:"TEST_SCALEWAY_CREDENTIALS_SECRET_KEY,required"`
 	GcpCredentialsID                  string `env:"TEST_GCP_CREDENTIALS_ID"`
 	GcpCredentials                    string `env:"TEST_GCP_CREDENTIALS"`
+	AzureCredentialsID                string `env:"TEST_AZURE_CREDENTIALS_ID"`
+	AzureSubscriptionID               string `env:"TEST_AZURE_SUBSCRIPTION_ID"`
+	AzureTenantID                     string `env:"TEST_AZURE_TENANT_ID"`
 	ClusterID                         string `env:"TEST_CLUSTER_ID,required"`
 	ProjectID                         string `env:"TEST_PROJECT_ID,required"`
 	EnvironmentID                     string `env:"TEST_ENVIRONMENT_ID,required"`
@@ -114,6 +117,18 @@ func getTestGCPCredentialsID() string {
 
 func getTestGCPCredentials() string {
 	return os.Getenv("TEST_GCP_CREDENTIALS")
+}
+
+func getTestAzureCredentialsID() string {
+	return os.Getenv("TEST_AZURE_CREDENTIALS_ID")
+}
+
+func getTestAzureSubscriptionID() string {
+	return os.Getenv("TEST_AZURE_SUBSCRIPTION_ID")
+}
+
+func getTestAzureTenantID() string {
+	return os.Getenv("TEST_AZURE_TENANT_ID")
 }
 
 func getTestClusterID() string {

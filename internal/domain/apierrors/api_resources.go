@@ -38,6 +38,7 @@ const (
 	APIResourceProjectSecret                  APIResource = "project secret"
 	APIResourceScalewayCredentials            APIResource = "scaleway credentials"
 	APIResourceGCPCredentials                 APIResource = "gcp credentials"
+	APIResourceAzureCredentials               APIResource = "azure credentials"
 	APIResourceDeploymentStage                APIResource = "deployment stage"
 	APIResourceDeployment                     APIResource = "deployment"
 	APIGitToken                               APIResource = "git token"

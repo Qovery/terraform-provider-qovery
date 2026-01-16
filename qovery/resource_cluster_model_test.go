@@ -23,17 +23,17 @@ func TestCluster_toUpsertClusterRequest_KarpenterValidation(t *testing.T) {
 		{
 			name: "new AWS EKS cluster without Karpenter should fail",
 			cluster: Cluster{
-				OrganizationId: types.StringValue("org-123"),
-				CredentialsId:  types.StringValue("cred-123"),
-				Name:           types.StringValue("test-cluster"),
-				CloudProvider:  types.StringValue("AWS"),
-				Region:         types.StringValue("us-east-1"),
-				KubernetesMode: types.StringValue("MANAGED"),
-				InstanceType:   types.StringValue("T3A_MEDIUM"),
+				OrganizationId:  types.StringValue("org-123"),
+				CredentialsId:   types.StringValue("cred-123"),
+				Name:            types.StringValue("test-cluster"),
+				CloudProvider:   types.StringValue("AWS"),
+				Region:          types.StringValue("us-east-1"),
+				KubernetesMode:  types.StringValue("MANAGED"),
+				InstanceType:    types.StringValue("T3A_MEDIUM"),
 				MinRunningNodes: types.Int64Value(3),
 				MaxRunningNodes: types.Int64Value(10),
-				State:          types.StringValue("DEPLOYED"),
-				Features:       types.ObjectNull(map[string]attr.Type{}),
+				State:           types.StringValue("DEPLOYED"),
+				Features:        types.ObjectNull(map[string]attr.Type{}),
 			},
 			state:       nil, // New cluster
 			expectError: true,
@@ -57,9 +57,9 @@ func TestCluster_toUpsertClusterRequest_KarpenterValidation(t *testing.T) {
 					map[string]attr.Type{
 						"karpenter": types.ObjectType{
 							AttrTypes: map[string]attr.Type{
-								"spot_enabled":                  types.BoolType,
-								"disk_size_in_gib":              types.Int64Type,
-								"default_service_architecture":  types.StringType,
+								"spot_enabled":                 types.BoolType,
+								"disk_size_in_gib":             types.Int64Type,
+								"default_service_architecture": types.StringType,
 								"qovery_node_pools": types.ObjectType{
 									AttrTypes: map[string]attr.Type{
 										"requirements": types.ListType{
@@ -79,9 +79,9 @@ func TestCluster_toUpsertClusterRequest_KarpenterValidation(t *testing.T) {
 					map[string]attr.Value{
 						"karpenter": types.ObjectValueMust(
 							map[string]attr.Type{
-								"spot_enabled":                  types.BoolType,
-								"disk_size_in_gib":              types.Int64Type,
-								"default_service_architecture":  types.StringType,
+								"spot_enabled":                 types.BoolType,
+								"disk_size_in_gib":             types.Int64Type,
+								"default_service_architecture": types.StringType,
 								"qovery_node_pools": types.ObjectType{
 									AttrTypes: map[string]attr.Type{
 										"requirements": types.ListType{
@@ -173,49 +173,49 @@ func TestCluster_toUpsertClusterRequest_KarpenterValidation(t *testing.T) {
 		{
 			name: "existing AWS EKS cluster without Karpenter should succeed (update allowed)",
 			cluster: Cluster{
-				Id:             types.StringValue("cluster-123"),
-				OrganizationId: types.StringValue("org-123"),
-				CredentialsId:  types.StringValue("cred-123"),
-				Name:           types.StringValue("test-cluster"),
-				CloudProvider:  types.StringValue("AWS"),
-				Region:         types.StringValue("us-east-1"),
-				KubernetesMode: types.StringValue("MANAGED"),
-				InstanceType:   types.StringValue("T3A_LARGE"),
+				Id:              types.StringValue("cluster-123"),
+				OrganizationId:  types.StringValue("org-123"),
+				CredentialsId:   types.StringValue("cred-123"),
+				Name:            types.StringValue("test-cluster"),
+				CloudProvider:   types.StringValue("AWS"),
+				Region:          types.StringValue("us-east-1"),
+				KubernetesMode:  types.StringValue("MANAGED"),
+				InstanceType:    types.StringValue("T3A_LARGE"),
 				MinRunningNodes: types.Int64Value(5),
 				MaxRunningNodes: types.Int64Value(15),
-				State:          types.StringValue("DEPLOYED"),
-				Features:       types.ObjectNull(map[string]attr.Type{}),
+				State:           types.StringValue("DEPLOYED"),
+				Features:        types.ObjectNull(map[string]attr.Type{}),
 			},
 			state: &Cluster{
-				Id:             types.StringValue("cluster-123"),
-				OrganizationId: types.StringValue("org-123"),
-				CredentialsId:  types.StringValue("cred-123"),
-				Name:           types.StringValue("test-cluster"),
-				CloudProvider:  types.StringValue("AWS"),
-				Region:         types.StringValue("us-east-1"),
-				KubernetesMode: types.StringValue("MANAGED"),
-				InstanceType:   types.StringValue("T3A_MEDIUM"),
+				Id:              types.StringValue("cluster-123"),
+				OrganizationId:  types.StringValue("org-123"),
+				CredentialsId:   types.StringValue("cred-123"),
+				Name:            types.StringValue("test-cluster"),
+				CloudProvider:   types.StringValue("AWS"),
+				Region:          types.StringValue("us-east-1"),
+				KubernetesMode:  types.StringValue("MANAGED"),
+				InstanceType:    types.StringValue("T3A_MEDIUM"),
 				MinRunningNodes: types.Int64Value(3),
 				MaxRunningNodes: types.Int64Value(10),
-				State:          types.StringValue("DEPLOYED"),
-				Features:       types.ObjectNull(map[string]attr.Type{}),
+				State:           types.StringValue("DEPLOYED"),
+				Features:        types.ObjectNull(map[string]attr.Type{}),
 			},
 			expectError: false,
 		},
 		{
 			name: "new GCP cluster without Karpenter should succeed (not AWS)",
 			cluster: Cluster{
-				OrganizationId: types.StringValue("org-123"),
-				CredentialsId:  types.StringValue("cred-123"),
-				Name:           types.StringValue("test-cluster"),
-				CloudProvider:  types.StringValue("GCP"),
-				Region:         types.StringValue("us-central1"),
-				KubernetesMode: types.StringValue("MANAGED"),
-				InstanceType:   types.StringValue("N2_STANDARD_2"),
+				OrganizationId:  types.StringValue("org-123"),
+				CredentialsId:   types.StringValue("cred-123"),
+				Name:            types.StringValue("test-cluster"),
+				CloudProvider:   types.StringValue("GCP"),
+				Region:          types.StringValue("us-central1"),
+				KubernetesMode:  types.StringValue("MANAGED"),
+				InstanceType:    types.StringValue("N2_STANDARD_2"),
 				MinRunningNodes: types.Int64Value(3),
 				MaxRunningNodes: types.Int64Value(10),
-				State:          types.StringValue("DEPLOYED"),
-				Features:       types.ObjectNull(map[string]attr.Type{}),
+				State:           types.StringValue("DEPLOYED"),
+				Features:        types.ObjectNull(map[string]attr.Type{}),
 			},
 			state:       nil, // New cluster
 			expectError: false,
@@ -223,17 +223,17 @@ func TestCluster_toUpsertClusterRequest_KarpenterValidation(t *testing.T) {
 		{
 			name: "new AWS SELF_MANAGED cluster without Karpenter should succeed (not MANAGED)",
 			cluster: Cluster{
-				OrganizationId: types.StringValue("org-123"),
-				CredentialsId:  types.StringValue("cred-123"),
-				Name:           types.StringValue("test-cluster"),
-				CloudProvider:  types.StringValue("AWS"),
-				Region:         types.StringValue("us-east-1"),
-				KubernetesMode: types.StringValue("SELF_MANAGED"),
-				InstanceType:   types.StringValue("T3A_MEDIUM"),
+				OrganizationId:  types.StringValue("org-123"),
+				CredentialsId:   types.StringValue("cred-123"),
+				Name:            types.StringValue("test-cluster"),
+				CloudProvider:   types.StringValue("AWS"),
+				Region:          types.StringValue("us-east-1"),
+				KubernetesMode:  types.StringValue("SELF_MANAGED"),
+				InstanceType:    types.StringValue("T3A_MEDIUM"),
 				MinRunningNodes: types.Int64Value(3),
 				MaxRunningNodes: types.Int64Value(10),
-				State:          types.StringValue("DEPLOYED"),
-				Features:       types.ObjectNull(map[string]attr.Type{}),
+				State:           types.StringValue("DEPLOYED"),
+				Features:        types.ObjectNull(map[string]attr.Type{}),
 			},
 			state:       nil, // New cluster
 			expectError: false,
@@ -252,7 +252,7 @@ func TestCluster_toUpsertClusterRequest_KarpenterValidation(t *testing.T) {
 				Features:       types.ObjectNull(map[string]attr.Type{}),
 				InfrastructureChartsParameters: types.ObjectValueMust(
 					map[string]attr.Type{
-						"nginx_parameters":       types.ObjectType{AttrTypes: map[string]attr.Type{}},
+						"nginx_parameters":        types.ObjectType{AttrTypes: map[string]attr.Type{}},
 						"cert_manager_parameters": types.ObjectType{AttrTypes: map[string]attr.Type{}},
 						"metal_lb_parameters": types.ObjectType{
 							AttrTypes: map[string]attr.Type{
@@ -261,7 +261,7 @@ func TestCluster_toUpsertClusterRequest_KarpenterValidation(t *testing.T) {
 						},
 					},
 					map[string]attr.Value{
-						"nginx_parameters":       types.ObjectNull(map[string]attr.Type{}),
+						"nginx_parameters":        types.ObjectNull(map[string]attr.Type{}),
 						"cert_manager_parameters": types.ObjectNull(map[string]attr.Type{}),
 						"metal_lb_parameters": types.ObjectValueMust(
 							map[string]attr.Type{
@@ -283,17 +283,17 @@ func TestCluster_toUpsertClusterRequest_KarpenterValidation(t *testing.T) {
 		{
 			name: "new Azure cluster without Karpenter should succeed (not AWS)",
 			cluster: Cluster{
-				OrganizationId: types.StringValue("org-123"),
-				CredentialsId:  types.StringValue("cred-123"),
-				Name:           types.StringValue("test-cluster"),
-				CloudProvider:  types.StringValue("AZURE"),
-				Region:         types.StringValue("eastus"),
-				KubernetesMode: types.StringValue("MANAGED"),
-				InstanceType:   types.StringValue("STANDARD_D2S_V3"),
+				OrganizationId:  types.StringValue("org-123"),
+				CredentialsId:   types.StringValue("cred-123"),
+				Name:            types.StringValue("test-cluster"),
+				CloudProvider:   types.StringValue("AZURE"),
+				Region:          types.StringValue("eastus"),
+				KubernetesMode:  types.StringValue("MANAGED"),
+				InstanceType:    types.StringValue("STANDARD_D2S_V3"),
 				MinRunningNodes: types.Int64Value(3),
 				MaxRunningNodes: types.Int64Value(10),
-				State:          types.StringValue("DEPLOYED"),
-				Features:       types.ObjectNull(map[string]attr.Type{}),
+				State:           types.StringValue("DEPLOYED"),
+				Features:        types.ObjectNull(map[string]attr.Type{}),
 			},
 			state:       nil, // New cluster
 			expectError: false,
@@ -301,17 +301,17 @@ func TestCluster_toUpsertClusterRequest_KarpenterValidation(t *testing.T) {
 		{
 			name: "new Scaleway cluster without Karpenter should succeed (not AWS)",
 			cluster: Cluster{
-				OrganizationId: types.StringValue("org-123"),
-				CredentialsId:  types.StringValue("cred-123"),
-				Name:           types.StringValue("test-cluster"),
-				CloudProvider:  types.StringValue("SCW"),
-				Region:         types.StringValue("fr-par"),
-				KubernetesMode: types.StringValue("MANAGED"),
-				InstanceType:   types.StringValue("DEV1_M"),
+				OrganizationId:  types.StringValue("org-123"),
+				CredentialsId:   types.StringValue("cred-123"),
+				Name:            types.StringValue("test-cluster"),
+				CloudProvider:   types.StringValue("SCW"),
+				Region:          types.StringValue("fr-par"),
+				KubernetesMode:  types.StringValue("MANAGED"),
+				InstanceType:    types.StringValue("DEV1_M"),
 				MinRunningNodes: types.Int64Value(3),
 				MaxRunningNodes: types.Int64Value(10),
-				State:          types.StringValue("DEPLOYED"),
-				Features:       types.ObjectNull(map[string]attr.Type{}),
+				State:           types.StringValue("DEPLOYED"),
+				Features:        types.ObjectNull(map[string]attr.Type{}),
 			},
 			state:       nil, // New cluster
 			expectError: false,
@@ -337,16 +337,16 @@ func TestCluster_toUpsertClusterRequest_KarpenterValidation(t *testing.T) {
 func TestCluster_toUpsertClusterRequest_KarpenterValidationWithEmptyFeatures(t *testing.T) {
 	// Test that an empty features object (not null) also fails validation for new AWS EKS clusters
 	cluster := Cluster{
-		OrganizationId: types.StringValue("org-123"),
-		CredentialsId:  types.StringValue("cred-123"),
-		Name:           types.StringValue("test-cluster"),
-		CloudProvider:  types.StringValue("AWS"),
-		Region:         types.StringValue("us-east-1"),
-		KubernetesMode: types.StringValue("MANAGED"),
-		InstanceType:   types.StringValue("T3A_MEDIUM"),
+		OrganizationId:  types.StringValue("org-123"),
+		CredentialsId:   types.StringValue("cred-123"),
+		Name:            types.StringValue("test-cluster"),
+		CloudProvider:   types.StringValue("AWS"),
+		Region:          types.StringValue("us-east-1"),
+		KubernetesMode:  types.StringValue("MANAGED"),
+		InstanceType:    types.StringValue("T3A_MEDIUM"),
 		MinRunningNodes: types.Int64Value(3),
 		MaxRunningNodes: types.Int64Value(10),
-		State:          types.StringValue("DEPLOYED"),
+		State:           types.StringValue("DEPLOYED"),
 		Features: types.ObjectValueMust(
 			map[string]attr.Type{},
 			map[string]attr.Value{},

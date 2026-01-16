@@ -63,6 +63,9 @@ type qProvider struct {
 	// gcpCredentialsService is an instance of a credentials.GcpService that handles the domain logic.
 	gcpCredentialsService credentials.GcpService
 
+	// azureCredentialsService is an instance of a credentials.AzureService that handles the domain logic.
+	azureCredentialsService credentials.AzureService
+
 	// projectService is an instance of a project.Service that handles the domain logic.
 	projectService project.Service
 
@@ -172,6 +175,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.awsCredentialsService = domainServices.CredentialsAws
 	p.scalewayCredentialsService = domainServices.CredentialsScaleway
 	p.gcpCredentialsService = domainServices.CredentialsGcp
+	p.azureCredentialsService = domainServices.CredentialsAzure
 	p.projectService = domainServices.Project
 	p.containerService = domainServices.Container
 	p.jobService = domainServices.Job
@@ -230,6 +234,7 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 		newProjectDataSource,
 		newScalewayCredentialsDataSource,
 		newGcpCredentialsDataSource,
+		newAzureCredentialsDataSource,
 		newDeploymentStageDataSource,
 		newDeploymentDataSource,
 		newGitTokenDataSource,

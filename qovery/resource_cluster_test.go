@@ -83,6 +83,39 @@ func TestAcc_GCPClusterConfigOnly(t *testing.T) {
 	})
 }
 
+// TestAcc_AzureClusterConfigOnly creates an Azure AKS cluster without deploying it (config only)
+// Azure credentials must be created via the Qovery console (provisioning requires server-side scripts)
+// Note: state=STOPPED prevents deployment, but API returns READY for never-deployed clusters
+func TestAcc_AzureClusterConfigOnly(t *testing.T) {
+	t.Parallel()
+	testName := "azure-cluster-config-only"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
+		Steps: []resource.TestStep{
+			// Create Azure AKS cluster config only (no deployment triggered)
+			{
+				Config: testAccAzureClusterConfigWithState(
+					testName,
+					"francecentral",
+					"STOPPED",
+				),
+				ExpectNonEmptyPlan: true, // API returns READY for never-deployed clusters
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAzureCredentialsID()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AZURE"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "region", "francecentral"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "Standard_B2s_v2"),
+				),
+			},
+		},
+	})
+}
+
 // FIXME: disabled until ttl advanced setting has been implemented for cleaning
 func TestAcc_Cluster(t *testing.T) {
 	t.SkipNow()
@@ -559,5 +592,20 @@ resource "qovery_cluster" "test" {
   }
 }
 `, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), region, state,
+	)
+}
+
+func testAccAzureClusterConfigWithState(testName string, region string, state string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id  = "%s"
+  organization_id = "%s"
+  name            = "%s"
+  cloud_provider  = "AZURE"
+  region          = "%s"
+  instance_type   = "Standard_B2s_v2"
+  state           = "%s"
+}
+`, getTestAzureCredentialsID(), getTestOrganizationID(), generateTestName(testName), region, state,
 	)
 }
