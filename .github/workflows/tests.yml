@@ -67,6 +67,7 @@ jobs:
         uses: arduino/setup-task@v1
         with:
           version: ${{ env.TASK_VERSION }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check out source code
         uses: actions/checkout@v3
@@ -88,6 +89,7 @@ jobs:
         uses: arduino/setup-task@v1
         with:
           version: ${{ env.TASK_VERSION }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check out source code
         uses: actions/checkout@v3
@@ -114,6 +116,7 @@ jobs:
         uses: arduino/setup-task@v1
         with:
           version: ${{ env.TASK_VERSION }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check out source code
         uses: actions/checkout@v3
@@ -141,6 +144,7 @@ jobs:
         uses: arduino/setup-task@v1
         with:
           version: ${{ env.TASK_VERSION }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check out source code
         uses: actions/checkout@v3
@@ -169,6 +173,7 @@ jobs:
         uses: arduino/setup-task@v1
         with:
           version: ${{ env.TASK_VERSION }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check out source code
         uses: actions/checkout@v3
@@ -207,6 +212,7 @@ jobs:
         uses: arduino/setup-task@v1
         with:
           version: ${{ env.TASK_VERSION }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check out source code
         uses: actions/checkout@v3
