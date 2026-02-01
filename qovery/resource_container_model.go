@@ -191,7 +191,7 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		Arguments:                    FromStringArray(container.Arguments),
 		Storages:                     convertDomainStoragesToStorageList(state.Storages, container.Storages).toTerraformSet(ctx),
 		Ports:                        convertDomainPortsToPortList(ctx, state.Ports, container.Ports).toTerraformList(ctx),
-		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.BuiltInEnvironmentVariables, container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, container.EnvironmentVariables, variable.ScopeContainer, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, container.EnvironmentVariables, variable.ScopeContainer, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, container.EnvironmentVariables, variable.ScopeContainer, "OVERRIDE").toTerraformSet(ctx),

@@ -377,7 +377,7 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		Port:                         FromInt32Pointer(prt),
 		Source:                       &source,
 		Schedule:                     &schedule,
-		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(job.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.BuiltInEnvironmentVariables, job.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, job.EnvironmentVariables, variable.ScopeJob, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, job.EnvironmentVariables, variable.ScopeJob, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, job.EnvironmentVariables, variable.ScopeJob, "OVERRIDE").toTerraformSet(ctx),
