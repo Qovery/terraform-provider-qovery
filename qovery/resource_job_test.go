@@ -594,6 +594,95 @@ resource "qovery_job" "test" {
 	return jobConfigStr.String()
 }
 
+// TestAcc_Job_BuiltInEnvVarHashStability tests that built_in_environment_variables
+// remain stable across applies, preventing the "Provider produced inconsistent result
+// after apply" error caused by hash mismatch when description changes from null to
+// a value returned by the API.
+//
+// Bug context: When a user creates a resource without specifying descriptions for
+// built-in env vars, Terraform plans with description=null. After apply, the API
+// returns description="Currently deployed image tag" (or similar). Without the fix,
+// the provider would return this API value instead of preserving the null from state,
+// causing a hash mismatch that crashes Terraform.
+func TestAcc_Job_BuiltInEnvVarHashStability(t *testing.T) {
+	t.Parallel()
+	testName := "job-builtin-envvar-hash"
+
+	// The same config is applied twice to verify hash stability
+	jobConfig := getJobConfigFromModel(
+		testName,
+		qovery.Job{
+			Name:               qovery.FromString(generateTestName(testName)),
+			IconUri:            qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName))),
+			AutoPreview:        qovery.FromBool(false),
+			CPU:                qovery.FromInt32(500),
+			Memory:             qovery.FromInt32(512),
+			MaxDurationSeconds: qovery.FromUInt32(300),
+			MaxNbRestart:       qovery.FromUInt32(0),
+			Port:               qovery.FromInt32Pointer(nil),
+			Source: &qovery.JobSource{
+				Image: &qovery.Image{
+					Name: qovery.FromString(jobImageName),
+					Tag:  qovery.FromString(jobImageTag),
+				},
+			},
+			Schedule: &qovery.JobSchedule{
+				CronJob: &qovery.JobScheduleCron{
+					Schedule: qovery.FromString(jobScheduleCronString),
+					Command: qovery.ExecutionCommand{
+						Entrypoint: qovery.FromString("test.sh"),
+						Arguments:  []types.String{qovery.FromString("arg1")},
+					},
+				},
+			},
+			// Note: We intentionally do NOT specify descriptions for environment_variables
+			// to trigger the bug scenario where the API returns a description but our
+			// state has null
+			EnvironmentVariables: generateVariableSet("MY_VAR", "my_value"),
+			AdvancedSettingsJson: qovery.FromString("{}"),
+		},
+	)
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryJobDestroy("qovery_job.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create the job
+			{
+				Config: jobConfig,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryJobExists("qovery_job.test"),
+					// Verify built-in environment variables exist (they should have QOVERY_ prefix)
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_job.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+				),
+			},
+			// Step 2: Re-apply the exact same config
+			// This step would fail with "Provider produced inconsistent result after apply"
+			// if the built_in_environment_variables hash changed due to description mismatch
+			{
+				Config: jobConfig,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryJobExists("qovery_job.test"),
+					// Verify built-in environment variables are still present and stable
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_job.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+				),
+			},
+			// Step 3: Import and verify state matches
+			{
+				ResourceName:            "qovery_job.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secrets", "secret_aliases", "secret_overrides"},
+			},
+		},
+	})
+}
+
 func testAccQoveryJobExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
