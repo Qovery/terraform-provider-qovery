@@ -230,7 +230,7 @@ func TestBuiltInEnvVar_NewVarNotInState(t *testing.T) {
 }
 
 // TestBuiltInEnvVar_MultipleVars verifies correct handling of multiple variables.
-// Null descriptions are preserved from state, non-null descriptions are updated from API.
+// All descriptions are preserved from state to prevent hash mismatch.
 func TestBuiltInEnvVar_MultipleVars(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
@@ -292,9 +292,9 @@ func TestBuiltInEnvVar_MultipleVars(t *testing.T) {
 	assert.True(t, varMap["QOVERY_VAR_NULL_DESC"].Description.IsNull(),
 		"null description should be preserved from state")
 
-	// Non-null description is updated from API
-	assert.Equal(t, "API description 2", varMap["QOVERY_VAR_WITH_DESC"].Description.ValueString(),
-		"non-null description is updated from API")
+	// Non-null description is also preserved from state (not updated from API)
+	assert.Equal(t, "user-provided", varMap["QOVERY_VAR_WITH_DESC"].Description.ValueString(),
+		"non-null description should be preserved from state")
 }
 
 // TestBuiltInEnvVar_ValueChangeDetected verifies that value changes from API

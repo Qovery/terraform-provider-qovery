@@ -300,8 +300,8 @@ func buildVariableMap(ctx context.Context, initialState types.Set) map[string]En
 
 func convertDomainVariableToEnvironmentVariable(v variable.Variable, variableInState *EnvironmentVariable) EnvironmentVariable {
 	description := FromString(v.Description)
-	if variableInState != nil && variableInState.Description.IsNull() {
-		description = basetypes.NewStringNull()
+	if variableInState != nil {
+		description = variableInState.Description
 	}
 	return EnvironmentVariable{
 		Id:          FromString(v.ID.String()),
