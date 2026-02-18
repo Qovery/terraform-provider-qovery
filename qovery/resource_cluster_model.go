@@ -27,6 +27,8 @@ const (
 	featureKeyKarpenter      = "karpenter"
 	featureKeyGcpExistingVpc = "gcp_existing_vpc"
 
+	instanceTypeAutoPilot = "AUTO_PILOT"
+
 	// Infrastructure charts parameter keys
 	infraChartsNginxKey       = "nginx_parameters"
 	infraChartsCertManagerKey = "cert_manager_parameters"
@@ -376,19 +378,20 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		cluster.InstanceType = FromStringPointer(res.ClusterResponse.InstanceType)
 		cluster.DiskSize = FromInt32Pointer(res.ClusterResponse.DiskSize)
 
-		// For GCP Autopilot clusters, node counts are managed by GCP.
-		// The API returns sentinel values (MaxInt32) that don't match the plan,
-		// so we preserve the plan values to avoid "inconsistent result after apply" errors.
-		isAutoPilot := res.ClusterResponse.InstanceType != nil && *res.ClusterResponse.InstanceType == "AUTO_PILOT"
-		if isAutoPilot {
+		// GCP Autopilot: preserve plan values for node counts since the API returns sentinel values.
+		isAutoPilot := res.ClusterResponse.InstanceType != nil && *res.ClusterResponse.InstanceType == instanceTypeAutoPilot
+		if isAutoPilot && !initialPlan.MinRunningNodes.IsNull() && !initialPlan.MinRunningNodes.IsUnknown() {
 			cluster.MinRunningNodes = initialPlan.MinRunningNodes
-			cluster.MaxRunningNodes = initialPlan.MaxRunningNodes
 		} else {
 			cluster.MinRunningNodes = FromInt32Pointer(res.ClusterResponse.MinRunningNodes)
+		}
+		if isAutoPilot && !initialPlan.MaxRunningNodes.IsNull() && !initialPlan.MaxRunningNodes.IsUnknown() {
+			cluster.MaxRunningNodes = initialPlan.MaxRunningNodes
+		} else {
 			cluster.MaxRunningNodes = FromInt32Pointer(res.ClusterResponse.MaxRunningNodes)
 		}
 
-		cluster.Features = fromQoveryClusterFeatures(res.ClusterResponse.Features, initialPlan)
+		cluster.Features = fromQoveryClusterFeatures(res.ClusterResponse.Features)
 		cluster.RoutingTables = routingTable.toTerraformSet(ctx, initialPlan.RoutingTables)
 		cluster.InfrastructureOutputs = fromQoveryClusterOutput(res.ClusterResponse.InfrastructureOutputs)
 		// Kubeconfig is not applicable for non-PARTIALLY_MANAGED clusters
@@ -451,7 +454,6 @@ func fromQoveryClusterOutput(
 
 func fromQoveryClusterFeatures(
 	clusterFeatures []qovery.ClusterFeatureResponse,
-	_ Cluster,
 ) types.Object {
 	if clusterFeatures == nil {
 		// Early return object null without attribute types
@@ -490,7 +492,7 @@ func fromQoveryClusterFeatures(
 					"subnetwork_name":                FromNullableString(gcpVpc.SubnetworkName),
 					"ip_range_services_name":         FromNullableString(gcpVpc.IpRangeServicesName),
 					"ip_range_pods_name":             FromNullableString(gcpVpc.IpRangePodsName),
-					"additional_ip_range_pods_names": FromStringArray(gcpVpc.AdditionalIpRangePodsNames),
+					"additional_ip_range_pods_names": fromStringArrayNullIfEmpty(gcpVpc.AdditionalIpRangePodsNames),
 				})
 				if diagnostics.HasError() {
 					panic(fmt.Errorf("bad %s feature: %s", featureKeyGcpExistingVpc, diagnostics.Errors()))

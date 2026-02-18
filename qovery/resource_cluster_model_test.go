@@ -544,7 +544,7 @@ func TestFromQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := fromQoveryClusterFeatures(tt.buildResponse(), Cluster{})
+			result := fromQoveryClusterFeatures(tt.buildResponse())
 			require.False(t, result.IsNull(), "features object should not be null")
 
 			gcpVpcAttr, ok := result.Attributes()[featureKeyGcpExistingVpc]
