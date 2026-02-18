@@ -39,9 +39,9 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 					Id: gofakeit.UUID(),
 				},
 				Registry: qovery.ContainerRegistryProviderDetailsResponse{
-					Id:   *new(gofakeit.UUID()),
-					Name: *new(gofakeit.Name()),
-					Url:  *new(gofakeit.URL()),
+					Id:   gofakeit.UUID(),
+					Name: gofakeit.Name(),
+					Url:  gofakeit.URL(),
 					Kind: qovery.CONTAINERREGISTRYKINDENUM_DOCKER_HUB,
 				},
 				Arguments: []string{
