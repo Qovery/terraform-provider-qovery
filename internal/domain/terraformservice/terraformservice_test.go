@@ -1,6 +1,5 @@
 // go:build unit && !integration
 //go:build unit && !integration
-// +build unit,!integration
 
 package terraformservice_test
 

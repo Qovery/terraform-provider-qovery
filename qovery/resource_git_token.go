@@ -121,7 +121,7 @@ func (r gitTokenResource) Create(ctx context.Context, req resource.CreateRequest
 
 	// Initialize state values
 	state := toTerraformObject(plan.OrganizationId.ValueString(), plan.Token.ValueString(), *response)
-	tflog.Trace(ctx, "created git token", map[string]interface{}{"git_token_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "created git token", map[string]any{"git_token_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -145,7 +145,7 @@ func (r gitTokenResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	// Refresh state values
 	state = toTerraformObject(state.OrganizationId.ValueString(), state.Token.ValueString(), *response)
-	tflog.Trace(ctx, "read git token", map[string]interface{}{"git_token_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "read git token", map[string]any{"git_token_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -170,7 +170,7 @@ func (r gitTokenResource) Update(ctx context.Context, req resource.UpdateRequest
 
 	// Update state values
 	state = toTerraformObject(plan.OrganizationId.ValueString(), plan.Token.ValueString(), *response)
-	tflog.Trace(ctx, "updated git token", map[string]interface{}{"git_token_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "updated git token", map[string]any{"git_token_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -192,7 +192,7 @@ func (r gitTokenResource) Delete(ctx context.Context, req resource.DeleteRequest
 		return
 	}
 
-	tflog.Trace(ctx, "deleted git token", map[string]interface{}{"git_token_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "deleted git token", map[string]any{"git_token_id": state.ID.ValueString()})
 
 	// Remove git token from state
 	resp.State.RemoveResource(ctx)

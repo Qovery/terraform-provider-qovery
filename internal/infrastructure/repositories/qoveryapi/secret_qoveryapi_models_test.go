@@ -44,7 +44,6 @@ func TestNewDomainSecretsFromQovery(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			vv, err := newDomainSecretsFromQovery(tc.Secrets)
 			assert.NoError(t, err)
@@ -79,7 +78,6 @@ func TestNewQoveryEnvironmentSecretRequestFromDomain(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			req := newQoverySecretRequestFromDomain(tc.Request)
 			assert.Equal(t, tc.Request.Key, req.Key)
@@ -110,7 +108,6 @@ func TestNewQoveryEnvironmentSecretEditRequestFromDomain(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			req := newQoverySecretEditRequestFromDomain(tc.Request)
 			assert.Equal(t, tc.Request.Key, req.Key)

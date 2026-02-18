@@ -157,7 +157,7 @@ func (r helmRepositoryResource) Create(ctx context.Context, req resource.CreateR
 
 	// Initialize state values
 	state := convertDomainHelmRepositoryToHelmRepository(plan, reg)
-	tflog.Trace(ctx, "created helm repository", map[string]interface{}{"helm_repository_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "created helm repository", map[string]any{"helm_repository_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -181,7 +181,7 @@ func (r helmRepositoryResource) Read(ctx context.Context, req resource.ReadReque
 
 	// Refresh state values
 	state = convertDomainHelmRepositoryToHelmRepository(state, reg)
-	tflog.Trace(ctx, "read helm repository", map[string]interface{}{"helm_repository_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read helm repository", map[string]any{"helm_repository_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -206,7 +206,7 @@ func (r helmRepositoryResource) Update(ctx context.Context, req resource.UpdateR
 
 	// Update state values
 	state = convertDomainHelmRepositoryToHelmRepository(plan, reg)
-	tflog.Trace(ctx, "updated helm repository", map[string]interface{}{"helm_repository_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "updated helm repository", map[string]any{"helm_repository_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -228,7 +228,7 @@ func (r helmRepositoryResource) Delete(ctx context.Context, req resource.DeleteR
 		return
 	}
 
-	tflog.Trace(ctx, "deleted helm repository", map[string]interface{}{"helm_repository_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "deleted helm repository", map[string]any{"helm_repository_id": state.Id.ValueString()})
 
 	// Remove helmRepository from state
 	resp.State.RemoveResource(ctx)

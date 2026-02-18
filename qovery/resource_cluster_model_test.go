@@ -1,5 +1,4 @@
 //go:build unit || !integration
-// +build unit !integration
 
 package qovery
 
@@ -8,6 +7,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -358,4 +358,214 @@ func TestCluster_toUpsertClusterRequest_KarpenterValidationWithEmptyFeatures(t *
 	require.Error(t, err, "Expected an error for new AWS EKS cluster without Karpenter")
 	assert.Contains(t, err.Error(), "Karpenter is required for new EKS (AWS MANAGED) clusters")
 	assert.Nil(t, result)
+}
+
+// buildGcpExistingVpcFeatureObject creates a Terraform features object with a gcp_existing_vpc block.
+func buildGcpExistingVpcFeatureObject(
+	vpcName string,
+	vpcProjectID types.String,
+	subnetworkName types.String,
+	ipRangeServicesName types.String,
+	ipRangePodsName types.String,
+	additionalIpRangePodsNames types.List,
+) types.Object {
+	gcpVpcAttrTypes := createGcpExistingVpcFeatureAttrTypes()
+	gcpVpcObj := types.ObjectValueMust(gcpVpcAttrTypes, map[string]attr.Value{
+		"vpc_name":                       types.StringValue(vpcName),
+		"vpc_project_id":                 vpcProjectID,
+		"subnetwork_name":                subnetworkName,
+		"ip_range_services_name":         ipRangeServicesName,
+		"ip_range_pods_name":             ipRangePodsName,
+		"additional_ip_range_pods_names": additionalIpRangePodsNames,
+	})
+
+	return types.ObjectValueMust(
+		createFeaturesAttrTypes(),
+		map[string]attr.Value{
+			featureKeyVpcSubnet:      types.StringValue(clusterFeatureVpcSubnetDefault),
+			featureKeyStaticIP:       types.BoolValue(false),
+			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
+			featureKeyGcpExistingVpc: gcpVpcObj,
+			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+		},
+	)
+}
+
+func TestToQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name                       string
+		vpcName                    string
+		vpcProjectID               types.String
+		subnetworkName             types.String
+		ipRangeServicesName        types.String
+		ipRangePodsName            types.String
+		additionalIpRangePodsNames types.List
+	}{
+		{
+			name:                       "all fields populated",
+			vpcName:                    "my-vpc",
+			vpcProjectID:               types.StringValue("my-project"),
+			subnetworkName:             types.StringValue("my-subnet"),
+			ipRangeServicesName:        types.StringValue("gke-services"),
+			ipRangePodsName:            types.StringValue("gke-pods"),
+			additionalIpRangePodsNames: types.ListValueMust(types.StringType, []attr.Value{types.StringValue("extra-1"), types.StringValue("extra-2")}),
+		},
+		{
+			name:                       "only required vpc_name",
+			vpcName:                    "minimal-vpc",
+			vpcProjectID:               types.StringNull(),
+			subnetworkName:             types.StringNull(),
+			ipRangeServicesName:        types.StringNull(),
+			ipRangePodsName:            types.StringNull(),
+			additionalIpRangePodsNames: types.ListNull(types.StringType),
+		},
+		{
+			name:                       "empty additional_ip_range_pods_names list",
+			vpcName:                    "vpc-empty-list",
+			vpcProjectID:               types.StringNull(),
+			subnetworkName:             types.StringNull(),
+			ipRangeServicesName:        types.StringNull(),
+			ipRangePodsName:            types.StringNull(),
+			additionalIpRangePodsNames: types.ListValueMust(types.StringType, []attr.Value{}),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			featuresObj := buildGcpExistingVpcFeatureObject(
+				tt.vpcName, tt.vpcProjectID, tt.subnetworkName,
+				tt.ipRangeServicesName, tt.ipRangePodsName, tt.additionalIpRangePodsNames,
+			)
+
+			features, err := toQoveryClusterFeatures(featuresObj, "MANAGED")
+			require.NoError(t, err)
+
+			// Find the EXISTING_VPC feature (GCP VPC uses the shared ID)
+			var gcpFeature *qovery.ClusterRequestFeaturesInner
+			for i := range features {
+				if features[i].GetId() == featureIdExistingVpc {
+					gcpFeature = &features[i]
+					break
+				}
+			}
+			require.NotNil(t, gcpFeature, "expected EXISTING_VPC feature to be present")
+
+			gcpValue := gcpFeature.GetValue().ClusterFeatureGcpExistingVpc
+			require.NotNil(t, gcpValue, "expected GCP VPC value to be present")
+			assert.Equal(t, tt.vpcName, gcpValue.VpcName)
+
+			if tt.vpcProjectID.IsNull() {
+				assert.Nil(t, gcpValue.VpcProjectId.Get(), "vpc_project_id value should be nil")
+			} else {
+				require.NotNil(t, gcpValue.VpcProjectId.Get(), "vpc_project_id value should not be nil")
+				assert.Equal(t, tt.vpcProjectID.ValueString(), *gcpValue.VpcProjectId.Get())
+			}
+		})
+	}
+}
+
+func TestFromQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name             string
+		buildResponse    func() []qovery.ClusterFeatureResponse
+		expectGcpVpcNull bool
+		expectedVpcName  string
+	}{
+		{
+			name: "GCP VPC feature with all fields",
+			buildResponse: func() []qovery.ClusterFeatureResponse {
+				featureID := featureIdExistingVpc
+				vpcName := "my-existing-vpc"
+				projectID := "my-gcp-project"
+				subnetName := "my-subnet"
+				servicesRange := "gke-services"
+				podsRange := "gke-pods"
+				return []qovery.ClusterFeatureResponse{
+					{
+						Id: &featureID,
+						ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
+							&qovery.ClusterFeatureResponseValueObject{
+								ClusterFeatureGcpExistingVpcResponse: &qovery.ClusterFeatureGcpExistingVpcResponse{
+									Value: qovery.ClusterFeatureGcpExistingVpc{
+										VpcName:                    vpcName,
+										VpcProjectId:               *qovery.NewNullableString(&projectID),
+										SubnetworkName:             *qovery.NewNullableString(&subnetName),
+										IpRangeServicesName:        *qovery.NewNullableString(&servicesRange),
+										IpRangePodsName:            *qovery.NewNullableString(&podsRange),
+										AdditionalIpRangePodsNames: []string{"extra-1"},
+									},
+								},
+							},
+						),
+					},
+				}
+			},
+			expectGcpVpcNull: false,
+			expectedVpcName:  "my-existing-vpc",
+		},
+		{
+			name: "GCP VPC feature with only vpc_name",
+			buildResponse: func() []qovery.ClusterFeatureResponse {
+				featureID := featureIdExistingVpc
+				return []qovery.ClusterFeatureResponse{
+					{
+						Id: &featureID,
+						ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
+							&qovery.ClusterFeatureResponseValueObject{
+								ClusterFeatureGcpExistingVpcResponse: &qovery.ClusterFeatureGcpExistingVpcResponse{
+									Value: qovery.ClusterFeatureGcpExistingVpc{
+										VpcName: "minimal-vpc",
+									},
+								},
+							},
+						),
+					},
+				}
+			},
+			expectGcpVpcNull: false,
+			expectedVpcName:  "minimal-vpc",
+		},
+		{
+			name: "no features returns null GCP VPC",
+			buildResponse: func() []qovery.ClusterFeatureResponse {
+				return []qovery.ClusterFeatureResponse{}
+			},
+			expectGcpVpcNull: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
+
+			result := fromQoveryClusterFeatures(tt.buildResponse(), Cluster{})
+			require.False(t, result.IsNull(), "features object should not be null")
+
+			gcpVpcAttr, ok := result.Attributes()[featureKeyGcpExistingVpc]
+			require.True(t, ok, "gcp_existing_vpc attribute should exist")
+
+			gcpVpcObj, ok := gcpVpcAttr.(types.Object)
+			require.True(t, ok, "gcp_existing_vpc should be a types.Object")
+
+			if tt.expectGcpVpcNull {
+				assert.True(t, gcpVpcObj.IsNull(), "gcp_existing_vpc should be null")
+				return
+			}
+
+			assert.False(t, gcpVpcObj.IsNull(), "gcp_existing_vpc should not be null")
+
+			vpcNameAttr := gcpVpcObj.Attributes()["vpc_name"].(types.String)
+			assert.Equal(t, tt.expectedVpcName, vpcNameAttr.ValueString())
+
+			// When GCP VPC is set, AWS existing_vpc should be null
+			awsVpcAttr := result.Attributes()[featureKeyExistingVpc].(types.Object)
+			assert.True(t, awsVpcAttr.IsNull(), "AWS existing_vpc should be null when GCP VPC is set")
+		})
+	}
 }

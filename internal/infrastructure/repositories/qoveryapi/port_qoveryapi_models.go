@@ -1,7 +1,6 @@
 package qoveryapi
 
 import (
-	"github.com/AlekSi/pointer"
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
@@ -41,7 +40,7 @@ func newQoveryPortRequestFromDomain(request port.UpsertRequest) (*qovery.Service
 		PubliclyAccessible: request.PubliclyAccessible,
 		InternalPort:       request.InternalPort,
 		ExternalPort:       request.ExternalPort,
-		IsDefault:          pointer.ToBool(request.IsDefault),
+		IsDefault:          new(request.IsDefault),
 	}, nil
 
 }

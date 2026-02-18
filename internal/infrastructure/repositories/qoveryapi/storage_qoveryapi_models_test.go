@@ -3,7 +3,6 @@ package qoveryapi
 import (
 	"testing"
 
-	"github.com/AlekSi/pointer"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +41,6 @@ func TestNewDomainStoragesFromQovery(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			ss, err := newDomainStoragesFromQovery(tc.Storages)
 			assert.NoError(t, err)
@@ -79,7 +77,7 @@ func TestNewQoveryStoragesRequestFromDomain(t *testing.T) {
 					MountPoint: gofakeit.Word(),
 				},
 				{
-					ID:         pointer.ToString(gofakeit.UUID()),
+					ID:         new(gofakeit.UUID()),
 					Size:       10,
 					Type:       storage.TypeFastSSD.String(),
 					MountPoint: gofakeit.Word(),
@@ -89,7 +87,6 @@ func TestNewQoveryStoragesRequestFromDomain(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			ss, err := newQoveryStoragesRequestFromDomain(tc.Storages)
 			assert.NoError(t, err)

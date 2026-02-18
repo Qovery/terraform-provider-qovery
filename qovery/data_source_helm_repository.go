@@ -105,7 +105,7 @@ func (d helmRepositoryDataSource) Read(ctx context.Context, req datasource.ReadR
 	}
 
 	state := convertDomainHelmRepositoryToHelmRepositoryDataSource(reg)
-	tflog.Trace(ctx, "read container registry", map[string]interface{}{"container_registry_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read container registry", map[string]any{"container_registry_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

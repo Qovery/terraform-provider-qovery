@@ -102,7 +102,7 @@ func (r annotationsGroupResource) Create(ctx context.Context, req resource.Creat
 
 	// Initialize state values
 	state := convertResponseToAnnotationsGroup(ctx, plan, newAnnotationsGroup)
-	tflog.Trace(ctx, "created annotations group", map[string]interface{}{"annotations group": state.Name.ValueString()})
+	tflog.Trace(ctx, "created annotations group", map[string]any{"annotations group": state.Name.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -126,7 +126,7 @@ func (r annotationsGroupResource) Read(ctx context.Context, req resource.ReadReq
 
 	// Refresh state values
 	state = convertResponseToAnnotationsGroup(ctx, state, annotationsGroup)
-	tflog.Trace(ctx, "read get", map[string]interface{}{"annotations_group": state.Id.ValueString()})
+	tflog.Trace(ctx, "read get", map[string]any{"annotations_group": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -155,7 +155,7 @@ func (r annotationsGroupResource) Update(ctx context.Context, req resource.Updat
 
 	// Update state values
 	state = convertResponseToAnnotationsGroup(ctx, plan, annotationsGroup)
-	tflog.Trace(ctx, "updated annotations group", map[string]interface{}{"annotation group id": state.Id.ValueString()})
+	tflog.Trace(ctx, "updated annotations group", map[string]any{"annotation group id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -175,7 +175,7 @@ func (r annotationsGroupResource) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	tflog.Trace(ctx, "deleted annotations group", map[string]interface{}{"annotations_group_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "deleted annotations group", map[string]any{"annotations_group_id": state.Id.ValueString()})
 
 	resp.State.RemoveResource(ctx)
 }

@@ -1,7 +1,6 @@
 package qoveryapi
 
 import (
-	"github.com/AlekSi/pointer"
 	"github.com/qovery/qovery-client-go"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 
@@ -33,7 +32,7 @@ func newQoveryHelmRepositoryRequestFromDomain(request helmRepository.UpsertReque
 	return &qovery.HelmRepositoryRequest{
 		Name:                request.Name,
 		Kind:                *kind,
-		Url:                 pointer.ToString(request.URL),
+		Url:                 new(request.URL),
 		Description:         request.Description,
 		SkipTlsVerification: request.SkiTlsVerification,
 		Config: qovery.HelmRepositoryRequestConfig{

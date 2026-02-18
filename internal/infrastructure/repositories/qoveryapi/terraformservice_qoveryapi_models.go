@@ -49,11 +49,11 @@ func newQoveryTerraformRequestFromDomain(request terraformservice.UpsertReposito
 	var backend qovery.TerraformBackend
 	if request.Backend.Kubernetes != nil {
 		// Kubernetes backend (empty map)
-		kubernetesBackend := qovery.NewTerraformBackendOneOf(make(map[string]interface{}))
+		kubernetesBackend := qovery.NewTerraformBackendOneOf(make(map[string]any))
 		backend = qovery.TerraformBackendOneOfAsTerraformBackend(kubernetesBackend)
 	} else if request.Backend.UserProvided != nil {
 		// User-provided backend (empty map)
-		userProvidedBackend := qovery.NewTerraformBackendOneOf1(make(map[string]interface{}))
+		userProvidedBackend := qovery.NewTerraformBackendOneOf1(make(map[string]any))
 		backend = qovery.TerraformBackendOneOf1AsTerraformBackend(userProvidedBackend)
 	}
 

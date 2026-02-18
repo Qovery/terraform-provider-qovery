@@ -39,7 +39,6 @@ func TestNewDomainEnvironmentFromQovery(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			env, err := newDomainEnvironmentFromQovery(tc.Environment)
 			if tc.ExpectedError != nil {
@@ -72,7 +71,7 @@ func TestNewQoveryCreateEnvironmentRequestFromDomain(t *testing.T) {
 			TestName: "fail_invalid_mode",
 			Request: environment.CreateRepositoryRequest{
 				Name:      gofakeit.Name(),
-				ClusterID: pointer.To(gofakeit.UUID()),
+				ClusterID: new(gofakeit.UUID()),
 				Mode:      pointer.To(environment.ModePreview),
 			},
 			ExpectedError: environment.ErrInvalidModeParam,
@@ -88,21 +87,20 @@ func TestNewQoveryCreateEnvironmentRequestFromDomain(t *testing.T) {
 			TestName: "success_without_mode",
 			Request: environment.CreateRepositoryRequest{
 				Name:      gofakeit.Name(),
-				ClusterID: pointer.To(gofakeit.UUID()),
+				ClusterID: new(gofakeit.UUID()),
 			},
 		},
 		{
 			TestName: "success",
 			Request: environment.CreateRepositoryRequest{
 				Name:      gofakeit.Name(),
-				ClusterID: pointer.To(gofakeit.UUID()),
+				ClusterID: new(gofakeit.UUID()),
 				Mode:      pointer.To(environment.ModeDevelopment),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			req, err := newQoveryCreateEnvironmentRequestFromDomain(tc.Request)
 			if tc.ExpectedError != nil {
@@ -146,13 +144,12 @@ func TestNewQoveryEnvironmentEditRequestFromDomain(t *testing.T) {
 		{
 			TestName: "success_without_mode",
 			Request: environment.UpdateRepositoryRequest{
-				Name: pointer.ToString(gofakeit.Name()),
+				Name: new(gofakeit.Name()),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			req, err := newQoveryEnvironmentEditRequestFromDomain(tc.Request)
 			if tc.ExpectedError != nil {

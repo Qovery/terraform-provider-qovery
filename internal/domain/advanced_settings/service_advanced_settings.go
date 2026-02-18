@@ -143,22 +143,22 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 
 	//
 	// Compute the Diff
-	advancedSettingsFromStateHashMap := make(map[string]interface{})
+	advancedSettingsFromStateHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(serviceAdvancedSettingsState), &advancedSettingsFromStateHashMap); err != nil {
 		return nil, err
 	}
 
-	currentAdvancedSettingsHashMap := make(map[string]interface{})
+	currentAdvancedSettingsHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap); err != nil {
 		return nil, err
 	}
 
-	defaultAdvancedSettingsHashMap := make(map[string]interface{})
+	defaultAdvancedSettingsHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(defaultAdvancedSettingsJsonString), &defaultAdvancedSettingsHashMap); err != nil {
 		return nil, err
 	}
 
-	overriddenAdvancedSettings := make(map[string]interface{})
+	overriddenAdvancedSettings := make(map[string]any)
 	// Prepare hashmap with target advanced settings
 	for advanced_setting_name, advanced_setting_value := range currentAdvancedSettingsHashMap {
 		defaultValue := defaultAdvancedSettingsHashMap[advanced_setting_name]
@@ -210,7 +210,7 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 		return err
 	}
 
-	overridenAdvancedSettingsHashMap := make(map[string]interface{})
+	overridenAdvancedSettingsHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(advancedSettingsStrFromPlan), &overridenAdvancedSettingsHashMap); err != nil {
 		return err
 	}
@@ -241,7 +241,7 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 
 	//
 	// Compute final http body to send to satisfy PUT endpoint
-	currentAdvancedSettingsHashMap := make(map[string]interface{})
+	currentAdvancedSettingsHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap); err != nil {
 		return err
 	}

@@ -98,7 +98,7 @@ func (d containerRegistryDataSource) Read(ctx context.Context, req datasource.Re
 	}
 
 	state := convertDomainRegistryToContainerRegistryDataSource(reg)
-	tflog.Trace(ctx, "read container registry", map[string]interface{}{"container_registry_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read container registry", map[string]any{"container_registry_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

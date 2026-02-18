@@ -216,7 +216,7 @@ func (r projectResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	// Initialize state values
 	state := convertDomainProjectToProject(ctx, plan, proj)
-	tflog.Trace(ctx, "created project", map[string]interface{}{"project_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "created project", map[string]any{"project_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -240,7 +240,7 @@ func (r projectResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	// Refresh state values
 	state = convertDomainProjectToProject(ctx, state, proj)
-	tflog.Trace(ctx, "read project", map[string]interface{}{"project_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read project", map[string]any{"project_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -265,7 +265,7 @@ func (r projectResource) Update(ctx context.Context, req resource.UpdateRequest,
 
 	// Update state values
 	state = convertDomainProjectToProject(ctx, plan, proj)
-	tflog.Trace(ctx, "updated project", map[string]interface{}{"project_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "updated project", map[string]any{"project_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -287,7 +287,7 @@ func (r projectResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
-	tflog.Trace(ctx, "deleted project", map[string]interface{}{"project_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "deleted project", map[string]any{"project_id": state.Id.ValueString()})
 
 	// Remove project from state
 	resp.State.RemoveResource(ctx)

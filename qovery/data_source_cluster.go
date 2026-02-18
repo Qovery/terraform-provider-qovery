@@ -259,6 +259,38 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 							},
 						},
 					},
+					"gcp_existing_vpc": schema.SingleNestedAttribute{
+						Optional:    true,
+						Computed:    false,
+						Description: "Network configuration if you want to install qovery on an existing GCP VPC",
+						Attributes: map[string]schema.Attribute{
+							"vpc_name": schema.StringAttribute{
+								Description: "Name of the existing GCP VPC network",
+								Required:    true,
+							},
+							"vpc_project_id": schema.StringAttribute{
+								Description: "GCP project ID that owns the VPC. Defaults to the project associated with your GCP credentials",
+								Optional:    true,
+							},
+							"subnetwork_name": schema.StringAttribute{
+								Description: "Name of the GCP subnetwork within the VPC",
+								Optional:    true,
+							},
+							"ip_range_services_name": schema.StringAttribute{
+								Description: "Name of the secondary IP range for GKE services",
+								Optional:    true,
+							},
+							"ip_range_pods_name": schema.StringAttribute{
+								Description: "Name of the secondary IP range for pods",
+								Optional:    true,
+							},
+							"additional_ip_range_pods_names": schema.ListAttribute{
+								Description: "Additional secondary IP range names for pods",
+								ElementType: types.StringType,
+								Optional:    true,
+							},
+						},
+					},
 					"karpenter": schema.SingleNestedAttribute{
 						Optional:    true,
 						Computed:    false,
@@ -544,7 +576,7 @@ func (d clusterDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	}
 
 	state := convertResponseToCluster(ctx, cluster, data)
-	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read cluster", map[string]any{"cluster_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

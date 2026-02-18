@@ -321,6 +321,38 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 							},
 						},
 					},
+					"gcp_existing_vpc": schema.SingleNestedAttribute{
+						Optional:    true,
+						Computed:    false,
+						Description: "Network configuration if you want to install qovery on an existing GCP VPC",
+						Attributes: map[string]schema.Attribute{
+							"vpc_name": schema.StringAttribute{
+								Description: "Name of the existing GCP VPC network",
+								Required:    true,
+							},
+							"vpc_project_id": schema.StringAttribute{
+								Description: "GCP project ID that owns the VPC. Defaults to the project associated with your GCP credentials",
+								Optional:    true,
+							},
+							"subnetwork_name": schema.StringAttribute{
+								Description: "Name of the GCP subnetwork within the VPC",
+								Optional:    true,
+							},
+							"ip_range_services_name": schema.StringAttribute{
+								Description: "Name of the secondary IP range for GKE services",
+								Optional:    true,
+							},
+							"ip_range_pods_name": schema.StringAttribute{
+								Description: "Name of the secondary IP range for pods",
+								Optional:    true,
+							},
+							"additional_ip_range_pods_names": schema.ListAttribute{
+								Description: "Additional secondary IP range names for pods",
+								ElementType: types.StringType,
+								Optional:    true,
+							},
+						},
+					},
 					"karpenter": schema.SingleNestedAttribute{
 						Optional:    true,
 						Computed:    false,
@@ -630,13 +662,13 @@ func (r clusterResource) Create(ctx context.Context, req resource.CreateRequest,
 	if plan.KubernetesMode.ValueString() == "PARTIALLY_MANAGED" {
 		kubeconfig, apiErr := r.client.GetClusterKubeconfig(ctx, plan.OrganizationId.ValueString(), cluster.ClusterResponse.Id)
 		if apiErr != nil {
-			tflog.Warn(ctx, "failed to fetch kubeconfig after create", map[string]interface{}{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
+			tflog.Warn(ctx, "failed to fetch kubeconfig after create", map[string]any{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
 		} else {
 			state.Kubeconfig = types.StringValue(kubeconfig)
 		}
 	}
 
-	tflog.Trace(ctx, "created cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "created cluster", map[string]any{"cluster_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -672,13 +704,13 @@ func (r clusterResource) Read(ctx context.Context, req resource.ReadRequest, res
 		kubeconfig, apiErr := r.client.GetClusterKubeconfig(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
 		if apiErr != nil {
 			// Log warning but don't fail - kubeconfig might not be set yet
-			tflog.Warn(ctx, "failed to fetch kubeconfig for PARTIALLY_MANAGED cluster", map[string]interface{}{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
+			tflog.Warn(ctx, "failed to fetch kubeconfig for PARTIALLY_MANAGED cluster", map[string]any{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
 		} else {
 			state.Kubeconfig = types.StringValue(kubeconfig)
 		}
 	}
 
-	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read cluster", map[string]any{"cluster_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -725,13 +757,13 @@ func (r clusterResource) Update(ctx context.Context, req resource.UpdateRequest,
 	if plan.KubernetesMode.ValueString() == "PARTIALLY_MANAGED" {
 		kubeconfig, apiErr := r.client.GetClusterKubeconfig(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
 		if apiErr != nil {
-			tflog.Warn(ctx, "failed to fetch kubeconfig after update", map[string]interface{}{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
+			tflog.Warn(ctx, "failed to fetch kubeconfig after update", map[string]any{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
 		} else {
 			state.Kubeconfig = types.StringValue(kubeconfig)
 		}
 	}
 
-	tflog.Trace(ctx, "updated cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "updated cluster", map[string]any{"cluster_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -753,7 +785,7 @@ func (r clusterResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
-	tflog.Trace(ctx, "deleted cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "deleted cluster", map[string]any{"cluster_id": state.Id.ValueString()})
 
 	// Remove cluster from state
 	resp.State.RemoveResource(ctx)

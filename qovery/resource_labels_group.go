@@ -110,7 +110,7 @@ func (r labelsGroupResource) Create(ctx context.Context, req resource.CreateRequ
 
 	// Initialize state values
 	state := convertResponseToLabelsGroup(ctx, plan, newLabelsGroup)
-	tflog.Trace(ctx, "created labels group", map[string]interface{}{"labels group": state.Name.ValueString()})
+	tflog.Trace(ctx, "created labels group", map[string]any{"labels group": state.Name.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -134,7 +134,7 @@ func (r labelsGroupResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	//Refresh state values
 	state = convertResponseToLabelsGroup(ctx, state, labelsGroup)
-	tflog.Trace(ctx, "read get", map[string]interface{}{"labels_group": state.Id.ValueString()})
+	tflog.Trace(ctx, "read get", map[string]any{"labels_group": state.Id.ValueString()})
 
 	//Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -163,7 +163,7 @@ func (r labelsGroupResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	// Update state values
 	state = convertResponseToLabelsGroup(ctx, plan, labelsGroup)
-	tflog.Trace(ctx, "updated labels group", map[string]interface{}{"label group id": state.Id.ValueString()})
+	tflog.Trace(ctx, "updated labels group", map[string]any{"label group id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -183,7 +183,7 @@ func (r labelsGroupResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	tflog.Trace(ctx, "deleted labels group", map[string]interface{}{"labels_group_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "deleted labels group", map[string]any{"labels_group_id": state.Id.ValueString()})
 
 	resp.State.RemoveResource(ctx)
 }

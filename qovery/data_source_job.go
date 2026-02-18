@@ -536,7 +536,7 @@ func (d jobDataSource) Read(ctx context.Context, req datasource.ReadRequest, res
 	}
 
 	state := convertDomainJobToJob(ctx, data, cont)
-	tflog.Trace(ctx, "read job", map[string]interface{}{"job_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "read job", map[string]any{"job_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

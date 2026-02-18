@@ -98,6 +98,31 @@ resource "qovery_cluster" "gcp_cluster" {
   })
 }
 
+# GCP Cluster with existing VPC
+resource "qovery_cluster" "gcp_cluster_custom_vpc" {
+  organization_id = qovery_organization.my_organization.id
+  credentials_id  = qovery_gcp_credentials.gcp_creds.id
+  name            = "gke-custom-vpc"
+  cloud_provider  = "GCP"
+  region          = "europe-west1"
+  state           = "DEPLOYED"
+
+  instance_type     = "AUTO_PILOT"
+  min_running_nodes = 3
+  max_running_nodes = 200
+
+  features = {
+    gcp_existing_vpc = {
+      vpc_name                       = "my-existing-vpc"
+      vpc_project_id                 = "my-gcp-project-id"
+      subnetwork_name                = "my-subnetwork"
+      ip_range_services_name         = "gke-services"
+      ip_range_pods_name             = "gke-pods"
+      additional_ip_range_pods_names = ["gke-pods-extra-1", "gke-pods-extra-2"]
+    }
+  }
+}
+
 #########
 # Azure #
 #########

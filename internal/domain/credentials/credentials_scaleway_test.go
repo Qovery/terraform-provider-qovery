@@ -70,7 +70,6 @@ func TestUpsertScalewayRequest_Validate(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			err := tc.Request.Validate()
 			if tc.ExpectedError != nil {

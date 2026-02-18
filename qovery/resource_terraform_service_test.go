@@ -1,5 +1,4 @@
 //go:build integration && !unit
-// +build integration,!unit
 
 package qovery_test
 
@@ -275,9 +274,10 @@ resource "qovery_terraform_service" "test" {
   auto_deploy    = true
 
   git_repository = {
-    url       = "https://github.com/Qovery/terraform-examples.git"
-    branch    = "main"
-    root_path = "/"
+    url          = "https://github.com/Qovery/terraform-examples.git"
+    branch       = "main"
+    root_path    = "/"
+    git_token_id = "%s"
   }
 
   tfvars_files = []
@@ -303,7 +303,7 @@ resource "qovery_terraform_service" "test" {
   timeout_seconds         = 1800
   use_cluster_credentials = false
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName))
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), getTestQoverySandboxGitTokenID())
 }
 
 func testAccTerraformServiceWithVariablesConfig(testName string) string {
@@ -317,9 +317,10 @@ resource "qovery_terraform_service" "test" {
   auto_deploy    = true
 
   git_repository = {
-    url       = "https://github.com/Qovery/terraform-examples.git"
-    branch    = "main"
-    root_path = "/"
+    url          = "https://github.com/Qovery/terraform-examples.git"
+    branch       = "main"
+    root_path    = "/"
+    git_token_id = "%s"
   }
 
   tfvars_files = []
@@ -358,7 +359,7 @@ resource "qovery_terraform_service" "test" {
   timeout_seconds         = 1800
   use_cluster_credentials = false
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName))
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), getTestQoverySandboxGitTokenID())
 }
 
 func testAccTerraformServiceUserProvidedBackendConfig(testName string) string {
@@ -372,9 +373,10 @@ resource "qovery_terraform_service" "test" {
   auto_deploy    = true
 
   git_repository = {
-    url       = "https://github.com/Qovery/terraform-examples.git"
-    branch    = "main"
-    root_path = "/"
+    url          = "https://github.com/Qovery/terraform-examples.git"
+    branch       = "main"
+    root_path    = "/"
+    git_token_id = "%s"
   }
 
   tfvars_files = []
@@ -400,7 +402,7 @@ resource "qovery_terraform_service" "test" {
   timeout_seconds         = 1800
   use_cluster_credentials = false
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName))
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), getTestQoverySandboxGitTokenID())
 }
 
 func testAccTerraformServiceWithAdvancedSettingsConfig(testName string) string {
@@ -414,9 +416,10 @@ resource "qovery_terraform_service" "test" {
   auto_deploy    = true
 
   git_repository = {
-    url       = "https://github.com/Qovery/terraform-examples.git"
-    branch    = "main"
-    root_path = "/"
+    url          = "https://github.com/Qovery/terraform-examples.git"
+    branch       = "main"
+    root_path    = "/"
+    git_token_id = "%s"
   }
 
   tfvars_files = []
@@ -446,7 +449,7 @@ resource "qovery_terraform_service" "test" {
     "deployment.termination_grace_period_seconds" : 120
   })
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName))
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), getTestQoverySandboxGitTokenID())
 }
 
 func testAccTerraformServiceOpenTofuConfig(testName string) string {
@@ -460,9 +463,10 @@ resource "qovery_terraform_service" "test" {
   auto_deploy    = true
 
   git_repository = {
-    url       = "https://github.com/Qovery/terraform-examples.git"
-    branch    = "main"
-    root_path = "/"
+    url          = "https://github.com/Qovery/terraform-examples.git"
+    branch       = "main"
+    root_path    = "/"
+    git_token_id = "%s"
   }
 
   tfvars_files = []
@@ -488,7 +492,7 @@ resource "qovery_terraform_service" "test" {
   timeout_seconds         = 1800
   use_cluster_credentials = false
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName))
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), getTestQoverySandboxGitTokenID())
 }
 
 func testAccTerraformServiceWithReducedStorageConfig(testName string) string {
@@ -502,9 +506,10 @@ resource "qovery_terraform_service" "test" {
   auto_deploy    = true
 
   git_repository = {
-    url       = "https://github.com/Qovery/terraform-examples.git"
-    branch    = "main"
-    root_path = "/"
+    url          = "https://github.com/Qovery/terraform-examples.git"
+    branch       = "main"
+    root_path    = "/"
+    git_token_id = "%s"
   }
 
   tfvars_files = []
@@ -530,7 +535,7 @@ resource "qovery_terraform_service" "test" {
   timeout_seconds         = 1800
   use_cluster_credentials = false
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName))
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), getTestQoverySandboxGitTokenID())
 }
 
 func testAccTerraformServiceWithDeploymentStageConfig(testName string) string {
@@ -550,9 +555,10 @@ resource "qovery_terraform_service" "test" {
   auto_deploy         = true
 
   git_repository = {
-    url       = "https://github.com/Qovery/terraform-examples.git"
-    branch    = "main"
-    root_path = "/"
+    url          = "https://github.com/Qovery/terraform-examples.git"
+    branch       = "main"
+    root_path    = "/"
+    git_token_id = "%s"
   }
 
   tfvars_files = []
@@ -578,7 +584,7 @@ resource "qovery_terraform_service" "test" {
   timeout_seconds         = 1800
   use_cluster_credentials = false
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), generateTestName(testName))
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), generateTestName(testName), getTestQoverySandboxGitTokenID())
 }
 
 func testAccTerraformServiceWithDeploymentStageUpdatedConfig(testName string) string {
@@ -604,9 +610,10 @@ resource "qovery_terraform_service" "test" {
   auto_deploy         = true
 
   git_repository = {
-    url       = "https://github.com/Qovery/terraform-examples.git"
-    branch    = "main"
-    root_path = "/"
+    url          = "https://github.com/Qovery/terraform-examples.git"
+    branch       = "main"
+    root_path    = "/"
+    git_token_id = "%s"
   }
 
   tfvars_files = []
@@ -632,5 +639,5 @@ resource "qovery_terraform_service" "test" {
   timeout_seconds         = 1800
   use_cluster_credentials = false
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), generateTestName(testName), generateTestName(testName))
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), generateTestName(testName), generateTestName(testName), getTestQoverySandboxGitTokenID())
 }

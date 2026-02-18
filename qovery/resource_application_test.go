@@ -1,5 +1,4 @@
 //go:build integration && !unit
-// +build integration,!unit
 
 package qovery_test
 
@@ -1427,10 +1426,11 @@ resource "qovery_application" "test" {
   auto_preview = "%s"
   git_repository = {
     url = "%s"
+    git_token_id = "%s"
   }
  healthchecks = {}
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), autoPreview, applicationRepositoryURL,
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), autoPreview, applicationRepositoryURL, getTestQoverySandboxGitTokenID(),
 	)
 }
 
@@ -1451,10 +1451,11 @@ resource "qovery_application" "test" {
   arguments             = []
   git_repository = {
     url = "%s"
+    git_token_id = "%s"
   }
  healthchecks = {}
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), cpu, memory, minRunningInstances, maxRunningInstances, applicationRepositoryURL,
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), cpu, memory, minRunningInstances, maxRunningInstances, applicationRepositoryURL, getTestQoverySandboxGitTokenID(),
 	)
 }
 
@@ -1469,11 +1470,12 @@ resource "qovery_application" "test" {
   dockerfile_path = "Dockerfile"
   git_repository = {
     url = "%s"
+    git_token_id = "%s"
   }
   storage = %s
   healthchecks = {}
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertStoragesToString(storages),
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(), convertStoragesToString(storages),
 	)
 }
 
@@ -1488,11 +1490,12 @@ resource "qovery_application" "test" {
   dockerfile_path = "Dockerfile"
   git_repository = {
     url = "%s"
+    git_token_id = "%s"
   }
   ports = %s
   healthchecks = {}
 }
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertPortsToString(ports),
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(), convertPortsToString(ports),
 	)
 }
 
@@ -1512,6 +1515,7 @@ resource "qovery_application" "test" {
   dockerfile_path = "Dockerfile"
   git_repository = {
     url = "%s"
+    git_token_id = "%s"
   }
   environment_variables = %s
   environment_variable_aliases = %s
@@ -1521,6 +1525,7 @@ resource "qovery_application" "test" {
 		testAccEnvironmentDefaultConfigWithEnvironmentVariables(testName, map[string]string{"environment_variable": "simple value"}),
 		generateTestName(testName),
 		applicationRepositoryURL,
+		getTestQoverySandboxGitTokenID(),
 		convertEnvVarsToString(environmentVariables),
 		convertEnvVarsToString(environmentVariableAliases),
 		convertEnvVarsToString(environmentVariableOverrides),
@@ -1543,6 +1548,7 @@ resource "qovery_application" "test" {
   dockerfile_path = "Dockerfile"
   git_repository = {
     url = "%s"
+    git_token_id = "%s"
   }
   secrets = %s
   secret_aliases = %s
@@ -1553,6 +1559,7 @@ resource "qovery_application" "test" {
 		testAccEnvironmentDefaultConfigWithSecrets(testName, map[string]string{"environment_secret": "simple value"}),
 		generateTestName(testName),
 		applicationRepositoryURL,
+		getTestQoverySandboxGitTokenID(),
 		convertEnvVarsToString(secrets),
 		convertEnvVarsToString(secretAliases),
 		convertEnvVarsToString(secretOverrides),
@@ -1579,12 +1586,13 @@ resource "qovery_application" "test" {
   dockerfile_path = "Dockerfile"
   git_repository = {
     url = "%s"
+    git_token_id = "%s"
   }
   ports = %s
   custom_domains = %s
   healthchecks = {}
 } 
-`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, convertPortsToString(ports), convertCustomDomainsToString(customDomains),
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(), convertPortsToString(ports), convertCustomDomainsToString(customDomains),
 	)
 }
 
@@ -1599,10 +1607,11 @@ resource "qovery_application" "test" {
   dockerfile_path = "Dockerfile"
   git_repository = {
     url = "%s"
+    git_token_id = "%s"
   }
   healthchecks = {}
 }
-`, testAccEnvironmentDefaultConfigWithEnvironmentVariables(testName, environmentVariables), generateTestName(testName), applicationRepositoryURL,
+`, testAccEnvironmentDefaultConfigWithEnvironmentVariables(testName, environmentVariables), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(),
 	)
 }
 
@@ -1617,6 +1626,7 @@ resource "qovery_application" "test" {
   dockerfile_path = "Dockerfile"
   git_repository = {
     url = "%s"
+    git_token_id = "%s"
   }
   healthchecks = {}
 }
@@ -1630,7 +1640,7 @@ resource "qovery_application" "test" {
 		Memory:        qovery.FromInt32(256),
 		Storage:       qovery.FromInt32(10),
 		InstanceType:  qovery.FromStringPointer(nil),
-	}), generateTestName(testName), applicationRepositoryURL,
+	}), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(),
 	)
 }
 

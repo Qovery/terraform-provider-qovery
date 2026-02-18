@@ -38,14 +38,13 @@ func TestNewDomainPortsFromQovery(t *testing.T) {
 					Protocol:           qovery.PORTPROTOCOLENUM_HTTP,
 					PubliclyAccessible: gofakeit.Bool(),
 					ExternalPort:       pointer.ToInt32(5001),
-					Name:               pointer.ToString(gofakeit.Name()),
+					Name:               new(gofakeit.Name()),
 				},
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			ss, err := newDomainPortsFromQovery(tc.Ports)
 			assert.NoError(t, err)
@@ -82,8 +81,8 @@ func TestNewQoveryPortsRequestFromDomain(t *testing.T) {
 					InternalPort:       5000,
 				},
 				{
-					Name:               pointer.ToString(gofakeit.Name()),
-					Protocol:           pointer.ToString(port.ProtocolHTTP.String()),
+					Name:               new(gofakeit.Name()),
+					Protocol:           new(port.ProtocolHTTP.String()),
 					PubliclyAccessible: gofakeit.Bool(),
 					InternalPort:       5000,
 					ExternalPort:       pointer.ToInt32(5001),
@@ -93,7 +92,6 @@ func TestNewQoveryPortsRequestFromDomain(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			ss, err := newQoveryPortsRequestFromDomain(tc.Ports)
 			assert.NoError(t, err)

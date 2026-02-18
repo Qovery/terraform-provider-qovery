@@ -6,7 +6,6 @@ import (
 
 	"github.com/qovery/qovery-client-go"
 
-	"github.com/AlekSi/pointer"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -278,11 +277,11 @@ func (c *Container) SetHosts(vars variable.Variables) error {
 
 	for _, v := range vars {
 		if v.Key == hostExternalKey {
-			c.ExternalHost = pointer.ToString(v.Value)
+			c.ExternalHost = new(v.Value)
 			continue
 		}
 		if v.Key == hostInternalKey {
-			c.InternalHost = pointer.ToString(v.Value)
+			c.InternalHost = new(v.Value)
 			continue
 		}
 		if c.ExternalHost != nil && c.InternalHost != nil {

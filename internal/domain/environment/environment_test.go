@@ -80,7 +80,6 @@ func TestNewEnvironment(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			env, err := environment.NewEnvironment(tc.Params)
 			if tc.ExpectedError != nil {

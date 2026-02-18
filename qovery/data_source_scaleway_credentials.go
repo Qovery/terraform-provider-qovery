@@ -81,7 +81,7 @@ func (d scalewayCredentialsDataSource) Read(ctx context.Context, req datasource.
 	}
 
 	state := convertDomainCredentialsToScalewayCredentialsDataSource(creds)
-	tflog.Trace(ctx, "read scaleway credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read scaleway credentials", map[string]any{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

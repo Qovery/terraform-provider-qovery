@@ -94,22 +94,22 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(
 
 	//
 	// Compute the Diff
-	advancedSettingsFromStateHashMap := make(map[string]interface{})
+	advancedSettingsFromStateHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(clusterAdvancedSettingsState), &advancedSettingsFromStateHashMap); err != nil {
 		return nil, err
 	}
 
-	currentAdvancedSettingsHashMap := make(map[string]interface{})
+	currentAdvancedSettingsHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap); err != nil {
 		return nil, err
 	}
 
-	defaultAdvancedSettingsHashMap := make(map[string]interface{})
+	defaultAdvancedSettingsHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(defaultAdvancedSettingsStringJson), &defaultAdvancedSettingsHashMap); err != nil {
 		return nil, err
 	}
 
-	overriddenAdvancedSettings := make(map[string]interface{})
+	overriddenAdvancedSettings := make(map[string]any)
 	// Prepare hashmap with target advanced settings
 	for advanced_setting_name, advanced_setting_value := range currentAdvancedSettingsHashMap {
 		defaultValue := defaultAdvancedSettingsHashMap[advanced_setting_name]
@@ -158,7 +158,7 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 	//
 	// Get cluster advanced settings
 	urlAdvancedSettings := host + "/organization/" + organizationId + "/cluster/" + clusterId + "/advancedSettings"
-	overridenAdvancedSettingsHashMap := make(map[string]interface{})
+	overridenAdvancedSettingsHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(advancedSettingsJson), &overridenAdvancedSettingsHashMap); err != nil {
 		return err
 	}
@@ -189,7 +189,7 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 
 	//
 	// Compute final http body to send to satisfy PUT endpoint
-	currentAdvancedSettingsHashMap := make(map[string]interface{})
+	currentAdvancedSettingsHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap); err != nil {
 		return err
 	}

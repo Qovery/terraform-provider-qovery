@@ -3,7 +3,6 @@ package project_test
 import (
 	"testing"
 
-	"github.com/AlekSi/pointer"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/stretchr/testify/assert"
 
@@ -23,7 +22,7 @@ func TestNewProject(t *testing.T) {
 			Params: project.NewProjectParams{
 				OrganizationID: gofakeit.UUID(),
 				Name:           gofakeit.Name(),
-				Description:    pointer.ToString(gofakeit.Name()),
+				Description:    new(gofakeit.Name()),
 			},
 			ExpectedError: project.ErrInvalidProjectIDParam,
 		},
@@ -32,7 +31,7 @@ func TestNewProject(t *testing.T) {
 			Params: project.NewProjectParams{
 				ProjectID:   gofakeit.UUID(),
 				Name:        gofakeit.Name(),
-				Description: pointer.ToString(gofakeit.Name()),
+				Description: new(gofakeit.Name()),
 			},
 			ExpectedError: project.ErrInvalidProjectOrganizationIDParam,
 		},
@@ -41,7 +40,7 @@ func TestNewProject(t *testing.T) {
 			Params: project.NewProjectParams{
 				ProjectID:      gofakeit.UUID(),
 				OrganizationID: gofakeit.UUID(),
-				Description:    pointer.ToString(gofakeit.Name()),
+				Description:    new(gofakeit.Name()),
 			},
 			ExpectedError: project.ErrInvalidProjectNameParam,
 		},
@@ -59,13 +58,12 @@ func TestNewProject(t *testing.T) {
 				ProjectID:      gofakeit.UUID(),
 				OrganizationID: gofakeit.UUID(),
 				Name:           gofakeit.Name(),
-				Description:    pointer.ToString(gofakeit.Name()),
+				Description:    new(gofakeit.Name()),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			proj, err := project.NewProject(tc.Params)
 			if tc.ExpectedError != nil {

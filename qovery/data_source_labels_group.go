@@ -97,7 +97,7 @@ func (d labelsGroupDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	state := convertResponseToLabelsGroup(ctx, data, h)
-	tflog.Trace(ctx, "read label group", map[string]interface{}{"label_group_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read label group", map[string]any{"label_group_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

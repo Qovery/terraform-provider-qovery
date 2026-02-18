@@ -81,7 +81,7 @@ func (d awsCredentialsDataSource) Read(ctx context.Context, req datasource.ReadR
 	}
 
 	state := convertDomainCredentialsToAWSCredentialsDataSource(creds)
-	tflog.Trace(ctx, "read aws credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read aws credentials", map[string]any{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

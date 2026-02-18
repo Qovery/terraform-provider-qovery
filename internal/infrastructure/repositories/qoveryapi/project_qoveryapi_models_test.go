@@ -3,7 +3,6 @@ package qoveryapi
 import (
 	"testing"
 
-	"github.com/AlekSi/pointer"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
@@ -32,13 +31,12 @@ func TestNewDomainProjectFromQovery(t *testing.T) {
 					Id: gofakeit.UUID(),
 				},
 				Name:        gofakeit.Name(),
-				Description: pointer.ToString(gofakeit.Name()),
+				Description: new(gofakeit.Name()),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			proj, err := newDomainProjectFromQovery(tc.Project)
 			if tc.ExpectedError != nil {
@@ -75,13 +73,12 @@ func TestNewQoveryProjectEditRequestFromDomain(t *testing.T) {
 			TestName: "success_with_description",
 			Request: project.UpsertRepositoryRequest{
 				Name:        gofakeit.Name(),
-				Description: pointer.ToString(gofakeit.Word()),
+				Description: new(gofakeit.Word()),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			req := newQoveryProjectRequestFromDomain(tc.Request)
 

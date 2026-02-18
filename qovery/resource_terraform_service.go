@@ -310,7 +310,7 @@ func (r terraformServiceResource) Create(ctx context.Context, req resource.Creat
 
 	// Convert domain entity to Terraform state
 	state := convertDomainTerraformServiceToTerraformService(ctx, plan, terraformSvc)
-	tflog.Trace(ctx, "created terraform service", map[string]interface{}{"terraform_service_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "created terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -340,7 +340,7 @@ func (r terraformServiceResource) Read(ctx context.Context, req resource.ReadReq
 
 	// Convert domain entity to Terraform state
 	state = convertDomainTerraformServiceToTerraformService(ctx, state, terraformSvc)
-	tflog.Trace(ctx, "read terraform service", map[string]interface{}{"terraform_service_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "read terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -371,7 +371,7 @@ func (r terraformServiceResource) Update(ctx context.Context, req resource.Updat
 
 	// Convert domain entity to Terraform state
 	state = convertDomainTerraformServiceToTerraformService(ctx, plan, terraformSvc)
-	tflog.Trace(ctx, "updated terraform service", map[string]interface{}{"terraform_service_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "updated terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -392,7 +392,7 @@ func (r terraformServiceResource) Delete(ctx context.Context, req resource.Delet
 		return
 	}
 
-	tflog.Trace(ctx, "deleted terraform service", map[string]interface{}{"terraform_service_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "deleted terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 }
 
 func (r terraformServiceResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {

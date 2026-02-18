@@ -105,7 +105,7 @@ func (r scalewayCredentialsResource) Create(ctx context.Context, req resource.Cr
 
 	// Initialize state values
 	state := convertDomainCredentialsToScalewayCredentials(creds, plan)
-	tflog.Trace(ctx, "created scaleway credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "created scaleway credentials", map[string]any{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -128,7 +128,7 @@ func (r scalewayCredentialsResource) Read(ctx context.Context, req resource.Read
 	}
 
 	state = convertDomainCredentialsToScalewayCredentials(creds, state)
-	tflog.Trace(ctx, "read scaleway credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read scaleway credentials", map[string]any{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -153,7 +153,7 @@ func (r scalewayCredentialsResource) Update(ctx context.Context, req resource.Up
 
 	// Update state values
 	state = convertDomainCredentialsToScalewayCredentials(creds, plan)
-	tflog.Trace(ctx, "updated scaleway credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "updated scaleway credentials", map[string]any{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -175,7 +175,7 @@ func (r scalewayCredentialsResource) Delete(ctx context.Context, req resource.De
 		return
 	}
 
-	tflog.Trace(ctx, "deleted scaleway credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "deleted scaleway credentials", map[string]any{"credentials_id": state.Id.ValueString()})
 
 	// Remove credentials from state
 	resp.State.RemoveResource(ctx)

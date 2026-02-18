@@ -95,7 +95,7 @@ func (r gcpCredentialsResource) Create(ctx context.Context, req resource.CreateR
 
 	// Initialize state values
 	state := convertDomainCredentialsToGCPCredentials(creds, plan)
-	tflog.Trace(ctx, "created gcp credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "created gcp credentials", map[string]any{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -118,7 +118,7 @@ func (r gcpCredentialsResource) Read(ctx context.Context, req resource.ReadReque
 	}
 
 	state = convertDomainCredentialsToGCPCredentials(creds, state)
-	tflog.Trace(ctx, "read gcp credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read gcp credentials", map[string]any{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -143,7 +143,7 @@ func (r gcpCredentialsResource) Update(ctx context.Context, req resource.UpdateR
 
 	// Update state values
 	state = convertDomainCredentialsToGCPCredentials(creds, plan)
-	tflog.Trace(ctx, "updated gcp credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "updated gcp credentials", map[string]any{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -165,7 +165,7 @@ func (r gcpCredentialsResource) Delete(ctx context.Context, req resource.DeleteR
 		return
 	}
 
-	tflog.Trace(ctx, "deleted gcp credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "deleted gcp credentials", map[string]any{"credentials_id": state.Id.ValueString()})
 
 	// Remove credentials from state
 	resp.State.RemoveResource(ctx)

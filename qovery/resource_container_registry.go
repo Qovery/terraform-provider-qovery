@@ -153,7 +153,7 @@ func (r containerRegistryResource) Create(ctx context.Context, req resource.Crea
 
 	// Initialize state values
 	state := convertDomainRegistryToContainerRegistry(plan, reg)
-	tflog.Trace(ctx, "created container registry", map[string]interface{}{"container_registry_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "created container registry", map[string]any{"container_registry_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -177,7 +177,7 @@ func (r containerRegistryResource) Read(ctx context.Context, req resource.ReadRe
 
 	// Refresh state values
 	state = convertDomainRegistryToContainerRegistry(state, reg)
-	tflog.Trace(ctx, "read container registry", map[string]interface{}{"container_registry_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read container registry", map[string]any{"container_registry_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -202,7 +202,7 @@ func (r containerRegistryResource) Update(ctx context.Context, req resource.Upda
 
 	// Update state values
 	state = convertDomainRegistryToContainerRegistry(plan, reg)
-	tflog.Trace(ctx, "updated container registry", map[string]interface{}{"container_registry_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "updated container registry", map[string]any{"container_registry_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -224,7 +224,7 @@ func (r containerRegistryResource) Delete(ctx context.Context, req resource.Dele
 		return
 	}
 
-	tflog.Trace(ctx, "deleted container registry", map[string]interface{}{"container_registry_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "deleted container registry", map[string]any{"container_registry_id": state.Id.ValueString()})
 
 	// Remove containerRegistry from state
 	resp.State.RemoveResource(ctx)

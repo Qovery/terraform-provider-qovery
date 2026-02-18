@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/AlekSi/pointer"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/google/uuid"
 	"github.com/qovery/qovery-client-go"
@@ -40,9 +39,9 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 					Id: gofakeit.UUID(),
 				},
 				Registry: qovery.ContainerRegistryProviderDetailsResponse{
-					Id:   *qovery.PtrString(gofakeit.UUID()),
-					Name: *qovery.PtrString(gofakeit.Name()),
-					Url:  *qovery.PtrString(gofakeit.URL()),
+					Id:   gofakeit.UUID(),
+					Name: gofakeit.Name(),
+					Url:  gofakeit.URL(),
 					Kind: qovery.CONTAINERREGISTRYKINDENUM_DOCKER_HUB,
 				},
 				Arguments: []string{
@@ -52,7 +51,7 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 				IconUri:             fmt.Sprintf("app://qovery-console/%v", gofakeit.Name()),
 				ImageName:           gofakeit.Name(),
 				Tag:                 gofakeit.Word(),
-				Entrypoint:          pointer.ToString(gofakeit.Word()),
+				Entrypoint:          new(gofakeit.Word()),
 				AutoPreview:         gofakeit.Bool(),
 				Cpu:                 int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
 				Memory:              int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
@@ -69,7 +68,6 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			fakeDeploymentStageId := uuid.NewString()
 			customDomains := qovery.CustomDomainResponseList{}
@@ -146,21 +144,21 @@ func TestNewQoveryContainerRequestFromDomain(t *testing.T) {
 				Name:                gofakeit.Name(),
 				ImageName:           gofakeit.Name(),
 				Tag:                 gofakeit.Word(),
-				Entrypoint:          pointer.ToString(gofakeit.Word()),
-				CPU:                 pointer.ToInt32(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
-				Memory:              pointer.ToInt32(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
-				MinRunningInstances: pointer.ToInt32(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
-				MaxRunningInstances: pointer.ToInt32(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
-				AutoPreview:         pointer.ToBool(gofakeit.Bool()),
+				Entrypoint:          new(gofakeit.Word()),
+				CPU:                 new(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
+				Memory:              new(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
+				MinRunningInstances: new(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
+				MaxRunningInstances: new(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
+				AutoPreview:         new(gofakeit.Bool()),
 				Arguments: []string{
 					gofakeit.Word(),
 				},
 				Ports: []port.UpsertRequest{
 					{
-						Name:               pointer.ToString(gofakeit.Name()),
+						Name:               new(gofakeit.Name()),
 						InternalPort:       int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
-						ExternalPort:       pointer.ToInt32(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
-						Protocol:           pointer.ToString(port.ProtocolHTTP.String()),
+						ExternalPort:       new(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
+						Protocol:           new(port.ProtocolHTTP.String()),
 						PubliclyAccessible: gofakeit.Bool(),
 					},
 				},
@@ -169,7 +167,6 @@ func TestNewQoveryContainerRequestFromDomain(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			req, err := newQoveryContainerRequestFromDomain(tc.Request)
 			assert.NoError(t, err)

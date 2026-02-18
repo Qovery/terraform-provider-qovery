@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -250,7 +249,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 							Description: descriptions.NewStringEnumDescription(
 								"Protocol used for the port of the application.",
 								clientEnumToStringArray(port.AllowedProtocolValues),
-								pointer.ToString(port.DefaultProtocol.String()),
+								new(port.DefaultProtocol.String()),
 							),
 							Optional: true,
 							Computed: true,
@@ -551,7 +550,7 @@ func (d applicationDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	state := convertResponseToApplication(ctx, data, application)
-	tflog.Trace(ctx, "read application", map[string]interface{}{"application_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read application", map[string]any{"application_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
