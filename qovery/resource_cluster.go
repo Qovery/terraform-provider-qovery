@@ -321,6 +321,38 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 							},
 						},
 					},
+					"gcp_existing_vpc": schema.SingleNestedAttribute{
+						Optional:    true,
+						Computed:    false,
+						Description: "Network configuration if you want to install qovery on an existing GCP VPC",
+						Attributes: map[string]schema.Attribute{
+							"vpc_name": schema.StringAttribute{
+								Description: "Name of the existing GCP VPC network",
+								Required:    true,
+							},
+							"vpc_project_id": schema.StringAttribute{
+								Description: "GCP project ID that owns the VPC. Defaults to the project associated with your GCP credentials",
+								Optional:    true,
+							},
+							"subnetwork_name": schema.StringAttribute{
+								Description: "Name of the GCP subnetwork within the VPC",
+								Optional:    true,
+							},
+							"ip_range_services_name": schema.StringAttribute{
+								Description: "Name of the secondary IP range for GKE services",
+								Optional:    true,
+							},
+							"ip_range_pods_name": schema.StringAttribute{
+								Description: "Name of the secondary IP range for pods",
+								Optional:    true,
+							},
+							"additional_ip_range_pods_names": schema.ListAttribute{
+								Description: "Additional secondary IP range names for pods",
+								ElementType: types.StringType,
+								Optional:    true,
+							},
+						},
+					},
 					"karpenter": schema.SingleNestedAttribute{
 						Optional:    true,
 						Computed:    false,

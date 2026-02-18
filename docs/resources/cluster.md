@@ -110,6 +110,31 @@ resource "qovery_cluster" "gcp_cluster" {
   })
 }
 
+# GCP Cluster with existing VPC
+resource "qovery_cluster" "gcp_cluster_custom_vpc" {
+  organization_id = qovery_organization.my_organization.id
+  credentials_id  = qovery_gcp_credentials.gcp_creds.id
+  name            = "gke-custom-vpc"
+  cloud_provider  = "GCP"
+  region          = "europe-west1"
+  state           = "DEPLOYED"
+
+  instance_type     = "AUTO_PILOT"
+  min_running_nodes = 3
+  max_running_nodes = 200
+
+  features = {
+    gcp_existing_vpc = {
+      vpc_name                       = "my-existing-vpc"
+      vpc_project_id                 = "my-gcp-project-id"
+      subnetwork_name                = "my-subnetwork"
+      ip_range_services_name         = "gke-services"
+      ip_range_pods_name             = "gke-pods"
+      additional_ip_range_pods_names = ["gke-pods-extra-1", "gke-pods-extra-2"]
+    }
+  }
+}
+
 #########
 # Azure #
 #########
@@ -265,6 +290,7 @@ You can find complete examples within these repositories:
 Optional:
 
 - `existing_vpc` (Attributes) Network configuration if you want to install qovery on an existing VPC (see [below for nested schema](#nestedatt--features--existing_vpc))
+- `gcp_existing_vpc` (Attributes) Network configuration if you want to install qovery on an existing GCP VPC (see [below for nested schema](#nestedatt--features--gcp_existing_vpc))
 - `karpenter` (Attributes) Karpenter parameters if you want to use Karpenter on an EKS cluster (see [below for nested schema](#nestedatt--features--karpenter))
 - `static_ip` (Boolean) Static IP (AWS only) [NOTE: can't be updated after creation].
 	- Default: `false`.
@@ -296,6 +322,22 @@ Optional:
 - `rds_subnets_zone_a_ids` (List of String) Ids of the subnets for RDS
 - `rds_subnets_zone_b_ids` (List of String) Ids of the subnets for RDS
 - `rds_subnets_zone_c_ids` (List of String) Ids of the subnets for RDS
+
+
+<a id="nestedatt--features--gcp_existing_vpc"></a>
+### Nested Schema for `features.gcp_existing_vpc`
+
+Required:
+
+- `vpc_name` (String) Name of the existing GCP VPC network
+
+Optional:
+
+- `additional_ip_range_pods_names` (List of String) Additional secondary IP range names for pods
+- `ip_range_pods_name` (String) Name of the secondary IP range for pods
+- `ip_range_services_name` (String) Name of the secondary IP range for GKE services
+- `subnetwork_name` (String) Name of the GCP subnetwork within the VPC
+- `vpc_project_id` (String) GCP project ID that owns the VPC. Defaults to the project associated with your GCP credentials
 
 
 <a id="nestedatt--features--karpenter"></a>

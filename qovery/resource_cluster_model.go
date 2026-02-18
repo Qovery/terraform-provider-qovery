@@ -17,14 +17,15 @@ import (
 )
 
 const (
-	featureKeyVpcSubnet   = "vpc_subnet"
-	featureIdVpcSubnet    = "VPC_SUBNET"
-	featureKeyStaticIP    = "static_ip"
-	featureIdStaticIP     = "STATIC_IP"
-	featureIdExistingVpc  = "EXISTING_VPC"
-	featureKeyExistingVpc = "existing_vpc"
-	featureIdKarpenter    = "KARPENTER"
-	featureKeyKarpenter   = "karpenter"
+	featureKeyVpcSubnet      = "vpc_subnet"
+	featureIdVpcSubnet       = "VPC_SUBNET"
+	featureKeyStaticIP       = "static_ip"
+	featureIdStaticIP        = "STATIC_IP"
+	featureIdExistingVpc     = "EXISTING_VPC"
+	featureKeyExistingVpc    = "existing_vpc"
+	featureIdKarpenter       = "KARPENTER"
+	featureKeyKarpenter      = "karpenter"
+	featureKeyGcpExistingVpc = "gcp_existing_vpc"
 
 	// Infrastructure charts parameter keys
 	infraChartsNginxKey       = "nginx_parameters"
@@ -474,6 +475,36 @@ func fromQoveryClusterFeatures(
 			}
 			attributeTypes[featureKeyStaticIP] = types.BoolType
 		case featureIdExistingVpc:
+			// GCP existing VPC — check before AWS since they share the same feature ID
+			if f.GetValueObject().ClusterFeatureGcpExistingVpcResponse != nil {
+				gcpV := &f.GetValueObject().ClusterFeatureGcpExistingVpcResponse.Value
+				gcpAttrTypes := createGcpExistingVpcFeatureAttrTypes()
+				gcpAttrVals := map[string]attr.Value{
+					"vpc_name":                       FromStringPointer(&gcpV.VpcName),
+					"vpc_project_id":                 FromNullableString(gcpV.VpcProjectId),
+					"subnetwork_name":                FromNullableString(gcpV.SubnetworkName),
+					"ip_range_services_name":         FromNullableString(gcpV.IpRangeServicesName),
+					"ip_range_pods_name":             FromNullableString(gcpV.IpRangePodsName),
+					"additional_ip_range_pods_names": FromStringArray(gcpV.AdditionalIpRangePodsNames),
+				}
+				gcpObj, diagnostics := types.ObjectValue(gcpAttrTypes, gcpAttrVals)
+				if diagnostics.HasError() {
+					panic(fmt.Errorf("bad %s feature: %s", featureKeyGcpExistingVpc, diagnostics.Errors()))
+				}
+				attributes[featureKeyGcpExistingVpc] = gcpObj
+				attributeTypes[featureKeyGcpExistingVpc] = gcpObj.Type(context.Background())
+
+				// Set AWS existing_vpc to null since this is a GCP cluster
+				existingVpcAttrTypes := createExistingVpcFeatureAttrTypes()
+				attributes[featureKeyExistingVpc] = types.ObjectNull(existingVpcAttrTypes)
+				attributeTypes[featureKeyExistingVpc] = attributes[featureKeyExistingVpc].Type(context.Background())
+
+				attributes[featureKeyVpcSubnet] = FromStringPointer(&clusterFeatureVpcSubnetDefault)
+				attributeTypes[featureKeyVpcSubnet] = types.StringType
+				continue
+			}
+
+			// AWS existing VPC
 			var v *qovery.ClusterFeatureAwsExistingVpc = nil
 			if f.GetValueObject().ClusterFeatureAwsExistingVpcResponse != nil {
 				v = &f.GetValueObject().ClusterFeatureAwsExistingVpcResponse.Value
@@ -568,6 +599,13 @@ func fromQoveryClusterFeatures(
 		attributeTypes[featureKeyVpcSubnet] = types.StringType
 	}
 
+	// create default GCP existing VPC feature if not set yet
+	if attributes[featureKeyGcpExistingVpc] == nil {
+		gcpVpcAttrTypes := createGcpExistingVpcFeatureAttrTypes()
+		attributes[featureKeyGcpExistingVpc] = types.ObjectNull(gcpVpcAttrTypes)
+		attributeTypes[featureKeyGcpExistingVpc] = attributes[featureKeyGcpExistingVpc].Type(context.Background())
+	}
+
 	// create default karpenter feature if not set yet
 	if attributes[featureKeyKarpenter] == nil {
 		attrTypes := createKarpenterFeatureAttrTypes()
@@ -636,6 +674,28 @@ func toQoveryClusterFeatures(f types.Object, mode string) ([]qovery.ClusterReque
 			}
 			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
 				ClusterFeatureAwsExistingVpc: &feature,
+			})
+
+			features = append(features, qovery.ClusterRequestFeaturesInner{
+				Id:    StringAsPointer(featureIdExistingVpc),
+				Value: *value,
+			})
+		}
+	}
+
+	if _, ok := f.Attributes()[featureKeyGcpExistingVpc]; ok {
+		v := f.Attributes()[featureKeyGcpExistingVpc].(types.Object)
+		if !v.IsNull() {
+			feature := qovery.ClusterFeatureGcpExistingVpc{
+				VpcName:                    ToString(v.Attributes()["vpc_name"].(types.String)),
+				VpcProjectId:               ToNullableString(v.Attributes()["vpc_project_id"].(types.String)),
+				SubnetworkName:             ToNullableString(v.Attributes()["subnetwork_name"].(types.String)),
+				IpRangeServicesName:        ToNullableString(v.Attributes()["ip_range_services_name"].(types.String)),
+				IpRangePodsName:            ToNullableString(v.Attributes()["ip_range_pods_name"].(types.String)),
+				AdditionalIpRangePodsNames: ToStringArray(v.Attributes()["additional_ip_range_pods_names"].(types.List)),
+			}
+			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
+				ClusterFeatureGcpExistingVpc: &feature,
 			})
 
 			features = append(features, qovery.ClusterRequestFeaturesInner{
@@ -1026,10 +1086,11 @@ func createKarpenterFeatureAttrTypes() map[string]attr.Type {
 // createFeaturesAttrTypes returns the attribute types for the features object
 func createFeaturesAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		featureKeyVpcSubnet:   types.StringType,
-		featureKeyStaticIP:    types.BoolType,
-		featureKeyExistingVpc: types.ObjectType{AttrTypes: createExistingVpcFeatureAttrTypes()},
-		featureKeyKarpenter:   types.ObjectType{AttrTypes: createKarpenterFeatureAttrTypes()},
+		featureKeyVpcSubnet:      types.StringType,
+		featureKeyStaticIP:       types.BoolType,
+		featureKeyExistingVpc:    types.ObjectType{AttrTypes: createExistingVpcFeatureAttrTypes()},
+		featureKeyGcpExistingVpc: types.ObjectType{AttrTypes: createGcpExistingVpcFeatureAttrTypes()},
+		featureKeyKarpenter:      types.ObjectType{AttrTypes: createKarpenterFeatureAttrTypes()},
 	}
 }
 
@@ -1054,6 +1115,18 @@ func createExistingVpcFeatureAttrTypes() map[string]attr.Type {
 	attrTypes["eks_create_nodes_in_private_subnet"] = types.BoolType
 
 	return attrTypes
+}
+
+// createGcpExistingVpcFeatureAttrTypes returns the attribute types for the GCP existing VPC feature.
+func createGcpExistingVpcFeatureAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"vpc_name":                       types.StringType,
+		"vpc_project_id":                 types.StringType,
+		"subnetwork_name":                types.StringType,
+		"ip_range_services_name":         types.StringType,
+		"ip_range_pods_name":             types.StringType,
+		"additional_ip_range_pods_names": types.ListType{ElemType: types.StringType},
+	}
 }
 
 func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpenterParameters) map[string]attr.Value {
