@@ -6,7 +6,6 @@ import (
 	context "context"
 
 	container "github.com/qovery/terraform-provider-qovery/internal/domain/container"
-
 	mock "github.com/stretchr/testify/mock"
 )
 
