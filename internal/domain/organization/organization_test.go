@@ -52,7 +52,6 @@ func TestNewOrganization(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			orga, err := organization.NewOrganization(tc.Params)
 			if tc.ExpectedError != nil {

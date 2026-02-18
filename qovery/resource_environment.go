@@ -7,7 +7,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 
-	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -84,7 +83,7 @@ func (r environmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Description: descriptions.NewStringEnumDescription(
 					"Mode of the environment.",
 					clientEnumToStringArray(environment.AllowedModeValues),
-					pointer.ToString(environment.DefaultMode.String()),
+					new(environment.DefaultMode.String()),
 				),
 				Optional: true,
 				Computed: true,
@@ -291,7 +290,7 @@ func (r environmentResource) Create(ctx context.Context, req resource.CreateRequ
 
 	// Initialize state values
 	state := convertDomainEnvironmentToEnvironment(ctx, plan, env)
-	tflog.Trace(ctx, "created environment", map[string]interface{}{"environment_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "created environment", map[string]any{"environment_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -315,7 +314,7 @@ func (r environmentResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	// Refresh state values
 	state = convertDomainEnvironmentToEnvironment(ctx, state, env)
-	tflog.Trace(ctx, "read environment", map[string]interface{}{"environment_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read environment", map[string]any{"environment_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -346,7 +345,7 @@ func (r environmentResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	// Update state values
 	state = convertDomainEnvironmentToEnvironment(ctx, plan, env)
-	tflog.Trace(ctx, "updated environment", map[string]interface{}{"environment_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "updated environment", map[string]any{"environment_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -368,7 +367,7 @@ func (r environmentResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	tflog.Trace(ctx, "deleted environment", map[string]interface{}{"environment_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "deleted environment", map[string]any{"environment_id": state.Id.ValueString()})
 
 	// Remove environment from state
 	resp.State.RemoveResource(ctx)

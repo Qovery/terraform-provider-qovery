@@ -52,7 +52,6 @@ func TestNewDomainVariablesFromQovery(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			vv, err := newDomainVariablesFromQovery(tc.Variables)
 			assert.NoError(t, err)
@@ -92,7 +91,6 @@ func TestNewQoveryEnvironmentVariableRequestFromDomain(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			req := newQoveryEnvironmentVariableRequestFromDomain(tc.Request)
 			assert.Equal(t, tc.Request.Key, req.Key)
@@ -123,7 +121,6 @@ func TestNewQoveryEnvironmentVariableEditRequestFromDomain(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			req := newQoveryEnvironmentVariableEditRequestFromDomain(tc.Request)
 			value := ""

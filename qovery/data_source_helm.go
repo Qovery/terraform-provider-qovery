@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -466,7 +465,7 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 							Description: descriptions.NewStringEnumDescription(
 								"Protocol used for the port of the container.",
 								helmPortProtocols,
-								pointer.ToString(helm.DefaultProtocol.String()),
+								new(helm.DefaultProtocol.String()),
 							),
 							Validators: []validator.String{
 								validators.NewStringEnumValidator(helmPortProtocols),
@@ -537,7 +536,7 @@ func (d helmDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 	}
 
 	state := convertDomainHelmToHelm(ctx, data, h)
-	tflog.Trace(ctx, "read helm", map[string]interface{}{"helm_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "read helm", map[string]any{"helm_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

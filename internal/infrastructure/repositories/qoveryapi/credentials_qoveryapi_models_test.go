@@ -36,7 +36,7 @@ func TestNewDomainCredentialsFromQovery(t *testing.T) {
 					Id:                   gofakeit.UUID(),
 					Name:                 gofakeit.Name(),
 					ObjectType:           "OTHER",
-					AdditionalProperties: map[string]interface{}{},
+					AdditionalProperties: map[string]any{},
 				},
 			},
 			ExpectedError: credentials.ErrInvalidCredentialsOrganizationID,
@@ -52,14 +52,13 @@ func TestNewDomainCredentialsFromQovery(t *testing.T) {
 					Id:                   gofakeit.UUID(),
 					Name:                 gofakeit.Name(),
 					ObjectType:           "OTHER",
-					AdditionalProperties: map[string]interface{}{},
+					AdditionalProperties: map[string]any{},
 				},
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			creds, err := newDomainCredentialsFromQovery(tc.OrganizationID, tc.Credentials)
 			if tc.ExpectedError != nil {
@@ -107,7 +106,6 @@ func TestNewQoveryAwsCredentialsRequestFromDomain(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			req := newQoveryAwsCredentialsRequestFromDomain(tc.Request)
 
@@ -144,7 +142,6 @@ func TestNewQoveryScalewayCredentialsRequestFromDomain(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			req := newQoveryScalewayCredentialsRequestFromDomain(tc.Request)
 

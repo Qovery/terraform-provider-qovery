@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/AlekSi/pointer"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -288,11 +287,11 @@ func (h *Helm) SetHosts(vars variable.Variables) error {
 
 	for _, v := range vars {
 		if v.Key == hostExternalKey {
-			h.ExternalHost = pointer.ToString(v.Value)
+			h.ExternalHost = new(v.Value)
 			continue
 		}
 		if v.Key == hostInternalKey {
-			h.InternalHost = pointer.ToString(v.Value)
+			h.InternalHost = new(v.Value)
 			continue
 		}
 		if h.ExternalHost != nil && h.InternalHost != nil {

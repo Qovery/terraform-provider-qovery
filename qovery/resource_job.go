@@ -575,7 +575,7 @@ func (r jobResource) Create(ctx context.Context, req resource.CreateRequest, res
 
 	// Initialize state values
 	state := convertDomainJobToJob(ctx, plan, cont)
-	tflog.Trace(ctx, "created job", map[string]interface{}{"job_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "created job", map[string]any{"job_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -606,7 +606,7 @@ func (r jobResource) Read(ctx context.Context, req resource.ReadRequest, resp *r
 
 	// Refresh state values
 	state = convertDomainJobToJob(ctx, state, cont)
-	tflog.Trace(ctx, "read job", map[string]interface{}{"job_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "read job", map[string]any{"job_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -636,7 +636,7 @@ func (r jobResource) Update(ctx context.Context, req resource.UpdateRequest, res
 
 	// Update state values
 	state = convertDomainJobToJob(ctx, plan, cont)
-	tflog.Trace(ctx, "updated job", map[string]interface{}{"job_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "updated job", map[string]any{"job_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -658,7 +658,7 @@ func (r jobResource) Delete(ctx context.Context, req resource.DeleteRequest, res
 		return
 	}
 
-	tflog.Trace(ctx, "deleted job", map[string]interface{}{"job_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "deleted job", map[string]any{"job_id": state.ID.ValueString()})
 
 	// Remove job from state
 	resp.State.RemoveResource(ctx)

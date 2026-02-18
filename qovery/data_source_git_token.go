@@ -104,7 +104,7 @@ func (d gitTokenDataSource) Read(ctx context.Context, req datasource.ReadRequest
 	}
 
 	state := toTerraformObject(data.OrganizationId.ValueString(), data.Token.ValueString(), *response)
-	tflog.Trace(ctx, "read git token", map[string]interface{}{"git_token_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "read git token", map[string]any{"git_token_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

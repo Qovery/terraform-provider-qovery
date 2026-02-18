@@ -249,7 +249,7 @@ func (d terraformServiceDataSource) Read(ctx context.Context, req datasource.Rea
 
 	// Convert domain entity to Terraform state
 	state := convertDomainTerraformServiceToTerraformService(ctx, data, terraformSvc)
-	tflog.Trace(ctx, "read terraform service", map[string]interface{}{"terraform_service_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "read terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

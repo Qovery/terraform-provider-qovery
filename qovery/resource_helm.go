@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -282,7 +281,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 							Description: descriptions.NewStringEnumDescription(
 								"Protocol used for the port of the container.",
 								helmPortProtocols,
-								pointer.ToString(helm.DefaultProtocol.String()),
+								new(helm.DefaultProtocol.String()),
 							),
 							Validators: []validator.String{
 								validators.NewStringEnumValidator(helmPortProtocols),
@@ -576,7 +575,7 @@ func (r helmResource) Create(ctx context.Context, req resource.CreateRequest, re
 
 	// Initialize state values
 	state := convertDomainHelmToHelm(ctx, plan, newHelm)
-	tflog.Trace(ctx, "created helm", map[string]interface{}{"helm_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "created helm", map[string]any{"helm_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -607,7 +606,7 @@ func (r helmResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 
 	// Refresh state values
 	state = convertDomainHelmToHelm(ctx, state, newHelm)
-	tflog.Trace(ctx, "read helm", map[string]interface{}{"helm_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "read helm", map[string]any{"helm_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -637,7 +636,7 @@ func (r helmResource) Update(ctx context.Context, req resource.UpdateRequest, re
 
 	// Update state values
 	state = convertDomainHelmToHelm(ctx, plan, newHelm)
-	tflog.Trace(ctx, "updated helm", map[string]interface{}{"helm_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "updated helm", map[string]any{"helm_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -659,7 +658,7 @@ func (r helmResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 		return
 	}
 
-	tflog.Trace(ctx, "deleted helm", map[string]interface{}{"helm_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "deleted helm", map[string]any{"helm_id": state.ID.ValueString()})
 
 	// Remove helm from state
 	resp.State.RemoveResource(ctx)

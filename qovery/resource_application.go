@@ -8,7 +8,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 
-	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -340,7 +339,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 							Description: descriptions.NewStringEnumDescription(
 								"Protocol used for the port of the application.",
 								clientEnumToStringArray(port.AllowedProtocolValues),
-								pointer.ToString(port.DefaultProtocol.String()),
+								new(port.DefaultProtocol.String()),
 							),
 							Optional: true,
 							Computed: true,
@@ -652,7 +651,7 @@ func (r applicationResource) Create(ctx context.Context, req resource.CreateRequ
 
 	// Initialize state values
 	state := convertResponseToApplication(ctx, plan, application)
-	tflog.Trace(ctx, "created application", map[string]interface{}{"application_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "created application", map[string]any{"application_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -683,7 +682,7 @@ func (r applicationResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	// Refresh state values
 	state = convertResponseToApplication(ctx, state, application)
-	tflog.Trace(ctx, "read application", map[string]interface{}{"application_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read application", map[string]any{"application_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -713,7 +712,7 @@ func (r applicationResource) Update(ctx context.Context, req resource.UpdateRequ
 
 	// Update state values
 	state = convertResponseToApplication(ctx, plan, application)
-	tflog.Trace(ctx, "updated application", map[string]interface{}{"application_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "updated application", map[string]any{"application_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -735,7 +734,7 @@ func (r applicationResource) Delete(ctx context.Context, req resource.DeleteRequ
 		return
 	}
 
-	tflog.Trace(ctx, "deleted application", map[string]interface{}{"application_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "deleted application", map[string]any{"application_id": state.Id.ValueString()})
 
 	// Remove application from state
 	resp.State.RemoveResource(ctx)

@@ -90,7 +90,7 @@ func (d organizationDataSource) Read(ctx context.Context, req datasource.ReadReq
 	}
 
 	state := convertDomainOrganizationToTerraform(orga)
-	tflog.Trace(ctx, "read organization", map[string]interface{}{"organization_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read organization", map[string]any{"organization_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

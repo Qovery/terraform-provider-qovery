@@ -106,10 +106,7 @@ func cleanProjects(ctx context.Context, apiClient *qovery.APIClient, organizatio
 	fmt.Printf("Deleting %d projects...\n", len(projects))
 	for _, project := range projects {
 		if strings.Contains(project.Name, testPrefix) {
-			maxSize := len(project.Name)
-			if maxSize > 50 {
-				maxSize = 50
-			}
+			maxSize := min(len(project.Name), 50)
 			bar.Describe(fmt.Sprintf("%s...", project.Name[0:maxSize]))
 
 			_, err := apiClient.ProjectMainCallsAPI.
@@ -136,10 +133,7 @@ func cleanAwsCredentials(ctx context.Context, apiClient *qovery.APIClient, organ
 	fmt.Printf("Deleting %d aws credentials...\n", len(awsCreds))
 	for _, creds := range awsCreds {
 		if strings.Contains(creds.Name, testPrefix) {
-			maxSize := len(creds.Name)
-			if maxSize > 50 {
-				maxSize = 50
-			}
+			maxSize := min(len(creds.Name), 50)
 			bar.Describe(fmt.Sprintf("%s...", creds.Name[0:maxSize]))
 
 			_, err := apiClient.CloudProviderCredentialsAPI.
@@ -166,10 +160,7 @@ func cleanScalewayCredentials(ctx context.Context, apiClient *qovery.APIClient, 
 	fmt.Printf("Deleting %d scaleway credentials...\n", len(scalewayCreds))
 	for _, creds := range scalewayCreds {
 		if strings.Contains(creds.Name, testPrefix) {
-			maxSize := len(creds.Name)
-			if maxSize > 50 {
-				maxSize = 50
-			}
+			maxSize := min(len(creds.Name), 50)
 			bar.Describe(fmt.Sprintf("%s...", creds.Name[0:maxSize]))
 
 			_, err := apiClient.CloudProviderCredentialsAPI.
@@ -196,10 +187,7 @@ func cleanGcpCredentials(ctx context.Context, apiClient *qovery.APIClient, organ
 	fmt.Printf("Deleting %d gcp credentials...\n", len(gcpCreds))
 	for _, creds := range gcpCreds {
 		if strings.Contains(creds.Name, testPrefix) {
-			maxSize := len(creds.Name)
-			if maxSize > 50 {
-				maxSize = 50
-			}
+			maxSize := min(len(creds.Name), 50)
 			bar.Describe(fmt.Sprintf("%s...", creds.Name[0:maxSize]))
 
 			_, err := apiClient.CloudProviderCredentialsAPI.
@@ -226,10 +214,7 @@ func cleanContainerRegistry(ctx context.Context, apiClient *qovery.APIClient, or
 	fmt.Printf("Deleting %d container registries...\n", len(registries))
 	for _, reg := range registries {
 		if strings.Contains(reg.Name, testPrefix) {
-			maxSize := len(reg.Name)
-			if maxSize > 50 {
-				maxSize = 50
-			}
+			maxSize := min(len(reg.Name), 50)
 			bar.Describe(fmt.Sprintf("%s...", reg.Name[0:maxSize]))
 
 			_, err := apiClient.ContainerRegistriesAPI.
@@ -375,10 +360,7 @@ func cleanAnnotationsGroups(ctx context.Context, apiClient *qovery.APIClient, or
 	fmt.Printf("Deleting %d annotations groups...\n", len(annotationsGroups))
 	for _, group := range annotationsGroups {
 		if strings.Contains(group.Name, testPrefix) {
-			maxSize := len(group.Name)
-			if maxSize > 50 {
-				maxSize = 50
-			}
+			maxSize := min(len(group.Name), 50)
 			bar.Describe(fmt.Sprintf("%s...", group.Name[0:maxSize]))
 
 			_, err := apiClient.OrganizationAnnotationsGroupAPI.
@@ -405,10 +387,7 @@ func cleanLabelsGroups(ctx context.Context, apiClient *qovery.APIClient, organiz
 	fmt.Printf("Deleting %d labels groups...\n", len(labelsGroups))
 	for _, group := range labelsGroups {
 		if strings.Contains(group.Name, testPrefix) {
-			maxSize := len(group.Name)
-			if maxSize > 50 {
-				maxSize = 50
-			}
+			maxSize := min(len(group.Name), 50)
 			bar.Describe(fmt.Sprintf("%s...", group.Name[0:maxSize]))
 
 			_, err := apiClient.OrganizationLabelsGroupAPI.

@@ -112,7 +112,7 @@ func (r organizationResource) Read(ctx context.Context, req resource.ReadRequest
 
 	// Refresh state values
 	state = convertDomainOrganizationToTerraform(orga)
-	tflog.Trace(ctx, "read organization", map[string]interface{}{"organization_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read organization", map[string]any{"organization_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -137,7 +137,7 @@ func (r organizationResource) Update(ctx context.Context, req resource.UpdateReq
 
 	// Update state values
 	state = convertDomainOrganizationToTerraform(orga)
-	tflog.Trace(ctx, "updated organization", map[string]interface{}{"organization_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "updated organization", map[string]any{"organization_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

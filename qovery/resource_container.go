@@ -248,7 +248,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							Description: descriptions.NewStringEnumDescription(
 								"Protocol used for the port of the container.",
 								clientEnumToStringArray(port.AllowedProtocolValues),
-								pointer.ToString(port.DefaultProtocol.String()),
+								new(port.DefaultProtocol.String()),
 							),
 							Optional: true,
 							Computed: true,
@@ -544,7 +544,7 @@ func (r containerResource) Create(ctx context.Context, req resource.CreateReques
 
 	// Initialize state values
 	state := convertDomainContainerToContainer(ctx, plan, cont)
-	tflog.Trace(ctx, "created container", map[string]interface{}{"container_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "created container", map[string]any{"container_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -575,7 +575,7 @@ func (r containerResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 	// Refresh state values
 	state = convertDomainContainerToContainer(ctx, state, cont)
-	tflog.Trace(ctx, "read container", map[string]interface{}{"container_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "read container", map[string]any{"container_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -605,7 +605,7 @@ func (r containerResource) Update(ctx context.Context, req resource.UpdateReques
 
 	// Update state values
 	state = convertDomainContainerToContainer(ctx, plan, cont)
-	tflog.Trace(ctx, "updated container", map[string]interface{}{"container_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "updated container", map[string]any{"container_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -627,7 +627,7 @@ func (r containerResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	tflog.Trace(ctx, "deleted container", map[string]interface{}{"container_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "deleted container", map[string]any{"container_id": state.ID.ValueString()})
 
 	// Remove container from state
 	resp.State.RemoveResource(ctx)

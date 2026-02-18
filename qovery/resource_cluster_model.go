@@ -627,7 +627,7 @@ func toQoveryClusterFeatures(f types.Object, mode string) ([]qovery.ClusterReque
 		})
 
 		features = append(features, qovery.ClusterRequestFeaturesInner{
-			Id:    StringAsPointer(featureIdVpcSubnet),
+			Id:    new(featureIdVpcSubnet),
 			Value: *value,
 		})
 	}
@@ -638,7 +638,7 @@ func toQoveryClusterFeatures(f types.Object, mode string) ([]qovery.ClusterReque
 		})
 
 		features = append(features, qovery.ClusterRequestFeaturesInner{
-			Id:    StringAsPointer(featureIdStaticIP),
+			Id:    new(featureIdStaticIP),
 			Value: *value,
 		})
 	}
@@ -670,7 +670,7 @@ func toQoveryClusterFeatures(f types.Object, mode string) ([]qovery.ClusterReque
 			})
 
 			features = append(features, qovery.ClusterRequestFeaturesInner{
-				Id:    StringAsPointer(featureIdExistingVpc),
+				Id:    new(featureIdExistingVpc),
 				Value: *value,
 			})
 		}
@@ -693,7 +693,7 @@ func toQoveryClusterFeatures(f types.Object, mode string) ([]qovery.ClusterReque
 			})
 
 			features = append(features, qovery.ClusterRequestFeaturesInner{
-				Id:    StringAsPointer(featureIdExistingVpc),
+				Id:    new(featureIdExistingVpc),
 				Value: *value,
 			})
 		}
@@ -724,7 +724,7 @@ func toQoveryClusterFeatures(f types.Object, mode string) ([]qovery.ClusterReque
 			})
 
 			features = append(features, qovery.ClusterRequestFeaturesInner{
-				Id:    StringAsPointer(featureIdKarpenter),
+				Id:    new(featureIdKarpenter),
 				Value: *value,
 			})
 		}

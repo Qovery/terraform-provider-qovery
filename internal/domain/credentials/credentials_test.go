@@ -52,7 +52,6 @@ func TestNewCredentials(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			creds, err := credentials.NewCredentials(tc.Params)
 			if tc.ExpectedError != nil {

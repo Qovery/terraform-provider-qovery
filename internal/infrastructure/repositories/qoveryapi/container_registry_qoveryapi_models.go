@@ -1,7 +1,6 @@
 package qoveryapi
 
 import (
-	"github.com/AlekSi/pointer"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
@@ -33,7 +32,7 @@ func newQoveryContainerRegistryRequestFromDomain(request registry.UpsertRequest)
 	return &qovery.ContainerRegistryRequest{
 		Name:        request.Name,
 		Kind:        *kind,
-		Url:         pointer.ToString(request.URL),
+		Url:         new(request.URL),
 		Description: request.Description,
 		Config: qovery.ContainerRegistryRequestConfig{
 			AccessKeyId:       request.Config.AccessKeyID,

@@ -40,7 +40,7 @@ func applyJitter(backoff time.Duration) time.Duration {
 
 func wait(ctx context.Context, f waitFunc, timeout *time.Duration) *apierrors.APIError {
 	if timeout == nil {
-		timeout = toDurationPointer(defaultWaitTimeout)
+		timeout = new(defaultWaitTimeout)
 	}
 
 	// Run the function once before waiting, with retry logic for transient errors
@@ -76,7 +76,7 @@ func retryOnTransientError(ctx context.Context, f waitFunc) (bool, *apierrors.AP
 	var lastErr *apierrors.APIError
 	backoff := initialBackoff
 
-	for attempt := 0; attempt < maxRetryAttempts; attempt++ {
+	for attempt := range maxRetryAttempts {
 		ok, apiErr := f(ctx)
 
 		// Success case
@@ -101,10 +101,7 @@ func retryOnTransientError(ctx context.Context, f waitFunc) (bool, *apierrors.AP
 				return false, lastErr
 			case <-time.After(backoffWithJitter):
 				// Calculate next backoff with exponential growth
-				backoff = backoff * backoffMultiplier
-				if backoff > maxBackoff {
-					backoff = maxBackoff
-				}
+				backoff = min(backoff*backoffMultiplier, maxBackoff)
 			}
 		}
 	}
@@ -298,6 +295,3 @@ func isClusterErrorState(state qovery.ClusterStateEnum) bool {
 	return strings.HasSuffix(string(state), "_ERROR")
 }
 
-func toDurationPointer(d time.Duration) *time.Duration {
-	return &d
-}

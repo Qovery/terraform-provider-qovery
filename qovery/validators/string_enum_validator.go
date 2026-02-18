@@ -3,6 +3,7 @@ package validators
 import (
 	"context"
 	"fmt"
+	"slices"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -44,10 +45,8 @@ func (v stringEnumValidator) ValidateString(ctx context.Context, req validator.S
 		return
 	}
 
-	for _, e := range v.enum {
-		if e == str.ValueString() {
-			return
-		}
+	if slices.Contains(v.enum, str.ValueString()) {
+		return
 	}
 
 	resp.Diagnostics.AddAttributeError(

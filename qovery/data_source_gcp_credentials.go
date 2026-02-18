@@ -81,7 +81,7 @@ func (d gcpCredentialsDataSource) Read(ctx context.Context, req datasource.ReadR
 	}
 
 	state := convertDomainCredentialsToGCPCredentialsDataSource(creds)
-	tflog.Trace(ctx, "read gcp credentials", map[string]interface{}{"credentials_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read gcp credentials", map[string]any{"credentials_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

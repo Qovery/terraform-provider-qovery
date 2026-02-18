@@ -59,7 +59,7 @@ func NewDeployError(resource APIResource, resourceID string, res *http.Response,
 }
 
 // NewUnexpectedStateError creates an error for when a resource reaches an unexpected state
-func NewUnexpectedStateError(resource APIResource, resourceID string, expected, actual interface{}) *APIError {
+func NewUnexpectedStateError(resource APIResource, resourceID string, expected, actual any) *APIError {
 	err := fmt.Errorf("%s '%s' reached state %v but expected %v", resource, resourceID, actual, expected)
 	return &APIError{
 		err:        err,
@@ -71,7 +71,7 @@ func NewUnexpectedStateError(resource APIResource, resourceID string, expected, 
 }
 
 // NewUnexpectedClusterStateError creates an error for when a cluster reaches an unexpected state
-func NewUnexpectedClusterStateError(orgID, clusterID string, expected, actual interface{}) *APIError {
+func NewUnexpectedClusterStateError(orgID, clusterID string, expected, actual any) *APIError {
 	err := fmt.Errorf("cluster '%s' in organization '%s' reached state %v but expected %v", clusterID, orgID, actual, expected)
 	return &APIError{
 		err:        err,

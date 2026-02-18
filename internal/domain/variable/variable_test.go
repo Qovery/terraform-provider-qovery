@@ -64,7 +64,6 @@ func TestNewVariable(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			v, err := variable.NewVariable(tc.Params)
 			if tc.ExpectedError != nil {

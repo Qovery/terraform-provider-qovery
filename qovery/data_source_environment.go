@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -72,7 +71,7 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				Description: descriptions.NewStringEnumDescription(
 					"Mode of the environment.",
 					clientEnumToStringArray(environment.AllowedModeValues),
-					pointer.ToString(environment.DefaultMode.String()),
+					new(environment.DefaultMode.String()),
 				),
 				Optional: true,
 				Computed: true,
@@ -276,7 +275,7 @@ func (d environmentDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	state := convertDomainEnvironmentToEnvironment(ctx, data, env)
-	tflog.Trace(ctx, "read environment", map[string]interface{}{"environment_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read environment", map[string]any{"environment_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

@@ -106,7 +106,7 @@ func (r deploymentStageResource) Create(ctx context.Context, req resource.Create
 
 	// Initialize state values
 	state := convertDomainDeploymentStageToDeploymentStage(deploymentStage, plan.Description)
-	tflog.Info(ctx, "created deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.ValueString()})
+	tflog.Info(ctx, "created deployment stage", map[string]any{"deployment_stage_id": state.Id.ValueString()})
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
@@ -129,7 +129,7 @@ func (r deploymentStageResource) Read(ctx context.Context, req resource.ReadRequ
 
 	// Refresh state values
 	newState := convertDomainDeploymentStageToDeploymentStage(deploymentStage, state.Description)
-	tflog.Trace(ctx, "read deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read deployment stage", map[string]any{"deployment_stage_id": state.Id.ValueString()})
 
 	// We need to keep the 'IsAfter' and 'IsBefore' properties
 	newState = DeploymentStage{
@@ -164,7 +164,7 @@ func (r deploymentStageResource) Update(ctx context.Context, req resource.Update
 
 	// Update state values
 	state = convertDomainDeploymentStageToDeploymentStage(deploymentStage, plan.Description)
-	tflog.Trace(ctx, "updated deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "updated deployment stage", map[string]any{"deployment_stage_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -186,7 +186,7 @@ func (r deploymentStageResource) Delete(ctx context.Context, req resource.Delete
 		return
 	}
 
-	tflog.Trace(ctx, "deleted deployment stage", map[string]interface{}{"deployment_stage_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "deleted deployment stage", map[string]any{"deployment_stage_id": state.Id.ValueString()})
 
 	// Remove deployment stage from state
 	resp.State.RemoveResource(ctx)

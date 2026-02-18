@@ -95,7 +95,7 @@ func (d deploymentStageDataSource) Read(ctx context.Context, req datasource.Read
 	}
 
 	newState := convertDomainDeploymentStageToDeploymentStage(deploymentStageDomain, data.Description)
-	tflog.Trace(ctx, "read deployment stage", map[string]interface{}{"deployment_stage_id": data.Id.ValueString()})
+	tflog.Trace(ctx, "read deployment stage", map[string]any{"deployment_stage_id": data.Id.ValueString()})
 
 	// We need to keep the 'IsAfter' and 'IsBefore' properties
 	newState = DeploymentStage{

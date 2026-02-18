@@ -75,8 +75,9 @@ func fromClientEnumPointer[T ClientEnum](v *T) types.String {
 // Convert to pointer
 //
 
+//go:fix inline
 func StringAsPointer(v string) *string {
-	return &v
+	return new(v)
 }
 
 func ToNullableString(v types.String) qovery.NullableString {

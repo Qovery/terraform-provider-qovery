@@ -204,7 +204,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 							Description: descriptions.NewStringEnumDescription(
 								"Protocol used for the port of the container.",
 								clientEnumToStringArray(port.AllowedProtocolValues),
-								pointer.ToString(port.DefaultProtocol.String()),
+								new(port.DefaultProtocol.String()),
 							),
 							Optional: true,
 							Computed: true,
@@ -482,7 +482,7 @@ func (d containerDataSource) Read(ctx context.Context, req datasource.ReadReques
 	}
 
 	state := convertDomainContainerToContainer(ctx, data, cont)
-	tflog.Trace(ctx, "read container", map[string]interface{}{"container_id": state.ID.ValueString()})
+	tflog.Trace(ctx, "read container", map[string]any{"container_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

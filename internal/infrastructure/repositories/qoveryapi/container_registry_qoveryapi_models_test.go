@@ -3,7 +3,6 @@ package qoveryapi
 import (
 	"testing"
 
-	"github.com/AlekSi/pointer"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
@@ -29,16 +28,15 @@ func TestNewDomainRegistryFromQovery(t *testing.T) {
 			TestName: "success",
 			Registry: &qovery.ContainerRegistryResponse{
 				Id:          gofakeit.UUID(),
-				Name:        pointer.ToString(gofakeit.Name()),
+				Name:        new(gofakeit.Name()),
 				Kind:        qovery.CONTAINERREGISTRYKINDENUM_DOCKER_HUB.Ptr(),
-				Url:         pointer.ToString(gofakeit.URL()),
-				Description: pointer.ToString(gofakeit.Name()),
+				Url:         new(gofakeit.URL()),
+				Description: new(gofakeit.Name()),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			organizationID := gofakeit.UUID()
 			reg, err := newDomainRegistryFromQovery(tc.Registry, organizationID)
@@ -82,13 +80,12 @@ func TestNewQoveryRegistryEditRequestFromDomain(t *testing.T) {
 				Name:        gofakeit.Name(),
 				Kind:        registry.KindDockerHub.String(),
 				URL:         gofakeit.URL(),
-				Description: pointer.ToString(gofakeit.Word()),
+				Description: new(gofakeit.Word()),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			req, err := newQoveryContainerRegistryRequestFromDomain(tc.Request)
 			require.NoError(t, err)

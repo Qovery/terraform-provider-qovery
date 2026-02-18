@@ -662,13 +662,13 @@ func (r clusterResource) Create(ctx context.Context, req resource.CreateRequest,
 	if plan.KubernetesMode.ValueString() == "PARTIALLY_MANAGED" {
 		kubeconfig, apiErr := r.client.GetClusterKubeconfig(ctx, plan.OrganizationId.ValueString(), cluster.ClusterResponse.Id)
 		if apiErr != nil {
-			tflog.Warn(ctx, "failed to fetch kubeconfig after create", map[string]interface{}{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
+			tflog.Warn(ctx, "failed to fetch kubeconfig after create", map[string]any{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
 		} else {
 			state.Kubeconfig = types.StringValue(kubeconfig)
 		}
 	}
 
-	tflog.Trace(ctx, "created cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "created cluster", map[string]any{"cluster_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
@@ -704,13 +704,13 @@ func (r clusterResource) Read(ctx context.Context, req resource.ReadRequest, res
 		kubeconfig, apiErr := r.client.GetClusterKubeconfig(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
 		if apiErr != nil {
 			// Log warning but don't fail - kubeconfig might not be set yet
-			tflog.Warn(ctx, "failed to fetch kubeconfig for PARTIALLY_MANAGED cluster", map[string]interface{}{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
+			tflog.Warn(ctx, "failed to fetch kubeconfig for PARTIALLY_MANAGED cluster", map[string]any{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
 		} else {
 			state.Kubeconfig = types.StringValue(kubeconfig)
 		}
 	}
 
-	tflog.Trace(ctx, "read cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read cluster", map[string]any{"cluster_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -757,13 +757,13 @@ func (r clusterResource) Update(ctx context.Context, req resource.UpdateRequest,
 	if plan.KubernetesMode.ValueString() == "PARTIALLY_MANAGED" {
 		kubeconfig, apiErr := r.client.GetClusterKubeconfig(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
 		if apiErr != nil {
-			tflog.Warn(ctx, "failed to fetch kubeconfig after update", map[string]interface{}{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
+			tflog.Warn(ctx, "failed to fetch kubeconfig after update", map[string]any{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
 		} else {
 			state.Kubeconfig = types.StringValue(kubeconfig)
 		}
 	}
 
-	tflog.Trace(ctx, "updated cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "updated cluster", map[string]any{"cluster_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
@@ -785,7 +785,7 @@ func (r clusterResource) Delete(ctx context.Context, req resource.DeleteRequest,
 		return
 	}
 
-	tflog.Trace(ctx, "deleted cluster", map[string]interface{}{"cluster_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "deleted cluster", map[string]any{"cluster_id": state.Id.ValueString()})
 
 	// Remove cluster from state
 	resp.State.RemoveResource(ctx)

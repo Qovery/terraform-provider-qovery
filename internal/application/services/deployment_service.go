@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/AlekSi/pointer"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
@@ -174,7 +173,7 @@ func (c deploymentService) wait(ctx context.Context, f waitFunc) error {
 
 func (c deploymentService) waitDesiredStateFunc(resourceID string, desiredState status.State) waitFunc {
 	return func(ctx context.Context) (bool, error) {
-		for tryCount := 0; tryCount < defaultWaitMaxRetries; tryCount++ {
+		for range defaultWaitMaxRetries {
 			currentStatus, err := c.deploymentRepository.GetStatus(ctx, resourceID)
 			if err != nil {
 				return false, err
@@ -222,7 +221,7 @@ func waitNotFoundFunc(deploymentRepository deployment.Repository, resourceID str
 }
 
 func wait(ctx context.Context, f waitFunc) error {
-	timeout := pointer.ToDuration(defaultWaitTimeout)
+	timeout := new(defaultWaitTimeout)
 
 	// Run the function once before waiting
 	ok, err := f(ctx)

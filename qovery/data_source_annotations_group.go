@@ -90,7 +90,7 @@ func (d annotationsGroupDataSource) Read(ctx context.Context, req datasource.Rea
 	}
 
 	state := convertResponseToAnnotationsGroup(ctx, data, h)
-	tflog.Trace(ctx, "read annotation group", map[string]interface{}{"annotation_group_id": state.Id.ValueString()})
+	tflog.Trace(ctx, "read annotation group", map[string]any{"annotation_group_id": state.Id.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)

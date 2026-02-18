@@ -165,7 +165,7 @@ func (c deploymentStageQoveryAPI) Delete(ctx context.Context, deploymentStageID 
 	maxRetries := 10
 	backoff := 2 * time.Second
 
-	for attempt := 0; attempt < maxRetries; attempt++ {
+	for attempt := range maxRetries {
 		resp, err = c.client.DeploymentStageMainCallsAPI.DeleteDeploymentStage(ctx, deploymentStageID).Execute()
 
 		// Success case

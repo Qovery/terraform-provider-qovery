@@ -24,7 +24,6 @@ func TestNew(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			qoveryAPI, err := qoveryapi.New(tc.Configs...)
 			if tc.ExpectedError != nil {
@@ -60,7 +59,6 @@ func TestWithUserAgent(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			qoveryAPI, err := qoveryapi.New(qoveryapi.WithUserAgent(tc.UserAgent))
 			if tc.ExpectedError != nil {
@@ -94,7 +92,6 @@ func TestWithQoveryAPIToken(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			qoveryAPI, err := qoveryapi.New(qoveryapi.WithQoveryAPIToken(tc.APIToken))
 			if tc.ExpectedError != nil {

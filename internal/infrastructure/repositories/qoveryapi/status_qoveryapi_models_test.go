@@ -3,7 +3,6 @@ package qoveryapi
 import (
 	"testing"
 
-	"github.com/AlekSi/pointer"
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
@@ -28,13 +27,12 @@ func TestNewDomainStatusFromQovery(t *testing.T) {
 			Status: &qovery.Status{
 				Id:                 gofakeit.UUID(),
 				State:              qovery.STATEENUM_DEPLOYED,
-				LastDeploymentDate: pointer.ToTime(gofakeit.Date()),
+				LastDeploymentDate: new(gofakeit.Date()),
 			},
 		},
 	}
 
 	for _, tc := range testCases {
-		tc := tc
 		t.Run(tc.TestName, func(t *testing.T) {
 			st, err := newDomainStatusFromQovery(tc.Status)
 			if tc.ExpectedError != nil {
