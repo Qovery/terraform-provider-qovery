@@ -375,8 +375,19 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 	} else {
 		cluster.InstanceType = FromStringPointer(res.ClusterResponse.InstanceType)
 		cluster.DiskSize = FromInt32Pointer(res.ClusterResponse.DiskSize)
-		cluster.MinRunningNodes = FromInt32Pointer(res.ClusterResponse.MinRunningNodes)
-		cluster.MaxRunningNodes = FromInt32Pointer(res.ClusterResponse.MaxRunningNodes)
+
+		// For GCP Autopilot clusters, node counts are managed by GCP.
+		// The API returns sentinel values (MaxInt32) that don't match the plan,
+		// so we preserve the plan values to avoid "inconsistent result after apply" errors.
+		isAutoPilot := res.ClusterResponse.InstanceType != nil && *res.ClusterResponse.InstanceType == "AUTO_PILOT"
+		if isAutoPilot {
+			cluster.MinRunningNodes = initialPlan.MinRunningNodes
+			cluster.MaxRunningNodes = initialPlan.MaxRunningNodes
+		} else {
+			cluster.MinRunningNodes = FromInt32Pointer(res.ClusterResponse.MinRunningNodes)
+			cluster.MaxRunningNodes = FromInt32Pointer(res.ClusterResponse.MaxRunningNodes)
+		}
+
 		cluster.Features = fromQoveryClusterFeatures(res.ClusterResponse.Features, initialPlan)
 		cluster.RoutingTables = routingTable.toTerraformSet(ctx, initialPlan.RoutingTables)
 		cluster.InfrastructureOutputs = fromQoveryClusterOutput(res.ClusterResponse.InfrastructureOutputs)
