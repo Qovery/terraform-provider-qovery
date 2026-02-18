@@ -26,7 +26,7 @@ permissions:
 env:
   # Go language version to use for building. This value should also be updated
   # in the release workflow if changed.
-  GO_VERSION: 1.25.4
+  GO_VERSION: 1.26.0
   TASK_VERSION: 3.x
 
 jobs:
