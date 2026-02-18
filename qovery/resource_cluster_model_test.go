@@ -1,5 +1,4 @@
 //go:build unit || !integration
-// +build unit !integration
 
 package qovery
 
@@ -403,7 +402,6 @@ func TestToQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 		ipRangeServicesName        types.String
 		ipRangePodsName            types.String
 		additionalIpRangePodsNames types.List
-		expectFeatureCount         int
 	}{
 		{
 			name:                       "all fields populated",
@@ -413,7 +411,6 @@ func TestToQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 			ipRangeServicesName:        types.StringValue("gke-services"),
 			ipRangePodsName:            types.StringValue("gke-pods"),
 			additionalIpRangePodsNames: types.ListValueMust(types.StringType, []attr.Value{types.StringValue("extra-1"), types.StringValue("extra-2")}),
-			expectFeatureCount:         4, // vpc_subnet + static_ip + existing_vpc(gcp) + gcp_existing_vpc serialized as EXISTING_VPC
 		},
 		{
 			name:                       "only required vpc_name",
@@ -423,7 +420,6 @@ func TestToQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 			ipRangeServicesName:        types.StringNull(),
 			ipRangePodsName:            types.StringNull(),
 			additionalIpRangePodsNames: types.ListNull(types.StringType),
-			expectFeatureCount:         4,
 		},
 		{
 			name:                       "empty additional_ip_range_pods_names list",
@@ -433,7 +429,6 @@ func TestToQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 			ipRangeServicesName:        types.StringNull(),
 			ipRangePodsName:            types.StringNull(),
 			additionalIpRangePodsNames: types.ListValueMust(types.StringType, []attr.Value{}),
-			expectFeatureCount:         4,
 		},
 	}
 
@@ -476,12 +471,6 @@ func TestToQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 func TestFromQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 	t.Parallel()
 
-	vpcName := "my-existing-vpc"
-	projectID := "my-gcp-project"
-	subnetName := "my-subnet"
-	servicesRange := "gke-services"
-	podsRange := "gke-pods"
-
 	tests := []struct {
 		name             string
 		buildResponse    func() []qovery.ClusterFeatureResponse
@@ -492,6 +481,11 @@ func TestFromQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 			name: "GCP VPC feature with all fields",
 			buildResponse: func() []qovery.ClusterFeatureResponse {
 				featureID := featureIdExistingVpc
+				vpcName := "my-existing-vpc"
+				projectID := "my-gcp-project"
+				subnetName := "my-subnet"
+				servicesRange := "gke-services"
+				podsRange := "gke-pods"
 				return []qovery.ClusterFeatureResponse{
 					{
 						Id: &featureID,
@@ -513,7 +507,7 @@ func TestFromQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 				}
 			},
 			expectGcpVpcNull: false,
-			expectedVpcName:  vpcName,
+			expectedVpcName:  "my-existing-vpc",
 		},
 		{
 			name: "GCP VPC feature with only vpc_name",

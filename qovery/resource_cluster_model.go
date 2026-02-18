@@ -67,7 +67,7 @@ func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
 		return true
 	}
 
-	stateFeaturesByID := make(map[string]interface{})
+	stateFeaturesByID := make(map[string]any)
 	for _, sf := range stateFeature {
 		value := sf.GetValue()
 		stateFeaturesByID[sf.GetId()] = value.GetActualInstance()
@@ -233,25 +233,23 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		features = nil
 	}
 
-	if features != nil {
-		for _, f := range features {
-			if f.Id != nil && *f.Id == featureIdKarpenter {
-				if state != nil && !IsKarpenterAlreadyInstalled(state) {
-					return nil, errors.New("It is not possible to migrate to Karpenter using terraform")
-				}
+	for _, f := range features {
+		if f.Id != nil && *f.Id == featureIdKarpenter {
+			if state != nil && !IsKarpenterAlreadyInstalled(state) {
+				return nil, errors.New("It is not possible to migrate to Karpenter using terraform")
+			}
 
-				if !c.InstanceType.IsUnknown() {
-					return nil, errors.New("instance_type must not be defined when Karpenter feature is enabled")
-				}
-				if !c.MinRunningNodes.IsUnknown() {
-					return nil, errors.New("min_running_nodes must not be defined when Karpenter feature is enabled")
-				}
-				if !c.MaxRunningNodes.IsUnknown() {
-					return nil, errors.New("max_running_nodes must not be defined when Karpenter feature is enabled")
-				}
-				if !c.DiskSize.IsUnknown() {
-					return nil, errors.New("disk_size must not be defined when Karpenter feature is enabled")
-				}
+			if !c.InstanceType.IsUnknown() {
+				return nil, errors.New("instance_type must not be defined when Karpenter feature is enabled")
+			}
+			if !c.MinRunningNodes.IsUnknown() {
+				return nil, errors.New("min_running_nodes must not be defined when Karpenter feature is enabled")
+			}
+			if !c.MaxRunningNodes.IsUnknown() {
+				return nil, errors.New("max_running_nodes must not be defined when Karpenter feature is enabled")
+			}
+			if !c.DiskSize.IsUnknown() {
+				return nil, errors.New("disk_size must not be defined when Karpenter feature is enabled")
 			}
 		}
 	}
@@ -264,12 +262,10 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		if isAWS && isManaged {
 			// Check if Karpenter is enabled
 			karpenterEnabled := false
-			if features != nil {
-				for _, f := range features {
-					if f.Id != nil && *f.Id == featureIdKarpenter {
-						karpenterEnabled = true
-						break
-					}
+			for _, f := range features {
+				if f.Id != nil && *f.Id == featureIdKarpenter {
+					karpenterEnabled = true
+					break
 				}
 			}
 
@@ -328,11 +324,9 @@ func IsKarpenterAlreadyInstalled(state *Cluster) bool {
 	}
 
 	oldFeatures, _ := toQoveryClusterFeatures(state.Features, state.KubernetesMode.String())
-	if oldFeatures != nil {
-		for _, f := range oldFeatures {
-			if f.Id != nil && *f.Id == featureIdKarpenter {
-				return true
-			}
+	for _, f := range oldFeatures {
+		if f.Id != nil && *f.Id == featureIdKarpenter {
+			return true
 		}
 	}
 	return false
@@ -446,7 +440,7 @@ func fromQoveryClusterOutput(
 
 func fromQoveryClusterFeatures(
 	clusterFeatures []qovery.ClusterFeatureResponse,
-	initialPlan Cluster,
+	_ Cluster,
 ) types.Object {
 	if clusterFeatures == nil {
 		// Early return object null without attribute types
@@ -477,27 +471,26 @@ func fromQoveryClusterFeatures(
 		case featureIdExistingVpc:
 			// GCP existing VPC — check before AWS since they share the same feature ID
 			if f.GetValueObject().ClusterFeatureGcpExistingVpcResponse != nil {
-				gcpV := &f.GetValueObject().ClusterFeatureGcpExistingVpcResponse.Value
+				gcpVpc := &f.GetValueObject().ClusterFeatureGcpExistingVpcResponse.Value
 				gcpAttrTypes := createGcpExistingVpcFeatureAttrTypes()
-				gcpAttrVals := map[string]attr.Value{
-					"vpc_name":                       FromStringPointer(&gcpV.VpcName),
-					"vpc_project_id":                 FromNullableString(gcpV.VpcProjectId),
-					"subnetwork_name":                FromNullableString(gcpV.SubnetworkName),
-					"ip_range_services_name":         FromNullableString(gcpV.IpRangeServicesName),
-					"ip_range_pods_name":             FromNullableString(gcpV.IpRangePodsName),
-					"additional_ip_range_pods_names": FromStringArray(gcpV.AdditionalIpRangePodsNames),
-				}
-				gcpObj, diagnostics := types.ObjectValue(gcpAttrTypes, gcpAttrVals)
+				gcpObj, diagnostics := types.ObjectValue(gcpAttrTypes, map[string]attr.Value{
+					"vpc_name":                       FromStringPointer(&gcpVpc.VpcName),
+					"vpc_project_id":                 FromNullableString(gcpVpc.VpcProjectId),
+					"subnetwork_name":                FromNullableString(gcpVpc.SubnetworkName),
+					"ip_range_services_name":         FromNullableString(gcpVpc.IpRangeServicesName),
+					"ip_range_pods_name":             FromNullableString(gcpVpc.IpRangePodsName),
+					"additional_ip_range_pods_names": FromStringArray(gcpVpc.AdditionalIpRangePodsNames),
+				})
 				if diagnostics.HasError() {
 					panic(fmt.Errorf("bad %s feature: %s", featureKeyGcpExistingVpc, diagnostics.Errors()))
 				}
 				attributes[featureKeyGcpExistingVpc] = gcpObj
-				attributeTypes[featureKeyGcpExistingVpc] = gcpObj.Type(context.Background())
+				attributeTypes[featureKeyGcpExistingVpc] = types.ObjectType{AttrTypes: gcpAttrTypes}
 
 				// Set AWS existing_vpc to null since this is a GCP cluster
 				existingVpcAttrTypes := createExistingVpcFeatureAttrTypes()
 				attributes[featureKeyExistingVpc] = types.ObjectNull(existingVpcAttrTypes)
-				attributeTypes[featureKeyExistingVpc] = attributes[featureKeyExistingVpc].Type(context.Background())
+				attributeTypes[featureKeyExistingVpc] = types.ObjectType{AttrTypes: existingVpcAttrTypes}
 
 				attributes[featureKeyVpcSubnet] = FromStringPointer(&clusterFeatureVpcSubnetDefault)
 				attributeTypes[featureKeyVpcSubnet] = types.StringType
@@ -603,7 +596,7 @@ func fromQoveryClusterFeatures(
 	if attributes[featureKeyGcpExistingVpc] == nil {
 		gcpVpcAttrTypes := createGcpExistingVpcFeatureAttrTypes()
 		attributes[featureKeyGcpExistingVpc] = types.ObjectNull(gcpVpcAttrTypes)
-		attributeTypes[featureKeyGcpExistingVpc] = attributes[featureKeyGcpExistingVpc].Type(context.Background())
+		attributeTypes[featureKeyGcpExistingVpc] = types.ObjectType{AttrTypes: gcpVpcAttrTypes}
 	}
 
 	// create default karpenter feature if not set yet
@@ -686,13 +679,14 @@ func toQoveryClusterFeatures(f types.Object, mode string) ([]qovery.ClusterReque
 	if _, ok := f.Attributes()[featureKeyGcpExistingVpc]; ok {
 		v := f.Attributes()[featureKeyGcpExistingVpc].(types.Object)
 		if !v.IsNull() {
+			attrs := v.Attributes()
 			feature := qovery.ClusterFeatureGcpExistingVpc{
-				VpcName:                    ToString(v.Attributes()["vpc_name"].(types.String)),
-				VpcProjectId:               ToNullableString(v.Attributes()["vpc_project_id"].(types.String)),
-				SubnetworkName:             ToNullableString(v.Attributes()["subnetwork_name"].(types.String)),
-				IpRangeServicesName:        ToNullableString(v.Attributes()["ip_range_services_name"].(types.String)),
-				IpRangePodsName:            ToNullableString(v.Attributes()["ip_range_pods_name"].(types.String)),
-				AdditionalIpRangePodsNames: ToStringArray(v.Attributes()["additional_ip_range_pods_names"].(types.List)),
+				VpcName:                    ToString(attrs["vpc_name"].(types.String)),
+				VpcProjectId:               ToNullableString(attrs["vpc_project_id"].(types.String)),
+				SubnetworkName:             ToNullableString(attrs["subnetwork_name"].(types.String)),
+				IpRangeServicesName:        ToNullableString(attrs["ip_range_services_name"].(types.String)),
+				IpRangePodsName:            ToNullableString(attrs["ip_range_pods_name"].(types.String)),
+				AdditionalIpRangePodsNames: ToStringArray(attrs["additional_ip_range_pods_names"].(types.List)),
 			}
 			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
 				ClusterFeatureGcpExistingVpc: &feature,
@@ -832,7 +826,7 @@ func toQoveryNodePools(obj types.Object) (*qovery.KarpenterNodePool, error) {
 	return &karpenterNodePool, nil
 }
 
-func extractRequirementsFromTypesObject(obj types.Object) ([]map[string]interface{}, error) {
+func extractRequirementsFromTypesObject(obj types.Object) ([]map[string]any, error) {
 	qoveryNodePools, exists := obj.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
 	if !exists {
 		return nil, fmt.Errorf("qovery_node_pools field not found")
@@ -848,7 +842,7 @@ func extractRequirementsFromTypesObject(obj types.Object) ([]map[string]interfac
 		return nil, fmt.Errorf("requirements field is not a list")
 	}
 
-	result := make([]map[string]interface{}, 0, len(requirementsList.Elements()))
+	result := make([]map[string]any, 0, len(requirementsList.Elements()))
 	for _, reqAttr := range requirementsList.Elements() {
 		reqMap, err := convertObjectToMap(reqAttr)
 		if err != nil {
@@ -992,13 +986,13 @@ func extractDefaultNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Ka
 	return &qoveryDefaultOverride, nil
 }
 
-func convertObjectToMap(obj attr.Value) (map[string]interface{}, error) {
+func convertObjectToMap(obj attr.Value) (map[string]any, error) {
 	reqObject, ok := obj.(basetypes.ObjectValue)
 	if !ok {
 		return nil, fmt.Errorf("requirement is not an object")
 	}
 
-	reqMap := make(map[string]interface{})
+	reqMap := make(map[string]any)
 
 	for key, attr := range reqObject.Attributes() {
 		switch v := attr.(type) {
