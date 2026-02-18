@@ -179,7 +179,8 @@ resource "qovery_application" "application_test" {
   build_mode = "DOCKER"
   dockerfile_path = "Dockerfile"
   git_repository = {
-    url = "https://github.com/Qovery/test_http_server.git"
+    url          = "https://github.com/Qovery/test_http_server.git"
+    git_token_id = "%s"
   }
   deployment_stage_id = qovery_deployment_stage.deployment_stage_1.id
   healthchecks = {}
@@ -225,6 +226,7 @@ resource "qovery_deployment" "deployment_test" {
 		generateRandomName("deploymentstage"),
 		generateRandomName("deploymentstage"),
 		generateTestName("application"),
+		getTestQoverySandboxGitTokenID(),
 		generateTestName("container"),
 		generateTestName("database"),
 		desiredState,
