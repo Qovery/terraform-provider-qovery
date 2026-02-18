@@ -222,6 +222,15 @@ func FromStringArray(array []string) types.List {
 	return value
 }
 
+// fromStringArrayNullIfEmpty returns null for both nil and empty slices.
+// Use this for Optional fields where the API returns [] instead of null.
+func fromStringArrayNullIfEmpty(array []string) types.List {
+	if len(array) == 0 {
+		return basetypes.NewListNull(types.StringType)
+	}
+	return FromStringArray(array)
+}
+
 func FromStringSet(array []string) types.Set {
 	if array == nil {
 		return basetypes.NewSetNull(types.StringType)
