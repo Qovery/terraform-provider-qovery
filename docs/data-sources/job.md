@@ -50,7 +50,7 @@ data "qovery_job" "my_job" {
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this job. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this job. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
 - `external_host` (String) The job external FQDN host [NOTE: only if your job is using a publicly accessible port].
 - `internal_host` (String) The job internal host.

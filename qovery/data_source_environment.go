@@ -79,7 +79,7 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 					validators.NewStringEnumValidator(clientEnumToStringArray(environment.AllowedModeValues)),
 				},
 			},
-			"built_in_environment_variables": schema.SetNestedAttribute{
+			"built_in_environment_variables": schema.ListNestedAttribute{
 				Description: "List of built-in environment variables linked to this environment.",
 				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{

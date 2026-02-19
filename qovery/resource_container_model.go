@@ -27,7 +27,7 @@ type Container struct {
 	MinRunningInstances          types.Int64   `tfsdk:"min_running_instances"`
 	MaxRunningInstances          types.Int64   `tfsdk:"max_running_instances"`
 	AutoPreview                  types.Bool    `tfsdk:"auto_preview"`
-	BuiltInEnvironmentVariables  types.Set     `tfsdk:"built_in_environment_variables"`
+	BuiltInEnvironmentVariables  types.List    `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables         types.Set     `tfsdk:"environment_variables"`
 	EnvironmentVariableAliases   types.Set     `tfsdk:"environment_variable_aliases"`
 	EnvironmentVariableOverrides types.Set     `tfsdk:"environment_variable_overrides"`
@@ -61,7 +61,7 @@ func (cont Container) EnvironmentVariableOverrideList() EnvironmentVariableList 
 }
 
 func (cont Container) BuiltInEnvironmentVariableList() EnvironmentVariableList {
-	return toEnvironmentVariableList(cont.BuiltInEnvironmentVariables)
+	return toEnvironmentVariableListFromTerraformList(cont.BuiltInEnvironmentVariables)
 }
 
 func (cont Container) SecretList() SecretList {
@@ -191,7 +191,7 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		Arguments:                    FromStringArray(container.Arguments),
 		Storages:                     convertDomainStoragesToStorageList(state.Storages, container.Storages).toTerraformSet(ctx),
 		Ports:                        convertDomainPortsToPortList(ctx, state.Ports, container.Ports).toTerraformList(ctx),
-		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformList(ctx),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, container.EnvironmentVariables, variable.ScopeContainer, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, container.EnvironmentVariables, variable.ScopeContainer, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, container.EnvironmentVariables, variable.ScopeContainer, "OVERRIDE").toTerraformSet(ctx),

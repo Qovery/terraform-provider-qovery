@@ -58,7 +58,7 @@ data "qovery_application" "my_application" {
 - `build_mode` (String) Build Mode of the application.
 	- Can be: `DOCKER`.
 	- Default: `DOCKER`.
-- `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this application. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this application. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
 - `external_host` (String) The application external FQDN host [NOTE: only if your application is using a publicly accessible port].
 - `git_repository` (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))

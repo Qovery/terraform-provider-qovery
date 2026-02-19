@@ -239,7 +239,7 @@ type Job struct {
 	Source                       *JobSource    `tfsdk:"source"`
 	Schedule                     *JobSchedule  `tfsdk:"schedule"`
 	HealthChecks                 *HealthChecks `tfsdk:"healthchecks"`
-	BuiltInEnvironmentVariables  types.Set     `tfsdk:"built_in_environment_variables"`
+	BuiltInEnvironmentVariables  types.List    `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables         types.Set     `tfsdk:"environment_variables"`
 	EnvironmentVariableAliases   types.Set     `tfsdk:"environment_variable_aliases"`
 	EnvironmentVariableOverrides types.Set     `tfsdk:"environment_variable_overrides"`
@@ -268,7 +268,7 @@ func (j Job) EnvironmentVariableOverridesList() EnvironmentVariableList {
 }
 
 func (j Job) BuiltInEnvironmentVariableList() EnvironmentVariableList {
-	return toEnvironmentVariableList(j.BuiltInEnvironmentVariables)
+	return toEnvironmentVariableListFromTerraformList(j.BuiltInEnvironmentVariables)
 }
 
 func (j Job) SecretList() SecretList {
@@ -377,7 +377,7 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		Port:                         FromInt32Pointer(prt),
 		Source:                       &source,
 		Schedule:                     &schedule,
-		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(job.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(job.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformList(ctx),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, job.EnvironmentVariables, variable.ScopeJob, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, job.EnvironmentVariables, variable.ScopeJob, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, job.EnvironmentVariables, variable.ScopeJob, "OVERRIDE").toTerraformSet(ctx),

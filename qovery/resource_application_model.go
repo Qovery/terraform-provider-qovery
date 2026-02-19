@@ -29,7 +29,7 @@ type Application struct {
 	Storage                      []ApplicationStorage      `tfsdk:"storage"`
 	Ports                        []ApplicationPort         `tfsdk:"ports"`
 	CustomDomains                types.Set                 `tfsdk:"custom_domains"`
-	BuiltInEnvironmentVariables  types.Set                 `tfsdk:"built_in_environment_variables"`
+	BuiltInEnvironmentVariables  types.List                `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables         types.Set                 `tfsdk:"environment_variables"`
 	EnvironmentVariableAliases   types.Set                 `tfsdk:"environment_variable_aliases"`
 	EnvironmentVariableOverrides types.Set                 `tfsdk:"environment_variable_overrides"`
@@ -63,7 +63,7 @@ func (app Application) EnvironmentVariableOverrideList() EnvironmentVariableList
 }
 
 func (app Application) BuiltInEnvironmentVariableList() EnvironmentVariableList {
-	return toEnvironmentVariableList(app.BuiltInEnvironmentVariables)
+	return toEnvironmentVariableListFromTerraformList(app.BuiltInEnvironmentVariables)
 }
 
 func (app Application) SecretList() SecretList {
@@ -312,7 +312,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		GitRepository:                convertResponseToApplicationGitRepository(app.ApplicationResponse.GitRepository),
 		Storage:                      convertResponseToApplicationStorage(state.Storage, app.ApplicationResponse.Storage),
 		Ports:                        convertResponseToApplicationPorts(state.Ports, app.ApplicationResponse.Ports),
-		BuiltInEnvironmentVariables:  fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_BUILT_IN, "BUILT_IN").toTerraformSet(ctx),
+		BuiltInEnvironmentVariables:  fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_BUILT_IN, "BUILT_IN").toTerraformList(ctx),
 		EnvironmentVariables:         fromEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   fromEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, app.ApplicationEnvironmentVariableAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: fromEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, app.ApplicationEnvironmentVariableOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION, "OVERRIDE").toTerraformSet(ctx),

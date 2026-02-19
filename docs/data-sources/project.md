@@ -25,7 +25,7 @@ data "qovery_project" "my_project" {
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this project. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this project. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `name` (String) Name of the project.
 - `organization_id` (String) Id of the organization.
 

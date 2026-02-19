@@ -2,6 +2,8 @@ package qovery
 
 import (
 	"context"
+	"sort"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
@@ -37,6 +39,31 @@ func (vars EnvironmentVariableList) toTerraformSet(ctx context.Context) types.Se
 		panic("TODO")
 	}
 	return set
+}
+
+func (vars EnvironmentVariableList) toTerraformList(ctx context.Context) types.List {
+	var environmentVariableObjectType = types.ObjectType{
+		AttrTypes: environmentVariableAttrTypes,
+	}
+	if vars == nil {
+		return types.ListNull(environmentVariableObjectType)
+	}
+
+	sorted := make(EnvironmentVariableList, len(vars))
+	copy(sorted, vars)
+	sort.Slice(sorted, func(i, j int) bool {
+		return sorted[i].Key.ValueString() < sorted[j].Key.ValueString()
+	})
+
+	var elements = make([]attr.Value, 0, len(sorted))
+	for _, v := range sorted {
+		elements = append(elements, v.toTerraformObject())
+	}
+	list, diagnostics := types.ListValueFrom(ctx, environmentVariableObjectType, elements)
+	if diagnostics.HasError() {
+		panic("TODO")
+	}
+	return list
 }
 
 func (vars EnvironmentVariableList) contains(e EnvironmentVariable) bool {
@@ -241,6 +268,19 @@ func toEnvironmentVariable(v types.Object) EnvironmentVariable {
 }
 
 func toEnvironmentVariableList(vars types.Set) EnvironmentVariableList {
+	if vars.IsNull() || vars.IsUnknown() {
+		return nil
+	}
+
+	environmentVariables := make([]EnvironmentVariable, 0, len(vars.Elements()))
+	for _, elem := range vars.Elements() {
+		environmentVariables = append(environmentVariables, toEnvironmentVariable(elem.(types.Object)))
+	}
+
+	return environmentVariables
+}
+
+func toEnvironmentVariableListFromTerraformList(vars types.List) EnvironmentVariableList {
 	if vars.IsNull() || vars.IsUnknown() {
 		return nil
 	}

@@ -14,7 +14,7 @@ type Project struct {
 	OrganizationId              types.String `tfsdk:"organization_id"`
 	Name                        types.String `tfsdk:"name"`
 	Description                 types.String `tfsdk:"description"`
-	BuiltInEnvironmentVariables types.Set    `tfsdk:"built_in_environment_variables"`
+	BuiltInEnvironmentVariables types.List   `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables        types.Set    `tfsdk:"environment_variables"`
 	EnvironmentVariableAliases  types.Set    `tfsdk:"environment_variable_aliases"`
 	Secrets                     types.Set    `tfsdk:"secrets"`
@@ -29,7 +29,7 @@ func (p Project) EnvironmentVariableAliasesList() EnvironmentVariableList {
 }
 
 func (p Project) BuiltInEnvironmentVariableList() EnvironmentVariableList {
-	return toEnvironmentVariableList(p.BuiltInEnvironmentVariables)
+	return toEnvironmentVariableListFromTerraformList(p.BuiltInEnvironmentVariables)
 }
 
 func (p Project) SecretList() SecretList {
@@ -71,7 +71,7 @@ func convertDomainProjectToProject(ctx context.Context, state Project, res *proj
 		OrganizationId:              FromString(res.OrganizationID.String()),
 		Name:                        FromString(res.Name),
 		Description:                 FromStringPointer(res.Description),
-		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(res.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
+		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(res.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformList(ctx),
 		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, res.EnvironmentVariables, variable.ScopeProject, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:  convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, res.EnvironmentVariables, variable.ScopeProject, "ALIAS").toTerraformSet(ctx),
 		Secrets:                     convertDomainSecretsToSecretList(state.Secrets, res.Secrets, variable.ScopeProject, "VALUE").toTerraformSet(ctx),

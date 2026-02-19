@@ -36,7 +36,7 @@ data "qovery_helm" "my_helm" {
 ### Read-Only
 
 - `allow_cluster_wide_resources` (Boolean) Allow this chart to deploy resources outside of this environment namespace (including CRDs or non-namespaced resources)
-- `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this helm. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this helm. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `description` (String) Description of the helm.
 - `environment_id` (String) Id of the environment.
 - `external_host` (String) The helm external FQDN host [NOTE: only if your helm is using a publicly accessible port].

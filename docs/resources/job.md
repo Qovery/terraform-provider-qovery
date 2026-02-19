@@ -185,7 +185,7 @@ You can find complete examples within these repositories:
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this job. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this job. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `external_host` (String) The job external FQDN host [NOTE: only if your job is using a publicly accessible port].
 - `id` (String) Id of the job.
 - `internal_host` (String) The job internal host.

@@ -94,7 +94,7 @@ You can find complete examples within these repositories:
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this environment. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this environment. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `id` (String) Id of the environment.
 
 <a id="nestedatt--environment_variable_aliases"></a>

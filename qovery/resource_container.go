@@ -264,7 +264,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					},
 				},
 			},
-			"built_in_environment_variables": schema.SetNestedAttribute{
+			"built_in_environment_variables": schema.ListNestedAttribute{
 				Description: "List of built-in environment variables linked to this container.",
 				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
