@@ -76,7 +76,7 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 				Optional:    true,
 				Computed:    true,
 			},
-			"built_in_environment_variables": schema.SetNestedAttribute{
+			"built_in_environment_variables": schema.ListNestedAttribute{
 				Description: "List of built-in environment variables linked to this helm.",
 				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{

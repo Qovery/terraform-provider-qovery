@@ -183,7 +183,7 @@ You can find complete examples within these repositories:
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this application. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this application. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `external_host` (String) The application external FQDN host [NOTE: only if your application is using a publicly accessible port].
 - `id` (String) Id of the application.
 - `internal_host` (String) The application internal host.

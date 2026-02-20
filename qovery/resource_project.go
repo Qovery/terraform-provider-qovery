@@ -72,7 +72,7 @@ func (r projectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Optional:    true,
 				Computed:    true,
 			},
-			"built_in_environment_variables": schema.SetNestedAttribute{
+			"built_in_environment_variables": schema.ListNestedAttribute{
 				Description: "List of built-in environment variables linked to this project.",
 				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{

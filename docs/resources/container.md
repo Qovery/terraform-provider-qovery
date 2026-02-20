@@ -167,7 +167,7 @@ resource "qovery_container" "my_container" {
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this container. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this container. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `external_host` (String) The container external FQDN host [NOTE: only if your container is using a publicly accessible port].
 - `id` (String) Id of the container.
 - `internal_host` (String) The container internal host.

@@ -29,7 +29,7 @@ data "qovery_environment" "my_environment" {
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes Set) List of built-in environment variables linked to this environment. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this environment. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `cluster_id` (String) Id of the cluster [NOTE: can't be updated after creation].
 - `name` (String) Name of the environment.
 - `project_id` (String) Id of the project.

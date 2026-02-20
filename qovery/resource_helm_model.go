@@ -31,7 +31,7 @@ type Helm struct {
 	Source                       *HelmSource          `tfsdk:"source"`
 	ValuesOverride               *HelmValuesOverride  `tfsdk:"values_override"`
 	Ports                        *map[string]HelmPort `tfsdk:"ports"`
-	BuiltInEnvironmentVariables  types.Set            `tfsdk:"built_in_environment_variables"`
+	BuiltInEnvironmentVariables  types.List           `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables         types.Set            `tfsdk:"environment_variables"`
 	EnvironmentVariableAliases   types.Set            `tfsdk:"environment_variable_aliases"`
 	EnvironmentVariableOverrides types.Set            `tfsdk:"environment_variable_overrides"`
@@ -109,7 +109,7 @@ func (h Helm) EnvironmentVariableOverridesList() EnvironmentVariableList {
 }
 
 func (h Helm) BuiltInEnvironmentVariableList() EnvironmentVariableList {
-	return toEnvironmentVariableList(h.BuiltInEnvironmentVariables)
+	return toEnvironmentVariableListFromTerraformList(h.BuiltInEnvironmentVariables)
 }
 
 func (h Helm) SecretList() SecretList {
@@ -468,7 +468,7 @@ func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) H
 		Source:                       &source,
 		ValuesOverride:               &valuesOverride,
 		Ports:                        ports,
-		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(helm.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformSet(ctx),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(helm.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformList(ctx),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, helm.EnvironmentVariables, variable.ScopeHelm, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, helm.EnvironmentVariables, variable.ScopeHelm, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, helm.EnvironmentVariables, variable.ScopeHelm, "OVERRIDE").toTerraformSet(ctx),

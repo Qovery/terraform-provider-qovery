@@ -286,7 +286,7 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 					},
 				},
 			},
-			"built_in_environment_variables": schema.SetNestedAttribute{
+			"built_in_environment_variables": schema.ListNestedAttribute{
 				Description: "List of built-in environment variables linked to this job.",
 				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
