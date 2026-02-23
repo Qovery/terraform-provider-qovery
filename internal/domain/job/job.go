@@ -83,6 +83,7 @@ type Job struct {
 	ExternalHost                 *string
 	State                        status.State
 	DeploymentStageID            string
+	IsSkipped                    bool
 	HealthChecks                 qovery2.Healthcheck
 	AdvancedSettingsJson         string
 	AutoDeploy                   *bool
@@ -160,6 +161,7 @@ type NewJobParams struct {
 	EnvironmentVariables variable.NewVariablesParams
 	Secrets              secret.NewSecretsParams
 	DeploymentStageID    string
+	IsSkipped            bool
 	Port                 *port.NewPortParams
 	Healthchecks         qovery2.Healthcheck
 	AdvancedSettingsJson string
@@ -222,6 +224,7 @@ func NewJob(params NewJobParams) (*Job, error) {
 		Source:               *jobSource,
 		Port:                 prt,
 		DeploymentStageID:    params.DeploymentStageID,
+		IsSkipped:            params.IsSkipped,
 		HealthChecks:         params.Healthchecks,
 		AdvancedSettingsJson: params.AdvancedSettingsJson,
 		AutoDeploy:           params.AutoDeploy,

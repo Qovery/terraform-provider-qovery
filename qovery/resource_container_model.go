@@ -41,6 +41,7 @@ type Container struct {
 	ExternalHost                 types.String  `tfsdk:"external_host"`
 	InternalHost                 types.String  `tfsdk:"internal_host"`
 	DeploymentStageId            types.String  `tfsdk:"deployment_stage_id"`
+	IsSkipped                    types.Bool    `tfsdk:"is_skipped"`
 	Healthchecks                 *HealthChecks `tfsdk:"healthchecks"`
 	AdvancedSettingsJson         types.String  `tfsdk:"advanced_settings_json"`
 	AutoDeploy                   types.Bool    `tfsdk:"auto_deploy"`
@@ -163,6 +164,7 @@ func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomD
 		Storages:             storages,
 		Ports:                ports,
 		DeploymentStageID:    ToString(cont.DeploymentStageId),
+		IsSkipped:            ToBool(cont.IsSkipped),
 		Healthchecks:         cont.Healthchecks.toHealthchecksRequest(),
 		AdvancedSettingsJson: ToString(cont.AdvancedSettingsJson),
 		CustomDomains:        customDomainsDiff,
@@ -201,6 +203,7 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		InternalHost:                 FromStringPointer(container.InternalHost),
 		ExternalHost:                 FromStringPointer(container.ExternalHost),
 		DeploymentStageId:            FromString(container.DeploymentStageID),
+		IsSkipped:                    FromBool(container.IsSkipped),
 		Healthchecks:                 &healthchecks,
 		AdvancedSettingsJson:         FromString(container.AdvancedSettingsJson),
 		CustomDomains:                fromCustomDomainList(state.CustomDomains, container.CustomDomains).toTerraformSet(ctx),

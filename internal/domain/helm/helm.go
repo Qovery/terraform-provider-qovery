@@ -59,6 +59,7 @@ type Helm struct {
 	ExternalHost                 *string
 	State                        status.State
 	DeploymentStageID            string
+	IsSkipped                    bool
 	AdvancedSettingsJson         string
 	JobDeploymentRestrictions    []deploymentrestriction.ServiceDeploymentRestriction
 	CustomDomains                []*qovery.CustomDomain
@@ -115,6 +116,7 @@ type NewHelmParams struct {
 	EnvironmentVariables      variable.NewVariablesParams
 	Secrets                   secret.NewSecretsParams
 	DeploymentStageID         string
+	IsSkipped                 bool
 	AdvancedSettingsJson      string
 	CustomDomains             []*qovery.CustomDomain
 }
@@ -173,6 +175,7 @@ func NewHelm(params NewHelmParams) (*Helm, error) {
 		ValuesOverride:            *valuesOverride,
 		Ports:                     ports,
 		DeploymentStageID:         params.DeploymentStageID,
+		IsSkipped:                 params.IsSkipped,
 		AdvancedSettingsJson:      params.AdvancedSettingsJson,
 		CustomDomains:             params.CustomDomains,
 	}

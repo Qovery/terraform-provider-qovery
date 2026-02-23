@@ -16,6 +16,7 @@ import (
 type ApplicationResponse struct {
 	ApplicationResponse                     *qovery.Application
 	ApplicationDeploymentStageID            string
+	ApplicationIsSkipped                    bool
 	ApplicationEnvironmentVariables         []*qovery.EnvironmentVariable
 	ApplicationEnvironmentVariableAliases   []*qovery.EnvironmentVariable
 	ApplicationEnvironmentVariableOverrides []*qovery.EnvironmentVariable
@@ -32,6 +33,7 @@ type ApplicationResponse struct {
 type ApplicationCreateParams struct {
 	ApplicationRequest               qovery.ApplicationRequest
 	ApplicationDeploymentStageID     string
+	ApplicationIsSkipped             bool
 	EnvironmentVariablesDiff         EnvironmentVariablesDiff
 	EnvironmentVariableAliasesDiff   EnvironmentVariablesDiff
 	EnvironmentVariableOverridesDiff EnvironmentVariablesDiff
@@ -46,6 +48,7 @@ type ApplicationCreateParams struct {
 type ApplicationUpdateParams struct {
 	ApplicationEditRequest           qovery.ApplicationEditRequest
 	ApplicationDeploymentStageID     string
+	ApplicationIsSkipped             bool
 	EnvironmentVariablesDiff         EnvironmentVariablesDiff
 	EnvironmentVariableAliasesDiff   EnvironmentVariablesDiff
 	EnvironmentVariableOverridesDiff EnvironmentVariablesDiff
@@ -69,8 +72,11 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 
 	// Attach application to deployment stage
 	if len(params.ApplicationDeploymentStageID) > 0 {
+		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
+		attachRequest.SetIsSkipped(params.ApplicationIsSkipped)
 		_, resp, err := c.api.DeploymentStageMainCallsAPI.
 			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageID, application.Id).
+			AttachServiceToDeploymentStageRequest(*attachRequest).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
 			return nil, apierrors.NewCreateError(apierrors.APIResourceUpdateDeploymentStage, params.ApplicationDeploymentStageID, resp, err)
@@ -95,6 +101,7 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 		params.CustomDomainsDiff,
 		params.DeploymentRestrictionsDiff,
 		applicationDeploymentStage.Id,
+		getIsSkippedFromDeploymentStage(applicationDeploymentStage, application.Id),
 		params.AdvancedSettingsJson,
 	)
 }
@@ -151,6 +158,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string, advan
 	return &ApplicationResponse{
 		ApplicationResponse:                     application,
 		ApplicationDeploymentStageID:            deploymentStage.Id,
+		ApplicationIsSkipped:                    getIsSkippedFromDeploymentStage(deploymentStage, application.Id),
 		ApplicationEnvironmentVariables:         variables.variableValues,
 		ApplicationEnvironmentVariableAliases:   variables.variableAliases,
 		ApplicationEnvironmentVariableOverrides: variables.variableOverrides,
@@ -176,12 +184,21 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 
 	// Attach service to deployment stage
 	if len(params.ApplicationDeploymentStageID) > 0 {
+		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
+		attachRequest.SetIsSkipped(params.ApplicationIsSkipped)
 		_, resp, err := c.api.DeploymentStageMainCallsAPI.
 			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageID, applicationID).
+			AttachServiceToDeploymentStageRequest(*attachRequest).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
 			return nil, apierrors.NewUpdateError(apierrors.APIResourceUpdateDeploymentStage, applicationID, resp, err)
 		}
+	}
+
+	// Get application deployment stage to read IsSkipped
+	applicationDeploymentStage, resp, err := c.api.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, applicationID).Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewUpdateError(apierrors.APIResourceApplication, applicationID, resp, err)
 	}
 
 	return c.updateApplication(
@@ -195,7 +212,8 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 		params.SecretOverridesDiff,
 		params.CustomDomainsDiff,
 		params.DeploymentRestrictionsDiff,
-		params.ApplicationDeploymentStageID,
+		applicationDeploymentStage.Id,
+		getIsSkippedFromDeploymentStage(applicationDeploymentStage, applicationID),
 		params.AdvancedSettingsJson,
 	)
 }
@@ -243,6 +261,7 @@ func (c *Client) updateApplication(
 	customDomainsDiff CustomDomainsDiff,
 	deploymentRestrictionsDiff deploymentrestriction.ServiceDeploymentRestrictionsDiff,
 	deploymentStageId string,
+	isSkipped bool,
 	advancedSettingsJson string,
 ) (*ApplicationResponse, *apierrors.APIError) {
 	if !environmentVariablesDiff.IsEmpty() {
@@ -358,9 +377,23 @@ func (c *Client) updateApplication(
 		ApplicationExternalHost:                 hosts.external,
 		ApplicationInternalHost:                 hosts.internal,
 		ApplicationDeploymentStageID:            deploymentStageId,
+		ApplicationIsSkipped:                    isSkipped,
 		AdvancedSettingsJson:                    advancedSettingsJson,
 		ApplicationDeploymentRestrictions:       deploymentRestrictions,
 	}, nil
+}
+
+// getIsSkippedFromDeploymentStage returns is_skipped for a service within a deployment stage response.
+func getIsSkippedFromDeploymentStage(deploymentStage *qovery.DeploymentStageResponse, serviceID string) bool {
+	if deploymentStage == nil {
+		return false
+	}
+	for _, svc := range deploymentStage.GetServices() {
+		if svc.GetServiceId() == serviceID {
+			return svc.GetIsSkipped()
+		}
+	}
+	return false
 }
 
 type applicationHosts struct {

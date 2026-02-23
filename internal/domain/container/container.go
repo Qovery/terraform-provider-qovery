@@ -83,6 +83,7 @@ type Container struct {
 	ExternalHost                *string
 	State                       status.State
 	DeploymentStageID           string
+	IsSkipped                   bool
 	Healthchecks                qovery.Healthcheck
 	AdvancedSettingsJson        string
 	CustomDomains               []*qovery.CustomDomain
@@ -135,6 +136,7 @@ type NewContainerParams struct {
 	EnvironmentVariables   variable.Variables // TODO(benjaminch): use `storage.NewVariablesParam`
 	Secrets                secret.Secrets     // TODO(benjaminch): use `storage.NewSecretsParam`
 	DeploymentStageID      string
+	IsSkipped              bool
 	Healthchecks           qovery.Healthcheck
 	AdvancedSettingsAsJson string
 	CustomDomains          []*qovery.CustomDomain
@@ -190,6 +192,7 @@ func NewContainer(params NewContainerParams) (*Container, error) {
 		Storages:             params.Storages,
 		Ports:                params.Ports,
 		DeploymentStageID:    params.DeploymentStageID,
+		IsSkipped:            params.IsSkipped,
 		Healthchecks:         params.Healthchecks,
 		AdvancedSettingsJson: params.AdvancedSettingsAsJson,
 		CustomDomains:        params.CustomDomains,

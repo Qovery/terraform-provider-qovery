@@ -212,6 +212,11 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Optional:    true,
 				Computed:    true,
 			},
+			"is_skipped": schema.BoolAttribute{
+				Description: "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"port": schema.Int64Attribute{
 				Description: "The port to connect to your database",
 				Computed:    true,

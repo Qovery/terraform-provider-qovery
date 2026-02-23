@@ -58,6 +58,16 @@ func (d terraformServiceDataSource) Schema(_ context.Context, _ datasource.Schem
 				Description: "Id of the environment.",
 				Computed:    true,
 			},
+			"deployment_stage_id": schema.StringAttribute{
+				Description: "Id of the deployment stage.",
+				Optional:    true,
+				Computed:    true,
+			},
+			"is_skipped": schema.BoolAttribute{
+				Description: "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"name": schema.StringAttribute{
 				Description: "Name of the terraform service.",
 				Computed:    true,

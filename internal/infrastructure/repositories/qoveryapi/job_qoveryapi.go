@@ -55,7 +55,9 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 
 	// Attach job to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newJobId).Execute()
+		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
+		attachRequest.SetIsSkipped(request.IsSkipped)
+		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newJobId).AttachServiceToDeploymentStageRequest(*attachRequest).Execute()
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, response, err)
 		}
@@ -73,7 +75,7 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, newJobId, resp, err)
 	}
 
-	return newDomainJobFromQovery(newJob, deploymentStage.Id, request.AdvancedSettingsJson)
+	return newDomainJobFromQovery(newJob, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newJobId), request.AdvancedSettingsJson)
 }
 
 // Get calls Qovery's API to retrieve a job using the given jobID.
@@ -96,7 +98,7 @@ func (c jobQoveryAPI) Get(ctx context.Context, jobID string, advancedSettingsJso
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, nil, err)
 	}
 
-	return newDomainJobFromQovery(job, deploymentStage.Id, *advancedSettingsAsJson)
+	return newDomainJobFromQovery(job, deploymentStage.Id, getServiceIsSkipped(deploymentStage, jobID), *advancedSettingsAsJson)
 }
 
 // Update calls Qovery's API to update a job using the given jobID and request.
@@ -116,7 +118,9 @@ func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.Upse
 
 	// Attach job to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, jobID).Execute()
+		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
+		attachRequest.SetIsSkipped(request.IsSkipped)
+		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, jobID).AttachServiceToDeploymentStageRequest(*attachRequest).Execute()
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceJob, request.Name, response, err)
 		}
@@ -134,7 +138,7 @@ func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.Upse
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
-	return newDomainJobFromQovery(job, deploymentStage.Id, request.AdvancedSettingsJson)
+	return newDomainJobFromQovery(job, deploymentStage.Id, getServiceIsSkipped(deploymentStage, jobID), request.AdvancedSettingsJson)
 }
 
 // Delete calls Qovery's API to deletes a job using the given jobID.

@@ -519,6 +519,11 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Optional:    true,
 				Computed:    true,
 			},
+			"is_skipped": schema.BoolAttribute{
+				Description: "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
+				Optional:    true,
+				Computed:    true,
+			},
 			"advanced_settings_json": schema.StringAttribute{
 				Description: "Advanced settings.",
 				Optional:    true,

@@ -84,6 +84,7 @@ type TerraformService struct {
 	ID                    uuid.UUID `validate:"required"`
 	EnvironmentID         uuid.UUID `validate:"required"`
 	DeploymentStageID     string
+	IsSkipped             bool
 	Name                  string `validate:"required"`
 	Description           *string
 	AutoDeploy            bool

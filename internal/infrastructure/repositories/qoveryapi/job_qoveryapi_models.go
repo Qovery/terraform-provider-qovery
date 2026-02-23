@@ -133,7 +133,7 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 }
 
 // newDomainCredentialsFromQovery takes a qovery.EnvironmentVariable returned by the API client and turns it into the domain model variable.Variable.
-func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID string, advancedSettingsJson string) (*job.Job, error) {
+func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID string, isSkipped bool, advancedSettingsJson string) (*job.Job, error) {
 	if jobResponse == nil {
 		return nil, variable.ErrNilVariable
 	}
@@ -257,6 +257,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 		Source:               jobSource,
 		Schedule:             jobSchedule,
 		DeploymentStageID:    deploymentStageID,
+		IsSkipped:            isSkipped,
 		AdvancedSettingsJson: advancedSettingsJson,
 		AutoDeploy:           j.AutoDeploy,
 		Healthchecks:         j.Healthchecks,
