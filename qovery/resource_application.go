@@ -580,6 +580,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Description: "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
 				Optional:    true,
 				Computed:    true,
+				Default:     booldefault.StaticBool(false),
 			},
 			"advanced_settings_json": schema.StringAttribute{
 				Description: "Advanced settings.",

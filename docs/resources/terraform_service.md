@@ -111,6 +111,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `description` (String) Description of the terraform service.
 - `icon_uri` (String) Icon URI representing the terraform service.
+- `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
 - `timeout_seconds` (Number) Timeout in seconds for Terraform operations.
 	- Must be: `>= 0`.
 	- Default: `1800`.

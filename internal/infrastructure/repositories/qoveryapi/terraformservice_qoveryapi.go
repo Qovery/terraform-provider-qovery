@@ -168,6 +168,8 @@ func (c terraformServiceQoveryAPI) List(ctx context.Context, environmentID strin
 
 	services := make([]terraformservice.TerraformService, 0, len(terraformList.GetResults()))
 	for _, tf := range terraformList.GetResults() {
+		// isSkipped is set to false because fetching deployment stage per service would cause N+1 API calls.
+		// The accurate value is retrieved in Get when reading individual services.
 		service, err := newDomainTerraformServiceFromQovery(&tf, "", false, "")
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to convert terraform service")

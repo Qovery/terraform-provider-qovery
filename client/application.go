@@ -101,7 +101,7 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 		params.CustomDomainsDiff,
 		params.DeploymentRestrictionsDiff,
 		applicationDeploymentStage.Id,
-		getIsSkippedFromDeploymentStage(applicationDeploymentStage, application.Id),
+		getServiceIsSkipped(applicationDeploymentStage, application.Id),
 		params.AdvancedSettingsJson,
 	)
 }
@@ -158,7 +158,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string, advan
 	return &ApplicationResponse{
 		ApplicationResponse:                     application,
 		ApplicationDeploymentStageID:            deploymentStage.Id,
-		ApplicationIsSkipped:                    getIsSkippedFromDeploymentStage(deploymentStage, application.Id),
+		ApplicationIsSkipped:                    getServiceIsSkipped(deploymentStage, application.Id),
 		ApplicationEnvironmentVariables:         variables.variableValues,
 		ApplicationEnvironmentVariableAliases:   variables.variableAliases,
 		ApplicationEnvironmentVariableOverrides: variables.variableOverrides,
@@ -213,7 +213,7 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 		params.CustomDomainsDiff,
 		params.DeploymentRestrictionsDiff,
 		applicationDeploymentStage.Id,
-		getIsSkippedFromDeploymentStage(applicationDeploymentStage, applicationID),
+		getServiceIsSkipped(applicationDeploymentStage, applicationID),
 		params.AdvancedSettingsJson,
 	)
 }
@@ -381,19 +381,6 @@ func (c *Client) updateApplication(
 		AdvancedSettingsJson:                    advancedSettingsJson,
 		ApplicationDeploymentRestrictions:       deploymentRestrictions,
 	}, nil
-}
-
-// getIsSkippedFromDeploymentStage returns is_skipped for a service within a deployment stage response.
-func getIsSkippedFromDeploymentStage(deploymentStage *qovery.DeploymentStageResponse, serviceID string) bool {
-	if deploymentStage == nil {
-		return false
-	}
-	for _, svc := range deploymentStage.GetServices() {
-		if svc.GetServiceId() == serviceID {
-			return svc.GetIsSkipped()
-		}
-	}
-	return false
 }
 
 type applicationHosts struct {

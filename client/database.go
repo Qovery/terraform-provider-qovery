@@ -56,7 +56,7 @@ func (c *Client) CreateDatabase(ctx context.Context, environmentID string, param
 		return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, database.Id, resp, err)
 	}
 
-	return c.updateDatabase(ctx, database, deploymentStage.Id, getIsSkippedFromDeploymentStage(deploymentStage, database.Id))
+	return c.updateDatabase(ctx, database, deploymentStage.Id, getServiceIsSkipped(deploymentStage, database.Id))
 }
 
 func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseResponse, *apierrors.APIError) {
@@ -101,7 +101,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 		DatabaseCredentials:  credentials,
 		DatabaseInternalHost: hostInternal,
 		DeploymentStageID:    deploymentStage.Id,
-		IsSkipped:            getIsSkippedFromDeploymentStage(deploymentStage, database.Id),
+		IsSkipped:            getServiceIsSkipped(deploymentStage, database.Id),
 	}, nil
 }
 
@@ -164,7 +164,7 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *
 		return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, database.Id, resp, err)
 	}
 
-	return c.updateDatabase(ctx, database, deploymentStage.Id, getIsSkippedFromDeploymentStage(deploymentStage, database.Id))
+	return c.updateDatabase(ctx, database, deploymentStage.Id, getServiceIsSkipped(deploymentStage, database.Id))
 }
 
 func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierrors.APIError {

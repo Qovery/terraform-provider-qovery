@@ -134,7 +134,8 @@ func (d Database) toUpdateDatabaseRequest() (*client.DatabaseUpdateParams, error
 			AnnotationsGroups: annotationsGroups,
 			LabelsGroups:      labelsGroups,
 		},
-		IsSkipped: ToBool(d.IsSkipped),
+		DeploymentStageID: ToString(d.DeploymentStageId),
+		IsSkipped:         ToBool(d.IsSkipped),
 	}, nil
 }
 
