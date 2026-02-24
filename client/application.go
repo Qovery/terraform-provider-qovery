@@ -78,7 +78,7 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageID, application.Id).
 			AttachServiceToDeploymentStageRequest(*attachRequest).
 			Execute()
-		if err != nil || res.StatusCode >= 400 {
+		if err != nil || resp.StatusCode >= 400 {
 			return nil, apierrors.NewCreateError(apierrors.APIResourceUpdateDeploymentStage, params.ApplicationDeploymentStageID, resp, err)
 		}
 	}
@@ -190,7 +190,7 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageID, applicationID).
 			AttachServiceToDeploymentStageRequest(*attachRequest).
 			Execute()
-		if err != nil || res.StatusCode >= 400 {
+		if err != nil || resp.StatusCode >= 400 {
 			return nil, apierrors.NewUpdateError(apierrors.APIResourceUpdateDeploymentStage, applicationID, resp, err)
 		}
 	}
