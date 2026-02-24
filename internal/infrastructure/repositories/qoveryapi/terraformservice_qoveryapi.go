@@ -48,9 +48,7 @@ func (c terraformServiceQoveryAPI) Create(ctx context.Context, environmentID str
 
 	// Attach terraform service to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
-		attachRequest.SetIsSkipped(request.IsSkipped)
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newTerraform.Id).AttachServiceToDeploymentStageRequest(*attachRequest).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, newTerraform.Id, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, request.Name, response, err)
 		}
@@ -111,9 +109,7 @@ func (c terraformServiceQoveryAPI) Update(ctx context.Context, terraformServiceI
 
 	// Attach terraform service to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
-		attachRequest.SetIsSkipped(request.IsSkipped)
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, terraform.Id).AttachServiceToDeploymentStageRequest(*attachRequest).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, terraform.Id, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceTerraformService, request.Name, response, err)
 		}

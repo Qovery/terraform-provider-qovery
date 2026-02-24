@@ -66,9 +66,7 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 
 	// Attach container to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
-		attachRequest.SetIsSkipped(request.IsSkipped)
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newContainer.Id).AttachServiceToDeploymentStageRequest(*attachRequest).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, newContainer.Id, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, request.Name, response, err)
 		}
@@ -181,9 +179,7 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 
 	// Attach container to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
-		attachRequest.SetIsSkipped(request.IsSkipped)
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, container.Id).AttachServiceToDeploymentStageRequest(*attachRequest).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, container.Id, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceContainer, request.Name, response, err)
 		}

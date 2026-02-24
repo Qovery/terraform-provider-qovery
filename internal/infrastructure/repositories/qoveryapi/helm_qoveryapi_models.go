@@ -56,7 +56,7 @@ func getAggregateHelmResponse(helmResponse *qovery.HelmResponse) AggregateHelmRe
 	}
 }
 
-// newDomainCredentialsFromQovery takes a qovery.EnvironmentVariable returned by the API client and turns it into the domain model variable.Variable.
+// newDomainHelmFromQovery converts a Qovery API HelmResponse into the domain model helm.Helm.
 func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageID string, isSkipped bool, advancedSettingsJson string, qoveryCustomDomains *qovery.CustomDomainResponseList) (*helm.Helm, error) {
 	if helmResponse == nil {
 		return nil, variable.ErrNilVariable

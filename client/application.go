@@ -72,12 +72,7 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 
 	// Attach application to deployment stage
 	if len(params.ApplicationDeploymentStageID) > 0 {
-		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
-		attachRequest.SetIsSkipped(params.ApplicationIsSkipped)
-		_, resp, err := c.api.DeploymentStageMainCallsAPI.
-			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageID, application.Id).
-			AttachServiceToDeploymentStageRequest(*attachRequest).
-			Execute()
+		resp, err := attachServiceToDeploymentStage(ctx, c.api, params.ApplicationDeploymentStageID, application.Id, params.ApplicationIsSkipped)
 		if err != nil || resp.StatusCode >= 400 {
 			return nil, apierrors.NewCreateError(apierrors.APIResourceUpdateDeploymentStage, params.ApplicationDeploymentStageID, resp, err)
 		}
@@ -184,18 +179,13 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 
 	// Attach service to deployment stage
 	if len(params.ApplicationDeploymentStageID) > 0 {
-		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
-		attachRequest.SetIsSkipped(params.ApplicationIsSkipped)
-		_, resp, err := c.api.DeploymentStageMainCallsAPI.
-			AttachServiceToDeploymentStage(ctx, params.ApplicationDeploymentStageID, applicationID).
-			AttachServiceToDeploymentStageRequest(*attachRequest).
-			Execute()
+		resp, err := attachServiceToDeploymentStage(ctx, c.api, params.ApplicationDeploymentStageID, applicationID, params.ApplicationIsSkipped)
 		if err != nil || resp.StatusCode >= 400 {
 			return nil, apierrors.NewUpdateError(apierrors.APIResourceUpdateDeploymentStage, applicationID, resp, err)
 		}
 	}
 
-	// Get application deployment stage to read IsSkipped
+	// Get application deployment stage
 	applicationDeploymentStage, resp, err := c.api.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, applicationID).Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewUpdateError(apierrors.APIResourceApplication, applicationID, resp, err)

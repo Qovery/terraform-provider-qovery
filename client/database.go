@@ -42,9 +42,7 @@ func (c *Client) CreateDatabase(ctx context.Context, environmentID string, param
 
 	// Attach database to deployment stage
 	if len(params.DeploymentStageID) > 0 {
-		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
-		attachRequest.SetIsSkipped(params.IsSkipped)
-		_, response, err := c.api.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, params.DeploymentStageID, database.Id).AttachServiceToDeploymentStageRequest(*attachRequest).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.api, params.DeploymentStageID, database.Id, params.IsSkipped)
 		if err != nil || response.StatusCode >= 400 {
 			return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, params.DeploymentStageID, response, err)
 		}
@@ -150,9 +148,7 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *
 	}
 	// Attach database to deployment stage
 	if len(params.DeploymentStageID) > 0 {
-		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
-		attachRequest.SetIsSkipped(params.IsSkipped)
-		_, response, err := c.api.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, params.DeploymentStageID, database.Id).AttachServiceToDeploymentStageRequest(*attachRequest).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.api, params.DeploymentStageID, database.Id, params.IsSkipped)
 		if err != nil || response.StatusCode >= 400 {
 			return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, params.DeploymentStageID, response, err)
 		}

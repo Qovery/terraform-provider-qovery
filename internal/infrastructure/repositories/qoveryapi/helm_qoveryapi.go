@@ -67,9 +67,7 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 
 	// Attach helm to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
-		attachRequest.SetIsSkipped(request.IsSkipped)
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newHelm.Id).AttachServiceToDeploymentStageRequest(*attachRequest).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, newHelm.Id, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, request.Name, response, err)
 		}
@@ -181,9 +179,7 @@ func (c helmQoveryAPI) Update(ctx context.Context, helmID string, request helm.U
 
 	// Attach helm to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
-		attachRequest.SetIsSkipped(request.IsSkipped)
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, helmID).AttachServiceToDeploymentStageRequest(*attachRequest).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, helmID, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceHelm, request.Name, response, err)
 		}

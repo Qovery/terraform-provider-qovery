@@ -55,9 +55,7 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 
 	// Attach job to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
-		attachRequest.SetIsSkipped(request.IsSkipped)
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newJobId).AttachServiceToDeploymentStageRequest(*attachRequest).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, newJobId, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, response, err)
 		}
@@ -118,9 +116,7 @@ func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.Upse
 
 	// Attach job to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
-		attachRequest.SetIsSkipped(request.IsSkipped)
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, jobID).AttachServiceToDeploymentStageRequest(*attachRequest).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, jobID, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceJob, request.Name, response, err)
 		}

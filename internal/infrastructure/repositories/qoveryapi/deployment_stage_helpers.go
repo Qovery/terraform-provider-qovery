@@ -1,6 +1,9 @@
 package qoveryapi
 
 import (
+	"context"
+	"net/http"
+
 	"github.com/qovery/qovery-client-go"
 )
 
@@ -17,4 +20,16 @@ func getServiceIsSkipped(deploymentStage *qovery.DeploymentStageResponse, servic
 		}
 	}
 	return false
+}
+
+// attachServiceToDeploymentStage attaches a service to a deployment stage with the given isSkipped flag.
+// Returns the HTTP response and any error from the API call.
+func attachServiceToDeploymentStage(ctx context.Context, api *qovery.APIClient, deploymentStageID string, serviceID string, isSkipped bool) (*http.Response, error) {
+	attachRequest := qovery.NewAttachServiceToDeploymentStageRequest()
+	attachRequest.SetIsSkipped(isSkipped)
+	_, response, err := api.DeploymentStageMainCallsAPI.
+		AttachServiceToDeploymentStage(ctx, deploymentStageID, serviceID).
+		AttachServiceToDeploymentStageRequest(*attachRequest).
+		Execute()
+	return response, err
 }
