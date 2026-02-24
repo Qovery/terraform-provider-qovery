@@ -79,6 +79,12 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 				Optional:    true,
 				Computed:    true,
 			},
+			"is_skipped": schema.BoolAttribute{
+				Description: "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(false),
+			},
 			"name": schema.StringAttribute{
 				Description: "Name of the terraform service.",
 				Required:    true,

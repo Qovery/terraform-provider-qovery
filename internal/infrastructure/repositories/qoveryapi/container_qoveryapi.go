@@ -66,7 +66,7 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 
 	// Attach container to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newContainer.Id).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, newContainer.Id, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, request.Name, response, err)
 		}
@@ -90,7 +90,7 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainerCustomDomain, newContainer.Id, resp, err)
 	}
 
-	return newDomainContainerFromQovery(newContainer, deploymentStage.Id, request.AdvancedSettingsJson, customDomains)
+	return newDomainContainerFromQovery(newContainer, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newContainer.Id), request.AdvancedSettingsJson, customDomains)
 }
 
 // Get calls Qovery's API to retrieve a container using the given containerID.
@@ -120,7 +120,7 @@ func (c containerQoveryAPI) Get(ctx context.Context, containerID string, advance
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceContainerCustomDomain, container.Id, resp, err)
 	}
 
-	return newDomainContainerFromQovery(container, deploymentStage.Id, *advancedSettingsAsJson, customDomains)
+	return newDomainContainerFromQovery(container, deploymentStage.Id, getServiceIsSkipped(deploymentStage, container.Id), *advancedSettingsAsJson, customDomains)
 }
 
 // Update calls Qovery's API to update a container using the given containerID and request.
@@ -179,7 +179,7 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 
 	// Attach container to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, container.Id).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, container.Id, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceContainer, request.Name, response, err)
 		}
@@ -203,7 +203,7 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceContainerCustomDomain, container.Id, resp, err)
 	}
 
-	return newDomainContainerFromQovery(container, deploymentStage.Id, request.AdvancedSettingsJson, customDomains)
+	return newDomainContainerFromQovery(container, deploymentStage.Id, getServiceIsSkipped(deploymentStage, container.Id), request.AdvancedSettingsJson, customDomains)
 }
 
 // Delete calls Qovery's API to deletes a container using the given containerID.

@@ -16,16 +16,19 @@ type DatabaseResponse struct {
 	DatabaseCredentials  *qovery.Credentials
 	DatabaseInternalHost string
 	DeploymentStageID    string
+	IsSkipped            bool
 }
 
 type DatabaseCreateParams struct {
 	DatabaseRequest   qovery.DatabaseRequest
 	DeploymentStageID string
+	IsSkipped         bool
 }
 
 type DatabaseUpdateParams struct {
 	DatabaseEditRequest qovery.DatabaseEditRequest
 	DeploymentStageID   string
+	IsSkipped           bool
 }
 
 func (c *Client) CreateDatabase(ctx context.Context, environmentID string, params *DatabaseCreateParams) (*DatabaseResponse, *apierrors.APIError) {
@@ -39,7 +42,7 @@ func (c *Client) CreateDatabase(ctx context.Context, environmentID string, param
 
 	// Attach database to deployment stage
 	if len(params.DeploymentStageID) > 0 {
-		_, response, err := c.api.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, params.DeploymentStageID, database.Id).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.api, params.DeploymentStageID, database.Id, params.IsSkipped)
 		if err != nil || response.StatusCode >= 400 {
 			return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, params.DeploymentStageID, response, err)
 		}
@@ -51,7 +54,7 @@ func (c *Client) CreateDatabase(ctx context.Context, environmentID string, param
 		return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, database.Id, resp, err)
 	}
 
-	return c.updateDatabase(ctx, database, deploymentStage.Id)
+	return c.updateDatabase(ctx, database, deploymentStage.Id, getServiceIsSkipped(deploymentStage, database.Id))
 }
 
 func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseResponse, *apierrors.APIError) {
@@ -96,6 +99,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 		DatabaseCredentials:  credentials,
 		DatabaseInternalHost: hostInternal,
 		DeploymentStageID:    deploymentStage.Id,
+		IsSkipped:            getServiceIsSkipped(deploymentStage, database.Id),
 	}, nil
 }
 
@@ -144,7 +148,7 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *
 	}
 	// Attach database to deployment stage
 	if len(params.DeploymentStageID) > 0 {
-		_, response, err := c.api.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, params.DeploymentStageID, database.Id).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.api, params.DeploymentStageID, database.Id, params.IsSkipped)
 		if err != nil || response.StatusCode >= 400 {
 			return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, params.DeploymentStageID, response, err)
 		}
@@ -156,7 +160,7 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *
 		return nil, apierrors.NewCreateError(apierrors.APIResourceDatabase, database.Id, resp, err)
 	}
 
-	return c.updateDatabase(ctx, database, deploymentStage.Id)
+	return c.updateDatabase(ctx, database, deploymentStage.Id, getServiceIsSkipped(deploymentStage, database.Id))
 }
 
 func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierrors.APIError {
@@ -190,7 +194,7 @@ func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierro
 	return nil
 }
 
-func (c *Client) updateDatabase(ctx context.Context, database *qovery.Database, deploymentStageId string) (*DatabaseResponse, *apierrors.APIError) {
+func (c *Client) updateDatabase(ctx context.Context, database *qovery.Database, deploymentStageId string, isSkipped bool) (*DatabaseResponse, *apierrors.APIError) {
 	credentials, apiErr := c.GetDatabaseCredentials(ctx, database.Id)
 	if apiErr != nil {
 		return nil, apiErr
@@ -206,6 +210,7 @@ func (c *Client) updateDatabase(ctx context.Context, database *qovery.Database, 
 		DatabaseCredentials:  credentials,
 		DatabaseInternalHost: hostInternal,
 		DeploymentStageID:    deploymentStageId,
+		IsSkipped:            isSkipped,
 	}, nil
 }
 

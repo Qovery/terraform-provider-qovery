@@ -71,7 +71,7 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 		t.Run(tc.TestName, func(t *testing.T) {
 			fakeDeploymentStageId := uuid.NewString()
 			customDomains := qovery.CustomDomainResponseList{}
-			cont, err := newDomainContainerFromQovery(tc.Container, fakeDeploymentStageId, "", &customDomains)
+			cont, err := newDomainContainerFromQovery(tc.Container, fakeDeploymentStageId, false, "", &customDomains)
 			if tc.ExpectedError != nil {
 				assert.ErrorContains(t, err, tc.ExpectedError.Error())
 				assert.Nil(t, cont)

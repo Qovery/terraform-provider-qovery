@@ -115,7 +115,7 @@ func newQoveryTerraformRequestFromDomain(request terraformservice.UpsertReposito
 }
 
 // newDomainTerraformServiceFromQovery converts a Qovery API TerraformResponse to a domain TerraformService.
-func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, deploymentStageID string, advancedSettingsJson string) (*terraformservice.TerraformService, error) {
+func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, deploymentStageID string, isSkipped bool, advancedSettingsJson string) (*terraformservice.TerraformService, error) {
 	if response == nil {
 		return nil, errors.New("terraform response cannot be nil")
 	}
@@ -223,6 +223,7 @@ func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, dep
 		ID:                    id,
 		EnvironmentID:         envID,
 		DeploymentStageID:     deploymentStageID,
+		IsSkipped:             isSkipped,
 		Name:                  response.Name,
 		Description:           response.Description,
 		AutoDeploy:            response.AutoDeploy,

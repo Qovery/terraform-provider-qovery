@@ -250,6 +250,7 @@ type Job struct {
 	ExternalHost                 types.String  `tfsdk:"external_host"`
 	InternalHost                 types.String  `tfsdk:"internal_host"`
 	DeploymentStageId            types.String  `tfsdk:"deployment_stage_id"`
+	IsSkipped                    types.Bool    `tfsdk:"is_skipped"`
 	AdvancedSettingsJson         types.String  `tfsdk:"advanced_settings_json"`
 	AutoDeploy                   types.Bool    `tfsdk:"auto_deploy"`
 	DeploymentRestrictions       types.Set     `tfsdk:"deployment_restrictions"`
@@ -343,6 +344,7 @@ func (j Job) toUpsertRepositoryRequest() job.UpsertRepositoryRequest {
 		MaxNbRestart:         ToInt32Pointer(j.MaxNbRestart),
 		MaxDurationSeconds:   ToInt32Pointer(j.MaxDurationSeconds),
 		DeploymentStageID:    ToString(j.DeploymentStageId),
+		IsSkipped:            ToBool(j.IsSkipped),
 		Port:                 ToInt64Pointer(j.Port),
 		Healthchecks:         j.HealthChecks.toHealthchecksRequest(),
 		Source:               j.Source.toUpsertRequest(),
@@ -387,6 +389,7 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		InternalHost:                 FromStringPointer(job.InternalHost),
 		ExternalHost:                 FromStringPointer(job.ExternalHost),
 		DeploymentStageId:            FromString(job.DeploymentStageID),
+		IsSkipped:                    FromBool(job.IsSkipped),
 		HealthChecks:                 &healthchecks,
 		AdvancedSettingsJson:         FromString(job.AdvancedSettingsJson),
 		AutoDeploy:                   FromBoolPointer(job.AutoDeploy),

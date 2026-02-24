@@ -30,6 +30,7 @@ type Database struct {
 	Storage             types.Int64  `tfsdk:"storage"`
 	InstanceType        types.String `tfsdk:"instance_type"`
 	DeploymentStageId   types.String `tfsdk:"deployment_stage_id"`
+	IsSkipped           types.Bool   `tfsdk:"is_skipped"`
 	AnnotationsGroupIds types.Set    `tfsdk:"annotations_group_ids"`
 	LabelsGroupIds      types.Set    `tfsdk:"labels_group_ids"`
 }
@@ -88,6 +89,7 @@ func (d Database) toCreateDatabaseRequest() (*client.DatabaseCreateParams, error
 			LabelsGroups:      labelsGroups,
 		},
 		DeploymentStageID: ToString(d.DeploymentStageId),
+		IsSkipped:         ToBool(d.IsSkipped),
 	}, nil
 }
 
@@ -132,6 +134,8 @@ func (d Database) toUpdateDatabaseRequest() (*client.DatabaseUpdateParams, error
 			AnnotationsGroups: annotationsGroups,
 			LabelsGroups:      labelsGroups,
 		},
+		DeploymentStageID: ToString(d.DeploymentStageId),
+		IsSkipped:         ToBool(d.IsSkipped),
 	}, nil
 }
 
@@ -155,6 +159,7 @@ func convertResponseToDatabase(ctx context.Context, state Database, res *client.
 		Password:            FromString(res.DatabaseCredentials.Password),
 		Storage:             FromInt32Pointer(res.DatabaseResponse.Storage),
 		DeploymentStageId:   FromString(res.DeploymentStageID),
+		IsSkipped:           FromBool(res.IsSkipped),
 		InstanceType:        FromStringPointer(res.DatabaseResponse.InstanceType),
 		AnnotationsGroupIds: fromAnnotationsGroupResponseList(ctx, state.AnnotationsGroupIds, res.DatabaseResponse.AnnotationsGroups),
 		LabelsGroupIds:      fromLabelsGroupResponseList(ctx, state.LabelsGroupIds, res.DatabaseResponse.LabelsGroups),

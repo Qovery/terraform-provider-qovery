@@ -14,6 +14,7 @@ import (
 func newDomainContainerFromQovery(
 	c *qovery.ContainerResponse,
 	deploymentStageID string,
+	isSkipped bool,
 	advancedSettingsAsJson string,
 	qoveryCustomDomains *qovery.CustomDomainResponseList,
 ) (*container.Container, error) {
@@ -65,6 +66,7 @@ func newDomainContainerFromQovery(
 		Ports:                  ports,
 		Storages:               storages,
 		DeploymentStageID:      deploymentStageID,
+		IsSkipped:              isSkipped,
 		AdvancedSettingsAsJson: advancedSettingsAsJson,
 		CustomDomains:          customDomains,
 		Healthchecks:           c.Healthchecks,

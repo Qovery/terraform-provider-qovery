@@ -41,6 +41,7 @@ type Application struct {
 	Entrypoint                   types.String              `tfsdk:"entrypoint"`
 	Arguments                    types.List                `tfsdk:"arguments"`
 	DeploymentStageId            types.String              `tfsdk:"deployment_stage_id"`
+	IsSkipped                    types.Bool                `tfsdk:"is_skipped"`
 	Healthchecks                 *HealthChecks             `tfsdk:"healthchecks"`
 	AdvancedSettingsJson         types.String              `tfsdk:"advanced_settings_json"`
 	AutoDeploy                   types.Bool                `tfsdk:"auto_deploy"`
@@ -177,6 +178,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		CustomDomainsDiff:                app.CustomDomainsList().diff(nil),
 		DeploymentRestrictionsDiff:       *deploymentRestrictions,
 		ApplicationDeploymentStageID:     ToString(app.DeploymentStageId),
+		ApplicationIsSkipped:             ToBool(app.IsSkipped),
 		AdvancedSettingsJson:             ToString(app.AdvancedSettingsJson),
 	}, nil
 
@@ -290,6 +292,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		CustomDomainsDiff:                app.CustomDomainsList().diff(state.CustomDomainsList()),
 		DeploymentRestrictionsDiff:       *deploymentRestrictions,
 		ApplicationDeploymentStageID:     ToString(app.DeploymentStageId),
+		ApplicationIsSkipped:             ToBool(app.IsSkipped),
 		AdvancedSettingsJson:             ToString(app.AdvancedSettingsJson),
 	}, nil
 
@@ -325,6 +328,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		Entrypoint:                   FromStringPointer(app.ApplicationResponse.Entrypoint),
 		Arguments:                    FromStringArray(app.ApplicationResponse.Arguments),
 		DeploymentStageId:            FromString(app.ApplicationDeploymentStageID),
+		IsSkipped:                    FromBool(app.ApplicationIsSkipped),
 		Healthchecks:                 &healthchecks,
 		AdvancedSettingsJson:         FromString(app.AdvancedSettingsJson),
 		AutoDeploy:                   FromBoolPointer(app.ApplicationResponse.AutoDeploy),

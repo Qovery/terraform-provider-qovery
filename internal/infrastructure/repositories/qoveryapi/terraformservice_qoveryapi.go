@@ -48,7 +48,7 @@ func (c terraformServiceQoveryAPI) Create(ctx context.Context, environmentID str
 
 	// Attach terraform service to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newTerraform.Id).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, newTerraform.Id, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, request.Name, response, err)
 		}
@@ -66,7 +66,7 @@ func (c terraformServiceQoveryAPI) Create(ctx context.Context, environmentID str
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, newTerraform.Id, resp, err)
 	}
 
-	return newDomainTerraformServiceFromQovery(newTerraform, deploymentStage.Id, request.AdvancedSettingsJson)
+	return newDomainTerraformServiceFromQovery(newTerraform, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newTerraform.Id), request.AdvancedSettingsJson)
 }
 
 // Get calls Qovery's API to retrieve a terraform service using the given terraformServiceID.
@@ -89,7 +89,7 @@ func (c terraformServiceQoveryAPI) Get(ctx context.Context, terraformServiceID s
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceTerraformService, terraformServiceID, nil, err)
 	}
 
-	return newDomainTerraformServiceFromQovery(terraform, deploymentStage.Id, *advancedSettingsAsJson)
+	return newDomainTerraformServiceFromQovery(terraform, deploymentStage.Id, getServiceIsSkipped(deploymentStage, terraform.Id), *advancedSettingsAsJson)
 }
 
 // Update calls Qovery's API to update a terraform service using the given terraformServiceID and request.
@@ -109,7 +109,7 @@ func (c terraformServiceQoveryAPI) Update(ctx context.Context, terraformServiceI
 
 	// Attach terraform service to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, terraform.Id).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, terraform.Id, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceTerraformService, request.Name, response, err)
 		}
@@ -127,7 +127,7 @@ func (c terraformServiceQoveryAPI) Update(ctx context.Context, terraformServiceI
 		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceTerraformService, terraform.Id, resp, err)
 	}
 
-	return newDomainTerraformServiceFromQovery(terraform, deploymentStage.Id, request.AdvancedSettingsJson)
+	return newDomainTerraformServiceFromQovery(terraform, deploymentStage.Id, getServiceIsSkipped(deploymentStage, terraform.Id), request.AdvancedSettingsJson)
 }
 
 // Delete calls Qovery's API to deletes a terraform service using the given terraformServiceID.
@@ -164,7 +164,9 @@ func (c terraformServiceQoveryAPI) List(ctx context.Context, environmentID strin
 
 	services := make([]terraformservice.TerraformService, 0, len(terraformList.GetResults()))
 	for _, tf := range terraformList.GetResults() {
-		service, err := newDomainTerraformServiceFromQovery(&tf, "", "")
+		// isSkipped is set to false because fetching deployment stage per service would cause N+1 API calls.
+		// The accurate value is retrieved in Get when reading individual services.
+		service, err := newDomainTerraformServiceFromQovery(&tf, "", false, "")
 		if err != nil {
 			return nil, errors.Wrap(err, "failed to convert terraform service")
 		}

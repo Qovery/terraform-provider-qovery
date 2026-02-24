@@ -38,6 +38,7 @@ type UpsertRepositoryRequest struct {
 	EnvironmentVariables      []variable.UpsertRequest
 	Secrets                   []secret.UpsertRequest
 	DeploymentStageID         string
+	IsSkipped                 bool
 	AdvancedSettingsJson      string
 	CustomDomains             client.CustomDomainsDiff
 }

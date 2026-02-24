@@ -41,6 +41,7 @@ type Helm struct {
 	ExternalHost                 types.String         `tfsdk:"external_host"`
 	InternalHost                 types.String         `tfsdk:"internal_host"`
 	DeploymentStageId            types.String         `tfsdk:"deployment_stage_id"`
+	IsSkipped                    types.Bool           `tfsdk:"is_skipped"`
 	AdvancedSettingsJson         types.String         `tfsdk:"advanced_settings_json"`
 	DeploymentRestrictions       types.Set            `tfsdk:"deployment_restrictions"`
 	CustomDomains                types.Set            `tfsdk:"custom_domains"`
@@ -212,6 +213,7 @@ func (h Helm) toUpsertRepositoryRequest(customDomainsDiff client.CustomDomainsDi
 		Source:                    h.Source.toUpsertRequest(),
 		ValuesOverride:            h.ValuesOverride.toUpsertRequest(),
 		DeploymentStageID:         ToString(h.DeploymentStageId),
+		IsSkipped:                 ToBool(h.IsSkipped),
 		Ports:                     ports,
 		AdvancedSettingsJson:      ToString(h.AdvancedSettingsJson),
 		CustomDomains:             customDomainsDiff,
@@ -478,6 +480,7 @@ func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) H
 		InternalHost:                 FromStringPointer(helm.InternalHost),
 		ExternalHost:                 FromStringPointer(helm.ExternalHost),
 		DeploymentStageId:            FromString(helm.DeploymentStageID),
+		IsSkipped:                    FromBool(helm.IsSkipped),
 		AdvancedSettingsJson:         FromString(helm.AdvancedSettingsJson),
 		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, helm.JobDeploymentRestrictions),
 		CustomDomains:                fromCustomDomainList(state.CustomDomains, helm.CustomDomains).toTerraformSet(ctx),

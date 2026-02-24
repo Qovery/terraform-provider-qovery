@@ -14,7 +14,7 @@ require (
 	github.com/hashicorp/terraform-plugin-log v0.10.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.38.2
 	github.com/pkg/errors v0.9.1
-	github.com/qovery/qovery-client-go v0.0.0-20260219090747-b1c8e03c2c2c
+	github.com/qovery/qovery-client-go v0.0.0-20260223131227-b94c1253d12d
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/sethvargo/go-envconfig v1.1.0
 	github.com/stretchr/testify v1.11.1

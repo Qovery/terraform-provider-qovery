@@ -40,6 +40,7 @@ type UpsertRepositoryRequest struct {
 	Storages             []storage.UpsertRequest
 	Ports                []port.UpsertRequest
 	DeploymentStageID    string
+	IsSkipped            bool
 	Healthchecks         qovery.Healthcheck
 	AdvancedSettingsJson string
 	CustomDomains        client.CustomDomainsDiff

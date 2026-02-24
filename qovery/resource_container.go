@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
@@ -493,6 +494,12 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Description: "Id of the deployment stage.",
 				Optional:    true,
 				Computed:    true,
+			},
+			"is_skipped": schema.BoolAttribute{
+				Description: "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
+				Optional:    true,
+				Computed:    true,
+				Default:     booldefault.StaticBool(false),
 			},
 			"advanced_settings_json": schema.StringAttribute{
 				Description: "Advanced settings.",

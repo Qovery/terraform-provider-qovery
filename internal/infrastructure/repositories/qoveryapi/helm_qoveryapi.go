@@ -67,7 +67,7 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 
 	// Attach helm to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, newHelm.Id).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, newHelm.Id, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, request.Name, response, err)
 		}
@@ -91,7 +91,7 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelmCustomDomain, newHelm.Id, resp, err)
 	}
 
-	return newDomainHelmFromQovery(newHelm, deploymentStage.Id, request.AdvancedSettingsJson, customDomains)
+	return newDomainHelmFromQovery(newHelm, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newHelm.Id), request.AdvancedSettingsJson, customDomains)
 }
 
 // Get calls Qovery's API to retrieve a helm using the given helmID.
@@ -120,7 +120,7 @@ func (c helmQoveryAPI) Get(ctx context.Context, helmID string, advancedSettingsJ
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceHelmCustomDomain, helm.Id, resp, err)
 	}
 
-	return newDomainHelmFromQovery(helm, deploymentStage.Id, *advancedSettingsAsJson, customDomains)
+	return newDomainHelmFromQovery(helm, deploymentStage.Id, getServiceIsSkipped(deploymentStage, helm.Id), *advancedSettingsAsJson, customDomains)
 }
 
 // Update calls Qovery's API to update a helm using the given helmID and request.
@@ -179,7 +179,7 @@ func (c helmQoveryAPI) Update(ctx context.Context, helmID string, request helm.U
 
 	// Attach helm to deployment stage
 	if len(request.DeploymentStageID) > 0 {
-		_, response, err := c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, helmID).Execute()
+		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, helmID, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
 			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceHelm, request.Name, response, err)
 		}
@@ -203,7 +203,7 @@ func (c helmQoveryAPI) Update(ctx context.Context, helmID string, request helm.U
 		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceHelmCustomDomain, helm.Id, resp, err)
 	}
 
-	return newDomainHelmFromQovery(helm, deploymentStage.Id, request.AdvancedSettingsJson, customDomains)
+	return newDomainHelmFromQovery(helm, deploymentStage.Id, getServiceIsSkipped(deploymentStage, helm.Id), request.AdvancedSettingsJson, customDomains)
 }
 
 // Delete calls Qovery's API to deletes a helm using the given helmID.
