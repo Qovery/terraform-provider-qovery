@@ -46,19 +46,23 @@ func (d *containerRegistryDataSource) Configure(_ context.Context, req datasourc
 
 func (r containerRegistryDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery container registry resource. This can be used to create and manage Qovery container registry.",
+		Description:         "Use this data source to retrieve information about an existing Qovery container registry.",
+		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery container registry.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Required:    true,
-				Description: "Id of the container registry.",
+				Description:         "Id of the container registry.",
+				MarkdownDescription: "Id of the container registry.",
+				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				Description:         "Id of the organization.",
+				MarkdownDescription: "Id of the organization.",
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the container registry.",
-				Computed:    true,
+				Description:         "Name of the container registry.",
+				MarkdownDescription: "Name of the container registry.",
+				Computed:            true,
 			},
 			"kind": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -66,16 +70,23 @@ func (r containerRegistryDataSource) Schema(_ context.Context, _ datasource.Sche
 					registryKinds,
 					nil,
 				),
+				MarkdownDescription: descriptions.NewStringEnumDescription(
+					"Kind of the container registry.",
+					registryKinds,
+					nil,
+				),
 				Computed: true,
 			},
 			"url": schema.StringAttribute{
-				Description: "URL of the container registry.",
-				Computed:    true,
+				Description:         "URL of the container registry.",
+				MarkdownDescription: "URL of the container registry.",
+				Computed:            true,
 			},
 			"description": schema.StringAttribute{
-				Description: "Description of the container registry.",
-				Optional:    true,
-				Computed:    true,
+				Description:         "Description of the container registry.",
+				MarkdownDescription: "Description of the container registry.",
+				Optional:            true,
+				Computed:            true,
 			},
 		},
 	}

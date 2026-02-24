@@ -52,36 +52,44 @@ func (r *awsCredentialsResource) Configure(_ context.Context, req resource.Confi
 func (r awsCredentialsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery AWS credentials resource. This can be used to create and manage Qovery AWS credentials.",
+		MarkdownDescription: "Provides a Qovery AWS credentials resource. This is used to create and manage AWS credentials that Qovery uses to provision and manage EKS clusters and associated resources in your AWS account.\n\n" +
+			"You can authenticate using either **IAM access keys** (`access_key_id` + `secret_access_key`) or an **IAM role** (`role_arn`). These two methods are mutually exclusive.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the AWS credentials.",
-				Computed:    true,
+				Description:         "Id of the AWS credentials.",
+				MarkdownDescription: "Unique identifier of the AWS credentials (UUID format).",
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				Description:         "Id of the organization.",
+				MarkdownDescription: "ID of the Qovery organization in which to create the credentials.",
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the aws credentials.",
-				Required:    true,
+				Description:         "Name of the aws credentials.",
+				MarkdownDescription: "Name of the AWS credentials. Used for display purposes in the Qovery console.",
+				Required:            true,
 			},
 			"access_key_id": schema.StringAttribute{
-				Description: "Your AWS access key id.",
-				Optional:    true,
-				Sensitive:   false,
+				Description:         "Your AWS access key id.",
+				MarkdownDescription: "AWS IAM access key ID. Required when using access key authentication. Must not be set when `role_arn` is specified. Use a variable reference instead of hardcoding this value.",
+				Optional:            true,
+				Sensitive:           false,
 			},
 			"secret_access_key": schema.StringAttribute{
-				Description: "Your AWS secret access key.",
-				Optional:    true,
-				Sensitive:   true,
+				Description:         "Your AWS secret access key.",
+				MarkdownDescription: "AWS IAM secret access key. Required when using access key authentication. This is a sensitive value and will not be displayed in plan output. Use a variable reference instead of hardcoding this value.",
+				Optional:            true,
+				Sensitive:           true,
 			},
 			"role_arn": schema.StringAttribute{
-				Description: "Your AWS role that you want Qovery to assume. You can't specify access/secret_key if you use a role",
-				Optional:    true,
-				Sensitive:   false,
+				Description:         "Your AWS role that you want Qovery to assume. You can't specify access/secret_key if you use a role",
+				MarkdownDescription: "ARN of the AWS IAM role that Qovery will assume (e.g., `arn:aws:iam::123456789012:role/QoveryRole`). Use this for cross-account access or when you prefer role-based authentication. Must not be set when `access_key_id`/`secret_access_key` are specified.",
+				Optional:            true,
+				Sensitive:           false,
 			},
 		},
 	}

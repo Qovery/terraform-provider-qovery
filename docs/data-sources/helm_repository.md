@@ -1,11 +1,13 @@
 # qovery_helm_repository (Data Source)
 
-Provides a Qovery helm repository resource. This can be used to create and manage Qovery helm repository.
+Use this data source to retrieve information about an existing Qovery helm repository.
+
 ## Example Usage
+
 ```terraform
 data "qovery_helm_repository" "my_helm_repository" {
-  id              = "<helm_repository_id>"
-  organization_id = "<organization_id>"
+  id              = qovery_helm_repository.my_helm_repository.id
+  organization_id = qovery_organization.my_organization.id
 }
 ```
 
@@ -14,7 +16,7 @@ data "qovery_helm_repository" "my_helm_repository" {
 
 ### Required
 
-- `id` (String) Id of the helm repository.
+- `id` (String) Unique identifier of the helm repository (UUID format).
 - `organization_id` (String) Id of the organization.
 
 ### Optional
@@ -23,6 +25,5 @@ data "qovery_helm_repository" "my_helm_repository" {
 - `kind` (String) Kind of the helm repository.
 	- Can be: `HTTPS`, `OCI_DOCKER_HUB`, `OCI_DOCR`, `OCI_ECR`, `OCI_GENERIC_CR`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR`, `OCI_PUBLIC_ECR`, `OCI_SCALEWAY_CR`.
 - `name` (String) Name of the helm repository.
-- `skip_tls_verification` (Boolean) Bypass tls certificate verification when connecting to repository
+- `skip_tls_verification` (Boolean) Whether TLS certificate verification is bypassed when connecting to the repository.
 - `url` (String) URL of the helm repository.
-

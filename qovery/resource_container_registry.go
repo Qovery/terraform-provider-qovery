@@ -56,22 +56,28 @@ func (r *containerRegistryResource) Configure(_ context.Context, req resource.Co
 
 func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery container registry resource. This can be used to create and manage Qovery container registry.",
+		Description: "Provides a Qovery container registry resource. This can be used to create and manage Qovery container registries.",
+		MarkdownDescription: "Provides a Qovery container registry resource. This can be used to create and manage Qovery container registries.\n\n" +
+			"A container registry stores Docker images that can be deployed as Qovery container services. " +
+			"Container registries are configured at the organization level and can be referenced by containers across all projects.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the container registry.",
-				Computed:    true,
+				Description:         "Id of the container registry.",
+				MarkdownDescription: "Id of the container registry.",
+				Computed:             true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				Description:         "Id of the organization.",
+				MarkdownDescription: "Id of the organization.",
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the container registry.",
-				Required:    true,
+				Description:         "Name of the container registry.",
+				MarkdownDescription: "Name of the container registry.",
+				Required:            true,
 			},
 			"kind": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -79,6 +85,18 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 					registryKinds,
 					nil,
 				),
+				MarkdownDescription: "Kind of the container registry. Supported values:\n" +
+					"  - `ECR`: Amazon Elastic Container Registry (private).\n" +
+					"  - `PUBLIC_ECR`: Amazon Elastic Container Registry (public).\n" +
+					"  - `DOCR`: DigitalOcean Container Registry.\n" +
+					"  - `SCALEWAY_CR`: Scaleway Container Registry.\n" +
+					"  - `DOCKER_HUB`: Docker Hub.\n" +
+					"  - `GITHUB_CR`: GitHub Container Registry.\n" +
+					"  - `GITHUB_ENTERPRISE_CR`: GitHub Enterprise Container Registry.\n" +
+					"  - `GITLAB_CR`: GitLab Container Registry.\n" +
+					"  - `GCP_ARTIFACT_REGISTRY`: Google Cloud Artifact Registry.\n" +
+					"  - `AZURE_CR`: Azure Container Registry.\n" +
+					"  - `GENERIC_CR`: Any OCI-compatible container registry.",
 				Required: true,
 				Validators: []validator.String{
 					validators.NewStringEnumValidator(registryKinds),
@@ -86,47 +104,60 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 			},
 			"url": schema.StringAttribute{
 				Description: "URL of the container registry.",
+				MarkdownDescription: "URL of the container registry (e.g. `https://docker.io` for Docker Hub, " +
+					"`https://<account_id>.dkr.ecr.<region>.amazonaws.com` for ECR).",
 				Required:    true,
 			},
 			"description": schema.StringAttribute{
-				Description: "Description of the container registry.",
-				Optional:    true,
-				Computed:    true,
+				Description:         "Description of the container registry.",
+				MarkdownDescription: "Description of the container registry.",
+				Optional:            true,
+				Computed:            true,
 			},
 			"config": schema.SingleNestedAttribute{
 				Description: "Configuration needed to authenticate the container registry.",
+				MarkdownDescription: "Configuration needed to authenticate with the container registry. " +
+					"Required fields depend on the `kind` of registry.",
 				Optional:    true,
 				Attributes: map[string]schema.Attribute{
 					"access_key_id": schema.StringAttribute{
 						Description: "Required if kind is `ECR` or `PUBLIC_ECR`.",
+						MarkdownDescription: "AWS Access Key ID. Required if `kind` is `ECR` or `PUBLIC_ECR`.",
 						Optional:    true,
 					},
 					"secret_access_key": schema.StringAttribute{
 						Description: "Required if kind is `ECR` or `PUBLIC_ECR`.",
+						MarkdownDescription: "AWS Secret Access Key. Required if `kind` is `ECR` or `PUBLIC_ECR`.",
 						Optional:    true,
 					},
 					"region": schema.StringAttribute{
 						Description: "Required if kind is `ECR` or `SCALEWAY_CR`.",
+						MarkdownDescription: "Region of the registry. Required if `kind` is `ECR` or `SCALEWAY_CR` (e.g. `us-east-1`, `fr-par`).",
 						Optional:    true,
 					},
 					"scaleway_access_key": schema.StringAttribute{
 						Description: "Required if kind is `SCALEWAY_CR`.",
+						MarkdownDescription: "Scaleway Access Key. Required if `kind` is `SCALEWAY_CR`.",
 						Optional:    true,
 					},
 					"scaleway_secret_key": schema.StringAttribute{
 						Description: "Required if kind is `SCALEWAY_CR`.",
+						MarkdownDescription: "Scaleway Secret Key. Required if `kind` is `SCALEWAY_CR`.",
 						Optional:    true,
 					},
 					"scaleway_project_id": schema.StringAttribute{
 						Description: "Required if kind is `SCALEWAY_CR`.",
+						MarkdownDescription: "Scaleway Project ID. Required if `kind` is `SCALEWAY_CR`.",
 						Optional:    true,
 					},
 					"username": schema.StringAttribute{
-						Description: "Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.",
+						Description: "Required if kind is `DOCKER_HUB`, `GITHUB_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
+						MarkdownDescription: "Username for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
 						Optional:    true,
 					},
 					"password": schema.StringAttribute{
-						Description: "Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.",
+						Description: "Required if kind is `DOCKER_HUB`, `GITHUB_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
+						MarkdownDescription: "Password or access token for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
 						Optional:    true,
 					},
 				},

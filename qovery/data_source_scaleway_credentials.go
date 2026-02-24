@@ -47,18 +47,22 @@ func (d *scalewayCredentialsDataSource) Configure(_ context.Context, req datasou
 func (r scalewayCredentialsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Use this data source to retrieve information about an existing Scaleway credentials.",
+		MarkdownDescription: "Use this data source to retrieve information about existing Qovery Scaleway credentials. This is useful for referencing credentials created outside of Terraform or in a different Terraform configuration.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the credentials.",
-				Required:    true,
+				Description:         "Id of the credentials.",
+				MarkdownDescription: "ID of the Scaleway credentials to retrieve.",
+				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				Description:         "Id of the organization.",
+				MarkdownDescription: "ID of the organization containing the credentials.",
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the Scaleway credentials.",
-				Computed:    true,
+				Description:         "Name of the Scaleway credentials.",
+				MarkdownDescription: "Name of the Scaleway credentials.",
+				Computed:            true,
 			},
 		},
 	}

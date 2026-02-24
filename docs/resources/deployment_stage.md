@@ -2,6 +2,8 @@
 
 Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.
 
+Deployment stages control the order in which services within an environment are deployed. Services assigned to earlier stages are deployed before those in later stages.
+
 
 ## Example
 
@@ -16,9 +18,11 @@ resource "qovery_deployment_stage" "my_deployment_stage" {
   name           = "MyDeploymentStage"
 
   # Optional
-  description = ""
-  is_after    = qovery_deployment_stage.first_deployment_stage.id
-  is_before   = qovery_deployment_stage.third_deployment_stage.id
+  description = "Deploy backend services after databases are ready"
+
+  # Position this stage relative to other stages using is_after / is_before
+  is_after  = qovery_deployment_stage.first_deployment_stage.id
+  is_before = qovery_deployment_stage.third_deployment_stage.id
 
   depends_on = [
     qovery_environment.my_environment
@@ -33,19 +37,20 @@ You can find complete examples within these repositories:
 
 ### Required
 
-- `environment_id` (String) Id of the environment.
+- `environment_id` (String) Identifier of the environment for this deployment stage (UUID format). **Cannot be changed after creation** (forces resource replacement).
 - `name` (String) Name of the deployment stage.
 
 ### Optional
 
 - `description` (String) Description of the deployment stage.
-- `is_after` (String) Move the current deployment stage after the target deployment stage
-- `is_before` (String) Move the current deployment stage before the target deployment stage
+- `is_after` (String) Identifier (UUID) of another deployment stage. Positions this stage immediately after the specified stage in the deployment order.
+- `is_before` (String) Identifier (UUID) of another deployment stage. Positions this stage immediately before the specified stage in the deployment order.
 
 ### Read-Only
 
-- `id` (String) Id of the deployment stage.
+- `id` (String) Unique identifier of the deployment stage (UUID format).
 ## Import
 ```shell
+# Import uses the format: environment_id,deployment_stage_name
 terraform import qovery_deployment_stage.my_deployment_stage "<environment_id>,<deployment_stage_name>"
 ```

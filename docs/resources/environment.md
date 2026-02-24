@@ -2,6 +2,8 @@
 
 Provides a Qovery environment resource. This can be used to create and manage Qovery environments.
 
+An environment is an isolated workspace within a project where services (applications, containers, databases, jobs) are deployed. Environment variables and secrets defined at the environment level are inherited by all services within the environment, and can override project-level variables.
+
 
 ## Example
 
@@ -13,51 +15,60 @@ Provides a Qovery environment resource. This can be used to create and manage Qo
 resource "qovery_environment" "my_environment" {
   # Required
   project_id = qovery_project.my_project.id
-  name       = "MyEnvironment"
+  name       = "production"
 
   # Optional
+  # cluster_id cannot be changed after creation (forces replacement)
   cluster_id = qovery_cluster.my_cluster.id
-  mode       = "DEVELOPMENT"
+  mode       = "PRODUCTION"
+
+  # Environment-level variables are inherited by all services
   environment_variables = [
     {
       key   = "ENV_VAR_KEY"
       value = "ENV_VAR_VALUE"
     }
   ]
+
+  # Aliases create alternative names for existing variables
   environment_variable_aliases = [
     {
       key = "ENV_VAR_KEY_ALIAS"
-      # the value of the alias must be the name of the aliased variable
-      # e.g here it is an alias to the above declared environment variable "ENV_VAR_KEY"
+      # Must match the key of an existing environment variable
       value = "ENV_VAR_KEY"
     }
   ]
+
+  # Overrides replace values of variables inherited from the project level
   environment_variable_overrides = [
     {
-      # the key of the override must be the name of the overridden variable
-      # e.g here it is an override on a variable declared at project scope "SOME_PROJECT_VARIABLE"
+      # Must match the key of a project-level variable
       key   = "SOME_PROJECT_VARIABLE"
       value = "OVERRIDDEN_VALUE"
     }
   ]
+
+  # Secrets are encrypted and not visible after creation
   secrets = [
     {
       key   = "SECRET_KEY"
       value = "SECRET_VALUE"
     }
   ]
+
+  # Aliases create alternative names for existing secrets
   secret_aliases = [
     {
       key = "SECRET_KEY_ALIAS"
-      # the value of the alias must be the name of the aliased secret
-      # e.g here it is an alias to the above declared secret "SECRET_KEY"
+      # Must match the key of an existing secret
       value = "SECRET_KEY"
     }
   ]
+
+  # Overrides replace values of secrets inherited from the project level
   secret_overrides = [
     {
-      # the key of the override must be the name of the overridden secret
-      # e.g here it is an override on a secret declared at project scope "SOME_PROJECT_SECRET"
+      # Must match the key of a project-level secret
       key   = "SOME_PROJECT_SECRET"
       value = "OVERRIDDEN_VALUE"
     }
@@ -76,34 +87,34 @@ You can find complete examples within these repositories:
 
 ### Required
 
-- `cluster_id` (String) Id of the cluster [NOTE: can't be updated after creation].
+- `cluster_id` (String) Identifier of the cluster where this environment will be deployed (UUID format). **Cannot be changed after creation** (forces resource replacement).
 - `name` (String) Name of the environment.
-- `project_id` (String) Id of the project.
+- `project_id` (String) Identifier of the project containing this environment (UUID format).
 
 ### Optional
 
-- `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this environment. (see [below for nested schema](#nestedatt--environment_variable_aliases))
-- `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this environment. (see [below for nested schema](#nestedatt--environment_variable_overrides))
-- `environment_variables` (Attributes Set) List of environment variables linked to this environment. (see [below for nested schema](#nestedatt--environment_variables))
-- `mode` (String) Mode of the environment.
+- `environment_variable_aliases` (Attributes Set) Set of environment variable aliases linked to this environment. An alias creates an alternative name that points to an existing environment variable. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variable_overrides` (Attributes Set) Set of environment variable overrides linked to this environment. An override replaces the value of a variable inherited from the project level. (see [below for nested schema](#nestedatt--environment_variable_overrides))
+- `environment_variables` (Attributes Set) Set of environment variables linked to this environment. These variables are inherited by all services within the environment. (see [below for nested schema](#nestedatt--environment_variables))
+- `mode` (String) Mode of the environment. The mode affects how the environment behaves and is displayed in the Qovery console.
 	- Can be: `DEVELOPMENT`, `PREVIEW`, `PRODUCTION`, `STAGING`.
 	- Default: `DEVELOPMENT`.
-- `secret_aliases` (Attributes Set) List of secret aliases linked to this environment. (see [below for nested schema](#nestedatt--secret_aliases))
-- `secret_overrides` (Attributes Set) List of secret overrides linked to this environment. (see [below for nested schema](#nestedatt--secret_overrides))
-- `secrets` (Attributes Set) List of secrets linked to this environment. (see [below for nested schema](#nestedatt--secrets))
+- `secret_aliases` (Attributes Set) Set of secret aliases linked to this environment. An alias creates an alternative name that points to an existing secret. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secret_overrides` (Attributes Set) Set of secret overrides linked to this environment. An override replaces the value of a secret inherited from the project level. (see [below for nested schema](#nestedatt--secret_overrides))
+- `secrets` (Attributes Set) Set of secrets linked to this environment. Secrets are like environment variables but their values are encrypted and not visible after creation. They are inherited by all services within the environment. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this environment. (see [below for nested schema](#nestedatt--built_in_environment_variables))
-- `id` (String) Id of the environment.
+- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this environment. Built-in variables are automatically generated by Qovery and provide metadata about the environment (e.g., environment ID, cluster ID). (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `id` (String) Unique identifier of the environment (UUID format).
 
 <a id="nestedatt--environment_variable_aliases"></a>
 ### Nested Schema for `environment_variable_aliases`
 
 Required:
 
-- `key` (String) Name of the environment variable alias.
-- `value` (String) Name of the variable to alias.
+- `key` (String) Name of the alias. This is the new key that will be available as an environment variable.
+- `value` (String) Name of the variable to alias. Must match the `key` of an existing environment variable.
 
 Optional:
 
@@ -111,7 +122,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the environment variable alias.
+- `id` (String) Identifier of the environment variable alias.
 
 
 <a id="nestedatt--environment_variable_overrides"></a>
@@ -119,8 +130,8 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the environment variable override.
-- `value` (String) Value of the environment variable override.
+- `key` (String) Name of the environment variable to override. Must match the `key` of a variable defined at a higher scope (e.g., project level).
+- `value` (String) Override value of the environment variable.
 
 Optional:
 
@@ -128,7 +139,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the environment variable override.
+- `id` (String) Identifier of the environment variable override.
 
 
 <a id="nestedatt--environment_variables"></a>
@@ -145,7 +156,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the environment variable.
+- `id` (String) Identifier of the environment variable.
 
 
 <a id="nestedatt--secret_aliases"></a>
@@ -153,8 +164,8 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the secret alias.
-- `value` (String) Name of the secret to alias.
+- `key` (String) Name of the alias. This is the new key that will be available as a secret.
+- `value` (String) Name of the secret to alias. Must match the `key` of an existing secret.
 
 Optional:
 
@@ -162,7 +173,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the secret alias.
+- `id` (String) Identifier of the secret alias.
 
 
 <a id="nestedatt--secret_overrides"></a>
@@ -170,8 +181,8 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the secret override.
-- `value` (String, Sensitive) Value of the secret override.
+- `key` (String) Name of the secret to override. Must match the `key` of a secret defined at a higher scope (e.g., project level).
+- `value` (String, Sensitive) Override value of the secret. The value is write-only and will not be displayed in plan output.
 
 Optional:
 
@@ -179,7 +190,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the secret override.
+- `id` (String) Identifier of the secret override.
 
 
 <a id="nestedatt--secrets"></a>
@@ -188,7 +199,7 @@ Read-Only:
 Required:
 
 - `key` (String) Key of the secret.
-- `value` (String, Sensitive) Value of the secret.
+- `value` (String, Sensitive) Value of the secret. The value is write-only and will not be displayed in plan output.
 
 Optional:
 
@@ -196,7 +207,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the secret.
+- `id` (String) Identifier of the secret.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>
@@ -205,7 +216,7 @@ Read-Only:
 Read-Only:
 
 - `description` (String) Description of the environment variable.
-- `id` (String) Id of the environment variable.
+- `id` (String) Identifier of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
 ## Import

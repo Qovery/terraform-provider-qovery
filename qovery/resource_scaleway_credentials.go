@@ -50,38 +50,48 @@ func (r *scalewayCredentialsResource) Configure(_ context.Context, req resource.
 func (r scalewayCredentialsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery SCALEWAY credentials resource. This can be used to create and manage Qovery SCALEWAY credentials.",
+		MarkdownDescription: "Provides a Qovery Scaleway credentials resource. This is used to create and manage Scaleway credentials that Qovery uses to provision and manage Kapsule clusters in your Scaleway account.\n\n" +
+			"All four Scaleway authentication parameters are required: access key, secret key, project ID, and organization ID. " +
+			"You can find these values in your [Scaleway console](https://console.scaleway.com/iam/api-keys).",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the SCALEWAY credentials.",
-				Computed:    true,
+				Description:         "Id of the SCALEWAY credentials.",
+				MarkdownDescription: "Unique identifier of the Scaleway credentials (UUID format).",
+				Computed:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				Description:         "Id of the organization.",
+				MarkdownDescription: "ID of the Qovery organization in which to create the credentials.",
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the scaleway credentials.",
-				Required:    true,
+				Description:         "Name of the scaleway credentials.",
+				MarkdownDescription: "Name of the Scaleway credentials. Used for display purposes in the Qovery console.",
+				Required:            true,
 			},
 			"scaleway_access_key": schema.StringAttribute{
-				Description: "Your SCALEWAY access key id.",
-				Required:    true,
-				Sensitive:   false,
+				Description:         "Your SCALEWAY access key id.",
+				MarkdownDescription: "Scaleway API access key (e.g., `SCWxxxxxxxxxxxxxxxxx`). Found in the Scaleway console under IAM > API Keys. Use a variable reference instead of hardcoding this value.",
+				Required:            true,
+				Sensitive:           false,
 			},
 			"scaleway_secret_key": schema.StringAttribute{
-				Description: "Your SCALEWAY secret key.",
-				Required:    true,
-				Sensitive:   true,
+				Description:         "Your SCALEWAY secret key.",
+				MarkdownDescription: "Scaleway API secret key. This is a sensitive value and will not be displayed in plan output. Use a variable reference instead of hardcoding this value.",
+				Required:            true,
+				Sensitive:           true,
 			},
 			"scaleway_project_id": schema.StringAttribute{
-				Description: "Your SCALEWAY project ID.",
-				Required:    true,
-				Sensitive:   false,
+				Description:         "Your SCALEWAY project ID.",
+				MarkdownDescription: "Scaleway project ID (UUID format). Resources will be created in this project. Found in the Scaleway console under Project Settings.",
+				Required:            true,
+				Sensitive:           false,
 			},
 			"scaleway_organization_id": schema.StringAttribute{
-				Description: "Your SCALEWAY organization ID.",
-				Required:    true,
-				Sensitive:   false,
+				Description:         "Your SCALEWAY organization ID.",
+				MarkdownDescription: "Scaleway organization ID (UUID format). Found in the Scaleway console under Organization Settings.",
+				Required:            true,
+				Sensitive:           false,
 			},
 		},
 	}

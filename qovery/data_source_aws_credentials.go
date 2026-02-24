@@ -46,19 +46,23 @@ func (d *awsCredentialsDataSource) Configure(_ context.Context, req datasource.C
 
 func (r awsCredentialsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery AWS credentials resource. This can be used to create and manage Qovery AWS credentials.",
+		Description: "Use this data source to retrieve information about existing Qovery AWS credentials.",
+		MarkdownDescription: "Use this data source to retrieve information about existing Qovery AWS credentials. This is useful for referencing credentials created outside of Terraform or in a different Terraform configuration.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the AWS credentials.",
-				Required:    true,
+				Description:         "Id of the AWS credentials.",
+				MarkdownDescription: "ID of the AWS credentials to retrieve.",
+				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				Description:         "Id of the organization.",
+				MarkdownDescription: "ID of the organization containing the credentials.",
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the aws credentials.",
-				Computed:    true,
+				Description:         "Name of the aws credentials.",
+				MarkdownDescription: "Name of the AWS credentials.",
+				Computed:            true,
 			},
 		},
 	}

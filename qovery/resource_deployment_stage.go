@@ -52,37 +52,48 @@ func (r *deploymentStageResource) Configure(_ context.Context, req resource.Conf
 
 func (r deploymentStageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.",
+		Description: "Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages. " +
+			"Deployment stages control the order in which services within an environment are deployed. " +
+			"Services assigned to earlier stages are deployed before those in later stages.",
+		MarkdownDescription: "Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.\n\n" +
+			"Deployment stages control the order in which services within an environment are deployed. " +
+			"Services assigned to earlier stages are deployed before those in later stages.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the deployment stage.",
-				Computed:    true,
+				Description:         "Unique identifier of the deployment stage (UUID format).",
+				MarkdownDescription: "Unique identifier of the deployment stage (UUID format).",
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"environment_id": schema.StringAttribute{
-				Description: "Id of the environment.",
-				Required:    true,
+				Description:         "Identifier of the environment for this deployment stage (UUID format). Cannot be changed after creation (forces resource replacement).",
+				MarkdownDescription: "Identifier of the environment for this deployment stage (UUID format). **Cannot be changed after creation** (forces resource replacement).",
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the deployment stage.",
-				Required:    true,
+				Description:         "Name of the deployment stage.",
+				MarkdownDescription: "Name of the deployment stage.",
+				Required:            true,
 			},
 			"description": schema.StringAttribute{
-				Description: "Description of the deployment stage.",
-				Optional:    true,
+				Description:         "Description of the deployment stage.",
+				MarkdownDescription: "Description of the deployment stage.",
+				Optional:            true,
 			},
 			"is_after": schema.StringAttribute{
-				Description: "Move the current deployment stage after the target deployment stage",
-				Optional:    true,
+				Description:         "Identifier (UUID) of another deployment stage. Positions this stage immediately after the specified stage in the deployment order.",
+				MarkdownDescription: "Identifier (UUID) of another deployment stage. Positions this stage immediately after the specified stage in the deployment order.",
+				Optional:            true,
 			},
 			"is_before": schema.StringAttribute{
-				Description: "Move the current deployment stage before the target deployment stage",
-				Optional:    true,
+				Description:         "Identifier (UUID) of another deployment stage. Positions this stage immediately before the specified stage in the deployment order.",
+				MarkdownDescription: "Identifier (UUID) of another deployment stage. Positions this stage immediately before the specified stage in the deployment order.",
+				Optional:            true,
 			},
 		},
 	}

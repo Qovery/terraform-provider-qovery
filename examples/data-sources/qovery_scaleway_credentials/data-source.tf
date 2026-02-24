@@ -1,4 +1,4 @@
-data "qovery_aws_credentials" "my_aws_creds" {
+data "qovery_scaleway_credentials" "my_scaleway_creds" {
   id              = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
   organization_id = qovery_organization.my_organization.id
 }

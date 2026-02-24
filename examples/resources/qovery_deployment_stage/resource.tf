@@ -4,9 +4,11 @@ resource "qovery_deployment_stage" "my_deployment_stage" {
   name           = "MyDeploymentStage"
 
   # Optional
-  description = ""
-  is_after    = qovery_deployment_stage.first_deployment_stage.id
-  is_before   = qovery_deployment_stage.third_deployment_stage.id
+  description = "Deploy backend services after databases are ready"
+
+  # Position this stage relative to other stages using is_after / is_before
+  is_after  = qovery_deployment_stage.first_deployment_stage.id
+  is_before = qovery_deployment_stage.third_deployment_stage.id
 
   depends_on = [
     qovery_environment.my_environment

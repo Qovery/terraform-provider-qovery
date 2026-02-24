@@ -1,11 +1,13 @@
 # qovery_labels_group (Data Source)
 
-Provides a Qovery labels group resource
+Use this data source to retrieve information about an existing Qovery labels group.
+
 ## Example Usage
+
 ```terraform
 data "qovery_labels_group" "my_labels_group" {
-  id              = "<labels_group_id>"
-  organization_id = "<organization_id>"
+  id              = qovery_labels_group.my_labels_group.id
+  organization_id = qovery_organization.my_organization.id
 }
 ```
 
@@ -14,20 +16,19 @@ data "qovery_labels_group" "my_labels_group" {
 
 ### Required
 
-- `id` (String) Id of the labels group
+- `id` (String) Unique identifier of the labels group (UUID format).
 - `organization_id` (String) Id of the organization.
 
 ### Optional
 
-- `labels` (Attributes Set) labels (see [below for nested schema](#nestedatt--labels))
-- `name` (String) name of the labels group
+- `labels` (Attributes Set) Set of labels included in this group. (see [below for nested schema](#nestedatt--labels))
+- `name` (String) Name of the labels group.
 
 <a id="nestedatt--labels"></a>
 ### Nested Schema for `labels`
 
 Required:
 
-- `key` (String)
-- `propagate_to_cloud_provider` (Boolean)
-- `value` (String)
-
+- `key` (String) Key of the label.
+- `propagate_to_cloud_provider` (Boolean) Whether this label is propagated to the underlying cloud provider resources.
+- `value` (String) Value of the label.

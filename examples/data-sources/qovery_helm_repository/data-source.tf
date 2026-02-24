@@ -1,4 +1,4 @@
 data "qovery_helm_repository" "my_helm_repository" {
-  id              = "<helm_repository_id>"
-  organization_id = "<organization_id>"
+  id              = qovery_helm_repository.my_helm_repository.id
+  organization_id = qovery_organization.my_organization.id
 }

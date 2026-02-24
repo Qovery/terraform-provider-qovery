@@ -55,22 +55,32 @@ func (r *organizationResource) Configure(_ context.Context, req resource.Configu
 
 func (r organizationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery organization resource. This can be used to create and manage Qovery organizations.",
+		Description: "Provides a Qovery organization resource. This can be used to manage Qovery organizations. " +
+			"Important: Organizations cannot be created or deleted via Terraform. Use terraform import to bring an existing organization under management.",
+		MarkdownDescription: "Provides a Qovery organization resource. This can be used to manage Qovery organizations.\n\n" +
+			"~> **Important:** Organizations cannot be created or deleted via Terraform. Use `terraform import` to bring an existing organization under management.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Computed:    true,
+				Description:         "Unique identifier of the organization (UUID format).",
+				MarkdownDescription: "Unique identifier of the organization (UUID format).",
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the organization.",
-				Required:    true,
+				Description:         "Name of the organization. Must be unique across your Qovery account.",
+				MarkdownDescription: "Name of the organization. Must be unique across your Qovery account.",
+				Required:            true,
 			},
 			"plan": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
-					"Plan of the organization.",
+					"Subscription plan of the organization. Determines available features, resource limits, and pricing tier.",
+					organizationPlans,
+					nil,
+				),
+				MarkdownDescription: descriptions.NewStringEnumDescription(
+					"Subscription plan of the organization. Determines available features, resource limits, and pricing tier.",
 					organizationPlans,
 					nil,
 				),
@@ -80,9 +90,10 @@ func (r organizationResource) Schema(_ context.Context, _ resource.SchemaRequest
 				},
 			},
 			"description": schema.StringAttribute{
-				Description: "Description of the organization.",
-				Optional:    true,
-				Computed:    true,
+				Description:         "Description of the organization.",
+				MarkdownDescription: "Description of the organization.",
+				Optional:            true,
+				Computed:            true,
 			},
 		},
 	}

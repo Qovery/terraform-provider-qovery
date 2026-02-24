@@ -1,6 +1,8 @@
 # qovery_annotations_group (Resource)
 
-Provides a Qovery annotations group resource
+Provides a Qovery annotations group resource. This can be used to create and manage Qovery annotations groups.
+
+Annotations groups allow you to define reusable sets of Kubernetes annotations at the organization level. These groups can then be attached to Qovery services (applications, containers, jobs, Helm charts) to automatically apply consistent Kubernetes annotations across your deployments. Unlike labels, annotations are scoped to specific Kubernetes resource types (e.g. pods, deployments, services).
 
 
 ## Example
@@ -10,13 +12,16 @@ Provides a Qovery annotations group resource
 </div><br />
 
 ```terraform
-resource "qovery_annotations_group" "annotations_group1" {
+resource "qovery_annotations_group" "my_annotations_group" {
   organization_id = qovery_organization.my_organization.id
   name            = "MyAnnotationsGroup"
+
   annotations = {
-    "key1" = "value1"
-    "key2" = "value2"
+    "prometheus.io/scrape" = "true"
+    "prometheus.io/port"   = "8080"
   }
+
+  # Annotations will be applied to pods and deployments
   scopes = ["PODS", "DEPLOYMENTS"]
 }
 ```
@@ -26,14 +31,14 @@ resource "qovery_annotations_group" "annotations_group1" {
 
 ### Required
 
-- `annotations` (Map of String) annotations
-- `name` (String) name of the annotations group
+- `annotations` (Map of String) Map of annotation key-value pairs to include in this group. Keys and values must conform to Kubernetes annotation constraints.
+- `name` (String) Name of the annotations group. Must be unique within the organization.
 - `organization_id` (String) Id of the organization.
-- `scopes` (Set of String) scopes of the annotations group
+- `scopes` (Set of String) Set of Kubernetes resource types to which these annotations will be applied. Valid values are: `PODS`, `DEPLOYMENTS`, `STATEFUL_SETS`, `SERVICES`, `INGRESS`, `HPA`, `SECRETS`, `JOBS`, `CRON_JOBS`.
 
 ### Read-Only
 
-- `id` (String) Id of the annotations group
+- `id` (String) Unique identifier of the annotations group (UUID format).
 ## Import
 ```shell
 terraform import qovery_annotations_group.my_qovery_annotations_group "<annotations_group_id>"

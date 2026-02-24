@@ -48,39 +48,53 @@ func (r *labelsGroupResource) Configure(_ context.Context, req resource.Configur
 
 func (r labelsGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery labels group resource",
+		Description: "Provides a Qovery labels group resource. This can be used to create and manage Qovery labels groups. " +
+			"Labels groups allow you to define reusable sets of Kubernetes labels at the organization level. " +
+			"These groups can then be attached to Qovery services (applications, containers, jobs, Helm charts) " +
+			"to automatically apply consistent Kubernetes labels across your deployments.",
+		MarkdownDescription: "Provides a Qovery labels group resource. This can be used to create and manage Qovery labels groups.\n\n" +
+			"Labels groups allow you to define reusable sets of Kubernetes labels at the organization level. " +
+			"These groups can then be attached to Qovery services (applications, containers, jobs, Helm charts) " +
+			"to automatically apply consistent Kubernetes labels across your deployments.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the labels group",
-				Computed:    true,
+				Description:         "Unique identifier of the labels group (UUID format).",
+				MarkdownDescription: "Unique identifier of the labels group (UUID format).",
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				Description:         "Id of the organization.",
+				MarkdownDescription: "Id of the organization.",
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "name of the labels group",
-				Required:    true,
+				Description:         "Name of the labels group. Must be unique within the organization.",
+				MarkdownDescription: "Name of the labels group. Must be unique within the organization.",
+				Required:            true,
 			},
 			"labels": schema.SetNestedAttribute{
-				Description: "labels",
-				Required:    true,
+				Description:         "Set of labels to include in this group. Each label consists of a key, value, and propagation setting.",
+				MarkdownDescription: "Set of labels to include in this group. Each label consists of a key, value, and propagation setting.",
+				Required:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"key": schema.StringAttribute{
-							Description: "",
-							Required:    true,
+							Description:         "Key of the label. Must conform to Kubernetes label key constraints.",
+							MarkdownDescription: "Key of the label. Must conform to Kubernetes label key constraints.",
+							Required:            true,
 						},
 						"value": schema.StringAttribute{
-							Description: "",
-							Required:    true,
+							Description:         "Value of the label. Must conform to Kubernetes label value constraints.",
+							MarkdownDescription: "Value of the label. Must conform to Kubernetes label value constraints.",
+							Required:            true,
 						},
 						"propagate_to_cloud_provider": schema.BoolAttribute{
-							Description: "",
-							Required:    true,
+							Description:         "Whether this label should be propagated to the underlying cloud provider resources (e.g. AWS tags, GCP labels). Set to true to tag cloud resources with this label.",
+							MarkdownDescription: "Whether this label should be propagated to the underlying cloud provider resources (e.g. AWS tags, GCP labels). Set to `true` to tag cloud resources with this label.",
+							Required:            true,
 						},
 					},
 				},

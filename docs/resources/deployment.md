@@ -1,6 +1,8 @@
 # qovery_deployment (Resource)
 
-Provides a Qovery deployment resource. This is used to trigger a service deployment at demand.
+Provides a Qovery deployment resource. This is used to trigger and manage the deployment state of an environment and all its services.
+
+~> **Note:** This resource does not support import. When destroying this resource, all services in the environment will be stopped.
 
 
 ## Example
@@ -14,8 +16,11 @@ resource "qovery_deployment" "my_deployment" {
   # Required
   environment_id = qovery_environment.my_environment.id
   desired_state  = "RUNNING"
-  version        = "random_uuid_to_force_retrigger_terraform_apply"
 
+  # Optional - use a random UUID to force redeployment on every apply
+  version = "random_uuid_to_force_retrigger_terraform_apply"
+
+  # Ensure all services are created before deploying the environment
   depends_on = [
     qovery_application.my_application,
     qovery_database.my_database,
@@ -29,11 +34,11 @@ resource "qovery_deployment" "my_deployment" {
 
 ### Required
 
-- `desired_state` (String) Desired state of the deployment.
+- `desired_state` (String) Desired state of the deployment. Setting this to `RUNNING` starts all services, `STOPPED` stops all services, and `RESTARTED` triggers a restart of all running services.
 	- Can be: `RESTARTED`, `RUNNING`, `STOPPED`.
-- `environment_id` (String) Id of the environment.
+- `environment_id` (String) Identifier of the environment to deploy (UUID format).
 
 ### Optional
 
-- `id` (String) Id of the deployment
-- `version` (String) Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'RUNNING' state)
+- `id` (String) Unique identifier of the deployment (UUID format). If not provided, a random UUID will be generated.
+- `version` (String) Version identifier to force a redeployment when `desired_state` hasn't changed. Use a random UUID (e.g., via `uuid()`) to force Terraform to trigger a new deployment on every apply.

@@ -1,6 +1,8 @@
 # qovery_container_registry (Resource)
 
-Provides a Qovery container registry resource. This can be used to create and manage Qovery container registry.
+Provides a Qovery container registry resource. This can be used to create and manage Qovery container registries.
+
+A container registry stores Docker images that can be deployed as Qovery container services. Container registries are configured at the organization level and can be referenced by containers across all projects.
 
 
 ## Example
@@ -10,19 +12,69 @@ Provides a Qovery container registry resource. This can be used to create and ma
 </div><br />
 
 ```terraform
-resource "qovery_container_registry" "my_container_registry" {
-  # Required
+# Docker Hub registry
+resource "qovery_container_registry" "docker_hub" {
   organization_id = qovery_organization.my_organization.id
-  name            = "my_aws_creds"
+  name            = "My Docker Hub"
   kind            = "DOCKER_HUB"
   url             = "https://docker.io"
   config = {
     username = "<my_username>"
-    password = "<my_password>"
+    password = "<my_password_or_access_token>"
   }
+  description = "Docker Hub Registry"
 
-  # Optional
-  description = "My Docker Hub Registry"
+  depends_on = [
+    qovery_organization.my_organization
+  ]
+}
+
+# AWS ECR (Elastic Container Registry)
+resource "qovery_container_registry" "ecr" {
+  organization_id = qovery_organization.my_organization.id
+  name            = "My AWS ECR"
+  kind            = "ECR"
+  url             = "https://<account_id>.dkr.ecr.<region>.amazonaws.com"
+  config = {
+    access_key_id     = "<aws_access_key_id>"
+    secret_access_key = "<aws_secret_access_key>"
+    region            = "us-east-1"
+  }
+  description = "AWS ECR Registry"
+
+  depends_on = [
+    qovery_organization.my_organization
+  ]
+}
+
+# GitHub Container Registry
+resource "qovery_container_registry" "github_cr" {
+  organization_id = qovery_organization.my_organization.id
+  name            = "My GitHub CR"
+  kind            = "GITHUB_CR"
+  url             = "https://ghcr.io"
+  config = {
+    username = "<github_username>"
+    password = "<github_personal_access_token>"
+  }
+  description = "GitHub Container Registry"
+
+  depends_on = [
+    qovery_organization.my_organization
+  ]
+}
+
+# GCP Artifact Registry
+resource "qovery_container_registry" "gcp_artifact_registry" {
+  organization_id = qovery_organization.my_organization.id
+  name            = "My GCP Artifact Registry"
+  kind            = "GCP_ARTIFACT_REGISTRY"
+  url             = "https://<region>-docker.pkg.dev"
+  config = {
+    username = "_json_key"
+    password = "<gcp_service_account_json_key>"
+  }
+  description = "GCP Artifact Registry"
 
   depends_on = [
     qovery_organization.my_organization
@@ -35,15 +87,25 @@ resource "qovery_container_registry" "my_container_registry" {
 
 ### Required
 
-- `kind` (String) Kind of the container registry.
-	- Can be: `AZURE_CR`, `DOCKER_HUB`, `DOCR`, `ECR`, `GCP_ARTIFACT_REGISTRY`, `GENERIC_CR`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, `PUBLIC_ECR`, `SCALEWAY_CR`.
+- `kind` (String) Kind of the container registry. Supported values:
+  - `ECR`: Amazon Elastic Container Registry (private).
+  - `PUBLIC_ECR`: Amazon Elastic Container Registry (public).
+  - `DOCR`: DigitalOcean Container Registry.
+  - `SCALEWAY_CR`: Scaleway Container Registry.
+  - `DOCKER_HUB`: Docker Hub.
+  - `GITHUB_CR`: GitHub Container Registry.
+  - `GITHUB_ENTERPRISE_CR`: GitHub Enterprise Container Registry.
+  - `GITLAB_CR`: GitLab Container Registry.
+  - `GCP_ARTIFACT_REGISTRY`: Google Cloud Artifact Registry.
+  - `AZURE_CR`: Azure Container Registry.
+  - `GENERIC_CR`: Any OCI-compatible container registry.
 - `name` (String) Name of the container registry.
 - `organization_id` (String) Id of the organization.
-- `url` (String) URL of the container registry.
+- `url` (String) URL of the container registry (e.g. `https://docker.io` for Docker Hub, `https://<account_id>.dkr.ecr.<region>.amazonaws.com` for ECR).
 
 ### Optional
 
-- `config` (Attributes) Configuration needed to authenticate the container registry. (see [below for nested schema](#nestedatt--config))
+- `config` (Attributes) Configuration needed to authenticate with the container registry. Required fields depend on the `kind` of registry. (see [below for nested schema](#nestedatt--config))
 - `description` (String) Description of the container registry.
 
 ### Read-Only
@@ -55,14 +117,14 @@ resource "qovery_container_registry" "my_container_registry" {
 
 Optional:
 
-- `access_key_id` (String) Required if kind is `ECR` or `PUBLIC_ECR`.
-- `password` (String) Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.
-- `region` (String) Required if kind is `ECR` or `SCALEWAY_CR`.
-- `scaleway_access_key` (String) Required if kind is `SCALEWAY_CR`.
-- `scaleway_project_id` (String) Required if kind is `SCALEWAY_CR`.
-- `scaleway_secret_key` (String) Required if kind is `SCALEWAY_CR`.
-- `secret_access_key` (String) Required if kind is `ECR` or `PUBLIC_ECR`.
-- `username` (String) Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.
+- `access_key_id` (String) AWS Access Key ID. Required if `kind` is `ECR` or `PUBLIC_ECR`.
+- `password` (String) Password or access token for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`.
+- `region` (String) Region of the registry. Required if `kind` is `ECR` or `SCALEWAY_CR` (e.g. `us-east-1`, `fr-par`).
+- `scaleway_access_key` (String) Scaleway Access Key. Required if `kind` is `SCALEWAY_CR`.
+- `scaleway_project_id` (String) Scaleway Project ID. Required if `kind` is `SCALEWAY_CR`.
+- `scaleway_secret_key` (String) Scaleway Secret Key. Required if `kind` is `SCALEWAY_CR`.
+- `secret_access_key` (String) AWS Secret Access Key. Required if `kind` is `ECR` or `PUBLIC_ECR`.
+- `username` (String) Username for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`.
 ## Import
 ```shell
 terraform import qovery_container_registry.my_container_registry "<organization_id>,<container_registry_id>"

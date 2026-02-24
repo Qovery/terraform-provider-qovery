@@ -80,25 +80,37 @@ func (r *deploymentResource) Configure(_ context.Context, req resource.Configure
 
 func (r deploymentResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery deployment resource. This is used to trigger a service deployment at demand.",
+		Description: "Provides a Qovery deployment resource. This is used to trigger and manage the deployment state of an environment and all its services. " +
+			"Note: This resource does not support import. When destroying this resource, all services in the environment will be stopped.",
+		MarkdownDescription: "Provides a Qovery deployment resource. This is used to trigger and manage the deployment state of an environment and all its services.\n\n" +
+			"~> **Note:** This resource does not support import. When destroying this resource, all services in the environment will be stopped.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the deployment",
-				Optional:    true,
-				Computed:    true,
+				Description:         "Unique identifier of the deployment (UUID format). If not provided, a random UUID will be generated.",
+				MarkdownDescription: "Unique identifier of the deployment (UUID format). If not provided, a random UUID will be generated.",
+				Optional:            true,
+				Computed:            true,
 			},
 			"environment_id": schema.StringAttribute{
-				Description: "Id of the environment.",
-				Required:    true,
+				Description:         "Identifier of the environment to deploy (UUID format).",
+				MarkdownDescription: "Identifier of the environment to deploy (UUID format).",
+				Required:            true,
 			},
 			"version": schema.StringAttribute{
-				Description: "Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'RUNNING' state)",
-				Optional:    true,
-				Computed:    false,
+				Description: "Version identifier to force a redeployment when desired_state hasn't changed. " +
+					"Use a random UUID (e.g., via uuid()) to force Terraform to trigger a new deployment on every apply.",
+				MarkdownDescription: "Version identifier to force a redeployment when `desired_state` hasn't changed. " +
+					"Use a random UUID (e.g., via `uuid()`) to force Terraform to trigger a new deployment on every apply.",
+				Optional: true,
+				Computed: false,
 			},
 			"desired_state": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
-					"Desired state of the deployment.",
+					"Desired state of the deployment. Setting this to RUNNING starts all services, STOPPED stops all services, and RESTARTED triggers a restart of all running services.",
+					deploymentStates,
+					nil),
+				MarkdownDescription: descriptions.NewStringEnumDescription(
+					"Desired state of the deployment. Setting this to `RUNNING` starts all services, `STOPPED` stops all services, and `RESTARTED` triggers a restart of all running services.",
 					deploymentStates,
 					nil),
 				Required: true,

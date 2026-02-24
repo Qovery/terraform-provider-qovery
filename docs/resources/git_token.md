@@ -1,6 +1,6 @@
 # qovery_git_token (Resource)
 
-Provides a Qovery git token resource. This can be used to create and manage Qovery git token.
+Provides a Qovery git token resource. This can be used to create and manage Qovery git tokens for accessing private git repositories.
 
 
 ## Example
@@ -10,18 +10,32 @@ Provides a Qovery git token resource. This can be used to create and manage Qove
 </div><br />
 
 ```terraform
-resource "qovery_git_token" "my_git_token" {
-  # Required
+# Example: GitHub personal access token
+resource "qovery_git_token" "github_token" {
   organization_id = qovery_organization.my_organization.id
-  name            = "my-git-token"
+  name            = "my-github-token"
   type            = "GITHUB"
-  token           = "my-git-provider-token"
+  token           = var.github_token
+  description     = "GitHub token for accessing private repositories"
+}
 
-  # Optional
-  description = "Github token"
+# Example: GitLab token
+resource "qovery_git_token" "gitlab_token" {
+  organization_id = qovery_organization.my_organization.id
+  name            = "my-gitlab-token"
+  type            = "GITLAB"
+  token           = var.gitlab_token
+  description     = "GitLab token for CI/CD pipelines"
+}
 
-  # Only necessary for BITBUCKET git tokens
-  bitbucket_workspace = "workspace-bitbucket"
+# Example: Bitbucket token (requires bitbucket_workspace)
+resource "qovery_git_token" "bitbucket_token" {
+  organization_id     = qovery_organization.my_organization.id
+  name                = "my-bitbucket-token"
+  type                = "BITBUCKET"
+  token               = var.bitbucket_token
+  description         = "Bitbucket token for workspace access"
+  bitbucket_workspace = "my-workspace"
 }
 ```
 
@@ -32,13 +46,13 @@ resource "qovery_git_token" "my_git_token" {
 
 - `name` (String) Name of the git token.
 - `organization_id` (String) Id of the organization.
-- `token` (String, Sensitive) Value of the git token.
+- `token` (String, Sensitive) Value of the git token (personal access token or app token from the git provider). Sensitive.
 - `type` (String) Type of the git token.
 	- Can be: `BITBUCKET`, `GITHUB`, `GITLAB`.
 
 ### Optional
 
-- `bitbucket_workspace` (String) (Mandatory only for Bitbucket git token) Workspace where the token has permissions .
+- `bitbucket_workspace` (String) Bitbucket workspace where the token has permissions. Required only when `type` is `BITBUCKET`.
 - `description` (String) Description of the git token.
 
 ### Read-Only
@@ -46,5 +60,6 @@ resource "qovery_git_token" "my_git_token" {
 - `id` (String) Id of the git token.
 ## Import
 ```shell
+# Import requires both the organization ID and git token ID, separated by a comma
 terraform import qovery_git_token.my_git_token "<organization_id>,<git_token_id>"
 ```

@@ -1,6 +1,8 @@
 # qovery_gcp_credentials (Resource)
 
-Provides a Qovery GCP credentials resource. This can be used to create and manage Qovery GCP credentials.
+Provides a Qovery GCP credentials resource. This is used to create and manage GCP credentials that Qovery uses to provision and manage GKE clusters in your Google Cloud project.
+
+Authentication uses a **GCP service account key** in JSON format. The service account must have sufficient permissions to manage GKE clusters and associated resources. Use `file()` to read the JSON key from a file rather than hardcoding it.
 
 
 ## Example
@@ -22,13 +24,13 @@ resource "qovery_gcp_credentials" "my_gcp_credentials" {
 
 ### Required
 
-- `gcp_credentials` (String, Sensitive) Your GCP service account credentials JSON.
-- `name` (String) Name of the GCP credentials.
-- `organization_id` (String) Id of the organization.
+- `gcp_credentials` (String, Sensitive) GCP service account key in JSON format. This is a sensitive value and will not be displayed in plan output. Use `file()` to load from a file: `file("${path.module}/service-account.json")`.
+- `name` (String) Name of the GCP credentials. Used for display purposes in the Qovery console.
+- `organization_id` (String) ID of the Qovery organization in which to create the credentials.
 
 ### Read-Only
 
-- `id` (String) Id of the GCP credentials.
+- `id` (String) Unique identifier of the GCP credentials (UUID format).
 ## Import
 ```shell
 terraform import qovery_gcp_credentials.my_gcp_credentials "<organization_id>,<gcp_credentials_id>"

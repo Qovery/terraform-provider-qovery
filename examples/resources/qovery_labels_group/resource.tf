@@ -1,16 +1,22 @@
-resource "qovery_labels_group" "labels_group1" {
+resource "qovery_labels_group" "my_labels_group" {
   organization_id = qovery_organization.my_organization.id
   name            = "MyLabelsGroup"
+
   labels = [
     {
-      key                         = "key1"
-      value                       = "value1"
-      propagate_to_cloud_provider = false
+      key                         = "team"
+      value                       = "backend"
+      propagate_to_cloud_provider = true
     },
     {
-      key                         = "key2"
-      value                       = "value2"
+      key                         = "environment"
+      value                       = "production"
       propagate_to_cloud_provider = true
+    },
+    {
+      key                         = "managed-by"
+      value                       = "qovery"
+      propagate_to_cloud_provider = false
     }
   ]
 }

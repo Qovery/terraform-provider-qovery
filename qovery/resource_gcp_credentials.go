@@ -52,26 +52,33 @@ func (r *gcpCredentialsResource) Configure(_ context.Context, req resource.Confi
 func (r gcpCredentialsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery GCP credentials resource. This can be used to create and manage Qovery GCP credentials.",
+		MarkdownDescription: "Provides a Qovery GCP credentials resource. This is used to create and manage GCP credentials that Qovery uses to provision and manage GKE clusters in your Google Cloud project.\n\n" +
+			"Authentication uses a **GCP service account key** in JSON format. The service account must have sufficient permissions to manage GKE clusters and associated resources. " +
+			"Use `file()` to read the JSON key from a file rather than hardcoding it.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the GCP credentials.",
-				Computed:    true,
+				Description:         "Id of the GCP credentials.",
+				MarkdownDescription: "Unique identifier of the GCP credentials (UUID format).",
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				Description:         "Id of the organization.",
+				MarkdownDescription: "ID of the Qovery organization in which to create the credentials.",
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the GCP credentials.",
-				Required:    true,
+				Description:         "Name of the GCP credentials.",
+				MarkdownDescription: "Name of the GCP credentials. Used for display purposes in the Qovery console.",
+				Required:            true,
 			},
 			"gcp_credentials": schema.StringAttribute{
-				Description: "Your GCP service account credentials JSON.",
-				Required:    true,
-				Sensitive:   true,
+				Description:         "Your GCP service account credentials JSON.",
+				MarkdownDescription: "GCP service account key in JSON format. This is a sensitive value and will not be displayed in plan output. Use `file()` to load from a file: `file(\"${path.module}/service-account.json\")`.",
+				Required:            true,
+				Sensitive:           true,
 			},
 		},
 	}

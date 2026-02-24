@@ -1,6 +1,8 @@
 # qovery_organization (Resource)
 
-Provides a Qovery organization resource. This can be used to create and manage Qovery organizations.
+Provides a Qovery organization resource. This can be used to manage Qovery organizations.
+
+~> **Important:** Organizations cannot be created or deleted via Terraform. Use `terraform import` to bring an existing organization under management.
 
 
 ## Example
@@ -10,13 +12,15 @@ Provides a Qovery organization resource. This can be used to create and manage Q
 </div><br />
 
 ```terraform
+# Qovery organizations cannot be created or deleted via Terraform.
+# Use `terraform import` to bring an existing organization under management.
 resource "qovery_organization" "my_organization" {
   # Required
   name = "MyOrganization"
-  plan = "FREE"
+  plan = "TEAM"
 
   # Optional
-  description = "My organization description"
+  description = "Production organization for our SaaS platform"
 }
 ```
 
@@ -25,8 +29,8 @@ resource "qovery_organization" "my_organization" {
 
 ### Required
 
-- `name` (String) Name of the organization.
-- `plan` (String) Plan of the organization.
+- `name` (String) Name of the organization. Must be unique across your Qovery account.
+- `plan` (String) Subscription plan of the organization. Determines available features, resource limits, and pricing tier.
 	- Can be: `BUSINESS`, `BUSINESS_2025`, `ENTERPRISE`, `ENTERPRISE_2025`, `ENTERPRISE_YEARLY`, `FREE`, `PROFESSIONAL`, `TEAM`, `TEAM_2025`, `TEAM_YEARLY`, `USER_2025`.
 
 ### Optional
@@ -35,7 +39,7 @@ resource "qovery_organization" "my_organization" {
 
 ### Read-Only
 
-- `id` (String) Id of the organization.
+- `id` (String) Unique identifier of the organization (UUID format).
 ## Import
 ```shell
 terraform import qovery_organization.my_organization "<organization_id>"
