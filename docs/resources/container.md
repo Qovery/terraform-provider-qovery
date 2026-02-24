@@ -149,6 +149,7 @@ resource "qovery_container" "my_container" {
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this container. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this container. (see [below for nested schema](#nestedatt--environment_variables))
 - `icon_uri` (String) Icon URI representing the container.
+- `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
 - `labels_group_ids` (Set of String) List of labels group ids
 - `max_running_instances` (Number) Maximum number of instances running for the container.
 	- Must be: `>= -1`.

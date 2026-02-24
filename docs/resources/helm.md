@@ -144,6 +144,7 @@ resource "qovery_helm" "my_helm" {
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this helm. (see [below for nested schema](#nestedatt--environment_variables))
 - `icon_uri` (String) Icon URI representing the helm service.
+- `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
 - `ports` (Attributes Map) List of ports linked to this helm. (see [below for nested schema](#nestedatt--ports))
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this helm. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_overrides` (Attributes Set) List of secret overrides linked to this helm. (see [below for nested schema](#nestedatt--secret_overrides))

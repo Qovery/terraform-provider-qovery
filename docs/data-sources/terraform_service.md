@@ -15,6 +15,11 @@ data "qovery_terraform_service" "my_terraform_service" {
 
 - `id` (String) Id of the terraform service.
 
+### Optional
+
+- `deployment_stage_id` (String) Id of the deployment stage.
+- `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
+
 ### Read-Only
 
 - `action_extra_arguments` (Map of List of String) Extra CLI arguments for specific Terraform actions.

@@ -27,6 +27,7 @@ data "qovery_database" "my_database" {
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `icon_uri` (String) Icon URI representing the database.
 - `instance_type` (String) Instance type of the database.
+- `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
 - `labels_group_ids` (Set of String) List of labels group ids
 - `memory` (Number) RAM of the database in MB [1024MB = 1GB].
 	- Must be: `>= 100`.
