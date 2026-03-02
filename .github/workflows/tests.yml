@@ -1,8 +1,5 @@
-# Terraform Provider testing workflow.
 name: Tests
 
-# This GitHub action runs your tests for each pull request and push.
-# Optionally, you can turn it on using a schedule for regular testing.
 on:
   push:
     branches: [main]
@@ -10,216 +7,154 @@ on:
       - "README.md"
       - ".gitignore"
   pull_request:
-    # The branches below must be a subset of the branches above
     branches: [main]
     paths-ignore:
       - "README.md"
       - ".gitignore"
   schedule:
-    - cron: "0 9 * * 1-5" # 9:00 UTC, Mon-Fri (10am France winter)
+    - cron: "0 9 * * 1-5" # 9:00 UTC, Mon-Fri
 
-# Testing only needs permissions to read the repository contents.
 permissions:
   contents: read
 
-# Default values to simplify job configurations below.
 env:
-  # Go language version to use for building. This value should also be updated
-  # in the release workflow if changed.
-  GO_VERSION: 1.26.0
   TASK_VERSION: 3.x
 
 jobs:
-  # Setup matrix for current branch.
-  # If we are on main, run tests with all terraform version
-  # Otherwise, run tests only on latest
-  matrix_prep:
-    name: Prepare Test Matrix
-    runs-on: ubuntu-latest
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - name: Check out source code
-        uses: actions/checkout@v3
-
-      - name: Branch name
-        uses: nelonoel/branch-name@v1.0.1
-
-      - name: Conditional build matrix
-        id: set-matrix
-        uses: JoshuaTheMiller/conditional-build-matrix@v1.0.1
-        with:
-          # The simple branch name can be used in the filter now!
-          filter: "[?runOnBranch==`${{ env.BRANCH_NAME }}` || runOnBranch==`always`]"
-
-  # Ensure project builds before running testing matrix
   build:
-    name: Build Terraform Provider
+    name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Check out source code
+        uses: actions/checkout@v6
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
-
+          go-version-file: go.mod
       - name: Set up Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
         with:
           version: ${{ env.TASK_VERSION }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check out source code
-        uses: actions/checkout@v3
-
       - name: Build
         run: task build
 
   lint:
-    name: Lint Terraform Provider
+    name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Check out source code
+        uses: actions/checkout@v6
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
-
+          go-version-file: go.mod
       - name: Set up Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
         with:
           version: ${{ env.TASK_VERSION }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check out source code
-        uses: actions/checkout@v3
-
       - name: Lint
         run: task lint
 
   generate:
-    name: Generate Documentation
+    name: Verify Generated Documentation
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
+      - name: Check out source code
+        uses: actions/checkout@v6
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
-
+          go-version-file: go.mod
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
+        uses: hashicorp/setup-terraform@v3
         with:
-          terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
-
       - name: Set up Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
         with:
           version: ${{ env.TASK_VERSION }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check out source code
-        uses: actions/checkout@v3
-
-      - name: Generate documentation
+      - name: Verify documentation is up to date
         env:
           QOVERY_API_TOKEN: ${{ secrets.QOVERY_API_TOKEN }}
-        run: task docs
-
-      - name: Check git diff
         run: |
+          task docs
           git diff --compact-summary --exit-code || \
-            (echo; echo "Unexpected difference in directories after code generation. Run 'task docs' command and commit."; exit 1)
+            (echo; echo "Documentation is out of date. Run 'task docs' and commit."; exit 1)
 
   mocks:
-    name: Generate Mocks
+    name: Verify Generated Mocks
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
+      - name: Check out source code
+        uses: actions/checkout@v6
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
-
+          go-version-file: go.mod
       - name: Set up Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
         with:
           version: ${{ env.TASK_VERSION }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check out source code
-        uses: actions/checkout@v3
-
-      - name: Generate mocks
-        run: task mocks
-
-      - name: Check git diff
+      - name: Verify mocks are up to date
         run: |
+          task mocks
           git diff --compact-summary --exit-code || \
-            (echo; echo "Unexpected difference in directories after code generation. Run 'task mocks' command and commit."; exit 1)
+            (echo; echo "Mocks are out of date. Run 'task mocks' and commit."; exit 1)
 
-  # Run unit tests
   unit-test:
     name: Unit Tests
-    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
+      - name: Check out source code
+        uses: actions/checkout@v6
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
-
+          go-version-file: go.mod
       - name: Set up Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
         with:
           version: ${{ env.TASK_VERSION }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check out source code
-        uses: actions/checkout@v3
-
-      - name: Install gotestsum
-        run: task install-gotestsum
-
       - name: Run unit tests
         run: task test
 
-  # Run acceptance tests in a matrix with Terraform CLI versions
   test:
-    name: Terraform Provider Acceptance Tests
-    needs:
-      - matrix_prep
-      - unit-test
+    name: Acceptance Tests (Terraform ${{ matrix.terraform }})
+    needs: unit-test
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 130
     strategy:
       fail-fast: true
-      matrix: ${{fromJson(needs.matrix_prep.outputs.matrix)}}
+      matrix:
+        terraform: ["1.12.*", "1.13.*", "1.14.*"]
       max-parallel: 1
     steps:
+      - name: Check out source code
+        uses: actions/checkout@v6
       - name: Set up Go
-        uses: actions/setup-go@v3
+        uses: actions/setup-go@v6
         with:
-          go-version: ${{ env.GO_VERSION }}
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v2
+          go-version-file: go.mod
+      - name: Set up Terraform ${{ matrix.terraform }}
+        uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: ${{ matrix.terraform }}
           terraform_wrapper: false
-
       - name: Set up Task
-        uses: arduino/setup-task@v1
+        uses: arduino/setup-task@v2
         with:
           version: ${{ env.TASK_VERSION }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Check out source code
-        uses: actions/checkout@v3
-
-      - name: Install gotestsum
-        run: task install-gotestsum
-
       - name: Run acceptance tests
         timeout-minutes: 120
         env:
@@ -254,7 +189,6 @@ jobs:
           TEST_AZURE_CREDENTIALS_ID: ${{ secrets.TEST_AZURE_CREDENTIALS_ID }}
         run: task testacc
 
-  # Notify Slack after scheduled test runs
   notify-slack:
     name: Notify Slack
     needs: [test]
@@ -285,7 +219,7 @@ jobs:
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Trigger:*\nScheduled (6:00 UTC)"
+                      "text": "*Trigger:*\nScheduled (9:00 UTC)"
                     }
                   ]
                 },
