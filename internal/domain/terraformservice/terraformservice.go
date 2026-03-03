@@ -3,6 +3,7 @@ package terraformservice
 import (
 	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -51,7 +52,7 @@ var (
 	ErrMissingBackendType = errors.New("exactly one backend type must be specified: kubernetes or user_provided")
 	// ErrMultipleBackendTypes is returned if multiple backend types are specified.
 	ErrMultipleBackendTypes = errors.New("cannot specify multiple backend types")
-	// ErrInvalidTerraformActionParam is returned if the terraform action param is invalid.
+	// ErrInvalidTerraformServiceTerraformActionParam is returned if the terraform action param is invalid.
 	ErrInvalidTerraformServiceTerraformActionParam = errors.New("invalid terraform action param")
 	// ErrInvalidEngineParam is returned if the engine param is invalid.
 	ErrInvalidTerraformServiceEngineParam = errors.New("invalid engine param")
@@ -72,14 +73,19 @@ const (
 	TerraformActionNoop    TerraformAction = "NOOP"
 )
 
+// AllowedTerraformActionValues contains all valid values of a TerraformAction.
+var AllowedTerraformActionValues = []TerraformAction{
+	TerraformActionDefault,
+	TerraformActionPlan,
+	TerraformActionNoop,
+}
+
 // Validate validates the TerraformAction
 func (a TerraformAction) Validate() error {
-	switch a {
-	case TerraformActionDefault, TerraformActionPlan, TerraformActionNoop:
+	if slices.Contains(AllowedTerraformActionValues, a) {
 		return nil
-	default:
-		return ErrInvalidTerraformServiceTerraformActionParam
 	}
+	return ErrInvalidTerraformServiceTerraformActionParam
 }
 
 // Engine represents the Terraform engine type
@@ -292,7 +298,7 @@ func (t TerraformService) Validate() error {
 		return errors.Wrap(err, ErrInvalidTerraformServiceBackendParam.Error())
 	}
 
-	// Validate terraform action (only when non-empty)
+	// Validate terraform action (only when non-empty; schema default ensures it's set in normal flow)
 	if t.TerraformAction != "" {
 		if err := t.TerraformAction.Validate(); err != nil {
 			return err

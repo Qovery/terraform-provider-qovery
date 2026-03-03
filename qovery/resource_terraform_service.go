@@ -26,6 +26,11 @@ var _ resource.ResourceWithConfigure = &terraformServiceResource{}
 var _ resource.ResourceWithImportState = terraformServiceResource{}
 var _ resource.ResourceWithModifyPlan = &terraformServiceResource{}
 
+var (
+	terraformActionValues  = clientEnumToStringArray(terraformservice.AllowedTerraformActionValues)
+	terraformActionDefault = string(terraformservice.TerraformActionDefault)
+)
+
 type terraformServiceResource struct {
 	terraformServiceService terraformservice.Service
 }
@@ -98,12 +103,16 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 				Required:    true,
 			},
 			"terraform_action": schema.StringAttribute{
-				Description: "Action to force a specific Terraform behavior on autodeploy. DEFAULT: action resolved based on deployment type, PLAN: only run terraform plan, NOOP: do nothing.",
-				Optional:    true,
-				Computed:    true,
-				Default:     stringdefault.StaticString("DEFAULT"),
+				Description: descriptions.NewStringEnumDescription(
+					"Action to force a specific Terraform behavior on autodeploy.",
+					terraformActionValues,
+					&terraformActionDefault,
+				),
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(terraformActionDefault),
 				Validators: []validator.String{
-					validators.NewStringEnumValidator([]string{"DEFAULT", "PLAN", "NOOP"}),
+					validators.NewStringEnumValidator(terraformActionValues),
 				},
 			},
 			"git_repository": schema.SingleNestedAttribute{

@@ -83,7 +83,7 @@ func newQoveryTerraformRequestFromDomain(request terraformservice.UpsertReposito
 	// Build auto deploy config
 	terraformAction := string(request.TerraformAction)
 	if terraformAction == "" {
-		terraformAction = "DEFAULT"
+		terraformAction = string(terraformservice.TerraformActionDefault)
 	}
 	autoDeployConfig := *qovery.NewTerraformAutoDeployConfig(request.AutoDeploy, terraformAction)
 
@@ -273,5 +273,5 @@ func terraformActionFromResponse(response *qovery.TerraformResponse) string {
 	if response.AutoDeployConfig != nil {
 		return response.AutoDeployConfig.TerraformAction
 	}
-	return "DEFAULT"
+	return string(terraformservice.TerraformActionDefault)
 }

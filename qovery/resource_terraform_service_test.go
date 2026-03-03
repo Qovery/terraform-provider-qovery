@@ -34,7 +34,7 @@ func TestAcc_TerraformService(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "description", "Terraform service for tests"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "auto_deploy", "true"),
-				  resource.TestCheckResourceAttr("qovery_terraform_service.test", "terraform_action", "DEFAULT"),
+					resource.TestCheckResourceAttr("qovery_terraform_service.test", "terraform_action", "DEFAULT"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "git_repository.url", "https://github.com/Qovery/terraform-examples.git"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "git_repository.branch", "main"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "git_repository.root_path", "/"),

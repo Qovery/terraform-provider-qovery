@@ -19,6 +19,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/terraformservice"
 )
 
 //
@@ -49,7 +50,8 @@ type ClientEnum interface {
 		helmRepository.Kind |
 		helm.Protocol |
 		qovery.OrganizationAnnotationsGroupScopeEnum |
-		qovery.JobLifecycleTypeEnum
+		qovery.JobLifecycleTypeEnum |
+		terraformservice.TerraformAction
 }
 
 func clientEnumToStringArray[T ClientEnum](enum []T) []string {

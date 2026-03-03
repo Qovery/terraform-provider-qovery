@@ -57,7 +57,7 @@ func (r UpsertRepositoryRequest) Validate() error {
 		return errors.Wrap(err, ErrInvalidTerraformServiceUpsertRequest.Error())
 	}
 
-	// Validate terraform action (only when non-empty)
+	// Validate terraform action (only when non-empty; schema default ensures it's set in normal flow)
 	if r.TerraformAction != "" {
 		if err := r.TerraformAction.Validate(); err != nil {
 			return errors.Wrap(err, ErrInvalidTerraformServiceUpsertRequest.Error())

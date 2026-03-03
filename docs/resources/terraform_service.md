@@ -112,7 +112,9 @@ resource "qovery_terraform_service" "my_terraform_service" {
 - `description` (String) Description of the terraform service.
 - `icon_uri` (String) Icon URI representing the terraform service.
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
-- `terraform_action` (String) Action to force a specific Terraform behavior on autodeploy. DEFAULT: action resolved based on deployment type, PLAN: only run terraform plan, NOOP: do nothing.
+- `terraform_action` (String) Action to force a specific Terraform behavior on autodeploy.
+	- Can be: `DEFAULT`, `NOOP`, `PLAN`.
+	- Default: `DEFAULT`.
 - `timeout_seconds` (Number) Timeout in seconds for Terraform operations.
 	- Must be: `>= 0`.
 	- Default: `1800`.
