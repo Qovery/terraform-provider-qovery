@@ -80,11 +80,18 @@ func newQoveryTerraformRequestFromDomain(request terraformservice.UpsertReposito
 		description = *request.Description
 	}
 
+	// Build auto deploy config
+	terraformAction := string(request.TerraformAction)
+	if terraformAction == "" {
+		terraformAction = "DEFAULT"
+	}
+	autoDeployConfig := *qovery.NewTerraformAutoDeployConfig(request.AutoDeploy, terraformAction)
+
 	// Build the main request
 	req := qovery.NewTerraformRequest(
 		request.Name,
 		description,
-		request.AutoDeploy,
+		autoDeployConfig,
 		filesSource,
 		*variablesSource,
 		backend,
@@ -227,6 +234,7 @@ func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, dep
 		Name:                  response.Name,
 		Description:           response.Description,
 		AutoDeploy:            response.AutoDeploy,
+		TerraformAction:       terraformservice.TerraformAction(terraformActionFromResponse(response)),
 		GitRepository:         gitRepo,
 		TfVarFiles:            tfVarFiles,
 		Variables:             variables,
@@ -258,4 +266,12 @@ func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, dep
 	}
 
 	return service, nil
+}
+
+// terraformActionFromResponse extracts the terraform action from the API response.
+func terraformActionFromResponse(response *qovery.TerraformResponse) string {
+	if response.AutoDeployConfig != nil {
+		return response.AutoDeployConfig.TerraformAction
+	}
+	return "DEFAULT"
 }

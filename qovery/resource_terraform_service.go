@@ -97,6 +97,15 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 				Description: "Specify if the terraform service will be automatically updated on every new commit.",
 				Required:    true,
 			},
+			"terraform_action": schema.StringAttribute{
+				Description: "Action to force a specific Terraform behavior on autodeploy. DEFAULT: action resolved based on deployment type, PLAN: only run terraform plan, NOOP: do nothing.",
+				Optional:    true,
+				Computed:    true,
+				Default:     stringdefault.StaticString("DEFAULT"),
+				Validators: []validator.String{
+					validators.NewStringEnumValidator([]string{"DEFAULT", "PLAN", "NOOP"}),
+				},
+			},
 			"git_repository": schema.SingleNestedAttribute{
 				Description: "Terraform service git repository configuration.",
 				Required:    true,

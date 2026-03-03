@@ -23,6 +23,7 @@ type UpsertRepositoryRequest struct {
 	Name                  string `validate:"required"`
 	Description           *string
 	AutoDeploy            bool
+	TerraformAction       TerraformAction
 	DeploymentStageID     string
 	IsSkipped             bool
 	GitRepository         GitRepository `validate:"required"`
@@ -54,6 +55,13 @@ func (r UpsertRepositoryRequest) Validate() error {
 	// Validate backend
 	if err := r.Backend.Validate(); err != nil {
 		return errors.Wrap(err, ErrInvalidTerraformServiceUpsertRequest.Error())
+	}
+
+	// Validate terraform action (only when non-empty)
+	if r.TerraformAction != "" {
+		if err := r.TerraformAction.Validate(); err != nil {
+			return errors.Wrap(err, ErrInvalidTerraformServiceUpsertRequest.Error())
+		}
 	}
 
 	// Validate engine

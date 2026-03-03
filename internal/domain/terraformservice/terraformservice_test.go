@@ -12,6 +12,48 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/terraformservice"
 )
 
+func TestTerraformAction_Validate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		action      terraformservice.TerraformAction
+		expectError bool
+	}{
+		{
+			name:        "DEFAULT is valid",
+			action:      terraformservice.TerraformActionDefault,
+			expectError: false,
+		},
+		{
+			name:        "PLAN is valid",
+			action:      terraformservice.TerraformActionPlan,
+			expectError: false,
+		},
+		{
+			name:        "NOOP is valid",
+			action:      terraformservice.TerraformActionNoop,
+			expectError: false,
+		},
+		{
+			name:        "INVALID is rejected",
+			action:      terraformservice.TerraformAction("INVALID"),
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.action.Validate()
+			if tt.expectError {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
 func TestTerraformService_Validate(t *testing.T) {
 	t.Parallel()
 
@@ -191,6 +233,40 @@ func TestTerraformService_Validate(t *testing.T) {
 					GPU:        0,
 					StorageGiB: 20,
 				},
+			},
+			expectError: true,
+		},
+		{
+			name: "valid terraform action",
+			service: terraformservice.TerraformService{
+				ID:              uuid.New(),
+				EnvironmentID:   uuid.New(),
+				Name:            "test-service",
+				Description:     stringPtr("Test description"),
+				AutoDeploy:      true,
+				TerraformAction: terraformservice.TerraformActionPlan,
+				GitRepository:   validGitRepo,
+				Backend:         validBackend,
+				Engine:          terraformservice.EngineTerraform,
+				EngineVersion:   validEngineVersion,
+				JobResources:    validJobResources,
+			},
+			expectError: false,
+		},
+		{
+			name: "invalid terraform action",
+			service: terraformservice.TerraformService{
+				ID:              uuid.New(),
+				EnvironmentID:   uuid.New(),
+				Name:            "test-service",
+				Description:     stringPtr("Test description"),
+				AutoDeploy:      true,
+				TerraformAction: terraformservice.TerraformAction("INVALID"),
+				GitRepository:   validGitRepo,
+				Backend:         validBackend,
+				Engine:          terraformservice.EngineTerraform,
+				EngineVersion:   validEngineVersion,
+				JobResources:    validJobResources,
 			},
 			expectError: true,
 		},

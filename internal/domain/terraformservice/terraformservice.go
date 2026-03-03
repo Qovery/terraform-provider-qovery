@@ -51,6 +51,8 @@ var (
 	ErrMissingBackendType = errors.New("exactly one backend type must be specified: kubernetes or user_provided")
 	// ErrMultipleBackendTypes is returned if multiple backend types are specified.
 	ErrMultipleBackendTypes = errors.New("cannot specify multiple backend types")
+	// ErrInvalidTerraformActionParam is returned if the terraform action param is invalid.
+	ErrInvalidTerraformServiceTerraformActionParam = errors.New("invalid terraform action param")
 	// ErrInvalidEngineParam is returned if the engine param is invalid.
 	ErrInvalidTerraformServiceEngineParam = errors.New("invalid engine param")
 	// ErrInvalidEngineVersionParam is returned if the engine version param is invalid.
@@ -60,6 +62,25 @@ var (
 	// ErrInvalidUpsertRequest is returned if the upsert request is invalid.
 	ErrInvalidTerraformServiceUpsertRequest = errors.New("invalid terraform service upsert request")
 )
+
+// TerraformAction represents the action to force on autodeploy
+type TerraformAction string
+
+const (
+	TerraformActionDefault TerraformAction = "DEFAULT"
+	TerraformActionPlan    TerraformAction = "PLAN"
+	TerraformActionNoop    TerraformAction = "NOOP"
+)
+
+// Validate validates the TerraformAction
+func (a TerraformAction) Validate() error {
+	switch a {
+	case TerraformActionDefault, TerraformActionPlan, TerraformActionNoop:
+		return nil
+	default:
+		return ErrInvalidTerraformServiceTerraformActionParam
+	}
+}
 
 // Engine represents the Terraform engine type
 type Engine string
@@ -88,6 +109,7 @@ type TerraformService struct {
 	Name                  string `validate:"required"`
 	Description           *string
 	AutoDeploy            bool
+	TerraformAction       TerraformAction
 	GitRepository         GitRepository `validate:"required"`
 	TfVarFiles            []string
 	Variables             []Variable
@@ -268,6 +290,13 @@ func (t TerraformService) Validate() error {
 	// Validate backend
 	if err := t.Backend.Validate(); err != nil {
 		return errors.Wrap(err, ErrInvalidTerraformServiceBackendParam.Error())
+	}
+
+	// Validate terraform action (only when non-empty)
+	if t.TerraformAction != "" {
+		if err := t.TerraformAction.Validate(); err != nil {
+			return err
+		}
 	}
 
 	// Validate engine
