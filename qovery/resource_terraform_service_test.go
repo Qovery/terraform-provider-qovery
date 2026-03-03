@@ -34,6 +34,7 @@ func TestAcc_TerraformService(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "description", "Terraform service for tests"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "auto_deploy", "true"),
+					resource.TestCheckResourceAttr("qovery_terraform_service.test", "terraform_action", "DEFAULT"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "git_repository.url", "https://github.com/Qovery/terraform-examples.git"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "git_repository.branch", "main"),
 					resource.TestCheckResourceAttr("qovery_terraform_service.test", "git_repository.root_path", "/"),
@@ -206,6 +207,42 @@ func TestAcc_TerraformServiceWithDeploymentStage(t *testing.T) {
 					testAccQoveryTerraformServiceExists("qovery_terraform_service.test"),
 					resource.TestCheckResourceAttrSet("qovery_terraform_service.test", "deployment_stage_id"),
 					resource.TestCheckResourceAttrPair("qovery_terraform_service.test", "deployment_stage_id", "qovery_deployment_stage.test_2", "id"),
+				),
+			},
+			// ImportState testing
+			{
+				ResourceName:      "qovery_terraform_service.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAcc_TerraformServiceTerraformAction(t *testing.T) {
+	t.Parallel()
+	testName := "terraform-service-action"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryTerraformServiceDestroy("qovery_terraform_service.test"),
+		Steps: []resource.TestStep{
+			// Create with terraform_action = PLAN
+			{
+				Config: testAccTerraformServiceWithTerraformActionConfig(testName, "PLAN"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryTerraformServiceExists("qovery_terraform_service.test"),
+					resource.TestCheckResourceAttr("qovery_terraform_service.test", "terraform_action", "PLAN"),
+					resource.TestCheckResourceAttr("qovery_terraform_service.test", "auto_deploy", "true"),
+				),
+			},
+			// Update to terraform_action = NOOP
+			{
+				Config: testAccTerraformServiceWithTerraformActionConfig(testName, "NOOP"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryTerraformServiceExists("qovery_terraform_service.test"),
+					resource.TestCheckResourceAttr("qovery_terraform_service.test", "terraform_action", "NOOP"),
 				),
 			},
 			// ImportState testing
@@ -640,4 +677,48 @@ resource "qovery_terraform_service" "test" {
   use_cluster_credentials = false
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), generateTestName(testName), generateTestName(testName), getTestQoverySandboxGitTokenID())
+}
+
+func testAccTerraformServiceWithTerraformActionConfig(testName string, terraformAction string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_terraform_service" "test" {
+  environment_id   = qovery_environment.test.id
+  name             = "%s"
+  description      = "Terraform service with terraform_action"
+  auto_deploy      = true
+  terraform_action = "%s"
+
+  git_repository = {
+    url          = "https://github.com/Qovery/terraform-examples.git"
+    branch       = "main"
+    root_path    = "/"
+    git_token_id = "%s"
+  }
+
+  tfvars_files = []
+
+  backend = {
+    kubernetes = {}
+  }
+
+  engine = "TERRAFORM"
+
+  engine_version = {
+    explicit_version          = "1.5.0"
+    read_from_terraform_block = false
+  }
+
+  job_resources = {
+    cpu_milli   = 1000
+    ram_mib     = 1024
+    gpu         = 0
+    storage_gib = 20
+  }
+
+  timeout_seconds         = 1800
+  use_cluster_credentials = false
+}
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), terraformAction, getTestQoverySandboxGitTokenID())
 }

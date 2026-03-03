@@ -26,6 +26,11 @@ var _ resource.ResourceWithConfigure = &terraformServiceResource{}
 var _ resource.ResourceWithImportState = terraformServiceResource{}
 var _ resource.ResourceWithModifyPlan = &terraformServiceResource{}
 
+var (
+	terraformActionValues  = clientEnumToStringArray(terraformservice.AllowedTerraformActionValues)
+	terraformActionDefault = string(terraformservice.TerraformActionDefault)
+)
+
 type terraformServiceResource struct {
 	terraformServiceService terraformservice.Service
 }
@@ -96,6 +101,19 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			"auto_deploy": schema.BoolAttribute{
 				Description: "Specify if the terraform service will be automatically updated on every new commit.",
 				Required:    true,
+			},
+			"terraform_action": schema.StringAttribute{
+				Description: descriptions.NewStringEnumDescription(
+					"Action to force a specific Terraform behavior on autodeploy.",
+					terraformActionValues,
+					&terraformActionDefault,
+				),
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(terraformActionDefault),
+				Validators: []validator.String{
+					validators.NewStringEnumValidator(terraformActionValues),
+				},
 			},
 			"git_repository": schema.SingleNestedAttribute{
 				Description: "Terraform service git repository configuration.",
