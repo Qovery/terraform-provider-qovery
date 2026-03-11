@@ -53,7 +53,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp2-0"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp3-0"),
 				),
 			},
 			// Update name
@@ -85,7 +85,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp2-0"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp3-0"),
 				),
 			},
 			// Update iconUri
@@ -117,7 +117,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp2-0"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp3-0"),
 				),
 			},
 			// Update accessibility
@@ -149,7 +149,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp2-0"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp3-0"),
 				),
 			},
 			// Update resources
@@ -181,7 +181,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "500"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "512"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp2-0"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp3-0"),
 				),
 			},
 			// Update version
@@ -213,7 +213,7 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "500"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "512"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp2-0"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp3-0"),
 				),
 			},
 		},
@@ -522,7 +522,7 @@ func TestAcc_DatabaseImport(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "cpu", "250"),
 					resource.TestCheckResourceAttr("qovery_database.test", "memory", "256"),
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
-					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp2-0"),
+					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp3-0"),
 				),
 			},
 			// Check Import
