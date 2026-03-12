@@ -2,7 +2,6 @@ package qovery
 
 import (
 	"context"
-	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/pkg/errors"
@@ -496,52 +495,19 @@ func convertResponseToApplicationPorts(initialState []ApplicationPort, ports []q
 		return nil
 	}
 
-	// Build lookup maps by ID (stable) and name (fallback).
-	portsByID := make(map[string]qovery.ServicePort, len(ports))
-	portsByName := make(map[string]qovery.ServicePort, len(ports))
-	for _, p := range ports {
-		portsByID[p.Id] = p
-		if p.Name != nil {
-			portsByName[*p.Name] = p
-		}
+	stateIDs := make([]string, len(initialState))
+	stateNames := make([]string, len(initialState))
+	for i, s := range initialState {
+		stateIDs[i] = s.Id.ValueString()
+		stateNames[i] = s.Name.ValueString()
 	}
 
-	matched := make(map[string]bool, len(ports))
-	list := make([]ApplicationPort, 0, len(ports))
-
-	// Match state ports: prefer ID match, fall back to name.
-	for _, state := range initialState {
-		if id := state.Id.ValueString(); id != "" {
-			if p, ok := portsByID[id]; ok {
-				list = append(list, servicePortToApplicationPort(p))
-				matched[p.Id] = true
-				continue
-			}
-		}
-		if name := state.Name.ValueString(); name != "" {
-			if p, ok := portsByName[name]; ok && !matched[p.Id] {
-				list = append(list, servicePortToApplicationPort(p))
-				matched[p.Id] = true
-			}
-		}
-	}
-
-	// Collect unmatched ports and sort deterministically.
-	remaining := make([]qovery.ServicePort, 0)
-	for _, p := range ports {
-		if !matched[p.Id] {
-			remaining = append(remaining, p)
-		}
-	}
-	sort.Slice(remaining, func(i, j int) bool {
-		if remaining[i].InternalPort != remaining[j].InternalPort {
-			return remaining[i].InternalPort < remaining[j].InternalPort
-		}
-		return ptrStringValue(remaining[i].Name) < ptrStringValue(remaining[j].Name)
-	})
-	for _, p := range remaining {
-		list = append(list, servicePortToApplicationPort(p))
-	}
-
-	return list
+	return reorderPortsPreservingState(
+		ports,
+		func(p qovery.ServicePort) portIdentity {
+			return portIdentity{p.Id, ptrStringValue(p.Name), p.InternalPort}
+		},
+		servicePortToApplicationPort,
+		stateIDs, stateNames,
+	)
 }

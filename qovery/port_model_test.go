@@ -105,6 +105,27 @@ func TestConvertResponseToApplicationPorts(t *testing.T) {
 			APIPorts:    []qovery.ServicePort{sqlPort, apiPort},
 			ExpectedIDs: []string{"id-api", "id-sql"},
 		},
+		{
+			TestName: "console_changed_first_port_preserves_index",
+			InitialState: []ApplicationPort{
+				{Id: FromString("id-gone"), Name: FromString("api")},
+				{Id: FromString("id-sql"), Name: FromString("sql")},
+			},
+			APIPorts: []qovery.ServicePort{
+				sqlPort,
+				{
+					Id:                 "id-new",
+					Name:               strPtr("p4200"),
+					InternalPort:       4200,
+					ExternalPort:       int32Ptr(443),
+					Protocol:           qovery.PORTPROTOCOLENUM_HTTP,
+					PubliclyAccessible: true,
+					IsDefault:          boolPtr(true),
+				},
+			},
+			// p4200 fills gap at index 0 (where api was), sql stays at index 1
+			ExpectedIDs: []string{"id-new", "id-sql"},
+		},
 	}
 
 	for _, tc := range testCases {
