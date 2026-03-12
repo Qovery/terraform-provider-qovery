@@ -2,15 +2,15 @@ package qovery
 
 import (
 	"context"
-	"github.com/pkg/errors"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
-	"github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories/qoveryapi"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
+	"github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories/qoveryapi"
 )
 
 type Application struct {
@@ -478,43 +478,36 @@ func (port ApplicationPort) toUpdateRequest() (*qovery.ServicePort, error) {
 	}, nil
 }
 
+func servicePortToApplicationPort(p qovery.ServicePort) ApplicationPort {
+	return ApplicationPort{
+		Id:                 FromString(p.Id),
+		Name:               FromStringPointer(p.Name),
+		InternalPort:       FromInt32(p.InternalPort),
+		ExternalPort:       FromInt32Pointer(p.ExternalPort),
+		Protocol:           fromClientEnum(p.Protocol),
+		PubliclyAccessible: FromBool(p.PubliclyAccessible),
+		IsDefault:          FromBoolPointer(p.IsDefault),
+	}
+}
+
 func convertResponseToApplicationPorts(initialState []ApplicationPort, ports []qovery.ServicePort) []ApplicationPort {
-	// Try to sort ports as similarly as possible to the initialState.
-	portsByName := make(map[string]qovery.ServicePort, len(ports))
-	for _, p := range ports {
-		portsByName[*p.Name] = p
-	}
-
-	list := make([]ApplicationPort, 0, len(ports))
-	for _, state := range initialState {
-		if p, ok := portsByName[state.Name.ValueString()]; ok {
-			list = append(list, ApplicationPort{
-				Id:                 FromString(p.Id),
-				Name:               FromStringPointer(p.Name),
-				InternalPort:       FromInt32(p.InternalPort),
-				ExternalPort:       FromInt32Pointer(p.ExternalPort),
-				Protocol:           fromClientEnum(p.Protocol),
-				PubliclyAccessible: FromBool(p.PubliclyAccessible),
-				IsDefault:          FromBoolPointer(p.IsDefault),
-			})
-			delete(portsByName, state.Name.ValueString())
-		}
-	}
-
-	for _, p := range portsByName {
-		list = append(list, ApplicationPort{
-			Id:                 FromString(p.Id),
-			Name:               FromStringPointer(p.Name),
-			InternalPort:       FromInt32(p.InternalPort),
-			ExternalPort:       FromInt32Pointer(p.ExternalPort),
-			Protocol:           fromClientEnum(p.Protocol),
-			PubliclyAccessible: FromBool(p.PubliclyAccessible),
-			IsDefault:          FromBoolPointer(p.IsDefault),
-		})
-	}
-
 	if len(ports) == 0 && initialState == nil {
 		return nil
 	}
-	return list
+
+	stateIDs := make([]string, len(initialState))
+	stateNames := make([]string, len(initialState))
+	for i, s := range initialState {
+		stateIDs[i] = s.Id.ValueString()
+		stateNames[i] = s.Name.ValueString()
+	}
+
+	return reorderPortsPreservingState(
+		ports,
+		func(p qovery.ServicePort) portIdentity {
+			return portIdentity{p.Id, ptrStringValue(p.Name), p.InternalPort}
+		},
+		servicePortToApplicationPort,
+		stateIDs, stateNames,
+	)
 }

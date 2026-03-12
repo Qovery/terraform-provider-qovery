@@ -2,8 +2,11 @@ package qovery
 
 import (
 	"context"
+	"sort"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 )
 
@@ -78,57 +81,132 @@ func (p Port) toUpsertRequest() port.UpsertRequest {
 	}
 }
 
-func fromPort(p port.Port) Port {
-	return Port{
-		Id:                 FromString(p.ID.String()),
-		Name:               FromStringPointer(p.Name),
-		Protocol:           FromString(p.Protocol.String()),
-		InternalPort:       FromInt32(p.InternalPort),
-		ExternalPort:       FromInt32Pointer(p.ExternalPort),
-		PubliclyAccessible: FromBool(p.PubliclyAccessible),
-		IsDefault:          FromBool(p.IsDefault),
-	}
+// portIdentity holds the fields needed for port matching and ordering.
+type portIdentity struct {
+	id           string
+	name         string
+	internalPort int32
 }
 
-func fromPortList(state PortList, ports port.Ports) PortList {
-	list := make([]Port, 0, len(ports))
-	for _, s := range ports {
-		list = append(list, fromPort(s))
+// reorderPortsPreservingState matches source ports to state positions using
+// ID-first matching with name fallback, keeping matched ports at their
+// original index positions. Unmatched ports are sorted by internal port
+// then name and appended after matched entries.
+func reorderPortsPreservingState[S any, O any](
+	sourcePorts []S,
+	identify func(S) portIdentity,
+	convert func(S) O,
+	stateIDs []string,
+	stateNames []string,
+) []O {
+	// Build lookup maps by ID (stable) and name (fallback).
+	portsByID := make(map[string]int, len(sourcePorts))
+	portsByName := make(map[string]int, len(sourcePorts))
+	for i, p := range sourcePorts {
+		ident := identify(p)
+		portsByID[ident.id] = i
+		if ident.name != "" {
+			portsByName[ident.name] = i
+		}
 	}
 
-	if len(list) == 0 {
-		return nil
+	// Match state ports at their original index positions.
+	matched := make(map[int]bool, len(sourcePorts))
+	type indexedMatch struct {
+		sourceIdx int
+		matched   bool
 	}
-	return list
-}
-
-func convertDomainPortsToPortList(ctx context.Context, initialState types.List, ports port.Ports) PortList {
-	// Try to sort ports as similarly as possible to the initialState.
-	portsByName := make(map[string]port.Port, len(ports))
-	for _, p := range ports {
-		portsByName[*p.Name] = p
-	}
-
-	list := make([]Port, 0, len(ports))
-	if !initialState.IsNull() {
-		initialStatePorts := make([]Port, 0, len(initialState.Elements()))
-		initialState.ElementsAs(ctx, &initialStatePorts, false)
-		for _, state := range initialStatePorts {
-			if value, ok := portsByName[state.Name.ValueString()]; ok {
-				list = append(list, convertDomainPortToPort(value))
-				delete(portsByName, state.Name.ValueString())
+	indexed := make([]indexedMatch, len(stateIDs))
+	for i := range stateIDs {
+		if stateIDs[i] != "" {
+			if idx, ok := portsByID[stateIDs[i]]; ok {
+				indexed[i] = indexedMatch{idx, true}
+				matched[idx] = true
+				continue
+			}
+		}
+		if stateNames[i] != "" {
+			if idx, ok := portsByName[stateNames[i]]; ok && !matched[idx] {
+				indexed[i] = indexedMatch{idx, true}
+				matched[idx] = true
 			}
 		}
 	}
 
-	for _, p := range portsByName {
-		list = append(list, convertDomainPortToPort(p))
+	// Collect unmatched source indices and sort deterministically.
+	remaining := make([]int, 0)
+	for i := range sourcePorts {
+		if !matched[i] {
+			remaining = append(remaining, i)
+		}
+	}
+	sort.SliceStable(remaining, func(a, b int) bool {
+		ai, bi := identify(sourcePorts[remaining[a]]), identify(sourcePorts[remaining[b]])
+		if ai.internalPort != bi.internalPort {
+			return ai.internalPort < bi.internalPort
+		}
+		return ai.name < bi.name
+	})
+
+	// Build final list: matched ports at original indices, gaps filled with remaining.
+	remainIdx := 0
+	list := make([]O, 0, len(sourcePorts))
+	for i := range indexed {
+		if indexed[i].matched {
+			list = append(list, convert(sourcePorts[indexed[i].sourceIdx]))
+		} else if remainIdx < len(remaining) {
+			list = append(list, convert(sourcePorts[remaining[remainIdx]]))
+			remainIdx++
+		}
+	}
+	for remainIdx < len(remaining) {
+		list = append(list, convert(sourcePorts[remaining[remainIdx]]))
+		remainIdx++
 	}
 
-	if len(list) == 0 && initialState.IsNull() {
+	return list
+}
+
+// convertDomainPortsToPortList preserves state ordering using ID-first matching
+// with name fallback, keeping matched ports at their original index positions.
+func convertDomainPortsToPortList(ctx context.Context, initialState types.List, ports port.Ports) PortList {
+	if len(ports) == 0 && initialState.IsNull() {
 		return nil
 	}
-	return list
+
+	stateIDs, stateNames := extractPortStateIdentifiers(ctx, initialState)
+	return reorderPortsPreservingState(
+		[]port.Port(ports),
+		func(p port.Port) portIdentity {
+			return portIdentity{p.ID.String(), ptrStringValue(p.Name), p.InternalPort}
+		},
+		convertDomainPortToPort,
+		stateIDs, stateNames,
+	)
+}
+
+// extractPortStateIdentifiers extracts IDs and names from a Terraform state port list.
+func extractPortStateIdentifiers(ctx context.Context, state types.List) (ids, names []string) {
+	if state.IsNull() {
+		return nil, nil
+	}
+	statePorts := make([]Port, 0, len(state.Elements()))
+	state.ElementsAs(ctx, &statePorts, false)
+	ids = make([]string, len(statePorts))
+	names = make([]string, len(statePorts))
+	for i, p := range statePorts {
+		ids[i] = p.Id.ValueString()
+		names[i] = p.Name.ValueString()
+	}
+	return ids, names
+}
+
+// ptrStringValue returns the string value of a pointer, or empty string if nil.
+func ptrStringValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 func convertDomainPortToPort(s port.Port) Port {
