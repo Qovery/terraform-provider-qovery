@@ -204,6 +204,9 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Description: "List of ports linked to this container.",
 				Optional:    true,
 				NestedObject: schema.NestedAttributeObject{
+					Validators: []validator.Object{
+						validators.PortExternalPortValidator{},
+					},
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description: "Id of the port.",

@@ -294,6 +294,9 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Description: "List of ports linked to this application.",
 				Optional:    true,
 				NestedObject: schema.NestedAttributeObject{
+					Validators: []validator.Object{
+						validators.PortExternalPortValidator{},
+					},
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description: "Id of the port.",

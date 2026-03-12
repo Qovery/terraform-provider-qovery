@@ -201,6 +201,8 @@ github.com/posener/complete v1.2.3 h1:NP0eAhjcjImqslEwo/1hq7gpajME0fTLTezBKDqfXq
 github.com/posener/complete v1.2.3/go.mod h1:WZIdtGGp+qx0sLrYKtIRAruyNpv6hFCicSgv7Sy7s/s=
 github.com/qovery/qovery-client-go v0.0.0-20260303092056-26408305c898 h1:UeuyFdZ82H9fZOOWlWJfQS90lyTySgjhfzm30+pZRFs=
 github.com/qovery/qovery-client-go v0.0.0-20260303092056-26408305c898/go.mod h1:mcXeQtxR4AIGIBaWLhy52S16UwL8/1fcDywDuSK1BZ4=
+github.com/qovery/qovery-client-go v0.0.0-20260311100219-0c194a557177 h1:F7545yIyu5CIeRPl94bLjt0mupqNnGoEZajlk3Dtgok=
+github.com/qovery/qovery-client-go v0.0.0-20260311100219-0c194a557177/go.mod h1:mcXeQtxR4AIGIBaWLhy52S16UwL8/1fcDywDuSK1BZ4=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
 github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=
