@@ -2,8 +2,11 @@ package qovery
 
 import (
 	"context"
+	"sort"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 )
 
@@ -78,57 +81,74 @@ func (p Port) toUpsertRequest() port.UpsertRequest {
 	}
 }
 
-func fromPort(p port.Port) Port {
-	return Port{
-		Id:                 FromString(p.ID.String()),
-		Name:               FromStringPointer(p.Name),
-		Protocol:           FromString(p.Protocol.String()),
-		InternalPort:       FromInt32(p.InternalPort),
-		ExternalPort:       FromInt32Pointer(p.ExternalPort),
-		PubliclyAccessible: FromBool(p.PubliclyAccessible),
-		IsDefault:          FromBool(p.IsDefault),
-	}
-}
-
-func fromPortList(state PortList, ports port.Ports) PortList {
-	list := make([]Port, 0, len(ports))
-	for _, s := range ports {
-		list = append(list, fromPort(s))
-	}
-
-	if len(list) == 0 {
+// convertDomainPortsToPortList preserves state ordering using ID-first matching
+// with name fallback. Keep in sync with convertResponseToApplicationPorts in
+// resource_application_model.go which implements the same algorithm for API types.
+func convertDomainPortsToPortList(ctx context.Context, initialState types.List, ports port.Ports) PortList {
+	if len(ports) == 0 && initialState.IsNull() {
 		return nil
 	}
-	return list
-}
 
-func convertDomainPortsToPortList(ctx context.Context, initialState types.List, ports port.Ports) PortList {
-	// Try to sort ports as similarly as possible to the initialState.
+	// Build lookup maps by ID (stable) and name (fallback).
+	portsByID := make(map[string]port.Port, len(ports))
 	portsByName := make(map[string]port.Port, len(ports))
 	for _, p := range ports {
-		portsByName[*p.Name] = p
+		portsByID[p.ID.String()] = p
+		if p.Name != nil {
+			portsByName[*p.Name] = p
+		}
 	}
 
+	matched := make(map[string]bool, len(ports))
 	list := make([]Port, 0, len(ports))
+
+	// Match state ports: prefer ID match, fall back to name.
 	if !initialState.IsNull() {
 		initialStatePorts := make([]Port, 0, len(initialState.Elements()))
 		initialState.ElementsAs(ctx, &initialStatePorts, false)
 		for _, state := range initialStatePorts {
-			if value, ok := portsByName[state.Name.ValueString()]; ok {
-				list = append(list, convertDomainPortToPort(value))
-				delete(portsByName, state.Name.ValueString())
+			if id := state.Id.ValueString(); id != "" {
+				if p, ok := portsByID[id]; ok {
+					list = append(list, convertDomainPortToPort(p))
+					matched[p.ID.String()] = true
+					continue
+				}
+			}
+			if name := state.Name.ValueString(); name != "" {
+				if p, ok := portsByName[name]; ok && !matched[p.ID.String()] {
+					list = append(list, convertDomainPortToPort(p))
+					matched[p.ID.String()] = true
+				}
 			}
 		}
 	}
 
-	for _, p := range portsByName {
+	// Collect unmatched ports and sort deterministically.
+	remaining := make(port.Ports, 0)
+	for _, p := range ports {
+		if !matched[p.ID.String()] {
+			remaining = append(remaining, p)
+		}
+	}
+	sort.Slice(remaining, func(i, j int) bool {
+		if remaining[i].InternalPort != remaining[j].InternalPort {
+			return remaining[i].InternalPort < remaining[j].InternalPort
+		}
+		return ptrStringValue(remaining[i].Name) < ptrStringValue(remaining[j].Name)
+	})
+	for _, p := range remaining {
 		list = append(list, convertDomainPortToPort(p))
 	}
 
-	if len(list) == 0 && initialState.IsNull() {
-		return nil
-	}
 	return list
+}
+
+// ptrStringValue returns the string value of a pointer, or empty string if nil.
+func ptrStringValue(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }
 
 func convertDomainPortToPort(s port.Port) Port {

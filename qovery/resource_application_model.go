@@ -2,15 +2,16 @@ package qovery
 
 import (
 	"context"
-	"github.com/pkg/errors"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
-	"github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories/qoveryapi"
+	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
+	"github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories/qoveryapi"
 )
 
 type Application struct {
@@ -478,43 +479,69 @@ func (port ApplicationPort) toUpdateRequest() (*qovery.ServicePort, error) {
 	}, nil
 }
 
+func servicePortToApplicationPort(p qovery.ServicePort) ApplicationPort {
+	return ApplicationPort{
+		Id:                 FromString(p.Id),
+		Name:               FromStringPointer(p.Name),
+		InternalPort:       FromInt32(p.InternalPort),
+		ExternalPort:       FromInt32Pointer(p.ExternalPort),
+		Protocol:           fromClientEnum(p.Protocol),
+		PubliclyAccessible: FromBool(p.PubliclyAccessible),
+		IsDefault:          FromBoolPointer(p.IsDefault),
+	}
+}
+
 func convertResponseToApplicationPorts(initialState []ApplicationPort, ports []qovery.ServicePort) []ApplicationPort {
-	// Try to sort ports as similarly as possible to the initialState.
-	portsByName := make(map[string]qovery.ServicePort, len(ports))
-	for _, p := range ports {
-		portsByName[*p.Name] = p
-	}
-
-	list := make([]ApplicationPort, 0, len(ports))
-	for _, state := range initialState {
-		if p, ok := portsByName[state.Name.ValueString()]; ok {
-			list = append(list, ApplicationPort{
-				Id:                 FromString(p.Id),
-				Name:               FromStringPointer(p.Name),
-				InternalPort:       FromInt32(p.InternalPort),
-				ExternalPort:       FromInt32Pointer(p.ExternalPort),
-				Protocol:           fromClientEnum(p.Protocol),
-				PubliclyAccessible: FromBool(p.PubliclyAccessible),
-				IsDefault:          FromBoolPointer(p.IsDefault),
-			})
-			delete(portsByName, state.Name.ValueString())
-		}
-	}
-
-	for _, p := range portsByName {
-		list = append(list, ApplicationPort{
-			Id:                 FromString(p.Id),
-			Name:               FromStringPointer(p.Name),
-			InternalPort:       FromInt32(p.InternalPort),
-			ExternalPort:       FromInt32Pointer(p.ExternalPort),
-			Protocol:           fromClientEnum(p.Protocol),
-			PubliclyAccessible: FromBool(p.PubliclyAccessible),
-			IsDefault:          FromBoolPointer(p.IsDefault),
-		})
-	}
-
 	if len(ports) == 0 && initialState == nil {
 		return nil
 	}
+
+	// Build lookup maps by ID (stable) and name (fallback).
+	portsByID := make(map[string]qovery.ServicePort, len(ports))
+	portsByName := make(map[string]qovery.ServicePort, len(ports))
+	for _, p := range ports {
+		portsByID[p.Id] = p
+		if p.Name != nil {
+			portsByName[*p.Name] = p
+		}
+	}
+
+	matched := make(map[string]bool, len(ports))
+	list := make([]ApplicationPort, 0, len(ports))
+
+	// Match state ports: prefer ID match, fall back to name.
+	for _, state := range initialState {
+		if id := state.Id.ValueString(); id != "" {
+			if p, ok := portsByID[id]; ok {
+				list = append(list, servicePortToApplicationPort(p))
+				matched[p.Id] = true
+				continue
+			}
+		}
+		if name := state.Name.ValueString(); name != "" {
+			if p, ok := portsByName[name]; ok && !matched[p.Id] {
+				list = append(list, servicePortToApplicationPort(p))
+				matched[p.Id] = true
+			}
+		}
+	}
+
+	// Collect unmatched ports and sort deterministically.
+	remaining := make([]qovery.ServicePort, 0)
+	for _, p := range ports {
+		if !matched[p.Id] {
+			remaining = append(remaining, p)
+		}
+	}
+	sort.Slice(remaining, func(i, j int) bool {
+		if remaining[i].InternalPort != remaining[j].InternalPort {
+			return remaining[i].InternalPort < remaining[j].InternalPort
+		}
+		return ptrStringValue(remaining[i].Name) < ptrStringValue(remaining[j].Name)
+	})
+	for _, p := range remaining {
+		list = append(list, servicePortToApplicationPort(p))
+	}
+
 	return list
 }
