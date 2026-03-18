@@ -13,7 +13,7 @@ The Qovery provider offers the following methods for providing credentials:
 ### Obtaining an API Token
 
 To generate an API token, navigate to your [Qovery Console](https://console.qovery.com) > Settings > API Tokens.
-For more details, see the [Qovery API Token documentation](https://hub.qovery.com/docs/using-qovery/interface/cli/#generate-api-token).
+For more details, see the [Qovery API Token documentation](https://www.qovery.com/docs/configuration/organization/api-token).
 
 ### Using Environment Variables
 

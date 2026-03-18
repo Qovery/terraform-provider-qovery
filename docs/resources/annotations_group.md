@@ -8,7 +8,7 @@ Annotations groups allow you to define reusable sets of Kubernetes annotations a
 ## Example
 
 <div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://hub.qovery.com/docs/using-qovery/configuration/environment/#terraform-exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
+  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
 </div><br />
 
 ```terraform
