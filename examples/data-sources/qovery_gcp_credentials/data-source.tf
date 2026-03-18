@@ -1,4 +1,4 @@
 data "qovery_gcp_credentials" "my_gcp_credentials" {
-  id              = "<gcp_credentials_id>"
-  organization_id = "<organization_id>"
+  id              = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  organization_id = qovery_organization.my_organization.id
 }

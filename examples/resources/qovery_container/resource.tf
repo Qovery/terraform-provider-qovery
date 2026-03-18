@@ -3,68 +3,100 @@ resource "qovery_container" "my_container" {
   environment_id = qovery_environment.my_environment.id
   registry_id    = qovery_container_registry.my_container_registry.id
   name           = "MyContainer"
-  image_name     = "qovery-api"
-  tag            = "1.0.0"
+  image_name     = "nginx"
+  tag            = "1.25-alpine"
 
   # Optional
-  entrypoint            = "/dev/api"
-  auto_preview          = "true"
+  entrypoint            = "/docker-entrypoint.sh"
+  auto_preview          = true
+  auto_deploy           = true
   cpu                   = 500
   memory                = 512
   min_running_instances = 1
-  max_running_instances = 1
+  max_running_instances = 3
 
+  # Port configuration
+  ports = [
+    {
+      internal_port       = 80
+      external_port       = 443
+      publicly_accessible = true
+      protocol            = "HTTP"
+      is_default          = true
+      name                = "http"
+    },
+    {
+      internal_port       = 9090
+      publicly_accessible = false
+      protocol            = "HTTP"
+      name                = "metrics"
+    }
+  ]
+
+  # Persistent storage
+  storage = [
+    {
+      type        = "FAST_SSD"
+      size        = 10
+      mount_point = "/data"
+    }
+  ]
+
+  # Healthchecks
   healthchecks = {
     readiness_probe = {
       type = {
         http = {
-          port = 8000
+          port   = 80
+          path   = "/health"
+          scheme = "HTTP"
         }
       }
       initial_delay_seconds = 30
       period_seconds        = 10
-      timeout_seconds       = 10
+      timeout_seconds       = 5
       success_threshold     = 1
       failure_threshold     = 3
     }
 
-
     liveness_probe = {
       type = {
-        http = {
-          port = 8000
+        tcp = {
+          port = 80
         }
       }
       initial_delay_seconds = 30
       period_seconds        = 10
-      timeout_seconds       = 10
+      timeout_seconds       = 5
       success_threshold     = 1
       failure_threshold     = 3
     }
   }
 
+  # Environment variables
   environment_variables = [
     {
-      key   = "ENV_VAR_KEY"
-      value = "ENV_VAR_VALUE"
+      key   = "NGINX_PORT"
+      value = "80"
     }
   ]
   environment_variable_aliases = [
     {
-      key = "ENV_VAR_KEY_ALIAS"
-      # the value of the alias must be the name of the aliased variable
-      # e.g here it is an alias to the above declared environment variable "ENV_VAR_KEY"
-      value = "ENV_VAR_KEY"
+      key = "PORT"
+      # The value of the alias must be the name of the aliased variable.
+      # Here it creates an alias "PORT" pointing to the "NGINX_PORT" variable above.
+      value = "NGINX_PORT"
     }
   ]
   environment_variable_overrides = [
     {
-      # the key of the override must be the name of the overridden variable
-      # e.g here it is an override on a variable declared at project scope "SOME_PROJECT_VARIABLE"
+      # The key must match a variable defined at a higher scope (project or environment).
       key   = "SOME_PROJECT_VARIABLE"
       value = "OVERRIDDEN_VALUE"
     }
   ]
+
+  # Secrets
   secrets = [
     {
       key   = "SECRET_KEY"
@@ -74,29 +106,29 @@ resource "qovery_container" "my_container" {
   secret_aliases = [
     {
       key = "SECRET_KEY_ALIAS"
-      # the value of the alias must be the name of the aliased secret
-      # e.g here it is an alias to the above declared secret "SECRET_KEY"
+      # The value of the alias must be the name of the aliased secret.
       value = "SECRET_KEY"
     }
   ]
   secret_overrides = [
     {
-      # the key of the override must be the name of the overridden secret
-      # e.g here it is an override on a secret declared at project scope "SOME_PROJECT_SECRET"
+      # The key must match a secret defined at a higher scope (project or environment).
       key   = "SOME_PROJECT_SECRET"
       value = "OVERRIDDEN_VALUE"
     }
   ]
 
+  # Custom domains
   custom_domains = [
     {
-      domain = "example.com"
+      domain               = "app.example.com"
+      generate_certificate = true
     }
   ]
 
+  # Advanced settings (JSON)
   advanced_settings_json = jsonencode({
-    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings
-    # you can only indicate settings that you need to override
+    # Non-exhaustive list. Full list: https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings
     "network.ingress.proxy_send_timeout_seconds" : 80,
     "network.ingress.proxy_body_size_mb" : 200,
   })

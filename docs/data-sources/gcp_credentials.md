@@ -1,11 +1,13 @@
 # qovery_gcp_credentials (Data Source)
 
-Provides a Qovery GCP credentials data source. This can be used to read Qovery GCP credentials.
+Use this data source to retrieve information about existing Qovery GCP credentials. This is useful for referencing credentials created outside of Terraform or in a different Terraform configuration.
+
 ## Example Usage
+
 ```terraform
 data "qovery_gcp_credentials" "my_gcp_credentials" {
-  id              = "<gcp_credentials_id>"
-  organization_id = "<organization_id>"
+  id              = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  organization_id = qovery_organization.my_organization.id
 }
 ```
 
@@ -14,10 +16,9 @@ data "qovery_gcp_credentials" "my_gcp_credentials" {
 
 ### Required
 
-- `id` (String) Id of the GCP credentials.
-- `organization_id` (String) Id of the organization.
+- `id` (String) ID of the GCP credentials to retrieve.
+- `organization_id` (String) ID of the organization containing the credentials.
 
 ### Read-Only
 
 - `name` (String) Name of the GCP credentials.
-

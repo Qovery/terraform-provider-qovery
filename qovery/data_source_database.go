@@ -48,24 +48,29 @@ func (d *databaseDataSource) Configure(_ context.Context, req datasource.Configu
 
 func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery database resource. This can be used to create and manage Qovery databases.",
+		Description:         "Use this data source to retrieve information about an existing Qovery database.",
+		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery database.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the database.",
-				Required:    true,
+				Description:         "Id of the database.",
+				MarkdownDescription: "Id of the database.",
+				Required:            true,
 			},
 			"environment_id": schema.StringAttribute{
-				Description: "Id of the environment.",
-				Computed:    true,
+				Description:         "Id of the environment.",
+				MarkdownDescription: "Id of the environment.",
+				Computed:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the database.",
-				Computed:    true,
+				Description:         "Name of the database.",
+				MarkdownDescription: "Name of the database.",
+				Computed:            true,
 			},
 			"icon_uri": schema.StringAttribute{
-				Description: "Icon URI representing the database.",
-				Optional:    true,
-				Computed:    true,
+				Description:         "Icon URI representing the database.",
+				MarkdownDescription: "Icon URI representing the database.",
+				Optional:            true,
+				Computed:            true,
 			},
 			"type": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -73,14 +78,25 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 					databaseTypes,
 					nil,
 				),
+				MarkdownDescription: descriptions.NewStringEnumDescription(
+					"Type of the database [NOTE: can't be updated after creation].",
+					databaseTypes,
+					nil,
+				),
 				Computed: true,
 			},
 			"version": schema.StringAttribute{
-				Description: "Version of the database",
-				Computed:    true,
+				Description:         "Version of the database.",
+				MarkdownDescription: "Version of the database.",
+				Computed:            true,
 			},
 			"mode": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
+					"Mode of the database [NOTE: can't be updated after creation].",
+					databaseModes,
+					nil,
+				),
+				MarkdownDescription: descriptions.NewStringEnumDescription(
 					"Mode of the database [NOTE: can't be updated after creation].",
 					databaseModes,
 					nil,
@@ -93,15 +109,26 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 					databaseAccessibilities,
 					&databaseAccessibilityDefault,
 				),
+				MarkdownDescription: descriptions.NewStringEnumDescription(
+					"Accessibility of the database.",
+					databaseAccessibilities,
+					&databaseAccessibilityDefault,
+				),
 				Optional: true,
 			},
 			"instance_type": schema.StringAttribute{
-				Description: "Instance type of the database.",
-				Optional:    true,
-				Computed:    true,
+				Description:         "Instance type of the database.",
+				MarkdownDescription: "Instance type of the database.",
+				Optional:            true,
+				Computed:            true,
 			},
 			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
+					"CPU of the database in millicores (m) [1000m = 1 CPU].",
+					databaseCPUMin,
+					&databaseCPUDefault,
+				),
+				MarkdownDescription: descriptions.NewInt64MinDescription(
 					"CPU of the database in millicores (m) [1000m = 1 CPU].",
 					databaseCPUMin,
 					&databaseCPUDefault,
@@ -114,6 +141,11 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 					databaseMemoryMin,
 					&databaseMemoryDefault,
 				),
+				MarkdownDescription: descriptions.NewInt64MinDescription(
+					"RAM of the database in MB [1024MB = 1GB].",
+					databaseMemoryMin,
+					&databaseMemoryDefault,
+				),
 				Optional: true,
 			},
 			"storage": schema.Int64Attribute{
@@ -122,47 +154,61 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 					databaseStorageMin,
 					&databaseStorageDefault,
 				),
+				MarkdownDescription: descriptions.NewInt64MinDescription(
+					"Storage of the database in GB [1024MB = 1GB] [NOTE: can't be updated after creation].",
+					databaseStorageMin,
+					&databaseStorageDefault,
+				),
 				Optional: true,
 			},
 			"external_host": schema.StringAttribute{
-				Description: "The database external FQDN host [NOTE: only if your container is using a publicly accessible port].",
+				Description: "The database external FQDN host [NOTE: only if your database accessibility is set to PUBLIC].",
+				MarkdownDescription: "The database external FQDN host. Only available when `accessibility = \"PUBLIC\"`.",
 				Computed:    true,
 			},
 			"internal_host": schema.StringAttribute{
 				Description: "The database internal host (Recommended for your application)",
+				MarkdownDescription: "The database internal host. Use this to connect from services within the same environment (recommended over external host).",
 				Computed:    true,
 			},
 			"deployment_stage_id": schema.StringAttribute{
-				Description: "Id of the deployment stage.",
-				Optional:    true,
-				Computed:    true,
+				Description:         "Id of the deployment stage.",
+				MarkdownDescription: "Id of the deployment stage.",
+				Optional:            true,
+				Computed:            true,
 			},
 			"is_skipped": schema.BoolAttribute{
-				Description: "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
-				Optional:    true,
-				Computed:    true,
+				Description:         "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
+				MarkdownDescription: "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
+				Optional:            true,
+				Computed:            true,
 			},
 			"port": schema.Int64Attribute{
-				Description: "The port to connect to your database",
-				Computed:    true,
+				Description:         "The port to connect to your database.",
+				MarkdownDescription: "The port to connect to your database.",
+				Computed:            true,
 			},
 			"login": schema.StringAttribute{
-				Description: "The login to connect to your database",
-				Computed:    true,
+				Description:         "The login to connect to your database.",
+				MarkdownDescription: "The login to connect to your database.",
+				Computed:            true,
 			},
 			"password": schema.StringAttribute{
-				Description: "The password to connect to your database",
-				Computed:    true,
+				Description:         "The password to connect to your database.",
+				MarkdownDescription: "The password to connect to your database.",
+				Computed:            true,
 			},
 			"annotations_group_ids": schema.SetAttribute{
-				Description: "List of annotations group ids",
-				Optional:    true,
-				ElementType: types.StringType,
+				Description:         "List of annotations group ids.",
+				MarkdownDescription: "List of annotations group ids.",
+				Optional:            true,
+				ElementType:         types.StringType,
 			},
 			"labels_group_ids": schema.SetAttribute{
-				Description: "List of labels group ids",
-				Optional:    true,
-				ElementType: types.StringType,
+				Description:         "List of labels group ids.",
+				MarkdownDescription: "List of labels group ids.",
+				Optional:            true,
+				ElementType:         types.StringType,
 			},
 		},
 	}

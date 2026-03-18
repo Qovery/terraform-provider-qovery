@@ -1,11 +1,13 @@
 # qovery_aws_credentials (Data Source)
 
-Provides a Qovery AWS credentials resource. This can be used to create and manage Qovery AWS credentials.
+Use this data source to retrieve information about existing Qovery AWS credentials. This is useful for referencing credentials created outside of Terraform or in a different Terraform configuration.
+
 ## Example Usage
+
 ```terraform
 data "qovery_aws_credentials" "my_aws_creds" {
-  id              = "<credentials_id>"
-  organization_id = "<organization_id>"
+  id              = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+  organization_id = qovery_organization.my_organization.id
 }
 ```
 
@@ -14,10 +16,9 @@ data "qovery_aws_credentials" "my_aws_creds" {
 
 ### Required
 
-- `id` (String) Id of the AWS credentials.
-- `organization_id` (String) Id of the organization.
+- `id` (String) ID of the AWS credentials to retrieve.
+- `organization_id` (String) ID of the organization containing the credentials.
 
 ### Read-Only
 
-- `name` (String) Name of the aws credentials.
-
+- `name` (String) Name of the AWS credentials.

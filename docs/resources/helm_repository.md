@@ -1,6 +1,8 @@
 # qovery_helm_repository (Resource)
 
-Provides a Qovery helm repository resource. This can be used to create and manage Qovery helm repository.
+Provides a Qovery helm repository resource. This can be used to create and manage Qovery helm repository connections.
+
+A helm repository stores Helm charts that can be deployed using the `qovery_helm` resource. Qovery supports both HTTPS (standard Helm) and OCI-based (container registry) repositories.
 
 
 ## Example
@@ -10,25 +12,20 @@ Provides a Qovery helm repository resource. This can be used to create and manag
 </div><br />
 
 ```terraform
+# OCI Docker Hub repository with authentication
 resource "qovery_helm_repository" "my_helm_repository" {
-  # Required
   organization_id       = qovery_organization.my_organization.id
-  name                  = "my_helm_repository"
+  name                  = "my-docker-hub-helm"
   kind                  = "OCI_DOCKER_HUB"
   url                   = "https://docker.io"
   skip_tls_verification = false
 
-  # Optional
-  description = "My Helm repository"
+  description = "Docker Hub OCI Helm repository"
+
   config = {
     username = "<my_username>"
     password = "<my_password>"
   }
-
-
-  depends_on = [
-    qovery_organization.my_organization
-  ]
 }
 ```
 
@@ -37,35 +34,35 @@ resource "qovery_helm_repository" "my_helm_repository" {
 
 ### Required
 
-- `kind` (String) Kind of the helm repository.
+- `kind` (String) Kind of the helm repository. Use `HTTPS` for standard Helm repositories, or one of the `OCI_*` values for OCI-based registries.
 	- Can be: `HTTPS`, `OCI_DOCKER_HUB`, `OCI_DOCR`, `OCI_ECR`, `OCI_GENERIC_CR`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR`, `OCI_PUBLIC_ECR`, `OCI_SCALEWAY_CR`.
-- `name` (String) Name of the helm repository.
+- `name` (String) Name of the helm repository. Must be unique within the organization.
 - `organization_id` (String) Id of the organization.
-- `skip_tls_verification` (Boolean) Bypass tls certificate verification when connecting to repository
-- `url` (String) URL of the helm repository.
+- `skip_tls_verification` (Boolean) Whether to bypass TLS certificate verification when connecting to the repository. Set to `true` for self-signed certificates.
+- `url` (String) URL of the helm repository (e.g. `https://charts.example.com` for HTTPS, or `https://docker.io` for OCI Docker Hub).
 
 ### Optional
 
-- `config` (Attributes) Configuration needed to authenticate the helm repository. (see [below for nested schema](#nestedatt--config))
+- `config` (Attributes) Configuration needed to authenticate with the helm repository. Required fields depend on the repository `kind`. (see [below for nested schema](#nestedatt--config))
 - `description` (String) Description of the helm repository.
 
 ### Read-Only
 
-- `id` (String) Id of the helm repository.
+- `id` (String) Unique identifier of the helm repository (UUID format).
 
 <a id="nestedatt--config"></a>
 ### Nested Schema for `config`
 
 Optional:
 
-- `access_key_id` (String) Required if kind is `ECR` or `PUBLIC_ECR`.
-- `password` (String) Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.
-- `region` (String) Required if kind is `ECR` or `SCALEWAY_CR`.
-- `scaleway_access_key` (String) Required if kind is `SCALEWAY_CR`.
-- `scaleway_project_id` (String) Required if kind is `SCALEWAY_CR`.
-- `scaleway_secret_key` (String) Required if kind is `SCALEWAY_CR`.
-- `secret_access_key` (String) Required if kind is `ECR` or `PUBLIC_ECR`.
-- `username` (String) Required if kinds are `DOCKER_HUB`, `GITHUB_CR`, `GITLAB`CR`, `GENERIC_CR`.
+- `access_key_id` (String) AWS access key ID. Required if kind is `OCI_ECR` or `OCI_PUBLIC_ECR`.
+- `password` (String) Password or access token for authentication. Required if kind is `OCI_DOCKER_HUB`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR`, or `OCI_GENERIC_CR`.
+- `region` (String) AWS or Scaleway region. Required if kind is `OCI_ECR` or `OCI_SCALEWAY_CR`.
+- `scaleway_access_key` (String) Scaleway access key. Required if kind is `OCI_SCALEWAY_CR`.
+- `scaleway_project_id` (String) Scaleway project ID. Required if kind is `OCI_SCALEWAY_CR`.
+- `scaleway_secret_key` (String) Scaleway secret key. Required if kind is `OCI_SCALEWAY_CR`.
+- `secret_access_key` (String) AWS secret access key. Required if kind is `OCI_ECR` or `OCI_PUBLIC_ECR`.
+- `username` (String) Username for authentication. Required if kind is `OCI_DOCKER_HUB`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR`, or `OCI_GENERIC_CR`.
 ## Import
 ```shell
 terraform import qovery_helm_repository.my_helm_repository "<organization_id>,<helm_repository_id>"

@@ -1,4 +1,4 @@
 data "qovery_annotations_group" "my_annotations_group" {
-  id              = "<annotations_group_id>"
-  organization_id = "<organization_id>"
+  id              = qovery_annotations_group.my_annotations_group.id
+  organization_id = qovery_organization.my_organization.id
 }

@@ -247,10 +247,18 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 
 func (p *qProvider) Schema(_ context.Context, _ provider.SchemaRequest, resp *provider.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Description: "The Qovery provider is used to interact with the resources supported by Qovery. " +
+			"The provider needs to be configured with the proper credentials before it can be used.",
+		MarkdownDescription: "The [Qovery](https://www.qovery.com/) provider is used to interact with the resources supported by Qovery. " +
+			"The provider needs to be configured with the proper credentials before it can be used.",
 		Attributes: map[string]schema.Attribute{
 			"token": schema.StringAttribute{
-				Description: "The Qovery API Token to use. This can also be specified with the `QOVERY_API_TOKEN` shell environment variable.",
-				Optional:    true,
+				Description: "The Qovery API Token to use. This can also be specified with the QOVERY_API_TOKEN environment variable. " +
+					"To generate a token, navigate to your Qovery Console > Settings > API Tokens.",
+				MarkdownDescription: "The Qovery API Token to use. This can also be specified with the `QOVERY_API_TOKEN` environment variable. " +
+					"To generate a token, navigate to your [Qovery Console](https://console.qovery.com) > Settings > API Tokens.",
+				Optional:  true,
+				Sensitive: true,
 			},
 		},
 	}

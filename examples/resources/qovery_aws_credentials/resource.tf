@@ -1,11 +1,14 @@
+# AWS credentials using IAM access keys
 resource "qovery_aws_credentials" "my_aws_creds" {
-  # Required
   organization_id   = qovery_organization.my_organization.id
-  name              = "my_aws_creds"
-  access_key_id     = "<your-aws-access-key-id>"
-  secret_access_key = "<your-aws-secret-access-key>"
+  name              = "my-aws-credentials"
+  access_key_id     = var.aws_access_key_id
+  secret_access_key = var.aws_secret_access_key
+}
 
-  depends_on = [
-    qovery_organization.my_organization
-  ]
+# AWS credentials using IAM role (cross-account access)
+resource "qovery_aws_credentials" "my_aws_role_creds" {
+  organization_id = qovery_organization.my_organization.id
+  name            = "my-aws-role-credentials"
+  role_arn        = var.aws_role_arn
 }

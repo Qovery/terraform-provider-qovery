@@ -56,30 +56,40 @@ func (r *gitTokenResource) Configure(_ context.Context, req resource.ConfigureRe
 
 func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery git token resource. This can be used to create and manage Qovery git token.",
+		Description:         "Provides a Qovery git token resource. This can be used to create and manage Qovery git tokens for accessing private git repositories.",
+		MarkdownDescription: "Provides a Qovery git token resource. This can be used to create and manage Qovery git tokens for accessing private git repositories.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the git token.",
+				Description:         "Id of the git token.",
+				MarkdownDescription: "Id of the git token.",
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
+				Description:         "Id of the organization.",
+				MarkdownDescription: "Id of the organization.",
 				Required:    true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the git token.",
+				Description:         "Name of the git token.",
+				MarkdownDescription: "Name of the git token.",
 				Required:    true,
 			},
 			"description": schema.StringAttribute{
-				Description: "Description of the git token.",
+				Description:         "Description of the git token.",
+				MarkdownDescription: "Description of the git token.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"type": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
+					"Type of the git token.",
+					gitTokenTypes,
+					nil,
+				),
+				MarkdownDescription: descriptions.NewStringEnumDescription(
 					"Type of the git token.",
 					gitTokenTypes,
 					nil,
@@ -90,12 +100,14 @@ func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"bitbucket_workspace": schema.StringAttribute{
-				Description: "(Mandatory only for Bitbucket git token) Workspace where the token has permissions .",
+				Description:         "Bitbucket workspace where the token has permissions. Required only when type is BITBUCKET.",
+				MarkdownDescription: "Bitbucket workspace where the token has permissions. Required only when `type` is `BITBUCKET`.",
 				Optional:    true,
 				Computed:    true,
 			},
 			"token": schema.StringAttribute{
-				Description: "Value of the git token.",
+				Description:         "Value of the git token (personal access token or app token from the git provider). Sensitive.",
+				MarkdownDescription: "Value of the git token (personal access token or app token from the git provider). Sensitive.",
 				Required:    true,
 				Sensitive:   true,
 			},

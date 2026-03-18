@@ -45,34 +45,41 @@ func (d *deploymentStageDataSource) Configure(_ context.Context, req datasource.
 }
 func (r deploymentStageDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.",
+		Description:         "Use this data source to retrieve information about an existing Qovery deployment stage.",
+		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery deployment stage.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the deployment stage.",
-				Required:    true,
+				Description:         "Unique identifier of the deployment stage (UUID format).",
+				MarkdownDescription: "Unique identifier of the deployment stage (UUID format).",
+				Required:            true,
 			},
 			"environment_id": schema.StringAttribute{
-				Description: "Id of the environment.",
-				Computed:    true,
+				Description:         "Identifier of the environment for this deployment stage.",
+				MarkdownDescription: "Identifier of the environment for this deployment stage.",
+				Computed:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the deployment stage.",
-				Computed:    true,
+				Description:         "Name of the deployment stage.",
+				MarkdownDescription: "Name of the deployment stage.",
+				Computed:            true,
 			},
 			"description": schema.StringAttribute{
-				Description: "Description of the deployment stage.",
-				Optional:    true,
-				Computed:    true,
+				Description:         "Description of the deployment stage.",
+				MarkdownDescription: "Description of the deployment stage.",
+				Optional:            true,
+				Computed:            true,
 			},
 			"is_after": schema.StringAttribute{
-				Description: "Move the current deployment stage after the target deployment stage",
-				Optional:    true,
-				Computed:    true,
+				Description:         "Identifier (UUID) of the deployment stage that this stage is positioned after.",
+				MarkdownDescription: "Identifier (UUID) of the deployment stage that this stage is positioned after.",
+				Optional:            true,
+				Computed:            true,
 			},
 			"is_before": schema.StringAttribute{
-				Description: "Move the current deployment stage before the target deployment stage",
-				Optional:    true,
-				Computed:    true,
+				Description:         "Identifier (UUID) of the deployment stage that this stage is positioned before.",
+				MarkdownDescription: "Identifier (UUID) of the deployment stage that this stage is positioned before.",
+				Optional:            true,
+				Computed:            true,
 			},
 		},
 	}

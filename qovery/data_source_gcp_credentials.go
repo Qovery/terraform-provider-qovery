@@ -47,18 +47,22 @@ func (d *gcpCredentialsDataSource) Configure(_ context.Context, req datasource.C
 func (r gcpCredentialsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery GCP credentials data source. This can be used to read Qovery GCP credentials.",
+		MarkdownDescription: "Use this data source to retrieve information about existing Qovery GCP credentials. This is useful for referencing credentials created outside of Terraform or in a different Terraform configuration.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the GCP credentials.",
-				Required:    true,
+				Description:         "Id of the GCP credentials.",
+				MarkdownDescription: "ID of the GCP credentials to retrieve.",
+				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				Description:         "Id of the organization.",
+				MarkdownDescription: "ID of the organization containing the credentials.",
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the GCP credentials.",
-				Computed:    true,
+				Description:         "Name of the GCP credentials.",
+				MarkdownDescription: "Name of the GCP credentials.",
+				Computed:            true,
 			},
 		},
 	}

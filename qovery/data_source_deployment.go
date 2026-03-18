@@ -46,23 +46,31 @@ func (d *deploymentDataSource) Configure(_ context.Context, req datasource.Confi
 
 func (r deploymentDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery deployment resource. This is used to trigger a service deployment at demand.",
+		Description:         "Use this data source to retrieve information about an existing Qovery deployment.",
+		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery deployment.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the deployment",
-				Required:    true,
+				Description:         "Unique identifier of the deployment (UUID format).",
+				MarkdownDescription: "Unique identifier of the deployment (UUID format).",
+				Required:            true,
 			},
 			"environment_id": schema.StringAttribute{
-				Description: "Id of the environment.",
-				Computed:    true,
+				Description:         "Identifier of the environment associated with this deployment.",
+				MarkdownDescription: "Identifier of the environment associated with this deployment.",
+				Computed:            true,
 			},
 			"version": schema.StringAttribute{
-				Description: "Version to force trigger a deployment when desired_state doesn't change (e.g redeploy a deployment having the 'RUNNING' state)",
-				Optional:    true,
-				Computed:    false,
+				Description:         "Version identifier of the deployment.",
+				MarkdownDescription: "Version identifier of the deployment.",
+				Optional:            true,
+				Computed:            false,
 			},
 			"desired_state": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
+					"Desired state of the deployment.",
+					deploymentStates,
+					nil),
+				MarkdownDescription: descriptions.NewStringEnumDescription(
 					"Desired state of the deployment.",
 					deploymentStates,
 					nil),

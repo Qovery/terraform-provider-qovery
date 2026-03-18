@@ -47,27 +47,36 @@ func (d *organizationDataSource) Configure(_ context.Context, req datasource.Con
 
 func (r organizationDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery organization resource. This can be used to create and manage Qovery organizations.",
+		Description:         "Use this data source to retrieve information about an existing Qovery organization.",
+		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery organization.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				Description:         "Unique identifier of the organization (UUID format).",
+				MarkdownDescription: "Unique identifier of the organization (UUID format).",
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the organization.",
-				Computed:    true,
+				Description:         "Name of the organization.",
+				MarkdownDescription: "Name of the organization.",
+				Computed:            true,
 			},
 			"plan": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
-					"Plan of the organization.",
+					"Subscription plan of the organization.",
+					organizationPlans,
+					nil,
+				),
+				MarkdownDescription: descriptions.NewStringEnumDescription(
+					"Subscription plan of the organization.",
 					organizationPlans,
 					nil,
 				),
 				Computed: true,
 			},
 			"description": schema.StringAttribute{
-				Description: "Description of the organization.",
-				Computed:    true,
+				Description:         "Description of the organization.",
+				MarkdownDescription: "Description of the organization.",
+				Computed:            true,
 			},
 		},
 	}

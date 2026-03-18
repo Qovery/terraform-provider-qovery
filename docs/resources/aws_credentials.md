@@ -1,6 +1,8 @@
 # qovery_aws_credentials (Resource)
 
-Provides a Qovery AWS credentials resource. This can be used to create and manage Qovery AWS credentials.
+Provides a Qovery AWS credentials resource. This is used to create and manage AWS credentials that Qovery uses to provision and manage EKS clusters and associated resources in your AWS account.
+
+You can authenticate using either **IAM access keys** (`access_key_id` + `secret_access_key`) or an **IAM role** (`role_arn`). These two methods are mutually exclusive.
 
 
 ## Example
@@ -10,16 +12,19 @@ Provides a Qovery AWS credentials resource. This can be used to create and manag
 </div><br />
 
 ```terraform
+# AWS credentials using IAM access keys
 resource "qovery_aws_credentials" "my_aws_creds" {
-  # Required
   organization_id   = qovery_organization.my_organization.id
-  name              = "my_aws_creds"
-  access_key_id     = "<your-aws-access-key-id>"
-  secret_access_key = "<your-aws-secret-access-key>"
+  name              = "my-aws-credentials"
+  access_key_id     = var.aws_access_key_id
+  secret_access_key = var.aws_secret_access_key
+}
 
-  depends_on = [
-    qovery_organization.my_organization
-  ]
+# AWS credentials using IAM role (cross-account access)
+resource "qovery_aws_credentials" "my_aws_role_creds" {
+  organization_id = qovery_organization.my_organization.id
+  name            = "my-aws-role-credentials"
+  role_arn        = var.aws_role_arn
 }
 ```
 
@@ -28,18 +33,18 @@ resource "qovery_aws_credentials" "my_aws_creds" {
 
 ### Required
 
-- `name` (String) Name of the aws credentials.
-- `organization_id` (String) Id of the organization.
+- `name` (String) Name of the AWS credentials. Used for display purposes in the Qovery console.
+- `organization_id` (String) ID of the Qovery organization in which to create the credentials.
 
 ### Optional
 
-- `access_key_id` (String) Your AWS access key id.
-- `role_arn` (String) Your AWS role that you want Qovery to assume. You can't specify access/secret_key if you use a role
-- `secret_access_key` (String, Sensitive) Your AWS secret access key.
+- `access_key_id` (String) AWS IAM access key ID. Required when using access key authentication. Must not be set when `role_arn` is specified. Use a variable reference instead of hardcoding this value.
+- `role_arn` (String) ARN of the AWS IAM role that Qovery will assume (e.g., `arn:aws:iam::123456789012:role/QoveryRole`). Use this for cross-account access or when you prefer role-based authentication. Must not be set when `access_key_id`/`secret_access_key` are specified.
+- `secret_access_key` (String, Sensitive) AWS IAM secret access key. Required when using access key authentication. This is a sensitive value and will not be displayed in plan output. Use a variable reference instead of hardcoding this value.
 
 ### Read-Only
 
-- `id` (String) Id of the AWS credentials.
+- `id` (String) Unique identifier of the AWS credentials (UUID format).
 ## Import
 ```shell
 terraform import qovery_aws_credentials.my_aws_creds "<organization_id>,<aws_credentials_id>"

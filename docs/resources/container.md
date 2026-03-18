@@ -1,6 +1,8 @@
 # qovery_container (Resource)
 
-Provides a Qovery container resource. This can be used to create and manage Qovery container registry.
+Provides a Qovery container resource. This can be used to create and manage Qovery containers.
+
+A container is a service that runs a Docker image from a container registry within a Qovery environment. Unlike applications (which are built from source code), containers use pre-built images.
 
 
 ## Example
@@ -15,68 +17,100 @@ resource "qovery_container" "my_container" {
   environment_id = qovery_environment.my_environment.id
   registry_id    = qovery_container_registry.my_container_registry.id
   name           = "MyContainer"
-  image_name     = "qovery-api"
-  tag            = "1.0.0"
+  image_name     = "nginx"
+  tag            = "1.25-alpine"
 
   # Optional
-  entrypoint            = "/dev/api"
-  auto_preview          = "true"
+  entrypoint            = "/docker-entrypoint.sh"
+  auto_preview          = true
+  auto_deploy           = true
   cpu                   = 500
   memory                = 512
   min_running_instances = 1
-  max_running_instances = 1
+  max_running_instances = 3
 
+  # Port configuration
+  ports = [
+    {
+      internal_port       = 80
+      external_port       = 443
+      publicly_accessible = true
+      protocol            = "HTTP"
+      is_default          = true
+      name                = "http"
+    },
+    {
+      internal_port       = 9090
+      publicly_accessible = false
+      protocol            = "HTTP"
+      name                = "metrics"
+    }
+  ]
+
+  # Persistent storage
+  storage = [
+    {
+      type        = "FAST_SSD"
+      size        = 10
+      mount_point = "/data"
+    }
+  ]
+
+  # Healthchecks
   healthchecks = {
     readiness_probe = {
       type = {
         http = {
-          port = 8000
+          port   = 80
+          path   = "/health"
+          scheme = "HTTP"
         }
       }
       initial_delay_seconds = 30
       period_seconds        = 10
-      timeout_seconds       = 10
+      timeout_seconds       = 5
       success_threshold     = 1
       failure_threshold     = 3
     }
 
-
     liveness_probe = {
       type = {
-        http = {
-          port = 8000
+        tcp = {
+          port = 80
         }
       }
       initial_delay_seconds = 30
       period_seconds        = 10
-      timeout_seconds       = 10
+      timeout_seconds       = 5
       success_threshold     = 1
       failure_threshold     = 3
     }
   }
 
+  # Environment variables
   environment_variables = [
     {
-      key   = "ENV_VAR_KEY"
-      value = "ENV_VAR_VALUE"
+      key   = "NGINX_PORT"
+      value = "80"
     }
   ]
   environment_variable_aliases = [
     {
-      key = "ENV_VAR_KEY_ALIAS"
-      # the value of the alias must be the name of the aliased variable
-      # e.g here it is an alias to the above declared environment variable "ENV_VAR_KEY"
-      value = "ENV_VAR_KEY"
+      key = "PORT"
+      # The value of the alias must be the name of the aliased variable.
+      # Here it creates an alias "PORT" pointing to the "NGINX_PORT" variable above.
+      value = "NGINX_PORT"
     }
   ]
   environment_variable_overrides = [
     {
-      # the key of the override must be the name of the overridden variable
-      # e.g here it is an override on a variable declared at project scope "SOME_PROJECT_VARIABLE"
+      # The key must match a variable defined at a higher scope (project or environment).
       key   = "SOME_PROJECT_VARIABLE"
       value = "OVERRIDDEN_VALUE"
     }
   ]
+
+  # Secrets
   secrets = [
     {
       key   = "SECRET_KEY"
@@ -86,29 +120,29 @@ resource "qovery_container" "my_container" {
   secret_aliases = [
     {
       key = "SECRET_KEY_ALIAS"
-      # the value of the alias must be the name of the aliased secret
-      # e.g here it is an alias to the above declared secret "SECRET_KEY"
+      # The value of the alias must be the name of the aliased secret.
       value = "SECRET_KEY"
     }
   ]
   secret_overrides = [
     {
-      # the key of the override must be the name of the overridden secret
-      # e.g here it is an override on a secret declared at project scope "SOME_PROJECT_SECRET"
+      # The key must match a secret defined at a higher scope (project or environment).
       key   = "SOME_PROJECT_SECRET"
       value = "OVERRIDDEN_VALUE"
     }
   ]
 
+  # Custom domains
   custom_domains = [
     {
-      domain = "example.com"
+      domain               = "app.example.com"
+      generate_certificate = true
     }
   ]
 
+  # Advanced settings (JSON)
   advanced_settings_json = jsonencode({
-    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings
-    # you can only indicate settings that you need to override
+    # Non-exhaustive list. Full list: https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings
     "network.ingress.proxy_send_timeout_seconds" : 80,
     "network.ingress.proxy_body_size_mb" : 200,
   })
@@ -125,90 +159,82 @@ resource "qovery_container" "my_container" {
 
 ### Required
 
-- `environment_id` (String) Id of the environment.
-- `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service (see [below for nested schema](#nestedatt--healthchecks))
-- `image_name` (String) Name of the container image.
+- `environment_id` (String) Id of the environment. Changing this forces the container to be re-created.
+- `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service. At least one of `readiness_probe` or `liveness_probe` should be configured for production workloads. (see [below for nested schema](#nestedatt--healthchecks))
+- `image_name` (String) Name of the container image (e.g. `nginx`, `my-org/my-app`). Do not include the tag.
 - `name` (String) Name of the container.
-- `registry_id` (String) Id of the registry.
-- `tag` (String) Tag of the container image.
+- `registry_id` (String) Id of the container registry (from `qovery_container_registry`) that stores the Docker image for this container.
+- `tag` (String) Tag of the container image (e.g. `latest`, `1.0.0`, `sha-abc123`).
 
 ### Optional
 
-- `advanced_settings_json` (String) Advanced settings.
-- `annotations_group_ids` (Set of String) List of annotations group ids
-- `arguments` (List of String) List of arguments of this container.
-- `auto_deploy` (Boolean) Specify if the container will be automatically updated after receiving a new image tag.
-- `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this container.
+- `advanced_settings_json` (String) Advanced settings as JSON. Use `jsonencode()` to set values. Only include settings you want to override. Full list available in [Qovery API documentation](https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings).
+- `annotations_group_ids` (Set of String) List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the container's pods.
+- `arguments` (List of String) List of arguments of this container. Overrides the Docker image's default `CMD`.
+- `auto_deploy` (Boolean) Specify if the container will be automatically redeployed after receiving a new image tag from the container registry.
+- `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this container. When enabled, Qovery creates a preview environment for each pull request.
 - `cpu` (Number) CPU of the container in millicores (m) [1000m = 1 CPU].
-	- Must be: `>= 10`.
-	- Default: `500`.
-- `custom_domains` (Attributes Set) List of custom domains linked to this container. (see [below for nested schema](#nestedatt--custom_domains))
-- `deployment_stage_id` (String) Id of the deployment stage.
-- `entrypoint` (String) Entrypoint of the container.
-- `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this container. (see [below for nested schema](#nestedatt--environment_variable_aliases))
-- `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this container. (see [below for nested schema](#nestedatt--environment_variable_overrides))
-- `environment_variables` (Attributes Set) List of environment variables linked to this container. (see [below for nested schema](#nestedatt--environment_variables))
-- `icon_uri` (String) Icon URI representing the container.
+- `custom_domains` (Attributes Set) List of custom domains linked to this container. You must configure a CNAME record on your DNS provider pointing to the `validation_domain` value. (see [below for nested schema](#nestedatt--custom_domains))
+- `deployment_stage_id` (String) Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.
+- `entrypoint` (String) Entrypoint of the container. Overrides the Docker image's default `ENTRYPOINT`.
+- `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this container. An alias creates a new environment variable name that references the value of an existing variable. The `key` is the alias name and `value` is the name of the variable being aliased. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this container. An override replaces the value of an existing environment variable defined at a higher scope (project or environment). The `key` must match the name of the variable to override. (see [below for nested schema](#nestedatt--environment_variable_overrides))
+- `environment_variables` (Attributes Set) List of environment variables linked to this container. Environment variables at the container level have the highest precedence and override variables set at the project or environment level. (see [below for nested schema](#nestedatt--environment_variables))
+- `icon_uri` (String) Icon URI representing the container. Used in the Qovery console UI.
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
-- `labels_group_ids` (Set of String) List of labels group ids
+- `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the container's pods.
 - `max_running_instances` (Number) Maximum number of instances running for the container.
-	- Must be: `>= -1`.
-	- Default: `1`.
 - `memory` (Number) RAM of the container in MB [1024MB = 1GB].
-	- Must be: `>= 10`.
-	- Default: `512`.
 - `min_running_instances` (Number) Minimum number of instances running for the container.
-	- Must be: `>= 1`.
-	- Default: `1`.
-- `ports` (Attributes List) List of ports linked to this container. (see [below for nested schema](#nestedatt--ports))
-- `secret_aliases` (Attributes Set) List of secret aliases linked to this container. (see [below for nested schema](#nestedatt--secret_aliases))
-- `secret_overrides` (Attributes Set) List of secret overrides linked to this container. (see [below for nested schema](#nestedatt--secret_overrides))
-- `secrets` (Attributes Set) List of secrets linked to this container. (see [below for nested schema](#nestedatt--secrets))
-- `storage` (Attributes Set) List of storages linked to this container. (see [below for nested schema](#nestedatt--storage))
+- `ports` (Attributes List) List of ports linked to this container. At least one port must be set as `publicly_accessible = true` with an `external_port` for the container to be reachable from the internet. (see [below for nested schema](#nestedatt--ports))
+- `secret_aliases` (Attributes Set) List of secret aliases linked to this container. An alias creates a new secret name that references the value of an existing secret. The `key` is the alias name and `value` is the name of the secret being aliased. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secret_overrides` (Attributes Set) List of secret overrides linked to this container. An override replaces the value of an existing secret defined at a higher scope (project or environment). The `key` must match the name of the secret to override. (see [below for nested schema](#nestedatt--secret_overrides))
+- `secrets` (Attributes Set) List of secrets linked to this container. Secrets behave like environment variables but their values are stored securely and not visible in plan outputs. (see [below for nested schema](#nestedatt--secrets))
+- `storage` (Attributes Set) List of persistent storage volumes linked to this container. Data stored in these volumes persists across container restarts. (see [below for nested schema](#nestedatt--storage))
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this container. (see [below for nested schema](#nestedatt--built_in_environment_variables))
-- `external_host` (String) The container external FQDN host [NOTE: only if your container is using a publicly accessible port].
+- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this container. Built-in variables are automatically generated by Qovery and include host information, port mappings, and other service metadata. These are read-only and cannot be modified. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `external_host` (String) The container external FQDN host. Only available if your container has at least one publicly accessible port.
 - `id` (String) Id of the container.
-- `internal_host` (String) The container internal host.
+- `internal_host` (String) The container internal host. Use this to communicate between services within the same environment.
 
 <a id="nestedatt--healthchecks"></a>
 ### Nested Schema for `healthchecks`
 
 Optional:
 
-- `liveness_probe` (Attributes) Configuration for the liveness probe, in order to know when your service is working correctly. Failing the probe means your service being killed/ask to be restarted. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe))
-- `readiness_probe` (Attributes) Configuration for the readiness probe, in order to know when your service is ready to receive traffic. Failing the probe means your service will stop receiving traffic. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe))
+- `liveness_probe` (Attributes) Configuration for the liveness probe, used to determine when your service is working correctly. If the liveness probe fails, the service container is killed and restarted. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe))
+- `readiness_probe` (Attributes) Configuration for the readiness probe, used to determine when your service is ready to receive traffic. If the readiness probe fails, the service is temporarily removed from the load balancer until it passes again. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe))
 
 <a id="nestedatt--healthchecks--liveness_probe"></a>
 ### Nested Schema for `healthchecks.liveness_probe`
 
 Required:
 
-- `failure_threshold` (Number) Number of time the an ok probe should fail before declaring it as failed
-- `initial_delay_seconds` (Number) Number of seconds to wait before the first execution of the probe to be trigerred
-- `period_seconds` (Number) Number of seconds before each execution of the probe
-- `success_threshold` (Number) Number of time the probe should success before declaring a failed probe as ok again
-- `timeout_seconds` (Number) Number of seconds within which the check need to respond before declaring it as a failure
-- `type` (Attributes) Kind of check to run for this probe. There can only be one configured at a time (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type))
+- `failure_threshold` (Number) Number of consecutive failures required to declare the probe as failed.
+- `initial_delay_seconds` (Number) Number of seconds to wait after the container starts before the first probe is executed. Use this to give your application time to initialize.
+- `period_seconds` (Number) How often (in seconds) to perform the probe after the initial delay.
+- `success_threshold` (Number) Minimum consecutive successes for the probe to be considered successful after a failure.
+- `timeout_seconds` (Number) Number of seconds after which the probe times out. If the probe does not respond within this time, it is considered failed.
+- `type` (Attributes) Kind of check to run for this probe. Exactly one of `tcp`, `http`, `grpc`, or `exec` must be configured. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type))
 
 <a id="nestedatt--healthchecks--liveness_probe--type"></a>
 ### Nested Schema for `healthchecks.liveness_probe.type`
 
 Optional:
 
-- `exec` (Attributes) Check that the given command return an exit 0. Binary should be present in the image (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--exec))
-- `grpc` (Attributes) Check that the given port respond to GRPC call (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--grpc))
-- `http` (Attributes) Check that the given port respond to HTTP call (should return a 2xx response code) (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--http))
-- `tcp` (Attributes) Check that the given port accepting connection (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--tcp))
+- `exec` (Attributes) Exec probe: runs a command inside the container. The probe succeeds if the command exits with status code 0. The command binary must be present in the container image. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--exec))
+- `grpc` (Attributes) gRPC probe: checks that the given port responds to gRPC health check requests. The service must implement the [gRPC Health Checking Protocol](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe). (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--grpc))
+- `http` (Attributes) HTTP probe: sends an HTTP GET request and expects a 2xx response code. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--http))
+- `tcp` (Attributes) TCP probe: checks that a TCP connection can be established on the given port. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--tcp))
 
 <a id="nestedatt--healthchecks--liveness_probe--type--exec"></a>
 ### Nested Schema for `healthchecks.liveness_probe.type.exec`
 
 Required:
 
-- `command` (List of String) The command and its arguments to exec
+- `command` (List of String) The command and its arguments to execute (e.g. `["cat", "/tmp/healthy"]`).
 
 
 <a id="nestedatt--healthchecks--liveness_probe--type--grpc"></a>
@@ -216,11 +242,11 @@ Required:
 
 Required:
 
-- `port` (Number) The port number to try to connect to
+- `port` (Number) The port number to try to connect to.
 
 Optional:
 
-- `service` (String) The grpc service to connect to. It needs to implement grpc health protocol. https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe
+- `service` (String) The gRPC service name to health-check. If not specified, the overall server health is checked.
 
 
 <a id="nestedatt--healthchecks--liveness_probe--type--http"></a>
@@ -228,12 +254,12 @@ Optional:
 
 Required:
 
-- `port` (Number) The port number to try to connect to
-- `scheme` (String) if the HTTP GET request should be done in HTTP or HTTPS.
+- `port` (Number) The port number to try to connect to.
+- `scheme` (String) Scheme to use for the HTTP request. Must be `HTTP` or `HTTPS`.
 
 Optional:
 
-- `path` (String) The path that the HTTP GET request. By default it is `/`
+- `path` (String) The path for the HTTP GET request (e.g. `/health`, `/ready`). Defaults to `/`.
 
 
 <a id="nestedatt--healthchecks--liveness_probe--type--tcp"></a>
@@ -241,11 +267,11 @@ Optional:
 
 Required:
 
-- `port` (Number) The port number to try to connect to
+- `port` (Number) The port number to try to connect to.
 
 Optional:
 
-- `host` (String) Optional. If the host need to be different than localhost/pod ip
+- `host` (String) Optional host to connect to. Defaults to the pod IP if not specified.
 
 
 
@@ -255,29 +281,29 @@ Optional:
 
 Required:
 
-- `failure_threshold` (Number) Number of time the an ok probe should fail before declaring it as failed
-- `initial_delay_seconds` (Number) Number of seconds to wait before the first execution of the probe to be trigerred
-- `period_seconds` (Number) Number of seconds before each execution of the probe
-- `success_threshold` (Number) Number of time the probe should success before declaring a failed probe as ok again
-- `timeout_seconds` (Number) Number of seconds within which the check need to respond before declaring it as a failure
-- `type` (Attributes) Kind of check to run for this probe. There can only be one configured at a time (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type))
+- `failure_threshold` (Number) Number of consecutive failures required to declare the probe as failed.
+- `initial_delay_seconds` (Number) Number of seconds to wait after the container starts before the first probe is executed. Use this to give your application time to initialize.
+- `period_seconds` (Number) How often (in seconds) to perform the probe after the initial delay.
+- `success_threshold` (Number) Minimum consecutive successes for the probe to be considered successful after a failure.
+- `timeout_seconds` (Number) Number of seconds after which the probe times out. If the probe does not respond within this time, it is considered failed.
+- `type` (Attributes) Kind of check to run for this probe. Exactly one of `tcp`, `http`, `grpc`, or `exec` must be configured. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type))
 
 <a id="nestedatt--healthchecks--readiness_probe--type"></a>
 ### Nested Schema for `healthchecks.readiness_probe.type`
 
 Optional:
 
-- `exec` (Attributes) Check that the given command return an exit 0. Binary should be present in the image (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--exec))
-- `grpc` (Attributes) Check that the given port respond to GRPC call (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--grpc))
-- `http` (Attributes) Check that the given port respond to HTTP call (should return a 2xx response code) (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--http))
-- `tcp` (Attributes) Check that the given port accepting connection (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--tcp))
+- `exec` (Attributes) Exec probe: runs a command inside the container. The probe succeeds if the command exits with status code 0. The command binary must be present in the container image. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--exec))
+- `grpc` (Attributes) gRPC probe: checks that the given port responds to gRPC health check requests. The service must implement the [gRPC Health Checking Protocol](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe). (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--grpc))
+- `http` (Attributes) HTTP probe: sends an HTTP GET request and expects a 2xx response code. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--http))
+- `tcp` (Attributes) TCP probe: checks that a TCP connection can be established on the given port. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--tcp))
 
 <a id="nestedatt--healthchecks--readiness_probe--type--exec"></a>
 ### Nested Schema for `healthchecks.readiness_probe.type.exec`
 
 Required:
 
-- `command` (List of String) The command and its arguments to exec
+- `command` (List of String) The command and its arguments to execute (e.g. `["cat", "/tmp/healthy"]`).
 
 
 <a id="nestedatt--healthchecks--readiness_probe--type--grpc"></a>
@@ -285,11 +311,11 @@ Required:
 
 Required:
 
-- `port` (Number) The port number to try to connect to
+- `port` (Number) The port number to try to connect to.
 
 Optional:
 
-- `service` (String) The grpc service to connect to. It needs to implement grpc health protocol. https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe
+- `service` (String) The gRPC service name to health-check. If not specified, the overall server health is checked.
 
 
 <a id="nestedatt--healthchecks--readiness_probe--type--http"></a>
@@ -297,12 +323,12 @@ Optional:
 
 Required:
 
-- `port` (Number) The port number to try to connect to
-- `scheme` (String) if the HTTP GET request should be done in HTTP or HTTPS.
+- `port` (Number) The port number to try to connect to.
+- `scheme` (String) Scheme to use for the HTTP request. Must be `HTTP` or `HTTPS`.
 
 Optional:
 
-- `path` (String) The path that the HTTP GET request. By default it is `/`
+- `path` (String) The path for the HTTP GET request (e.g. `/health`, `/ready`). Defaults to `/`.
 
 
 <a id="nestedatt--healthchecks--readiness_probe--type--tcp"></a>
@@ -310,11 +336,11 @@ Optional:
 
 Required:
 
-- `port` (Number) The port number to try to connect to
+- `port` (Number) The port number to try to connect to.
 
 Optional:
 
-- `host` (String) Optional. If the host need to be different than localhost/pod ip
+- `host` (String) Optional host to connect to. Defaults to the pod IP if not specified.
 
 
 
@@ -325,15 +351,14 @@ Optional:
 
 Required:
 
-- `domain` (String) Your custom domain.
+- `domain` (String) Your custom domain (e.g. `app.example.com`).
 
 Optional:
 
-- `generate_certificate` (Boolean) Qovery will generate and manage the certificate for this domain.
-- `use_cdn` (Boolean) Indicates if the custom domain is behind a CDN (i.e Cloudflare).
-This will condition the way we are checking CNAME before & during a deployment:
- * If `true` then we only check the domain points to an IP
- * If `false` then we check that the domain resolves to the correct service Load Balancer
+- `generate_certificate` (Boolean) Qovery will generate and manage a TLS/SSL certificate for this domain using Let's Encrypt.
+- `use_cdn` (Boolean) Indicates if the custom domain is behind a CDN (e.g. Cloudflare). This affects how Qovery validates the CNAME during deployment:
+  - If `true`: Qovery only checks that the domain points to an IP.
+  - If `false`: Qovery checks that the domain resolves to the correct service Load Balancer.
 
 Read-Only:
 
@@ -398,20 +423,15 @@ Read-Only:
 
 Required:
 
-- `internal_port` (Number) Internal port of the container.
-	- Must be: `>= 1` and `<= 65535`.
+- `internal_port` (Number) Internal port of the container. Must be between 1 and 65535.
 - `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this container.
 
 Optional:
 
-- `external_port` (Number) External port of the container.
-	- Required if: `ports.publicly_accessible=true`.
-	- Must be: `>= 1` and `<= 65535`.
-- `is_default` (Boolean) If this port will be used for the root domain. Note: the API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).
+- `external_port` (Number) External port of the container. Required if `ports.publicly_accessible = true`. Must be between 1 and 65535.
+- `is_default` (Boolean) If this port will be used for the root domain. The API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).
 - `name` (String) Name of the port.
 - `protocol` (String) Protocol used for the port of the container.
-	- Can be: `GRPC`, `HTTP`, `TCP`, `UDP`.
-	- Default: `HTTP`.
 
 Read-Only:
 
@@ -441,7 +461,7 @@ Read-Only:
 Required:
 
 - `key` (String) Name of the secret override.
-- `value` (String, Sensitive) Value of the secret override.
+- `value` (String, Sensitive) Value of the secret override. The value is write-only and will not be displayed in plan outputs.
 
 Optional:
 
@@ -458,7 +478,7 @@ Read-Only:
 Required:
 
 - `key` (String) Key of the secret.
-- `value` (String, Sensitive) Value of the secret.
+- `value` (String, Sensitive) Value of the secret. The value is write-only and will not be displayed in plan outputs.
 
 Optional:
 
@@ -476,9 +496,7 @@ Required:
 
 - `mount_point` (String) Mount point of the storage for the container.
 - `size` (Number) Size of the storage for the container in GB [1024MB = 1GB].
-	- Must be: `>= 1`.
 - `type` (String) Type of the storage for the container.
-	- Can be: `FAST_SSD`.
 
 Read-Only:
 

@@ -4,5 +4,5 @@
 
 data "qovery_azure_credentials" "my_azure_creds" {
   id              = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-  organization_id = qovery_organization.my_org.id
+  organization_id = qovery_organization.my_organization.id
 }

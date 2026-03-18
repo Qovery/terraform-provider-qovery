@@ -1,10 +1,19 @@
 # qovery_project (Data Source)
 
-Provides a Qovery project resource. This can be used to create and manage Qovery projects.
+Use this data source to retrieve information about an existing Qovery project.
+
 ## Example Usage
+
 ```terraform
+# Retrieve an existing project by its ID
 data "qovery_project" "my_project" {
   id = "<project_id>"
+}
+
+# Use project attributes in other resources
+resource "qovery_environment" "example" {
+  project_id = data.qovery_project.my_project.id
+  name       = "production"
 }
 ```
 
@@ -13,31 +22,31 @@ data "qovery_project" "my_project" {
 
 ### Required
 
-- `id` (String) Id of the project.
+- `id` (String) Unique identifier of the project (UUID format).
 
 ### Optional
 
 - `description` (String) Description of the project.
-- `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this project. (see [below for nested schema](#nestedatt--environment_variable_aliases))
-- `environment_variables` (Attributes Set) List of environment variables linked to this project. (see [below for nested schema](#nestedatt--environment_variables))
-- `secret_aliases` (Attributes Set) List of secret aliases linked to this project. (see [below for nested schema](#nestedatt--secret_aliases))
-- `secrets` (Attributes Set) List of secrets linked to this project. (see [below for nested schema](#nestedatt--secrets))
+- `environment_variable_aliases` (Attributes Set) Set of environment variable aliases linked to this project. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variables` (Attributes Set) Set of environment variables linked to this project. (see [below for nested schema](#nestedatt--environment_variables))
+- `secret_aliases` (Attributes Set) Set of secret aliases linked to this project. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secrets` (Attributes Set) Set of secrets linked to this project. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
 
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this project. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `name` (String) Name of the project.
-- `organization_id` (String) Id of the organization.
+- `organization_id` (String) Identifier of the organization containing this project.
 
 <a id="nestedatt--environment_variable_aliases"></a>
 ### Nested Schema for `environment_variable_aliases`
 
 Read-Only:
 
-- `description` (String) Description of the environment variable.
-- `id` (String) Id of the environment variable alias.
+- `description` (String) Description of the environment variable alias.
+- `id` (String) Identifier of the environment variable alias.
 - `key` (String) Name of the environment variable alias.
-- `value` (String) Name of the variable to alias.
+- `value` (String) Name of the variable being aliased.
 
 
 <a id="nestedatt--environment_variables"></a>
@@ -46,7 +55,7 @@ Read-Only:
 Read-Only:
 
 - `description` (String) Description of the environment variable.
-- `id` (String) Id of the environment variable.
+- `id` (String) Identifier of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
 
@@ -56,10 +65,10 @@ Read-Only:
 
 Read-Only:
 
-- `description` (String) Description of the environment variable.
-- `id` (String) Id of the secret alias.
+- `description` (String) Description of the secret alias.
+- `id` (String) Identifier of the secret alias.
 - `key` (String) Name of the secret alias.
-- `value` (String) Name of the secret to alias.
+- `value` (String) Name of the secret being aliased.
 
 
 <a id="nestedatt--secrets"></a>
@@ -67,8 +76,8 @@ Read-Only:
 
 Read-Only:
 
-- `description` (String) Description of the environment variable.
-- `id` (String) Id of the secret.
+- `description` (String) Description of the secret.
+- `id` (String) Identifier of the secret.
 - `key` (String) Key of the secret.
 - `value` (String, Sensitive) Value of the secret.
 
@@ -79,7 +88,6 @@ Read-Only:
 Read-Only:
 
 - `description` (String) Description of the environment variable.
-- `id` (String) Id of the environment variable.
+- `id` (String) Identifier of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
-

@@ -4,32 +4,38 @@ resource "qovery_project" "my_project" {
   name            = "MyProject"
 
   # Optional
-  description = "My project description"
+  description = "Backend services for our SaaS platform"
+
+  # Project-level environment variables are inherited by all environments
   environment_variables = [
     {
       key   = "ENV_VAR_KEY"
       value = "ENV_VAR_VALUE"
     }
   ]
+
+  # Aliases create alternative names for existing environment variables
   environment_variable_aliases = [
     {
       key = "ENV_VAR_KEY_ALIAS"
-      # the value of the alias must be the name of the aliased variable
-      # e.g here it is an alias to the above declared environment variable "ENV_VAR_KEY"
+      # Must match the key of an existing environment variable
       value = "ENV_VAR_KEY"
     }
   ]
+
+  # Secrets are encrypted and not visible after creation
   secrets = [
     {
       key   = "SECRET_KEY"
       value = "SECRET_VALUE"
     }
   ]
+
+  # Aliases create alternative names for existing secrets
   secret_aliases = [
     {
       key = "SECRET_KEY_ALIAS"
-      # the value of the alias must be the name of the aliased secret
-      # e.g here it is an alias to the above declared secret "SECRET_KEY"
+      # Must match the key of an existing secret
       value = "SECRET_KEY"
     }
   ]

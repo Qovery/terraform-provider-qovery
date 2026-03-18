@@ -1,10 +1,19 @@
 # qovery_organization (Data Source)
 
-Provides a Qovery organization resource. This can be used to create and manage Qovery organizations.
+Use this data source to retrieve information about an existing Qovery organization.
+
 ## Example Usage
+
 ```terraform
+# Retrieve an existing organization by its ID
 data "qovery_organization" "my_organization" {
   id = "<organization_id>"
+}
+
+# Use organization attributes in other resources
+resource "qovery_project" "example" {
+  organization_id = data.qovery_organization.my_organization.id
+  name            = "MyProject"
 }
 ```
 
@@ -13,12 +22,11 @@ data "qovery_organization" "my_organization" {
 
 ### Required
 
-- `id` (String) Id of the organization.
+- `id` (String) Unique identifier of the organization (UUID format).
 
 ### Read-Only
 
 - `description` (String) Description of the organization.
 - `name` (String) Name of the organization.
-- `plan` (String) Plan of the organization.
+- `plan` (String) Subscription plan of the organization.
 	- Can be: `BUSINESS`, `BUSINESS_2025`, `ENTERPRISE`, `ENTERPRISE_2025`, `ENTERPRISE_YEARLY`, `FREE`, `PROFESSIONAL`, `TEAM`, `TEAM_2025`, `TEAM_YEARLY`, `USER_2025`.
-

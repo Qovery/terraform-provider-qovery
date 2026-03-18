@@ -46,23 +46,32 @@ func (d *helmRepositoryDataSource) Configure(_ context.Context, req datasource.C
 
 func (r helmRepositoryDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery helm repository resource. This can be used to create and manage Qovery helm repository.",
+		Description:         "Use this data source to retrieve information about an existing Qovery helm repository.",
+		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery helm repository.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Required:    true,
-				Description: "Id of the helm repository.",
+				Description:         "Unique identifier of the helm repository (UUID format).",
+				MarkdownDescription: "Unique identifier of the helm repository (UUID format).",
+				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				Description:         "Id of the organization.",
+				MarkdownDescription: "Id of the organization.",
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the helm repository.",
-				Optional:    true,
-				Computed:    true,
+				Description:         "Name of the helm repository.",
+				MarkdownDescription: "Name of the helm repository.",
+				Optional:            true,
+				Computed:            true,
 			},
 			"kind": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
+					"Kind of the helm repository.",
+					helmRepositoryKinds,
+					nil,
+				),
+				MarkdownDescription: descriptions.NewStringEnumDescription(
 					"Kind of the helm repository.",
 					helmRepositoryKinds,
 					nil,
@@ -71,19 +80,22 @@ func (r helmRepositoryDataSource) Schema(_ context.Context, _ datasource.SchemaR
 				Computed: true,
 			},
 			"url": schema.StringAttribute{
-				Description: "URL of the helm repository.",
-				Optional:    true,
-				Computed:    true,
+				Description:         "URL of the helm repository.",
+				MarkdownDescription: "URL of the helm repository.",
+				Optional:            true,
+				Computed:            true,
 			},
 			"description": schema.StringAttribute{
-				Description: "Description of the helm repository.",
-				Optional:    true,
-				Computed:    true,
+				Description:         "Description of the helm repository.",
+				MarkdownDescription: "Description of the helm repository.",
+				Optional:            true,
+				Computed:            true,
 			},
 			"skip_tls_verification": schema.BoolAttribute{
-				Description: "Bypass tls certificate verification when connecting to repository",
-				Optional:    true,
-				Computed:    true,
+				Description:         "Whether TLS certificate verification is bypassed when connecting to the repository.",
+				MarkdownDescription: "Whether TLS certificate verification is bypassed when connecting to the repository.",
+				Optional:            true,
+				Computed:            true,
 			},
 		},
 	}

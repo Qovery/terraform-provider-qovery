@@ -1,105 +1,124 @@
+# Example: Helm chart from a Helm repository
 resource "qovery_helm" "my_helm" {
   # Required
   environment_id               = qovery_environment.my_environment.id
-  name                         = "test-helm"
-  description                  = "test-helm description"
+  name                         = "my-helm-chart"
+  description                  = "Helm chart deployed via Terraform"
   allow_cluster_wide_resources = false
 
+  # Source: Helm chart from a Helm repository
   source = {
     helm_repository = {
-      helm_repository_id = "5a4a2dd6-02e1-4e3a-a3cc-8ebb97e135a9"
-      chart_name         = "httpbin"
+      helm_repository_id = qovery_helm_repository.my_helm_repo.id
+      chart_name         = "nginx"
       chart_version      = "1.0.0"
     }
   }
 
+  # Helm values overrides
   values_override = {
+    # Override values using --set syntax
     "set" = {
-      "key1" = 6600
-      "key2" = "values1"
+      "replicaCount"         = "3"
+      "service.type"         = "ClusterIP"
+      "resources.limits.cpu" = "500m"
     }
+    # Override values using --set-string syntax (always treated as strings)
     "set_string" = {
-      "s-key1" = "value1"
-      "s-key2" = "value2"
+      "image.tag" = "latest"
     }
+    # Override values using --set-json syntax
     "set_json" = {
-      "j-key1" = "{}"
-      "j-key2" = "{}"
+      "tolerations" = "[{\"key\": \"dedicated\", \"operator\": \"Equal\", \"value\": \"helm\", \"effect\": \"NoSchedule\"}]"
     }
+    # Override values from YAML files
     file = {
       raw = {
-        file1 = {
-          content = "--- \n ssss"
-        }
-        file2 = {
-          content = "a \n eee"
+        "custom-values" = {
+          content = <<-EOT
+            ingress:
+              enabled: true
+              hosts:
+                - host: my-app.example.com
+                  paths:
+                    - path: /
+          EOT
         }
       }
     }
   }
 
-
-
   # Optional
-  auto_preview = "true"
+  auto_preview = true
+  auto_deploy  = true
+  timeout_sec  = 600
 
+  # Optional: custom Helm CLI arguments
+  # arguments = ["--wait", "--atomic", "--debug"]
 
   environment_variables = [
     {
-      key   = "MY_TERRAFORM_HELM_VARIABLE"
-      value = "MY_TERRAFORM_HELM_VARIABLE_VALUE"
+      key   = "MY_HELM_VARIABLE"
+      value = "my_value"
     }
   ]
-  environment_variable_aliases = [
-    {
-      key = "ENV_VAR_KEY_ALIAS"
-      # the value of the alias must be the name of the aliased variable
-      # e.g here it is an alias to the above declared environment variable "ENV_VAR_KEY"
-      value = "ENV_VAR_KEY"
-    }
-  ]
-  environment_variable_overrides = [
-    {
-      # the key of the override must be the name of the overridden variable
-      # e.g here it is an override on a variable declared at project scope "SOME_PROJECT_VARIABLE"
-      key   = "SOME_PROJECT_VARIABLE"
-      value = "OVERRIDDEN_VALUE"
-    }
-  ]
+
   secrets = [
     {
-      key   = "MY_TERRAFORM_HELM_SECRET"
-      value = "MY_TERRAFORM_HELM_SECRET_VALUE"
+      key   = "MY_HELM_SECRET"
+      value = "my_secret_value"
     }
   ]
-  secret_aliases = [
-    {
-      key = "SECRET_KEY_ALIAS"
-      # the value of the alias must be the name of the aliased secret
-      # e.g here it is an alias to the above declared secret "SECRET_KEY"
-      value = "SECRET_KEY"
-    }
-  ]
-  secret_overrides = [
-    {
-      # the key of the override must be the name of the overridden secret
-      # e.g here it is an override on a secret declared at project scope "SOME_PROJECT_SECRET"
-      key   = "SOME_PROJECT_SECRET"
-      value = "OVERRIDDEN_VALUE"
-    }
-  ]
+
+  # Optional: custom domains
+  # custom_domains = [
+  #   {
+  #     domain               = "my-app.example.com"
+  #     generate_certificate = true
+  #   }
+  # ]
+
+  # Optional: control deployment order
+  # deployment_stage_id = qovery_deployment_stage.my_stage.id
+
   deployment_restrictions = [
     {
       mode  = "MATCH"
       type  = "PATH"
-      value = "path/or/file"
+      value = "helm/**"
     }
   ]
 
   advanced_settings_json = jsonencode({
-    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings
-    # you can only indicate settings that you need to override
+    # Non-exhaustive list. Full list: https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings
   })
+
+  depends_on = [
+    qovery_environment.my_environment,
+  ]
+}
+
+# Example: Helm chart from a git repository
+resource "qovery_helm" "my_helm_from_git" {
+  environment_id               = qovery_environment.my_environment.id
+  name                         = "my-helm-from-git"
+  description                  = "Helm chart from a git repository"
+  allow_cluster_wide_resources = false
+
+  source = {
+    git_repository = {
+      url       = "https://github.com/my-org/my-helm-charts.git"
+      branch    = "main"
+      root_path = "/charts/my-chart"
+      # git_token_id = qovery_git_token.my_git_token.id  # For private repos
+    }
+  }
+
+  values_override = {
+    "set" = {
+      "replicaCount" = "2"
+    }
+  }
 
   depends_on = [
     qovery_environment.my_environment,

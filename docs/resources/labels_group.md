@@ -1,6 +1,8 @@
 # qovery_labels_group (Resource)
 
-Provides a Qovery labels group resource
+Provides a Qovery labels group resource. This can be used to create and manage Qovery labels groups.
+
+Labels groups allow you to define reusable sets of Kubernetes labels at the organization level. These groups can then be attached to Qovery services (applications, containers, jobs, Helm charts) to automatically apply consistent Kubernetes labels across your deployments.
 
 
 ## Example
@@ -10,19 +12,25 @@ Provides a Qovery labels group resource
 </div><br />
 
 ```terraform
-resource "qovery_labels_group" "labels_group1" {
+resource "qovery_labels_group" "my_labels_group" {
   organization_id = qovery_organization.my_organization.id
   name            = "MyLabelsGroup"
+
   labels = [
     {
-      key                         = "key1"
-      value                       = "value1"
-      propagate_to_cloud_provider = false
+      key                         = "team"
+      value                       = "backend"
+      propagate_to_cloud_provider = true
     },
     {
-      key                         = "key2"
-      value                       = "value2"
+      key                         = "environment"
+      value                       = "production"
       propagate_to_cloud_provider = true
+    },
+    {
+      key                         = "managed-by"
+      value                       = "qovery"
+      propagate_to_cloud_provider = false
     }
   ]
 }
@@ -33,22 +41,22 @@ resource "qovery_labels_group" "labels_group1" {
 
 ### Required
 
-- `labels` (Attributes Set) labels (see [below for nested schema](#nestedatt--labels))
-- `name` (String) name of the labels group
+- `labels` (Attributes Set) Set of labels to include in this group. Each label consists of a key, value, and propagation setting. (see [below for nested schema](#nestedatt--labels))
+- `name` (String) Name of the labels group. Must be unique within the organization.
 - `organization_id` (String) Id of the organization.
 
 ### Read-Only
 
-- `id` (String) Id of the labels group
+- `id` (String) Unique identifier of the labels group (UUID format).
 
 <a id="nestedatt--labels"></a>
 ### Nested Schema for `labels`
 
 Required:
 
-- `key` (String)
-- `propagate_to_cloud_provider` (Boolean)
-- `value` (String)
+- `key` (String) Key of the label. Must conform to Kubernetes label key constraints.
+- `propagate_to_cloud_provider` (Boolean) Whether this label should be propagated to the underlying cloud provider resources (e.g. AWS tags, GCP labels). Set to `true` to tag cloud resources with this label.
+- `value` (String) Value of the label. Must conform to Kubernetes label value constraints.
 ## Import
 ```shell
 terraform import qovery_labels_group.my_qovery_labels_group "<labels_group_id>"
