@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"reflect"
 
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
@@ -158,36 +157,21 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 		return nil, err
 	}
 
-	overriddenAdvancedSettings := make(map[string]any)
-	// Prepare hashmap with target advanced settings
-	for advanced_setting_name, advanced_setting_value := range currentAdvancedSettingsHashMap {
-		defaultValue := defaultAdvancedSettingsHashMap[advanced_setting_name]
-		// if the value is not in the state ignore it
-		// otherwise if an advanced setting has been modified in the UI we don't want to show the diff
-		_, ok := advancedSettingsFromStateHashMap[advanced_setting_name]
-		if !isTriggeredFromImport && !ok {
-			continue
-		}
-		// if the value has been overridden
-		if !reflect.DeepEqual(defaultValue, advanced_setting_value) {
-			overriddenAdvancedSettings[advanced_setting_name] = advanced_setting_value
-		} else {
-			// if the value is in the state
-			v, ok := advancedSettingsFromStateHashMap[advanced_setting_name]
-			if ok {
-				overriddenAdvancedSettings[advanced_setting_name] = v
-			}
-		}
-	}
+	overriddenAdvancedSettings := computeOverriddenSettings(
+		currentAdvancedSettingsHashMap,
+		defaultAdvancedSettingsHashMap,
+		advancedSettingsFromStateHashMap,
+		isTriggeredFromImport,
+	)
 
 	//
 	// Transform to JSON
-	overridenAdvancedSettingsJson, err := json.Marshal(overriddenAdvancedSettings)
+	overriddenAdvancedSettingsJSON, err := json.Marshal(overriddenAdvancedSettings)
 	if err != nil {
 		return nil, errors.New("Cannot parse overridden advanced settings")
 	}
 
-	s := string(overridenAdvancedSettingsJson)
+	s := string(overriddenAdvancedSettingsJSON)
 	return &s, nil
 }
 
@@ -210,8 +194,8 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 		return err
 	}
 
-	overridenAdvancedSettingsHashMap := make(map[string]any)
-	if err := json.Unmarshal([]byte(advancedSettingsStrFromPlan), &overridenAdvancedSettingsHashMap); err != nil {
+	overriddenAdvancedSettingsHashMap := make(map[string]any)
+	if err := json.Unmarshal([]byte(advancedSettingsStrFromPlan), &overriddenAdvancedSettingsHashMap); err != nil {
 		return err
 	}
 
@@ -229,7 +213,7 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 	}
 	defer respGetAdvancedSettings.Body.Close()
 
-	if err != nil || respGetAdvancedSettings.StatusCode >= 400 {
+	if respGetAdvancedSettings.StatusCode >= 400 {
 		return errors.New("Cannot get advanced settings :" + respGetAdvancedSettings.Status)
 	}
 	serviceAdvancedSettings, err := io.ReadAll(respGetAdvancedSettings.Body)
@@ -247,20 +231,20 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 	}
 
 	for k, v := range currentAdvancedSettingsHashMap {
-		_, exists := overridenAdvancedSettingsHashMap[k]
+		_, exists := overriddenAdvancedSettingsHashMap[k]
 		if !exists {
-			overridenAdvancedSettingsHashMap[k] = v
+			overriddenAdvancedSettingsHashMap[k] = v
 		}
 	}
 
-	overridenAdvancedSettingsJson, err := json.Marshal(overridenAdvancedSettingsHashMap)
+	overriddenAdvancedSettingsJSON, err := json.Marshal(overriddenAdvancedSettingsHashMap)
 	if err != nil {
 		return err
 	}
 
 	//
 	// Update advanced settings
-	putRequest, err := http.NewRequest(http.MethodPut, *urlAdvancedSettings, bytes.NewBuffer(overridenAdvancedSettingsJson))
+	putRequest, err := http.NewRequest(http.MethodPut, *urlAdvancedSettings, bytes.NewBuffer(overriddenAdvancedSettingsJSON))
 	if err != nil {
 		return err
 	}
