@@ -38,6 +38,7 @@ const (
 	StateWaitingRestarting State = "WAITING_RESTARTING"
 	StateWaitingRunning    State = "WAITING_RUNNING"
 	StateWaitingStopping   State = "WAITING_STOPPING"
+	StateUnavailable       State = "UNAVAILABLE"
 )
 
 // AllowedStateValues contains all the valid values of a State.
@@ -70,6 +71,7 @@ var AllowedStateValues = []State{
 	StateWaitingRestarting,
 	StateWaitingRunning,
 	StateWaitingStopping,
+	StateUnavailable,
 }
 
 var AllowedDesiredStateValues = []State{

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"reflect"
 
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
@@ -19,7 +18,7 @@ func NewClusterAdvancedSettingsService(apiConfig *qovery.Configuration) *Cluster
 	return &ClusterAdvancedSettingsService{apiConfig: apiConfig}
 }
 
-// ReadServiceAdvancedSettings Get only overridden advanced settings
+// ReadClusterAdvancedSettings returns only overridden advanced settings.
 func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(
 	organizationId string,
 	clusterId string,
@@ -109,40 +108,25 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(
 		return nil, err
 	}
 
-	overriddenAdvancedSettings := make(map[string]any)
-	// Prepare hashmap with target advanced settings
-	for advanced_setting_name, advanced_setting_value := range currentAdvancedSettingsHashMap {
-		defaultValue := defaultAdvancedSettingsHashMap[advanced_setting_name]
-		// if the value is not in the state ignore it
-		// otherwise if an advanced setting has been modified in the UI we don't want to show the diff
-		_, ok := advancedSettingsFromStateHashMap[advanced_setting_name]
-		if !isTriggeredFromImport && !ok {
-			continue
-		}
-		// if the value has been overridden
-		if !reflect.DeepEqual(defaultValue, advanced_setting_value) {
-			overriddenAdvancedSettings[advanced_setting_name] = advanced_setting_value
-		} else {
-			// if the value is in the state
-			v, ok := advancedSettingsFromStateHashMap[advanced_setting_name]
-			if ok {
-				overriddenAdvancedSettings[advanced_setting_name] = v
-			}
-		}
-	}
+	overriddenAdvancedSettings := computeOverriddenSettings(
+		currentAdvancedSettingsHashMap,
+		defaultAdvancedSettingsHashMap,
+		advancedSettingsFromStateHashMap,
+		isTriggeredFromImport,
+	)
 
 	//
 	// Transform to JSON
-	overridenAdvancedSettingsJson, err := json.Marshal(overriddenAdvancedSettings)
+	overriddenAdvancedSettingsJSON, err := json.Marshal(overriddenAdvancedSettings)
 	if err != nil {
 		return nil, errors.New("Cannot parse overridden cluster advanced settings")
 	}
 
-	s := string(overridenAdvancedSettingsJson)
+	s := string(overriddenAdvancedSettingsJSON)
 	return &s, nil
 }
 
-// UpdateServiceAdvancedSettings Update advanced settings by computing the whole http body
+// UpdateClusterAdvancedSettings updates advanced settings by computing the whole HTTP body.
 func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizationId string, clusterId string, advancedSettingsJsonParam string) error {
 	httpClient := &http.Client{}
 	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
@@ -158,8 +142,8 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 	//
 	// Get cluster advanced settings
 	urlAdvancedSettings := host + "/organization/" + organizationId + "/cluster/" + clusterId + "/advancedSettings"
-	overridenAdvancedSettingsHashMap := make(map[string]any)
-	if err := json.Unmarshal([]byte(advancedSettingsJson), &overridenAdvancedSettingsHashMap); err != nil {
+	overriddenAdvancedSettingsHashMap := make(map[string]any)
+	if err := json.Unmarshal([]byte(advancedSettingsJson), &overriddenAdvancedSettingsHashMap); err != nil {
 		return err
 	}
 
@@ -195,20 +179,20 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 	}
 
 	for k, v := range currentAdvancedSettingsHashMap {
-		_, exists := overridenAdvancedSettingsHashMap[k]
+		_, exists := overriddenAdvancedSettingsHashMap[k]
 		if !exists {
-			overridenAdvancedSettingsHashMap[k] = v
+			overriddenAdvancedSettingsHashMap[k] = v
 		}
 	}
 
-	overridenAdvancedSettingsJson, err := json.Marshal(overridenAdvancedSettingsHashMap)
+	overriddenAdvancedSettingsJSON, err := json.Marshal(overriddenAdvancedSettingsHashMap)
 	if err != nil {
 		return err
 	}
 
 	//
 	// Update advanced settings
-	putRequest, err := http.NewRequest(http.MethodPut, urlAdvancedSettings, bytes.NewBuffer(overridenAdvancedSettingsJson))
+	putRequest, err := http.NewRequest(http.MethodPut, urlAdvancedSettings, bytes.NewBuffer(overriddenAdvancedSettingsJSON))
 	if err != nil {
 		return err
 	}
