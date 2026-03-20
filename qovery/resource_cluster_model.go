@@ -127,6 +127,9 @@ func (c Cluster) hasInfraChartsParamsDiff(state *Cluster) bool {
 
 func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertParams, error) {
 	cloudProvider, err := qovery.NewCloudProviderEnumFromValue(ToString(c.CloudProvider))
+	if err != nil {
+		return nil, err
+	}
 	cloudVendor, err := qovery.NewCloudVendorEnumFromValue(ToString(c.CloudProvider))
 	if err != nil {
 		return nil, err
@@ -235,24 +238,14 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		features = nil
 	}
 
+	karpenterEnabled := false
 	for _, f := range features {
 		if f.Id != nil && *f.Id == featureIdKarpenter {
 			if state != nil && !IsKarpenterAlreadyInstalled(state) {
 				return nil, errors.New("It is not possible to migrate to Karpenter using terraform")
 			}
-
-			if !c.InstanceType.IsUnknown() {
-				return nil, errors.New("instance_type must not be defined when Karpenter feature is enabled")
-			}
-			if !c.MinRunningNodes.IsUnknown() {
-				return nil, errors.New("min_running_nodes must not be defined when Karpenter feature is enabled")
-			}
-			if !c.MaxRunningNodes.IsUnknown() {
-				return nil, errors.New("max_running_nodes must not be defined when Karpenter feature is enabled")
-			}
-			if !c.DiskSize.IsUnknown() {
-				return nil, errors.New("disk_size must not be defined when Karpenter feature is enabled")
-			}
+			karpenterEnabled = true
+			break
 		}
 	}
 
@@ -262,15 +255,6 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		isManaged := kubernetesMode != nil && *kubernetesMode == qovery.KUBERNETESENUM_MANAGED
 
 		if isAWS && isManaged {
-			// Check if Karpenter is enabled
-			karpenterEnabled := false
-			for _, f := range features {
-				if f.Id != nil && *f.Id == featureIdKarpenter {
-					karpenterEnabled = true
-					break
-				}
-			}
-
 			if !karpenterEnabled {
 				return nil, errors.New("Karpenter is required for new EKS (AWS MANAGED) clusters. Please configure the Karpenter feature in the cluster configuration")
 			}
@@ -296,6 +280,18 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		return nil, err
 	}
 
+	// When Karpenter is enabled, these fields are managed by Karpenter — don't send them to the API.
+	var instanceType *string
+	var diskSize *int32
+	var minRunningNodes *int32
+	var maxRunningNodes *int32
+	if !karpenterEnabled {
+		instanceType = ToStringPointer(c.InstanceType)
+		diskSize = ToInt64Pointer(c.DiskSize)
+		minRunningNodes = ToInt32Pointer(c.MinRunningNodes)
+		maxRunningNodes = ToInt32Pointer(c.MaxRunningNodes)
+	}
+
 	return &client.ClusterUpsertParams{
 		ClusterCloudProviderRequest: clusterCloudProviderRequest,
 		ClusterRequest: qovery.ClusterRequest{
@@ -305,10 +301,10 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			Region:                         ToString(c.Region),
 			Description:                    ToStringPointer(c.Description),
 			Kubernetes:                     kubernetesMode,
-			InstanceType:                   ToStringPointer(c.InstanceType),
-			DiskSize:                       ToInt64Pointer(c.DiskSize),
-			MinRunningNodes:                ToInt32Pointer(c.MinRunningNodes),
-			MaxRunningNodes:                ToInt32Pointer(c.MaxRunningNodes),
+			InstanceType:                   instanceType,
+			DiskSize:                       diskSize,
+			MinRunningNodes:                minRunningNodes,
+			MaxRunningNodes:                maxRunningNodes,
 			Production:                     ToBoolPointer(c.Production),
 			Features:                       features,
 			InfrastructureChartsParameters: infraChartsParams,
@@ -536,9 +532,9 @@ func fromQoveryClusterFeatures(
 			attrVals["documentdb_subnets_zone_a_ids"] = FromStringArray(v.DocumentdbSubnetsZoneAIds)
 			attrVals["documentdb_subnets_zone_b_ids"] = FromStringArray(v.DocumentdbSubnetsZoneBIds)
 			attrVals["documentdb_subnets_zone_c_ids"] = FromStringArray(v.DocumentdbSubnetsZoneCIds)
-			attrVals["elasticache_subnets_zone_a_ids"] = FromStringArray(v.DocumentdbSubnetsZoneAIds)
-			attrVals["elasticache_subnets_zone_b_ids"] = FromStringArray(v.DocumentdbSubnetsZoneBIds)
-			attrVals["elasticache_subnets_zone_c_ids"] = FromStringArray(v.DocumentdbSubnetsZoneCIds)
+			attrVals["elasticache_subnets_zone_a_ids"] = FromStringArray(v.ElasticacheSubnetsZoneAIds)
+			attrVals["elasticache_subnets_zone_b_ids"] = FromStringArray(v.ElasticacheSubnetsZoneBIds)
+			attrVals["elasticache_subnets_zone_c_ids"] = FromStringArray(v.ElasticacheSubnetsZoneCIds)
 
 			attrVals["eks_karpenter_fargate_subnets_zone_a_ids"] = FromStringArray(v.EksKarpenterFargateSubnetsZoneAIds)
 			attrVals["eks_karpenter_fargate_subnets_zone_b_ids"] = FromStringArray(v.EksKarpenterFargateSubnetsZoneBIds)

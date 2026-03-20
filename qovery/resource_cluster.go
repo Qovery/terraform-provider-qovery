@@ -6,7 +6,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -192,12 +195,18 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: "Instance type for the cluster nodes. The available values depend on the cloud provider:\n\n  - **AWS**: EC2 instance types (e.g., `t3a.xlarge`, `m5.large`). Not required when Karpenter is enabled.\n  - **GCP**: Machine types or `AUTO_PILOT` for GKE Autopilot mode.\n  - **Scaleway**: Node types (e.g., `DEV1-L`, `GP1-S`).\n  - **Azure**: VM sizes (e.g., `Standard_B2s_v2`, `Standard_D4s_v3`).",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"disk_size": schema.Int64Attribute{
 				Description:         "Disk size of the cluster nodes in GB.",
 				MarkdownDescription: "Disk size of the cluster nodes in GB. The default value depends on the cloud provider and instance type.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"min_running_nodes": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -209,6 +218,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					"~> **Note:** Must be set to `1` for K3S clusters. Do not set this attribute when Karpenter is enabled (Karpenter manages scaling automatically).",
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"max_running_nodes": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -220,12 +232,18 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					"~> **Note:** Must be set to `1` for K3S clusters. Do not set this attribute when Karpenter is enabled (Karpenter manages scaling automatically).",
 				Optional: true,
 				Computed: true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
 			},
 			"features": schema.SingleNestedAttribute{
 				Description:         "Features of the cluster.",
 				MarkdownDescription: "Optional cluster features configuration. Use this block to customize VPC settings, enable static IPs, deploy on an existing VPC (AWS or GCP), or enable Karpenter for AWS clusters.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
 				Attributes: map[string]schema.Attribute{
 					"vpc_subnet": schema.StringAttribute{
 						Description: descriptions.NewStringDefaultDescription(
@@ -595,6 +613,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: "Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections).",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.Set{
+					setplanmodifier.UseStateForUnknown(),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"description": schema.StringAttribute{
@@ -636,6 +657,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: "Advanced settings of the cluster as a JSON string. Use `jsonencode()` to set values. The complete list of available settings is in the [Qovery API documentation](https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings). Only include settings you want to override.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"kubeconfig": schema.StringAttribute{
 				Description:         "Kubeconfig for connecting to the cluster. Required for PARTIALLY_MANAGED (EKS Anywhere) clusters.",
@@ -647,31 +671,49 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Description:         "Outputs related to the underlying Kubernetes infrastructure. These values are only available once the cluster is deployed.",
 				MarkdownDescription: "Read-only outputs from the underlying Kubernetes infrastructure. These values are populated after the cluster is deployed and can be used to integrate with other infrastructure resources.",
 				Computed:            true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
 				Attributes: map[string]schema.Attribute{
 					"cluster_name": schema.StringAttribute{
 						Description:         "The name of the Kubernetes cluster. Available after deployment for all providers.",
 						MarkdownDescription: "The name of the Kubernetes cluster as assigned by the cloud provider. Available after deployment for all providers.",
 						Computed:            true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"cluster_arn": schema.StringAttribute{
 						Description:         "The ARN of the AWS cluster. Only available for AWS after deployment.",
 						MarkdownDescription: "The Amazon Resource Name (ARN) of the EKS cluster. Only populated for AWS clusters after deployment.",
 						Computed:            true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"cluster_self_link": schema.StringAttribute{
 						Description:         "The self-link of the GCP cluster. Only available for GCP after deployment.",
 						MarkdownDescription: "The self-link URL of the GKE cluster. Only populated for GCP clusters after deployment.",
 						Computed:            true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"cluster_oidc_issuer": schema.StringAttribute{
 						Description:         "The OIDC issuer URL for the cluster. Available for AWS and Azure after deployment.",
 						MarkdownDescription: "The OIDC issuer URL for the cluster. Useful for configuring IAM roles for service accounts (IRSA on AWS, workload identity on Azure). Available for AWS and Azure after deployment.",
 						Computed:            true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"vpc_id": schema.StringAttribute{
 						Description:         "The VPC ID used by the cluster. Only available for AWS after deployment.",
 						MarkdownDescription: "The VPC ID used by the cluster. Only populated for AWS clusters after deployment. Useful for setting up VPC peering or other networking resources.",
 						Computed:            true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
 					},
 				},
 			},
