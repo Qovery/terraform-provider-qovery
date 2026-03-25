@@ -42,7 +42,6 @@ func newQoveryPortRequestFromDomain(request port.UpsertRequest) (*qovery.Service
 		ExternalPort:       request.ExternalPort,
 		IsDefault:          new(request.IsDefault),
 	}, nil
-
 }
 
 func newDomainPortsFromQovery(list []qovery.ServicePort) (port.Ports, error) {
@@ -59,7 +58,7 @@ func newDomainPortsFromQovery(list []qovery.ServicePort) (port.Ports, error) {
 }
 
 func newDomainPortFromQovery(qoveryPort qovery.ServicePort) (*port.Port, error) {
-	var isDefault = false
+	isDefault := false
 	if qoveryPort.IsDefault != nil {
 		isDefault = *qoveryPort.IsDefault
 	}

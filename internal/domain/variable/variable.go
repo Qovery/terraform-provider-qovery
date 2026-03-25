@@ -67,15 +67,17 @@ func (v Variable) IsValid() bool {
 }
 
 // NewVariableParams represents the arguments needed to create a Variable.
-type NewVariablesParams = []NewVariableParams
-type NewVariableParams struct {
-	VariableID  string
-	Scope       string
-	Key         string
-	Value       string
-	Type        string
-	Description string
-}
+type (
+	NewVariablesParams = []NewVariableParams
+	NewVariableParams  struct {
+		VariableID  string
+		Scope       string
+		Key         string
+		Value       string
+		Type        string
+		Description string
+	}
+)
 
 // NewVariable returns a new instance of a Variable domain model.
 func NewVariable(params NewVariableParams) (*Variable, error) {

@@ -30,3 +30,7 @@ linters:
 linters-settings:
   nakedret:
     max-func-lines: 40
+  revive:
+    rules:
+      - name: var-naming
+        disabled: true

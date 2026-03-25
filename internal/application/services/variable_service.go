@@ -70,8 +70,8 @@ func (c variableService) Update(
 		return nil, err
 	}
 	// TODO (mzo) set authorized scopes in current method params (for env & prj)
-	var environmentVariablesByNameForAliases = make(map[string]variable.Variable)
-	var environmentVariablesByNameForOverrides = make(map[string]variable.Variable)
+	environmentVariablesByNameForAliases := make(map[string]variable.Variable)
+	environmentVariablesByNameForOverrides := make(map[string]variable.Variable)
 	for _, environmentVariable := range environmentVariablesForCurrentScope {
 		if environmentVariable.Type == "VALUE" || environmentVariable.Type == "BUILT_IN" {
 			environmentVariablesByNameForAliases[environmentVariable.Key] = environmentVariable

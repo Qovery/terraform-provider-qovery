@@ -100,7 +100,6 @@ func (c credentialsScalewayService) Delete(ctx context.Context, organizationID s
 		return errors.Wrap(err, credentials.ErrFailedToDeleteScalewayCredentials.Error())
 	}
 	return nil
-
 }
 
 // checkOrganizationID validates that the given organizationID is valid.

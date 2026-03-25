@@ -200,12 +200,12 @@ func NewJob(params NewJobParams) (*Job, error) {
 		}
 	}
 
-	var maxNbRestart = DefaultMaxNbRestart
+	maxNbRestart := DefaultMaxNbRestart
 	if params.MaxNbRestart != nil {
 		maxNbRestart = int64(*params.MaxNbRestart)
 	}
 
-	var maxDurationSeconds = DefaultMaxDurationSeconds
+	maxDurationSeconds := DefaultMaxDurationSeconds
 	if params.MaxDurationSeconds != nil {
 		maxDurationSeconds = int64(*params.MaxDurationSeconds)
 	}

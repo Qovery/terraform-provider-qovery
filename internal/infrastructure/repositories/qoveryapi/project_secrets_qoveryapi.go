@@ -92,6 +92,7 @@ func (p projectSecretsQoveryAPI) CreateAlias(ctx context.Context, projectId stri
 
 	return newDomainSecretFromQovery(v)
 }
+
 func (p projectSecretsQoveryAPI) CreateOverride(ctx context.Context, projectId string, request secret.UpsertRequest, overriddenSecretId string) (*secret.Secret, error) {
 	v, resp, err := p.client.ProjectSecretAPI.
 		CreateProjectSecretOverride(ctx, projectId, overriddenSecretId).

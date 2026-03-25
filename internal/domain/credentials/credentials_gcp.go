@@ -5,10 +5,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// ErrInvalidUpsertGcpRequest is returned if a GCP Credentials upsert request is invalid.
-	ErrInvalidUpsertGcpRequest = errors.New("invalid credentials upsert gcp request")
-)
+// ErrInvalidUpsertGcpRequest is returned if a GCP Credentials upsert request is invalid.
+var ErrInvalidUpsertGcpRequest = errors.New("invalid credentials upsert gcp request")
 
 // UpsertGcpRequest represents the parameters needed to create & update GCP Credentials.
 type UpsertGcpRequest struct {

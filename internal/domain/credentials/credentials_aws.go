@@ -5,9 +5,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	ErrInvalidUpsertAwsRequest = errors.New("invalid credentials upsert aws request")
-)
+var ErrInvalidUpsertAwsRequest = errors.New("invalid credentials upsert aws request")
 
 type AwsStaticCredentials struct {
 	AccessKeyID     string `validate:"required"`

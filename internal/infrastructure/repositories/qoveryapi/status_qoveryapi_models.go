@@ -18,6 +18,7 @@ func newDomainStatusFromQovery(qoveryStatus *qovery.Status) (*status.Status, err
 		LastDeploymentDate:      qoveryStatus.LastDeploymentDate,
 	})
 }
+
 func newDomainEnvironmentStatusFromQovery(qoveryStatus *qovery.EnvironmentStatus) (*status.Status, error) {
 	if qoveryStatus == nil {
 		return nil, status.ErrNilStatus

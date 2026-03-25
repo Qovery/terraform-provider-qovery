@@ -5,10 +5,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// ErrInvalidUpsertAzureRequest is returned if an Azure Credentials upsert request is invalid.
-	ErrInvalidUpsertAzureRequest = errors.New("invalid credentials upsert azure request")
-)
+// ErrInvalidUpsertAzureRequest is returned if an Azure Credentials upsert request is invalid.
+var ErrInvalidUpsertAzureRequest = errors.New("invalid credentials upsert azure request")
 
 // UpsertAzureRequest represents the parameters needed to create & update Azure Credentials.
 type UpsertAzureRequest struct {

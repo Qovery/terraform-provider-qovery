@@ -54,12 +54,12 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 			source.Docker = &jobResponse.CronJobResponse.Source.BaseJobResponseAllOfSourceOneOf1.Docker
 		}
 
-		var annotations = make([]string, 0, len(jobResponse.CronJobResponse.AnnotationsGroups))
+		annotations := make([]string, 0, len(jobResponse.CronJobResponse.AnnotationsGroups))
 		for _, v := range jobResponse.CronJobResponse.AnnotationsGroups {
 			annotations = append(annotations, v.Id)
 		}
 
-		var labels = make([]string, 0, len(jobResponse.CronJobResponse.LabelsGroups))
+		labels := make([]string, 0, len(jobResponse.CronJobResponse.LabelsGroups))
 		for _, v := range jobResponse.CronJobResponse.LabelsGroups {
 			labels = append(labels, v.Id)
 		}
@@ -95,12 +95,12 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 			source.Docker = &jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf1.Docker
 		}
 
-		var annotations = make([]string, 0, len(jobResponse.LifecycleJobResponse.AnnotationsGroups))
+		annotations := make([]string, 0, len(jobResponse.LifecycleJobResponse.AnnotationsGroups))
 		for _, v := range jobResponse.LifecycleJobResponse.AnnotationsGroups {
 			annotations = append(annotations, v.Id)
 		}
 
-		var labels = make([]string, 0, len(jobResponse.LifecycleJobResponse.LabelsGroups))
+		labels := make([]string, 0, len(jobResponse.LifecycleJobResponse.LabelsGroups))
 		for _, v := range jobResponse.LifecycleJobResponse.LabelsGroups {
 			labels = append(labels, v.Id)
 		}
@@ -138,7 +138,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 		return nil, variable.ErrNilVariable
 	}
 
-	var j = getAggregateJobResponse(jobResponse)
+	j := getAggregateJobResponse(jobResponse)
 
 	var prt *port.NewPortParams = nil
 	if j.Port.IsSet() {
@@ -154,7 +154,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 
 	var sourceImage *image.NewImageParams
 	if j.Source.Image != nil {
-		var registryID = ""
+		registryID := ""
 		if j.Source.Image.RegistryId != nil {
 			registryID = *j.Source.Image.RegistryId
 		}
@@ -181,7 +181,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 		}
 	}
 
-	var jobSource = job.NewJobSourceParams{
+	jobSource := job.NewJobSourceParams{
 		Image:  sourceImage,
 		Docker: sourceDocker,
 	}
@@ -223,7 +223,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 		}
 	}
 
-	var jobSchedule = job.NewJobScheduleParams{
+	jobSchedule := job.NewJobScheduleParams{
 		OnStart:       onStart,
 		OnStop:        onStop,
 		OnDelete:      onDelete,
@@ -231,12 +231,12 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 		CronJob:       cronJob,
 	}
 
-	var maxNbRestart = job.DefaultMaxNbRestart
+	maxNbRestart := job.DefaultMaxNbRestart
 	if j.MaxNbRestart != nil {
 		maxNbRestart = int64(*j.MaxNbRestart)
 	}
 
-	var maxDurationSeconds = job.DefaultMaxDurationSeconds
+	maxDurationSeconds := job.DefaultMaxDurationSeconds
 	if j.MaxDurationSeconds != nil {
 		maxDurationSeconds = int64(*j.MaxDurationSeconds)
 	}
@@ -291,7 +291,7 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 
 	var image *qovery.JobRequestAllOfSourceImage = nil
 	if request.Source.Image != nil {
-		var registryID = request.Source.Image.RegistryID
+		registryID := request.Source.Image.RegistryID
 		image = &qovery.JobRequestAllOfSourceImage{
 			ImageName:  &request.Source.Image.Name,
 			Tag:        &request.Source.Image.Tag,

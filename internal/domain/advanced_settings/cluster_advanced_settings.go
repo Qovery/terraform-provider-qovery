@@ -26,8 +26,8 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(
 	isTriggeredFromImport bool,
 ) (*string, error) {
 	httpClient := &http.Client{}
-	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
-	var host = c.apiConfig.Servers[0].URL
+	apiToken := c.apiConfig.DefaultHeader["Authorization"]
+	host := c.apiConfig.Servers[0].URL
 
 	var clusterAdvancedSettingsState string
 	if advancedSettingsJsonFromState == "" {
@@ -129,8 +129,8 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(
 // UpdateClusterAdvancedSettings updates advanced settings by computing the whole HTTP body.
 func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizationId string, clusterId string, advancedSettingsJsonParam string) error {
 	httpClient := &http.Client{}
-	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
-	var host = c.apiConfig.Servers[0].URL
+	apiToken := c.apiConfig.DefaultHeader["Authorization"]
+	host := c.apiConfig.Servers[0].URL
 
 	var advancedSettingsJson string
 	if advancedSettingsJsonParam == "" {
@@ -202,7 +202,6 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 	putRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respPostAdvancedSettings, err := httpClient.Do(putRequest)
-
 	if err != nil {
 		return err
 	}

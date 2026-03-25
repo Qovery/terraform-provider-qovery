@@ -47,7 +47,6 @@ type UpsertRepositoryRequest struct {
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.
 func (r UpsertRepositoryRequest) Validate() error {
-
 	if err := r.Schedule.Validate(); err != nil {
 		return errors.Wrap(err, ErrInvalidJobUpsertRequest.Error())
 	}

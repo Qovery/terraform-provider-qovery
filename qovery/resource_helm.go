@@ -9,9 +9,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -72,7 +72,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"id": schema.StringAttribute{
 				Description:         "Id of the helm service.",
 				MarkdownDescription: "Id of the helm service.",
-				Computed:    true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -80,7 +80,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"environment_id": schema.StringAttribute{
 				Description:         "Id of the environment.",
 				MarkdownDescription: "Id of the environment.",
-				Required:    true,
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -88,18 +88,18 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"name": schema.StringAttribute{
 				Description:         "Name of the helm service.",
 				MarkdownDescription: "Name of the helm service.",
-				Required:    true,
+				Required:            true,
 			},
 			"description": schema.StringAttribute{
 				Description:         "Description of the helm service.",
 				MarkdownDescription: "Description of the helm service.",
-				Required:    true,
+				Required:            true,
 			},
 			"icon_uri": schema.StringAttribute{
 				Description:         "Icon URI representing the helm service.",
 				MarkdownDescription: "Icon URI representing the helm service.",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -107,22 +107,22 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"timeout_sec": schema.Int64Attribute{
 				Description:         "Helm timeout in seconds. Maximum time allowed for the Helm operation to complete.",
 				MarkdownDescription: "Helm timeout in seconds. Maximum time allowed for the Helm operation to complete.",
-				Optional:    true,
-				Computed:    true,
-				Default:     int64default.StaticInt64(helm.DefaultTimeoutSec),
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(helm.DefaultTimeoutSec),
 				// Required: true,
 			},
 			"auto_preview": schema.BoolAttribute{
 				Description:         "Specify if the environment preview option is activated or not for this helm.",
 				MarkdownDescription: "Specify if the environment preview option is activated or not for this helm.",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 			},
 			"auto_deploy": schema.BoolAttribute{
 				Description:         "Specify if the helm service will be automatically updated on every new commit on the branch.",
 				MarkdownDescription: "Specify if the helm service will be automatically updated on every new commit on the branch.",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
@@ -130,9 +130,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"arguments": schema.ListAttribute{
 				Description:         "Helm CLI arguments passed to the helm command (e.g. --wait, --atomic, --debug).",
 				MarkdownDescription: "Helm CLI arguments passed to the helm command (e.g. `--wait`, `--atomic`, `--debug`).",
-				ElementType: types.StringType,
-				Optional:    true,
-				Computed:    true,
+				ElementType:         types.StringType,
+				Optional:            true,
+				Computed:            true,
 				Default: listdefault.StaticValue(
 					types.ListValueMust(
 						types.StringType,
@@ -147,63 +147,63 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"allow_cluster_wide_resources": schema.BoolAttribute{
 				Description:         "Allow this chart to deploy resources outside of this environment namespace (including CRDs or non-namespaced resources)",
 				MarkdownDescription: "Allow this chart to deploy resources outside of this environment namespace (including CRDs or non-namespaced resources)",
-				Required:    true,
+				Required:            true,
 			},
 			"source": schema.SingleNestedAttribute{
 				Description:         "Helm chart source. Use helm_repository to deploy from a Helm repository, or git_repository to deploy from a git repository.",
 				MarkdownDescription: "Helm chart source. Use `helm_repository` to deploy from a Helm repository, or `git_repository` to deploy from a git repository.",
-				Required:    true,
+				Required:            true,
 				Attributes: map[string]schema.Attribute{
 					"helm_repository": schema.SingleNestedAttribute{
 						Description:         "Helm chart from a Helm repository. Repositories can be HTTPS or OCI-based (ECR, Docker Hub, GHCR, etc.).",
 						MarkdownDescription: "Helm chart from a Helm repository. Repositories can be HTTPS or OCI-based (ECR, Docker Hub, GHCR, etc.).",
-						Optional:    true,
+						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"helm_repository_id": schema.StringAttribute{
 								Description:         "Id of the Helm repository (refers to a qovery_helm_repository resource).",
 								MarkdownDescription: "Id of the Helm repository (refers to a `qovery_helm_repository` resource).",
-								Required:    true,
+								Required:            true,
 							},
 							"chart_name": schema.StringAttribute{
 								Description:         "Name of the Helm chart to deploy.",
 								MarkdownDescription: "Name of the Helm chart to deploy.",
-								Required:    true,
+								Required:            true,
 							},
 							"chart_version": schema.StringAttribute{
 								Description:         "Version of the Helm chart to deploy (e.g. 1.0.0).",
 								MarkdownDescription: "Version of the Helm chart to deploy (e.g. `1.0.0`).",
-								Required:    true,
+								Required:            true,
 							},
 						},
 					},
 					"git_repository": schema.SingleNestedAttribute{
 						Description:         "Helm chart from a git repository. The repository must contain valid Helm chart files.",
 						MarkdownDescription: "Helm chart from a git repository. The repository must contain valid Helm chart files.",
-						Optional:    true,
+						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"url": schema.StringAttribute{
 								Description:         "Git repository URL containing the Helm chart.",
 								MarkdownDescription: "Git repository URL containing the Helm chart.",
-								Required:    true,
+								Required:            true,
 							},
 							"branch": schema.StringAttribute{
 								Description:         "Git branch to use for the Helm chart source.",
 								MarkdownDescription: "Git branch to use for the Helm chart source.",
-								Optional:    true,
-								Computed:    true,
+								Optional:            true,
+								Computed:            true,
 							},
 							"root_path": schema.StringAttribute{
 								Description:         "Root path in the git repository where the Helm chart is located.",
 								MarkdownDescription: "Root path in the git repository where the Helm chart is located.",
-								Optional:    true,
-								Computed:    true,
-								Default:     stringdefault.StaticString("/"),
+								Optional:            true,
+								Computed:            true,
+								Default:             stringdefault.StaticString("/"),
 							},
 							"git_token_id": schema.StringAttribute{
 								Description:         "Git token ID for accessing a private repository (refers to a qovery_git_token resource).",
 								MarkdownDescription: "Git token ID for accessing a private repository (refers to a `qovery_git_token` resource).",
-								Optional:    true,
-								Computed:    true,
+								Optional:            true,
+								Computed:            true,
 							},
 						},
 					},
@@ -212,41 +212,41 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"values_override": schema.SingleNestedAttribute{
 				Description:         "Define your own overrides to customize the helm chart behaviour.",
 				MarkdownDescription: "Define your own overrides to customize the helm chart behaviour.",
-				Required:    true,
+				Required:            true,
 				Attributes: map[string]schema.Attribute{
 					"set": schema.MapAttribute{
 						Description:         "Override Helm values using --set flag syntax. Map of key-value pairs.",
 						MarkdownDescription: "Override Helm values using `--set` flag syntax. Map of key-value pairs.",
-						ElementType: types.StringType,
-						Optional:    true,
+						ElementType:         types.StringType,
+						Optional:            true,
 					},
 					"set_string": schema.MapAttribute{
 						Description:         "Override Helm values using --set-string flag syntax. Values are always treated as strings.",
 						MarkdownDescription: "Override Helm values using `--set-string` flag syntax. Values are always treated as strings.",
-						ElementType: types.StringType,
-						Optional:    true,
+						ElementType:         types.StringType,
+						Optional:            true,
 					},
 					"set_json": schema.MapAttribute{
 						Description:         "Override Helm values using --set-json flag syntax. Values are treated as JSON.",
 						MarkdownDescription: "Override Helm values using `--set-json` flag syntax. Values are treated as JSON.",
-						ElementType: types.StringType,
-						Optional:    true,
+						ElementType:         types.StringType,
+						Optional:            true,
 					},
 					"file": schema.SingleNestedAttribute{
 						Description:         "Define overrides by selecting a YAML file from a git repository (preferred) or by passing raw YAML files.",
 						MarkdownDescription: "Define overrides by selecting a YAML file from a git repository (preferred) or by passing raw YAML files.",
-						Optional:    true,
+						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"raw": schema.MapNestedAttribute{
 								Description:         "Raw YAML files",
 								MarkdownDescription: "Raw YAML files",
-								Optional:    true,
+								Optional:            true,
 								NestedObject: schema.NestedAttributeObject{
 									Attributes: map[string]schema.Attribute{
 										"content": schema.StringAttribute{
 											Description:         "content of the file",
 											MarkdownDescription: "content of the file",
-											Required:    true,
+											Required:            true,
 										},
 									},
 								},
@@ -254,29 +254,29 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 							"git_repository": schema.SingleNestedAttribute{
 								Description:         "YAML file from a git repository",
 								MarkdownDescription: "YAML file from a git repository",
-								Optional:    true,
+								Optional:            true,
 								Attributes: map[string]schema.Attribute{
 									"url": schema.StringAttribute{
 										Description:         "YAML file git repository URL",
 										MarkdownDescription: "YAML file git repository URL",
-										Required:    true,
+										Required:            true,
 									},
 									"branch": schema.StringAttribute{
 										Description:         "YAML file git repository branch",
 										MarkdownDescription: "YAML file git repository branch",
-										Required:    true,
+										Required:            true,
 									},
 									"paths": schema.SetAttribute{
 										Description:         "YAML files git repository paths",
 										MarkdownDescription: "YAML files git repository paths",
-										Required:    true,
-										ElementType: types.StringType,
+										Required:            true,
+										ElementType:         types.StringType,
 									},
 									"git_token_id": schema.StringAttribute{
 										Description:         "Git token ID for accessing a private repository (refers to a qovery_git_token resource).",
 										MarkdownDescription: "Git token ID for accessing a private repository (refers to a `qovery_git_token` resource).",
-										Optional:    true,
-										Computed:    true,
+										Optional:            true,
+										Computed:            true,
 									},
 								},
 							},
@@ -287,18 +287,18 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"ports": schema.MapNestedAttribute{
 				Description:         "List of ports linked to this helm.",
 				MarkdownDescription: "List of ports linked to this helm.",
-				Optional:    true,
+				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"service_name": schema.StringAttribute{
 							Description:         "Name of the Kubernetes service to expose.",
 							MarkdownDescription: "Name of the Kubernetes service to expose.",
-							Required:    true,
+							Required:            true,
 						},
 						"namespace": schema.StringAttribute{
 							Description:         "Kubernetes namespace where the service is deployed.",
 							MarkdownDescription: "Kubernetes namespace where the service is deployed.",
-							Optional:    true,
+							Optional:            true,
 						},
 						"internal_port": schema.Int64Attribute{
 							Description: descriptions.NewInt64MinMaxDescription(
@@ -356,8 +356,8 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 						"is_default": schema.BoolAttribute{
 							Description:         "If this port will be used for the root domain. Note: the API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).",
 							MarkdownDescription: "If this port will be used for the root domain. Note: the API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).",
-							Optional:    true,
-							Computed:    true,
+							Optional:            true,
+							Computed:            true,
 							PlanModifiers: []planmodifier.Bool{
 								SmartAllowApiOverride(),
 							},
@@ -368,7 +368,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"built_in_environment_variables": schema.ListNestedAttribute{
 				Description:         "List of built-in environment variables linked to this helm.",
 				MarkdownDescription: "List of built-in environment variables linked to this helm.",
-				Computed:    true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.List{
 					UseStateUnlessNameChanges(),
 				},
@@ -377,22 +377,22 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 						"id": schema.StringAttribute{
 							Description:         "Id of the environment variable.",
 							MarkdownDescription: "Id of the environment variable.",
-							Computed:    true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Key of the environment variable.",
 							MarkdownDescription: "Key of the environment variable.",
-							Computed:    true,
+							Computed:            true,
 						},
 						"value": schema.StringAttribute{
 							Description:         "Value of the environment variable.",
 							MarkdownDescription: "Value of the environment variable.",
-							Computed:    true,
+							Computed:            true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the environment variable.",
 							MarkdownDescription: "Description of the environment variable.",
-							Computed:    true,
+							Computed:            true,
 						},
 					},
 				},
@@ -401,28 +401,28 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"environment_variables": schema.SetNestedAttribute{
 				Description:         "List of environment variables linked to this helm.",
 				MarkdownDescription: "List of environment variables linked to this helm.",
-				Optional:    true,
+				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the environment variable.",
 							MarkdownDescription: "Id of the environment variable.",
-							Computed:    true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Key of the environment variable.",
 							MarkdownDescription: "Key of the environment variable.",
-							Required:    true,
+							Required:            true,
 						},
 						"value": schema.StringAttribute{
 							Description:         "Value of the environment variable.",
 							MarkdownDescription: "Value of the environment variable.",
-							Required:    true,
+							Required:            true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the environment variable.",
 							MarkdownDescription: "Description of the environment variable.",
-							Optional:    true,
+							Optional:            true,
 						},
 					},
 				},
@@ -430,28 +430,28 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"environment_variable_aliases": schema.SetNestedAttribute{
 				Description:         "List of environment variable aliases linked to this helm.",
 				MarkdownDescription: "List of environment variable aliases linked to this helm.",
-				Optional:    true,
+				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the environment variable alias.",
 							MarkdownDescription: "Id of the environment variable alias.",
-							Computed:    true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Name of the environment variable alias.",
 							MarkdownDescription: "Name of the environment variable alias.",
-							Required:    true,
+							Required:            true,
 						},
 						"value": schema.StringAttribute{
 							Description:         "Name of the variable to alias.",
 							MarkdownDescription: "Name of the variable to alias.",
-							Required:    true,
+							Required:            true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the environment variable alias.",
 							MarkdownDescription: "Description of the environment variable alias.",
-							Optional:    true,
+							Optional:            true,
 						},
 					},
 				},
@@ -459,28 +459,28 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"environment_variable_overrides": schema.SetNestedAttribute{
 				Description:         "List of environment variable overrides linked to this helm.",
 				MarkdownDescription: "List of environment variable overrides linked to this helm.",
-				Optional:    true,
+				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the environment variable override.",
 							MarkdownDescription: "Id of the environment variable override.",
-							Computed:    true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Name of the environment variable override.",
 							MarkdownDescription: "Name of the environment variable override.",
-							Required:    true,
+							Required:            true,
 						},
 						"value": schema.StringAttribute{
 							Description:         "Value of the environment variable override.",
 							MarkdownDescription: "Value of the environment variable override.",
-							Required:    true,
+							Required:            true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the environment variable override.",
 							MarkdownDescription: "Description of the environment variable override.",
-							Optional:    true,
+							Optional:            true,
 						},
 					},
 				},
@@ -488,29 +488,29 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"secrets": schema.SetNestedAttribute{
 				Description:         "List of secrets linked to this helm.",
 				MarkdownDescription: "List of secrets linked to this helm.",
-				Optional:    true,
+				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the secret.",
 							MarkdownDescription: "Id of the secret.",
-							Computed:    true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Key of the secret.",
 							MarkdownDescription: "Key of the secret.",
-							Required:    true,
+							Required:            true,
 						},
 						"value": schema.StringAttribute{
 							Description:         "Value of the secret.",
 							MarkdownDescription: "Value of the secret.",
-							Required:    true,
-							Sensitive:   true,
+							Required:            true,
+							Sensitive:           true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the secret.",
 							MarkdownDescription: "Description of the secret.",
-							Optional:    true,
+							Optional:            true,
 						},
 					},
 				},
@@ -518,28 +518,28 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"secret_aliases": schema.SetNestedAttribute{
 				Description:         "List of secret aliases linked to this helm.",
 				MarkdownDescription: "List of secret aliases linked to this helm.",
-				Optional:    true,
+				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the secret alias.",
 							MarkdownDescription: "Id of the secret alias.",
-							Computed:    true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Name of the secret alias.",
 							MarkdownDescription: "Name of the secret alias.",
-							Required:    true,
+							Required:            true,
 						},
 						"value": schema.StringAttribute{
 							Description:         "Name of the secret to alias.",
 							MarkdownDescription: "Name of the secret to alias.",
-							Required:    true,
+							Required:            true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the secret alias.",
 							MarkdownDescription: "Description of the secret alias.",
-							Optional:    true,
+							Optional:            true,
 						},
 					},
 				},
@@ -547,29 +547,29 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"secret_overrides": schema.SetNestedAttribute{
 				Description:         "List of secret overrides linked to this helm.",
 				MarkdownDescription: "List of secret overrides linked to this helm.",
-				Optional:    true,
+				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the secret override.",
 							MarkdownDescription: "Id of the secret override.",
-							Computed:    true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Name of the secret override.",
 							MarkdownDescription: "Name of the secret override.",
-							Required:    true,
+							Required:            true,
 						},
 						"value": schema.StringAttribute{
 							Description:         "Value of the secret override.",
 							MarkdownDescription: "Value of the secret override.",
-							Required:    true,
-							Sensitive:   true,
+							Required:            true,
+							Sensitive:           true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the secret override.",
 							MarkdownDescription: "Description of the secret override.",
-							Optional:    true,
+							Optional:            true,
 						},
 					},
 				},
@@ -577,23 +577,23 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"custom_domains": schema.SetNestedAttribute{
 				Description:         "List of custom domains linked to this helm.",
 				MarkdownDescription: "List of custom domains linked to this helm.",
-				Optional:    true,
+				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the custom domain.",
 							MarkdownDescription: "Id of the custom domain.",
-							Computed:    true,
+							Computed:            true,
 						},
 						"domain": schema.StringAttribute{
 							Description:         "Your custom domain.",
 							MarkdownDescription: "Your custom domain.",
-							Required:    true,
+							Required:            true,
 						},
 						"generate_certificate": schema.BoolAttribute{
 							Description:         "Qovery will generate and manage the certificate for this domain.",
 							MarkdownDescription: "Qovery will generate and manage the certificate for this domain.",
-							Required:    true,
+							Required:            true,
 						},
 						"use_cdn": schema.BoolAttribute{
 							Description: "Indicates if the custom domain is behind a CDN (i.e Cloudflare). " +
@@ -609,12 +609,12 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 						"validation_domain": schema.StringAttribute{
 							Description:         "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
 							MarkdownDescription: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
-							Computed:    true,
+							Computed:            true,
 						},
 						"status": schema.StringAttribute{
 							Description:         "Status of the custom domain.",
 							MarkdownDescription: "Status of the custom domain.",
-							Computed:    true,
+							Computed:            true,
 						},
 					},
 				},
@@ -622,7 +622,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"external_host": schema.StringAttribute{
 				Description:         "The helm external FQDN host [NOTE: only if your helm is using a publicly accessible port].",
 				MarkdownDescription: "The helm external FQDN host [NOTE: only if your helm is using a publicly accessible port].",
-				Computed:    true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -630,7 +630,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"internal_host": schema.StringAttribute{
 				Description:         "The helm internal host.",
 				MarkdownDescription: "The helm internal host.",
-				Computed:    true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -638,21 +638,21 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"deployment_stage_id": schema.StringAttribute{
 				Description:         "Id of the deployment stage. Controls the order of service deployment within an environment.",
 				MarkdownDescription: "Id of the deployment stage. Controls the order of service deployment within an environment.",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 			},
 			"is_skipped": schema.BoolAttribute{
 				Description:         "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
 				MarkdownDescription: "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
-				Optional:    true,
-				Computed:    true,
-				Default:     booldefault.StaticBool(false),
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 			},
 			"advanced_settings_json": schema.StringAttribute{
 				Description:         "Advanced settings in JSON format. See the Qovery API documentation for available settings: https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings",
 				MarkdownDescription: "Advanced settings in JSON format. See the Qovery API documentation for available settings: https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -660,28 +660,28 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			"deployment_restrictions": schema.SetNestedAttribute{
 				Description:         "List of deployment restrictions.",
 				MarkdownDescription: "List of deployment restrictions.",
-				Optional:    true,
+				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the deployment restriction.",
 							MarkdownDescription: "Id of the deployment restriction.",
-							Computed:    true,
+							Computed:            true,
 						},
 						"mode": schema.StringAttribute{
 							Description:         "Deployment restriction mode. Can be: EXCLUDE, MATCH.",
 							MarkdownDescription: "Deployment restriction mode.\n\t- Can be: `EXCLUDE`, `MATCH`.",
-							Required:    true,
+							Required:            true,
 						},
 						"type": schema.StringAttribute{
 							Description:         "Deployment restriction type. Can be: PATH.",
 							MarkdownDescription: "Deployment restriction type.\n\t- Can be: `PATH`.",
-							Required:    true,
+							Required:            true,
 						},
 						"value": schema.StringAttribute{
 							Description:         "Value of the deployment restriction (e.g. a file path pattern).",
 							MarkdownDescription: "Value of the deployment restriction (e.g. a file path pattern).",
-							Required:    true,
+							Required:            true,
 						},
 					},
 				},

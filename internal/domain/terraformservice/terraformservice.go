@@ -234,16 +234,16 @@ type JobResources struct {
 // Validate validates the JobResources
 func (j JobResources) Validate() error {
 	if j.CPUMilli < MinCPU {
-		return errors.New(fmt.Sprintf("cpu_milli must be at least %d", MinCPU))
+		return fmt.Errorf("cpu_milli must be at least %d", MinCPU)
 	}
 	if j.RAMMiB < MinRAM {
-		return errors.New(fmt.Sprintf("ram_mib must be at least %d", MinRAM))
+		return fmt.Errorf("ram_mib must be at least %d", MinRAM)
 	}
 	if j.GPU < MinGPU {
-		return errors.New(fmt.Sprintf("gpu must be at least %d", MinGPU))
+		return fmt.Errorf("gpu must be at least %d", MinGPU)
 	}
 	if j.StorageGiB < MinStorage {
-		return errors.New(fmt.Sprintf("storage_gib must be at least %d", MinStorage))
+		return fmt.Errorf("storage_gib must be at least %d", MinStorage)
 	}
 
 	if err := validator.New().Struct(j); err != nil {
@@ -273,7 +273,7 @@ func (t TerraformService) Validate() error {
 	for _, tfVarPath := range t.TfVarFiles {
 		if !strings.HasPrefix(tfVarPath, t.GitRepository.RootPath) {
 			return errors.Wrap(
-				errors.New(fmt.Sprintf("tfvar path %q must start with root_path %q", tfVarPath, t.GitRepository.RootPath)),
+				fmt.Errorf("tfvar path %q must start with root_path %q", tfVarPath, t.GitRepository.RootPath),
 				ErrInvalidTerraformServiceTfVarPathParam.Error(),
 			)
 		}
@@ -322,7 +322,7 @@ func (t TerraformService) Validate() error {
 
 	// Validate timeout
 	if t.TimeoutSec != nil && *t.TimeoutSec < MinTimeoutSec {
-		return errors.New(fmt.Sprintf("timeout_sec must be at least %d", MinTimeoutSec))
+		return fmt.Errorf("timeout_sec must be at least %d", MinTimeoutSec)
 	}
 
 	// Struct tag validation

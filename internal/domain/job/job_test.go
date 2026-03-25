@@ -168,7 +168,7 @@ func TestJobValidate(t *testing.T) {
 			schedule:             job_helper.DefaultJobSchedule,
 			environmentVariables: job_helper.DefaultJobEnvironmentVariables,
 			environmentSecrets:   job_helper.DefaultJobEnvironmentSecrets,
-			expectedError:        errors.Wrap(port_helper.DefaultInvalidPortParamsError, job.ErrInvalidJobPortParam.Error()),
+			expectedError:        errors.Wrap(port_helper.ErrDefaultInvalidPortParams, job.ErrInvalidJobPortParam.Error()),
 		},
 	}
 

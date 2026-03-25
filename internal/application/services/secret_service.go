@@ -74,8 +74,8 @@ func (c secretService) Update(
 	if err != nil {
 		return nil, err
 	}
-	var secretsByNameForAliases = make(map[string]secret.Secret)
-	var secretsByNameForOverrides = make(map[string]secret.Secret)
+	secretsByNameForAliases := make(map[string]secret.Secret)
+	secretsByNameForOverrides := make(map[string]secret.Secret)
 	for _, secretForCurrentScope := range secretsForCurrentScope {
 		if secretForCurrentScope.Type == "VALUE" || secretForCurrentScope.Type == "BUILT_IN" {
 			secretsByNameForAliases[secretForCurrentScope.Key] = secretForCurrentScope
