@@ -57,7 +57,7 @@ jobs:
           version: ${{ env.TASK_VERSION }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Lint
-        run: task lint
+        run: task lint-check
 
   generate:
     name: Verify Generated Documentation
