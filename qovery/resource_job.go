@@ -3,6 +3,8 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/qovery/qovery-client-go"
@@ -91,6 +93,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				MarkdownDescription: "Icon URI representing the job.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -391,6 +396,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				Description:         "List of built-in environment variables linked to this job.",
 				MarkdownDescription: "List of built-in environment variables linked to this job.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -597,11 +605,17 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				Description:         "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",
 				MarkdownDescription: "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"internal_host": schema.StringAttribute{
 				Description:         "The job internal host.",
 				MarkdownDescription: "The job internal host.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"deployment_stage_id": schema.StringAttribute{
 				Description:         "Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.",
@@ -621,12 +635,18 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				MarkdownDescription: "Advanced settings in JSON format. See the Qovery API documentation for the full list of available settings: https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"auto_deploy": schema.BoolAttribute{
 				Description:         "Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.",
 				MarkdownDescription: "Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"deployment_restrictions": schema.SetNestedAttribute{
 				Description:         "List of deployment restrictions. Deployment restrictions allow you to control which changes trigger a deployment based on file path patterns.",

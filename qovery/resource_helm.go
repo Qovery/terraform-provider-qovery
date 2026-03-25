@@ -11,6 +11,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -99,6 +101,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				MarkdownDescription: "Icon URI representing the helm service.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"timeout_sec": schema.Int64Attribute{
 				Description:         "Helm timeout in seconds. Maximum time allowed for the Helm operation to complete.",
@@ -119,6 +124,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				MarkdownDescription: "Specify if the helm service will be automatically updated on every new commit on the branch.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"arguments": schema.ListAttribute{
 				Description:         "Helm CLI arguments passed to the helm command (e.g. --wait, --atomic, --debug).",
@@ -362,6 +370,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Description:         "List of built-in environment variables linked to this helm.",
 				MarkdownDescription: "List of built-in environment variables linked to this helm.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.List{
+					listplanmodifier.UseStateForUnknown(),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -613,11 +624,17 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Description:         "The helm external FQDN host [NOTE: only if your helm is using a publicly accessible port].",
 				MarkdownDescription: "The helm external FQDN host [NOTE: only if your helm is using a publicly accessible port].",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"internal_host": schema.StringAttribute{
 				Description:         "The helm internal host.",
 				MarkdownDescription: "The helm internal host.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"deployment_stage_id": schema.StringAttribute{
 				Description:         "Id of the deployment stage. Controls the order of service deployment within an environment.",
@@ -637,6 +654,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				MarkdownDescription: "Advanced settings in JSON format. See the Qovery API documentation for available settings: https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"deployment_restrictions": schema.SetNestedAttribute{
 				Description:         "List of deployment restrictions.",
