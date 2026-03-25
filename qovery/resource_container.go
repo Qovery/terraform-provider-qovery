@@ -313,7 +313,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					"These are read-only and cannot be modified.",
 				Computed:    true,
 				PlanModifiers: []planmodifier.List{
-					listplanmodifier.UseStateForUnknown(),
+					UseStateUnlessNameChanges(),
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{

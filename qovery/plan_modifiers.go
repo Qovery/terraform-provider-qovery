@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
@@ -72,4 +73,47 @@ func (m smartAllowApiOverrideModifier) PlanModifyBool(_ context.Context, req pla
 // API-determined values while maintaining backward compatibility.
 func SmartAllowApiOverride() planmodifier.Bool {
 	return smartAllowApiOverrideModifier{}
+}
+
+// useStateUnlessNameChangesModifier uses the prior state value for a computed list
+// attribute unless the resource's "name" attribute is changing. Built-in environment
+// variables contain values derived from the service name (e.g. QOVERY_SERVICE_NAME),
+// so their values must be recomputed when the name changes.
+type useStateUnlessNameChangesModifier struct{}
+
+func (m useStateUnlessNameChangesModifier) Description(_ context.Context) string {
+	return "Uses state value unless the resource name is changing, in which case the value is recomputed."
+}
+
+func (m useStateUnlessNameChangesModifier) MarkdownDescription(_ context.Context) string {
+	return "Uses state value unless the resource name is changing, in which case the value is recomputed."
+}
+
+func (m useStateUnlessNameChangesModifier) PlanModifyList(ctx context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
+	// No state means create — leave as unknown so the API computes it.
+	if req.State.Raw.IsNull() {
+		return
+	}
+
+	var stateName, planName types.String
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, path.Root("name"), &stateName)...)
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("name"), &planName)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	// Name is changing — built-in env var values will change, so leave as unknown.
+	if !stateName.Equal(planName) {
+		return
+	}
+
+	// Name unchanged — safe to reuse state value.
+	resp.PlanValue = req.StateValue
+}
+
+// UseStateUnlessNameChanges returns a plan modifier for list attributes that preserves
+// the state value when the resource name hasn't changed. This prevents plan noise on
+// built_in_environment_variables while still allowing recomputation when the name changes.
+func UseStateUnlessNameChanges() planmodifier.List {
+	return useStateUnlessNameChangesModifier{}
 }
