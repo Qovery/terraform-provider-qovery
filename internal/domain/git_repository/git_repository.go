@@ -4,10 +4,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// ErrInvalidURLParam is returned if the URL param is invalid.
-	ErrInvalidURLParam = errors.New("invalid URL param")
-)
+// ErrInvalidURLParam is returned if the URL param is invalid.
+var ErrInvalidURLParam = errors.New("invalid URL param")
 
 type GitRepository struct {
 	Url        string

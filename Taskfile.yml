@@ -88,12 +88,24 @@ tasks:
     cmds:
       - go run main.go
 
-  lint:
+  lint-check:
     desc: Run linters
     deps:
       - install-golangci-lint
     cmds:
       - golangci-lint run ./internal/...
+    sources:
+      - "internal/**/*.go"
+      - go.mod
+      - go.sum
+      - .golangci.yml
+
+  lint:
+    desc: Run linters
+    deps:
+      - install-golangci-lint
+    cmds:
+      - golangci-lint run --fix ./internal/...
     sources:
       - "internal/**/*.go"
       - go.mod

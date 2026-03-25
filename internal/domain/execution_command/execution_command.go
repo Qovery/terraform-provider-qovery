@@ -4,10 +4,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	// ErrInvalidArgumentsParam is returned if the URL param is invalid.
-	ErrInvalidArgumentsParam = errors.New("invalid arguments param")
-)
+// ErrInvalidArgumentsParam is returned if the URL param is invalid.
+var ErrInvalidArgumentsParam = errors.New("invalid arguments param")
 
 type ExecutionCommand struct {
 	Entrypoint *string

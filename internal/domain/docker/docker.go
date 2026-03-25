@@ -6,10 +6,8 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/git_repository"
 )
 
-var (
-	// ErrInvalidGitRepositoryParam is returned if the git repository param is invalid.
-	ErrInvalidGitRepositoryParam = errors.New("invalid git repository param")
-)
+// ErrInvalidGitRepositoryParam is returned if the git repository param is invalid.
+var ErrInvalidGitRepositoryParam = errors.New("invalid git repository param")
 
 type Docker struct {
 	GitRepository          git_repository.GitRepository

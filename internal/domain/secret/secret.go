@@ -74,14 +74,16 @@ func (s Secret) IsValid() bool {
 }
 
 // NewSecretParams represents the arguments needed to create a Secret.
-type NewSecretsParams = []NewSecretParams
-type NewSecretParams struct {
-	SecretID    string
-	Scope       string
-	Key         string
-	Type        string
-	Description string
-}
+type (
+	NewSecretsParams = []NewSecretParams
+	NewSecretParams  struct {
+		SecretID    string
+		Scope       string
+		Key         string
+		Type        string
+		Description string
+	}
+)
 
 // NewSecret returns a new instance of a Secret domain model.
 func NewSecret(params NewSecretParams) (*Secret, error) {

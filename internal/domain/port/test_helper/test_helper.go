@@ -46,5 +46,5 @@ var (
 		Protocol:           DefaultPortProtocol.String(),
 	}
 
-	DefaultInvalidPortParamsError = errors.New("invalid internal port param")
+	ErrDefaultInvalidPortParams = errors.New("invalid internal port param")
 )

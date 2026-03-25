@@ -92,6 +92,7 @@ func (p jobEnvironmentVariablesQoveryAPI) CreateAlias(ctx context.Context, jobID
 
 	return newDomainVariableFromQovery(v)
 }
+
 func (p jobEnvironmentVariablesQoveryAPI) CreateOverride(ctx context.Context, jobID string, request variable.UpsertRequest, overriddenVariableId string) (*variable.Variable, error) {
 	v, resp, err := p.client.JobEnvironmentVariableAPI.
 		CreateJobEnvironmentVariableOverride(ctx, jobID, overriddenVariableId).

@@ -63,7 +63,7 @@ func NewDeploymentStage(params NewDeploymentStageParams) (*DeploymentStage, erro
 		return nil, ErrInvalidDeploymentStageNameParam
 	}
 
-	var isAfter *uuid.UUID = nil
+	var isAfter *uuid.UUID
 	if params.IsAfter != nil {
 		newIsAfter, err := uuid.Parse(*params.IsAfter)
 		if err != nil {
@@ -72,7 +72,7 @@ func NewDeploymentStage(params NewDeploymentStageParams) (*DeploymentStage, erro
 		isAfter = &newIsAfter
 	}
 
-	var isBefore *uuid.UUID = nil
+	var isBefore *uuid.UUID
 	if params.IsBefore != nil {
 		newIsBefore, err := uuid.Parse(*params.IsBefore)
 		if err != nil {

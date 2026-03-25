@@ -5,9 +5,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	ErrInvalidUpsertScalewayRequest = errors.New("invalid credentials upsert scaleway request")
-)
+var ErrInvalidUpsertScalewayRequest = errors.New("invalid credentials upsert scaleway request")
 
 // UpsertScalewayRequest represents the parameters needed to create & update Scaleway Credentials.
 type UpsertScalewayRequest struct {

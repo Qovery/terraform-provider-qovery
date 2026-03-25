@@ -35,7 +35,6 @@ func newQoveryStorageRequestFromDomain(request storage.UpsertRequest) (*qovery.S
 		MountPoint: request.MountPoint,
 		Type:       *storageType,
 	}, nil
-
 }
 
 func newDomainStoragesFromQovery(qoveryStorages []qovery.ServiceStorageStorageInner) (storage.Storages, error) {

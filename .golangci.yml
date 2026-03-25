@@ -23,8 +23,14 @@ linters:
     - unused
     - unconvert
     - unparam
-    # - whitespace # Disabled for performance reasons - Ignores cache and takes 12+ minutes to run on the repo for _any_ change
+    - whitespace
+    - revive
+    - gofumpt
 
 linters-settings:
   nakedret:
     max-func-lines: 40
+  revive:
+    rules:
+      - name: var-naming
+        disabled: true

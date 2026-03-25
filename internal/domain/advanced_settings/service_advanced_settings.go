@@ -22,7 +22,7 @@ func NewServiceAdvancedSettingsService(apiConfig *qovery.Configuration) *Service
 
 // Compute the URL to GET or PUT advanced settings for any service type
 func (c ServiceAdvancedSettingsService) computeServiceAdvancedSettingsUrl(serviceType int, serviceId string) (*string, error) {
-	var host = c.apiConfig.Servers[0].URL
+	host := c.apiConfig.Servers[0].URL
 	var urlAdvancedSettings string
 
 	switch serviceType {
@@ -45,7 +45,7 @@ func (c ServiceAdvancedSettingsService) computeServiceAdvancedSettingsUrl(servic
 
 // Compute the URL to GET default advanced settings for any service type
 func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl(serviceType int) (*string, error) {
-	var host = c.apiConfig.Servers[0].URL
+	host := c.apiConfig.Servers[0].URL
 	var urlAdvancedSettings string
 
 	switch serviceType {
@@ -69,7 +69,7 @@ func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl
 // ReadServiceAdvancedSettings Get only overridden advanced settings
 func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, error) {
 	httpClient := &http.Client{}
-	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
+	apiToken := c.apiConfig.DefaultHeader["Authorization"]
 
 	var serviceAdvancedSettingsState string
 	if advancedSettingsJsonFromState == "" {
@@ -177,7 +177,7 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 
 // UpdateServiceAdvancedSettings Update advanced settings by computing the whole http body
 func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsJsonFromPlan string) error {
-	var apiToken = c.apiConfig.DefaultHeader["Authorization"]
+	apiToken := c.apiConfig.DefaultHeader["Authorization"]
 	httpClient := &http.Client{}
 
 	var advancedSettingsStrFromPlan string
@@ -254,7 +254,6 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 	putRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
 	respPostAdvancedSettings, err := httpClient.Do(putRequest)
-
 	if err != nil {
 		return err
 	}

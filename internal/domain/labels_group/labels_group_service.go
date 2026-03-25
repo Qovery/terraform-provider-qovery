@@ -16,6 +16,5 @@ type UpsertServiceRequest struct {
 }
 
 func (r UpsertServiceRequest) Validate() error {
-
 	return nil
 }

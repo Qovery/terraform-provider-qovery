@@ -31,7 +31,7 @@ func ToDeploymentRestrictionDiff(deploymentRestrictionsSet types.Set, deployment
 		}, nil
 	}
 
-	var deploymentRestrictionsToDelete = map[string]bool{}
+	deploymentRestrictionsToDelete := map[string]bool{}
 	if deploymentRestrictionsState != nil && !deploymentRestrictionsState.IsNull() {
 		for _, elem := range deploymentRestrictionsState.Elements() {
 			elemToObject := elem.(types.Object)
