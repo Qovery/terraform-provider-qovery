@@ -110,6 +110,15 @@ resource "qovery_container" "my_container" {
     }
   ]
 
+  # Environment variable files (mounted as files in the container)
+  environment_variable_files = [
+    {
+      key        = "APP_CONFIG"
+      value      = "config-content"
+      mount_path = "/etc/app/config.yaml"
+    }
+  ]
+
   # Secrets
   secrets = [
     {
@@ -129,6 +138,15 @@ resource "qovery_container" "my_container" {
       # The key must match a secret defined at a higher scope (project or environment).
       key   = "SOME_PROJECT_SECRET"
       value = "OVERRIDDEN_VALUE"
+    }
+  ]
+
+  # Secret files (mounted as files, value is encrypted)
+  secret_files = [
+    {
+      key        = "API_KEY"
+      value      = "secret-value"
+      mount_path = "/usr/local/secrets/api-key"
     }
   ]
 
