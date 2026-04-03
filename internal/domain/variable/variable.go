@@ -54,6 +54,7 @@ type Variable struct {
 	Value       string
 	Type        string
 	Description string
+	MountPath   string
 }
 
 // Validate returns an error to tell whether the Variable domain model is valid or not.
@@ -76,6 +77,7 @@ type (
 		Value       string
 		Type        string
 		Description string
+		MountPath   string
 	}
 )
 
@@ -102,6 +104,7 @@ func NewVariable(params NewVariableParams) (*Variable, error) {
 		Scope:       *scope,
 		Type:        params.Type,
 		Description: params.Description,
+		MountPath:   params.MountPath,
 	}
 
 	if err := v.Validate(); err != nil {
@@ -116,6 +119,7 @@ type UpsertRequest struct {
 	Key         string `validate:"required"`
 	Value       string
 	Description string
+	MountPath   string
 }
 
 // Validate returns an error to tell whether the UpsertRequest is valid or not.

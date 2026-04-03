@@ -53,6 +53,7 @@ type Secret struct {
 	Key         string         `validate:"required"`
 	Type        string
 	Description string
+	MountPath   string
 }
 
 // Validate returns an error to tell whether the Secret domain model is valid or not.
@@ -82,6 +83,7 @@ type (
 		Key         string
 		Type        string
 		Description string
+		MountPath   string
 	}
 )
 
@@ -107,6 +109,7 @@ func NewSecret(params NewSecretParams) (*Secret, error) {
 		Scope:       *scope,
 		Type:        params.Type,
 		Description: params.Description,
+		MountPath:   params.MountPath,
 	}
 
 	if err := v.Validate(); err != nil {
@@ -121,6 +124,7 @@ type UpsertRequest struct {
 	Key         string `validate:"required"`
 	Value       string
 	Description string
+	MountPath   string
 }
 
 // Validate returns an error to tell whether the UpsertRequest is valid or not.
