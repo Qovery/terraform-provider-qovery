@@ -23,6 +23,8 @@ type ApplicationResponse struct {
 	ApplicationSecrets                      []*qovery.Secret
 	ApplicationSecretAliases                []*qovery.Secret
 	ApplicationSecretOverrides              []*qovery.Secret
+	ApplicationEnvironmentVariableFiles     []*qovery.EnvironmentVariable
+	ApplicationSecretFiles                  []*qovery.Secret
 	ApplicationCustomDomains                []*qovery.CustomDomain
 	ApplicationDeploymentRestrictions       []deploymentrestriction.ServiceDeploymentRestriction
 	ApplicationExternalHost                 *string
@@ -41,6 +43,8 @@ type ApplicationCreateParams struct {
 	SecretsDiff                      SecretsDiff
 	SecretAliasesDiff                SecretsDiff
 	SecretOverridesDiff              SecretsDiff
+	EnvironmentVariableFilesDiff     EnvironmentVariablesDiff
+	SecretFilesDiff                  SecretsDiff
 	AdvancedSettingsJson             string
 	DeploymentRestrictionsDiff       deploymentrestriction.ServiceDeploymentRestrictionsDiff
 }
@@ -56,6 +60,8 @@ type ApplicationUpdateParams struct {
 	SecretsDiff                      SecretsDiff
 	SecretAliasesDiff                SecretsDiff
 	SecretOverridesDiff              SecretsDiff
+	EnvironmentVariableFilesDiff     EnvironmentVariablesDiff
+	SecretFilesDiff                  SecretsDiff
 	AdvancedSettingsJson             string
 	DeploymentRestrictionsDiff       deploymentrestriction.ServiceDeploymentRestrictionsDiff
 	DockerTargetBuildStage           *string
@@ -93,6 +99,8 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 		params.SecretsDiff,
 		params.SecretAliasesDiff,
 		params.SecretOverridesDiff,
+		params.EnvironmentVariableFilesDiff,
+		params.SecretFilesDiff,
 		params.CustomDomainsDiff,
 		params.DeploymentRestrictionsDiff,
 		applicationDeploymentStage.Id,
@@ -157,9 +165,11 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string, advan
 		ApplicationEnvironmentVariables:         variables.variableValues,
 		ApplicationEnvironmentVariableAliases:   variables.variableAliases,
 		ApplicationEnvironmentVariableOverrides: variables.variableOverrides,
+		ApplicationEnvironmentVariableFiles:     variables.variableFiles,
 		ApplicationSecrets:                      variables.secretValues,
 		ApplicationSecretAliases:                variables.secretAliases,
 		ApplicationSecretOverrides:              variables.secretOverrides,
+		ApplicationSecretFiles:                  variables.secretFiles,
 		ApplicationCustomDomains:                customDomains,
 		ApplicationExternalHost:                 hosts.external,
 		ApplicationInternalHost:                 hosts.internal,
@@ -200,6 +210,8 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 		params.SecretsDiff,
 		params.SecretAliasesDiff,
 		params.SecretOverridesDiff,
+		params.EnvironmentVariableFilesDiff,
+		params.SecretFilesDiff,
 		params.CustomDomainsDiff,
 		params.DeploymentRestrictionsDiff,
 		applicationDeploymentStage.Id,
@@ -248,6 +260,8 @@ func (c *Client) updateApplication(
 	secretsDiff SecretsDiff,
 	secretAliasesDiff SecretsDiff,
 	secretOverridesDiff SecretsDiff,
+	environmentVariableFilesDiff EnvironmentVariablesDiff,
+	secretFilesDiff SecretsDiff,
 	customDomainsDiff CustomDomainsDiff,
 	deploymentRestrictionsDiff deploymentrestriction.ServiceDeploymentRestrictionsDiff,
 	deploymentStageId string,
@@ -308,6 +322,18 @@ func (c *Client) updateApplication(
 		}
 	}
 
+	if !environmentVariableFilesDiff.IsEmpty() {
+		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application.Id, environmentVariableFilesDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
+	if !secretFilesDiff.IsEmpty() {
+		if apiErr := c.updateApplicationSecrets(ctx, application.Id, secretFilesDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
 	if !customDomainsDiff.IsEmpty() {
 		if apiErr := c.updateApplicationCustomDomains(ctx, application.Id, customDomainsDiff); apiErr != nil {
 			return nil, apiErr
@@ -360,9 +386,11 @@ func (c *Client) updateApplication(
 		ApplicationEnvironmentVariables:         variables.variableValues,
 		ApplicationEnvironmentVariableAliases:   variables.variableAliases,
 		ApplicationEnvironmentVariableOverrides: variables.variableOverrides,
+		ApplicationEnvironmentVariableFiles:     variables.variableFiles,
 		ApplicationSecrets:                      variables.secretValues,
 		ApplicationSecretAliases:                variables.secretAliases,
 		ApplicationSecretOverrides:              variables.secretOverrides,
+		ApplicationSecretFiles:                  variables.secretFiles,
 		ApplicationCustomDomains:                customDomains,
 		ApplicationExternalHost:                 hosts.external,
 		ApplicationInternalHost:                 hosts.internal,
@@ -463,19 +491,22 @@ type ValueAliasOverrideApplicationVariable struct {
 	variableValues    []*qovery.EnvironmentVariable
 	variableAliases   []*qovery.EnvironmentVariable
 	variableOverrides []*qovery.EnvironmentVariable
+	variableFiles     []*qovery.EnvironmentVariable
 	secretValues      []*qovery.Secret
 	secretAliases     []*qovery.Secret
 	secretOverrides   []*qovery.Secret
+	secretFiles       []*qovery.Secret
 }
 
 func computeAliasOverrideValueVariablesAndSecrets(
 	environmentVariables []*qovery.EnvironmentVariable,
 	secrets []*qovery.Secret,
 ) ValueAliasOverrideApplicationVariable {
-	// We need to create 3 different lists from all variables to satisfy terraform attributes: VALUE / ALIAS / OVERRIDE
+	// We need to create 4 different lists from all variables to satisfy terraform attributes: VALUE / ALIAS / OVERRIDE / FILE
 	var variableValues []*qovery.EnvironmentVariable
 	var variableAliases []*qovery.EnvironmentVariable
 	var variableOverrides []*qovery.EnvironmentVariable
+	var variableFiles []*qovery.EnvironmentVariable
 
 	for _, variable := range environmentVariables {
 		if variable.VariableType == qovery.APIVARIABLETYPEENUM_VALUE || variable.VariableType == qovery.APIVARIABLETYPEENUM_BUILT_IN {
@@ -487,12 +518,16 @@ func computeAliasOverrideValueVariablesAndSecrets(
 		if variable.VariableType == qovery.APIVARIABLETYPEENUM_OVERRIDE {
 			variableOverrides = append(variableOverrides, variable)
 		}
+		if variable.VariableType == qovery.APIVARIABLETYPEENUM_FILE {
+			variableFiles = append(variableFiles, variable)
+		}
 	}
 
-	// We need to create 3 different lists from all secrets to satisfy terraform attributes: VALUE / ALIAS / OVERRIDE
+	// We need to create 4 different lists from all secrets to satisfy terraform attributes: VALUE / ALIAS / OVERRIDE / FILE
 	var secretValues []*qovery.Secret
 	var secretAliases []*qovery.Secret
 	var secretOverrides []*qovery.Secret
+	var secretFiles []*qovery.Secret
 
 	for _, secret := range secrets {
 		if *secret.VariableType == qovery.APIVARIABLETYPEENUM_VALUE || *secret.VariableType == qovery.APIVARIABLETYPEENUM_BUILT_IN {
@@ -504,14 +539,19 @@ func computeAliasOverrideValueVariablesAndSecrets(
 		if *secret.VariableType == qovery.APIVARIABLETYPEENUM_OVERRIDE {
 			secretOverrides = append(secretOverrides, secret)
 		}
+		if *secret.VariableType == qovery.APIVARIABLETYPEENUM_FILE {
+			secretFiles = append(secretFiles, secret)
+		}
 	}
 
 	return ValueAliasOverrideApplicationVariable{
 		variableValues:    variableValues,
 		variableAliases:   variableAliases,
 		variableOverrides: variableOverrides,
+		variableFiles:     variableFiles,
 		secretValues:      secretValues,
 		secretAliases:     secretAliases,
 		secretOverrides:   secretOverrides,
+		secretFiles:       secretFiles,
 	}
 }
