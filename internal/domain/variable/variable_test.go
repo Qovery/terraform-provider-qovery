@@ -94,3 +94,54 @@ func TestNewVariable(t *testing.T) {
 		})
 	}
 }
+
+func TestUpsertRequest_ValidateAsFile(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		TestName    string
+		Request     variable.UpsertRequest
+		ExpectError bool
+		ErrorMsg    string
+	}{
+		{
+			TestName: "error_missing_key",
+			Request: variable.UpsertRequest{
+				Value:     "content",
+				MountPath: "/etc/config/app.yaml",
+			},
+			ExpectError: true,
+			ErrorMsg:    variable.ErrInvalidUpsertRequest.Error(),
+		},
+		{
+			TestName: "error_missing_mount_path",
+			Request: variable.UpsertRequest{
+				Key:   "APP_CONFIG",
+				Value: "content",
+			},
+			ExpectError: true,
+			ErrorMsg:    variable.ErrMissingMountPath.Error(),
+		},
+		{
+			TestName: "success",
+			Request: variable.UpsertRequest{
+				Key:       "APP_CONFIG",
+				Value:     "content",
+				MountPath: "/etc/config/app.yaml",
+			},
+			ExpectError: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+			err := tc.Request.ValidateAsFile()
+			if tc.ExpectError {
+				assert.ErrorContains(t, err, tc.ErrorMsg)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+}

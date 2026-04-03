@@ -87,3 +87,54 @@ func TestNewSecret(t *testing.T) {
 		})
 	}
 }
+
+func TestUpsertRequest_ValidateAsFile(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		TestName    string
+		Request     secret.UpsertRequest
+		ExpectError bool
+		ErrorMsg    string
+	}{
+		{
+			TestName: "error_missing_key",
+			Request: secret.UpsertRequest{
+				Value:     "secret-content",
+				MountPath: "/usr/local/secrets/api-key",
+			},
+			ExpectError: true,
+			ErrorMsg:    secret.ErrInvalidUpsertRequest.Error(),
+		},
+		{
+			TestName: "error_missing_mount_path",
+			Request: secret.UpsertRequest{
+				Key:   "API_KEY",
+				Value: "secret-content",
+			},
+			ExpectError: true,
+			ErrorMsg:    secret.ErrMissingMountPath.Error(),
+		},
+		{
+			TestName: "success",
+			Request: secret.UpsertRequest{
+				Key:       "API_KEY",
+				Value:     "secret-content",
+				MountPath: "/usr/local/secrets/api-key",
+			},
+			ExpectError: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+			err := tc.Request.ValidateAsFile()
+			if tc.ExpectError {
+				assert.ErrorContains(t, err, tc.ErrorMsg)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
