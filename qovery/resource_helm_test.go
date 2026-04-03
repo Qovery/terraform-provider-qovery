@@ -545,6 +545,7 @@ func testAccHelmDefaultConfigWithEnvVarFiles(
 resource "qovery_helm" "test" {
   environment_id = qovery_environment.test.id
   name = "%s"
+  description = "test helm with env var files"
   allow_cluster_wide_resources = false
   auto_preview = false
   auto_deploy = false
@@ -582,6 +583,7 @@ func testAccHelmDefaultConfigWithSecretFiles(
 resource "qovery_helm" "test" {
   environment_id = qovery_environment.test.id
   name = "%s"
+  description = "test helm with secret files"
   allow_cluster_wide_resources = false
   auto_preview = false
   auto_deploy = false
