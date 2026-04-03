@@ -49,6 +49,7 @@ func (c variableService) Update(
 	environmentVariablesRequest variable.DiffRequest,
 	environmentVariableAliasesRequest variable.DiffRequest,
 	environmentVariableOverridesRequest variable.DiffRequest,
+	environmentVariableFilesRequest variable.DiffRequest,
 	overrideAuthorizedScopes map[variable.Scope]struct{},
 ) (variable.Variables, error) {
 	if err := c.checkResourceID(resourceID); err != nil {
@@ -90,9 +91,14 @@ func (c variableService) Update(
 	if err != nil {
 		return nil, err
 	}
+	environmentVariableFiles, err := c.updateEnvironmentVariables(ctx, resourceID, environmentVariableFilesRequest)
+	if err != nil {
+		return nil, err
+	}
 
 	environmentVariables = append(environmentVariables, environmentVariableAliases...)
 	environmentVariables = append(environmentVariables, environmentVariableOverrides...)
+	environmentVariables = append(environmentVariables, environmentVariableFiles...)
 
 	return environmentVariables, nil
 }

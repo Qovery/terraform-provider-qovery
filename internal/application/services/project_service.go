@@ -69,12 +69,12 @@ func (s projectService) Create(ctx context.Context, organizationID string, reque
 		Delete: []secret.DiffDeleteRequest{},
 	}
 	overridesAuthorizedScopes := make(map[variable.Scope]struct{})
-	_, err = s.variableService.Update(ctx, proj.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, emptyRequest, overridesAuthorizedScopes)
+	_, err = s.variableService.Update(ctx, proj.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, emptyRequest, request.EnvironmentVariableFiles, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, project.ErrFailedToCreateProject.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, proj.ID.String(), request.Secrets, request.SecretAliases, emptySecretRequest, overridesAuthorizedScopes)
+	_, err = s.secretService.Update(ctx, proj.ID.String(), request.Secrets, request.SecretAliases, emptySecretRequest, request.SecretFiles, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, project.ErrFailedToCreateProject.Error())
 	}
@@ -133,12 +133,12 @@ func (s projectService) Update(ctx context.Context, projectID string, request pr
 		Delete: []secret.DiffDeleteRequest{},
 	}
 	overridesAuthorizedScopes := make(map[variable.Scope]struct{})
-	_, err = s.variableService.Update(ctx, proj.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, emptyRequest, overridesAuthorizedScopes)
+	_, err = s.variableService.Update(ctx, proj.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, emptyRequest, request.EnvironmentVariableFiles, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, project.ErrFailedToUpdateProject.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, proj.ID.String(), request.Secrets, request.SecretAliases, emptySecretRequest, overridesAuthorizedScopes)
+	_, err = s.secretService.Update(ctx, proj.ID.String(), request.Secrets, request.SecretAliases, emptySecretRequest, request.SecretFiles, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, project.ErrFailedToUpdateProject.Error())
 	}

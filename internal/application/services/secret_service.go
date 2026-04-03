@@ -50,6 +50,7 @@ func (c secretService) Update(
 	secretsRequest secret.DiffRequest,
 	secretAliasesRequest secret.DiffRequest,
 	secretOverridesRequest secret.DiffRequest,
+	secretFilesRequest secret.DiffRequest,
 	overrideAuthorizedScopes map[variable.Scope]struct{},
 ) (secret.Secrets, error) {
 	if err := c.checkResourceID(resourceID); err != nil {
@@ -94,9 +95,14 @@ func (c secretService) Update(
 	if err != nil {
 		return nil, err
 	}
+	secretFiles, err := c.updateSecrets(ctx, resourceID, secretFilesRequest)
+	if err != nil {
+		return nil, err
+	}
 
 	secrets = append(secrets, secretAliases...)
 	secrets = append(secrets, secretOverrides...)
+	secrets = append(secrets, secretFiles...)
 
 	return secrets, nil
 }

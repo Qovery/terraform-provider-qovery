@@ -67,12 +67,12 @@ func (s containerService) Create(ctx context.Context, environmentID string, requ
 	overridesAuthorizedScopes := make(map[variable.Scope]struct{})
 	overridesAuthorizedScopes[variable.ScopeProject] = struct{}{}
 	overridesAuthorizedScopes[variable.ScopeEnvironment] = struct{}{}
-	_, err = s.variableService.Update(ctx, cont.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, overridesAuthorizedScopes)
+	_, err = s.variableService.Update(ctx, cont.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, request.EnvironmentVariableFiles, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, cont.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, overridesAuthorizedScopes)
+	_, err = s.secretService.Update(ctx, cont.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, request.SecretFiles, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
@@ -122,12 +122,12 @@ func (s containerService) Update(ctx context.Context, containerID string, reques
 	overridesAuthorizedScopes := make(map[variable.Scope]struct{})
 	overridesAuthorizedScopes[variable.ScopeProject] = struct{}{}
 	overridesAuthorizedScopes[variable.ScopeEnvironment] = struct{}{}
-	_, err = s.variableService.Update(ctx, cont.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, overridesAuthorizedScopes)
+	_, err = s.variableService.Update(ctx, cont.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, request.EnvironmentVariableFiles, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, cont.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, overridesAuthorizedScopes)
+	_, err = s.secretService.Update(ctx, cont.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, request.SecretFiles, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
 	}

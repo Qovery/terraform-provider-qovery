@@ -30,9 +30,11 @@ type UpsertServiceRequest struct {
 	EnvironmentVariables         variable.DiffRequest
 	EnvironmentVariableAliases   variable.DiffRequest
 	EnvironmentVariableOverrides variable.DiffRequest
+	EnvironmentVariableFiles     variable.DiffRequest
 	Secrets                      secret.DiffRequest
 	SecretAliases                secret.DiffRequest
 	SecretOverrides              secret.DiffRequest
+	SecretFiles                  secret.DiffRequest
 	DeploymentRestrictionsDiff   deploymentrestriction.ServiceDeploymentRestrictionsDiff
 }
 
