@@ -25,6 +25,7 @@ type Service interface {
 		secretsRequest DiffRequest,
 		secretAliasesRequest DiffRequest,
 		secretOverridesRequest DiffRequest,
+		secretFilesRequest DiffRequest,
 		overrideAuthorizedScopes map[variable.Scope]struct{}) (Secrets, error)
 }
 
