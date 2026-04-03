@@ -194,6 +194,7 @@ Default: `DOCKER`.
 - `dockerfile_path` (String) Path to the Dockerfile relative to the `git_repository.root_path`. Required when `build_mode = "DOCKER"`. Example: `Dockerfile` or `docker/Dockerfile.prod`.
 - `entrypoint` (String) Entrypoint of the application. Overrides the Docker image's default `ENTRYPOINT`.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this application. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variable_files` (Attributes Set) List of environment variable files linked to this application. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this application. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
 - `icon_uri` (String) Icon URI representing the application. Used in the Qovery console UI.
@@ -204,6 +205,7 @@ Default: `DOCKER`.
 - `min_running_instances` (Number) Minimum number of instances running for the application.
 - `ports` (Attributes List) List of ports linked to this application. At least one port must be set as `publicly_accessible = true` with an `external_port` for the application to be reachable from the internet. (see [below for nested schema](#nestedatt--ports))
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this application. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secret_files` (Attributes Set) List of secret files linked to this application. (see [below for nested schema](#nestedatt--secret_files))
 - `secret_overrides` (Attributes Set) List of secret overrides linked to this application. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes Set) List of secrets linked to this application. (see [below for nested schema](#nestedatt--secrets))
 - `storage` (Attributes Set) List of persistent storage volumes linked to this application. Data stored in these volumes persists across application restarts. (see [below for nested schema](#nestedatt--storage))
@@ -428,6 +430,24 @@ Read-Only:
 - `id` (String) Id of the environment variable alias.
 
 
+<a id="nestedatt--environment_variable_files"></a>
+### Nested Schema for `environment_variable_files`
+
+Required:
+
+- `key` (String) Key of the environment variable file.
+- `mount_path` (String) Mount path of the environment variable file.
+- `value` (String) Value of the environment variable file.
+
+Optional:
+
+- `description` (String) Description of the environment variable file.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable file.
+
+
 <a id="nestedatt--environment_variable_overrides"></a>
 ### Nested Schema for `environment_variable_overrides`
 
@@ -497,6 +517,24 @@ Optional:
 Read-Only:
 
 - `id` (String) Id of the secret alias.
+
+
+<a id="nestedatt--secret_files"></a>
+### Nested Schema for `secret_files`
+
+Required:
+
+- `key` (String) Key of the secret file.
+- `mount_path` (String) Mount path of the secret file.
+- `value` (String, Sensitive) Value of the secret file.
+
+Optional:
+
+- `description` (String) Description of the secret file.
+
+Read-Only:
+
+- `id` (String) Id of the secret file.
 
 
 <a id="nestedatt--secret_overrides"></a>

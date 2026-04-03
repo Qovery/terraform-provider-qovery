@@ -178,6 +178,7 @@ resource "qovery_container" "my_container" {
 - `deployment_stage_id` (String) Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.
 - `entrypoint` (String) Entrypoint of the container. Overrides the Docker image's default `ENTRYPOINT`.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this container. An alias creates a new environment variable name that references the value of an existing variable. The `key` is the alias name and `value` is the name of the variable being aliased. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variable_files` (Attributes Set) List of environment variable files linked to this container. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this container. An override replaces the value of an existing environment variable defined at a higher scope (project or environment). The `key` must match the name of the variable to override. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this container. Environment variables at the container level have the highest precedence and override variables set at the project or environment level. (see [below for nested schema](#nestedatt--environment_variables))
 - `icon_uri` (String) Icon URI representing the container. Used in the Qovery console UI.
@@ -188,6 +189,7 @@ resource "qovery_container" "my_container" {
 - `min_running_instances` (Number) Minimum number of instances running for the container.
 - `ports` (Attributes List) List of ports linked to this container. At least one port must be set as `publicly_accessible = true` with an `external_port` for the container to be reachable from the internet. (see [below for nested schema](#nestedatt--ports))
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this container. An alias creates a new secret name that references the value of an existing secret. The `key` is the alias name and `value` is the name of the secret being aliased. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secret_files` (Attributes Set) List of secret files linked to this container. (see [below for nested schema](#nestedatt--secret_files))
 - `secret_overrides` (Attributes Set) List of secret overrides linked to this container. An override replaces the value of an existing secret defined at a higher scope (project or environment). The `key` must match the name of the secret to override. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes Set) List of secrets linked to this container. Secrets behave like environment variables but their values are stored securely and not visible in plan outputs. (see [below for nested schema](#nestedatt--secrets))
 - `storage` (Attributes Set) List of persistent storage volumes linked to this container. Data stored in these volumes persists across container restarts. (see [below for nested schema](#nestedatt--storage))
@@ -384,6 +386,24 @@ Read-Only:
 - `id` (String) Id of the environment variable alias.
 
 
+<a id="nestedatt--environment_variable_files"></a>
+### Nested Schema for `environment_variable_files`
+
+Required:
+
+- `key` (String) Key of the environment variable file.
+- `mount_path` (String) Mount path of the environment variable file.
+- `value` (String) Value of the environment variable file.
+
+Optional:
+
+- `description` (String) Description of the environment variable file.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable file.
+
+
 <a id="nestedatt--environment_variable_overrides"></a>
 ### Nested Schema for `environment_variable_overrides`
 
@@ -453,6 +473,24 @@ Optional:
 Read-Only:
 
 - `id` (String) Id of the secret alias.
+
+
+<a id="nestedatt--secret_files"></a>
+### Nested Schema for `secret_files`
+
+Required:
+
+- `key` (String) Key of the secret file.
+- `mount_path` (String) Mount path of the secret file.
+- `value` (String, Sensitive) Value of the secret file.
+
+Optional:
+
+- `description` (String) Description of the secret file.
+
+Read-Only:
+
+- `id` (String) Id of the secret file.
 
 
 <a id="nestedatt--secret_overrides"></a>

@@ -160,12 +160,14 @@ resource "qovery_helm" "my_helm_from_git" {
 - `deployment_restrictions` (Attributes Set) List of deployment restrictions. (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `deployment_stage_id` (String) Id of the deployment stage. Controls the order of service deployment within an environment.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variable_files` (Attributes Set) List of environment variable files linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this helm. (see [below for nested schema](#nestedatt--environment_variables))
 - `icon_uri` (String) Icon URI representing the helm service.
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
 - `ports` (Attributes Map) List of ports linked to this helm. (see [below for nested schema](#nestedatt--ports))
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this helm. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secret_files` (Attributes Set) List of secret files linked to this helm. (see [below for nested schema](#nestedatt--secret_files))
 - `secret_overrides` (Attributes Set) List of secret overrides linked to this helm. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes Set) List of secrets linked to this helm. (see [below for nested schema](#nestedatt--secrets))
 - `timeout_sec` (Number) Helm timeout in seconds. Maximum time allowed for the Helm operation to complete.
@@ -307,6 +309,24 @@ Read-Only:
 - `id` (String) Id of the environment variable alias.
 
 
+<a id="nestedatt--environment_variable_files"></a>
+### Nested Schema for `environment_variable_files`
+
+Required:
+
+- `key` (String) Key of the environment variable file.
+- `mount_path` (String) Mount path of the environment variable file.
+- `value` (String) Value of the environment variable file.
+
+Optional:
+
+- `description` (String) Description of the environment variable file.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable file.
+
+
 <a id="nestedatt--environment_variable_overrides"></a>
 ### Nested Schema for `environment_variable_overrides`
 
@@ -377,6 +397,24 @@ Optional:
 Read-Only:
 
 - `id` (String) Id of the secret alias.
+
+
+<a id="nestedatt--secret_files"></a>
+### Nested Schema for `secret_files`
+
+Required:
+
+- `key` (String) Key of the secret file.
+- `mount_path` (String) Mount path of the secret file.
+- `value` (String, Sensitive) Value of the secret file.
+
+Optional:
+
+- `description` (String) Description of the secret file.
+
+Read-Only:
+
+- `id` (String) Id of the secret file.
 
 
 <a id="nestedatt--secret_overrides"></a>

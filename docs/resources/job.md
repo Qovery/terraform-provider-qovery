@@ -162,6 +162,7 @@ You can find complete examples within these repositories:
 - `deployment_restrictions` (Attributes Set) List of deployment restrictions. Deployment restrictions allow you to control which changes trigger a deployment based on file path patterns. (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `deployment_stage_id` (String) Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this job. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variable_files` (Attributes Set) List of environment variable files linked to this job. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this job. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this job. (see [below for nested schema](#nestedatt--environment_variables))
 - `icon_uri` (String) Icon URI representing the job.
@@ -179,6 +180,7 @@ You can find complete examples within these repositories:
 - `port` (Number) Job's probes port.
 	- Must be: `>= 1` and `<= 65535`.
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this job. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secret_files` (Attributes Set) List of secret files linked to this job. (see [below for nested schema](#nestedatt--secret_files))
 - `secret_overrides` (Attributes Set) List of secret overrides linked to this job. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes Set) List of secrets linked to this job. (see [below for nested schema](#nestedatt--secrets))
 - `source` (Attributes) Job's source configuration. Use `image` to deploy from a container registry, or `docker` to build from a Dockerfile in a git repository. (see [below for nested schema](#nestedatt--source))
@@ -428,6 +430,24 @@ Read-Only:
 - `id` (String) Id of the environment variable alias.
 
 
+<a id="nestedatt--environment_variable_files"></a>
+### Nested Schema for `environment_variable_files`
+
+Required:
+
+- `key` (String) Key of the environment variable file.
+- `mount_path` (String) Mount path of the environment variable file.
+- `value` (String) Value of the environment variable file.
+
+Optional:
+
+- `description` (String) Description of the environment variable file.
+
+Read-Only:
+
+- `id` (String) Id of the environment variable file.
+
+
 <a id="nestedatt--environment_variable_overrides"></a>
 ### Nested Schema for `environment_variable_overrides`
 
@@ -477,6 +497,24 @@ Optional:
 Read-Only:
 
 - `id` (String) Id of the secret alias.
+
+
+<a id="nestedatt--secret_files"></a>
+### Nested Schema for `secret_files`
+
+Required:
+
+- `key` (String) Key of the secret file.
+- `mount_path` (String) Mount path of the secret file.
+- `value` (String, Sensitive) Value of the secret file.
+
+Optional:
+
+- `description` (String) Description of the secret file.
+
+Read-Only:
+
+- `id` (String) Id of the secret file.
 
 
 <a id="nestedatt--secret_overrides"></a>
