@@ -61,10 +61,12 @@ data "qovery_job" "my_job" {
 
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this job. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
+- `environment_variable_files` (Attributes Set) List of environment variable files linked to this job. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `external_host` (String) The job external FQDN host [NOTE: only if your job is using a publicly accessible port].
 - `internal_host` (String) The job internal host.
 - `name` (String) Name of the job.
 - `schedule` (Attributes) Job's schedule configuration. Use `on_start`, `on_stop`, and `on_delete` for lifecycle jobs, or `cronjob` for cron jobs. (see [below for nested schema](#nestedatt--schedule))
+- `secret_files` (Attributes Set) List of secret files linked to this job. (see [below for nested schema](#nestedatt--secret_files))
 
 <a id="nestedatt--deployment_restrictions"></a>
 ### Nested Schema for `deployment_restrictions`
@@ -350,6 +352,18 @@ Read-Only:
 - `value` (String) Value of the environment variable.
 
 
+<a id="nestedatt--environment_variable_files"></a>
+### Nested Schema for `environment_variable_files`
+
+Read-Only:
+
+- `description` (String) Description of the environment variable file.
+- `id` (String) Id of the environment variable file.
+- `key` (String) Key of the environment variable file.
+- `mount_path` (String) Mount path of the environment variable file.
+- `value` (String) Value of the environment variable file.
+
+
 <a id="nestedatt--schedule"></a>
 ### Nested Schema for `schedule`
 
@@ -405,3 +419,16 @@ Optional:
 
 - `arguments` (List of String) List of arguments passed to the entrypoint.
 - `entrypoint` (String) Entrypoint of the job (e.g. the command to execute).
+
+
+
+<a id="nestedatt--secret_files"></a>
+### Nested Schema for `secret_files`
+
+Read-Only:
+
+- `description` (String) Description of the secret file.
+- `id` (String) Id of the secret file.
+- `key` (String) Key of the secret file.
+- `mount_path` (String) Mount path of the secret file.
+- `value` (String, Sensitive) Value of the secret file.
