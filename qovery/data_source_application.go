@@ -550,6 +550,75 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 					},
 				},
 			},
+			"environment_variable_files": schema.SetNestedAttribute{
+				Description:         "List of environment variable files linked to this application.",
+				MarkdownDescription: "List of environment variable files linked to this application.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description:         "Id of the environment variable file.",
+							MarkdownDescription: "Id of the environment variable file.",
+							Computed:            true,
+						},
+						"key": schema.StringAttribute{
+							Description:         "Key of the environment variable file.",
+							MarkdownDescription: "Key of the environment variable file.",
+							Computed:            true,
+						},
+						"value": schema.StringAttribute{
+							Description:         "Value of the environment variable file.",
+							MarkdownDescription: "Value of the environment variable file.",
+							Computed:            true,
+						},
+						"mount_path": schema.StringAttribute{
+							Description:         "Mount path of the environment variable file.",
+							MarkdownDescription: "Mount path of the environment variable file.",
+							Computed:            true,
+						},
+						"description": schema.StringAttribute{
+							Description:         "Description of the environment variable file.",
+							MarkdownDescription: "Description of the environment variable file.",
+							Computed:            true,
+						},
+					},
+				},
+			},
+			"secret_files": schema.SetNestedAttribute{
+				Description:         "List of secret files linked to this application.",
+				MarkdownDescription: "List of secret files linked to this application.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description:         "Id of the secret file.",
+							MarkdownDescription: "Id of the secret file.",
+							Computed:            true,
+						},
+						"key": schema.StringAttribute{
+							Description:         "Key of the secret file.",
+							MarkdownDescription: "Key of the secret file.",
+							Computed:            true,
+						},
+						"value": schema.StringAttribute{
+							Description:         "Value of the secret file.",
+							MarkdownDescription: "Value of the secret file.",
+							Computed:            true,
+							Sensitive:           true,
+						},
+						"mount_path": schema.StringAttribute{
+							Description:         "Mount path of the secret file.",
+							MarkdownDescription: "Mount path of the secret file.",
+							Computed:            true,
+						},
+						"description": schema.StringAttribute{
+							Description:         "Description of the secret file.",
+							MarkdownDescription: "Description of the secret file.",
+							Computed:            true,
+						},
+					},
+				},
+			},
 			"healthchecks": healthchecksSchemaAttributes(false),
 			"custom_domains": schema.SetNestedAttribute{
 				Description:         "List of custom domains linked to this application.",
