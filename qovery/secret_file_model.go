@@ -224,15 +224,14 @@ func toSecretFileList(vars types.Set) SecretFileList {
 }
 
 func convertDomainSecretsToSecretFileList(initialState types.Set, secrets secret.Secrets, scope variable.Scope, variableType string) SecretFileList {
-	stateByKey := buildSecretFileMap(initialState)
+	stateList := toSecretFileList(initialState)
 
 	list := make([]SecretFile, 0, len(secrets))
 	for _, s := range secrets {
 		if s.Scope != scope || s.Type != variableType {
 			continue
 		}
-		state := stateByKey[s.Key]
-		list = append(list, convertDomainSecretToSecretFile(s, &state))
+		list = append(list, convertDomainSecretToSecretFile(s, stateList.find(s.Key)))
 	}
 
 	// Return nil only if list is empty and original state list is nil
@@ -268,36 +267,34 @@ func convertDomainSecretToSecretFile(s secret.Secret, state *SecretFile) SecretF
 	return sec
 }
 
-func buildSecretFileMap(initialState types.Set) map[string]SecretFile {
-	stateList := toSecretFileList(initialState)
-	stateByKey := make(map[string]SecretFile, len(stateList))
-	for _, s := range stateList {
-		stateByKey[ToString(s.Key)] = s
-	}
-	return stateByKey
-}
 
 func fromSecretFileList(initialState types.Set, secrets []*qovery.Secret, scope qovery.APIVariableScopeEnum, secretType string) SecretFileList {
-	stateByKey := buildSecretFileMap(initialState)
+	stateList := toSecretFileList(initialState)
 
 	list := make([]SecretFile, 0, len(secrets))
 	for _, s := range secrets {
 		if s.Scope != scope || string(*s.VariableType) != secretType {
 			continue
 		}
-		state := stateByKey[s.GetKey()]
+		state := stateList.find(s.GetKey())
 		sec := SecretFile{
 			Id:          FromString(s.Id),
 			Key:         FromString(s.Key),
 			Description: FromNullableString(s.Description),
 		}
-		// Preserve Value from state (Secret API doesn't return values)
-		sec.Value = state.Value
-		if state.Description.IsNull() && !initialState.IsNull() {
-			sec.Description = basetypes.NewStringNull()
+		if state != nil {
+			// Preserve Value from state (Secret API doesn't return values)
+			sec.Value = state.Value
+			if state.Description.IsNull() && !initialState.IsNull() {
+				sec.Description = basetypes.NewStringNull()
+			}
+			// CRITICAL: qovery.Secret does NOT have MountPath — must come from state
+			sec.MountPath = state.MountPath
+		} else {
+			// qovery.Secret has no MountPath field — on import, mount_path will need to be
+			// re-specified in config. This is a known limitation of the Secret API.
+			sec.MountPath = FromString("")
 		}
-		// CRITICAL: qovery.Secret does NOT have MountPath — must come from state
-		sec.MountPath = state.MountPath
 
 		list = append(list, sec)
 	}
