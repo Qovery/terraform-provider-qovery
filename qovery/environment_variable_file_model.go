@@ -225,20 +225,6 @@ func toEnvironmentVariableFileList(vars types.Set) EnvironmentVariableFileList {
 	return environmentVariableFiles
 }
 
-func convertDomainVariablesToEnvironmentVariableFileList(vars variable.Variables, scope variable.Scope, variableType string) EnvironmentVariableFileList {
-	list := make([]EnvironmentVariableFile, 0, len(vars))
-	for _, v := range vars {
-		if v.Scope != scope || v.Type != variableType {
-			continue
-		}
-		list = append(list, convertDomainVariableToEnvironmentVariableFile(v, nil))
-	}
-
-	if len(list) == 0 {
-		return nil
-	}
-	return list
-}
 
 func convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx context.Context, initialState types.Set, vars variable.Variables, scope variable.Scope, variableType string) EnvironmentVariableFileList {
 	list := make([]EnvironmentVariableFile, 0, len(vars))

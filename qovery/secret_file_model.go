@@ -267,7 +267,6 @@ func convertDomainSecretToSecretFile(s secret.Secret, state *SecretFile) SecretF
 	return sec
 }
 
-
 func fromSecretFileList(initialState types.Set, secrets []*qovery.Secret, scope qovery.APIVariableScopeEnum, secretType string) SecretFileList {
 	stateList := toSecretFileList(initialState)
 
