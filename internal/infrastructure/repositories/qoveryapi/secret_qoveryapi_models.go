@@ -42,11 +42,15 @@ func newDomainSecretFromQovery(v *qovery.Secret) (*secret.Secret, error) {
 
 // newQoverySecretRequestFromDomain takes the domain request secret.UpsertRequest and turns it into a qovery.SecretRequest to make the api call.
 func newQoverySecretRequestFromDomain(request secret.UpsertRequest) qovery.SecretRequest {
-	return qovery.SecretRequest{
+	req := qovery.SecretRequest{
 		Key:         request.Key,
 		Value:       &request.Value,
 		Description: *qovery.NewNullableString(&request.Description),
 	}
+	if request.MountPath != "" {
+		req.MountPath = *qovery.NewNullableString(&request.MountPath)
+	}
+	return req
 }
 
 // newQoverySecretEditRequestFromDomain takes the domain request secret.UpsertRequest and turns it into a qovery.SecretEditRequest to make the api call.

@@ -6,7 +6,7 @@ import (
 )
 
 func newQoveryEnvVariableRequestFromDomain(request variable.UpsertRequest, isSecret bool, parentId string, parentScope qovery.APIVariableScopeEnum) qovery.VariableRequest {
-	return qovery.VariableRequest{
+	req := qovery.VariableRequest{
 		Key:              request.Key,
 		Value:            request.Value,
 		MountPath:        qovery.NullableString{},
@@ -15,6 +15,10 @@ func newQoveryEnvVariableRequestFromDomain(request variable.UpsertRequest, isSec
 		VariableParentId: parentId,
 		Description:      *qovery.NewNullableString(&request.Description),
 	}
+	if request.MountPath != "" {
+		req.MountPath = *qovery.NewNullableString(&request.MountPath)
+	}
+	return req
 }
 
 func newQoveryEnvVariableCreateAliasRequestFromDomain(request variable.UpsertRequest, parentId string, parentScope qovery.APIVariableScopeEnum) qovery.VariableAliasRequest {
@@ -59,6 +63,11 @@ func newDomainEnvVariableFromQovery(v *qovery.VariableResponse) (*variable.Varia
 		value = *v.Value.Get()
 	}
 
+	mountPath := ""
+	if v.MountPath.IsSet() && v.MountPath.Get() != nil {
+		mountPath = *v.MountPath.Get()
+	}
+
 	return variable.NewVariable(variable.NewVariableParams{
 		VariableID:  v.GetId(),
 		Scope:       string(v.Scope),
@@ -66,6 +75,7 @@ func newDomainEnvVariableFromQovery(v *qovery.VariableResponse) (*variable.Varia
 		Value:       value,
 		Type:        string(v.VariableType),
 		Description: *v.Description,
+		MountPath:   mountPath,
 	})
 }
 
