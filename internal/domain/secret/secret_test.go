@@ -54,6 +54,17 @@ func TestNewSecret(t *testing.T) {
 				Type:     "VALUE",
 			},
 		},
+		{
+			TestName: "success_with_mount_path",
+			Params: secret.NewSecretParams{
+				SecretID:    gofakeit.UUID(),
+				Scope:       variable.ScopeApplication.String(),
+				Key:         gofakeit.Name(),
+				Type:        "FILE",
+				MountPath:   "/usr/local/secrets/api-key",
+				Description: "test file secret",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -71,6 +82,8 @@ func TestNewSecret(t *testing.T) {
 			assert.Equal(t, tc.Params.SecretID, v.ID.String())
 			assert.Equal(t, tc.Params.Key, v.Key)
 			assert.Equal(t, tc.Params.Type, v.Type)
+			assert.Equal(t, tc.Params.MountPath, v.MountPath)
+			assert.Equal(t, tc.Params.Description, v.Description)
 		})
 	}
 }

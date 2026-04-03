@@ -75,6 +75,14 @@ func TestNewQoveryEnvironmentSecretRequestFromDomain(t *testing.T) {
 				Value: gofakeit.Word(),
 			},
 		},
+		{
+			TestName: "success_with_mount_path",
+			Request: secret.UpsertRequest{
+				Key:       gofakeit.Word(),
+				Value:     gofakeit.Word(),
+				MountPath: "/usr/local/secrets/api-key",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -86,6 +94,10 @@ func TestNewQoveryEnvironmentSecretRequestFromDomain(t *testing.T) {
 				value = *req.Value
 			}
 			assert.Equal(t, tc.Request.Value, value)
+			if tc.Request.MountPath != "" {
+				assert.True(t, req.MountPath.IsSet())
+				assert.Equal(t, tc.Request.MountPath, *req.MountPath.Get())
+			}
 		})
 	}
 }

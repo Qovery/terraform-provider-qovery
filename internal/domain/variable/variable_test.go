@@ -61,6 +61,17 @@ func TestNewVariable(t *testing.T) {
 				Value:      gofakeit.Name(),
 			},
 		},
+		{
+			TestName: "success_with_mount_path",
+			Params: variable.NewVariableParams{
+				VariableID:  gofakeit.UUID(),
+				Scope:       variable.ScopeApplication.String(),
+				Key:         gofakeit.Name(),
+				Value:       gofakeit.Name(),
+				MountPath:   "/etc/config/app.yaml",
+				Description: "test file variable",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -78,6 +89,8 @@ func TestNewVariable(t *testing.T) {
 			assert.Equal(t, tc.Params.VariableID, v.ID.String())
 			assert.Equal(t, tc.Params.Key, v.Key)
 			assert.Equal(t, tc.Params.Value, v.Value)
+			assert.Equal(t, tc.Params.MountPath, v.MountPath)
+			assert.Equal(t, tc.Params.Description, v.Description)
 		})
 	}
 }
