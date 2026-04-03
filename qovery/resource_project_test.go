@@ -510,3 +510,223 @@ func convertEnvVarsToString(environmentVariables map[string]string) string {
 	}
 	return fmt.Sprintf("[%s]", strings.Join(vars, ","))
 }
+
+func testAccProjectDefaultConfigWithEnvVarFiles(
+	testName string,
+	environmentVariableFiles map[string]fileVar,
+) string {
+	return fmt.Sprintf(`
+resource "qovery_project" "test" {
+  organization_id = "%s"
+  name = "%s"
+  environment_variable_files = %s
+}
+`,
+		getTestOrganizationID(),
+		generateTestName(testName),
+		convertFileVarsToString(environmentVariableFiles),
+	)
+}
+
+func testAccProjectDefaultConfigWithSecretFiles(
+	testName string,
+	secretFiles map[string]fileVar,
+) string {
+	return fmt.Sprintf(`
+resource "qovery_project" "test" {
+  organization_id = "%s"
+  name = "%s"
+  secret_files = %s
+}
+`,
+		getTestOrganizationID(),
+		generateTestName(testName),
+		convertFileVarsToString(secretFiles),
+	)
+}
+
+func TestAcc_ProjectWithEnvironmentVariableFiles(t *testing.T) {
+	t.Parallel()
+	testName := "project-with-env-var-files"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryProjectDestroy("qovery_project.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with one env var file
+			{
+				Config: testAccProjectDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "config-content", mountPath: "/etc/app/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "config-content",
+						"mount_path": "/etc/app/config.yaml",
+					}),
+				),
+			},
+			// Step 2: Update value only (mount_path stays the same)
+			{
+				Config: testAccProjectDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "updated-content", mountPath: "/etc/app/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/etc/app/config.yaml",
+					}),
+				),
+			},
+			// Step 3: Update mount_path (triggers delete+recreate)
+			{
+				Config: testAccProjectDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "updated-content", mountPath: "/new/path/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/new/path/config.yaml",
+					}),
+				),
+			},
+			// Step 4: Add a second file variable
+			{
+				Config: testAccProjectDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config":  {key: "APP_CONFIG", value: "updated-content", mountPath: "/new/path/config.yaml"},
+						"config2": {key: "DB_CONFIG", value: "db-content", mountPath: "/etc/db/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/new/path/config.yaml",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "environment_variable_files.*", map[string]string{
+						"key":        "DB_CONFIG",
+						"value":      "db-content",
+						"mount_path": "/etc/db/config.yaml",
+					}),
+				),
+			},
+			// Step 5: Remove all file variables
+			{
+				Config: testAccProjectDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					resource.TestCheckNoResourceAttr("qovery_project.test", "environment_variable_files.0"),
+				),
+			},
+			// Step 6: Import
+			{
+				ResourceName:      "qovery_project.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAcc_ProjectWithSecretFiles(t *testing.T) {
+	t.Parallel()
+	testName := "project-with-secret-files"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryProjectDestroy("qovery_project.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with one secret file
+			{
+				Config: testAccProjectDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "secret-value", mountPath: "/usr/local/secrets/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					resource.TestCheckResourceAttr("qovery_project.test", "name", generateTestName(testName)),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "secret-value",
+						"mount_path": "/usr/local/secrets/api-key",
+					}),
+				),
+			},
+			// Step 2: Update value only (mount_path stays the same)
+			{
+				Config: testAccProjectDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "new-secret-value", mountPath: "/usr/local/secrets/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "new-secret-value",
+						"mount_path": "/usr/local/secrets/api-key",
+					}),
+				),
+			},
+			// Step 3: Update mount_path (triggers delete+recreate)
+			{
+				Config: testAccProjectDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "new-secret-value", mountPath: "/new/path/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_project.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "new-secret-value",
+						"mount_path": "/new/path/api-key",
+					}),
+				),
+			},
+			// Step 4: Remove all secret files
+			{
+				Config: testAccProjectDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					resource.TestCheckNoResourceAttr("qovery_project.test", "secret_files.0"),
+				),
+			},
+			// Step 5: Import
+			{
+				ResourceName:            "qovery_project.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secret_files"},
+			},
+		},
+	})
+}
