@@ -81,9 +81,9 @@ func (_c *VariableService_List_Call) RunAndReturn(run func(context.Context, stri
 	return _c
 }
 
-// Update provides a mock function with given fields: ctx, scopeResourceID, environmentVariablesRequest, environmentVariableAliasesRequest, environmentVariableOverridesRequest, overrideAuthorizedScopes
-func (_m *VariableService) Update(ctx context.Context, scopeResourceID string, environmentVariablesRequest variable.DiffRequest, environmentVariableAliasesRequest variable.DiffRequest, environmentVariableOverridesRequest variable.DiffRequest, overrideAuthorizedScopes map[variable.Scope]struct{}) (variable.Variables, error) {
-	ret := _m.Called(ctx, scopeResourceID, environmentVariablesRequest, environmentVariableAliasesRequest, environmentVariableOverridesRequest, overrideAuthorizedScopes)
+// Update provides a mock function with given fields: ctx, scopeResourceID, environmentVariablesRequest, environmentVariableAliasesRequest, environmentVariableOverridesRequest, environmentVariableFilesRequest, overrideAuthorizedScopes
+func (_m *VariableService) Update(ctx context.Context, scopeResourceID string, environmentVariablesRequest variable.DiffRequest, environmentVariableAliasesRequest variable.DiffRequest, environmentVariableOverridesRequest variable.DiffRequest, environmentVariableFilesRequest variable.DiffRequest, overrideAuthorizedScopes map[variable.Scope]struct{}) (variable.Variables, error) {
+	ret := _m.Called(ctx, scopeResourceID, environmentVariablesRequest, environmentVariableAliasesRequest, environmentVariableOverridesRequest, environmentVariableFilesRequest, overrideAuthorizedScopes)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
@@ -91,19 +91,19 @@ func (_m *VariableService) Update(ctx context.Context, scopeResourceID string, e
 
 	var r0 variable.Variables
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, variable.DiffRequest, variable.DiffRequest, variable.DiffRequest, map[variable.Scope]struct{}) (variable.Variables, error)); ok {
-		return rf(ctx, scopeResourceID, environmentVariablesRequest, environmentVariableAliasesRequest, environmentVariableOverridesRequest, overrideAuthorizedScopes)
+	if rf, ok := ret.Get(0).(func(context.Context, string, variable.DiffRequest, variable.DiffRequest, variable.DiffRequest, variable.DiffRequest, map[variable.Scope]struct{}) (variable.Variables, error)); ok {
+		return rf(ctx, scopeResourceID, environmentVariablesRequest, environmentVariableAliasesRequest, environmentVariableOverridesRequest, environmentVariableFilesRequest, overrideAuthorizedScopes)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, variable.DiffRequest, variable.DiffRequest, variable.DiffRequest, map[variable.Scope]struct{}) variable.Variables); ok {
-		r0 = rf(ctx, scopeResourceID, environmentVariablesRequest, environmentVariableAliasesRequest, environmentVariableOverridesRequest, overrideAuthorizedScopes)
+	if rf, ok := ret.Get(0).(func(context.Context, string, variable.DiffRequest, variable.DiffRequest, variable.DiffRequest, variable.DiffRequest, map[variable.Scope]struct{}) variable.Variables); ok {
+		r0 = rf(ctx, scopeResourceID, environmentVariablesRequest, environmentVariableAliasesRequest, environmentVariableOverridesRequest, environmentVariableFilesRequest, overrideAuthorizedScopes)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(variable.Variables)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, variable.DiffRequest, variable.DiffRequest, variable.DiffRequest, map[variable.Scope]struct{}) error); ok {
-		r1 = rf(ctx, scopeResourceID, environmentVariablesRequest, environmentVariableAliasesRequest, environmentVariableOverridesRequest, overrideAuthorizedScopes)
+	if rf, ok := ret.Get(1).(func(context.Context, string, variable.DiffRequest, variable.DiffRequest, variable.DiffRequest, variable.DiffRequest, map[variable.Scope]struct{}) error); ok {
+		r1 = rf(ctx, scopeResourceID, environmentVariablesRequest, environmentVariableAliasesRequest, environmentVariableOverridesRequest, environmentVariableFilesRequest, overrideAuthorizedScopes)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -122,14 +122,15 @@ type VariableService_Update_Call struct {
 //   - environmentVariablesRequest variable.DiffRequest
 //   - environmentVariableAliasesRequest variable.DiffRequest
 //   - environmentVariableOverridesRequest variable.DiffRequest
+//   - environmentVariableFilesRequest variable.DiffRequest
 //   - overrideAuthorizedScopes map[variable.Scope]struct{}
-func (_e *VariableService_Expecter) Update(ctx interface{}, scopeResourceID interface{}, environmentVariablesRequest interface{}, environmentVariableAliasesRequest interface{}, environmentVariableOverridesRequest interface{}, overrideAuthorizedScopes interface{}) *VariableService_Update_Call {
-	return &VariableService_Update_Call{Call: _e.mock.On("Update", ctx, scopeResourceID, environmentVariablesRequest, environmentVariableAliasesRequest, environmentVariableOverridesRequest, overrideAuthorizedScopes)}
+func (_e *VariableService_Expecter) Update(ctx interface{}, scopeResourceID interface{}, environmentVariablesRequest interface{}, environmentVariableAliasesRequest interface{}, environmentVariableOverridesRequest interface{}, environmentVariableFilesRequest interface{}, overrideAuthorizedScopes interface{}) *VariableService_Update_Call {
+	return &VariableService_Update_Call{Call: _e.mock.On("Update", ctx, scopeResourceID, environmentVariablesRequest, environmentVariableAliasesRequest, environmentVariableOverridesRequest, environmentVariableFilesRequest, overrideAuthorizedScopes)}
 }
 
-func (_c *VariableService_Update_Call) Run(run func(ctx context.Context, scopeResourceID string, environmentVariablesRequest variable.DiffRequest, environmentVariableAliasesRequest variable.DiffRequest, environmentVariableOverridesRequest variable.DiffRequest, overrideAuthorizedScopes map[variable.Scope]struct{})) *VariableService_Update_Call {
+func (_c *VariableService_Update_Call) Run(run func(ctx context.Context, scopeResourceID string, environmentVariablesRequest variable.DiffRequest, environmentVariableAliasesRequest variable.DiffRequest, environmentVariableOverridesRequest variable.DiffRequest, environmentVariableFilesRequest variable.DiffRequest, overrideAuthorizedScopes map[variable.Scope]struct{})) *VariableService_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(variable.DiffRequest), args[3].(variable.DiffRequest), args[4].(variable.DiffRequest), args[5].(map[variable.Scope]struct{}))
+		run(args[0].(context.Context), args[1].(string), args[2].(variable.DiffRequest), args[3].(variable.DiffRequest), args[4].(variable.DiffRequest), args[5].(variable.DiffRequest), args[6].(map[variable.Scope]struct{}))
 	})
 	return _c
 }
@@ -139,7 +140,7 @@ func (_c *VariableService_Update_Call) Return(_a0 variable.Variables, _a1 error)
 	return _c
 }
 
-func (_c *VariableService_Update_Call) RunAndReturn(run func(context.Context, string, variable.DiffRequest, variable.DiffRequest, variable.DiffRequest, map[variable.Scope]struct{}) (variable.Variables, error)) *VariableService_Update_Call {
+func (_c *VariableService_Update_Call) RunAndReturn(run func(context.Context, string, variable.DiffRequest, variable.DiffRequest, variable.DiffRequest, variable.DiffRequest, map[variable.Scope]struct{}) (variable.Variables, error)) *VariableService_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }
