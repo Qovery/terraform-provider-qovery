@@ -34,6 +34,8 @@ type Container struct {
 	Secrets                      types.Set     `tfsdk:"secrets"`
 	SecretAliases                types.Set     `tfsdk:"secret_aliases"`
 	SecretOverrides              types.Set     `tfsdk:"secret_overrides"`
+	EnvironmentVariableFiles     types.Set     `tfsdk:"environment_variable_files"`
+	SecretFiles                  types.Set     `tfsdk:"secret_files"`
 	Storages                     types.Set     `tfsdk:"storage"`
 	Ports                        types.List    `tfsdk:"ports"`
 	Arguments                    types.List    `tfsdk:"arguments"`
@@ -77,6 +79,14 @@ func (cont Container) SecretOverridesList() SecretList {
 	return ToSecretList(cont.SecretOverrides)
 }
 
+func (cont Container) EnvironmentVariableFileList() EnvironmentVariableFileList {
+	return toEnvironmentVariableFileList(cont.EnvironmentVariableFiles)
+}
+
+func (cont Container) SecretFileList() SecretFileList {
+	return toSecretFileList(cont.SecretFiles)
+}
+
 func (cont Container) StorageList() StorageList {
 	return toStorageList(cont.Storages)
 }
@@ -97,18 +107,22 @@ func (cont Container) toUpsertServiceRequest(state *Container) (*container.Upser
 	var stateEnvironmentVariables EnvironmentVariableList
 	var stateEnvironmentVariableAliases EnvironmentVariableList
 	var stateEnvironmentVariableOverrides EnvironmentVariableList
+	var stateEnvironmentVariableFiles EnvironmentVariableFileList
 	var stateSecrets SecretList
 	var stateSecretAliases SecretList
 	var stateSecretOverrides SecretList
+	var stateSecretFiles SecretFileList
 	var stateCustomDomains CustomDomainList
 
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
 		stateEnvironmentVariableAliases = state.EnvironmentVariableAliasList()
 		stateEnvironmentVariableOverrides = state.EnvironmentVariableOverrideList()
+		stateEnvironmentVariableFiles = state.EnvironmentVariableFileList()
 		stateSecrets = state.SecretList()
 		stateSecretAliases = state.SecretAliasesList()
 		stateSecretOverrides = state.SecretOverridesList()
+		stateSecretFiles = state.SecretFileList()
 		stateCustomDomains = state.CustomDomainsList()
 	}
 
@@ -117,9 +131,11 @@ func (cont Container) toUpsertServiceRequest(state *Container) (*container.Upser
 		EnvironmentVariables:         cont.EnvironmentVariableList().diffRequest(stateEnvironmentVariables),
 		EnvironmentVariableAliases:   cont.EnvironmentVariableAliasList().diffRequest(stateEnvironmentVariableAliases),
 		EnvironmentVariableOverrides: cont.EnvironmentVariableOverrideList().diffRequest(stateEnvironmentVariableOverrides),
+		EnvironmentVariableFiles:     cont.EnvironmentVariableFileList().diffRequest(stateEnvironmentVariableFiles),
 		Secrets:                      cont.SecretList().diffRequest(stateSecrets),
 		SecretAliases:                cont.SecretAliasesList().diffRequest(stateSecretAliases),
 		SecretOverrides:              cont.SecretOverridesList().diffRequest(stateSecretOverrides),
+		SecretFiles:                  cont.SecretFileList().diffRequest(stateSecretFiles),
 	}, nil
 }
 
@@ -200,6 +216,8 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, container.Secrets, variable.ScopeContainer, "VALUE").toTerraformSet(ctx),
 		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, container.Secrets, variable.ScopeContainer, "ALIAS").toTerraformSet(ctx),
 		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, container.Secrets, variable.ScopeContainer, "OVERRIDE").toTerraformSet(ctx),
+		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, container.EnvironmentVariables, variable.ScopeContainer, "FILE").toTerraformSet(ctx),
+		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, container.Secrets, variable.ScopeContainer, "FILE").toTerraformSet(ctx),
 		InternalHost:                 FromStringPointer(container.InternalHost),
 		ExternalHost:                 FromStringPointer(container.ExternalHost),
 		DeploymentStageId:            FromString(container.DeploymentStageID),

@@ -598,6 +598,63 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 					},
 				},
 			},
+			"environment_variable_files": schema.SetNestedAttribute{
+				Description: "List of environment variable files linked to this job.",
+				Optional:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the environment variable file.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the environment variable file.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the environment variable file.",
+							Required:    true,
+						},
+						"mount_path": schema.StringAttribute{
+							Description: "Mount path of the environment variable file.",
+							Required:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the environment variable file.",
+							Optional:    true,
+						},
+					},
+				},
+			},
+			"secret_files": schema.SetNestedAttribute{
+				Description: "List of secret files linked to this job.",
+				Optional:    true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret file.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Key of the secret file.",
+							Required:    true,
+						},
+						"value": schema.StringAttribute{
+							Description: "Value of the secret file.",
+							Required:    true,
+							Sensitive:   true,
+						},
+						"mount_path": schema.StringAttribute{
+							Description: "Mount path of the secret file.",
+							Required:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the secret file.",
+							Optional:    true,
+						},
+					},
+				},
+			},
 			"external_host": schema.StringAttribute{
 				Description:         "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",
 				MarkdownDescription: "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",

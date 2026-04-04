@@ -36,6 +36,8 @@ type Application struct {
 	Secrets                      types.Set                 `tfsdk:"secrets"`
 	SecretVariableAliases        types.Set                 `tfsdk:"secret_aliases"`
 	SecretVariableOverrides      types.Set                 `tfsdk:"secret_overrides"`
+	EnvironmentVariableFiles     types.Set                 `tfsdk:"environment_variable_files"`
+	SecretFiles                  types.Set                 `tfsdk:"secret_files"`
 	ExternalHost                 types.String              `tfsdk:"external_host"`
 	InternalHost                 types.String              `tfsdk:"internal_host"`
 	Entrypoint                   types.String              `tfsdk:"entrypoint"`
@@ -77,6 +79,14 @@ func (app Application) SecretAliasList() SecretList {
 
 func (app Application) SecretOverrideList() SecretList {
 	return ToSecretList(app.SecretVariableOverrides)
+}
+
+func (app Application) EnvironmentVariableFileList() EnvironmentVariableFileList {
+	return toEnvironmentVariableFileList(app.EnvironmentVariableFiles)
+}
+
+func (app Application) SecretFileList() SecretFileList {
+	return toSecretFileList(app.SecretFiles)
 }
 
 func (app Application) CustomDomainsList() CustomDomainList {
@@ -172,9 +182,11 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		EnvironmentVariablesDiff:         app.EnvironmentVariableList().diff(nil),
 		EnvironmentVariableAliasesDiff:   app.EnvironmentVariableAliasList().diff(nil),
 		EnvironmentVariableOverridesDiff: app.EnvironmentVariableOverrideList().diff(nil),
+		EnvironmentVariableFilesDiff:     app.EnvironmentVariableFileList().diff(nil),
 		SecretsDiff:                      app.SecretList().diff(nil),
 		SecretAliasesDiff:                app.SecretAliasList().diff(nil),
 		SecretOverridesDiff:              app.SecretOverrideList().diff(nil),
+		SecretFilesDiff:                  app.SecretFileList().diff(nil),
 		CustomDomainsDiff:                app.CustomDomainsList().diff(nil),
 		DeploymentRestrictionsDiff:       *deploymentRestrictions,
 		ApplicationDeploymentStageID:     ToString(app.DeploymentStageId),
@@ -286,9 +298,11 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		EnvironmentVariablesDiff:         app.EnvironmentVariableList().diff(state.EnvironmentVariableList()),
 		EnvironmentVariableAliasesDiff:   app.EnvironmentVariableAliasList().diff(state.EnvironmentVariableAliasList()),
 		EnvironmentVariableOverridesDiff: app.EnvironmentVariableOverrideList().diff(state.EnvironmentVariableOverrideList()),
+		EnvironmentVariableFilesDiff:     app.EnvironmentVariableFileList().diff(state.EnvironmentVariableFileList()),
 		SecretsDiff:                      app.SecretList().diff(state.SecretList()),
 		SecretAliasesDiff:                app.SecretAliasList().diff(state.SecretAliasList()),
 		SecretOverridesDiff:              app.SecretOverrideList().diff(state.SecretOverrideList()),
+		SecretFilesDiff:                  app.SecretFileList().diff(state.SecretFileList()),
 		CustomDomainsDiff:                app.CustomDomainsList().diff(state.CustomDomainsList()),
 		DeploymentRestrictionsDiff:       *deploymentRestrictions,
 		ApplicationDeploymentStageID:     ToString(app.DeploymentStageId),
@@ -322,6 +336,8 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		Secrets:                      fromSecretList(state.Secrets, app.ApplicationSecrets, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(ctx),
 		SecretVariableAliases:        fromSecretList(state.SecretVariableAliases, app.ApplicationSecretAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(ctx),
 		SecretVariableOverrides:      fromSecretList(state.SecretVariableOverrides, app.ApplicationSecretOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION, "OVERRIDE").toTerraformSet(ctx),
+		EnvironmentVariableFiles:     fromEnvironmentVariableFileList(ctx, state.EnvironmentVariableFiles, app.ApplicationEnvironmentVariableFiles, qovery.APIVARIABLESCOPEENUM_APPLICATION, "FILE").toTerraformSet(ctx),
+		SecretFiles:                  fromSecretFileList(state.SecretFiles, app.ApplicationSecretFiles, qovery.APIVARIABLESCOPEENUM_APPLICATION, "FILE").toTerraformSet(ctx),
 		CustomDomains:                fromCustomDomainList(state.CustomDomains, app.ApplicationCustomDomains).toTerraformSet(ctx),
 		InternalHost:                 FromString(app.ApplicationInternalHost),
 		ExternalHost:                 FromStringPointer(app.ApplicationExternalHost),

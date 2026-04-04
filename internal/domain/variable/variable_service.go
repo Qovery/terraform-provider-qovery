@@ -23,6 +23,7 @@ type Service interface {
 		environmentVariablesRequest DiffRequest,
 		environmentVariableAliasesRequest DiffRequest,
 		environmentVariableOverridesRequest DiffRequest,
+		environmentVariableFilesRequest DiffRequest,
 		overrideAuthorizedScopes map[Scope]struct{}) (Variables, error)
 }
 

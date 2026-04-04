@@ -29,8 +29,10 @@ type UpsertServiceRequest struct {
 	ProjectUpsertRequest       UpsertRepositoryRequest
 	EnvironmentVariables       variable.DiffRequest
 	EnvironmentVariableAliases variable.DiffRequest
+	EnvironmentVariableFiles   variable.DiffRequest
 	Secrets                    secret.DiffRequest
 	SecretAliases              secret.DiffRequest
+	SecretFiles                secret.DiffRequest
 }
 
 // Validate returns an error to tell whether the UpsertServiceRequest is valid or not.

@@ -54,6 +54,17 @@ func TestNewSecret(t *testing.T) {
 				Type:     "VALUE",
 			},
 		},
+		{
+			TestName: "success_with_mount_path",
+			Params: secret.NewSecretParams{
+				SecretID:    gofakeit.UUID(),
+				Scope:       variable.ScopeApplication.String(),
+				Key:         gofakeit.Name(),
+				Type:        "FILE",
+				MountPath:   "/usr/local/secrets/api-key",
+				Description: "test file secret",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -71,6 +82,59 @@ func TestNewSecret(t *testing.T) {
 			assert.Equal(t, tc.Params.SecretID, v.ID.String())
 			assert.Equal(t, tc.Params.Key, v.Key)
 			assert.Equal(t, tc.Params.Type, v.Type)
+			assert.Equal(t, tc.Params.MountPath, v.MountPath)
+			assert.Equal(t, tc.Params.Description, v.Description)
+		})
+	}
+}
+
+func TestUpsertRequest_ValidateAsFile(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		TestName    string
+		Request     secret.UpsertRequest
+		ExpectError bool
+		ErrorMsg    string
+	}{
+		{
+			TestName: "error_missing_key",
+			Request: secret.UpsertRequest{
+				Value:     "secret-content",
+				MountPath: "/usr/local/secrets/api-key",
+			},
+			ExpectError: true,
+			ErrorMsg:    secret.ErrInvalidUpsertRequest.Error(),
+		},
+		{
+			TestName: "error_missing_mount_path",
+			Request: secret.UpsertRequest{
+				Key:   "API_KEY",
+				Value: "secret-content",
+			},
+			ExpectError: true,
+			ErrorMsg:    secret.ErrMissingMountPath.Error(),
+		},
+		{
+			TestName: "success",
+			Request: secret.UpsertRequest{
+				Key:       "API_KEY",
+				Value:     "secret-content",
+				MountPath: "/usr/local/secrets/api-key",
+			},
+			ExpectError: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+			err := tc.Request.ValidateAsFile()
+			if tc.ExpectError {
+				assert.ErrorContains(t, err, tc.ErrorMsg)
+				return
+			}
+			assert.NoError(t, err)
 		})
 	}
 }

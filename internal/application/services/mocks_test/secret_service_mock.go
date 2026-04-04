@@ -82,9 +82,9 @@ func (_c *SecretService_List_Call) RunAndReturn(run func(context.Context, string
 	return _c
 }
 
-// Update provides a mock function with given fields: ctx, scopeResourceID, secretsRequest, secretAliasesRequest, secretOverridesRequest, overrideAuthorizedScopes
-func (_m *SecretService) Update(ctx context.Context, scopeResourceID string, secretsRequest secret.DiffRequest, secretAliasesRequest secret.DiffRequest, secretOverridesRequest secret.DiffRequest, overrideAuthorizedScopes map[variable.Scope]struct{}) (secret.Secrets, error) {
-	ret := _m.Called(ctx, scopeResourceID, secretsRequest, secretAliasesRequest, secretOverridesRequest, overrideAuthorizedScopes)
+// Update provides a mock function with given fields: ctx, scopeResourceID, secretsRequest, secretAliasesRequest, secretOverridesRequest, secretFilesRequest, overrideAuthorizedScopes
+func (_m *SecretService) Update(ctx context.Context, scopeResourceID string, secretsRequest secret.DiffRequest, secretAliasesRequest secret.DiffRequest, secretOverridesRequest secret.DiffRequest, secretFilesRequest secret.DiffRequest, overrideAuthorizedScopes map[variable.Scope]struct{}) (secret.Secrets, error) {
+	ret := _m.Called(ctx, scopeResourceID, secretsRequest, secretAliasesRequest, secretOverridesRequest, secretFilesRequest, overrideAuthorizedScopes)
 
 	if len(ret) == 0 {
 		panic("no return value specified for Update")
@@ -92,19 +92,19 @@ func (_m *SecretService) Update(ctx context.Context, scopeResourceID string, sec
 
 	var r0 secret.Secrets
 	var r1 error
-	if rf, ok := ret.Get(0).(func(context.Context, string, secret.DiffRequest, secret.DiffRequest, secret.DiffRequest, map[variable.Scope]struct{}) (secret.Secrets, error)); ok {
-		return rf(ctx, scopeResourceID, secretsRequest, secretAliasesRequest, secretOverridesRequest, overrideAuthorizedScopes)
+	if rf, ok := ret.Get(0).(func(context.Context, string, secret.DiffRequest, secret.DiffRequest, secret.DiffRequest, secret.DiffRequest, map[variable.Scope]struct{}) (secret.Secrets, error)); ok {
+		return rf(ctx, scopeResourceID, secretsRequest, secretAliasesRequest, secretOverridesRequest, secretFilesRequest, overrideAuthorizedScopes)
 	}
-	if rf, ok := ret.Get(0).(func(context.Context, string, secret.DiffRequest, secret.DiffRequest, secret.DiffRequest, map[variable.Scope]struct{}) secret.Secrets); ok {
-		r0 = rf(ctx, scopeResourceID, secretsRequest, secretAliasesRequest, secretOverridesRequest, overrideAuthorizedScopes)
+	if rf, ok := ret.Get(0).(func(context.Context, string, secret.DiffRequest, secret.DiffRequest, secret.DiffRequest, secret.DiffRequest, map[variable.Scope]struct{}) secret.Secrets); ok {
+		r0 = rf(ctx, scopeResourceID, secretsRequest, secretAliasesRequest, secretOverridesRequest, secretFilesRequest, overrideAuthorizedScopes)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(secret.Secrets)
 		}
 	}
 
-	if rf, ok := ret.Get(1).(func(context.Context, string, secret.DiffRequest, secret.DiffRequest, secret.DiffRequest, map[variable.Scope]struct{}) error); ok {
-		r1 = rf(ctx, scopeResourceID, secretsRequest, secretAliasesRequest, secretOverridesRequest, overrideAuthorizedScopes)
+	if rf, ok := ret.Get(1).(func(context.Context, string, secret.DiffRequest, secret.DiffRequest, secret.DiffRequest, secret.DiffRequest, map[variable.Scope]struct{}) error); ok {
+		r1 = rf(ctx, scopeResourceID, secretsRequest, secretAliasesRequest, secretOverridesRequest, secretFilesRequest, overrideAuthorizedScopes)
 	} else {
 		r1 = ret.Error(1)
 	}
@@ -123,14 +123,15 @@ type SecretService_Update_Call struct {
 //   - secretsRequest secret.DiffRequest
 //   - secretAliasesRequest secret.DiffRequest
 //   - secretOverridesRequest secret.DiffRequest
+//   - secretFilesRequest secret.DiffRequest
 //   - overrideAuthorizedScopes map[variable.Scope]struct{}
-func (_e *SecretService_Expecter) Update(ctx interface{}, scopeResourceID interface{}, secretsRequest interface{}, secretAliasesRequest interface{}, secretOverridesRequest interface{}, overrideAuthorizedScopes interface{}) *SecretService_Update_Call {
-	return &SecretService_Update_Call{Call: _e.mock.On("Update", ctx, scopeResourceID, secretsRequest, secretAliasesRequest, secretOverridesRequest, overrideAuthorizedScopes)}
+func (_e *SecretService_Expecter) Update(ctx interface{}, scopeResourceID interface{}, secretsRequest interface{}, secretAliasesRequest interface{}, secretOverridesRequest interface{}, secretFilesRequest interface{}, overrideAuthorizedScopes interface{}) *SecretService_Update_Call {
+	return &SecretService_Update_Call{Call: _e.mock.On("Update", ctx, scopeResourceID, secretsRequest, secretAliasesRequest, secretOverridesRequest, secretFilesRequest, overrideAuthorizedScopes)}
 }
 
-func (_c *SecretService_Update_Call) Run(run func(ctx context.Context, scopeResourceID string, secretsRequest secret.DiffRequest, secretAliasesRequest secret.DiffRequest, secretOverridesRequest secret.DiffRequest, overrideAuthorizedScopes map[variable.Scope]struct{})) *SecretService_Update_Call {
+func (_c *SecretService_Update_Call) Run(run func(ctx context.Context, scopeResourceID string, secretsRequest secret.DiffRequest, secretAliasesRequest secret.DiffRequest, secretOverridesRequest secret.DiffRequest, secretFilesRequest secret.DiffRequest, overrideAuthorizedScopes map[variable.Scope]struct{})) *SecretService_Update_Call {
 	_c.Call.Run(func(args mock.Arguments) {
-		run(args[0].(context.Context), args[1].(string), args[2].(secret.DiffRequest), args[3].(secret.DiffRequest), args[4].(secret.DiffRequest), args[5].(map[variable.Scope]struct{}))
+		run(args[0].(context.Context), args[1].(string), args[2].(secret.DiffRequest), args[3].(secret.DiffRequest), args[4].(secret.DiffRequest), args[5].(secret.DiffRequest), args[6].(map[variable.Scope]struct{}))
 	})
 	return _c
 }
@@ -140,7 +141,7 @@ func (_c *SecretService_Update_Call) Return(_a0 secret.Secrets, _a1 error) *Secr
 	return _c
 }
 
-func (_c *SecretService_Update_Call) RunAndReturn(run func(context.Context, string, secret.DiffRequest, secret.DiffRequest, secret.DiffRequest, map[variable.Scope]struct{}) (secret.Secrets, error)) *SecretService_Update_Call {
+func (_c *SecretService_Update_Call) RunAndReturn(run func(context.Context, string, secret.DiffRequest, secret.DiffRequest, secret.DiffRequest, secret.DiffRequest, map[variable.Scope]struct{}) (secret.Secrets, error)) *SecretService_Update_Call {
 	_c.Call.Return(run)
 	return _c
 }

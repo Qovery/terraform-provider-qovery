@@ -27,6 +27,8 @@ var (
 	ErrInvalidUpsertRequest = errors.New("invalid variable upsert request")
 	// ErrInvalidDiffRequest is returned if the diff request is invalid.
 	ErrInvalidDiffRequest = errors.New("invalid variable diff request")
+	// ErrMissingMountPath is returned if a file variable has no mount path.
+	ErrMissingMountPath = errors.New("mount_path is required for file variables")
 )
 
 type Variables []Variable
@@ -54,6 +56,7 @@ type Variable struct {
 	Value       string
 	Type        string
 	Description string
+	MountPath   string
 }
 
 // Validate returns an error to tell whether the Variable domain model is valid or not.
@@ -76,6 +79,7 @@ type (
 		Value       string
 		Type        string
 		Description string
+		MountPath   string
 	}
 )
 
@@ -102,6 +106,7 @@ func NewVariable(params NewVariableParams) (*Variable, error) {
 		Scope:       *scope,
 		Type:        params.Type,
 		Description: params.Description,
+		MountPath:   params.MountPath,
 	}
 
 	if err := v.Validate(); err != nil {
@@ -116,12 +121,26 @@ type UpsertRequest struct {
 	Key         string `validate:"required"`
 	Value       string
 	Description string
+	MountPath   string
 }
 
 // Validate returns an error to tell whether the UpsertRequest is valid or not.
 func (r UpsertRequest) Validate() error {
 	if err := validator.New().Struct(r); err != nil {
 		return errors.Wrap(err, ErrInvalidUpsertRequest.Error())
+	}
+
+	return nil
+}
+
+// ValidateAsFile validates the UpsertRequest for a file variable, requiring a non-empty MountPath.
+func (r UpsertRequest) ValidateAsFile() error {
+	if err := r.Validate(); err != nil {
+		return err
+	}
+
+	if r.MountPath == "" {
+		return ErrMissingMountPath
 	}
 
 	return nil

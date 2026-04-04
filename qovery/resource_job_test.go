@@ -633,3 +633,287 @@ func testAccQoveryJobDestroy(resourceName string) resource.TestCheckFunc {
 		return nil
 	}
 }
+
+func testAccJobDefaultConfigWithEnvVarFiles(
+	testName string,
+	environmentVariableFiles map[string]fileVar,
+) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_job" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  cpu = 500
+  memory = 512
+  max_duration_seconds = 300
+  max_nb_restart = 0
+  auto_preview = false
+  environment_variable_files = %s
+  healthchecks = {}
+  source = {
+    image = {
+      registry_id = qovery_container_registry.test.id
+      name = "%s"
+      tag = "%s"
+    }
+  }
+  schedule = {
+    cronjob = {
+      schedule = "0 0 31 2 *"
+      command = {
+        entrypoint = "/bin/sh"
+        arguments = ["-c", "exit 0"]
+      }
+    }
+  }
+}
+`,
+		testAccEnvironmentDefaultConfig(testName),
+		testAccContainerRegistryDefaultConfig(testName),
+		generateTestName(testName),
+		convertFileVarsToString(environmentVariableFiles),
+		containerImageName,
+		containerTag,
+	)
+}
+
+func testAccJobDefaultConfigWithSecretFiles(
+	testName string,
+	secretFiles map[string]fileVar,
+) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_job" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  cpu = 500
+  memory = 512
+  max_duration_seconds = 300
+  max_nb_restart = 0
+  auto_preview = false
+  secret_files = %s
+  healthchecks = {}
+  source = {
+    image = {
+      registry_id = qovery_container_registry.test.id
+      name = "%s"
+      tag = "%s"
+    }
+  }
+  schedule = {
+    cronjob = {
+      schedule = "0 0 31 2 *"
+      command = {
+        entrypoint = "/bin/sh"
+        arguments = ["-c", "exit 0"]
+      }
+    }
+  }
+}
+`,
+		testAccEnvironmentDefaultConfig(testName),
+		testAccContainerRegistryDefaultConfig(testName),
+		generateTestName(testName),
+		convertFileVarsToString(secretFiles),
+		containerImageName,
+		containerTag,
+	)
+}
+
+func TestAcc_JobWithEnvironmentVariableFiles(t *testing.T) {
+	t.Parallel()
+	testName := "job-with-env-var-files"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryJobDestroy("qovery_job.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with one env var file
+			{
+				Config: testAccJobDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "config-content", mountPath: "/etc/app/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckResourceAttr("qovery_job.test", "name", generateTestName(testName)),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_job.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "config-content",
+						"mount_path": "/etc/app/config.yaml",
+					}),
+				),
+			},
+			// Step 2: Update value only (mount_path stays the same)
+			{
+				Config: testAccJobDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "updated-content", mountPath: "/etc/app/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_job.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/etc/app/config.yaml",
+					}),
+				),
+			},
+			// Step 3: Update mount_path (triggers delete+recreate)
+			{
+				Config: testAccJobDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "updated-content", mountPath: "/new/path/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_job.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/new/path/config.yaml",
+					}),
+				),
+			},
+			// Step 4: Add a second file variable
+			{
+				Config: testAccJobDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config":  {key: "APP_CONFIG", value: "updated-content", mountPath: "/new/path/config.yaml"},
+						"config2": {key: "DB_CONFIG", value: "db-content", mountPath: "/etc/db/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_job.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/new/path/config.yaml",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_job.test", "environment_variable_files.*", map[string]string{
+						"key":        "DB_CONFIG",
+						"value":      "db-content",
+						"mount_path": "/etc/db/config.yaml",
+					}),
+				),
+			},
+			// Step 5: Remove all file variables
+			{
+				Config: testAccJobDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "environment_variable_files.0"),
+				),
+			},
+			// Step 6: Import
+			{
+				ResourceName:      "qovery_job.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAcc_JobWithSecretFiles(t *testing.T) {
+	t.Parallel()
+	testName := "job-with-secret-files"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryJobDestroy("qovery_job.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with one secret file
+			{
+				Config: testAccJobDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "secret-value", mountPath: "/usr/local/secrets/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckResourceAttr("qovery_job.test", "name", generateTestName(testName)),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_job.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "secret-value",
+						"mount_path": "/usr/local/secrets/api-key",
+					}),
+				),
+			},
+			// Step 2: Update value only (mount_path stays the same)
+			{
+				Config: testAccJobDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "new-secret-value", mountPath: "/usr/local/secrets/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_job.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "new-secret-value",
+						"mount_path": "/usr/local/secrets/api-key",
+					}),
+				),
+			},
+			// Step 3: Update mount_path (triggers delete+recreate)
+			{
+				Config: testAccJobDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "new-secret-value", mountPath: "/new/path/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_job.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "new-secret-value",
+						"mount_path": "/new/path/api-key",
+					}),
+				),
+			},
+			// Step 4: Remove all secret files
+			{
+				Config: testAccJobDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "secret_files.0"),
+				),
+			},
+			// Step 5: Import
+			{
+				ResourceName:            "qovery_job.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secret_files"},
+			},
+		},
+	})
+}

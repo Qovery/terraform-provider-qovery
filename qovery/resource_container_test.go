@@ -775,6 +775,198 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 	})
 }
 
+func TestAcc_ContainerWithEnvironmentVariableFiles(t *testing.T) {
+	t.Parallel()
+	testName := "container-with-env-var-files"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryContainerDestroy("qovery_container.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with one env var file
+			{
+				Config: testAccContainerDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "config-content", mountPath: "/etc/app/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "config-content",
+						"mount_path": "/etc/app/config.yaml",
+					}),
+				),
+			},
+			// Step 2: Update value only (mount_path stays the same)
+			{
+				Config: testAccContainerDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "updated-content", mountPath: "/etc/app/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/etc/app/config.yaml",
+					}),
+				),
+			},
+			// Step 3: Update mount_path (triggers delete+recreate)
+			{
+				Config: testAccContainerDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "updated-content", mountPath: "/new/path/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/new/path/config.yaml",
+					}),
+				),
+			},
+			// Step 4: Add a second file variable
+			{
+				Config: testAccContainerDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config":  {key: "APP_CONFIG", value: "updated-content", mountPath: "/new/path/config.yaml"},
+						"config2": {key: "DB_CONFIG", value: "db-content", mountPath: "/etc/db/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/new/path/config.yaml",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_files.*", map[string]string{
+						"key":        "DB_CONFIG",
+						"value":      "db-content",
+						"mount_path": "/etc/db/config.yaml",
+					}),
+				),
+			},
+			// Step 5: Remove all file variables
+			{
+				Config: testAccContainerDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variable_files.0"),
+				),
+			},
+			// Step 6: Import
+			{
+				ResourceName:      "qovery_container.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAcc_ContainerWithSecretFiles(t *testing.T) {
+	t.Parallel()
+	testName := "container-with-secret-files"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryContainerDestroy("qovery_container.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with one secret file
+			{
+				Config: testAccContainerDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "secret-value", mountPath: "/usr/local/secrets/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "secret-value",
+						"mount_path": "/usr/local/secrets/api-key",
+					}),
+				),
+			},
+			// Step 2: Update value only (mount_path stays the same)
+			{
+				Config: testAccContainerDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "new-secret-value", mountPath: "/usr/local/secrets/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "new-secret-value",
+						"mount_path": "/usr/local/secrets/api-key",
+					}),
+				),
+			},
+			// Step 3: Update mount_path (triggers delete+recreate)
+			{
+				Config: testAccContainerDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "new-secret-value", mountPath: "/new/path/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "new-secret-value",
+						"mount_path": "/new/path/api-key",
+					}),
+				),
+			},
+			// Step 4: Remove all secret files
+			{
+				Config: testAccContainerDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "secret_files.0"),
+				),
+			},
+			// Step 5: Import
+			{
+				ResourceName:            "qovery_container.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secret_files"},
+			},
+		},
+	})
+}
+
 //
 //func TestAcc_ContainerWithCustomDomains(t *testing.T) {
 //	t.Parallel()
@@ -1626,6 +1818,62 @@ resource "qovery_container" "test" {
 	)
 }
 
+func testAccContainerDefaultConfigWithEnvVarFiles(
+	testName string,
+	environmentVariableFiles map[string]fileVar,
+) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_container" "test" {
+  environment_id = qovery_environment.test.id
+  registry_id = qovery_container_registry.test.id
+  name = "%s"
+  image_name = "%s"
+  tag = "%s"
+  environment_variable_files = %s
+  healthchecks = {}
+}
+`,
+		testAccEnvironmentDefaultConfig(testName),
+		testAccContainerRegistryDefaultConfig(testName),
+		generateTestName(testName),
+		containerImageName,
+		containerTag,
+		convertFileVarsToString(environmentVariableFiles),
+	)
+}
+
+func testAccContainerDefaultConfigWithSecretFiles(
+	testName string,
+	secretFiles map[string]fileVar,
+) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_container" "test" {
+  environment_id = qovery_environment.test.id
+  registry_id = qovery_container_registry.test.id
+  name = "%s"
+  image_name = "%s"
+  tag = "%s"
+  secret_files = %s
+  healthchecks = {}
+}
+`,
+		testAccEnvironmentDefaultConfig(testName),
+		testAccContainerRegistryDefaultConfig(testName),
+		generateTestName(testName),
+		containerImageName,
+		containerTag,
+		convertFileVarsToString(secretFiles),
+	)
+}
+
 //
 //func testAccContainerDefaultConfigWithCustomDomains(testName string, customDomains []string, state string) string {
 //	ports := []servicePort{
@@ -1691,4 +1939,18 @@ resource "qovery_container" "test" {
 
 func convertStringArrayToString(array []string) string {
 	return fmt.Sprintf("[\"%s\"]", strings.Join(array, "\",\""))
+}
+
+type fileVar struct {
+	key       string
+	value     string
+	mountPath string
+}
+
+func convertFileVarsToString(files map[string]fileVar) string {
+	vars := make([]string, 0, len(files))
+	for _, f := range files {
+		vars = append(vars, fmt.Sprintf(`{key: "%s", value: "%s", mount_path: "%s"}`, f.key, f.value, f.mountPath))
+	}
+	return fmt.Sprintf("[%s]", strings.Join(vars, ","))
 }
