@@ -136,9 +136,12 @@ func (s JobSchedule) toUpsertRequest() job.JobSchedule {
 func JobScheduleFromDomainJobSchedule(s job.JobSchedule) JobSchedule {
 	var onStart *ExecutionCommand = nil
 	if s.OnStart != nil {
-		args := make([]types.String, len(s.OnStart.Arguments))
-		for i, arg := range s.OnStart.Arguments {
-			args[i] = FromString(arg)
+		var args []types.String
+		if len(s.OnStart.Arguments) > 0 {
+			args = make([]types.String, len(s.OnStart.Arguments))
+			for i, arg := range s.OnStart.Arguments {
+				args[i] = FromString(arg)
+			}
 		}
 		onStart = &ExecutionCommand{
 			Entrypoint: FromStringPointer(s.OnStart.Entrypoint),
@@ -148,9 +151,12 @@ func JobScheduleFromDomainJobSchedule(s job.JobSchedule) JobSchedule {
 
 	var onStop *ExecutionCommand = nil
 	if s.OnStop != nil {
-		args := make([]types.String, len(s.OnStop.Arguments))
-		for i, arg := range s.OnStop.Arguments {
-			args[i] = FromString(arg)
+		var args []types.String
+		if len(s.OnStop.Arguments) > 0 {
+			args = make([]types.String, len(s.OnStop.Arguments))
+			for i, arg := range s.OnStop.Arguments {
+				args[i] = FromString(arg)
+			}
 		}
 		onStop = &ExecutionCommand{
 			Entrypoint: FromStringPointer(s.OnStop.Entrypoint),
@@ -160,9 +166,12 @@ func JobScheduleFromDomainJobSchedule(s job.JobSchedule) JobSchedule {
 
 	var onDelete *ExecutionCommand = nil
 	if s.OnDelete != nil {
-		args := make([]types.String, len(s.OnDelete.Arguments))
-		for i, arg := range s.OnDelete.Arguments {
-			args[i] = FromString(arg)
+		var args []types.String
+		if len(s.OnDelete.Arguments) > 0 {
+			args = make([]types.String, len(s.OnDelete.Arguments))
+			for i, arg := range s.OnDelete.Arguments {
+				args[i] = FromString(arg)
+			}
 		}
 		onDelete = &ExecutionCommand{
 			Entrypoint: FromStringPointer(s.OnDelete.Entrypoint),
@@ -212,9 +221,12 @@ func (s JobScheduleCron) toUpsertRequest() job.JobScheduleCron {
 }
 
 func JobScheduleCronFromDomainJobScheduleCron(s job.JobScheduleCron) JobScheduleCron {
-	args := make([]types.String, len(s.Command.Arguments))
-	for i, arg := range s.Command.Arguments {
-		args[i] = FromString(arg)
+	var args []types.String
+	if len(s.Command.Arguments) > 0 {
+		args = make([]types.String, len(s.Command.Arguments))
+		for i, arg := range s.Command.Arguments {
+			args[i] = FromString(arg)
+		}
 	}
 
 	return JobScheduleCron{
