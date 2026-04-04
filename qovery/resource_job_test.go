@@ -661,9 +661,13 @@ resource "qovery_job" "test" {
     }
   }
   schedule = {
-    on_start = {}
-    on_stop = {}
-    on_delete = {}
+    cronjob = {
+      schedule = "0 0 31 2 *"
+      command = {
+        entrypoint = "/bin/sh"
+        arguments = ["-c", "exit 0"]
+      }
+    }
   }
 }
 `,
@@ -703,9 +707,13 @@ resource "qovery_job" "test" {
     }
   }
   schedule = {
-    on_start = {}
-    on_stop = {}
-    on_delete = {}
+    cronjob = {
+      schedule = "0 0 31 2 *"
+      command = {
+        entrypoint = "/bin/sh"
+        arguments = ["-c", "exit 0"]
+      }
+    }
   }
 }
 `,
