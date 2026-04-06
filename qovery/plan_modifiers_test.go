@@ -115,61 +115,6 @@ func TestSmartAllowApiOverride_Description(t *testing.T) {
 	assert.NotEmpty(t, modifier.MarkdownDescription(context.Background()))
 }
 
-// --- UseUnknownForNullString tests ---
-
-func TestUseUnknownForNullString_BothNull(t *testing.T) {
-	t.Parallel()
-	modifier := UseUnknownForNullString()
-
-	resp := &planmodifier.StringResponse{PlanValue: types.StringNull()}
-	modifier.PlanModifyString(context.Background(), planmodifier.StringRequest{
-		ConfigValue: types.StringNull(),
-		StateValue:  types.StringNull(),
-		PlanValue:   types.StringNull(),
-	}, resp)
-
-	assert.True(t, resp.PlanValue.IsUnknown(),
-		"should return unknown when both config and state are null (new list element)")
-}
-
-func TestUseUnknownForNullString_ConfigSet(t *testing.T) {
-	t.Parallel()
-	modifier := UseUnknownForNullString()
-
-	resp := &planmodifier.StringResponse{PlanValue: types.StringValue("my-name")}
-	modifier.PlanModifyString(context.Background(), planmodifier.StringRequest{
-		ConfigValue: types.StringValue("my-name"),
-		StateValue:  types.StringNull(),
-		PlanValue:   types.StringValue("my-name"),
-	}, resp)
-
-	assert.Equal(t, types.StringValue("my-name"), resp.PlanValue,
-		"should not modify plan when config is set")
-}
-
-func TestUseUnknownForNullString_StateExists(t *testing.T) {
-	t.Parallel()
-	modifier := UseUnknownForNullString()
-
-	resp := &planmodifier.StringResponse{PlanValue: types.StringValue("existing-id")}
-	modifier.PlanModifyString(context.Background(), planmodifier.StringRequest{
-		ConfigValue: types.StringNull(),
-		StateValue:  types.StringValue("existing-id"),
-		PlanValue:   types.StringValue("existing-id"),
-	}, resp)
-
-	assert.Equal(t, types.StringValue("existing-id"), resp.PlanValue,
-		"should not modify plan when state exists (existing element)")
-}
-
-func TestUseUnknownForNullString_Description(t *testing.T) {
-	t.Parallel()
-	modifier := UseUnknownForNullString()
-
-	assert.NotEmpty(t, modifier.Description(context.Background()))
-	assert.NotEmpty(t, modifier.MarkdownDescription(context.Background()))
-}
-
 // --- UseStateUnlessNameChanges tests ---
 
 // testSchema returns a minimal schema with "name", "ports", and "built_in_environment_variables"

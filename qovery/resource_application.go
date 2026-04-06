@@ -333,6 +333,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				MarkdownDescription: "List of ports linked to this application. " +
 					"At least one port must be set as `publicly_accessible = true` with an `external_port` for the application to be reachable from the internet.",
 				Optional:    true,
+				Computed:    true,
 				NestedObject: schema.NestedAttributeObject{
 					Validators: []validator.Object{
 						validators.PortExternalPortValidator{},
@@ -342,20 +343,12 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 							Description:         "Id of the port.",
 							MarkdownDescription: "Id of the port.",
 							Computed:             true,
-							PlanModifiers: []planmodifier.String{
-								stringplanmodifier.UseStateForUnknown(),
-								UseUnknownForNullString(),
-							},
 						},
 						"name": schema.StringAttribute{
 							Description:         "Name of the port.",
 							MarkdownDescription: "Name of the port.",
 							Optional:            true,
 							Computed:            true,
-							PlanModifiers: []planmodifier.String{
-								stringplanmodifier.UseStateForUnknown(),
-								UseUnknownForNullString(),
-							},
 						},
 						"internal_port": schema.Int64Attribute{
 							Description: descriptions.NewInt64MinMaxDescription(
