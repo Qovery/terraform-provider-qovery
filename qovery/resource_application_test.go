@@ -44,7 +44,7 @@ type servicePort struct {
 	Name               *string
 	ExternalPort       *int64
 	Protocol           *string
-	IsDefault          bool
+	IsDefault          *bool
 }
 
 func (p servicePort) String() string {
@@ -53,8 +53,10 @@ func (p servicePort) String() string {
 {
   internal_port = %d
   publicly_accessible = "%t"
-  is_default = "%t"
-`, p.InternalPort, p.PubliclyAccessible, p.IsDefault)
+`, p.InternalPort, p.PubliclyAccessible)
+	if p.IsDefault != nil {
+		str += fmt.Sprintf("  is_default = \"%t\"\n", *p.IsDefault)
+	}
 	if p.Name != nil {
 		str += fmt.Sprintf("  name = \"%s\"\n", *p.Name)
 	}
@@ -1099,7 +1101,7 @@ func TestAcc_ApplicationWithStorage(t *testing.T) {
 					[]serviceStorage{
 						{
 							Type:       "FAST_SSD",
-							Size:       1,
+							Size:       4,
 							MountPoint: "/data",
 						},
 					},
@@ -1120,7 +1122,7 @@ func TestAcc_ApplicationWithStorage(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
 					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.type", "FAST_SSD"),
-					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.size", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.size", "4"),
 					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.mount_point", "/data"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
@@ -1136,12 +1138,12 @@ func TestAcc_ApplicationWithStorage(t *testing.T) {
 					[]serviceStorage{
 						{
 							Type:       "FAST_SSD",
-							Size:       1,
+							Size:       4,
 							MountPoint: "/toto",
 						},
 						{
 							Type:       "FAST_SSD",
-							Size:       1,
+							Size:       4,
 							MountPoint: "/tata",
 						},
 					},
@@ -1162,10 +1164,10 @@ func TestAcc_ApplicationWithStorage(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
 					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.type", "FAST_SSD"),
-					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.size", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.size", "4"),
 					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.mount_point", "/toto"),
 					resource.TestCheckResourceAttr("qovery_application.test", "storage.1.type", "FAST_SSD"),
-					resource.TestCheckResourceAttr("qovery_application.test", "storage.1.size", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "storage.1.size", "4"),
 					resource.TestCheckResourceAttr("qovery_application.test", "storage.1.mount_point", "/tata"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
@@ -1181,7 +1183,7 @@ func TestAcc_ApplicationWithStorage(t *testing.T) {
 					[]serviceStorage{
 						{
 							Type:       "FAST_SSD",
-							Size:       1,
+							Size:       4,
 							MountPoint: "/toto",
 						},
 					},
@@ -1202,7 +1204,7 @@ func TestAcc_ApplicationWithStorage(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
 					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
 					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.type", "FAST_SSD"),
-					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.size", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.size", "4"),
 					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.mount_point", "/toto"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
 					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
@@ -1570,7 +1572,7 @@ func testAccApplicationDefaultConfigWithCustomDomains(testName string, customDom
 			InternalPort:       8000,
 			PubliclyAccessible: true,
 			ExternalPort:       int64ToPtr(443),
-			IsDefault:          true,
+			IsDefault:          boolToPtr(true),
 		},
 	}
 
@@ -1693,6 +1695,10 @@ func stringToPtr(v string) *string {
 }
 
 func int64ToPtr(v int64) *int64 {
+	return &v
+}
+
+func boolToPtr(v bool) *bool {
 	return &v
 }
 
