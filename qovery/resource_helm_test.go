@@ -798,3 +798,69 @@ func TestAcc_HelmWithSecretFiles(t *testing.T) {
 		},
 	})
 }
+
+func testAccHelmGitSourceConfig(testName string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_helm" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  description = "helm from git"
+  timeout_sec = 600
+  auto_preview = false
+  auto_deploy = false
+  allow_cluster_wide_resources = false
+  source = {
+    git_repository = {
+      url          = "https://github.com/Qovery/helm_chart_engine_testing.git"
+      branch       = "main"
+      root_path    = "/simple_app"
+      git_token_id = "%s"
+    }
+  }
+  values_override = {
+    "set"= {}
+    "set_string"= {}
+    "set_json"= {}
+  }
+}
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), getTestQoverySandboxGitTokenID())
+}
+
+func TestAcc_HelmWithGitSource(t *testing.T) {
+	t.Parallel()
+	testName := "helm-git-source"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryHelmDestroy("qovery_helm.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with git_repository source
+			{
+				Config: testAccHelmGitSourceConfig(testName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryHelmExists("qovery_helm.test"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_helm.test", "description", "helm from git"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "timeout_sec", "600"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "auto_preview", "false"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "auto_deploy", "false"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "allow_cluster_wide_resources", "false"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "source.git_repository.url", "https://github.com/Qovery/helm_chart_engine_testing.git"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "source.git_repository.branch", "main"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "source.git_repository.root_path", "/simple_app"),
+					resource.TestCheckNoResourceAttr("qovery_helm.test", "source.helm_repository"),
+				),
+			},
+			// Step 2: Import
+			{
+				ResourceName:      "qovery_helm.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}

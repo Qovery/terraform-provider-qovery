@@ -833,6 +833,112 @@ func TestAcc_JobWithEnvironmentVariableFiles(t *testing.T) {
 	})
 }
 
+func TestAcc_JobWithLifecycleSchedule(t *testing.T) {
+	t.Parallel()
+	testName := "job-lifecycle"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryJobDestroy("qovery_job.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with on_start only
+			{
+				Config: testAccJobLifecycleConfig(testName, true, false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckResourceAttr("qovery_job.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_job.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_job.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_job.test", "max_duration_seconds", "300"),
+					resource.TestCheckResourceAttr("qovery_job.test", "max_nb_restart", "0"),
+					resource.TestCheckResourceAttr("qovery_job.test", "auto_preview", "false"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.on_start.entrypoint", "/bin/sh"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.on_start.arguments.0", "-c"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.on_start.arguments.1", "echo starting"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.on_stop"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.on_delete"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.cronjob"),
+				),
+			},
+			// Step 2: Update to on_start + on_stop
+			{
+				Config: testAccJobLifecycleConfig(testName, true, true),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.on_start.entrypoint", "/bin/sh"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.on_start.arguments.0", "-c"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.on_start.arguments.1", "echo starting"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.on_stop.entrypoint", "/bin/sh"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.on_stop.arguments.0", "-c"),
+					resource.TestCheckResourceAttr("qovery_job.test", "schedule.on_stop.arguments.1", "echo stopping"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.on_delete"),
+					resource.TestCheckNoResourceAttr("qovery_job.test", "schedule.cronjob"),
+				),
+			},
+			// Step 3: Import
+			{
+				ResourceName:      "qovery_job.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func testAccJobLifecycleConfig(testName string, onStart bool, onStop bool) string {
+	scheduleBlock := "  schedule = {\n"
+	if onStart {
+		scheduleBlock += `    on_start = {
+      entrypoint = "/bin/sh"
+      arguments  = ["-c", "echo starting"]
+    }
+`
+	}
+	if onStop {
+		scheduleBlock += `    on_stop = {
+      entrypoint = "/bin/sh"
+      arguments  = ["-c", "echo stopping"]
+    }
+`
+	}
+	scheduleBlock += "  }"
+
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_job" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  cpu = 500
+  memory = 512
+  max_duration_seconds = 300
+  max_nb_restart = 0
+  auto_preview = false
+  healthchecks = {}
+  source = {
+    image = {
+      registry_id = qovery_container_registry.test.id
+      name = "%s"
+      tag = "%s"
+    }
+  }
+%s
+}
+`,
+		testAccEnvironmentDefaultConfig(testName),
+		testAccContainerRegistryDefaultConfig(testName),
+		generateTestName(testName),
+		containerImageName,
+		containerTag,
+		scheduleBlock,
+	)
+}
+
 func TestAcc_JobWithSecretFiles(t *testing.T) {
 	t.Parallel()
 	testName := "job-with-secret-files"
