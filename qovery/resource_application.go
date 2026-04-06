@@ -344,6 +344,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 							Computed:             true,
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.UseStateForUnknown(),
+								UseUnknownForNullString(),
 							},
 						},
 						"name": schema.StringAttribute{
@@ -353,6 +354,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 							Computed:            true,
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.UseStateForUnknown(),
+								UseUnknownForNullString(),
 							},
 						},
 						"internal_port": schema.Int64Attribute{
