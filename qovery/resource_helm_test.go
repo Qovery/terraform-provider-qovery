@@ -532,3 +532,335 @@ func testAccQoveryHelmDestroy(resourceName string) resource.TestCheckFunc {
 		return nil
 	}
 }
+
+func testAccHelmDefaultConfigWithEnvVarFiles(
+	testName string,
+	environmentVariableFiles map[string]fileVar,
+) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_helm" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  description = "test helm with env var files"
+  allow_cluster_wide_resources = false
+  auto_preview = false
+  auto_deploy = false
+  environment_variable_files = %s
+  source = {
+    helm_repository = {
+      helm_repository_id = qovery_helm_repository.test.id
+      chart_name = "httpbin"
+      chart_version = "1.0.0"
+    }
+  }
+  values_override = {
+    set = {}
+    set_string = {}
+    set_json = {}
+  }
+}
+`,
+		testAccEnvironmentDefaultConfig(testName),
+		testAccHelmRepositoryConfig(testName, "https://gitlab.com/mulesoft-int/helm-repository/-/raw/master/", "HTTPS"),
+		generateTestName(testName),
+		convertFileVarsToString(environmentVariableFiles),
+	)
+}
+
+func testAccHelmDefaultConfigWithSecretFiles(
+	testName string,
+	secretFiles map[string]fileVar,
+) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_helm" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  description = "test helm with secret files"
+  allow_cluster_wide_resources = false
+  auto_preview = false
+  auto_deploy = false
+  secret_files = %s
+  source = {
+    helm_repository = {
+      helm_repository_id = qovery_helm_repository.test.id
+      chart_name = "httpbin"
+      chart_version = "1.0.0"
+    }
+  }
+  values_override = {
+    set = {}
+    set_string = {}
+    set_json = {}
+  }
+}
+`,
+		testAccEnvironmentDefaultConfig(testName),
+		testAccHelmRepositoryConfig(testName, "https://gitlab.com/mulesoft-int/helm-repository/-/raw/master/", "HTTPS"),
+		generateTestName(testName),
+		convertFileVarsToString(secretFiles),
+	)
+}
+
+func TestAcc_HelmWithEnvironmentVariableFiles(t *testing.T) {
+	t.Parallel()
+	testName := "helm-with-env-var-files"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryHelmDestroy("qovery_helm.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with one env var file
+			{
+				Config: testAccHelmDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "config-content", mountPath: "/etc/app/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryHelmExists("qovery_helm.test"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "name", generateTestName(testName)),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_helm.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "config-content",
+						"mount_path": "/etc/app/config.yaml",
+					}),
+				),
+			},
+			// Step 2: Update value only (mount_path stays the same)
+			{
+				Config: testAccHelmDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "updated-content", mountPath: "/etc/app/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryHelmExists("qovery_helm.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_helm.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/etc/app/config.yaml",
+					}),
+				),
+			},
+			// Step 3: Update mount_path (triggers delete+recreate)
+			{
+				Config: testAccHelmDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "updated-content", mountPath: "/new/path/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryHelmExists("qovery_helm.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_helm.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/new/path/config.yaml",
+					}),
+				),
+			},
+			// Step 4: Add a second file variable
+			{
+				Config: testAccHelmDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config":  {key: "APP_CONFIG", value: "updated-content", mountPath: "/new/path/config.yaml"},
+						"config2": {key: "DB_CONFIG", value: "db-content", mountPath: "/etc/db/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryHelmExists("qovery_helm.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_helm.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/new/path/config.yaml",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_helm.test", "environment_variable_files.*", map[string]string{
+						"key":        "DB_CONFIG",
+						"value":      "db-content",
+						"mount_path": "/etc/db/config.yaml",
+					}),
+				),
+			},
+			// Step 5: Remove all file variables
+			{
+				Config: testAccHelmDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryHelmExists("qovery_helm.test"),
+					resource.TestCheckNoResourceAttr("qovery_helm.test", "environment_variable_files.0"),
+				),
+			},
+			// Step 6: Import
+			{
+				ResourceName:      "qovery_helm.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAcc_HelmWithSecretFiles(t *testing.T) {
+	t.Parallel()
+	testName := "helm-with-secret-files"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryHelmDestroy("qovery_helm.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with one secret file
+			{
+				Config: testAccHelmDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "secret-value", mountPath: "/usr/local/secrets/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryHelmExists("qovery_helm.test"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "name", generateTestName(testName)),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_helm.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "secret-value",
+						"mount_path": "/usr/local/secrets/api-key",
+					}),
+				),
+			},
+			// Step 2: Update value only (mount_path stays the same)
+			{
+				Config: testAccHelmDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "new-secret-value", mountPath: "/usr/local/secrets/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryHelmExists("qovery_helm.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_helm.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "new-secret-value",
+						"mount_path": "/usr/local/secrets/api-key",
+					}),
+				),
+			},
+			// Step 3: Update mount_path (triggers delete+recreate)
+			{
+				Config: testAccHelmDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "new-secret-value", mountPath: "/new/path/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryHelmExists("qovery_helm.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_helm.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "new-secret-value",
+						"mount_path": "/new/path/api-key",
+					}),
+				),
+			},
+			// Step 4: Remove all secret files
+			{
+				Config: testAccHelmDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryHelmExists("qovery_helm.test"),
+					resource.TestCheckNoResourceAttr("qovery_helm.test", "secret_files.0"),
+				),
+			},
+			// Step 5: Import
+			{
+				ResourceName:            "qovery_helm.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secret_files"},
+			},
+		},
+	})
+}
+
+func testAccHelmGitSourceConfig(testName string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_helm" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  description = "helm from git"
+  timeout_sec = 600
+  auto_preview = false
+  auto_deploy = false
+  allow_cluster_wide_resources = false
+  source = {
+    git_repository = {
+      url          = "https://github.com/Qovery/helm_chart_engine_testing.git"
+      branch       = "main"
+      root_path    = "/simple_app"
+      git_token_id = "%s"
+    }
+  }
+  values_override = {
+    "set"= {}
+    "set_string"= {}
+    "set_json"= {}
+  }
+}
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), getTestQoverySandboxGitTokenID())
+}
+
+func TestAcc_HelmWithGitSource(t *testing.T) {
+	t.Parallel()
+	testName := "helm-git-source"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryHelmDestroy("qovery_helm.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with git_repository source
+			{
+				Config: testAccHelmGitSourceConfig(testName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryHelmExists("qovery_helm.test"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_helm.test", "description", "helm from git"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "timeout_sec", "600"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "auto_preview", "false"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "auto_deploy", "false"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "allow_cluster_wide_resources", "false"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "source.git_repository.url", "https://github.com/Qovery/helm_chart_engine_testing.git"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "source.git_repository.branch", "main"),
+					resource.TestCheckResourceAttr("qovery_helm.test", "source.git_repository.root_path", "/simple_app"),
+					resource.TestCheckNoResourceAttr("qovery_helm.test", "source.helm_repository"),
+				),
+			},
+			// Step 2: Import
+			{
+				ResourceName:      "qovery_helm.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
