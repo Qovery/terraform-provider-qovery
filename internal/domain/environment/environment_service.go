@@ -30,9 +30,11 @@ type CreateServiceRequest struct {
 	EnvironmentVariables         variable.DiffRequest
 	EnvironmentVariableAliases   variable.DiffRequest
 	EnvironmentVariableOverrides variable.DiffRequest
+	EnvironmentVariableFiles     variable.DiffRequest
 	Secrets                      secret.DiffRequest
 	SecretAliases                secret.DiffRequest
 	SecretOverrides              secret.DiffRequest
+	SecretFiles                  secret.DiffRequest
 }
 
 // Validate returns an error to tell whether the CreateServiceRequest is valid or not.
@@ -63,9 +65,11 @@ type UpdateServiceRequest struct {
 	EnvironmentVariables         variable.DiffRequest
 	EnvironmentVariableAliases   variable.DiffRequest
 	EnvironmentVariableOverrides variable.DiffRequest
+	EnvironmentVariableFiles     variable.DiffRequest
 	Secrets                      secret.DiffRequest
 	SecretAliases                secret.DiffRequest
 	SecretOverrides              secret.DiffRequest
+	SecretFiles                  secret.DiffRequest
 }
 
 // Validate returns an error to tell whether the UpdateServiceRequest is valid or not.

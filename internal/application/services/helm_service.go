@@ -77,12 +77,12 @@ func (s helmService) Create(ctx context.Context, environmentID string, request h
 	overridesAuthorizedScopes := make(map[variable.Scope]struct{})
 	overridesAuthorizedScopes[variable.ScopeProject] = struct{}{}
 	overridesAuthorizedScopes[variable.ScopeEnvironment] = struct{}{}
-	_, err = s.variableService.Update(ctx, newHelm.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, overridesAuthorizedScopes)
+	_, err = s.variableService.Update(ctx, newHelm.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, request.EnvironmentVariableFiles, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, newHelm.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, overridesAuthorizedScopes)
+	_, err = s.secretService.Update(ctx, newHelm.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, request.SecretFiles, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
 	}
@@ -138,12 +138,12 @@ func (s helmService) Update(ctx context.Context, helmID string, request helm.Ups
 	overridesAuthorizedScopes := make(map[variable.Scope]struct{})
 	overridesAuthorizedScopes[variable.ScopeProject] = struct{}{}
 	overridesAuthorizedScopes[variable.ScopeEnvironment] = struct{}{}
-	_, err = s.variableService.Update(ctx, updateHelm.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, overridesAuthorizedScopes)
+	_, err = s.variableService.Update(ctx, updateHelm.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, request.EnvironmentVariableFiles, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, helm.ErrFailedToUpdateHelm.Error())
 	}
 
-	_, err = s.secretService.Update(ctx, updateHelm.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, overridesAuthorizedScopes)
+	_, err = s.secretService.Update(ctx, updateHelm.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, request.SecretFiles, overridesAuthorizedScopes)
 	if err != nil {
 		return nil, errors.Wrap(err, helm.ErrFailedToUpdateHelm.Error())
 	}

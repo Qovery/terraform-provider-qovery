@@ -69,11 +69,13 @@ data "qovery_application" "my_application" {
 	- Default: `DOCKER`.
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this application. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
+- `environment_variable_files` (Attributes Set) List of environment variable files linked to this application. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `external_host` (String) The application external FQDN host. Only available if your application is using a publicly accessible port.
 - `git_repository` (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
 - `internal_host` (String) The application internal host.
 - `name` (String) Name of the application.
 - `ports` (Attributes Set) List of ports linked to this application. (see [below for nested schema](#nestedatt--ports))
+- `secret_files` (Attributes Set) List of secret files linked to this application. (see [below for nested schema](#nestedatt--secret_files))
 
 <a id="nestedatt--custom_domains"></a>
 ### Nested Schema for `custom_domains`
@@ -342,6 +344,18 @@ Read-Only:
 - `value` (String) Value of the environment variable.
 
 
+<a id="nestedatt--environment_variable_files"></a>
+### Nested Schema for `environment_variable_files`
+
+Read-Only:
+
+- `description` (String) Description of the environment variable file.
+- `id` (String) Id of the environment variable file.
+- `key` (String) Key of the environment variable file.
+- `mount_path` (String) Mount path of the environment variable file.
+- `value` (String) Value of the environment variable file.
+
+
 <a id="nestedatt--git_repository"></a>
 ### Nested Schema for `git_repository`
 
@@ -378,3 +392,15 @@ Read-Only:
 	- Must be: `>= 1` and `<= 65535`.
 - `is_default` (Boolean) If this port will be used for the root domain.
 - `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this application.
+
+
+<a id="nestedatt--secret_files"></a>
+### Nested Schema for `secret_files`
+
+Read-Only:
+
+- `description` (String) Description of the secret file.
+- `id` (String) Id of the secret file.
+- `key` (String) Key of the secret file.
+- `mount_path` (String) Mount path of the secret file.
+- `value` (String, Sensitive) Value of the secret file.

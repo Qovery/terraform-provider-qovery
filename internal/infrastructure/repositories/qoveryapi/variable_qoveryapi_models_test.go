@@ -14,6 +14,7 @@ func TestNewDomainVariablesFromQovery(t *testing.T) {
 	t.Parallel()
 
 	variableType := qovery.APIVARIABLETYPEENUM_VALUE
+	fileVariableType := qovery.APIVARIABLETYPEENUM_FILE
 	testCases := []struct {
 		TestName      string
 		Variables     *qovery.EnvironmentVariableResponseList
@@ -49,6 +50,27 @@ func TestNewDomainVariablesFromQovery(t *testing.T) {
 				},
 			},
 		},
+		{
+			TestName: "success_with_file_type",
+			Variables: &qovery.EnvironmentVariableResponseList{
+				Results: []qovery.EnvironmentVariable{
+					{
+						Id:    gofakeit.UUID(),
+						Scope: qovery.APIVARIABLESCOPEENUM_APPLICATION,
+						Key:   gofakeit.Word(),
+						Value: func() *string {
+							v := "file-content"
+							return &v
+						}(),
+						MountPath: *qovery.NewNullableString(func() *string {
+							v := "/etc/app/config.yaml"
+							return &v
+						}()),
+						VariableType: fileVariableType,
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -67,7 +89,12 @@ func TestNewDomainVariablesFromQovery(t *testing.T) {
 					value = *tc.Variables.GetResults()[idx].Value
 				}
 				assert.Equal(t, value, v.Value)
-				assert.Equal(t, string(variableType), v.Type)
+				assert.Equal(t, string(tc.Variables.GetResults()[idx].VariableType), v.Type)
+				mountPath := ""
+				if tc.Variables.GetResults()[idx].MountPath.IsSet() && tc.Variables.GetResults()[idx].MountPath.Get() != nil {
+					mountPath = *tc.Variables.GetResults()[idx].MountPath.Get()
+				}
+				assert.Equal(t, mountPath, v.MountPath)
 			}
 		})
 	}
@@ -88,6 +115,14 @@ func TestNewQoveryEnvironmentVariableRequestFromDomain(t *testing.T) {
 				Value: gofakeit.Word(),
 			},
 		},
+		{
+			TestName: "success_with_mount_path",
+			Request: variable.UpsertRequest{
+				Key:       gofakeit.Word(),
+				Value:     gofakeit.Word(),
+				MountPath: "/etc/config/app.yaml",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -99,6 +134,10 @@ func TestNewQoveryEnvironmentVariableRequestFromDomain(t *testing.T) {
 				value = *req.Value
 			}
 			assert.Equal(t, tc.Request.Value, value)
+			if tc.Request.MountPath != "" {
+				assert.True(t, req.MountPath.IsSet())
+				assert.Equal(t, tc.Request.MountPath, *req.MountPath.Get())
+			}
 		})
 	}
 }
@@ -118,6 +157,14 @@ func TestNewQoveryEnvironmentVariableEditRequestFromDomain(t *testing.T) {
 				Value: gofakeit.Word(),
 			},
 		},
+		{
+			TestName: "success_with_mount_path",
+			Request: variable.UpsertRequest{
+				Key:       gofakeit.Word(),
+				Value:     gofakeit.Word(),
+				MountPath: "/etc/config/app.yaml",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -129,6 +176,10 @@ func TestNewQoveryEnvironmentVariableEditRequestFromDomain(t *testing.T) {
 			}
 			assert.Equal(t, tc.Request.Key, req.Key)
 			assert.Equal(t, tc.Request.Value, value)
+			if tc.Request.MountPath != "" {
+				assert.True(t, req.MountPath.IsSet())
+				assert.Equal(t, tc.Request.MountPath, *req.MountPath.Get())
+			}
 		})
 	}
 }

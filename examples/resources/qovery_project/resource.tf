@@ -23,6 +23,15 @@ resource "qovery_project" "my_project" {
     }
   ]
 
+  # Environment variable files (mounted as files in services)
+  environment_variable_files = [
+    {
+      key        = "APP_CONFIG"
+      value      = "config-content"
+      mount_path = "/etc/app/config.yaml"
+    }
+  ]
+
   # Secrets are encrypted and not visible after creation
   secrets = [
     {
@@ -37,6 +46,15 @@ resource "qovery_project" "my_project" {
       key = "SECRET_KEY_ALIAS"
       # Must match the key of an existing secret
       value = "SECRET_KEY"
+    }
+  ]
+
+  # Secret files (mounted as files in services, value is encrypted)
+  secret_files = [
+    {
+      key        = "API_KEY"
+      value      = "secret-value"
+      mount_path = "/usr/local/secrets/api-key"
     }
   ]
 

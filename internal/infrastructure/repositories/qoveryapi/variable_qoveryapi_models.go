@@ -35,6 +35,10 @@ func newDomainVariableFromQovery(v *qovery.EnvironmentVariable) (*variable.Varia
 	if v.Description.IsSet() {
 		description = *v.Description.Get()
 	}
+	mountPath := ""
+	if v.MountPath.IsSet() && v.MountPath.Get() != nil {
+		mountPath = *v.MountPath.Get()
+	}
 
 	return variable.NewVariable(variable.NewVariableParams{
 		VariableID:  v.GetId(),
@@ -43,23 +47,32 @@ func newDomainVariableFromQovery(v *qovery.EnvironmentVariable) (*variable.Varia
 		Value:       value,
 		Type:        string(v.VariableType),
 		Description: description,
+		MountPath:   mountPath,
 	})
 }
 
 // newQoveryEnvironmentVariableRequestFromDomain takes the domain request variable.UpsertRequest and turns it into a qovery.EnvironmentVariableRequest to make the api call.
 func newQoveryEnvironmentVariableRequestFromDomain(request variable.UpsertRequest) qovery.EnvironmentVariableRequest {
-	return qovery.EnvironmentVariableRequest{
+	req := qovery.EnvironmentVariableRequest{
 		Key:         request.Key,
 		Value:       &request.Value,
 		Description: *qovery.NewNullableString(&request.Description),
 	}
+	if request.MountPath != "" {
+		req.MountPath = *qovery.NewNullableString(&request.MountPath)
+	}
+	return req
 }
 
 // newQoveryEnvironmentVariableEditRequestFromDomain takes the domain request variable.UpsertRequest and turns it into a qovery.EnvironmentVariableEditRequest to make the api call.
 func newQoveryEnvironmentVariableEditRequestFromDomain(request variable.UpsertRequest) qovery.EnvironmentVariableEditRequest {
-	return qovery.EnvironmentVariableEditRequest{
+	req := qovery.EnvironmentVariableEditRequest{
 		Key:         request.Key,
 		Value:       &request.Value,
 		Description: *qovery.NewNullableString(&request.Description),
 	}
+	if request.MountPath != "" {
+		req.MountPath = *qovery.NewNullableString(&request.MountPath)
+	}
+	return req
 }

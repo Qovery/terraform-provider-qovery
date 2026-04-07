@@ -61,6 +61,17 @@ func TestNewVariable(t *testing.T) {
 				Value:      gofakeit.Name(),
 			},
 		},
+		{
+			TestName: "success_with_mount_path",
+			Params: variable.NewVariableParams{
+				VariableID:  gofakeit.UUID(),
+				Scope:       variable.ScopeApplication.String(),
+				Key:         gofakeit.Name(),
+				Value:       gofakeit.Name(),
+				MountPath:   "/etc/config/app.yaml",
+				Description: "test file variable",
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -78,6 +89,59 @@ func TestNewVariable(t *testing.T) {
 			assert.Equal(t, tc.Params.VariableID, v.ID.String())
 			assert.Equal(t, tc.Params.Key, v.Key)
 			assert.Equal(t, tc.Params.Value, v.Value)
+			assert.Equal(t, tc.Params.MountPath, v.MountPath)
+			assert.Equal(t, tc.Params.Description, v.Description)
+		})
+	}
+}
+
+func TestUpsertRequest_ValidateAsFile(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		TestName    string
+		Request     variable.UpsertRequest
+		ExpectError bool
+		ErrorMsg    string
+	}{
+		{
+			TestName: "error_missing_key",
+			Request: variable.UpsertRequest{
+				Value:     "content",
+				MountPath: "/etc/config/app.yaml",
+			},
+			ExpectError: true,
+			ErrorMsg:    variable.ErrInvalidUpsertRequest.Error(),
+		},
+		{
+			TestName: "error_missing_mount_path",
+			Request: variable.UpsertRequest{
+				Key:   "APP_CONFIG",
+				Value: "content",
+			},
+			ExpectError: true,
+			ErrorMsg:    variable.ErrMissingMountPath.Error(),
+		},
+		{
+			TestName: "success",
+			Request: variable.UpsertRequest{
+				Key:       "APP_CONFIG",
+				Value:     "content",
+				MountPath: "/etc/config/app.yaml",
+			},
+			ExpectError: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+			err := tc.Request.ValidateAsFile()
+			if tc.ExpectError {
+				assert.ErrorContains(t, err, tc.ErrorMsg)
+				return
+			}
+			assert.NoError(t, err)
 		})
 	}
 }

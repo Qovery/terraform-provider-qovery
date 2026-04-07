@@ -47,10 +47,12 @@ data "qovery_helm" "my_helm" {
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this helm. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `description` (String) Description of the helm service.
 - `environment_id` (String) Id of the environment.
+- `environment_variable_files` (Attributes Set) List of environment variable files linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `external_host` (String) The helm external FQDN host [NOTE: only if your helm is using a publicly accessible port].
 - `internal_host` (String) The helm internal host.
 - `name` (String) Name of the helm service.
 - `ports` (Attributes Map) List of ports linked to this helm. (see [below for nested schema](#nestedatt--ports))
+- `secret_files` (Attributes Set) List of secret files linked to this helm. (see [below for nested schema](#nestedatt--secret_files))
 - `source` (Attributes) Helm chart from a Helm repository or from a git repository (see [below for nested schema](#nestedatt--source))
 - `values_override` (Attributes) Define your own overrides to customize the helm chart behaviour. (see [below for nested schema](#nestedatt--values_override))
 
@@ -161,6 +163,18 @@ Read-Only:
 - `value` (String) Value of the environment variable.
 
 
+<a id="nestedatt--environment_variable_files"></a>
+### Nested Schema for `environment_variable_files`
+
+Read-Only:
+
+- `description` (String) Description of the environment variable file.
+- `id` (String) Id of the environment variable file.
+- `key` (String) Key of the environment variable file.
+- `mount_path` (String) Mount path of the environment variable file.
+- `value` (String) Value of the environment variable file.
+
+
 <a id="nestedatt--ports"></a>
 ### Nested Schema for `ports`
 
@@ -180,6 +194,18 @@ Optional:
 - `protocol` (String) Protocol used for the port of the container.
 	- Can be: `GRPC`, `HTTP`.
 	- Default: `HTTP`.
+
+
+<a id="nestedatt--secret_files"></a>
+### Nested Schema for `secret_files`
+
+Read-Only:
+
+- `description` (String) Description of the secret file.
+- `id` (String) Id of the secret file.
+- `key` (String) Key of the secret file.
+- `mount_path` (String) Mount path of the secret file.
+- `value` (String, Sensitive) Value of the secret file.
 
 
 <a id="nestedatt--source"></a>

@@ -559,6 +559,75 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 					},
 				},
 			},
+			"environment_variable_files": schema.SetNestedAttribute{
+				Description:         "List of environment variable files linked to this job.",
+				MarkdownDescription: "List of environment variable files linked to this job.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description:         "Id of the environment variable file.",
+							MarkdownDescription: "Id of the environment variable file.",
+							Computed:            true,
+						},
+						"key": schema.StringAttribute{
+							Description:         "Key of the environment variable file.",
+							MarkdownDescription: "Key of the environment variable file.",
+							Computed:            true,
+						},
+						"value": schema.StringAttribute{
+							Description:         "Value of the environment variable file.",
+							MarkdownDescription: "Value of the environment variable file.",
+							Computed:            true,
+						},
+						"mount_path": schema.StringAttribute{
+							Description:         "Mount path of the environment variable file.",
+							MarkdownDescription: "Mount path of the environment variable file.",
+							Computed:            true,
+						},
+						"description": schema.StringAttribute{
+							Description:         "Description of the environment variable file.",
+							MarkdownDescription: "Description of the environment variable file.",
+							Computed:            true,
+						},
+					},
+				},
+			},
+			"secret_files": schema.SetNestedAttribute{
+				Description:         "List of secret files linked to this job.",
+				MarkdownDescription: "List of secret files linked to this job.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description:         "Id of the secret file.",
+							MarkdownDescription: "Id of the secret file.",
+							Computed:            true,
+						},
+						"key": schema.StringAttribute{
+							Description:         "Key of the secret file.",
+							MarkdownDescription: "Key of the secret file.",
+							Computed:            true,
+						},
+						"value": schema.StringAttribute{
+							Description:         "Value of the secret file.",
+							MarkdownDescription: "Value of the secret file.",
+							Computed:            true,
+							Sensitive:           true,
+						},
+						"mount_path": schema.StringAttribute{
+							Description:         "Mount path of the secret file.",
+							MarkdownDescription: "Mount path of the secret file.",
+							Computed:            true,
+						},
+						"description": schema.StringAttribute{
+							Description:         "Description of the secret file.",
+							MarkdownDescription: "Description of the secret file.",
+							Computed:            true,
+						},
+					},
+				},
+			},
 			"external_host": schema.StringAttribute{
 				Description:         "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",
 				MarkdownDescription: "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",
