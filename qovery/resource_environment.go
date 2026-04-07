@@ -307,6 +307,8 @@ func (r environmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					},
 				},
 			},
+			"environment_variable_files": environmentVariableFilesSchemaAttribute("environment"),
+			"secret_files":              secretFilesSchemaAttribute("environment"),
 		},
 	}
 }

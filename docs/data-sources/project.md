@@ -35,8 +35,10 @@ resource "qovery_environment" "example" {
 ### Read-Only
 
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this project. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `environment_variable_files` (Attributes Set) List of environment variable files linked to this project. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `name` (String) Name of the project.
 - `organization_id` (String) Identifier of the organization containing this project.
+- `secret_files` (Attributes Set) List of secret files linked to this project. (see [below for nested schema](#nestedatt--secret_files))
 
 <a id="nestedatt--environment_variable_aliases"></a>
 ### Nested Schema for `environment_variable_aliases`
@@ -91,3 +93,27 @@ Read-Only:
 - `id` (String) Identifier of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
+
+
+<a id="nestedatt--environment_variable_files"></a>
+### Nested Schema for `environment_variable_files`
+
+Read-Only:
+
+- `description` (String) Description of the environment variable file.
+- `id` (String) Id of the environment variable file.
+- `key` (String) Key of the environment variable file.
+- `mount_path` (String) Mount path of the environment variable file.
+- `value` (String) Value of the environment variable file.
+
+
+<a id="nestedatt--secret_files"></a>
+### Nested Schema for `secret_files`
+
+Read-Only:
+
+- `description` (String) Description of the secret file.
+- `id` (String) Id of the secret file.
+- `key` (String) Key of the secret file.
+- `mount_path` (String) Mount path of the secret file.
+- `value` (String, Sensitive) Value of the secret file.

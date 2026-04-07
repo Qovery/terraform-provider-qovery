@@ -38,6 +38,8 @@ type Helm struct {
 	Secrets                      types.Set            `tfsdk:"secrets"`
 	SecretAliases                types.Set            `tfsdk:"secret_aliases"`
 	SecretOverrides              types.Set            `tfsdk:"secret_overrides"`
+	EnvironmentVariableFiles     types.Set            `tfsdk:"environment_variable_files"`
+	SecretFiles                  types.Set            `tfsdk:"secret_files"`
 	ExternalHost                 types.String         `tfsdk:"external_host"`
 	InternalHost                 types.String         `tfsdk:"internal_host"`
 	DeploymentStageId            types.String         `tfsdk:"deployment_stage_id"`
@@ -125,6 +127,14 @@ func (h Helm) SecretOverridesList() SecretList {
 	return ToSecretList(h.SecretOverrides)
 }
 
+func (h Helm) EnvironmentVariableFileList() EnvironmentVariableFileList {
+	return toEnvironmentVariableFileList(h.EnvironmentVariableFiles)
+}
+
+func (h Helm) SecretFileList() SecretFileList {
+	return toSecretFileList(h.SecretFiles)
+}
+
 func (j Helm) DeploymentRestrictionDiff(deploymentRestrictionsState *types.Set) (*deploymentrestriction.ServiceDeploymentRestrictionsDiff, error) {
 	return deploymentrestriction.ToDeploymentRestrictionDiff(j.DeploymentRestrictions, deploymentRestrictionsState)
 }
@@ -137,9 +147,11 @@ func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, e
 	var stateEnvironmentVariables EnvironmentVariableList
 	var stateEnvironmentVariableAliases EnvironmentVariableList
 	var stateEnvironmentVariableOverrides EnvironmentVariableList
+	var stateEnvironmentVariableFiles EnvironmentVariableFileList
 	var stateSecrets SecretList
 	var stateSecretAliases SecretList
 	var stateSecretOverrides SecretList
+	var stateSecretFiles SecretFileList
 	var stateDeploymentRestrictions types.Set
 	var stateCustomDomains CustomDomainList
 
@@ -147,9 +159,11 @@ func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, e
 		stateEnvironmentVariables = state.EnvironmentVariableList()
 		stateEnvironmentVariableAliases = state.EnvironmentVariableAliasesList()
 		stateEnvironmentVariableOverrides = state.EnvironmentVariableOverridesList()
+		stateEnvironmentVariableFiles = state.EnvironmentVariableFileList()
 		stateSecrets = state.SecretList()
 		stateSecretAliases = state.SecretAliasesList()
 		stateSecretOverrides = state.SecretOverridesList()
+		stateSecretFiles = state.SecretFileList()
 		stateDeploymentRestrictions = state.DeploymentRestrictions
 		stateCustomDomains = state.CustomDomainsList()
 	}
@@ -169,9 +183,11 @@ func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, e
 		EnvironmentVariables:         h.EnvironmentVariableList().diffRequest(stateEnvironmentVariables),
 		EnvironmentVariableAliases:   h.EnvironmentVariableAliasesList().diffRequest(stateEnvironmentVariableAliases),
 		EnvironmentVariableOverrides: h.EnvironmentVariableOverridesList().diffRequest(stateEnvironmentVariableOverrides),
+		EnvironmentVariableFiles:     h.EnvironmentVariableFileList().diffRequest(stateEnvironmentVariableFiles),
 		Secrets:                      h.SecretList().diffRequest(stateSecrets),
 		SecretAliases:                h.SecretAliasesList().diffRequest(stateSecretAliases),
 		SecretOverrides:              h.SecretOverridesList().diffRequest(stateSecretOverrides),
+		SecretFiles:                  h.SecretFileList().diffRequest(stateSecretFiles),
 		DeploymentRestrictionsDiff:   *deploymentRestrictionsDiff,
 	}, nil
 }
@@ -477,6 +493,8 @@ func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) H
 		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, helm.Secrets, variable.ScopeHelm, "VALUE").toTerraformSet(ctx),
 		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, helm.Secrets, variable.ScopeHelm, "ALIAS").toTerraformSet(ctx),
 		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, helm.Secrets, variable.ScopeHelm, "OVERRIDE").toTerraformSet(ctx),
+		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, helm.EnvironmentVariables, variable.ScopeHelm, "FILE").toTerraformSet(ctx),
+		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, helm.Secrets, variable.ScopeHelm, "FILE").toTerraformSet(ctx),
 		InternalHost:                 FromStringPointer(helm.InternalHost),
 		ExternalHost:                 FromStringPointer(helm.ExternalHost),
 		DeploymentStageId:            FromString(helm.DeploymentStageID),

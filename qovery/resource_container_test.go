@@ -775,6 +775,198 @@ func TestAcc_ContainerWithSecrets(t *testing.T) {
 	})
 }
 
+func TestAcc_ContainerWithEnvironmentVariableFiles(t *testing.T) {
+	t.Parallel()
+	testName := "container-with-env-var-files"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryContainerDestroy("qovery_container.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with one env var file
+			{
+				Config: testAccContainerDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "config-content", mountPath: "/etc/app/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "config-content",
+						"mount_path": "/etc/app/config.yaml",
+					}),
+				),
+			},
+			// Step 2: Update value only (mount_path stays the same)
+			{
+				Config: testAccContainerDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "updated-content", mountPath: "/etc/app/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/etc/app/config.yaml",
+					}),
+				),
+			},
+			// Step 3: Update mount_path (triggers delete+recreate)
+			{
+				Config: testAccContainerDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "updated-content", mountPath: "/new/path/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/new/path/config.yaml",
+					}),
+				),
+			},
+			// Step 4: Add a second file variable
+			{
+				Config: testAccContainerDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config":  {key: "APP_CONFIG", value: "updated-content", mountPath: "/new/path/config.yaml"},
+						"config2": {key: "DB_CONFIG", value: "db-content", mountPath: "/etc/db/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/new/path/config.yaml",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "environment_variable_files.*", map[string]string{
+						"key":        "DB_CONFIG",
+						"value":      "db-content",
+						"mount_path": "/etc/db/config.yaml",
+					}),
+				),
+			},
+			// Step 5: Remove all file variables
+			{
+				Config: testAccContainerDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variable_files.0"),
+				),
+			},
+			// Step 6: Import
+			{
+				ResourceName:      "qovery_container.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAcc_ContainerWithSecretFiles(t *testing.T) {
+	t.Parallel()
+	testName := "container-with-secret-files"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryContainerDestroy("qovery_container.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with one secret file
+			{
+				Config: testAccContainerDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "secret-value", mountPath: "/usr/local/secrets/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "secret-value",
+						"mount_path": "/usr/local/secrets/api-key",
+					}),
+				),
+			},
+			// Step 2: Update value only (mount_path stays the same)
+			{
+				Config: testAccContainerDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "new-secret-value", mountPath: "/usr/local/secrets/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "new-secret-value",
+						"mount_path": "/usr/local/secrets/api-key",
+					}),
+				),
+			},
+			// Step 3: Update mount_path (triggers delete+recreate)
+			{
+				Config: testAccContainerDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "new-secret-value", mountPath: "/new/path/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "new-secret-value",
+						"mount_path": "/new/path/api-key",
+					}),
+				),
+			},
+			// Step 4: Remove all secret files
+			{
+				Config: testAccContainerDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "secret_files.0"),
+				),
+			},
+			// Step 5: Import
+			{
+				ResourceName:            "qovery_container.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secret_files"},
+			},
+		},
+	})
+}
+
 //
 //func TestAcc_ContainerWithCustomDomains(t *testing.T) {
 //	t.Parallel()
@@ -1242,7 +1434,7 @@ func TestAcc_ContainerWithPorts(t *testing.T) {
 						{
 							InternalPort:       80,
 							PubliclyAccessible: false,
-							IsDefault:          true,
+							IsDefault:          boolToPtr(true),
 						},
 					},
 				),
@@ -1274,104 +1466,100 @@ func TestAcc_ContainerWithPorts(t *testing.T) {
 					resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^app-z`)),
 				),
 			},
-			//// Add another port
-			//{
-			//	Config: testAccContainerDefaultConfigWithPorts(
-			//		testName,
-			//		[]servicePort{
-			//			{
-			//				InternalPort:       80,
-			//				PubliclyAccessible: false,
-			//			},
-			//			{
-			//				Name:               pointer.ToString("external port"),
-			//				InternalPort:       81,
-			//				ExternalPort:       int64ToPtr(443),
-			//				PubliclyAccessible: true,
-			//				Protocol:           pointer.ToString("HTTP"),
-			//			},
-			//		},
-			//	),
-			//	Check: resource.ComposeAggregateTestCheckFunc(
-			//		testAccQoveryProjectExists("qovery_project.test"),
-			//		testAccQoveryEnvironmentExists("qovery_environment.test"),
-			//		testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
-			//		testAccQoveryContainerExists("qovery_container.test"),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
-			//		resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
-			//		resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
-			//		resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "ports.*", map[string]string{
-			//			"internal_port":       "80",
-			//			"publicly_accessible": "false",
-			//		}),
-			//		resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "ports.*", map[string]string{
-			//			"name":                "external port",
-			//			"internal_port":       "81",
-			//			"external_port":       "443",
-			//			"publicly_accessible": "true",
-			//			"protocol":            "HTTP",
-			//		}),
-			//		resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
-			//		resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
-			//		resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-			//			"key": regexp.MustCompile(`^QOVERY_`),
-			//		}),
-			//		resource.TestMatchResourceAttr("qovery_container.test", "external_host", regexp.MustCompile(`^z`)),
-			//		resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-			//	),
-			//},
-			//// Remove first port
-			//{
-			//	Config: testAccContainerDefaultConfigWithPorts(
-			//		testName,
-			//		[]servicePort{
-			//			{
-			//				Name:               pointer.ToString("external port"),
-			//				InternalPort:       81,
-			//				ExternalPort:       int64ToPtr(443),
-			//				PubliclyAccessible: true,
-			//				Protocol:           pointer.ToString("HTTP"),
-			//			},
-			//		},
-			//	),
-			//	Check: resource.ComposeAggregateTestCheckFunc(
-			//		testAccQoveryProjectExists("qovery_project.test"),
-			//		testAccQoveryEnvironmentExists("qovery_environment.test"),
-			//		testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
-			//		testAccQoveryContainerExists("qovery_container.test"),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
-			//		resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
-			//		resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
-			//		resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
-			//		resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "ports.*", map[string]string{
-			//			"name":                "external port",
-			//			"internal_port":       "81",
-			//			"external_port":       "443",
-			//			"publicly_accessible": "true",
-			//			"protocol":            "HTTP",
-			//		}),
-			//		resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
-			//		resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
-			//		resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-			//			"key": regexp.MustCompile(`^QOVERY_`),
-			//		}),
-			//		resource.TestMatchResourceAttr("qovery_container.test", "external_host", regexp.MustCompile(`^z`)),
-			//		resource.TestMatchResourceAttr("qovery_container.test", "internal_host", regexp.MustCompile(`^container-z`)),
-			//	),
-			//},
+			// Add another port
+			{
+				Config: testAccContainerDefaultConfigWithPorts(
+					testName,
+					[]servicePort{
+						{
+							InternalPort:       80,
+							PubliclyAccessible: false,
+						},
+						{
+							Name:               stringToPtr("external-port"),
+							InternalPort:       81,
+							ExternalPort:       int64ToPtr(443),
+							PubliclyAccessible: true,
+							Protocol:           stringToPtr("HTTP"),
+						},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
+					resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
+					resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "ports.*", map[string]string{
+						"internal_port":       "80",
+						"publicly_accessible": "false",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "ports.*", map[string]string{
+						"name":                "external-port",
+						"internal_port":       "81",
+						"external_port":       "443",
+						"publicly_accessible": "true",
+						"protocol":            "HTTP",
+					}),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+				),
+			},
+			// Remove first port
+			{
+				Config: testAccContainerDefaultConfigWithPorts(
+					testName,
+					[]servicePort{
+						{
+							Name:               stringToPtr("external-port"),
+							InternalPort:       81,
+							ExternalPort:       int64ToPtr(443),
+							PubliclyAccessible: true,
+							Protocol:           stringToPtr("HTTP"),
+						},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_container.test", "image_name", containerImageName),
+					resource.TestCheckResourceAttr("qovery_container.test", "tag", containerTag),
+					resource.TestCheckResourceAttr("qovery_container.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_container.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "arguments.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "storage.0"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "ports.*", map[string]string{
+						"name":                "external-port",
+						"internal_port":       "81",
+						"external_port":       "443",
+						"publicly_accessible": "true",
+						"protocol":            "HTTP",
+					}),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "environment_variables.0"),
+					resource.TestCheckNoResourceAttr("qovery_container.test", "secrets.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_container.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+				),
+			},
 			// Check Import
 			{
 				ResourceName:      "qovery_container.test",
@@ -1626,6 +1814,62 @@ resource "qovery_container" "test" {
 	)
 }
 
+func testAccContainerDefaultConfigWithEnvVarFiles(
+	testName string,
+	environmentVariableFiles map[string]fileVar,
+) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_container" "test" {
+  environment_id = qovery_environment.test.id
+  registry_id = qovery_container_registry.test.id
+  name = "%s"
+  image_name = "%s"
+  tag = "%s"
+  environment_variable_files = %s
+  healthchecks = {}
+}
+`,
+		testAccEnvironmentDefaultConfig(testName),
+		testAccContainerRegistryDefaultConfig(testName),
+		generateTestName(testName),
+		containerImageName,
+		containerTag,
+		convertFileVarsToString(environmentVariableFiles),
+	)
+}
+
+func testAccContainerDefaultConfigWithSecretFiles(
+	testName string,
+	secretFiles map[string]fileVar,
+) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_container" "test" {
+  environment_id = qovery_environment.test.id
+  registry_id = qovery_container_registry.test.id
+  name = "%s"
+  image_name = "%s"
+  tag = "%s"
+  secret_files = %s
+  healthchecks = {}
+}
+`,
+		testAccEnvironmentDefaultConfig(testName),
+		testAccContainerRegistryDefaultConfig(testName),
+		generateTestName(testName),
+		containerImageName,
+		containerTag,
+		convertFileVarsToString(secretFiles),
+	)
+}
+
 //
 //func testAccContainerDefaultConfigWithCustomDomains(testName string, customDomains []string, state string) string {
 //	ports := []servicePort{
@@ -1691,4 +1935,18 @@ resource "qovery_container" "test" {
 
 func convertStringArrayToString(array []string) string {
 	return fmt.Sprintf("[\"%s\"]", strings.Join(array, "\",\""))
+}
+
+type fileVar struct {
+	key       string
+	value     string
+	mountPath string
+}
+
+func convertFileVarsToString(files map[string]fileVar) string {
+	vars := make([]string, 0, len(files))
+	for _, f := range files {
+		vars = append(vars, fmt.Sprintf(`{key: "%s", value: "%s", mount_path: "%s"}`, f.key, f.value, f.mountPath))
+	}
+	return fmt.Sprintf("[%s]", strings.Join(vars, ","))
 }

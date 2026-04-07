@@ -63,10 +63,28 @@ resource "qovery_helm" "my_helm" {
     }
   ]
 
+  # Environment variable files (mounted as files in the container)
+  environment_variable_files = [
+    {
+      key        = "APP_CONFIG"
+      value      = "config-content"
+      mount_path = "/etc/app/config.yaml"
+    }
+  ]
+
   secrets = [
     {
       key   = "MY_HELM_SECRET"
       value = "my_secret_value"
+    }
+  ]
+
+  # Secret files (mounted as files, value is encrypted)
+  secret_files = [
+    {
+      key        = "API_KEY"
+      value      = "secret-value"
+      mount_path = "/usr/local/secrets/api-key"
     }
   ]
 

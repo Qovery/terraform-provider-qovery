@@ -6,7 +6,7 @@ import (
 )
 
 func newQoveryEnvSecretVariableRequestFromDomain(request secret.UpsertRequest, parentId string, parentScope qovery.APIVariableScopeEnum) qovery.VariableRequest {
-	return qovery.VariableRequest{
+	req := qovery.VariableRequest{
 		Key:              request.Key,
 		Value:            request.Value,
 		MountPath:        qovery.NullableString{},
@@ -15,6 +15,10 @@ func newQoveryEnvSecretVariableRequestFromDomain(request secret.UpsertRequest, p
 		VariableParentId: parentId,
 		Description:      *qovery.NewNullableString(&request.Description),
 	}
+	if request.MountPath != "" {
+		req.MountPath = *qovery.NewNullableString(&request.MountPath)
+	}
+	return req
 }
 
 func newDomainEnvSecretsFromQovery(list *qovery.VariableResponseList) (secret.Secrets, error) {
@@ -36,12 +40,18 @@ func newDomainEnvSecretFromQovery(v *qovery.VariableResponse) (*secret.Secret, e
 		return nil, secret.ErrNilSecret
 	}
 
+	mountPath := ""
+	if v.MountPath.IsSet() && v.MountPath.Get() != nil {
+		mountPath = *v.MountPath.Get()
+	}
+
 	return secret.NewSecret(secret.NewSecretParams{
 		SecretID:    v.GetId(),
 		Scope:       string(v.Scope),
 		Key:         v.GetKey(),
 		Type:        string(v.VariableType),
 		Description: *v.Description,
+		MountPath:   mountPath,
 	})
 }
 

@@ -136,9 +136,12 @@ func (s JobSchedule) toUpsertRequest() job.JobSchedule {
 func JobScheduleFromDomainJobSchedule(s job.JobSchedule) JobSchedule {
 	var onStart *ExecutionCommand = nil
 	if s.OnStart != nil {
-		args := make([]types.String, len(s.OnStart.Arguments))
-		for i, arg := range s.OnStart.Arguments {
-			args[i] = FromString(arg)
+		var args []types.String
+		if len(s.OnStart.Arguments) > 0 {
+			args = make([]types.String, len(s.OnStart.Arguments))
+			for i, arg := range s.OnStart.Arguments {
+				args[i] = FromString(arg)
+			}
 		}
 		onStart = &ExecutionCommand{
 			Entrypoint: FromStringPointer(s.OnStart.Entrypoint),
@@ -148,9 +151,12 @@ func JobScheduleFromDomainJobSchedule(s job.JobSchedule) JobSchedule {
 
 	var onStop *ExecutionCommand = nil
 	if s.OnStop != nil {
-		args := make([]types.String, len(s.OnStop.Arguments))
-		for i, arg := range s.OnStop.Arguments {
-			args[i] = FromString(arg)
+		var args []types.String
+		if len(s.OnStop.Arguments) > 0 {
+			args = make([]types.String, len(s.OnStop.Arguments))
+			for i, arg := range s.OnStop.Arguments {
+				args[i] = FromString(arg)
+			}
 		}
 		onStop = &ExecutionCommand{
 			Entrypoint: FromStringPointer(s.OnStop.Entrypoint),
@@ -160,9 +166,12 @@ func JobScheduleFromDomainJobSchedule(s job.JobSchedule) JobSchedule {
 
 	var onDelete *ExecutionCommand = nil
 	if s.OnDelete != nil {
-		args := make([]types.String, len(s.OnDelete.Arguments))
-		for i, arg := range s.OnDelete.Arguments {
-			args[i] = FromString(arg)
+		var args []types.String
+		if len(s.OnDelete.Arguments) > 0 {
+			args = make([]types.String, len(s.OnDelete.Arguments))
+			for i, arg := range s.OnDelete.Arguments {
+				args[i] = FromString(arg)
+			}
 		}
 		onDelete = &ExecutionCommand{
 			Entrypoint: FromStringPointer(s.OnDelete.Entrypoint),
@@ -212,9 +221,12 @@ func (s JobScheduleCron) toUpsertRequest() job.JobScheduleCron {
 }
 
 func JobScheduleCronFromDomainJobScheduleCron(s job.JobScheduleCron) JobScheduleCron {
-	args := make([]types.String, len(s.Command.Arguments))
-	for i, arg := range s.Command.Arguments {
-		args[i] = FromString(arg)
+	var args []types.String
+	if len(s.Command.Arguments) > 0 {
+		args = make([]types.String, len(s.Command.Arguments))
+		for i, arg := range s.Command.Arguments {
+			args[i] = FromString(arg)
+		}
 	}
 
 	return JobScheduleCron{
@@ -246,6 +258,8 @@ type Job struct {
 	Secrets                      types.Set     `tfsdk:"secrets"`
 	SecretAliases                types.Set     `tfsdk:"secret_aliases"`
 	SecretOverrides              types.Set     `tfsdk:"secret_overrides"`
+	EnvironmentVariableFiles     types.Set     `tfsdk:"environment_variable_files"`
+	SecretFiles                  types.Set     `tfsdk:"secret_files"`
 	Port                         types.Int64   `tfsdk:"port"`
 	ExternalHost                 types.String  `tfsdk:"external_host"`
 	InternalHost                 types.String  `tfsdk:"internal_host"`
@@ -282,6 +296,14 @@ func (j Job) SecretOverridesList() SecretList {
 	return ToSecretList(j.SecretOverrides)
 }
 
+func (j Job) EnvironmentVariableFileList() EnvironmentVariableFileList {
+	return toEnvironmentVariableFileList(j.EnvironmentVariableFiles)
+}
+
+func (j Job) SecretFileList() SecretFileList {
+	return toSecretFileList(j.SecretFiles)
+}
+
 func (j Job) DeploymentRestrictionDiff(deploymentRestrictionsState *types.Set) (*deploymentrestriction.ServiceDeploymentRestrictionsDiff, error) {
 	return deploymentrestriction.ToDeploymentRestrictionDiff(j.DeploymentRestrictions, deploymentRestrictionsState)
 }
@@ -290,18 +312,22 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 	var stateEnvironmentVariables EnvironmentVariableList
 	var stateEnvironmentVariableAliases EnvironmentVariableList
 	var stateEnvironmentVariableOverrides EnvironmentVariableList
+	var stateEnvironmentVariableFiles EnvironmentVariableFileList
 	var stateSecrets SecretList
 	var stateSecretAliases SecretList
 	var stateSecretOverrides SecretList
+	var stateSecretFiles SecretFileList
 	var stateDeploymentRestrictions types.Set
 
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
 		stateEnvironmentVariableAliases = state.EnvironmentVariableAliasesList()
 		stateEnvironmentVariableOverrides = state.EnvironmentVariableOverridesList()
+		stateEnvironmentVariableFiles = state.EnvironmentVariableFileList()
 		stateSecrets = state.SecretList()
 		stateSecretAliases = state.SecretAliasesList()
 		stateSecretOverrides = state.SecretOverridesList()
+		stateSecretFiles = state.SecretFileList()
 		stateDeploymentRestrictions = state.DeploymentRestrictions
 	}
 
@@ -315,9 +341,11 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 		EnvironmentVariables:         j.EnvironmentVariableList().diffRequest(stateEnvironmentVariables),
 		EnvironmentVariableAliases:   j.EnvironmentVariableAliasesList().diffRequest(stateEnvironmentVariableAliases),
 		EnvironmentVariableOverrides: j.EnvironmentVariableOverridesList().diffRequest(stateEnvironmentVariableOverrides),
+		EnvironmentVariableFiles:     j.EnvironmentVariableFileList().diffRequest(stateEnvironmentVariableFiles),
 		Secrets:                      j.SecretList().diffRequest(stateSecrets),
 		SecretAliases:                j.SecretAliasesList().diffRequest(stateSecretAliases),
 		SecretOverrides:              j.SecretOverridesList().diffRequest(stateSecretOverrides),
+		SecretFiles:                  j.SecretFileList().diffRequest(stateSecretFiles),
 		DeploymentRestrictionsDiff:   *deploymentRestrictionsDiff,
 	}, nil
 }
@@ -386,6 +414,8 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, job.Secrets, variable.ScopeJob, "VALUE").toTerraformSet(ctx),
 		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, job.Secrets, variable.ScopeJob, "ALIAS").toTerraformSet(ctx),
 		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, job.Secrets, variable.ScopeJob, "OVERRIDE").toTerraformSet(ctx),
+		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, job.EnvironmentVariables, variable.ScopeJob, "FILE").toTerraformSet(ctx),
+		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, job.Secrets, variable.ScopeJob, "FILE").toTerraformSet(ctx),
 		InternalHost:                 FromStringPointer(job.InternalHost),
 		ExternalHost:                 FromStringPointer(job.ExternalHost),
 		DeploymentStageId:            FromString(job.DeploymentStageID),

@@ -225,6 +225,8 @@ func (r projectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					},
 				},
 			},
+			"environment_variable_files": environmentVariableFilesSchemaAttribute("project"),
+			"secret_files":              secretFilesSchemaAttribute("project"),
 		},
 	}
 }

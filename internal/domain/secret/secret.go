@@ -27,6 +27,8 @@ var (
 	ErrInvalidUpsertRequest = errors.New("invalid secrets upsert request")
 	// ErrInvalidDiffRequest is returned if the diff request is invalid.
 	ErrInvalidDiffRequest = errors.New("invalid secrets diff request")
+	// ErrMissingMountPath is returned if a file secret has no mount path.
+	ErrMissingMountPath = errors.New("mount_path is required for file secrets")
 )
 
 type Secrets []Secret
@@ -53,6 +55,7 @@ type Secret struct {
 	Key         string         `validate:"required"`
 	Type        string
 	Description string
+	MountPath   string
 }
 
 // Validate returns an error to tell whether the Secret domain model is valid or not.
@@ -82,6 +85,7 @@ type (
 		Key         string
 		Type        string
 		Description string
+		MountPath   string
 	}
 )
 
@@ -107,6 +111,7 @@ func NewSecret(params NewSecretParams) (*Secret, error) {
 		Scope:       *scope,
 		Type:        params.Type,
 		Description: params.Description,
+		MountPath:   params.MountPath,
 	}
 
 	if err := v.Validate(); err != nil {
@@ -121,12 +126,26 @@ type UpsertRequest struct {
 	Key         string `validate:"required"`
 	Value       string
 	Description string
+	MountPath   string
 }
 
 // Validate returns an error to tell whether the UpsertRequest is valid or not.
 func (r UpsertRequest) Validate() error {
 	if err := validator.New().Struct(r); err != nil {
 		return errors.Wrap(err, ErrInvalidUpsertRequest.Error())
+	}
+
+	return nil
+}
+
+// ValidateAsFile validates the UpsertRequest for a file secret, requiring a non-empty MountPath.
+func (r UpsertRequest) ValidateAsFile() error {
+	if err := r.Validate(); err != nil {
+		return err
+	}
+
+	if r.MountPath == "" {
+		return ErrMissingMountPath
 	}
 
 	return nil

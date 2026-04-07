@@ -61,11 +61,13 @@ data "qovery_container" "my_container" {
 
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this container. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
+- `environment_variable_files` (Attributes Set) List of environment variable files linked to this container. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `external_host` (String) The container external FQDN host. Only available if your container is using a publicly accessible port.
 - `image_name` (String) Name of the container image.
 - `internal_host` (String) The container internal host.
 - `name` (String) Name of the container.
 - `registry_id` (String) Id of the registry.
+- `secret_files` (Attributes Set) List of secret files linked to this container. (see [below for nested schema](#nestedatt--secret_files))
 - `tag` (String) Tag of the container image.
 
 <a id="nestedatt--custom_domains"></a>
@@ -344,3 +346,27 @@ Read-Only:
 - `id` (String) Id of the environment variable.
 - `key` (String) Key of the environment variable.
 - `value` (String) Value of the environment variable.
+
+
+<a id="nestedatt--environment_variable_files"></a>
+### Nested Schema for `environment_variable_files`
+
+Read-Only:
+
+- `description` (String) Description of the environment variable file.
+- `id` (String) Id of the environment variable file.
+- `key` (String) Key of the environment variable file.
+- `mount_path` (String) Mount path of the environment variable file.
+- `value` (String) Value of the environment variable file.
+
+
+<a id="nestedatt--secret_files"></a>
+### Nested Schema for `secret_files`
+
+Read-Only:
+
+- `description` (String) Description of the secret file.
+- `id` (String) Id of the secret file.
+- `key` (String) Key of the secret file.
+- `mount_path` (String) Mount path of the secret file.
+- `value` (String, Sensitive) Value of the secret file.

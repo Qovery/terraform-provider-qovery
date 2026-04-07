@@ -44,7 +44,7 @@ type servicePort struct {
 	Name               *string
 	ExternalPort       *int64
 	Protocol           *string
-	IsDefault          bool
+	IsDefault          *bool
 }
 
 func (p servicePort) String() string {
@@ -53,8 +53,10 @@ func (p servicePort) String() string {
 {
   internal_port = %d
   publicly_accessible = "%t"
-  is_default = "%t"
-`, p.InternalPort, p.PubliclyAccessible, p.IsDefault)
+`, p.InternalPort, p.PubliclyAccessible)
+	if p.IsDefault != nil {
+		str += fmt.Sprintf("  is_default = \"%t\"\n", *p.IsDefault)
+	}
 	if p.Name != nil {
 		str += fmt.Sprintf("  name = \"%s\"\n", *p.Name)
 	}
@@ -1084,273 +1086,282 @@ func TestAcc_ApplicationRedeployOnEnvironmentUpdate(t *testing.T) {
 	})
 }
 
-// TODO: uncomment after debugging why storage can't be updated
-//func TestAcc_ApplicationWithStorage(t *testing.T) {
-//	t.Parallel()
-//	testName := "application-with-storage"
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:                 func() { testAccPreCheck(t) },
-//		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-//		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
-//		Steps: []resource.TestStep{
-//			// Create and Read testing
-//			{
-//				Config: testAccApplicationDefaultConfigWithStorage(
-//					testName,
-//					[]serviceStorage{
-//						{
-//							Type:       "FAST_SSD",
-//							Size:       1,
-//							MountPoint: "/data",
-//						},
-//					},
-//				),
-//				Check: resource.ComposeAggregateTestCheckFunc(
-//					testAccQoveryProjectExists("qovery_project.test"),
-//					testAccQoveryEnvironmentExists("qovery_environment.test"),
-//					testAccQoveryApplicationExists("qovery_application.test"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", applicationBranch),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.type", "FAST_SSD"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.size", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.mount_point", "/"),
-//					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
-//					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
-//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-//						"key": regexp.MustCompile(`^QOVERY_`),
-//					}),
-//				),
-//			},
-//			// Add another storage
-//			{
-//				Config: testAccApplicationDefaultConfigWithStorage(
-//					testName,
-//					[]serviceStorage{
-//						{
-//							Type:       "FAST_SSD",
-//							Size:       1,
-//							MountPoint: "/toto",
-//						},
-//						{
-//							Type:       "FAST_SSD",
-//							Size:       1,
-//							MountPoint: "/tata",
-//						},
-//					},
-//				),
-//				Check: resource.ComposeAggregateTestCheckFunc(
-//					testAccQoveryProjectExists("qovery_project.test"),
-//					testAccQoveryEnvironmentExists("qovery_environment.test"),
-//					testAccQoveryApplicationExists("qovery_application.test"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", applicationBranch),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.type", "FAST_SSD"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.size", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.mount_point", "/toto"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "storage.1.type", "FAST_SSD"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "storage.1.size", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "storage.1.mount_point", "/tata"),
-//					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
-//					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
-//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-//						"key": regexp.MustCompile(`^QOVERY_`),
-//					}),
-//				),
-//			},
-//			// Remove first storage
-//			{
-//				Config: testAccApplicationDefaultConfigWithStorage(
-//					testName,
-//					[]serviceStorage{
-//						{
-//							Type:       "FAST_SSD",
-//							Size:       1,
-//							MountPoint: "/toto",
-//						},
-//					},
-//				),
-//				Check: resource.ComposeAggregateTestCheckFunc(
-//					testAccQoveryProjectExists("qovery_project.test"),
-//					testAccQoveryEnvironmentExists("qovery_environment.test"),
-//					testAccQoveryApplicationExists("qovery_application.test"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", applicationBranch),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.type", "FAST_SSD"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.size", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "storage.0.mount_point", "/toto"),
-//					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
-//					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
-//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-//						"key": regexp.MustCompile(`^QOVERY_`),
-//					}),
-//				),
-//			},
-//		},
-//	})
-//}
+func TestAcc_ApplicationWithStorage(t *testing.T) {
+	t.Parallel()
+	testName := "application-with-storage"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccApplicationDefaultConfigWithStorage(
+					testName,
+					[]serviceStorage{
+						{
+							Type:       "FAST_SSD",
+							Size:       4,
+							MountPoint: "/data",
+						},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", applicationBranch),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+					resource.TestCheckResourceAttr("qovery_application.test", "storage.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "storage.*", map[string]string{
+						"type":        "FAST_SSD",
+						"size":        "4",
+						"mount_point": "/data",
+					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+				),
+			},
+			// Add another storage
+			{
+				Config: testAccApplicationDefaultConfigWithStorage(
+					testName,
+					[]serviceStorage{
+						{
+							Type:       "FAST_SSD",
+							Size:       4,
+							MountPoint: "/toto",
+						},
+						{
+							Type:       "FAST_SSD",
+							Size:       4,
+							MountPoint: "/tata",
+						},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", applicationBranch),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+					resource.TestCheckResourceAttr("qovery_application.test", "storage.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "storage.*", map[string]string{
+						"type":        "FAST_SSD",
+						"size":        "4",
+						"mount_point": "/toto",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "storage.*", map[string]string{
+						"type":        "FAST_SSD",
+						"size":        "4",
+						"mount_point": "/tata",
+					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+				),
+			},
+			// Remove first storage
+			{
+				Config: testAccApplicationDefaultConfigWithStorage(
+					testName,
+					[]serviceStorage{
+						{
+							Type:       "FAST_SSD",
+							Size:       4,
+							MountPoint: "/toto",
+						},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", applicationBranch),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+					resource.TestCheckResourceAttr("qovery_application.test", "storage.#", "1"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "storage.*", map[string]string{
+						"type":        "FAST_SSD",
+						"size":        "4",
+						"mount_point": "/toto",
+					}),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "ports.0"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+				),
+			},
+		},
+	})
+}
 
-// TODO: uncomment after debugging why ports can't be updated
-//func TestAcc_ApplicationWithPorts(t *testing.T) {
-//	t.Parallel()
-//	testName := "application-with-ports"
-//	resource.Test(t, resource.TestCase{
-//		PreCheck:                 func() { testAccPreCheck(t) },
-//		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-//		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
-//		Steps: []resource.TestStep{
-//			// Create and Read testing
-//			{
-//				Config: testAccApplicationDefaultConfigWithPorts(
-//					testName,
-//					[]servicePort{
-//						{
-//							InternalPort:       80,
-//							PubliclyAccessible: false,
-//						},
-//					},
-//				),
-//				Check: resource.ComposeAggregateTestCheckFunc(
-//					testAccQoveryProjectExists("qovery_project.test"),
-//					testAccQoveryEnvironmentExists("qovery_environment.test"),
-//					testAccQoveryApplicationExists("qovery_application.test"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", applicationBranch),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
-//					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.internal_port", "80"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.publicly_accessible", "false"),
-//					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
-//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-//						"key": regexp.MustCompile(`^QOVERY_`),
-//					}),
-//				),
-//			},
-//			// Add another port
-//			{
-//				Config: testAccApplicationDefaultConfigWithPorts(
-//					testName,
-//					[]servicePort{
-//						{
-//							InternalPort:       80,
-//							PubliclyAccessible: false,
-//						},
-//						{
-//							Name:               stringToPtr("external port"),
-//							InternalPort:       81,
-//							ExternalPort:       int64ToPtr(443),
-//							PubliclyAccessible: true,
-//							Protocol:           stringToPtr("HTTP"),
-//						},
-//					},
-//				),
-//				Check: resource.ComposeAggregateTestCheckFunc(
-//					testAccQoveryProjectExists("qovery_project.test"),
-//					testAccQoveryEnvironmentExists("qovery_environment.test"),
-//					testAccQoveryApplicationExists("qovery_application.test"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", applicationBranch),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
-//					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.internal_port", "80"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.publicly_accessible", "false"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.1.name", "external port"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.1.internal_port", "81"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.1.external_port", "443"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.1.publicly_accessible", "true"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.1.protocol", "HTTP"),
-//					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
-//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-//						"key": regexp.MustCompile(`^QOVERY_`),
-//					}),
-//				),
-//			},
-//			// Remove first port
-//			{
-//				Config: testAccApplicationDefaultConfigWithPorts(
-//					testName,
-//					[]servicePort{
-//						{
-//							Name:               stringToPtr("external port"),
-//							InternalPort:       81,
-//							ExternalPort:       int64ToPtr(443),
-//							PubliclyAccessible: true,
-//							Protocol:           stringToPtr("HTTP"),
-//						},
-//					},
-//				),
-//				Check: resource.ComposeAggregateTestCheckFunc(
-//					testAccQoveryProjectExists("qovery_project.test"),
-//					testAccQoveryEnvironmentExists("qovery_environment.test"),
-//					testAccQoveryApplicationExists("qovery_application.test"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", applicationBranch),
-//					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
-//					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.name", "external port"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.internal_port", "81"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.external_port", "443"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.publicly_accessible", "true"),
-//					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.protocol", "HTTP"),
-//					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
-//					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
-//						"key": regexp.MustCompile(`^QOVERY_`),
-//					}),
-//				),
-//			},
-//		},
-//	})
-//}
+func TestAcc_ApplicationWithPorts(t *testing.T) {
+	t.Parallel()
+	testName := "application-with-ports"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
+		Steps: []resource.TestStep{
+			// Create and Read testing
+			{
+				Config: testAccApplicationDefaultConfigWithPorts(
+					testName,
+					[]servicePort{
+						{
+							InternalPort:       80,
+							PubliclyAccessible: false,
+						},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", applicationBranch),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.internal_port", "80"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.publicly_accessible", "false"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+				),
+			},
+			// Add another port
+			{
+				Config: testAccApplicationDefaultConfigWithPorts(
+					testName,
+					[]servicePort{
+						{
+							InternalPort:       80,
+							PubliclyAccessible: false,
+						},
+						{
+							Name:               stringToPtr("external-port"),
+							InternalPort:       81,
+							ExternalPort:       int64ToPtr(443),
+							PubliclyAccessible: true,
+							Protocol:           stringToPtr("HTTP"),
+						},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", applicationBranch),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.internal_port", "80"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.publicly_accessible", "false"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.1.name", "external-port"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.1.internal_port", "81"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.1.external_port", "443"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.1.publicly_accessible", "true"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.1.protocol", "HTTP"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+				),
+			},
+			// Remove first port
+			{
+				Config: testAccApplicationDefaultConfigWithPorts(
+					testName,
+					[]servicePort{
+						{
+							Name:               stringToPtr("external-port"),
+							InternalPort:       81,
+							ExternalPort:       int64ToPtr(443),
+							PubliclyAccessible: true,
+							Protocol:           stringToPtr("HTTP"),
+						},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.branch", applicationBranch),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr("qovery_application.test", "build_mode", "DOCKER"),
+					resource.TestCheckResourceAttr("qovery_application.test", "dockerfile_path", "Dockerfile"),
+					resource.TestCheckResourceAttr("qovery_application.test", "cpu", "500"),
+					resource.TestCheckResourceAttr("qovery_application.test", "memory", "512"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "auto_preview", "false"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "storage.0"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.name", "external-port"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.internal_port", "81"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.external_port", "443"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.publicly_accessible", "true"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ports.0.protocol", "HTTP"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variables.0"),
+					resource.TestMatchTypeSetElemNestedAttrs("qovery_application.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
+						"key": regexp.MustCompile(`^QOVERY_`),
+					}),
+				),
+			},
+		},
+	})
+}
 
 func testAccQoveryApplicationExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -1572,7 +1583,7 @@ func testAccApplicationDefaultConfigWithCustomDomains(testName string, customDom
 			InternalPort:       8000,
 			PubliclyAccessible: true,
 			ExternalPort:       int64ToPtr(443),
-			IsDefault:          true,
+			IsDefault:          boolToPtr(true),
 		},
 	}
 
@@ -1696,4 +1707,254 @@ func stringToPtr(v string) *string {
 
 func int64ToPtr(v int64) *int64 {
 	return &v
+}
+
+func boolToPtr(v bool) *bool {
+	return &v
+}
+
+func testAccApplicationDefaultConfigWithEnvVarFiles(
+	testName string,
+	environmentVariableFiles map[string]fileVar,
+) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_application" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  build_mode = "DOCKER"
+  dockerfile_path = "Dockerfile"
+  git_repository = {
+    url = "%s"
+    git_token_id = "%s"
+  }
+  environment_variable_files = %s
+  healthchecks = {}
+}
+`,
+		testAccEnvironmentDefaultConfig(testName),
+		generateTestName(testName),
+		applicationRepositoryURL,
+		getTestQoverySandboxGitTokenID(),
+		convertFileVarsToString(environmentVariableFiles),
+	)
+}
+
+func testAccApplicationDefaultConfigWithSecretFiles(
+	testName string,
+	secretFiles map[string]fileVar,
+) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_application" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  build_mode = "DOCKER"
+  dockerfile_path = "Dockerfile"
+  git_repository = {
+    url = "%s"
+    git_token_id = "%s"
+  }
+  secret_files = %s
+  healthchecks = {}
+}
+`,
+		testAccEnvironmentDefaultConfig(testName),
+		generateTestName(testName),
+		applicationRepositoryURL,
+		getTestQoverySandboxGitTokenID(),
+		convertFileVarsToString(secretFiles),
+	)
+}
+
+func TestAcc_ApplicationWithEnvironmentVariableFiles(t *testing.T) {
+	t.Parallel()
+	testName := "app-with-env-var-files"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with one env var file
+			{
+				Config: testAccApplicationDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "config-content", mountPath: "/etc/app/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "config-content",
+						"mount_path": "/etc/app/config.yaml",
+					}),
+				),
+			},
+			// Step 2: Update value only (mount_path stays the same)
+			{
+				Config: testAccApplicationDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "updated-content", mountPath: "/etc/app/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/etc/app/config.yaml",
+					}),
+				),
+			},
+			// Step 3: Update mount_path (triggers delete+recreate)
+			{
+				Config: testAccApplicationDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config": {key: "APP_CONFIG", value: "updated-content", mountPath: "/new/path/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/new/path/config.yaml",
+					}),
+				),
+			},
+			// Step 4: Add a second file variable
+			{
+				Config: testAccApplicationDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{
+						"config":  {key: "APP_CONFIG", value: "updated-content", mountPath: "/new/path/config.yaml"},
+						"config2": {key: "DB_CONFIG", value: "db-content", mountPath: "/etc/db/config.yaml"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "environment_variable_files.*", map[string]string{
+						"key":        "APP_CONFIG",
+						"value":      "updated-content",
+						"mount_path": "/new/path/config.yaml",
+					}),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "environment_variable_files.*", map[string]string{
+						"key":        "DB_CONFIG",
+						"value":      "db-content",
+						"mount_path": "/etc/db/config.yaml",
+					}),
+				),
+			},
+			// Step 5: Remove all file variables
+			{
+				Config: testAccApplicationDefaultConfigWithEnvVarFiles(
+					testName,
+					map[string]fileVar{},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "environment_variable_files.0"),
+				),
+			},
+			// Step 6: Import
+			{
+				ResourceName:      "qovery_application.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAcc_ApplicationWithSecretFiles(t *testing.T) {
+	t.Parallel()
+	testName := "app-with-secret-files"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
+		Steps: []resource.TestStep{
+			// Step 1: Create with one secret file
+			{
+				Config: testAccApplicationDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "secret-value", mountPath: "/usr/local/secrets/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "secret-value",
+						"mount_path": "/usr/local/secrets/api-key",
+					}),
+				),
+			},
+			// Step 2: Update value only (mount_path stays the same)
+			{
+				Config: testAccApplicationDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "new-secret-value", mountPath: "/usr/local/secrets/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "new-secret-value",
+						"mount_path": "/usr/local/secrets/api-key",
+					}),
+				),
+			},
+			// Step 3: Update mount_path (triggers delete+recreate)
+			{
+				Config: testAccApplicationDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{
+						"secret": {key: "API_KEY", value: "new-secret-value", mountPath: "/new/path/api-key"},
+					},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "secret_files.*", map[string]string{
+						"key":        "API_KEY",
+						"value":      "new-secret-value",
+						"mount_path": "/new/path/api-key",
+					}),
+				),
+			},
+			// Step 4: Remove all secret files
+			{
+				Config: testAccApplicationDefaultConfigWithSecretFiles(
+					testName,
+					map[string]fileVar{},
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "secret_files.0"),
+				),
+			},
+			// Step 5: Import
+			{
+				ResourceName:            "qovery_application.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"secret_files"},
+			},
+		},
+	})
 }

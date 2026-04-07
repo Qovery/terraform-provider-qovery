@@ -75,18 +75,92 @@ func SmartAllowApiOverride() planmodifier.Bool {
 	return smartAllowApiOverrideModifier{}
 }
 
+// useUnknownForNullStringModifier sets the plan value to unknown when both config
+// and state are null. This handles the case where a new element is added to a list
+// during update — Computed attributes on the new element have no state, so they
+// would otherwise be planned as null, causing "inconsistent result after apply"
+// when the API assigns a value.
+type useUnknownForNullStringModifier struct{}
+
+func (m useUnknownForNullStringModifier) Description(_ context.Context) string {
+	return "Sets value to unknown when both config and state are null, allowing the API to compute it."
+}
+
+func (m useUnknownForNullStringModifier) MarkdownDescription(_ context.Context) string {
+	return "Sets value to unknown when both config and state are null, allowing the API to compute it."
+}
+
+func (m useUnknownForNullStringModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	if req.ConfigValue.IsNull() && req.StateValue.IsNull() {
+		resp.PlanValue = types.StringUnknown()
+	}
+}
+
+// UseUnknownForNullString returns a plan modifier that converts null to unknown
+// when a Computed attribute has no config value and no prior state (new list element).
+func UseUnknownForNullString() planmodifier.String {
+	return useUnknownForNullStringModifier{}
+}
+
+// useStateUnlessPortsChangeModifier preserves the prior state value for a Computed
+// string attribute unless the resource's "ports" attribute is changing. When ports
+// change (e.g. adding a public port), attributes like external_host may be assigned
+// or removed by the API, so they must be recomputed.
+type useStateUnlessPortsChangeModifier struct{}
+
+func (m useStateUnlessPortsChangeModifier) Description(_ context.Context) string {
+	return "Uses state value unless ports are changing, in which case the value is recomputed."
+}
+
+func (m useStateUnlessPortsChangeModifier) MarkdownDescription(_ context.Context) string {
+	return "Uses state value unless ports are changing, in which case the value is recomputed."
+}
+
+func (m useStateUnlessPortsChangeModifier) PlanModifyString(ctx context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	// No state means create — leave as unknown so the API computes it.
+	if req.State.Raw.IsNull() {
+		return
+	}
+
+	// If plan value is already known (not unknown), nothing to do.
+	if !req.PlanValue.IsUnknown() {
+		resp.PlanValue = req.StateValue
+		return
+	}
+
+	// Check if ports changed
+	var statePorts, planPorts types.List
+	stateDiags := req.State.GetAttribute(ctx, path.Root("ports"), &statePorts)
+	planDiags := req.Plan.GetAttribute(ctx, path.Root("ports"), &planPorts)
+	if !stateDiags.HasError() && !planDiags.HasError() && !statePorts.Equal(planPorts) {
+		// Ports changed — leave as unknown so API recomputes
+		resp.PlanValue = types.StringUnknown()
+		return
+	}
+
+	// Ports unchanged — preserve state value
+	resp.PlanValue = req.StateValue
+}
+
+// UseStateUnlessPortsChange returns a plan modifier for Computed string attributes
+// that preserves state unless ports configuration changes.
+func UseStateUnlessPortsChange() planmodifier.String {
+	return useStateUnlessPortsChangeModifier{}
+}
+
 // useStateUnlessNameChangesModifier uses the prior state value for a computed list
-// attribute unless the resource's "name" attribute is changing. Built-in environment
-// variables contain values derived from the service name (e.g. QOVERY_SERVICE_NAME),
-// so their values must be recomputed when the name changes.
+// attribute unless the resource's "name" or "ports" attributes are changing.
+// Built-in environment variables contain values derived from the service name
+// (e.g. QOVERY_SERVICE_NAME) and port configuration (e.g. QOVERY_KUBERNETES_CLUSTER_VPC_ID),
+// so their values must be recomputed when either changes.
 type useStateUnlessNameChangesModifier struct{}
 
 func (m useStateUnlessNameChangesModifier) Description(_ context.Context) string {
-	return "Uses state value unless the resource name is changing, in which case the value is recomputed."
+	return "Uses state value unless the resource name or ports are changing, in which case the value is recomputed."
 }
 
 func (m useStateUnlessNameChangesModifier) MarkdownDescription(_ context.Context) string {
-	return "Uses state value unless the resource name is changing, in which case the value is recomputed."
+	return "Uses state value unless the resource name or ports are changing, in which case the value is recomputed."
 }
 
 func (m useStateUnlessNameChangesModifier) PlanModifyList(ctx context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
@@ -107,7 +181,17 @@ func (m useStateUnlessNameChangesModifier) PlanModifyList(ctx context.Context, r
 		return
 	}
 
-	// Name unchanged — safe to reuse state value.
+	// Ports changing — adding/removing public ports creates/removes built-in env vars
+	// (e.g. QOVERY_KUBERNETES_CLUSTER_VPC_ID), so leave as unknown to recompute.
+	var statePorts, planPorts types.List
+	stateDiags := req.State.GetAttribute(ctx, path.Root("ports"), &statePorts)
+	planDiags := req.Plan.GetAttribute(ctx, path.Root("ports"), &planPorts)
+	// Only compare if both attributes exist (some resources don't have ports)
+	if !stateDiags.HasError() && !planDiags.HasError() && !statePorts.Equal(planPorts) {
+		return
+	}
+
+	// Nothing relevant changed — safe to reuse state value.
 	resp.PlanValue = req.StateValue
 }
 
