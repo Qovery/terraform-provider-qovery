@@ -344,6 +344,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 							Computed:             true,
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.UseStateForUnknown(),
+								UseUnknownForNullString(),
 							},
 						},
 						"name": schema.StringAttribute{
@@ -353,6 +354,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 							Computed:            true,
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.UseStateForUnknown(),
+								UseUnknownForNullString(),
 							},
 						},
 						"internal_port": schema.Int64Attribute{
@@ -620,6 +622,8 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					},
 				},
 			},
+			"environment_variable_files": environmentVariableFilesSchemaAttribute("application"),
+			"secret_files":              secretFilesSchemaAttribute("application"),
 			"healthchecks": healthchecksSchemaAttributes(true),
 			"custom_domains": schema.SetNestedAttribute{
 				Description:         "List of custom domains linked to this application.",
@@ -671,7 +675,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				MarkdownDescription: "The application external FQDN host. Only available if your application has at least one publicly accessible port.",
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					UseStateUnlessPortsChange(),
 				},
 			},
 			"internal_host": schema.StringAttribute{

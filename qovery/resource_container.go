@@ -242,6 +242,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							Computed:             true,
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.UseStateForUnknown(),
+								UseUnknownForNullString(),
 							},
 						},
 						"name": schema.StringAttribute{
@@ -251,6 +252,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							Computed:            true,
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.UseStateForUnknown(),
+								UseUnknownForNullString(),
 							},
 						},
 						"internal_port": schema.Int64Attribute{
@@ -527,6 +529,8 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					},
 				},
 			},
+			"environment_variable_files": environmentVariableFilesSchemaAttribute("container"),
+			"secret_files":              secretFilesSchemaAttribute("container"),
 			"healthchecks": healthchecksSchemaAttributes(true),
 			"arguments": schema.ListAttribute{
 				Description: "List of arguments of this container.",
@@ -590,7 +594,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: "The container external FQDN host. Only available if your container has at least one publicly accessible port.",
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					UseStateUnlessPortsChange(),
 				},
 			},
 			"internal_host": schema.StringAttribute{
