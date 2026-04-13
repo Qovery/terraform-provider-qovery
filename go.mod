@@ -5,7 +5,7 @@ go 1.26.0
 require (
 	github.com/AlekSi/pointer v1.2.0
 	github.com/adhocore/gronx v1.19.5
-	github.com/brianvoe/gofakeit/v6 v6.20.2
+	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/go-playground/validator/v10 v10.30.1
 	github.com/google/uuid v1.6.0
 	github.com/hashicorp/terraform-plugin-docs v0.24.0
