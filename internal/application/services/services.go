@@ -36,25 +36,26 @@ var (
 type Services struct {
 	repos *repositories.Repositories
 
-	CredentialsAws               credentials.AwsService
-	CredentialsScaleway          credentials.ScalewayService
-	CredentialsGcp               credentials.GcpService
-	CredentialsAzure             credentials.AzureService
-	Organization                 organization.Service
-	Project                      project.Service
-	Container                    container.Service
-	Job                          job.Service
-	ContainerRegistry            registry.Service
-	Environment                  environment.Service
-	DeploymentStage              deploymentstage.Service
-	Deployment                   newdeployment.Service
-	GitToken                     gittoken.Service
-	Helm                         helm.Service
-	HelmRepository               helmRepository.Service
-	AnnotationsGroup             annotations_group.Service
-	LabelsGroup                  labels_group.Service
-	DeploymentRestrictionService deploymentrestriction.DeploymentRestrictionService
-	TerraformService             terraformservice.Service
+	CredentialsAws                credentials.AwsService
+	CredentialsScaleway           credentials.ScalewayService
+	CredentialsGcp                credentials.GcpService
+	CredentialsAzure              credentials.AzureService
+	CredentialsEksAnywhereVsphere credentials.EksAnywhereVsphereService
+	Organization                  organization.Service
+	Project                       project.Service
+	Container                     container.Service
+	Job                           job.Service
+	ContainerRegistry             registry.Service
+	Environment                   environment.Service
+	DeploymentStage               deploymentstage.Service
+	Deployment                    newdeployment.Service
+	GitToken                      gittoken.Service
+	Helm                          helm.Service
+	HelmRepository                helmRepository.Service
+	AnnotationsGroup              annotations_group.Service
+	LabelsGroup                   labels_group.Service
+	DeploymentRestrictionService  deploymentrestriction.DeploymentRestrictionService
+	TerraformService              terraformservice.Service
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -92,6 +93,11 @@ func New(configs ...Configuration) (*Services, error) {
 	}
 
 	credentialsAzureService, err := NewCredentialsAzureService(services.repos.CredentialsAzure)
+	if err != nil {
+		return nil, err
+	}
+
+	credentialsEksAnywhereVsphereService, err := NewCredentialsEksAnywhereVsphereService(services.repos.CredentialsEksAnywhereVsphere)
 	if err != nil {
 		return nil, err
 	}
@@ -245,6 +251,7 @@ func New(configs ...Configuration) (*Services, error) {
 	services.CredentialsScaleway = credentialsScalewayService
 	services.CredentialsGcp = credentialsGcpService
 	services.CredentialsAzure = credentialsAzureService
+	services.CredentialsEksAnywhereVsphere = credentialsEksAnywhereVsphereService
 	services.Organization = organizationService
 	services.Project = projectService
 	services.Container = containerService
