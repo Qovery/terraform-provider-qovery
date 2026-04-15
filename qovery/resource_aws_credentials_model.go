@@ -46,6 +46,7 @@ func convertDomainCredentialsToAWSCredentials(creds *credentials.Credentials, pl
 		Name:            FromString(creds.Name),
 		AccessKeyId:     plan.AccessKeyId,
 		SecretAccessKey: plan.SecretAccessKey,
+		RoleArn:         plan.RoleArn,
 	}
 }
 
