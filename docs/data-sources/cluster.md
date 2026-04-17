@@ -197,6 +197,7 @@ Read-Only:
 Read-Only:
 
 - `cert_manager_parameters` (Attributes) Cert-manager configuration. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--cert_manager_parameters))
+- `eks_anywhere_parameters` (Attributes) EKS Anywhere GitOps parameters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters))
 - `metal_lb_parameters` (Attributes) MetalLB load balancer configuration. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--metal_lb_parameters))
 - `nginx_parameters` (Attributes) Nginx ingress controller configuration. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--nginx_parameters))
 
@@ -206,6 +207,47 @@ Read-Only:
 Read-Only:
 
 - `kubernetes_namespace` (String) Kubernetes namespace where cert-manager is installed.
+
+
+<a id="nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters"></a>
+### Nested Schema for `infrastructure_charts_parameters.eks_anywhere_parameters`
+
+Read-Only:
+
+- `cluster_backup` (Attributes) EKS Anywhere cluster backup parameters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--cluster_backup))
+- `git_repository` (Attributes) Git repository settings used for EKS Anywhere. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--git_repository))
+- `yaml_file_path` (String) Path to the EKS Anywhere cluster YAML file in the Git repository.
+
+<a id="nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--cluster_backup"></a>
+### Nested Schema for `infrastructure_charts_parameters.eks_anywhere_parameters.cluster_backup`
+
+Read-Only:
+
+- `enabled` (Boolean) Enable or disable EKS Anywhere cluster backup.
+- `s3` (Attributes) S3 settings used to store backup artifacts. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--cluster_backup--s3))
+
+<a id="nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--cluster_backup--s3"></a>
+### Nested Schema for `infrastructure_charts_parameters.eks_anywhere_parameters.cluster_backup.s3`
+
+Read-Only:
+
+- `bucket` (String) S3 bucket name used to store EKS Anywhere backup artifacts.
+- `key_prefix` (String) Optional S3 key prefix used for backup object keys.
+- `region` (String) AWS region where the backup bucket is hosted.
+- `role_arn` (String) IAM role ARN assumed to upload backup artifacts.
+
+
+
+<a id="nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--git_repository"></a>
+### Nested Schema for `infrastructure_charts_parameters.eks_anywhere_parameters.git_repository`
+
+Read-Only:
+
+- `branch` (String) Repository branch name.
+- `git_token_id` (String) Qovery Git token ID used to access the repository.
+- `provider` (String) Git provider (`BITBUCKET`, `GITHUB`, `GITLAB`).
+- `url` (String) Git repository URL.
+
 
 
 <a id="nestedatt--infrastructure_charts_parameters--metal_lb_parameters"></a>

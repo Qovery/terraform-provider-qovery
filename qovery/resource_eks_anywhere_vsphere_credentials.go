@@ -16,8 +16,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &eksAnywhereVsphereCredentialsResource{}
-var _ resource.ResourceWithImportState = eksAnywhereVsphereCredentialsResource{}
+var (
+	_ resource.ResourceWithConfigure   = &eksAnywhereVsphereCredentialsResource{}
+	_ resource.ResourceWithImportState = eksAnywhereVsphereCredentialsResource{}
+)
 
 type eksAnywhereVsphereCredentialsResource struct {
 	eksAnywhereVsphereCredentialsService credentials.EksAnywhereVsphereService

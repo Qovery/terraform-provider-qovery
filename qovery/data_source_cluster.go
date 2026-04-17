@@ -651,6 +651,84 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 							},
 						},
 					},
+					"eks_anywhere_parameters": schema.SingleNestedAttribute{
+						Description:         "EKS Anywhere GitOps parameters.",
+						MarkdownDescription: "EKS Anywhere GitOps parameters.",
+						Computed:            true,
+						Attributes: map[string]schema.Attribute{
+							"yaml_file_path": schema.StringAttribute{
+								Description:         "Path to the EKS Anywhere cluster YAML file in the Git repository.",
+								MarkdownDescription: "Path to the EKS Anywhere cluster YAML file in the Git repository.",
+								Computed:            true,
+							},
+							"git_repository": schema.SingleNestedAttribute{
+								Description:         "Git repository settings used for EKS Anywhere.",
+								MarkdownDescription: "Git repository settings used for EKS Anywhere.",
+								Computed:            true,
+								Attributes: map[string]schema.Attribute{
+									"url": schema.StringAttribute{
+										Description:         "Git repository URL.",
+										MarkdownDescription: "Git repository URL.",
+										Computed:            true,
+									},
+									"git_token_id": schema.StringAttribute{
+										Description:         "Qovery Git token ID used to access the repository.",
+										MarkdownDescription: "Qovery Git token ID used to access the repository.",
+										Computed:            true,
+									},
+									"branch": schema.StringAttribute{
+										Description:         "Repository branch name.",
+										MarkdownDescription: "Repository branch name.",
+										Computed:            true,
+									},
+									"provider": schema.StringAttribute{
+										Description:         "Git provider (`BITBUCKET`, `GITHUB`, `GITLAB`).",
+										MarkdownDescription: "Git provider (`BITBUCKET`, `GITHUB`, `GITLAB`).",
+										Computed:            true,
+									},
+								},
+							},
+							"cluster_backup": schema.SingleNestedAttribute{
+								Description:         "EKS Anywhere cluster backup parameters.",
+								MarkdownDescription: "EKS Anywhere cluster backup parameters.",
+								Computed:            true,
+								Attributes: map[string]schema.Attribute{
+									"enabled": schema.BoolAttribute{
+										Description:         "Enable or disable EKS Anywhere cluster backup.",
+										MarkdownDescription: "Enable or disable EKS Anywhere cluster backup.",
+										Computed:            true,
+									},
+									"s3": schema.SingleNestedAttribute{
+										Description:         "S3 settings used to store backup artifacts.",
+										MarkdownDescription: "S3 settings used to store backup artifacts.",
+										Computed:            true,
+										Attributes: map[string]schema.Attribute{
+											"bucket": schema.StringAttribute{
+												Description:         "S3 bucket name used to store EKS Anywhere backup artifacts.",
+												MarkdownDescription: "S3 bucket name used to store EKS Anywhere backup artifacts.",
+												Computed:            true,
+											},
+											"region": schema.StringAttribute{
+												Description:         "AWS region where the backup bucket is hosted.",
+												MarkdownDescription: "AWS region where the backup bucket is hosted.",
+												Computed:            true,
+											},
+											"role_arn": schema.StringAttribute{
+												Description:         "IAM role ARN assumed to upload backup artifacts.",
+												MarkdownDescription: "IAM role ARN assumed to upload backup artifacts.",
+												Computed:            true,
+											},
+											"key_prefix": schema.StringAttribute{
+												Description:         "Optional S3 key prefix used for backup object keys.",
+												MarkdownDescription: "Optional S3 key prefix used for backup object keys.",
+												Computed:            true,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
