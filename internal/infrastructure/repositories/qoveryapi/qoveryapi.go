@@ -49,6 +49,7 @@ type QoveryAPI struct {
 	CredentialsScaleway            credentials.ScalewayRepository
 	CredentialsGcp                 credentials.GcpRepository
 	CredentialsAzure               credentials.AzureRepository
+	CredentialsEksAnywhereVsphere  credentials.EksAnywhereVsphereRepository
 	Organization                   organization.Repository
 	Project                        project.Repository
 	ProjectEnvironmentVariable     variable.Repository
@@ -103,6 +104,11 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 	}
 
 	credentialsAzureAPI, err := newCredentialsAzureQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	credentialsEksAnywhereVsphereAPI, err := newCredentialsEksAnywhereVsphereQoveryAPI(apiClient)
 	if err != nil {
 		return nil, err
 	}
@@ -254,6 +260,7 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		CredentialsScaleway:            credentialsScalewayAPI,
 		CredentialsGcp:                 credentialsGcpAPI,
 		CredentialsAzure:               credentialsAzureAPI,
+		CredentialsEksAnywhereVsphere:  credentialsEksAnywhereVsphereAPI,
 		Organization:                   organizationAPI,
 		Project:                        projectAPI,
 		ProjectEnvironmentVariable:     projectEnvironmentVariableAPI,

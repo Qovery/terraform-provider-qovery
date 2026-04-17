@@ -30,9 +30,11 @@ const (
 	instanceTypeAutoPilot = "AUTO_PILOT"
 
 	// Infrastructure charts parameter keys
-	infraChartsNginxKey       = "nginx_parameters"
-	infraChartsCertManagerKey = "cert_manager_parameters"
-	infraChartsMetalLbKey     = "metal_lb_parameters"
+	infraChartsNginxKey         = "nginx_parameters"
+	infraChartsCertManagerKey   = "cert_manager_parameters"
+	infraChartsMetalLbKey       = "metal_lb_parameters"
+	infraChartsEksAnywhereKey   = "eks_anywhere_parameters"
+	infraChartsClusterBackupKey = "cluster_backup"
 )
 
 type Cluster struct {
@@ -1463,6 +1465,32 @@ func createInfrastructureChartsParametersAttrTypes() map[string]attr.Type {
 				"ip_address_pools": types.ListType{ElemType: types.StringType},
 			},
 		},
+		infraChartsEksAnywhereKey: types.ObjectType{
+			AttrTypes: map[string]attr.Type{
+				"yaml_file_path": types.StringType,
+				"git_repository": types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"url":          types.StringType,
+						"git_token_id": types.StringType,
+						"branch":       types.StringType,
+						"provider":     types.StringType,
+					},
+				},
+				infraChartsClusterBackupKey: types.ObjectType{
+					AttrTypes: map[string]attr.Type{
+						"enabled": types.BoolType,
+						"s3": types.ObjectType{
+							AttrTypes: map[string]attr.Type{
+								"bucket":     types.StringType,
+								"region":     types.StringType,
+								"role_arn":   types.StringType,
+								"key_prefix": types.StringType,
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 }
 
@@ -1533,6 +1561,103 @@ func toQoveryInfrastructureChartsParameters(obj types.Object) (*qovery.ClusterIn
 			metalLbParams.IpAddressPools = pools
 		}
 		params.MetalLbParameters = metalLbParams
+	}
+
+	// Parse EKS Anywhere parameters
+	if eksAnywhereAttr, ok := obj.Attributes()[infraChartsEksAnywhereKey]; ok && !eksAnywhereAttr.IsNull() {
+		eksAnywhereObj := eksAnywhereAttr.(types.Object)
+		eksAnywhereAttrs := eksAnywhereObj.Attributes()
+
+		yamlFilePathAttr, ok := eksAnywhereAttrs["yaml_file_path"]
+		if !ok || yamlFilePathAttr.IsNull() || yamlFilePathAttr.IsUnknown() {
+			return nil, fmt.Errorf("eks_anywhere_parameters.yaml_file_path is required")
+		}
+		yamlFilePath := yamlFilePathAttr.(types.String).ValueString()
+
+		gitRepositoryAttr, ok := eksAnywhereAttrs["git_repository"]
+		if !ok || gitRepositoryAttr.IsNull() || gitRepositoryAttr.IsUnknown() {
+			return nil, fmt.Errorf("eks_anywhere_parameters.git_repository is required")
+		}
+		gitRepositoryObj := gitRepositoryAttr.(types.Object)
+		gitRepositoryAttrs := gitRepositoryObj.Attributes()
+
+		urlAttr, ok := gitRepositoryAttrs["url"]
+		if !ok || urlAttr.IsNull() || urlAttr.IsUnknown() {
+			return nil, fmt.Errorf("eks_anywhere_parameters.git_repository.url is required")
+		}
+		url := urlAttr.(types.String).ValueString()
+
+		gitTokenIDAttr, ok := gitRepositoryAttrs["git_token_id"]
+		if !ok || gitTokenIDAttr.IsNull() || gitTokenIDAttr.IsUnknown() {
+			return nil, fmt.Errorf("eks_anywhere_parameters.git_repository.git_token_id is required")
+		}
+		gitTokenID := gitTokenIDAttr.(types.String).ValueString()
+
+		gitRepository := qovery.NewClusterEksAnywhereGitRepository(url, gitTokenID)
+
+		if branchAttr, ok := gitRepositoryAttrs["branch"]; ok && !branchAttr.IsNull() && !branchAttr.IsUnknown() {
+			branch := branchAttr.(types.String).ValueString()
+			gitRepository.Branch = &branch
+		}
+
+		if providerAttr, ok := gitRepositoryAttrs["provider"]; ok && !providerAttr.IsNull() && !providerAttr.IsUnknown() {
+			providerValue := providerAttr.(types.String).ValueString()
+			provider, err := qovery.NewGitProviderEnumFromValue(providerValue)
+			if err != nil {
+				return nil, fmt.Errorf("invalid eks_anywhere_parameters.git_repository.provider: %w", err)
+			}
+			gitRepository.Provider = provider
+		}
+
+		eksAnywhereParams := qovery.NewClusterInfrastructureEksAnywhereParameters(*gitRepository, yamlFilePath)
+
+		if clusterBackupAttr, ok := eksAnywhereAttrs[infraChartsClusterBackupKey]; ok && !clusterBackupAttr.IsNull() && !clusterBackupAttr.IsUnknown() {
+			clusterBackupObj := clusterBackupAttr.(types.Object)
+			clusterBackupAttrs := clusterBackupObj.Attributes()
+
+			clusterBackup := map[string]interface{}{}
+
+			if enabledAttr, ok := clusterBackupAttrs["enabled"]; ok && !enabledAttr.IsNull() && !enabledAttr.IsUnknown() {
+				clusterBackup["enabled"] = enabledAttr.(types.Bool).ValueBool()
+			}
+
+			s3Attr, ok := clusterBackupAttrs["s3"]
+			if !ok || s3Attr.IsNull() || s3Attr.IsUnknown() {
+				return nil, fmt.Errorf("eks_anywhere_parameters.cluster_backup.s3 is required")
+			}
+			s3Obj := s3Attr.(types.Object)
+			s3Attrs := s3Obj.Attributes()
+
+			bucketAttr, ok := s3Attrs["bucket"]
+			if !ok || bucketAttr.IsNull() || bucketAttr.IsUnknown() {
+				return nil, fmt.Errorf("eks_anywhere_parameters.cluster_backup.s3.bucket is required")
+			}
+			regionAttr, ok := s3Attrs["region"]
+			if !ok || regionAttr.IsNull() || regionAttr.IsUnknown() {
+				return nil, fmt.Errorf("eks_anywhere_parameters.cluster_backup.s3.region is required")
+			}
+			roleArnAttr, ok := s3Attrs["role_arn"]
+			if !ok || roleArnAttr.IsNull() || roleArnAttr.IsUnknown() {
+				return nil, fmt.Errorf("eks_anywhere_parameters.cluster_backup.s3.role_arn is required")
+			}
+
+			s3 := map[string]interface{}{
+				"bucket":   bucketAttr.(types.String).ValueString(),
+				"region":   regionAttr.(types.String).ValueString(),
+				"role_arn": roleArnAttr.(types.String).ValueString(),
+			}
+			if keyPrefixAttr, ok := s3Attrs["key_prefix"]; ok && !keyPrefixAttr.IsNull() && !keyPrefixAttr.IsUnknown() {
+				s3["key_prefix"] = keyPrefixAttr.(types.String).ValueString()
+			}
+			clusterBackup["s3"] = s3
+
+			if eksAnywhereParams.AdditionalProperties == nil {
+				eksAnywhereParams.AdditionalProperties = make(map[string]interface{})
+			}
+			eksAnywhereParams.AdditionalProperties[infraChartsClusterBackupKey] = clusterBackup
+		}
+
+		params.EksAnywhereParameters = eksAnywhereParams
 	}
 
 	return params, nil
@@ -1611,6 +1736,77 @@ func fromQoveryInfrastructureChartsParameters(params *qovery.ClusterInfrastructu
 		attrVals[infraChartsMetalLbKey] = types.ObjectValueMust(metalLbAttrTypes, metalLbVals)
 	} else {
 		attrVals[infraChartsMetalLbKey] = types.ObjectNull(metalLbAttrTypes)
+	}
+
+	// Convert EKS Anywhere parameters
+	eksAnywhereAttrTypes := attrTypes[infraChartsEksAnywhereKey].(types.ObjectType).AttrTypes
+	if params.EksAnywhereParameters != nil {
+		eksAnywhere := params.EksAnywhereParameters
+
+		gitRepositoryAttrTypes := eksAnywhereAttrTypes["git_repository"].(types.ObjectType).AttrTypes
+		gitRepositoryVals := map[string]attr.Value{
+			"url":          types.StringValue(eksAnywhere.GitRepository.Url),
+			"git_token_id": types.StringValue(eksAnywhere.GitRepository.GitTokenId),
+			"branch":       types.StringNull(),
+			"provider":     types.StringNull(),
+		}
+		if eksAnywhere.GitRepository.Branch != nil {
+			gitRepositoryVals["branch"] = types.StringValue(*eksAnywhere.GitRepository.Branch)
+		}
+		if eksAnywhere.GitRepository.Provider != nil {
+			gitRepositoryVals["provider"] = types.StringValue(string(*eksAnywhere.GitRepository.Provider))
+		}
+
+		eksAnywhereVals := map[string]attr.Value{
+			"yaml_file_path": types.StringValue(eksAnywhere.YamlFilePath),
+			"git_repository": types.ObjectValueMust(gitRepositoryAttrTypes, gitRepositoryVals),
+			infraChartsClusterBackupKey: types.ObjectNull(
+				eksAnywhereAttrTypes[infraChartsClusterBackupKey].(types.ObjectType).AttrTypes,
+			),
+		}
+
+		clusterBackupAttrTypes := eksAnywhereAttrTypes[infraChartsClusterBackupKey].(types.ObjectType).AttrTypes
+		clusterBackupS3AttrTypes := clusterBackupAttrTypes["s3"].(types.ObjectType).AttrTypes
+		if rawClusterBackup, ok := eksAnywhere.AdditionalProperties[infraChartsClusterBackupKey]; ok {
+			if clusterBackupRawMap, ok := rawClusterBackup.(map[string]interface{}); ok {
+				clusterBackupVals := map[string]attr.Value{
+					"enabled": types.BoolNull(),
+					"s3":      types.ObjectNull(clusterBackupS3AttrTypes),
+				}
+
+				if enabledRaw, ok := clusterBackupRawMap["enabled"].(bool); ok {
+					clusterBackupVals["enabled"] = types.BoolValue(enabledRaw)
+				}
+
+				if s3Raw, ok := clusterBackupRawMap["s3"].(map[string]interface{}); ok {
+					s3Vals := map[string]attr.Value{
+						"bucket":     types.StringNull(),
+						"region":     types.StringNull(),
+						"role_arn":   types.StringNull(),
+						"key_prefix": types.StringNull(),
+					}
+					if bucketRaw, ok := s3Raw["bucket"].(string); ok {
+						s3Vals["bucket"] = types.StringValue(bucketRaw)
+					}
+					if regionRaw, ok := s3Raw["region"].(string); ok {
+						s3Vals["region"] = types.StringValue(regionRaw)
+					}
+					if roleArnRaw, ok := s3Raw["role_arn"].(string); ok {
+						s3Vals["role_arn"] = types.StringValue(roleArnRaw)
+					}
+					if keyPrefixRaw, ok := s3Raw["key_prefix"].(string); ok {
+						s3Vals["key_prefix"] = types.StringValue(keyPrefixRaw)
+					}
+					clusterBackupVals["s3"] = types.ObjectValueMust(clusterBackupS3AttrTypes, s3Vals)
+				}
+
+				eksAnywhereVals[infraChartsClusterBackupKey] = types.ObjectValueMust(clusterBackupAttrTypes, clusterBackupVals)
+			}
+		}
+
+		attrVals[infraChartsEksAnywhereKey] = types.ObjectValueMust(eksAnywhereAttrTypes, eksAnywhereVals)
+	} else {
+		attrVals[infraChartsEksAnywhereKey] = types.ObjectNull(eksAnywhereAttrTypes)
 	}
 
 	return types.ObjectValueMust(attrTypes, attrVals)

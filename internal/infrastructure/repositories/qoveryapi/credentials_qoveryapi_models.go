@@ -48,6 +48,12 @@ func newDomainCredentialsFromQovery(organizationID string, creds *qovery.Cluster
 			OrganizationID: organizationID,
 			Name:           castedCreds.GetName(),
 		})
+	case *qovery.EksAnywhereVsphereClusterCredentials:
+		return credentials.NewCredentials(credentials.NewCredentialsParams{
+			CredentialsID:  castedCreds.GetId(),
+			OrganizationID: organizationID,
+			Name:           castedCreds.GetName(),
+		})
 	default:
 		return nil, errors.New("unknown credentials type")
 	}
@@ -100,6 +106,27 @@ func newQoveryAzureCredentialsRequestFromDomain(request credentials.UpsertAzureR
 		AzureSubscriptionId: request.AzureSubscriptionId,
 		AzureTenantId:       request.AzureTenantId,
 	}
+}
+
+// newQoveryEksAnywhereVsphereCredentialsRequestFromDomain takes the domain request credentials.UpsertEksAnywhereVsphereRequest and turns it into a qovery.AwsCredentialsRequest to make the api call.
+func newQoveryEksAnywhereVsphereCredentialsRequestFromDomain(request credentials.UpsertEksAnywhereVsphereRequest) qovery.AwsCredentialsRequest {
+	if creds := request.StaticCredentials; creds != nil {
+		return qovery.EksAnywhereVsphereStaticCredentialsRequestAsAwsCredentialsRequest(&qovery.EksAnywhereVsphereStaticCredentialsRequest{
+			Type:            "EKS_ANYWHERE_VSPHERE_STATIC",
+			Name:            request.Name,
+			VsphereUser:     request.VsphereUser,
+			VspherePassword: request.VspherePassword,
+			AccessKeyId:     creds.AccessKeyID,
+			SecretAccessKey: creds.SecretAccessKey,
+		})
+	}
+	return qovery.EksAnywhereVsphereRoleCredentialsRequestAsAwsCredentialsRequest(&qovery.EksAnywhereVsphereRoleCredentialsRequest{
+		Type:            "EKS_ANYWHERE_VSPHERE_ROLE",
+		Name:            request.Name,
+		VsphereUser:     request.VsphereUser,
+		VspherePassword: request.VspherePassword,
+		RoleArn:         request.RoleCredentials.RoleArn,
+	})
 }
 
 // newDomainAzureCredentialsFromQovery takes a qovery.ClusterCredentials returned by the API client and turns it into the domain model credentials.AzureCredentials.
