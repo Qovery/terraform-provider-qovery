@@ -38,6 +38,7 @@ var (
 	clusterStates = clientEnumToStringArray([]qovery.StateEnum{
 		qovery.STATEENUM_DEPLOYED,
 		qovery.STATEENUM_STOPPED,
+		qovery.STATEENUM_READY,
 	})
 	clusterStateDefault = string(qovery.STATEENUM_DEPLOYED)
 
@@ -660,6 +661,12 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+			},
+			"labels_group_ids": schema.SetAttribute{
+				Description:         "List of labels group ids (EKS clusters only).",
+				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).",
+				Optional:            true,
+				ElementType:         types.StringType,
 			},
 			"kubeconfig": schema.StringAttribute{
 				Description:         "Kubeconfig for connecting to the cluster. Required for PARTIALLY_MANAGED (EKS Anywhere) clusters.",

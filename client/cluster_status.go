@@ -42,6 +42,7 @@ func (c *Client) updateClusterStatus(ctx context.Context, organizationID string,
 			return c.deployCluster(ctx, organizationID, cluster)
 		case qovery.CLUSTERSTATEENUM_STOPPED:
 			return c.stopCluster(ctx, organizationID, cluster)
+		case qovery.CLUSTERSTATEENUM_READY:
 		}
 	}
 

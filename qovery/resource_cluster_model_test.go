@@ -3,6 +3,7 @@
 package qovery
 
 import (
+	"context"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -10,7 +11,16 @@ import (
 	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/qovery/terraform-provider-qovery/client"
 )
+
+func makeTestClusterInfo(credID string) *qovery.ClusterCloudProviderInfo {
+	id := credID
+	return &qovery.ClusterCloudProviderInfo{
+		Credentials: &qovery.ClusterCloudProviderInfoCredentials{Id: &id},
+	}
+}
 
 func TestCluster_toUpsertClusterRequest_KarpenterValidation(t *testing.T) {
 	tests := []struct {
@@ -569,3 +579,239 @@ func TestFromQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 		})
 	}
 }
+
+func TestCluster_toUpsertClusterRequest_LabelsGroupIds(t *testing.T) {
+	tests := []struct {
+		name        string
+		labelsSet   types.Set
+		expectedIds []string
+	}{
+		{
+			name:        "null labels_group_ids -> nil LabelsGroups",
+			labelsSet:   types.SetNull(types.StringType),
+			expectedIds: nil,
+		},
+		{
+			name: "two labels_group_ids -> two ClusterLabelsGroup entries",
+			labelsSet: types.SetValueMust(types.StringType, []attr.Value{
+				types.StringValue("11111111-1111-1111-1111-111111111111"),
+				types.StringValue("22222222-2222-2222-2222-222222222222"),
+			}),
+			expectedIds: []string{
+				"11111111-1111-1111-1111-111111111111",
+				"22222222-2222-2222-2222-222222222222",
+			},
+		},
+		{
+			// Empty set (labels_group_ids = []) produces an empty slice, not nil.
+			// This differs from null: the API receives [] rather than omitting the field.
+			name:        "empty set labels_group_ids -> empty LabelsGroups slice",
+			labelsSet:   types.SetValueMust(types.StringType, []attr.Value{}),
+			expectedIds: []string{},
+		},
+		{
+			// Unknown set (e.g. referencing a labels group not yet created) -> nil,
+			// so the field is omitted from the request during planning.
+			name:        "unknown labels_group_ids -> nil LabelsGroups",
+			labelsSet:   types.SetUnknown(types.StringType),
+			expectedIds: nil,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			cluster := Cluster{
+				OrganizationId:  types.StringValue("org-123"),
+				CredentialsId:   types.StringValue("cred-123"),
+				Name:            types.StringValue("test-cluster"),
+				CloudProvider:   types.StringValue("SCW"),
+				Region:          types.StringValue("fr-par"),
+				KubernetesMode:  types.StringValue("MANAGED"),
+				State:           types.StringValue("DEPLOYED"),
+				InstanceType:    types.StringValue("DEV1-L"),
+				MinRunningNodes: types.Int64Value(3),
+				MaxRunningNodes: types.Int64Value(10),
+				DiskSize:        types.Int64Value(50),
+				Features:        types.ObjectNull(createFeaturesAttrTypes()),
+				LabelsGroupIds:  tc.labelsSet,
+			}
+
+			params, err := cluster.toUpsertClusterRequest(nil)
+			require.NoError(t, err)
+			require.NotNil(t, params)
+
+			if tc.expectedIds == nil {
+				assert.Nil(t, params.ClusterRequest.LabelsGroups)
+				return
+			}
+
+			gotIds := make([]string, 0, len(params.ClusterRequest.LabelsGroups))
+			for _, lg := range params.ClusterRequest.LabelsGroups {
+				require.NotNil(t, lg.Id)
+				gotIds = append(gotIds, *lg.Id)
+			}
+			assert.ElementsMatch(t, tc.expectedIds, gotIds)
+		})
+	}
+}
+
+func TestCluster_convertResponseToCluster_LabelsGroupIds(t *testing.T) {
+	ctx := context.Background()
+
+	id1 := "11111111-1111-1111-1111-111111111111"
+	id2 := "22222222-2222-2222-2222-222222222222"
+
+	clusterResp := &qovery.Cluster{
+		Id:            "cluster-123",
+		Name:          "c",
+		CloudProvider: qovery.CLOUDVENDORENUM_AWS,
+		Region:        "us-east-1",
+		LabelsGroups: []qovery.ClusterLabelsGroup{
+			{Id: &id1},
+			{Id: &id2},
+		},
+	}
+	res := &client.ClusterResponse{
+		OrganizationID:      "org-123",
+		ClusterResponse:     clusterResp,
+		ClusterInfo:         makeTestClusterInfo("cred-123"),
+		ClusterRoutingTable: &client.ClusterRoutingTable{},
+	}
+
+	t.Run("plan has non-null labels_group_ids -> populated set", func(t *testing.T) {
+		t.Parallel()
+		initialPlan := Cluster{
+			LabelsGroupIds: types.SetValueMust(types.StringType, []attr.Value{types.StringValue(id1)}),
+		}
+
+		out := convertResponseToCluster(ctx, res, initialPlan)
+
+		require.False(t, out.LabelsGroupIds.IsNull())
+		elems := out.LabelsGroupIds.Elements()
+		gotIds := make([]string, 0, len(elems))
+		for _, e := range elems {
+			gotIds = append(gotIds, e.(types.String).ValueString())
+		}
+		assert.ElementsMatch(t, []string{id1, id2}, gotIds)
+	})
+
+	t.Run("plan has null labels_group_ids -> null set even when response has labels", func(t *testing.T) {
+		t.Parallel()
+		initialPlan := Cluster{
+			LabelsGroupIds: types.SetNull(types.StringType),
+		}
+
+		out := convertResponseToCluster(ctx, res, initialPlan)
+
+		assert.True(t, out.LabelsGroupIds.IsNull())
+	})
+
+	t.Run("response with nil Id in ClusterLabelsGroup -> entry is skipped", func(t *testing.T) {
+		t.Parallel()
+		// Malformed API response: one entry has a nil Id. It must be silently skipped.
+		nilIdResp := &qovery.Cluster{
+			Id:            "cluster-456",
+			Name:          "c",
+			CloudProvider: qovery.CLOUDVENDORENUM_AWS,
+			Region:        "us-east-1",
+			LabelsGroups: []qovery.ClusterLabelsGroup{
+				{Id: &id1},
+				{Id: nil},
+			},
+		}
+		nilIdRes := &client.ClusterResponse{
+			OrganizationID:      "org-123",
+			ClusterResponse:     nilIdResp,
+			ClusterInfo:         makeTestClusterInfo("cred-123"),
+			ClusterRoutingTable: &client.ClusterRoutingTable{},
+		}
+		initialPlan := Cluster{
+			LabelsGroupIds: types.SetValueMust(types.StringType, []attr.Value{types.StringValue(id1)}),
+		}
+
+		out := convertResponseToCluster(ctx, nilIdRes, initialPlan)
+
+		require.False(t, out.LabelsGroupIds.IsNull())
+		elems := out.LabelsGroupIds.Elements()
+		gotIds := make([]string, 0, len(elems))
+		for _, e := range elems {
+			gotIds = append(gotIds, e.(types.String).ValueString())
+		}
+		assert.ElementsMatch(t, []string{id1}, gotIds)
+	})
+}
+
+func TestCluster_toUpsertClusterRequest_DesiredState(t *testing.T) {
+	tests := []struct {
+		name          string
+		state         string
+		expectedState qovery.ClusterStateEnum
+	}{
+		{"READY", "READY", qovery.CLUSTERSTATEENUM_READY},
+		{"STOPPED", "STOPPED", qovery.CLUSTERSTATEENUM_STOPPED},
+		{"DEPLOYED", "DEPLOYED", qovery.CLUSTERSTATEENUM_DEPLOYED},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			cluster := Cluster{
+				OrganizationId:  types.StringValue("org-123"),
+				CredentialsId:   types.StringValue("cred-123"),
+				Name:            types.StringValue("test-cluster"),
+				CloudProvider:   types.StringValue("SCW"),
+				Region:          types.StringValue("fr-par"),
+				KubernetesMode:  types.StringValue("MANAGED"),
+				State:           types.StringValue(tc.state),
+				InstanceType:    types.StringValue("DEV1-L"),
+				MinRunningNodes: types.Int64Value(1),
+				MaxRunningNodes: types.Int64Value(1),
+				DiskSize:        types.Int64Value(20),
+				Features:        types.ObjectNull(createFeaturesAttrTypes()),
+			}
+
+			params, err := cluster.toUpsertClusterRequest(nil)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedState, params.DesiredState)
+		})
+	}
+}
+
+func TestCluster_convertResponseToCluster_State(t *testing.T) {
+	ctx := context.Background()
+
+	tests := []struct {
+		name          string
+		apiState      qovery.ClusterStateEnum
+		expectedState string
+	}{
+		{"READY", qovery.CLUSTERSTATEENUM_READY, "READY"},
+		{"STOPPED", qovery.CLUSTERSTATEENUM_STOPPED, "STOPPED"},
+		{"DEPLOYED", qovery.CLUSTERSTATEENUM_DEPLOYED, "DEPLOYED"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			state := tc.apiState
+			res := &client.ClusterResponse{
+				OrganizationID: "org-123",
+				ClusterResponse: &qovery.Cluster{
+					Id:            "cluster-123",
+					Name:          "c",
+					CloudProvider: qovery.CLOUDVENDORENUM_AWS,
+					Region:        "us-east-1",
+					Status:        &state,
+				},
+				ClusterInfo:         makeTestClusterInfo("cred-123"),
+				ClusterRoutingTable: &client.ClusterRoutingTable{},
+			}
+
+			out := convertResponseToCluster(ctx, res, Cluster{})
+			assert.Equal(t, tc.expectedState, out.State.ValueString())
+		})
+	}
+}
+

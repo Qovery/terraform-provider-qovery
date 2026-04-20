@@ -56,6 +56,7 @@ type Cluster struct {
 	Kubeconfig                     types.String `tfsdk:"kubeconfig"`
 	InfrastructureOutputs          types.Object `tfsdk:"infrastructure_outputs"`
 	InfrastructureChartsParameters types.Object `tfsdk:"infrastructure_charts_parameters"`
+	LabelsGroupIds                 types.Set    `tfsdk:"labels_group_ids"`
 }
 
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
@@ -292,6 +293,15 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		maxRunningNodes = ToInt32Pointer(c.MaxRunningNodes)
 	}
 
+	var labelsGroups []qovery.ClusterLabelsGroup
+	if !c.LabelsGroupIds.IsNull() && !c.LabelsGroupIds.IsUnknown() {
+		labelsGroups = make([]qovery.ClusterLabelsGroup, 0, len(c.LabelsGroupIds.Elements()))
+		for _, id := range c.LabelsGroupIds.Elements() {
+			idStr := id.(types.String).ValueString()
+			labelsGroups = append(labelsGroups, qovery.ClusterLabelsGroup{Id: &idStr})
+		}
+	}
+
 	return &client.ClusterUpsertParams{
 		ClusterCloudProviderRequest: clusterCloudProviderRequest,
 		ClusterRequest: qovery.ClusterRequest{
@@ -308,6 +318,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			Production:                     ToBoolPointer(c.Production),
 			Features:                       features,
 			InfrastructureChartsParameters: infraChartsParams,
+			LabelsGroups:                   labelsGroups,
 		},
 		ClusterRoutingTable:  routingTable.toUpsertRequest(),
 		AdvancedSettingsJson: ToString(c.AdvancedSettingsJson),
@@ -337,6 +348,13 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 	isPartiallyManaged := res.ClusterResponse.Kubernetes != nil &&
 		*res.ClusterResponse.Kubernetes == qovery.KUBERNETESENUM_PARTIALLY_MANAGED
 
+	labelsGroupIds := make([]string, 0, len(res.ClusterResponse.LabelsGroups))
+	for _, lg := range res.ClusterResponse.LabelsGroups {
+		if lg.Id != nil {
+			labelsGroupIds = append(labelsGroupIds, *lg.Id)
+		}
+	}
+
 	cluster := Cluster{
 		Id:                             FromString(res.ClusterResponse.Id),
 		CredentialsId:                  FromStringPointer(res.ClusterInfo.Credentials.Id),
@@ -350,6 +368,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		State:                          fromClientEnumPointer(res.ClusterResponse.Status),
 		AdvancedSettingsJson:           FromString(res.AdvancedSettingsJson),
 		InfrastructureChartsParameters: fromQoveryInfrastructureChartsParameters(res.ClusterResponse.InfrastructureChartsParameters),
+		LabelsGroupIds:                 fromLabelsGroupList(ctx, initialPlan.LabelsGroupIds, labelsGroupIds),
 	}
 
 	// For PARTIALLY_MANAGED (EKS Anywhere) clusters, these fields are not applicable
