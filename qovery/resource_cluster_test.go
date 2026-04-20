@@ -87,10 +87,11 @@ func TestAcc_Cluster(t *testing.T) {
 			},
 			// Import
 			{
-				ResourceName:        "qovery_cluster.test",
-				ImportState:         true,
-				ImportStateVerify:   true,
-				ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
+				ResourceName:            "qovery_cluster.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
+				ImportStateVerifyIgnore: []string{"advanced_settings_json"},
 			},
 		},
 	})
@@ -116,10 +117,11 @@ func TestAcc_ClusterWithStaticIP(t *testing.T) {
 				),
 			},
 			{
-				ResourceName:        "qovery_cluster.test",
-				ImportState:         true,
-				ImportStateVerify:   true,
-				ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
+				ResourceName:            "qovery_cluster.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
+				ImportStateVerifyIgnore: []string{"advanced_settings_json"},
 			},
 		},
 	})
@@ -164,9 +166,10 @@ func TestAcc_ClusterWithVpcPeering(t *testing.T) {
 // (config only, no cloud infrastructure provisioned) across all supported providers.
 func TestAcc_ClusterWithReadyState(t *testing.T) {
 	testCases := []struct {
-		name   string
-		config func(string) string
-		checks []resource.TestCheckFunc
+		name                    string
+		config                  func(string) string
+		checks                  []resource.TestCheckFunc
+		importStateVerifyIgnore []string
 	}{
 		{
 			name: "aws_eks",
@@ -177,6 +180,7 @@ func TestAcc_ClusterWithReadyState(t *testing.T) {
 				resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 				resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
 			},
+			importStateVerifyIgnore: []string{"advanced_settings_json"},
 		},
 		{
 			name: "scw",
@@ -187,6 +191,7 @@ func TestAcc_ClusterWithReadyState(t *testing.T) {
 				resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "SCW"),
 				resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
 			},
+			importStateVerifyIgnore: []string{"advanced_settings_json"},
 		},
 		{
 			name: "azure",
@@ -197,6 +202,7 @@ func TestAcc_ClusterWithReadyState(t *testing.T) {
 				resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AZURE"),
 				resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
 			},
+			importStateVerifyIgnore: []string{"advanced_settings_json"},
 		},
 		{
 			name: "gcp",
@@ -207,6 +213,8 @@ func TestAcc_ClusterWithReadyState(t *testing.T) {
 				resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "GCP"),
 				resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
 			},
+			// GCP AUTO_PILOT returns sentinel INT_MAX for min/max_running_nodes — ignore on import.
+			importStateVerifyIgnore: []string{"advanced_settings_json", "min_running_nodes", "max_running_nodes"},
 		},
 	}
 
@@ -232,10 +240,11 @@ func TestAcc_ClusterWithReadyState(t *testing.T) {
 						Check:  resource.ComposeAggregateTestCheckFunc(checks...),
 					},
 					{
-						ResourceName:        "qovery_cluster.test",
-						ImportState:         true,
-						ImportStateVerify:   true,
-						ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
+						ResourceName:            "qovery_cluster.test",
+						ImportState:             true,
+						ImportStateVerify:       true,
+						ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
+						ImportStateVerifyIgnore: tc.importStateVerifyIgnore,
 					},
 				},
 			})
@@ -440,7 +449,7 @@ resource "qovery_cluster" "test" {
   organization_id   = "%s"
   name              = "%s"
   cloud_provider    = "SCW"
-  region            = "fr-par"
+  region            = "pl-waw-1"
   kubernetes_mode   = "MANAGED"
   instance_type     = "DEV1-L"
   min_running_nodes = 1
@@ -470,16 +479,14 @@ resource "qovery_cluster" "test" {
 func testAccClusterGCPReadyConfig(testName string) string {
 	return fmt.Sprintf(`
 resource "qovery_cluster" "test" {
-  credentials_id    = "%s"
-  organization_id   = "%s"
-  name              = "%s"
-  cloud_provider    = "GCP"
-  region            = "europe-west9"
-  kubernetes_mode   = "MANAGED"
-  instance_type     = "AUTO_PILOT"
-  min_running_nodes = 3
-  max_running_nodes = 200
-  state             = "READY"
+  credentials_id  = "%s"
+  organization_id = "%s"
+  name            = "%s"
+  cloud_provider  = "GCP"
+  region          = "europe-west9"
+  kubernetes_mode = "MANAGED"
+  instance_type   = "AUTO_PILOT"
+  state           = "READY"
 }
 `, getTestGCPCredentialsID(), getTestOrganizationID(), generateTestName(testName))
 }
