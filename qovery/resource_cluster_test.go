@@ -77,6 +77,14 @@ func TestAcc_Cluster(t *testing.T) {
 					resource.TestCheckNoResourceAttr("qovery_cluster.test", "labels_group_ids"),
 				),
 			},
+			// Set advanced_settings_json
+			{
+				Config: testAccClusterKarpenterConfigWithAdvancedSettings(testName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttrSet("qovery_cluster.test", "advanced_settings_json"),
+				),
+			},
 			// Import
 			{
 				ResourceName:        "qovery_cluster.test",
@@ -328,6 +336,40 @@ resource "qovery_cluster" "test" {
 
 func testAccClusterKarpenterConfigWithDescription(testName, description string) string {
 	return testAccClusterKarpenterConfig(testName, description, false)
+}
+
+func testAccClusterKarpenterConfigWithAdvancedSettings(testName string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id  = "%s"
+  organization_id = "%s"
+  name            = "%s"
+  cloud_provider  = "AWS"
+  region          = "eu-west-3"
+  kubernetes_mode = "MANAGED"
+  state           = "READY"
+
+  features = {
+    vpc_subnet = "10.0.0.0/16"
+    karpenter = {
+      spot_enabled                 = true
+      disk_size_in_gib             = 50
+      default_service_architecture = "AMD64"
+      qovery_node_pools = {
+        requirements = [
+          { key = "InstanceSize",   operator = "In", values = ["small", "medium", "large", "xlarge", "2xlarge"] },
+          { key = "InstanceFamily", operator = "In", values = ["t3", "t3a", "m5", "m5a", "c5", "c5a"] },
+          { key = "Arch",           operator = "In", values = ["AMD64"] },
+        ]
+      }
+    }
+  }
+
+  advanced_settings_json = jsonencode({
+    "loki.log_retention_in_week" = 2
+  })
+}
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName))
 }
 
 func testAccClusterKarpenterConfigWithStaticIP(testName string) string {

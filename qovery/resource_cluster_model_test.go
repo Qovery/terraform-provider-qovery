@@ -740,24 +740,79 @@ func TestCluster_convertResponseToCluster_LabelsGroupIds(t *testing.T) {
 	})
 }
 
-func TestCluster_toUpsertClusterRequest_ReadyState(t *testing.T) {
-	cluster := Cluster{
-		OrganizationId:  types.StringValue("org-123"),
-		CredentialsId:   types.StringValue("cred-123"),
-		Name:            types.StringValue("test-cluster"),
-		CloudProvider:   types.StringValue("SCW"),
-		Region:          types.StringValue("fr-par"),
-		KubernetesMode:  types.StringValue("MANAGED"),
-		State:           types.StringValue("READY"),
-		InstanceType:    types.StringValue("DEV1-L"),
-		MinRunningNodes: types.Int64Value(1),
-		MaxRunningNodes: types.Int64Value(1),
-		DiskSize:        types.Int64Value(20),
-		Features:        types.ObjectNull(createFeaturesAttrTypes()),
+func TestCluster_toUpsertClusterRequest_DesiredState(t *testing.T) {
+	tests := []struct {
+		name          string
+		state         string
+		expectedState qovery.ClusterStateEnum
+	}{
+		{"READY", "READY", qovery.CLUSTERSTATEENUM_READY},
+		{"STOPPED", "STOPPED", qovery.CLUSTERSTATEENUM_STOPPED},
+		{"DEPLOYED", "DEPLOYED", qovery.CLUSTERSTATEENUM_DEPLOYED},
 	}
 
-	params, err := cluster.toUpsertClusterRequest(nil)
-	require.NoError(t, err)
-	assert.Equal(t, qovery.CLUSTERSTATEENUM_READY, params.DesiredState)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			cluster := Cluster{
+				OrganizationId:  types.StringValue("org-123"),
+				CredentialsId:   types.StringValue("cred-123"),
+				Name:            types.StringValue("test-cluster"),
+				CloudProvider:   types.StringValue("SCW"),
+				Region:          types.StringValue("fr-par"),
+				KubernetesMode:  types.StringValue("MANAGED"),
+				State:           types.StringValue(tc.state),
+				InstanceType:    types.StringValue("DEV1-L"),
+				MinRunningNodes: types.Int64Value(1),
+				MaxRunningNodes: types.Int64Value(1),
+				DiskSize:        types.Int64Value(20),
+				Features:        types.ObjectNull(createFeaturesAttrTypes()),
+			}
+
+			params, err := cluster.toUpsertClusterRequest(nil)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expectedState, params.DesiredState)
+		})
+	}
+}
+
+func TestCluster_convertResponseToCluster_State(t *testing.T) {
+	ctx := context.Background()
+	credId := "cred-123"
+	clusterInfo := &qovery.ClusterCloudProviderInfo{
+		Credentials: &qovery.ClusterCloudProviderInfoCredentials{Id: &credId},
+	}
+
+	tests := []struct {
+		name          string
+		apiState      qovery.ClusterStateEnum
+		expectedState string
+	}{
+		{"READY", qovery.CLUSTERSTATEENUM_READY, "READY"},
+		{"STOPPED", qovery.CLUSTERSTATEENUM_STOPPED, "STOPPED"},
+		{"DEPLOYED", qovery.CLUSTERSTATEENUM_DEPLOYED, "DEPLOYED"},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			state := tc.apiState
+			res := &client.ClusterResponse{
+				OrganizationID: "org-123",
+				ClusterResponse: &qovery.Cluster{
+					Id:            "cluster-123",
+					Name:          "c",
+					CloudProvider: qovery.CLOUDVENDORENUM_AWS,
+					Region:        "us-east-1",
+					Status:        &state,
+				},
+				ClusterInfo:         clusterInfo,
+				ClusterRoutingTable: &client.ClusterRoutingTable{},
+			}
+
+			out := convertResponseToCluster(ctx, res, Cluster{})
+			assert.Equal(t, tc.expectedState, out.State.ValueString())
+		})
+	}
 }
 
