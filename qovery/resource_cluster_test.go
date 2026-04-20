@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
@@ -273,14 +274,20 @@ func testAccQoveryClusterDestroy(resourceName string) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("cluster.id not found")
 		}
-		_, apiErr := apiClient.GetCluster(context.TODO(), getTestOrganizationID(), rs.Primary.ID, "{}", false)
-		if apiErr == nil {
-			return fmt.Errorf("found cluster but expected it to be deleted")
+		// Retry to handle transient non-404 API responses that some cloud providers
+		// (e.g. GCP) briefly return right after cluster deletion.
+		var lastErr *apierrors.APIError
+		for attempt := 0; attempt < 3; attempt++ {
+			_, lastErr = apiClient.GetCluster(context.TODO(), getTestOrganizationID(), rs.Primary.ID, "{}", false)
+			if lastErr == nil {
+				return fmt.Errorf("found cluster but expected it to be deleted")
+			}
+			if apierrors.IsNotFound(lastErr) {
+				return nil
+			}
+			time.Sleep(3 * time.Second)
 		}
-		if !apierrors.IsNotFound(apiErr) {
-			return fmt.Errorf("unexpected error checking for deleted cluster: %s", apiErr.Summary())
-		}
-		return nil
+		return fmt.Errorf("unexpected error checking for deleted cluster: %s", lastErr.Summary())
 	}
 }
 
