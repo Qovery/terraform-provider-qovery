@@ -608,3 +608,98 @@ resource "qovery_cluster" "test" {
 `, getTestAzureCredentialsID(), getTestOrganizationID(), generateTestName(testName), region, state,
 	)
 }
+
+// FIXME: disabled until cluster acceptance tests are re-enabled. Labels groups
+// are only supported on EKS clusters, so this test requires an AWS/Karpenter
+// environment.
+func TestAcc_ClusterWithLabelsGroups(t *testing.T) {
+	t.SkipNow()
+	t.Parallel()
+	testName := "cluster-labels-groups"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
+		Steps: []resource.TestStep{
+			// Step 1: create cluster without any labels groups attached.
+			{
+				Config: testAccClusterConfigWithLabelsGroups(testName, false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckNoResourceAttr("qovery_cluster.test", "labels_group_ids"),
+				),
+			},
+			// Step 2: attach the labels group.
+			{
+				Config: testAccClusterConfigWithLabelsGroups(testName, true),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "labels_group_ids.#", "1"),
+					resource.TestCheckResourceAttrPair(
+						"qovery_cluster.test", "labels_group_ids.0",
+						"qovery_labels_group.test", "id",
+					),
+				),
+			},
+			// Step 3: detach (set to empty list).
+			{
+				Config: testAccClusterConfigWithLabelsGroups(testName, false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckNoResourceAttr("qovery_cluster.test", "labels_group_ids"),
+				),
+			},
+		},
+	})
+}
+
+func testAccClusterConfigWithLabelsGroups(testName string, attached bool) string {
+	labelsGroupRef := ""
+	if attached {
+		labelsGroupRef = `labels_group_ids = [qovery_labels_group.test.id]`
+	}
+	return fmt.Sprintf(`
+resource "qovery_labels_group" "test" {
+  organization_id = "%s"
+  name            = "%s-lg"
+  labels = [
+    {
+      key                         = "team"
+      value                       = "platform"
+      propagate_to_cloud_provider = true
+    },
+  ]
+}
+
+resource "qovery_cluster" "test" {
+  credentials_id  = "%s"
+  organization_id = "%s"
+  name            = "%s"
+  cloud_provider  = "AWS"
+  region          = "eu-west-3"
+  kubernetes_mode = "MANAGED"
+  state           = "DEPLOYED"
+
+  features = {
+    karpenter = {
+      spot_enabled                 = true
+      disk_size_in_gib             = 50
+      default_service_architecture = "AMD64"
+      qovery_node_pools = {
+        requirements = [
+          { key = "InstanceSize",   operator = "In", values = ["small", "medium", "large"] },
+          { key = "InstanceFamily", operator = "In", values = ["t3a"] },
+          { key = "Arch",           operator = "In", values = ["AMD64"] },
+        ]
+      }
+    }
+  }
+
+  %s
+}
+`,
+		getTestOrganizationID(), generateTestName(testName),
+		getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName),
+		labelsGroupRef,
+	)
+}

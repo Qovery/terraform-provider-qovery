@@ -24,6 +24,7 @@ func TestAcc_ClusterDataSource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "id", getTestClusterID()),
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "organization_id", getTestOrganizationID()),
+					resource.TestCheckResourceAttrSet("data.qovery_cluster.test", "labels_group_ids.#"),
 				),
 			},
 		},
