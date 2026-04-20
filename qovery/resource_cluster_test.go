@@ -172,10 +172,8 @@ func TestAcc_ClusterWithReadyState(t *testing.T) {
 		importStateVerifyIgnore []string
 	}{
 		{
-			name: "aws_eks",
-			config: func(testName string) string {
-				return testAccClusterAWSReadyConfig(testName)
-			},
+			name:   "aws_eks",
+			config: testAccClusterAWSReadyConfig,
 			checks: []resource.TestCheckFunc{
 				resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 				resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
@@ -183,10 +181,8 @@ func TestAcc_ClusterWithReadyState(t *testing.T) {
 			importStateVerifyIgnore: []string{"advanced_settings_json"},
 		},
 		{
-			name: "scw",
-			config: func(testName string) string {
-				return testAccClusterSCWReadyConfig(testName)
-			},
+			name:   "scw",
+			config: testAccClusterSCWReadyConfig,
 			checks: []resource.TestCheckFunc{
 				resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "SCW"),
 				resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
@@ -194,10 +190,8 @@ func TestAcc_ClusterWithReadyState(t *testing.T) {
 			importStateVerifyIgnore: []string{"advanced_settings_json"},
 		},
 		{
-			name: "azure",
-			config: func(testName string) string {
-				return testAccClusterAzureReadyConfig(testName)
-			},
+			name:   "azure",
+			config: testAccClusterAzureReadyConfig,
 			checks: []resource.TestCheckFunc{
 				resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AZURE"),
 				resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
@@ -205,10 +199,8 @@ func TestAcc_ClusterWithReadyState(t *testing.T) {
 			importStateVerifyIgnore: []string{"advanced_settings_json"},
 		},
 		{
-			name: "gcp",
-			config: func(testName string) string {
-				return testAccClusterGCPReadyConfig(testName)
-			},
+			name:   "gcp",
+			config: testAccClusterGCPReadyConfig,
 			checks: []resource.TestCheckFunc{
 				resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "GCP"),
 				resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),

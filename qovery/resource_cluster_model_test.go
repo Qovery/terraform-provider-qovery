@@ -15,6 +15,13 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client"
 )
 
+func makeTestClusterInfo(credID string) *qovery.ClusterCloudProviderInfo {
+	id := credID
+	return &qovery.ClusterCloudProviderInfo{
+		Credentials: &qovery.ClusterCloudProviderInfoCredentials{Id: &id},
+	}
+}
+
 func TestCluster_toUpsertClusterRequest_KarpenterValidation(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -666,14 +673,10 @@ func TestCluster_convertResponseToCluster_LabelsGroupIds(t *testing.T) {
 			{Id: &id2},
 		},
 	}
-	credId := "cred-123"
-	clusterInfo := &qovery.ClusterCloudProviderInfo{
-		Credentials: &qovery.ClusterCloudProviderInfoCredentials{Id: &credId},
-	}
 	res := &client.ClusterResponse{
 		OrganizationID:      "org-123",
 		ClusterResponse:     clusterResp,
-		ClusterInfo:         clusterInfo,
+		ClusterInfo:         makeTestClusterInfo("cred-123"),
 		ClusterRoutingTable: &client.ClusterRoutingTable{},
 	}
 
@@ -721,7 +724,7 @@ func TestCluster_convertResponseToCluster_LabelsGroupIds(t *testing.T) {
 		nilIdRes := &client.ClusterResponse{
 			OrganizationID:      "org-123",
 			ClusterResponse:     nilIdResp,
-			ClusterInfo:         clusterInfo,
+			ClusterInfo:         makeTestClusterInfo("cred-123"),
 			ClusterRoutingTable: &client.ClusterRoutingTable{},
 		}
 		initialPlan := Cluster{
@@ -778,10 +781,6 @@ func TestCluster_toUpsertClusterRequest_DesiredState(t *testing.T) {
 
 func TestCluster_convertResponseToCluster_State(t *testing.T) {
 	ctx := context.Background()
-	credId := "cred-123"
-	clusterInfo := &qovery.ClusterCloudProviderInfo{
-		Credentials: &qovery.ClusterCloudProviderInfoCredentials{Id: &credId},
-	}
 
 	tests := []struct {
 		name          string
@@ -806,7 +805,7 @@ func TestCluster_convertResponseToCluster_State(t *testing.T) {
 					Region:        "us-east-1",
 					Status:        &state,
 				},
-				ClusterInfo:         clusterInfo,
+				ClusterInfo:         makeTestClusterInfo("cred-123"),
 				ClusterRoutingTable: &client.ClusterRoutingTable{},
 			}
 
