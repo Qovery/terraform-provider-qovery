@@ -38,6 +38,7 @@ var (
 	clusterStates = clientEnumToStringArray([]qovery.StateEnum{
 		qovery.STATEENUM_DEPLOYED,
 		qovery.STATEENUM_STOPPED,
+		qovery.STATEENUM_READY,
 	})
 	clusterStateDefault = string(qovery.STATEENUM_DEPLOYED)
 

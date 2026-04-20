@@ -42,6 +42,8 @@ func (c *Client) updateClusterStatus(ctx context.Context, organizationID string,
 			return c.deployCluster(ctx, organizationID, cluster)
 		case qovery.CLUSTERSTATEENUM_STOPPED:
 			return c.stopCluster(ctx, organizationID, cluster)
+		case qovery.CLUSTERSTATEENUM_READY:
+			// No-op: leave the cluster in its current state (config created, not deployed).
 		}
 	}
 
