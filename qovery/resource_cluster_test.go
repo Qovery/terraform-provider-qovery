@@ -703,3 +703,46 @@ resource "qovery_cluster" "test" {
 		labelsGroupRef,
 	)
 }
+
+func TestAcc_ClusterWithReadyState(t *testing.T) {
+	t.Parallel()
+	testName := "cluster-ready-state"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccClusterReadyStateConfig(testName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "SCW"),
+				),
+			},
+			{
+				ResourceName:        "qovery_cluster.test",
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
+			},
+		},
+	})
+}
+
+func testAccClusterReadyStateConfig(testName string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id    = "%s"
+  organization_id   = "%s"
+  name              = "%s"
+  cloud_provider    = "SCW"
+  region            = "fr-par"
+  kubernetes_mode   = "MANAGED"
+  instance_type     = "DEV1-L"
+  min_running_nodes = 1
+  max_running_nodes = 1
+  state             = "READY"
+}
+`, getTestScalewayCredentialsID(), getTestOrganizationID(), generateTestName(testName))
+}

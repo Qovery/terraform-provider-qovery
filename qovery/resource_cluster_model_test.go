@@ -740,3 +740,24 @@ func TestCluster_convertResponseToCluster_LabelsGroupIds(t *testing.T) {
 	})
 }
 
+func TestCluster_toUpsertClusterRequest_ReadyState(t *testing.T) {
+	cluster := Cluster{
+		OrganizationId:  types.StringValue("org-123"),
+		CredentialsId:   types.StringValue("cred-123"),
+		Name:            types.StringValue("test-cluster"),
+		CloudProvider:   types.StringValue("SCW"),
+		Region:          types.StringValue("fr-par"),
+		KubernetesMode:  types.StringValue("MANAGED"),
+		State:           types.StringValue("READY"),
+		InstanceType:    types.StringValue("DEV1-L"),
+		MinRunningNodes: types.Int64Value(1),
+		MaxRunningNodes: types.Int64Value(1),
+		DiskSize:        types.Int64Value(20),
+		Features:        types.ObjectNull(createFeaturesAttrTypes()),
+	}
+
+	params, err := cluster.toUpsertClusterRequest(nil)
+	require.NoError(t, err)
+	assert.Equal(t, qovery.CLUSTERSTATEENUM_READY, params.DesiredState)
+}
+
