@@ -14,27 +14,19 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
 
-// TestAcc_AWSClusterConfigOnly creates an AWS cluster without deploying it (config only)
-// This is faster and cheaper than deploying a full cluster
-// Uses Karpenter which is required for new AWS EKS clusters
-// Note: state=STOPPED prevents deployment, but API returns READY for never-deployed clusters
-// causing expected drift on refresh (hence ExpectNonEmptyPlan)
-func TestAcc_AWSClusterConfigOnly(t *testing.T) {
+// TestAcc_Cluster is the main AWS EKS lifecycle test using Karpenter and READY state
+// (no cloud infra is provisioned). Covers create, update, labels groups, and import.
+func TestAcc_Cluster(t *testing.T) {
 	t.Parallel()
-	testName := "aws-cluster-config-only"
+	testName := "cluster"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
 		Steps: []resource.TestStep{
-			// Create cluster config only (no deployment triggered)
+			// Create
 			{
-				Config: testAccAWSClusterWithKarpenterConfigWithState(
-					testName,
-					"eu-west-3",
-					"STOPPED",
-				),
-				ExpectNonEmptyPlan: true, // API returns READY for never-deployed clusters
+				Config: testAccClusterKarpenterConfig(testName, "", false),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAWSCredentialsID()),
@@ -43,191 +35,49 @@ func TestAcc_AWSClusterConfigOnly(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "region", "eu-west-3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
-				),
-			},
-		},
-	})
-}
-
-// TestAcc_GCPClusterConfigOnly creates a GCP cluster without deploying it (config only)
-// GCP uses AUTO_PILOT mode where node counts are managed automatically by the cloud provider
-// Note: state=STOPPED prevents deployment, but API returns READY for never-deployed clusters
-func TestAcc_GCPClusterConfigOnly(t *testing.T) {
-	t.Parallel()
-	testName := "gcp-cluster-config-only"
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
-		Steps: []resource.TestStep{
-			// Create GCP cluster config only (no deployment triggered)
-			{
-				Config: testAccGCPClusterConfigWithState(
-					testName,
-					"europe-west9",
-					"STOPPED",
-				),
-				ExpectNonEmptyPlan: true, // API returns READY for never-deployed clusters
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryClusterExists("qovery_cluster.test"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestGCPCredentialsID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "GCP"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "region", "europe-west9"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "AUTO_PILOT"),
-				),
-			},
-		},
-	})
-}
-
-// TestAcc_AzureClusterConfigOnly creates an Azure AKS cluster without deploying it (config only)
-// Azure credentials must be created via the Qovery console (provisioning requires server-side scripts)
-// Note: state=STOPPED prevents deployment, but API returns READY for never-deployed clusters
-func TestAcc_AzureClusterConfigOnly(t *testing.T) {
-	t.Parallel()
-	testName := "azure-cluster-config-only"
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
-		Steps: []resource.TestStep{
-			// Create Azure AKS cluster config only (no deployment triggered)
-			{
-				Config: testAccAzureClusterConfigWithState(
-					testName,
-					"francecentral",
-					"STOPPED",
-				),
-				ExpectNonEmptyPlan: true, // API returns READY for never-deployed clusters
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryClusterExists("qovery_cluster.test"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAzureCredentialsID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AZURE"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "region", "francecentral"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "Standard_B2s_v2"),
-				),
-			},
-		},
-	})
-}
-
-// FIXME: disabled until ttl advanced setting has been implemented for cleaning
-func TestAcc_Cluster(t *testing.T) {
-	t.SkipNow()
-	t.Parallel()
-	testName := "cluster"
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
-		Steps: []resource.TestStep{
-			// Create and Read testing
-			{
-				Config: testAccClusterDefaultConfig(
-					testName,
-					"AWS",
-					"eu-west-3",
-					"T3A_MEDIUM",
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryClusterExists("qovery_cluster.test"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAWSCredentialsID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "false"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "DEPLOYED"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "advanced_settings", "{ loki.log_retention_in_week = 1 }"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
+					resource.TestCheckNoResourceAttr("qovery_cluster.test", "labels_group_ids"),
 				),
 			},
 			// Add description
 			{
-				Config: testAccClusterDefaultConfigWithDescription(
-					testName,
-					"AWS",
-					"eu-west-3",
-					"T3A_MEDIUM",
-					"cluster description",
-				),
+				Config: testAccClusterKarpenterConfigWithDescription(testName, "my cluster"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAWSCredentialsID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "description", "cluster description"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "false"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "DEPLOYED"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "description", "my cluster"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
 				),
 			},
-			// Update State -> STOPPED
+			// Remove description
 			{
-				Config: testAccClusterDefaultConfigWithState(
-					testName,
-					"AWS",
-					"eu-west-3",
-					"T3A_MEDIUM",
-					"STOPPED",
-				),
+				Config: testAccClusterKarpenterConfig(testName, "", false),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAWSCredentialsID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "false"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "STOPPED"),
 				),
 			},
-			// Update Resources
+			// Attach labels group
 			{
-				Config: testAccClusterDefaultConfigWithResources(
-					testName,
-					"AWS",
-					"eu-west-3",
-					"T3A_LARGE",
-					"4",
-					"11",
-				),
+				Config: testAccClusterKarpenterConfig(testName, "", true),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAWSCredentialsID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_LARGE"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "4"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "11"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "false"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.0.0.0/16"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "DEPLOYED"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "labels_group_ids.#", "1"),
+					resource.TestCheckResourceAttrPair(
+						"qovery_cluster.test", "labels_group_ids.0",
+						"qovery_labels_group.test", "id",
+					),
 				),
 			},
-			// Check Import
-			// Since this takes too much time to create a cluster, the import test is done here.
+			// Detach labels group
+			{
+				Config: testAccClusterKarpenterConfig(testName, "", false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckNoResourceAttr("qovery_cluster.test", "labels_group_ids"),
+				),
+			},
+			// Import
 			{
 				ResourceName:        "qovery_cluster.test",
 				ImportState:         true,
@@ -238,55 +88,36 @@ func TestAcc_Cluster(t *testing.T) {
 	})
 }
 
-// FIXME: disabled until ttl advanced setting has been implemented for cleaning
-func TestAcc_ClusterWithKubernetesMode(t *testing.T) {
-	t.SkipNow()
+// TestAcc_ClusterWithStaticIP verifies that static_ip feature config is persisted correctly.
+// Uses Karpenter (required for new AWS MANAGED) + READY state (no cloud infra provisioned).
+func TestAcc_ClusterWithStaticIP(t *testing.T) {
 	t.Parallel()
-	testName := "cluster-with-kubernetes-mode"
+	testName := "cluster-with-static-ip"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
 		Steps: []resource.TestStep{
-			// Create and Read testing
 			{
-				Config: testAccClusterDefaultK3SConfig(
-					testName,
-					"AWS",
-					"eu-west-3",
-					"T3A_SMALL",
-					true,
-				),
+				Config: testAccClusterKarpenterConfigWithStaticIP(testName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAWSCredentialsID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "K3S"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MT3A_SMALLEDIUM"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "1"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "1"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "true"),
-					resource.TestCheckNoResourceAttr("qovery_cluster.test", "features.vpc_subnet"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "DEPLOYED"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "true"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
 				),
 			},
-			// Check Import
-			// Since this takes too much time to create a cluster, the import test is done here.
-			// TODO: uncomment when ImportStateIdPrefix is fixed
-			//{
-			//	ResourceName:        "qovery_cluster.test",
-			//	ImportState:         true,
-			//	ImportStateVerify:   true,
-			//	ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
-			//},
+			{
+				ResourceName:        "qovery_cluster.test",
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
+			},
 		},
 	})
 }
 
-// FIXME: disabled until ttl advanced setting has been implemented for cleaning
+// TestAcc_ClusterWithVpcPeering is kept skipped — it requires pre-existing VPC infrastructure.
 func TestAcc_ClusterWithVpcPeering(t *testing.T) {
 	t.SkipNow()
 	t.Parallel()
@@ -296,7 +127,6 @@ func TestAcc_ClusterWithVpcPeering(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
 		Steps: []resource.TestStep{
-			// Create and Read testing
 			{
 				Config: testAccClusterDefaultConfigWithVpcPeering(
 					testName,
@@ -310,20 +140,11 @@ func TestAcc_ClusterWithVpcPeering(t *testing.T) {
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAWSCredentialsID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "false"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.vpc_subnet", "10.42.0.0/16"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "routing_table.0.description", "route-0"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "routing_table.0.destination", "172.30.0.0/16"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "routing_table.0.targer", "target"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "routing_table.0.target", "target"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "DEPLOYED"),
 				),
 			},
@@ -331,43 +152,90 @@ func TestAcc_ClusterWithVpcPeering(t *testing.T) {
 	})
 }
 
-func TestAcc_ClusterWithStaticIP(t *testing.T) {
-	t.SkipNow()
-	t.Parallel()
-	testName := "cluster-with-static-ip"
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
-		Steps: []resource.TestStep{
-			// Create and Read testing
-			{
-				Config: testAccClusterDefaultConfigWithStaticIP(
-					testName,
-					"AWS",
-					"eu-west-3",
-					"T3A_MEDIUM",
-					true,
-				),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryClusterExists("qovery_cluster.test"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAWSCredentialsID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "kubernetes_mode", "MANAGED"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "T3A_MEDIUM"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "min_running_nodes", "3"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "max_running_nodes", "10"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "production", "false"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "true"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "DEPLOYED"),
-				),
+// TestAcc_ClusterWithReadyState verifies that clusters can be created in READY state
+// (config only, no cloud infrastructure provisioned) across all supported providers.
+func TestAcc_ClusterWithReadyState(t *testing.T) {
+	testCases := []struct {
+		name   string
+		config func(string) string
+		checks []resource.TestCheckFunc
+	}{
+		{
+			name: "aws_eks",
+			config: func(testName string) string {
+				return testAccClusterAWSReadyConfig(testName)
+			},
+			checks: []resource.TestCheckFunc{
+				resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
+				resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
 			},
 		},
-	})
+		{
+			name: "scw",
+			config: func(testName string) string {
+				return testAccClusterSCWReadyConfig(testName)
+			},
+			checks: []resource.TestCheckFunc{
+				resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "SCW"),
+				resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
+			},
+		},
+		{
+			name: "azure",
+			config: func(testName string) string {
+				return testAccClusterAzureReadyConfig(testName)
+			},
+			checks: []resource.TestCheckFunc{
+				resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AZURE"),
+				resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
+			},
+		},
+		{
+			name: "gcp",
+			config: func(testName string) string {
+				return testAccClusterGCPReadyConfig(testName)
+			},
+			checks: []resource.TestCheckFunc{
+				resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "GCP"),
+				resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			testName := fmt.Sprintf("cluster-ready-%s", tc.name)
+			checks := append(
+				[]resource.TestCheckFunc{
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "organization_id", getTestOrganizationID()),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "name", generateTestName(testName)),
+				},
+				tc.checks...,
+			)
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
+				Steps: []resource.TestStep{
+					{
+						Config: tc.config(testName),
+						Check:  resource.ComposeAggregateTestCheckFunc(checks...),
+					},
+					{
+						ResourceName:        "qovery_cluster.test",
+						ImportState:         true,
+						ImportStateVerify:   true,
+						ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
+					},
+				},
+			})
+		})
+	}
 }
+
+// --- Test check helpers ---
 
 func testAccQoveryClusterExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
@@ -375,11 +243,9 @@ func testAccQoveryClusterExists(resourceName string) resource.TestCheckFunc {
 		if !ok {
 			return fmt.Errorf("cluster not found: %s", resourceName)
 		}
-
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("cluster.id not found")
 		}
-
 		_, apiErr := apiClient.GetCluster(context.TODO(), getTestOrganizationID(), rs.Primary.ID, "{}", false)
 		if apiErr != nil {
 			return apiErr
@@ -394,11 +260,9 @@ func testAccQoveryClusterDestroy(resourceName string) resource.TestCheckFunc {
 		if !ok {
 			return fmt.Errorf("cluster not found: %s", resourceName)
 		}
-
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("cluster.id not found")
 		}
-
 		_, apiErr := apiClient.GetCluster(context.TODO(), getTestOrganizationID(), rs.Primary.ID, "{}", false)
 		if apiErr == nil {
 			return fmt.Errorf("found cluster but expected it to be deleted")
@@ -410,157 +274,36 @@ func testAccQoveryClusterDestroy(resourceName string) resource.TestCheckFunc {
 	}
 }
 
-func testAccClusterDefaultConfig(testName string, cloudProvider string, region string, instanceType string) string {
-	return fmt.Sprintf(`
-resource "qovery_cluster" "test" {
-  credentials_id = "%s"
-  organization_id = "%s"
-  name = "%s"
-  cloud_provider = "%s"
-  region = "%s"
-  instance_type = "%s"
-  advanced_settings = jsonencode({ loki.log_retention_in_week = 1 })
-}
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType,
-	)
-}
+// --- Config helpers ---
 
-func testAccClusterDefaultConfigWithDescription(testName string, cloudProvider string, region string, instanceType string, description string) string {
-	return fmt.Sprintf(`
-resource "qovery_cluster" "test" {
-  credentials_id = "%s"
-  organization_id = "%s"
-  name = "%s"
-  cloud_provider = "%s"
-  region = "%s"
-  instance_type = "%s"
-  description = "%s"
-}
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, description,
-	)
-}
-
-func testAccClusterDefaultConfigWithState(testName string, cloudProvider string, region string, instanceType string, state string) string {
-	return fmt.Sprintf(`
-resource "qovery_cluster" "test" {
-  credentials_id = "%s"
-  organization_id = "%s"
-  name = "%s"
-  cloud_provider = "%s"
-  region = "%s"
-  instance_type = "%s" 
-  state = "%s"
-}
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, state,
-	)
-}
-
-func testAccClusterDefaultK3SConfig(testName string, cloudProvider string, region string, instanceType string, production bool) string {
-	return fmt.Sprintf(`
-resource "qovery_cluster" "test" {
-  credentials_id = "%s"
-  organization_id = "%s"
-  name = "%s"
-  cloud_provider = "%s"
-  region = "%s"
-  instance_type = "%s"
-  kubernetes_mode = "K3S"
-  min_running_nodes = 1
-  max_running_nodes = 1
-  production = %t
-}
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, production,
-	)
-}
-
-func testAccClusterDefaultConfigWithResources(
-	testName string, cloudProvider string, region string, instanceType string,
-	minRunningNodes string, maxRunningNodes string,
-) string {
-	return fmt.Sprintf(`
-resource "qovery_cluster" "test" {
-  credentials_id = "%s"
-  organization_id = "%s"
-  name = "%s"
-  cloud_provider = "%s"
-  region = "%s"
-  instance_type = "%s"
-  min_running_nodes = "%s"
-  max_running_nodes = "%s"
-}
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, minRunningNodes, maxRunningNodes,
-	)
-}
-
-func testAccClusterDefaultConfigWithVpcPeering(testName string, cloudProvider string, region string, instanceType string, vpcSubnet string, routingTable map[string]string) string {
-	return fmt.Sprintf(`
-resource "qovery_cluster" "test" {
-  credentials_id = "%s"
-  organization_id = "%s"
-  name = "%s"
-  cloud_provider = "%s"
-  region = "%s"
-  instance_type = "%s"
-  features = {
-    vpc_subnet = "%s"
-  }
-  routing_table = %s
-}
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, vpcSubnet, convertRoutingTableToString(routingTable),
-	)
-}
-
-func testAccClusterDefaultConfigWithStaticIP(testName string, cloudProvider string, region string, instanceType string, staticIP bool) string {
-	return fmt.Sprintf(`
-resource "qovery_cluster" "test" {
-  credentials_id = "%s"
-  organization_id = "%s"
-  name = "%s"
-  cloud_provider = "%s"
-  region = "%s"
-  instance_type = "%s"
-  features = {
-    static_ip = %t
-  }
-}
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, staticIP,
-	)
-}
-
-func convertRoutingTableToString(routingTable map[string]string) string {
-	routes := make([]string, 0, len(routingTable))
-	idx := 0
-	for destination, target := range routingTable {
-		routes = append(routes, fmt.Sprintf(`{description: "%s",  destination: "%s", target: "%s"}`, fmt.Sprintf("route-%d", idx), destination, target))
-		idx++
+// testAccClusterKarpenterConfig builds an AWS EKS+Karpenter cluster in READY state.
+// Pass a non-empty description to set it. Pass attachLabels=true to attach a labels group.
+func testAccClusterKarpenterConfig(testName, description string, attachLabels bool) string {
+	descriptionLine := ""
+	if description != "" {
+		descriptionLine = fmt.Sprintf("\n  description = %q", description)
 	}
-	return fmt.Sprintf("[%s]", strings.Join(routes, ","))
-}
-
-func testAccGCPClusterConfigWithState(testName string, region string, state string) string {
-	return fmt.Sprintf(`
-resource "qovery_cluster" "test" {
-  credentials_id  = "%s"
+	labelsGroupResource := ""
+	labelsGroupIds := ""
+	if attachLabels {
+		labelsGroupResource = fmt.Sprintf(`
+resource "qovery_labels_group" "test" {
   organization_id = "%s"
-  name            = "%s"
-  cloud_provider  = "GCP"
-  region          = "%s"
-  instance_type   = "AUTO_PILOT"
-  state           = "%s"
+  name            = "%s-lg"
+  labels = [{ key = "team", value = "platform", propagate_to_cloud_provider = true }]
 }
-`, getTestGCPCredentialsID(), getTestOrganizationID(), generateTestName(testName), region, state,
-	)
-}
-
-func testAccAWSClusterWithKarpenterConfigWithState(testName string, region string, state string) string {
-	return fmt.Sprintf(`
+`, getTestOrganizationID(), generateTestName(testName))
+		labelsGroupIds = "\n  labels_group_ids = [qovery_labels_group.test.id]"
+	}
+	return fmt.Sprintf(`%s
 resource "qovery_cluster" "test" {
   credentials_id  = "%s"
   organization_id = "%s"
   name            = "%s"
   cloud_provider  = "AWS"
-  region          = "%s"
-  state           = "%s"
+  region          = "eu-west-3"
+  kubernetes_mode = "MANAGED"
+  state           = "READY"%s
 
   features = {
     vpc_subnet = "10.0.0.0/16"
@@ -570,107 +313,25 @@ resource "qovery_cluster" "test" {
       default_service_architecture = "AMD64"
       qovery_node_pools = {
         requirements = [
-          {
-            key      = "InstanceSize"
-            operator = "In"
-            values   = ["small", "medium", "large", "xlarge", "2xlarge"]
-          },
-          {
-            key      = "InstanceFamily"
-            operator = "In"
-            values   = ["t3", "t3a", "m5", "m5a", "m6i", "c5", "c5a"]
-          },
-          {
-            key      = "Arch"
-            operator = "In"
-            values   = ["AMD64"]
-          }
+          { key = "InstanceSize",   operator = "In", values = ["small", "medium", "large", "xlarge", "2xlarge"] },
+          { key = "InstanceFamily", operator = "In", values = ["t3", "t3a", "m5", "m5a", "c5", "c5a"] },
+          { key = "Arch",           operator = "In", values = ["AMD64"] },
         ]
       }
     }
-  }
+  }%s
 }
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), region, state,
-	)
+`, labelsGroupResource,
+		getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName),
+		descriptionLine, labelsGroupIds)
 }
 
-func testAccAzureClusterConfigWithState(testName string, region string, state string) string {
+func testAccClusterKarpenterConfigWithDescription(testName, description string) string {
+	return testAccClusterKarpenterConfig(testName, description, false)
+}
+
+func testAccClusterKarpenterConfigWithStaticIP(testName string) string {
 	return fmt.Sprintf(`
-resource "qovery_cluster" "test" {
-  credentials_id  = "%s"
-  organization_id = "%s"
-  name            = "%s"
-  cloud_provider  = "AZURE"
-  region          = "%s"
-  instance_type   = "Standard_B2s_v2"
-  state           = "%s"
-}
-`, getTestAzureCredentialsID(), getTestOrganizationID(), generateTestName(testName), region, state,
-	)
-}
-
-// FIXME: disabled until cluster acceptance tests are re-enabled. Labels groups
-// are only supported on EKS clusters, so this test requires an AWS/Karpenter
-// environment.
-func TestAcc_ClusterWithLabelsGroups(t *testing.T) {
-	t.SkipNow()
-	t.Parallel()
-	testName := "cluster-labels-groups"
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
-		Steps: []resource.TestStep{
-			// Step 1: create cluster without any labels groups attached.
-			{
-				Config: testAccClusterConfigWithLabelsGroups(testName, false),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryClusterExists("qovery_cluster.test"),
-					resource.TestCheckNoResourceAttr("qovery_cluster.test", "labels_group_ids"),
-				),
-			},
-			// Step 2: attach the labels group.
-			{
-				Config: testAccClusterConfigWithLabelsGroups(testName, true),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryClusterExists("qovery_cluster.test"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "labels_group_ids.#", "1"),
-					resource.TestCheckResourceAttrPair(
-						"qovery_cluster.test", "labels_group_ids.0",
-						"qovery_labels_group.test", "id",
-					),
-				),
-			},
-			// Step 3: detach (set to empty list).
-			{
-				Config: testAccClusterConfigWithLabelsGroups(testName, false),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryClusterExists("qovery_cluster.test"),
-					resource.TestCheckNoResourceAttr("qovery_cluster.test", "labels_group_ids"),
-				),
-			},
-		},
-	})
-}
-
-func testAccClusterConfigWithLabelsGroups(testName string, attached bool) string {
-	labelsGroupRef := ""
-	if attached {
-		labelsGroupRef = `labels_group_ids = [qovery_labels_group.test.id]`
-	}
-	return fmt.Sprintf(`
-resource "qovery_labels_group" "test" {
-  organization_id = "%s"
-  name            = "%s-lg"
-  labels = [
-    {
-      key                         = "team"
-      value                       = "platform"
-      propagate_to_cloud_provider = true
-    },
-  ]
-}
-
 resource "qovery_cluster" "test" {
   credentials_id  = "%s"
   organization_id = "%s"
@@ -678,9 +339,11 @@ resource "qovery_cluster" "test" {
   cloud_provider  = "AWS"
   region          = "eu-west-3"
   kubernetes_mode = "MANAGED"
-  state           = "DEPLOYED"
+  state           = "READY"
 
   features = {
+    vpc_subnet = "10.0.0.0/16"
+    static_ip  = true
     karpenter = {
       spot_enabled                 = true
       disk_size_in_gib             = 50
@@ -694,43 +357,41 @@ resource "qovery_cluster" "test" {
       }
     }
   }
-
-  %s
 }
-`,
-		getTestOrganizationID(), generateTestName(testName),
-		getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName),
-		labelsGroupRef,
-	)
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName))
 }
 
-func TestAcc_ClusterWithReadyState(t *testing.T) {
-	t.Parallel()
-	testName := "cluster-ready-state"
-	resource.Test(t, resource.TestCase{
-		PreCheck:                 func() { testAccPreCheck(t) },
-		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
-		Steps: []resource.TestStep{
-			{
-				Config: testAccClusterReadyStateConfig(testName),
-				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccQoveryClusterExists("qovery_cluster.test"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "SCW"),
-				),
-			},
-			{
-				ResourceName:        "qovery_cluster.test",
-				ImportState:         true,
-				ImportStateVerify:   true,
-				ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
-			},
-		},
-	})
+func testAccClusterAWSReadyConfig(testName string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id  = "%s"
+  organization_id = "%s"
+  name            = "%s"
+  cloud_provider  = "AWS"
+  region          = "eu-west-3"
+  kubernetes_mode = "MANAGED"
+  state           = "READY"
+
+  features = {
+    vpc_subnet = "10.0.0.0/16"
+    karpenter = {
+      spot_enabled                 = true
+      disk_size_in_gib             = 50
+      default_service_architecture = "AMD64"
+      qovery_node_pools = {
+        requirements = [
+          { key = "InstanceSize",   operator = "In", values = ["small", "medium", "large"] },
+          { key = "InstanceFamily", operator = "In", values = ["t3a"] },
+          { key = "Arch",           operator = "In", values = ["AMD64"] },
+        ]
+      }
+    }
+  }
+}
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName))
 }
 
-func testAccClusterReadyStateConfig(testName string) string {
+func testAccClusterSCWReadyConfig(testName string) string {
 	return fmt.Sprintf(`
 resource "qovery_cluster" "test" {
   credentials_id    = "%s"
@@ -745,4 +406,65 @@ resource "qovery_cluster" "test" {
   state             = "READY"
 }
 `, getTestScalewayCredentialsID(), getTestOrganizationID(), generateTestName(testName))
+}
+
+func testAccClusterAzureReadyConfig(testName string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id    = "%s"
+  organization_id   = "%s"
+  name              = "%s"
+  cloud_provider    = "AZURE"
+  region            = "francecentral"
+  kubernetes_mode   = "MANAGED"
+  instance_type     = "Standard_B2s_v2"
+  min_running_nodes = 3
+  max_running_nodes = 10
+  state             = "READY"
+}
+`, getTestAzureCredentialsID(), getTestOrganizationID(), generateTestName(testName))
+}
+
+func testAccClusterGCPReadyConfig(testName string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id    = "%s"
+  organization_id   = "%s"
+  name              = "%s"
+  cloud_provider    = "GCP"
+  region            = "europe-west9"
+  kubernetes_mode   = "MANAGED"
+  instance_type     = "AUTO_PILOT"
+  min_running_nodes = 3
+  max_running_nodes = 200
+  state             = "READY"
+}
+`, getTestGCPCredentialsID(), getTestOrganizationID(), generateTestName(testName))
+}
+
+func testAccClusterDefaultConfigWithVpcPeering(testName string, cloudProvider string, region string, instanceType string, vpcSubnet string, routingTable map[string]string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id  = "%s"
+  organization_id = "%s"
+  name            = "%s"
+  cloud_provider  = "%s"
+  region          = "%s"
+  instance_type   = "%s"
+  features = {
+    vpc_subnet = "%s"
+  }
+  routing_table = %s
+}
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), cloudProvider, region, instanceType, vpcSubnet, convertRoutingTableToString(routingTable))
+}
+
+func convertRoutingTableToString(routingTable map[string]string) string {
+	routes := make([]string, 0, len(routingTable))
+	idx := 0
+	for destination, target := range routingTable {
+		routes = append(routes, fmt.Sprintf(`{description: "%s", destination: "%s", target: "%s"}`, fmt.Sprintf("route-%d", idx), destination, target))
+		idx++
+	}
+	return fmt.Sprintf("[%s]", strings.Join(routes, ","))
 }
