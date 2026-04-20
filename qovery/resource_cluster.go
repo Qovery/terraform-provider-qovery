@@ -661,6 +661,12 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"labels_group_ids": schema.SetAttribute{
+				Description:         "List of labels group ids (EKS clusters only).",
+				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).",
+				Optional:            true,
+				ElementType:         types.StringType,
+			},
 			"kubeconfig": schema.StringAttribute{
 				Description:         "Kubeconfig for connecting to the cluster. Required for PARTIALLY_MANAGED (EKS Anywhere) clusters.",
 				MarkdownDescription: "Kubeconfig YAML content for connecting to the cluster. **Required** for `PARTIALLY_MANAGED` (EKS Anywhere) clusters. This is a sensitive value and will not be displayed in plan output. Use `file()` to read from a file.",

@@ -545,6 +545,12 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 				Optional:            true,
 				Computed:            true,
 			},
+			"labels_group_ids": schema.SetAttribute{
+				Description:         "List of labels group ids associated with the cluster.",
+				MarkdownDescription: "List of labels group ids associated with the cluster.",
+				Computed:            true,
+				ElementType:         types.StringType,
+			},
 			"kubeconfig": schema.StringAttribute{
 				Description:         "Kubeconfig for connecting to the cluster. Only available for PARTIALLY_MANAGED (EKS Anywhere) clusters.",
 				MarkdownDescription: "Kubeconfig for connecting to the cluster. Only available for `PARTIALLY_MANAGED` clusters.",
