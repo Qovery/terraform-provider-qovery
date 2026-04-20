@@ -30,6 +30,20 @@ resource "qovery_aws_credentials" "aws_creds" {
   secret_access_key = var.secret_access_key
 }
 
+# Labels group (EKS clusters only)
+resource "qovery_labels_group" "cluster_labels" {
+  organization_id = qovery_organization.my_organization.id
+  name            = "cluster-labels"
+
+  labels = [
+    {
+      key                         = "team"
+      value                       = "platform"
+      propagate_to_cloud_provider = true
+    },
+  ]
+}
+
 # AWS Cluster with Karpenter example
 resource "qovery_cluster" "cluster" {
   organization_id = qovery_organization.my_organization.id
@@ -69,6 +83,9 @@ resource "qovery_cluster" "cluster" {
       }
     }
   }
+
+  # Labels groups are only supported on EKS (AWS MANAGED) clusters.
+  labels_group_ids = [qovery_labels_group.cluster_labels.id]
 
   advanced_settings_json = jsonencode({
     # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings
@@ -280,6 +297,7 @@ You can find complete examples within these repositories:
   - `MANAGED` - Fully managed Kubernetes cluster provisioned and managed by Qovery (e.g., AWS EKS, GCP GKE, Azure AKS).
   - `SELF_MANAGED` - Bring your own Kubernetes cluster. Qovery deploys workloads but does not manage infrastructure.
   - `PARTIALLY_MANAGED` - EKS Anywhere / on-premise mode. Qovery manages workloads on a user-provided Kubernetes cluster via kubeconfig. Requires `kubeconfig` and `infrastructure_charts_parameters`.
+- `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).
 - `max_running_nodes` (Number) Maximum number of nodes the cluster autoscaler can scale up to. Must be `>= 1`. Default: `10`.
 
 ~> **Note:** Must be set to `1` for K3S clusters. Do not set this attribute when Karpenter is enabled (Karpenter manages scaling automatically).

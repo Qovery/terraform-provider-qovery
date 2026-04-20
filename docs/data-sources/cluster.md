@@ -40,6 +40,7 @@ data "qovery_cluster" "my_cluster" {
 - `infrastructure_charts_parameters` (Attributes) Infrastructure Helm chart parameters for `PARTIALLY_MANAGED` clusters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters))
 - `infrastructure_outputs` (Attributes) Read-only outputs from the underlying Kubernetes infrastructure. Available after deployment. (see [below for nested schema](#nestedatt--infrastructure_outputs))
 - `kubeconfig` (String, Sensitive) Kubeconfig for connecting to the cluster. Only available for `PARTIALLY_MANAGED` clusters.
+- `labels_group_ids` (Set of String) List of labels group ids associated with the cluster.
 - `name` (String) Name of the cluster.
 - `region` (String) Cloud provider region where the cluster is deployed.
 
