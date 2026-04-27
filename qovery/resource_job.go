@@ -621,6 +621,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				MarkdownDescription: "Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"is_skipped": schema.BoolAttribute{
 				Description:         "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
@@ -628,6 +631,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"advanced_settings_json": schema.StringAttribute{
 				Description:         "Advanced settings in JSON format. See the Qovery API documentation for the full list of available settings: https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings",
