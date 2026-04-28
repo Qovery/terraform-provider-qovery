@@ -229,7 +229,7 @@ func TestConvertDomainPortsToPortList(t *testing.T) {
 			ctx := context.Background()
 			result := convertDomainPortsToPortList(ctx, tc.InitialState, tc.DomainPorts)
 			if tc.ExpectedIDs == nil {
-				assert.Nil(t, PortList(result))
+				assert.Nil(t, result)
 				return
 			}
 			assert.Equal(t, len(tc.ExpectedIDs), len(result))
