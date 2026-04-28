@@ -38,7 +38,7 @@ func (c *Client) deployApplication(ctx context.Context, application *qovery.Appl
 	}
 
 	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, qovery.STATEENUM_DEPLOYED)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, statusChecker); apiErr != nil {
 		return nil, apiErr
 	}
 
@@ -77,7 +77,7 @@ func (c *Client) stopApplication(ctx context.Context, application *qovery.Applic
 	}
 
 	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, qovery.STATEENUM_STOPPED)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, statusChecker); apiErr != nil {
 		return nil, apiErr
 	}
 
@@ -93,12 +93,12 @@ func (c *Client) stopApplication(ctx context.Context, application *qovery.Applic
 
 func (c *Client) redeployApplication(ctx context.Context, application *qovery.Application) (*qovery.Status, *apierrors.APIError) {
 	appFinalStateChecker := newApplicationFinalStateCheckerWaitFunc(c, application.Id)
-	if apiErr := wait(ctx, appFinalStateChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, appFinalStateChecker); apiErr != nil {
 		return nil, apiErr
 	}
 
 	envFinalStateChecker := newEnvironmentFinalStateCheckerWaitFunc(c, application.Environment.Id)
-	if apiErr := wait(ctx, envFinalStateChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, envFinalStateChecker); apiErr != nil {
 		return nil, apiErr
 	}
 
@@ -110,7 +110,7 @@ func (c *Client) redeployApplication(ctx context.Context, application *qovery.Ap
 	}
 
 	statusChecker := newApplicationStatusCheckerWaitFunc(c, application.Id, qovery.STATEENUM_DEPLOYED)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, statusChecker); apiErr != nil {
 		return nil, apiErr
 	}
 

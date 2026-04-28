@@ -71,7 +71,7 @@ type TerraformVariable struct {
 }
 
 // toUpsertServiceRequest converts Terraform model to domain service request
-func (t TerraformService) toUpsertServiceRequest(state *TerraformService) (*terraformservice.UpsertServiceRequest, error) {
+func (t TerraformService) toUpsertServiceRequest() (*terraformservice.UpsertServiceRequest, error) {
 	req, err := t.toUpsertRepositoryRequest()
 	if err != nil {
 		return nil, err
@@ -224,7 +224,7 @@ func toActionExtraArguments(argsMap types.Map) map[string][]string {
 }
 
 // convertDomainTerraformServiceToTerraformService converts domain entity to Terraform model
-func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan TerraformService, ts *terraformservice.TerraformService) TerraformService {
+func convertDomainTerraformServiceToTerraformService(plan TerraformService, ts *terraformservice.TerraformService) TerraformService {
 	return TerraformService{
 		ID:                    FromString(ts.ID.String()),
 		EnvironmentID:         FromString(ts.EnvironmentID.String()),
@@ -236,7 +236,7 @@ func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan T
 		TerraformAction:       FromString(string(ts.TerraformAction)),
 		GitRepository:         fromGitRepository(ts.GitRepository),
 		TfVarFiles:            FromStringArray(ts.TfVarFiles),
-		Variables:             fromVariableArray(ctx, plan.Variables, ts.Variables),
+		Variables:             fromVariableArray(plan.Variables, ts.Variables),
 		Backend:               fromBackend(ts.Backend),
 		Engine:                FromString(string(ts.Engine)),
 		EngineVersion:         fromEngineVersion(ts.EngineVersion),
@@ -244,7 +244,7 @@ func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan T
 		TimeoutSec:            FromInt32Pointer(ts.TimeoutSec),
 		IconURI:               FromString(ts.IconURI),
 		UseClusterCredentials: FromBool(ts.UseClusterCredentials),
-		ActionExtraArguments:  fromActionExtraArguments(ctx, ts.ActionExtraArguments),
+		ActionExtraArguments:  fromActionExtraArguments(ts.ActionExtraArguments),
 		AdvancedSettingsJson:  FromString(ts.AdvancedSettingsJson),
 		CreatedAt:             FromTime(ts.CreatedAt),
 		UpdatedAt:             FromTimePointer(ts.UpdatedAt),
@@ -301,7 +301,7 @@ func fromJobResources(j terraformservice.JobResources) *TerraformJobResources {
 }
 
 // fromVariableArray converts domain variables to Terraform set while preserving sensitive values from plan
-func fromVariableArray(ctx context.Context, planVars types.Set, variables []terraformservice.Variable) types.Set {
+func fromVariableArray(planVars types.Set, variables []terraformservice.Variable) types.Set {
 	// If API returns no variables but plan has variables, preserve the plan (API might not return them)
 	if len(variables) == 0 {
 		if !planVars.IsNull() && !planVars.IsUnknown() && len(planVars.Elements()) > 0 {
@@ -400,7 +400,7 @@ func fromVariableArray(ctx context.Context, planVars types.Set, variables []terr
 }
 
 // fromActionExtraArguments converts domain map to Terraform map
-func fromActionExtraArguments(ctx context.Context, args map[string][]string) types.Map {
+func fromActionExtraArguments(args map[string][]string) types.Map {
 	if len(args) == 0 {
 		return types.MapNull(types.ListType{ElemType: types.StringType})
 	}

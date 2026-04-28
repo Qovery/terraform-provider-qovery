@@ -103,7 +103,7 @@ func (cont Container) CustomDomainsList() CustomDomainList {
 	return toCustomDomainList(cont.CustomDomains)
 }
 
-func (cont Container) toUpsertServiceRequest(state *Container) (*container.UpsertServiceRequest, error) {
+func (cont Container) toUpsertServiceRequest(state *Container) *container.UpsertServiceRequest {
 	var stateEnvironmentVariables EnvironmentVariableList
 	var stateEnvironmentVariableAliases EnvironmentVariableList
 	var stateEnvironmentVariableOverrides EnvironmentVariableList
@@ -136,7 +136,7 @@ func (cont Container) toUpsertServiceRequest(state *Container) (*container.Upser
 		SecretAliases:                cont.SecretAliasesList().diffRequest(stateSecretAliases),
 		SecretOverrides:              cont.SecretOverridesList().diffRequest(stateSecretOverrides),
 		SecretFiles:                  cont.SecretFileList().diffRequest(stateSecretFiles),
-	}, nil
+	}
 }
 
 func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomDomainsDiff) container.UpsertRepositoryRequest {
@@ -209,15 +209,15 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		Arguments:                    FromStringArray(container.Arguments),
 		Storages:                     convertDomainStoragesToStorageList(state.Storages, container.Storages).toTerraformSet(ctx),
 		Ports:                        convertDomainPortsToPortList(ctx, state.Ports, container.Ports).toTerraformList(ctx),
-		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformList(ctx),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(container.BuiltInEnvironmentVariables).toTerraformList(ctx),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, container.EnvironmentVariables, variable.ScopeContainer, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, container.EnvironmentVariables, variable.ScopeContainer, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, container.EnvironmentVariables, variable.ScopeContainer, "OVERRIDE").toTerraformSet(ctx),
 		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, container.Secrets, variable.ScopeContainer, "VALUE").toTerraformSet(ctx),
 		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, container.Secrets, variable.ScopeContainer, "ALIAS").toTerraformSet(ctx),
 		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, container.Secrets, variable.ScopeContainer, "OVERRIDE").toTerraformSet(ctx),
-		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, container.EnvironmentVariables, variable.ScopeContainer, "FILE").toTerraformSet(ctx),
-		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, container.Secrets, variable.ScopeContainer, "FILE").toTerraformSet(ctx),
+		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, container.EnvironmentVariables, variable.ScopeContainer).toTerraformSet(ctx),
+		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, container.Secrets, variable.ScopeContainer).toTerraformSet(ctx),
 		InternalHost:                 FromStringPointer(container.InternalHost),
 		ExternalHost:                 FromStringPointer(container.ExternalHost),
 		DeploymentStageId:            FromString(container.DeploymentStageID),

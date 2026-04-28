@@ -389,7 +389,7 @@ func (r terraformServiceResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	// Create API request from plan
-	request, err := plan.toUpsertServiceRequest(nil)
+	request, err := plan.toUpsertServiceRequest()
 	if err != nil {
 		resp.Diagnostics.AddError("Error on terraform service create", err.Error())
 		return
@@ -403,7 +403,7 @@ func (r terraformServiceResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	// Convert domain entity to Terraform state
-	state := convertDomainTerraformServiceToTerraformService(ctx, plan, terraformSvc)
+	state := convertDomainTerraformServiceToTerraformService(plan, terraformSvc)
 	tflog.Trace(ctx, "created terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 
 	// Set state
@@ -433,7 +433,7 @@ func (r terraformServiceResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	// Convert domain entity to Terraform state
-	state = convertDomainTerraformServiceToTerraformService(ctx, state, terraformSvc)
+	state = convertDomainTerraformServiceToTerraformService(state, terraformSvc)
 	tflog.Trace(ctx, "read terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 
 	// Set state
@@ -450,7 +450,7 @@ func (r terraformServiceResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	// Create API request from plan
-	request, err := plan.toUpsertServiceRequest(&state)
+	request, err := plan.toUpsertServiceRequest()
 	if err != nil {
 		resp.Diagnostics.AddError("Error on terraform service update", err.Error())
 		return
@@ -464,7 +464,7 @@ func (r terraformServiceResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	// Convert domain entity to Terraform state
-	state = convertDomainTerraformServiceToTerraformService(ctx, plan, terraformSvc)
+	state = convertDomainTerraformServiceToTerraformService(plan, terraformSvc)
 	tflog.Trace(ctx, "updated terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 
 	// Set state

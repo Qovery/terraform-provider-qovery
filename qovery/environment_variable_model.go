@@ -293,10 +293,10 @@ func toEnvironmentVariableListFromTerraformList(vars types.List) EnvironmentVari
 	return environmentVariables
 }
 
-func convertDomainVariablesToEnvironmentVariableList(vars variable.Variables, scope variable.Scope, variableType string) EnvironmentVariableList {
+func convertDomainVariablesToEnvironmentVariableList(vars variable.Variables) EnvironmentVariableList {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
-		if v.Scope != scope || v.Type != variableType {
+		if v.Scope != variable.ScopeBuiltIn || v.Type != "BUILT_IN" {
 			continue
 		}
 		list = append(list, convertDomainVariableToEnvironmentVariable(v, nil))

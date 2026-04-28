@@ -114,11 +114,7 @@ func (r labelsGroupResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	request, err := plan.toUpsertRequest()
-	if err != nil {
-		resp.Diagnostics.AddError("Error on labels group create", err.Error())
-		return
-	}
+	request := plan.toUpsertRequest()
 	newLabelsGroup, err := r.labelsGroupService.Create(ctx, plan.OrganizationId.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on labels group create", err.Error())
@@ -166,12 +162,7 @@ func (r labelsGroupResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	request, err := plan.toUpsertRequest()
-	if err != nil {
-		resp.Diagnostics.AddError("Error on labels group create", err.Error())
-		return
-	}
-
+	request := plan.toUpsertRequest()
 	labelsGroup, err := r.labelsGroupService.Update(ctx, state.OrganizationId.ValueString(), state.Id.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on labels group update", err.Error())

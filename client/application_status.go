@@ -26,7 +26,7 @@ func (c *Client) getApplicationStatus(ctx context.Context, applicationID string)
 func (c *Client) updateApplicationStatus(ctx context.Context, application *qovery.Application, desiredState qovery.StateEnum, forceRedeploy bool) (*qovery.Status, *apierrors.APIError) {
 	// wait until we can stop the application - otherwise it will fail
 	checker := newApplicationFinalStateCheckerWaitFunc(c, application.Id)
-	if apiErr := wait(ctx, checker, nil); apiErr != nil {
+	if apiErr := wait(ctx, checker); apiErr != nil {
 		return nil, apiErr
 	}
 
@@ -42,7 +42,7 @@ func (c *Client) updateApplicationStatus(ctx context.Context, application *qover
 	}
 
 	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, application.Environment.Id)
-	if apiErr := wait(ctx, envChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, envChecker); apiErr != nil {
 		return nil, apiErr
 	}
 

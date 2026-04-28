@@ -176,7 +176,7 @@ func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierro
 	}
 
 	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, database.Environment.Id)
-	if apiErr := wait(ctx, envChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, envChecker); apiErr != nil {
 		return apiErr
 	}
 
@@ -188,7 +188,7 @@ func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierro
 	}
 
 	checker := newDatabaseStatusCheckerWaitFunc(c, databaseID, "DELETED")
-	if apiErr := wait(ctx, checker, nil); apiErr != nil {
+	if apiErr := wait(ctx, checker); apiErr != nil {
 		return apiErr
 	}
 	return nil
@@ -241,7 +241,7 @@ func (c *Client) deployDatabase(ctx context.Context, databaseID string) (*qovery
 	}
 
 	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_DEPLOYED)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, statusChecker); apiErr != nil {
 		return nil, apiErr
 	}
 
@@ -280,7 +280,7 @@ func (c *Client) stopDatabase(ctx context.Context, databaseID string) (*qovery.S
 	}
 
 	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_STOPPED)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, statusChecker); apiErr != nil {
 		return nil, apiErr
 	}
 
@@ -296,7 +296,7 @@ func (c *Client) stopDatabase(ctx context.Context, databaseID string) (*qovery.S
 
 func (c *Client) redeployDatabase(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
 	finalStateChecker := newDatabaseFinalStateCheckerWaitFunc(c, databaseID)
-	if apiErr := wait(ctx, finalStateChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, finalStateChecker); apiErr != nil {
 		return nil, apiErr
 	}
 
@@ -308,7 +308,7 @@ func (c *Client) redeployDatabase(ctx context.Context, databaseID string) (*qove
 	}
 
 	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_DEPLOYED)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, statusChecker); apiErr != nil {
 		return nil, apiErr
 	}
 

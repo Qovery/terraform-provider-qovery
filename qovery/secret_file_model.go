@@ -223,12 +223,12 @@ func toSecretFileList(vars types.Set) SecretFileList {
 	return secretFiles
 }
 
-func convertDomainSecretsToSecretFileList(initialState types.Set, secrets secret.Secrets, scope variable.Scope, variableType string) SecretFileList {
+func convertDomainSecretsToSecretFileList(initialState types.Set, secrets secret.Secrets, scope variable.Scope) SecretFileList {
 	stateList := toSecretFileList(initialState)
 
 	list := make([]SecretFile, 0, len(secrets))
 	for _, s := range secrets {
-		if s.Scope != scope || s.Type != variableType {
+		if s.Scope != scope || s.Type != "FILE" {
 			continue
 		}
 		list = append(list, convertDomainSecretToSecretFile(s, stateList.find(s.Key)))

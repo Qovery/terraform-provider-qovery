@@ -26,12 +26,12 @@ func (c *Client) getDatabaseStatus(ctx context.Context, databaseID string) (*qov
 func (c *Client) updateDatabaseStatus(ctx context.Context, database *qovery.Database, desiredState qovery.StateEnum) (*qovery.Status, *apierrors.APIError) {
 	// wait until we can stop the database - otherwise it will fail
 	checker := newDatabaseFinalStateCheckerWaitFunc(c, database.Id)
-	if apiErr := wait(ctx, checker, nil); apiErr != nil {
+	if apiErr := wait(ctx, checker); apiErr != nil {
 		return nil, apiErr
 	}
 
 	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, database.Environment.Id)
-	if apiErr := wait(ctx, envChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, envChecker); apiErr != nil {
 		return nil, apiErr
 	}
 

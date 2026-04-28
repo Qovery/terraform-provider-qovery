@@ -132,10 +132,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string, advan
 		return nil, apiErr
 	}
 
-	hosts, apiErr := c.getApplicationHosts(ctx, application, environmentVariables)
-	if apiErr != nil {
-		return nil, apiErr
-	}
+	hosts := c.getApplicationHosts(application, environmentVariables)
 
 	deploymentStage, resp, err := c.api.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, application.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
@@ -233,7 +230,7 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 	}
 
 	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, application.Environment.Id)
-	if apiErr := wait(ctx, envChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, envChecker); apiErr != nil {
 		return apiErr
 	}
 
@@ -245,7 +242,7 @@ func (c *Client) DeleteApplication(ctx context.Context, applicationID string) *a
 	}
 
 	checker := newApplicationStatusCheckerWaitFunc(c, applicationID, qovery.STATEENUM_DELETED)
-	if apiErr := wait(ctx, checker, nil); apiErr != nil {
+	if apiErr := wait(ctx, checker); apiErr != nil {
 		return apiErr
 	}
 	return nil
@@ -370,10 +367,7 @@ func (c *Client) updateApplication(
 		return nil, apiErr
 	}
 
-	hosts, apiErr := c.getApplicationHosts(ctx, application, environmentVariables)
-	if apiErr != nil {
-		return nil, apiErr
-	}
+	hosts := c.getApplicationHosts(application, environmentVariables)
 
 	deploymentRestrictions, apiErr := deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, application.Id, domain.APPLICATION)
 	if apiErr != nil {
@@ -406,7 +400,7 @@ type applicationHosts struct {
 	external *string
 }
 
-func (c *Client) getApplicationHosts(ctx context.Context, application *qovery.Application, environmentVariables []*qovery.EnvironmentVariable) (*applicationHosts, *apierrors.APIError) {
+func (c *Client) getApplicationHosts(application *qovery.Application, environmentVariables []*qovery.EnvironmentVariable) *applicationHosts {
 	// Get all environment variables associated to this application,
 	// and pick only the elements that I need to construct my struct below
 	// Context: since I need to get the internal host of my application and this information is only available via the environment env vars,
@@ -440,7 +434,7 @@ func (c *Client) getApplicationHosts(ctx context.Context, application *qovery.Ap
 		hosts.external = &hostExternal
 	}
 
-	return hosts, nil
+	return hosts
 }
 
 // fetchVariablesForAliasesAndOverrides

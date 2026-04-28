@@ -225,12 +225,12 @@ func toEnvironmentVariableFileList(vars types.Set) EnvironmentVariableFileList {
 	return environmentVariableFiles
 }
 
-func convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx context.Context, initialState types.Set, vars variable.Variables, scope variable.Scope, variableType string) EnvironmentVariableFileList {
+func convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx context.Context, initialState types.Set, vars variable.Variables, scope variable.Scope) EnvironmentVariableFileList {
 	list := make([]EnvironmentVariableFile, 0, len(vars))
 	variableMapByKey := buildVariableFileMap(ctx, initialState)
 
 	for _, v := range vars {
-		if v.Scope != scope || v.Type != variableType {
+		if v.Scope != scope || v.Type != "FILE" {
 			continue
 		}
 		currentVariable := variableMapByKey[v.Key]

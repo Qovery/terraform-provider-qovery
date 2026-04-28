@@ -18,7 +18,7 @@ func (c *Client) deployCluster(ctx context.Context, organizationID string, clust
 	}
 
 	statusChecker := newClusterStatusCheckerWaitFunc(c, organizationID, cluster.Id, qovery.CLUSTERSTATEENUM_DEPLOYED)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, statusChecker); apiErr != nil {
 		return nil, apiErr
 	}
 
@@ -61,7 +61,7 @@ func (c *Client) stopCluster(ctx context.Context, organizationID string, cluster
 	}
 
 	statusChecker := newClusterStatusCheckerWaitFunc(c, organizationID, cluster.Id, qovery.CLUSTERSTATEENUM_STOPPED)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, statusChecker); apiErr != nil {
 		return nil, apiErr
 	}
 

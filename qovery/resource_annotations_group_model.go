@@ -24,7 +24,7 @@ type AnnotationDomain struct {
 
 type AnnotationList []AnnotationDomain
 
-func (ag AnnotationsGroup) toUpsertRequest() (*annotations_group.UpsertServiceRequest, error) {
+func (ag AnnotationsGroup) toUpsertRequest() *annotations_group.UpsertServiceRequest {
 	annotations := make([]annotations_group.AnnotationUpsertRequest, 0, len(ag.Annotations))
 	for key, value := range ag.Annotations {
 		annotations = append(annotations, annotations_group.AnnotationUpsertRequest{
@@ -34,9 +34,7 @@ func (ag AnnotationsGroup) toUpsertRequest() (*annotations_group.UpsertServiceRe
 	}
 
 	scopes := make([]string, 0, len(ag.Scopes))
-	for _, scope := range ag.Scopes {
-		scopes = append(scopes, scope)
-	}
+	scopes = append(scopes, ag.Scopes...)
 
 	return &annotations_group.UpsertServiceRequest{
 		AnnotationsGroupUpsertRequest: annotations_group.UpsertRequest{
@@ -44,7 +42,7 @@ func (ag AnnotationsGroup) toUpsertRequest() (*annotations_group.UpsertServiceRe
 			Annotations: annotations,
 			Scopes:      scopes,
 		},
-	}, nil
+	}
 }
 
 func (annotation AnnotationDomain) toTerraformObject() attr.Value {
@@ -73,7 +71,7 @@ func (annotations AnnotationList) toTerraformMap() map[string]string {
 	return elements
 }
 
-func convertResponseToAnnotationsGroup(ctx context.Context, state AnnotationsGroup, annotationsGroup *annotations_group.AnnotationsGroup) AnnotationsGroup {
+func convertResponseToAnnotationsGroup(state AnnotationsGroup, annotationsGroup *annotations_group.AnnotationsGroup) AnnotationsGroup {
 	return AnnotationsGroup{
 		Id:             FromString(annotationsGroup.Id.String()),
 		Name:           FromString(annotationsGroup.Name),

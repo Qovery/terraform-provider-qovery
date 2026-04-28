@@ -38,11 +38,7 @@ func applyJitter(backoff time.Duration) time.Duration {
 	return half + jitter
 }
 
-func wait(ctx context.Context, f waitFunc, timeout *time.Duration) *apierrors.APIError {
-	if timeout == nil {
-		timeout = new(defaultWaitTimeout)
-	}
-
+func wait(ctx context.Context, f waitFunc) *apierrors.APIError {
 	// Run the function once before waiting, with retry logic for transient errors
 	ok, apiErr := retryOnTransientError(ctx, f)
 	if apiErr != nil {
@@ -53,12 +49,12 @@ func wait(ctx context.Context, f waitFunc, timeout *time.Duration) *apierrors.AP
 	}
 
 	ticker := time.NewTicker(10 * time.Second)
-	timeoutTicker := time.NewTicker(*timeout)
+	timeoutTicker := time.NewTicker(defaultWaitTimeout)
 
 	for {
 		select {
 		case <-timeoutTicker.C:
-			return apierrors.NewTimeoutError(*timeout)
+			return apierrors.NewTimeoutError(defaultWaitTimeout)
 		case <-ticker.C:
 			ok, apiErr := retryOnTransientError(ctx, f)
 			if apiErr != nil {

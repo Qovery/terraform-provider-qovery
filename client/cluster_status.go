@@ -21,7 +21,7 @@ func (c *Client) getClusterStatus(ctx context.Context, organizationID string, cl
 func (c *Client) updateClusterStatus(ctx context.Context, organizationID string, cluster *qovery.Cluster, desiredState qovery.ClusterStateEnum, forceUpdate bool) (*qovery.ClusterStateEnum, *apierrors.APIError) {
 	// wait until we can stop the cluster - otherwise it will fail
 	checker := newClusterFinalStateCheckerWaitFunc(c, organizationID, cluster.Id)
-	if apiErr := wait(ctx, checker, nil); apiErr != nil {
+	if apiErr := wait(ctx, checker); apiErr != nil {
 		return nil, apiErr
 	}
 

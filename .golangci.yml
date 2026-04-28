@@ -10,7 +10,6 @@ issues:
     - path: "^(qovery|client)/"
       linters:
         - unused
-        - unparam
 
 linters:
   disable-all: true

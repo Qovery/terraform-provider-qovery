@@ -25,7 +25,7 @@ type LabelDomain struct {
 
 type LabelList []LabelDomain
 
-func (lg LabelsGroup) toUpsertRequest() (*labels_group.UpsertServiceRequest, error) {
+func (lg LabelsGroup) toUpsertRequest() *labels_group.UpsertServiceRequest {
 	labels := make([]labels_group.LabelUpsertRequest, 0, len(lg.Labels.Elements()))
 	for _, elem := range lg.Labels.Elements() {
 		labels = append(labels, toLabel(elem.(types.Object)))
@@ -36,7 +36,7 @@ func (lg LabelsGroup) toUpsertRequest() (*labels_group.UpsertServiceRequest, err
 			Name:   ToString(lg.Name),
 			Labels: labels,
 		},
-	}, nil
+	}
 }
 
 func toLabel(v types.Object) labels_group.LabelUpsertRequest {

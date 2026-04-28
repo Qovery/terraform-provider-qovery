@@ -87,12 +87,12 @@ func convertDomainProjectToProject(ctx context.Context, state Project, res *proj
 		OrganizationId:              FromString(res.OrganizationID.String()),
 		Name:                        FromString(res.Name),
 		Description:                 FromStringPointer(res.Description),
-		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(res.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformList(ctx),
+		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(res.BuiltInEnvironmentVariables).toTerraformList(ctx),
 		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, res.EnvironmentVariables, variable.ScopeProject, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:  convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, res.EnvironmentVariables, variable.ScopeProject, "ALIAS").toTerraformSet(ctx),
 		Secrets:                     convertDomainSecretsToSecretList(state.Secrets, res.Secrets, variable.ScopeProject, "VALUE").toTerraformSet(ctx),
 		SecretAliases:               convertDomainSecretsToSecretList(state.SecretAliases, res.Secrets, variable.ScopeProject, "ALIAS").toTerraformSet(ctx),
-		EnvironmentVariableFiles:    convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, res.EnvironmentVariables, variable.ScopeProject, "FILE").toTerraformSet(ctx),
-		SecretFiles:                 convertDomainSecretsToSecretFileList(state.SecretFiles, res.Secrets, variable.ScopeProject, "FILE").toTerraformSet(ctx),
+		EnvironmentVariableFiles:    convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, res.EnvironmentVariables, variable.ScopeProject).toTerraformSet(ctx),
+		SecretFiles:                 convertDomainSecretsToSecretFileList(state.SecretFiles, res.Secrets, variable.ScopeProject).toTerraformSet(ctx),
 	}
 }
