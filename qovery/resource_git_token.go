@@ -3,9 +3,10 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -19,8 +20,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &gitTokenResource{}
-var _ resource.ResourceWithImportState = gitTokenResource{}
+var (
+	_ resource.ResourceWithConfigure   = &gitTokenResource{}
+	_ resource.ResourceWithImportState = gitTokenResource{}
+)
 
 var gitTokenTypes = clientEnumToStringArray(gittoken.AllowedGitTokenTypeValues)
 
@@ -62,7 +65,7 @@ func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"id": schema.StringAttribute{
 				Description:         "Id of the git token.",
 				MarkdownDescription: "Id of the git token.",
-				Computed:    true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -70,18 +73,18 @@ func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"organization_id": schema.StringAttribute{
 				Description:         "Id of the organization.",
 				MarkdownDescription: "Id of the organization.",
-				Required:    true,
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
 				Description:         "Name of the git token.",
 				MarkdownDescription: "Name of the git token.",
-				Required:    true,
+				Required:            true,
 			},
 			"description": schema.StringAttribute{
 				Description:         "Description of the git token.",
 				MarkdownDescription: "Description of the git token.",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -105,8 +108,8 @@ func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"bitbucket_workspace": schema.StringAttribute{
 				Description:         "Bitbucket workspace where the token has permissions. Required only when type is BITBUCKET.",
 				MarkdownDescription: "Bitbucket workspace where the token has permissions. Required only when `type` is `BITBUCKET`.",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -114,8 +117,8 @@ func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"token": schema.StringAttribute{
 				Description:         "Value of the git token (personal access token or app token from the git provider). Sensitive.",
 				MarkdownDescription: "Value of the git token (personal access token or app token from the git provider). Sensitive.",
-				Required:    true,
-				Sensitive:   true,
+				Required:            true,
+				Sensitive:           true,
 			},
 		},
 	}

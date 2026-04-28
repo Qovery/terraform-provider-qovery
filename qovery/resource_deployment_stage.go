@@ -17,8 +17,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &deploymentStageResource{}
-var _ resource.ResourceWithImportState = deploymentStageResource{}
+var (
+	_ resource.ResourceWithConfigure   = &deploymentStageResource{}
+	_ resource.ResourceWithImportState = deploymentStageResource{}
+)
 
 type deploymentStageResource struct {
 	deploymentStageService deploymentstage.Service

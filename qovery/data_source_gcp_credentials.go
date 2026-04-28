@@ -46,7 +46,7 @@ func (d *gcpCredentialsDataSource) Configure(_ context.Context, req datasource.C
 
 func (r gcpCredentialsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery GCP credentials data source. This can be used to read Qovery GCP credentials.",
+		Description:         "Provides a Qovery GCP credentials data source. This can be used to read Qovery GCP credentials.",
 		MarkdownDescription: "Use this data source to retrieve information about existing Qovery GCP credentials. This is useful for referencing credentials created outside of Terraform or in a different Terraform configuration.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{

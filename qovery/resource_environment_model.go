@@ -29,9 +29,11 @@ type Environment struct {
 func (e Environment) EnvironmentVariableList() EnvironmentVariableList {
 	return toEnvironmentVariableList(e.EnvironmentVariables)
 }
+
 func (e Environment) EnvironmentVariableAliasesList() EnvironmentVariableList {
 	return toEnvironmentVariableList(e.EnvironmentVariableAliases)
 }
+
 func (e Environment) EnvironmentVariableOverridesList() EnvironmentVariableList {
 	return toEnvironmentVariableList(e.EnvironmentVariableOverrides)
 }
@@ -43,9 +45,11 @@ func (e Environment) BuiltInEnvironmentVariableList() EnvironmentVariableList {
 func (e Environment) SecretList() SecretList {
 	return ToSecretList(e.Secrets)
 }
+
 func (e Environment) SecretAliasesList() SecretList {
 	return ToSecretList(e.SecretAliases)
 }
+
 func (e Environment) SecretOverridesList() SecretList {
 	return ToSecretList(e.SecretOverrides)
 }
@@ -114,14 +118,14 @@ func convertDomainEnvironmentToEnvironment(ctx context.Context, state Environmen
 		ClusterId:                    FromString(env.ClusterID.String()),
 		Name:                         FromString(env.Name),
 		Mode:                         fromClientEnum(env.Mode),
-		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(env.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformList(ctx),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(env.BuiltInEnvironmentVariables).toTerraformList(ctx),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, env.EnvironmentVariables, variable.ScopeEnvironment, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, env.EnvironmentVariables, variable.ScopeEnvironment, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, env.EnvironmentVariables, variable.ScopeEnvironment, "OVERRIDE").toTerraformSet(ctx),
 		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, env.Secrets, variable.ScopeEnvironment, "VALUE").toTerraformSet(ctx),
 		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, env.Secrets, variable.ScopeEnvironment, "ALIAS").toTerraformSet(ctx),
 		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, env.Secrets, variable.ScopeEnvironment, "OVERRIDE").toTerraformSet(ctx),
-		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, env.EnvironmentVariables, variable.ScopeEnvironment, "FILE").toTerraformSet(ctx),
-		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, env.Secrets, variable.ScopeEnvironment, "FILE").toTerraformSet(ctx),
+		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, env.EnvironmentVariables, variable.ScopeEnvironment).toTerraformSet(ctx),
+		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, env.Secrets, variable.ScopeEnvironment).toTerraformSet(ctx),
 	}
 }

@@ -17,21 +17,21 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &deploymentResource{}
-var _ resource.ResourceWithImportState = deploymentResource{}
+var (
+	_ resource.ResourceWithConfigure   = &deploymentResource{}
+	_ resource.ResourceWithImportState = deploymentResource{}
+)
 
 type deploymentResource struct {
 	deploymentService newdeployment.Service
 }
 
-var (
-	// default deployment states
-	deploymentStates = []string{
-		newdeployment.RUNNING.String(),
-		newdeployment.STOPPED.String(),
-		newdeployment.RESTARTED.String(),
-	}
-)
+// default deployment states
+var deploymentStates = []string{
+	newdeployment.RUNNING.String(),
+	newdeployment.STOPPED.String(),
+	newdeployment.RESTARTED.String(),
+}
 
 func newDeploymentResource() resource.Resource {
 	return &deploymentResource{}

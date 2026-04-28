@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/AlekSi/pointer"
@@ -105,13 +106,13 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 			"max_duration_seconds": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Job's max duration in seconds.",
-					int64(job.MinDurationSeconds),
-					pointer.ToInt64(int64(job.DefaultMaxDurationSeconds)),
+					job.MinDurationSeconds,
+					pointer.ToInt64(job.DefaultMaxDurationSeconds),
 				),
 				MarkdownDescription: descriptions.NewInt64MinDescription(
 					"Job's max duration in seconds.",
-					int64(job.MinDurationSeconds),
-					pointer.ToInt64(int64(job.DefaultMaxDurationSeconds)),
+					job.MinDurationSeconds,
+					pointer.ToInt64(job.DefaultMaxDurationSeconds),
 				),
 				Optional: true,
 				Computed: true,
@@ -119,13 +120,13 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 			"max_nb_restart": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Job's max number of restarts.",
-					int64(job.MinNbRestart),
-					pointer.ToInt64(int64(job.DefaultMaxNbRestart)),
+					job.MinNbRestart,
+					pointer.ToInt64(job.DefaultMaxNbRestart),
 				),
 				MarkdownDescription: descriptions.NewInt64MinDescription(
 					"Job's max number of restarts.",
-					int64(job.MinNbRestart),
-					pointer.ToInt64(int64(job.DefaultMaxNbRestart)),
+					job.MinNbRestart,
+					pointer.ToInt64(job.DefaultMaxNbRestart),
 				),
 				Optional: true,
 				Computed: true,

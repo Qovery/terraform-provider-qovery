@@ -23,14 +23,14 @@ var portAttrTypes = map[string]attr.Type{
 type PortList []Port
 
 func (pp PortList) toTerraformList(ctx context.Context) types.List {
-	var portObjectType = types.ObjectType{
+	portObjectType := types.ObjectType{
 		AttrTypes: portAttrTypes,
 	}
 	if pp == nil {
 		return types.ListNull(portObjectType)
 	}
 
-	var elements = make([]attr.Value, 0, len(pp))
+	elements := make([]attr.Value, 0, len(pp))
 	for _, v := range pp {
 		elements = append(elements, v.toTerraformObject())
 	}
@@ -53,7 +53,7 @@ type Port struct {
 }
 
 func (p Port) toTerraformObject() types.Object {
-	var attributes = map[string]attr.Value{
+	attributes := map[string]attr.Value{
 		"id":                  p.Id,
 		"name":                p.Name,
 		"protocol":            p.Protocol,

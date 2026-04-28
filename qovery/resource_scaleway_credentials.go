@@ -16,8 +16,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &scalewayCredentialsResource{}
-var _ resource.ResourceWithImportState = scalewayCredentialsResource{}
+var (
+	_ resource.ResourceWithConfigure   = &scalewayCredentialsResource{}
+	_ resource.ResourceWithImportState = scalewayCredentialsResource{}
+)
 
 type scalewayCredentialsResource struct {
 	scalewayCredentialsService credentials.ScalewayService

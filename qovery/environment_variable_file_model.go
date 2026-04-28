@@ -23,14 +23,14 @@ var environmentVariableFileAttrTypes = map[string]attr.Type{
 type EnvironmentVariableFileList []EnvironmentVariableFile
 
 func (vars EnvironmentVariableFileList) toTerraformSet(ctx context.Context) types.Set {
-	var environmentVariableFileObjectType = types.ObjectType{
+	environmentVariableFileObjectType := types.ObjectType{
 		AttrTypes: environmentVariableFileAttrTypes,
 	}
 	if vars == nil {
 		return types.SetNull(environmentVariableFileObjectType)
 	}
 
-	var elements = make([]attr.Value, 0, len(vars))
+	elements := make([]attr.Value, 0, len(vars))
 	for _, v := range vars {
 		elements = append(elements, v.toTerraformObject())
 	}
@@ -128,7 +128,7 @@ type EnvironmentVariableFile struct {
 }
 
 func (e EnvironmentVariableFile) toTerraformObject() types.Object {
-	var attributes = map[string]attr.Value{
+	attributes := map[string]attr.Value{
 		"id":          e.Id,
 		"key":         e.Key,
 		"value":       e.Value,
@@ -225,13 +225,12 @@ func toEnvironmentVariableFileList(vars types.Set) EnvironmentVariableFileList {
 	return environmentVariableFiles
 }
 
-
-func convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx context.Context, initialState types.Set, vars variable.Variables, scope variable.Scope, variableType string) EnvironmentVariableFileList {
+func convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx context.Context, initialState types.Set, vars variable.Variables, scope variable.Scope) EnvironmentVariableFileList {
 	list := make([]EnvironmentVariableFile, 0, len(vars))
 	variableMapByKey := buildVariableFileMap(ctx, initialState)
 
 	for _, v := range vars {
-		if v.Scope != scope || v.Type != variableType {
+		if v.Scope != scope || v.Type != "FILE" {
 			continue
 		}
 		currentVariable := variableMapByKey[v.Key]

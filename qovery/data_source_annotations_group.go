@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -97,7 +98,7 @@ func (d annotationsGroupDataSource) Read(ctx context.Context, req datasource.Rea
 		return
 	}
 
-	state := convertResponseToAnnotationsGroup(ctx, data, h)
+	state := convertResponseToAnnotationsGroup(data, h)
 	tflog.Trace(ctx, "read annotation group", map[string]any{"annotation_group_id": state.Id.ValueString()})
 
 	// Set state

@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -23,14 +24,14 @@ var secretAttrTypes = map[string]attr.Type{
 type SecretList []Secret
 
 func (ss SecretList) toTerraformSet(ctx context.Context) types.Set {
-	var secretObjectType = types.ObjectType{
+	secretObjectType := types.ObjectType{
 		AttrTypes: secretAttrTypes,
 	}
 	if ss == nil {
 		return types.SetNull(secretObjectType)
 	}
 
-	var elements = make([]attr.Value, 0, len(ss))
+	elements := make([]attr.Value, 0, len(ss))
 	for _, v := range ss {
 		elements = append(elements, v.toTerraformObject())
 	}
@@ -120,7 +121,7 @@ type Secret struct {
 }
 
 func (s Secret) toTerraformObject() types.Object {
-	var attributes = map[string]attr.Value{
+	attributes := map[string]attr.Value{
 		"id":          s.Id,
 		"key":         s.Key,
 		"value":       s.Value,

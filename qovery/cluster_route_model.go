@@ -18,7 +18,7 @@ var clusterRouteAttrTypes = map[string]attr.Type{
 type ClusterRouteList []ClusterRoute
 
 func (routes ClusterRouteList) toTerraformSet(ctx context.Context, initialPlanClusterRouteSet types.Set) types.Set {
-	var clusterRouteObjectType = types.ObjectType{
+	clusterRouteObjectType := types.ObjectType{
 		AttrTypes: clusterRouteAttrTypes,
 	}
 
@@ -30,7 +30,7 @@ func (routes ClusterRouteList) toTerraformSet(ctx context.Context, initialPlanCl
 		return types.SetNull(clusterRouteObjectType)
 	}
 
-	var elements = make([]attr.Value, 0, len(routes))
+	elements := make([]attr.Value, 0, len(routes))
 	for _, v := range routes {
 		elements = append(elements, v.toTerraformObject())
 	}
@@ -61,7 +61,7 @@ type ClusterRoute struct {
 }
 
 func (r ClusterRoute) toTerraformObject() types.Object {
-	var attributes = map[string]attr.Value{
+	attributes := map[string]attr.Value{
 		"description": r.Description,
 		"destination": r.Destination,
 		"target":      r.Target,

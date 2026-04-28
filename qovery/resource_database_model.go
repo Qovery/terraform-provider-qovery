@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
@@ -140,7 +141,6 @@ func (d Database) toUpdateDatabaseRequest() (*client.DatabaseUpdateParams, error
 }
 
 func convertResponseToDatabase(ctx context.Context, state Database, res *client.DatabaseResponse) Database {
-
 	return Database{
 		Id:                  FromString(res.DatabaseResponse.Id),
 		EnvironmentId:       FromString(res.DatabaseResponse.Environment.Id),

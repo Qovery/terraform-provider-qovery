@@ -19,14 +19,14 @@ var storageAttrTypes = map[string]attr.Type{
 type StorageList []Storage
 
 func (ss StorageList) toTerraformSet(ctx context.Context) types.Set {
-	var storageObjectType = types.ObjectType{
+	storageObjectType := types.ObjectType{
 		AttrTypes: storageAttrTypes,
 	}
 	if ss == nil {
 		return types.SetNull(storageObjectType)
 	}
 
-	var elements = make([]attr.Value, 0, len(ss))
+	elements := make([]attr.Value, 0, len(ss))
 	for _, v := range ss {
 		elements = append(elements, v.toTerraformObject())
 	}
@@ -45,7 +45,7 @@ type Storage struct {
 }
 
 func (p Storage) toTerraformObject() types.Object {
-	var attributes = map[string]attr.Value{
+	attributes := map[string]attr.Value{
 		"id":          p.ID,
 		"type":        p.Type,
 		"mount_point": p.MountPoint,
@@ -65,27 +65,6 @@ func (p Storage) toUpsertRequest() storage.UpsertRequest {
 		MountPoint: ToString(p.MountPoint),
 		Size:       ToInt32(p.Size),
 	}
-}
-
-func fromStorage(p storage.Storage) Storage {
-	return Storage{
-		ID:         FromString(p.ID.String()),
-		Type:       FromString(p.Type.String()),
-		MountPoint: FromString(p.MountPoint),
-		Size:       FromInt32(p.Size),
-	}
-}
-
-func fromStorageList(state StorageList, storages storage.Storages) StorageList {
-	list := make([]Storage, 0, len(storages))
-	for _, s := range storages {
-		list = append(list, fromStorage(s))
-	}
-
-	if len(list) == 0 {
-		return nil
-	}
-	return list
 }
 
 func convertDomainStoragesToStorageList(initialState types.Set, storages storage.Storages) StorageList {

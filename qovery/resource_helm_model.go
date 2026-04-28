@@ -328,7 +328,7 @@ func (valuesOverride HelmValuesOverride) toUpsertRequest() helm.ValuesOverride {
 
 	var file *helm.ValuesOverrideFile
 	if valuesOverride.HelmValuesOverrideFile != nil {
-		valuesOverrideFile := (*valuesOverride.HelmValuesOverrideFile).toUpsertRequest()
+		valuesOverrideFile := valuesOverride.HelmValuesOverrideFile.toUpsertRequest()
 		file = &valuesOverrideFile
 	}
 
@@ -486,15 +486,15 @@ func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) H
 		Source:                       &source,
 		ValuesOverride:               &valuesOverride,
 		Ports:                        ports,
-		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(helm.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformList(ctx),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(helm.BuiltInEnvironmentVariables).toTerraformList(ctx),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, helm.EnvironmentVariables, variable.ScopeHelm, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, helm.EnvironmentVariables, variable.ScopeHelm, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, helm.EnvironmentVariables, variable.ScopeHelm, "OVERRIDE").toTerraformSet(ctx),
 		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, helm.Secrets, variable.ScopeHelm, "VALUE").toTerraformSet(ctx),
 		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, helm.Secrets, variable.ScopeHelm, "ALIAS").toTerraformSet(ctx),
 		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, helm.Secrets, variable.ScopeHelm, "OVERRIDE").toTerraformSet(ctx),
-		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, helm.EnvironmentVariables, variable.ScopeHelm, "FILE").toTerraformSet(ctx),
-		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, helm.Secrets, variable.ScopeHelm, "FILE").toTerraformSet(ctx),
+		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, helm.EnvironmentVariables, variable.ScopeHelm).toTerraformSet(ctx),
+		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, helm.Secrets, variable.ScopeHelm).toTerraformSet(ctx),
 		InternalHost:                 FromStringPointer(helm.InternalHost),
 		ExternalHost:                 FromStringPointer(helm.ExternalHost),
 		DeploymentStageId:            FromString(helm.DeploymentStageID),

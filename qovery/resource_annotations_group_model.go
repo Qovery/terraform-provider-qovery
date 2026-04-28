@@ -2,7 +2,7 @@ package qovery
 
 import (
 	"context"
-	"github.com/hashicorp/terraform-plugin-framework/attr"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
@@ -23,7 +23,7 @@ type AnnotationDomain struct {
 
 type AnnotationList []AnnotationDomain
 
-func (ag AnnotationsGroup) toUpsertRequest() (*annotations_group.UpsertServiceRequest, error) {
+func (ag AnnotationsGroup) toUpsertRequest() *annotations_group.UpsertServiceRequest {
 	annotations := make([]annotations_group.AnnotationUpsertRequest, 0, len(ag.Annotations))
 	for key, value := range ag.Annotations {
 		annotations = append(annotations, annotations_group.AnnotationUpsertRequest{
@@ -33,9 +33,7 @@ func (ag AnnotationsGroup) toUpsertRequest() (*annotations_group.UpsertServiceRe
 	}
 
 	scopes := make([]string, 0, len(ag.Scopes))
-	for _, scope := range ag.Scopes {
-		scopes = append(scopes, scope)
-	}
+	scopes = append(scopes, ag.Scopes...)
 
 	return &annotations_group.UpsertServiceRequest{
 		AnnotationsGroupUpsertRequest: annotations_group.UpsertRequest{
@@ -43,28 +41,11 @@ func (ag AnnotationsGroup) toUpsertRequest() (*annotations_group.UpsertServiceRe
 			Annotations: annotations,
 			Scopes:      scopes,
 		},
-	}, nil
-}
-
-func (annotation AnnotationDomain) toTerraformObject() attr.Value {
-	var attributes = map[string]attr.Value{
-		"key":   annotation.Key,
-		"value": annotation.Value,
 	}
-	terraformObjectValue, diagnostics := types.ObjectValue(annotationAttrTypes, attributes)
-	if diagnostics.HasError() {
-		panic("Can't creat e ObjectValue")
-	}
-	return terraformObjectValue
-}
-
-var annotationAttrTypes = map[string]attr.Type{
-	"key":   types.StringType,
-	"value": types.StringType,
 }
 
 func (annotations AnnotationList) toTerraformMap() map[string]string {
-	var elements = make(map[string]string, len(annotations))
+	elements := make(map[string]string, len(annotations))
 	for _, annotation := range annotations {
 		elements[ToString(annotation.Key)] = ToString(annotation.Value)
 	}
@@ -72,7 +53,7 @@ func (annotations AnnotationList) toTerraformMap() map[string]string {
 	return elements
 }
 
-func convertResponseToAnnotationsGroup(ctx context.Context, state AnnotationsGroup, annotationsGroup *annotations_group.AnnotationsGroup) AnnotationsGroup {
+func convertResponseToAnnotationsGroup(state AnnotationsGroup, annotationsGroup *annotations_group.AnnotationsGroup) AnnotationsGroup {
 	return AnnotationsGroup{
 		Id:             FromString(annotationsGroup.Id.String()),
 		Name:           FromString(annotationsGroup.Name),
@@ -112,7 +93,7 @@ func fromAnnotationsGroupResponseList(ctx context.Context, initialState types.Se
 		return types.SetNull(types.StringType)
 	}
 
-	var elements = make([]string, 0, len(annotationsGroup))
+	elements := make([]string, 0, len(annotationsGroup))
 	for _, v := range annotationsGroup {
 		elements = append(elements, v.Id)
 	}
@@ -128,7 +109,7 @@ func fromAnnotationsGroupList(ctx context.Context, initialState types.Set, annot
 		return types.SetNull(types.StringType)
 	}
 
-	var elements = make([]string, 0, len(annotationsGroup))
+	elements := make([]string, 0, len(annotationsGroup))
 	for _, v := range annotationsGroup {
 		elements = append(elements, v)
 	}

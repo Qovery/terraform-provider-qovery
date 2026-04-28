@@ -98,7 +98,7 @@ func (c *Client) UpdateCluster(ctx context.Context, organizationID string, clust
 
 func (c *Client) DeleteCluster(ctx context.Context, organizationID string, clusterID string) *apierrors.APIError {
 	finalStateChecker := newClusterFinalStateCheckerWaitFunc(c, organizationID, clusterID)
-	if apiErr := wait(ctx, finalStateChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, finalStateChecker); apiErr != nil {
 		return apiErr
 	}
 
@@ -110,7 +110,7 @@ func (c *Client) DeleteCluster(ctx context.Context, organizationID string, clust
 	}
 
 	checker := newClusterStatusCheckerWaitFunc(c, organizationID, clusterID, "DELETED")
-	if apiErr := wait(ctx, checker, nil); apiErr != nil {
+	if apiErr := wait(ctx, checker); apiErr != nil {
 		return apiErr
 	}
 	return nil

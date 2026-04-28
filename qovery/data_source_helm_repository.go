@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -22,6 +23,7 @@ type helmRepositoryDataSource struct {
 func newhelmRepositoryDataSource() datasource.DataSource {
 	return &helmRepositoryDataSource{}
 }
+
 func (d helmRepositoryDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_helm_repository"
 }

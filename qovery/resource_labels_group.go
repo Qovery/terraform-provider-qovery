@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
@@ -13,8 +14,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &labelsGroupResource{}
-var _ resource.ResourceWithImportState = labelsGroupResource{}
+var (
+	_ resource.ResourceWithConfigure   = &labelsGroupResource{}
+	_ resource.ResourceWithImportState = labelsGroupResource{}
+)
 
 type labelsGroupResource struct {
 	labelsGroupService labels_group.Service
@@ -111,11 +114,7 @@ func (r labelsGroupResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	request, err := plan.toUpsertRequest()
-	if err != nil {
-		resp.Diagnostics.AddError("Error on labels group create", err.Error())
-		return
-	}
+	request := plan.toUpsertRequest()
 	newLabelsGroup, err := r.labelsGroupService.Create(ctx, plan.OrganizationId.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on labels group create", err.Error())
@@ -139,18 +138,18 @@ func (r labelsGroupResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	//Get from the API
+	// Get from the API
 	labelsGroup, apiErr := r.labelsGroupService.Get(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
 	if apiErr != nil {
 		resp.Diagnostics.AddError("Error on labels group read", apiErr.Error())
 		return
 	}
 
-	//Refresh state values
+	// Refresh state values
 	state = convertResponseToLabelsGroup(ctx, state, labelsGroup)
 	tflog.Trace(ctx, "read get", map[string]any{"labels_group": state.Id.ValueString()})
 
-	//Set state
+	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -163,12 +162,7 @@ func (r labelsGroupResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	request, err := plan.toUpsertRequest()
-	if err != nil {
-		resp.Diagnostics.AddError("Error on labels group create", err.Error())
-		return
-	}
-
+	request := plan.toUpsertRequest()
 	labelsGroup, err := r.labelsGroupService.Update(ctx, state.OrganizationId.ValueString(), state.Id.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on labels group update", err.Error())

@@ -275,9 +275,11 @@ type Job struct {
 func (j Job) EnvironmentVariableList() EnvironmentVariableList {
 	return toEnvironmentVariableList(j.EnvironmentVariables)
 }
+
 func (j Job) EnvironmentVariableAliasesList() EnvironmentVariableList {
 	return toEnvironmentVariableList(j.EnvironmentVariableAliases)
 }
+
 func (j Job) EnvironmentVariableOverridesList() EnvironmentVariableList {
 	return toEnvironmentVariableList(j.EnvironmentVariableOverrides)
 }
@@ -289,9 +291,11 @@ func (j Job) BuiltInEnvironmentVariableList() EnvironmentVariableList {
 func (j Job) SecretList() SecretList {
 	return ToSecretList(j.Secrets)
 }
+
 func (j Job) SecretAliasesList() SecretList {
 	return ToSecretList(j.SecretAliases)
 }
+
 func (j Job) SecretOverridesList() SecretList {
 	return ToSecretList(j.SecretOverrides)
 }
@@ -407,15 +411,15 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		Port:                         FromInt32Pointer(prt),
 		Source:                       &source,
 		Schedule:                     &schedule,
-		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(job.BuiltInEnvironmentVariables, variable.ScopeBuiltIn, "BUILT_IN").toTerraformList(ctx),
+		BuiltInEnvironmentVariables:  convertDomainVariablesToEnvironmentVariableList(job.BuiltInEnvironmentVariables).toTerraformList(ctx),
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, job.EnvironmentVariables, variable.ScopeJob, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, job.EnvironmentVariables, variable.ScopeJob, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, job.EnvironmentVariables, variable.ScopeJob, "OVERRIDE").toTerraformSet(ctx),
 		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, job.Secrets, variable.ScopeJob, "VALUE").toTerraformSet(ctx),
 		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, job.Secrets, variable.ScopeJob, "ALIAS").toTerraformSet(ctx),
 		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, job.Secrets, variable.ScopeJob, "OVERRIDE").toTerraformSet(ctx),
-		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, job.EnvironmentVariables, variable.ScopeJob, "FILE").toTerraformSet(ctx),
-		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, job.Secrets, variable.ScopeJob, "FILE").toTerraformSet(ctx),
+		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, job.EnvironmentVariables, variable.ScopeJob).toTerraformSet(ctx),
+		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, job.Secrets, variable.ScopeJob).toTerraformSet(ctx),
 		InternalHost:                 FromStringPointer(job.InternalHost),
 		ExternalHost:                 FromStringPointer(job.ExternalHost),
 		DeploymentStageId:            FromString(job.DeploymentStageID),

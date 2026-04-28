@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -15,8 +16,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &annotationsGroupResource{}
-var _ resource.ResourceWithImportState = annotationsGroupResource{}
+var (
+	_ resource.ResourceWithConfigure   = &annotationsGroupResource{}
+	_ resource.ResourceWithImportState = annotationsGroupResource{}
+)
 
 type annotationsGroupResource struct {
 	annotationsGroupService annotations_group.Service
@@ -105,11 +108,7 @@ func (r annotationsGroupResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	request, err := plan.toUpsertRequest()
-	if err != nil {
-		resp.Diagnostics.AddError("Error on annotations group create", err.Error())
-		return
-	}
+	request := plan.toUpsertRequest()
 	newAnnotationsGroup, err := r.annotationsGroupService.Create(ctx, plan.OrganizationId.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on annotations group create", err.Error())
@@ -117,7 +116,7 @@ func (r annotationsGroupResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	// Initialize state values
-	state := convertResponseToAnnotationsGroup(ctx, plan, newAnnotationsGroup)
+	state := convertResponseToAnnotationsGroup(plan, newAnnotationsGroup)
 	tflog.Trace(ctx, "created annotations group", map[string]any{"annotations group": state.Name.ValueString()})
 
 	// Set state
@@ -141,7 +140,7 @@ func (r annotationsGroupResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	// Refresh state values
-	state = convertResponseToAnnotationsGroup(ctx, state, annotationsGroup)
+	state = convertResponseToAnnotationsGroup(state, annotationsGroup)
 	tflog.Trace(ctx, "read get", map[string]any{"annotations_group": state.Id.ValueString()})
 
 	// Set state
@@ -157,12 +156,7 @@ func (r annotationsGroupResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	request, err := plan.toUpsertRequest()
-	if err != nil {
-		resp.Diagnostics.AddError("Error on annotations group create", err.Error())
-		return
-	}
-
+	request := plan.toUpsertRequest()
 	annotationsGroup, err := r.annotationsGroupService.Update(ctx, state.OrganizationId.ValueString(), state.Id.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on annotations group update", err.Error())
@@ -170,7 +164,7 @@ func (r annotationsGroupResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	// Update state values
-	state = convertResponseToAnnotationsGroup(ctx, plan, annotationsGroup)
+	state = convertResponseToAnnotationsGroup(plan, annotationsGroup)
 	tflog.Trace(ctx, "updated annotations group", map[string]any{"annotation group id": state.Id.ValueString()})
 
 	// Set state

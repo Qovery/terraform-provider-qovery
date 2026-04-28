@@ -23,14 +23,14 @@ var environmentVariableAttrTypes = map[string]attr.Type{
 type EnvironmentVariableList []EnvironmentVariable
 
 func (vars EnvironmentVariableList) toTerraformSet(ctx context.Context) types.Set {
-	var environmentVariableObjectType = types.ObjectType{
+	environmentVariableObjectType := types.ObjectType{
 		AttrTypes: environmentVariableAttrTypes,
 	}
 	if vars == nil {
 		return types.SetNull(environmentVariableObjectType)
 	}
 
-	var elements = make([]attr.Value, 0, len(vars))
+	elements := make([]attr.Value, 0, len(vars))
 	for _, v := range vars {
 		elements = append(elements, v.toTerraformObject())
 	}
@@ -42,7 +42,7 @@ func (vars EnvironmentVariableList) toTerraformSet(ctx context.Context) types.Se
 }
 
 func (vars EnvironmentVariableList) toTerraformList(ctx context.Context) types.List {
-	var environmentVariableObjectType = types.ObjectType{
+	environmentVariableObjectType := types.ObjectType{
 		AttrTypes: environmentVariableAttrTypes,
 	}
 	if vars == nil {
@@ -55,7 +55,7 @@ func (vars EnvironmentVariableList) toTerraformList(ctx context.Context) types.L
 		return sorted[i].Key.ValueString() < sorted[j].Key.ValueString()
 	})
 
-	var elements = make([]attr.Value, 0, len(sorted))
+	elements := make([]attr.Value, 0, len(sorted))
 	for _, v := range sorted {
 		elements = append(elements, v.toTerraformObject())
 	}
@@ -144,7 +144,7 @@ type EnvironmentVariable struct {
 }
 
 func (e EnvironmentVariable) toTerraformObject() types.Object {
-	var attributes = map[string]attr.Value{
+	attributes := map[string]attr.Value{
 		"id":          e.Id,
 		"key":         e.Key,
 		"value":       e.Value,
@@ -293,10 +293,10 @@ func toEnvironmentVariableListFromTerraformList(vars types.List) EnvironmentVari
 	return environmentVariables
 }
 
-func convertDomainVariablesToEnvironmentVariableList(vars variable.Variables, scope variable.Scope, variableType string) EnvironmentVariableList {
+func convertDomainVariablesToEnvironmentVariableList(vars variable.Variables) EnvironmentVariableList {
 	list := make([]EnvironmentVariable, 0, len(vars))
 	for _, v := range vars {
-		if v.Scope != scope || v.Type != variableType {
+		if v.Scope != variable.ScopeBuiltIn || v.Type != "BUILT_IN" {
 			continue
 		}
 		list = append(list, convertDomainVariableToEnvironmentVariable(v, nil))

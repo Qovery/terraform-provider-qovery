@@ -3,9 +3,10 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -19,8 +20,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &containerRegistryResource{}
-var _ resource.ResourceWithImportState = containerRegistryResource{}
+var (
+	_ resource.ResourceWithConfigure   = &containerRegistryResource{}
+	_ resource.ResourceWithImportState = containerRegistryResource{}
+)
 
 var registryKinds = clientEnumToStringArray(registry.AllowedKindValues)
 
@@ -64,7 +67,7 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 			"id": schema.StringAttribute{
 				Description:         "Id of the container registry.",
 				MarkdownDescription: "Id of the container registry.",
-				Computed:             true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -106,7 +109,7 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 				Description: "URL of the container registry.",
 				MarkdownDescription: "URL of the container registry (e.g. `https://docker.io` for Docker Hub, " +
 					"`https://<account_id>.dkr.ecr.<region>.amazonaws.com` for ECR).",
-				Required:    true,
+				Required: true,
 			},
 			"description": schema.StringAttribute{
 				Description:         "Description of the container registry.",
@@ -121,47 +124,47 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 				Description: "Configuration needed to authenticate the container registry.",
 				MarkdownDescription: "Configuration needed to authenticate with the container registry. " +
 					"Required fields depend on the `kind` of registry.",
-				Optional:    true,
+				Optional: true,
 				Attributes: map[string]schema.Attribute{
 					"access_key_id": schema.StringAttribute{
-						Description: "Required if kind is `ECR` or `PUBLIC_ECR`.",
+						Description:         "Required if kind is `ECR` or `PUBLIC_ECR`.",
 						MarkdownDescription: "AWS Access Key ID. Required if `kind` is `ECR` or `PUBLIC_ECR`.",
-						Optional:    true,
+						Optional:            true,
 					},
 					"secret_access_key": schema.StringAttribute{
-						Description: "Required if kind is `ECR` or `PUBLIC_ECR`.",
+						Description:         "Required if kind is `ECR` or `PUBLIC_ECR`.",
 						MarkdownDescription: "AWS Secret Access Key. Required if `kind` is `ECR` or `PUBLIC_ECR`.",
-						Optional:    true,
+						Optional:            true,
 					},
 					"region": schema.StringAttribute{
-						Description: "Required if kind is `ECR` or `SCALEWAY_CR`.",
+						Description:         "Required if kind is `ECR` or `SCALEWAY_CR`.",
 						MarkdownDescription: "Region of the registry. Required if `kind` is `ECR` or `SCALEWAY_CR` (e.g. `us-east-1`, `fr-par`).",
-						Optional:    true,
+						Optional:            true,
 					},
 					"scaleway_access_key": schema.StringAttribute{
-						Description: "Required if kind is `SCALEWAY_CR`.",
+						Description:         "Required if kind is `SCALEWAY_CR`.",
 						MarkdownDescription: "Scaleway Access Key. Required if `kind` is `SCALEWAY_CR`.",
-						Optional:    true,
+						Optional:            true,
 					},
 					"scaleway_secret_key": schema.StringAttribute{
-						Description: "Required if kind is `SCALEWAY_CR`.",
+						Description:         "Required if kind is `SCALEWAY_CR`.",
 						MarkdownDescription: "Scaleway Secret Key. Required if `kind` is `SCALEWAY_CR`.",
-						Optional:    true,
+						Optional:            true,
 					},
 					"scaleway_project_id": schema.StringAttribute{
-						Description: "Required if kind is `SCALEWAY_CR`.",
+						Description:         "Required if kind is `SCALEWAY_CR`.",
 						MarkdownDescription: "Scaleway Project ID. Required if `kind` is `SCALEWAY_CR`.",
-						Optional:    true,
+						Optional:            true,
 					},
 					"username": schema.StringAttribute{
-						Description: "Required if kind is `DOCKER_HUB`, `GITHUB_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
+						Description:         "Required if kind is `DOCKER_HUB`, `GITHUB_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
 						MarkdownDescription: "Username for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
-						Optional:    true,
+						Optional:            true,
 					},
 					"password": schema.StringAttribute{
-						Description: "Required if kind is `DOCKER_HUB`, `GITHUB_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
+						Description:         "Required if kind is `DOCKER_HUB`, `GITHUB_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
 						MarkdownDescription: "Password or access token for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
-						Optional:    true,
+						Optional:            true,
 					},
 				},
 			},

@@ -22,6 +22,7 @@ type gitTokenDataSource struct {
 func newGitTokenDataSource() datasource.DataSource {
 	return &gitTokenDataSource{}
 }
+
 func (d gitTokenDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_git_token"
 }

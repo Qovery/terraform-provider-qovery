@@ -43,6 +43,7 @@ func (d *deploymentStageDataSource) Configure(_ context.Context, req datasource.
 
 	d.deploymentStageService = provider.deploymentStageService
 }
+
 func (r deploymentStageDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description:         "Use this data source to retrieve information about an existing Qovery deployment stage.",

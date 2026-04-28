@@ -22,6 +22,7 @@ type containerRegistryDataSource struct {
 func newContainerRegistryDataSource() datasource.DataSource {
 	return &containerRegistryDataSource{}
 }
+
 func (d containerRegistryDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
 	resp.TypeName = req.ProviderTypeName + "_container_registry"
 }

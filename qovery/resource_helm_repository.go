@@ -3,10 +3,11 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
-	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -19,8 +20,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &helmRepositoryResource{}
-var _ resource.ResourceWithImportState = helmRepositoryResource{}
+var (
+	_ resource.ResourceWithConfigure   = &helmRepositoryResource{}
+	_ resource.ResourceWithImportState = helmRepositoryResource{}
+)
 
 var helmRepositoryKinds = clientEnumToStringArray(helmRepository.AllowedKindValues)
 

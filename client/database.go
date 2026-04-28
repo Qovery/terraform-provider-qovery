@@ -176,7 +176,7 @@ func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierro
 	}
 
 	envChecker := newEnvironmentFinalStateCheckerWaitFunc(c, database.Environment.Id)
-	if apiErr := wait(ctx, envChecker, nil); apiErr != nil {
+	if apiErr := wait(ctx, envChecker); apiErr != nil {
 		return apiErr
 	}
 
@@ -188,7 +188,7 @@ func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierro
 	}
 
 	checker := newDatabaseStatusCheckerWaitFunc(c, databaseID, "DELETED")
-	if apiErr := wait(ctx, checker, nil); apiErr != nil {
+	if apiErr := wait(ctx, checker); apiErr != nil {
 		return apiErr
 	}
 	return nil
@@ -212,112 +212,4 @@ func (c *Client) updateDatabase(ctx context.Context, database *qovery.Database, 
 		DeploymentStageID:    deploymentStageId,
 		IsSkipped:            isSkipped,
 	}, nil
-}
-
-func (c *Client) deployDatabase(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
-	// Wrap initial status check with retry logic to handle transient errors (DNS failures, timeouts, etc.)
-	var status *qovery.Status
-	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
-		var err *apierrors.APIError
-		status, err = c.getDatabaseStatus(ctx, databaseID)
-		return err
-	})
-	if apiErr != nil {
-		return nil, apiErr
-	}
-
-	switch status.State {
-	case qovery.STATEENUM_DEPLOYED:
-		return status, nil
-	case qovery.STATEENUM_DEPLOYMENT_ERROR:
-		return c.redeployDatabase(ctx, databaseID)
-	default:
-		_, res, err := c.api.DatabaseActionsAPI.
-			DeployDatabase(ctx, databaseID).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return nil, apierrors.NewDeployError(apierrors.APIResourceDatabase, databaseID, res, err)
-		}
-	}
-
-	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_DEPLOYED)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
-		return nil, apiErr
-	}
-
-	// Wrap final status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
-	var finalStatus *qovery.Status
-	finalErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
-		var err *apierrors.APIError
-		finalStatus, err = c.getDatabaseStatus(ctx, databaseID)
-		return err
-	})
-	return finalStatus, finalErr
-}
-
-func (c *Client) stopDatabase(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
-	// Wrap initial status check with retry logic to handle transient errors (DNS failures, timeouts, etc.)
-	var status *qovery.Status
-	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
-		var err *apierrors.APIError
-		status, err = c.getDatabaseStatus(ctx, databaseID)
-		return err
-	})
-	if apiErr != nil {
-		return nil, apiErr
-	}
-
-	switch status.State {
-	case qovery.STATEENUM_STOPPED:
-		return status, nil
-	default:
-		_, res, err := c.api.DatabaseActionsAPI.
-			StopDatabase(ctx, databaseID).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return nil, apierrors.NewStopError(apierrors.APIResourceDatabase, databaseID, res, err)
-		}
-	}
-
-	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_STOPPED)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
-		return nil, apiErr
-	}
-
-	// Wrap final status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
-	var finalStatus *qovery.Status
-	finalErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
-		var err *apierrors.APIError
-		finalStatus, err = c.getDatabaseStatus(ctx, databaseID)
-		return err
-	})
-	return finalStatus, finalErr
-}
-
-func (c *Client) redeployDatabase(ctx context.Context, databaseID string) (*qovery.Status, *apierrors.APIError) {
-	finalStateChecker := newDatabaseFinalStateCheckerWaitFunc(c, databaseID)
-	if apiErr := wait(ctx, finalStateChecker, nil); apiErr != nil {
-		return nil, apiErr
-	}
-
-	_, res, err := c.api.DatabaseActionsAPI.
-		DeployDatabase(ctx, databaseID).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		return nil, apierrors.NewRedeployError(apierrors.APIResourceDatabase, databaseID, res, err)
-	}
-
-	statusChecker := newDatabaseStatusCheckerWaitFunc(c, databaseID, qovery.STATEENUM_DEPLOYED)
-	if apiErr := wait(ctx, statusChecker, nil); apiErr != nil {
-		return nil, apiErr
-	}
-
-	// Wrap final status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
-	var finalStatus *qovery.Status
-	finalErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
-		var err *apierrors.APIError
-		finalStatus, err = c.getDatabaseStatus(ctx, databaseID)
-		return err
-	})
-	return finalStatus, finalErr
 }
