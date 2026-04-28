@@ -50,7 +50,6 @@ func anyPreservesState[M planmodifier.Describer](mods []M) bool {
 // without "TODO:" document legitimately-volatile attributes — their reason
 // should explain why the flicker is correct.
 var flickerAllowlist = map[string]string{
-	"qovery_container_registry.description":             "TODO: add UseStateForUnknown",
 	"qovery_database.external_host":                     "TODO: add UseStateForUnknown (consider UseStateUnlessAccessibilityChanges custom modifier)",
 	"qovery_database.icon_uri":                          "TODO: add UseStateForUnknown",
 	"qovery_database.instance_type":                     "TODO: add UseStateForUnknown",
@@ -58,16 +57,6 @@ var flickerAllowlist = map[string]string{
 	"qovery_database.login":                             "TODO: add UseStateForUnknown",
 	"qovery_database.password":                          "TODO: add UseStateForUnknown",
 	"qovery_database.port":                              "TODO: add UseStateForUnknown",
-	"qovery_deployment.id":                              "TODO: add UseStateForUnknown (resource's own id flickers — strong bug)",
-	"qovery_environment.built_in_environment_variables": "TODO: add UseStateUnlessNameChanges (top-level list; same pattern as service resources)",
-	"qovery_git_token.bitbucket_workspace":              "TODO: add UseStateForUnknown",
-	"qovery_git_token.description":                      "TODO: add UseStateForUnknown",
-	"qovery_helm_repository.description":                "TODO: add UseStateForUnknown",
-	"qovery_organization.description":                   "TODO: add UseStateForUnknown",
-	"qovery_project.built_in_environment_variables":     "TODO: add UseStateUnlessNameChanges (top-level list; same pattern as service resources)",
-	"qovery_project.description":                        "TODO: add UseStateForUnknown",
-	"qovery_scaleway_credentials.id":                    "TODO: add UseStateForUnknown (resource's own id flickers — strong bug)",
-	"qovery_terraform_service.advanced_settings_json":   "TODO: add UseStateForUnknown",
 
 	"qovery_application.git_repository.branch":                       "TODO: add UseStateForUnknown",
 	"qovery_helm.source.git_repository.branch":                       "TODO: add UseStateForUnknown",

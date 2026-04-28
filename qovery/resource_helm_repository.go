@@ -103,6 +103,9 @@ func (r helmRepositoryResource) Schema(_ context.Context, _ resource.SchemaReque
 				MarkdownDescription: "Description of the helm repository.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"skip_tls_verification": schema.BoolAttribute{
 				Description:         "Whether to bypass TLS certificate verification when connecting to the repository. Set to true for self-signed certificates.",

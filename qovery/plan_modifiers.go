@@ -155,14 +155,17 @@ func UseStateUnlessPortsChange() planmodifier.String {
 // inconsistent result after apply" because the API recomputes the env var list
 // during apply and the post-apply value diverges from the planned value.
 //
-// Triggers: name, ports, source, git_repository, values_override, schedule,
-// image_name, tag, registry_id. The mapping from each trigger to the affected
-// QOVERY_* env vars lives in q-core's `core/variable/domain/VariableDomain.kt`.
+// Triggers: name, mode, ports, source, git_repository, values_override,
+// schedule, image_name, tag, registry_id. The mapping from each trigger to the
+// affected QOVERY_* env vars lives in q-core's
+// `core/variable/domain/VariableDomain.kt`. `mode` flows into ENVIRONMENT_TYPE
+// for env-scope built-ins (resolved at read time from `env.type` in
+// `VariableService.getVariablesReplacementForEnvironment`).
 //
 // Absent attributes are skipped gracefully so the same modifier can serve
 // resources with different schemas (application has top-level git_repository,
 // container has top-level image_name/tag/registry_id, helm has values_override
-// + source, job has schedule + source).
+// + source, job has schedule + source, environment has mode).
 type useStateUnlessNameChangesModifier struct{}
 
 func (m useStateUnlessNameChangesModifier) Description(_ context.Context) string {
@@ -207,7 +210,8 @@ func (m useStateUnlessNameChangesModifier) PlanModifyList(ctx context.Context, r
 	}
 
 	// On container, image source attributes are at the top level (no `source` block).
-	for _, name := range []string{"image_name", "tag", "registry_id"} {
+	// `mode` is on environment and flows into the ENVIRONMENT_TYPE built-in.
+	for _, name := range []string{"image_name", "tag", "registry_id", "mode"} {
 		if attrChanged[types.String](ctx, req, name) {
 			return
 		}
