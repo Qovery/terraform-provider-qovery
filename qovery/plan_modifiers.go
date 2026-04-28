@@ -148,11 +148,30 @@ func UseStateUnlessPortsChange() planmodifier.String {
 	return useStateUnlessPortsChangeModifier{}
 }
 
-// useStateUnlessNameChangesModifier uses the prior state value for a computed list
-// attribute unless the resource's "name" or "ports" attributes are changing.
-// Built-in environment variables contain values derived from the service name
-// (e.g. QOVERY_SERVICE_NAME) and port configuration (e.g. QOVERY_KUBERNETES_CLUSTER_VPC_ID),
-// so their values must be recomputed when either changes.
+// useStateUnlessNameChangesModifier preserves the prior state value for a computed
+// list attribute (built_in_environment_variables) unless any attribute that the API
+// embeds into those values is changing.
+//
+// Built-in env vars are derived server-side from a fixed set of inputs:
+//
+//	QOVERY_SERVICE_NAME, QOVERY_PROJECT_NAME, …      ← name
+//	QOVERY_KUBERNETES_CLUSTER_VPC_ID, …              ← ports
+//	QOVERY_BUILD_ID, QOVERY_APPLICATION_..._GIT_..., ← source / git_repository / image_*
+//
+// If any of those inputs change, the API will recompute the env var values during
+// apply. Reusing the prior state value would then cause Terraform to error with
+// "Provider produced inconsistent result after apply" (the state we returned does
+// not match the state we promised in the plan).
+//
+// To avoid that, this modifier invalidates the cached state value whenever any of
+// the inputs the API derives from is changing. The list of inputs is enumerated
+// explicitly below; absent attributes are skipped gracefully (different service
+// resources have different shapes — application has top-level git_repository,
+// container has top-level image_name/tag/registry_id, helm/job have a `source`
+// nested object).
+//
+// Adding a new attribute that influences built-in env vars: extend the list in
+// PlanModifyList AND add coverage in qovery/resource_*_apply_consistency_test.go.
 type useStateUnlessNameChangesModifier struct{}
 
 func (m useStateUnlessNameChangesModifier) Description(_ context.Context) string {
@@ -183,21 +202,71 @@ func (m useStateUnlessNameChangesModifier) PlanModifyList(ctx context.Context, r
 
 	// Ports changing — adding/removing public ports creates/removes built-in env vars
 	// (e.g. QOVERY_KUBERNETES_CLUSTER_VPC_ID), so leave as unknown to recompute.
-	var statePorts, planPorts types.List
-	stateDiags := req.State.GetAttribute(ctx, path.Root("ports"), &statePorts)
-	planDiags := req.Plan.GetAttribute(ctx, path.Root("ports"), &planPorts)
-	// Only compare if both attributes exist (some resources don't have ports)
-	if !stateDiags.HasError() && !planDiags.HasError() && !statePorts.Equal(planPorts) {
+	// `ports` is a List on application/container and a Map on helm — try both.
+	if listAttrChanged(ctx, req, "ports") || mapAttrChanged(ctx, req, "ports") {
 		return
+	}
+
+	// `source` (single nested object) on helm and job. Image tag / registry / docker
+	// changes are embedded in QOVERY_BUILD_ID and friends — recompute.
+	if objectAttrChanged(ctx, req, "source") {
+		return
+	}
+
+	// `git_repository` (single nested object) on application — branch/url/root_path
+	// flow into QOVERY_APPLICATION_*_GIT_* env vars.
+	if objectAttrChanged(ctx, req, "git_repository") {
+		return
+	}
+
+	// On container, the image source attributes are at the top level rather than
+	// inside a `source` block. These are the API's inputs to QOVERY_BUILD_ID.
+	for _, name := range []string{"image_name", "tag", "registry_id"} {
+		if stringAttrChanged(ctx, req, name) {
+			return
+		}
 	}
 
 	// Nothing relevant changed — safe to reuse state value.
 	resp.PlanValue = req.StateValue
 }
 
+// listAttrChanged reports whether the named root attribute is present on both
+// state and plan AND its values differ. Returns false when the attribute is
+// absent from the schema (e.g. the modifier is attached to a resource that
+// doesn't have this attribute) — that's the graceful "not applicable" path.
+func listAttrChanged(ctx context.Context, req planmodifier.ListRequest, name string) bool {
+	var sv, pv types.List
+	sd := req.State.GetAttribute(ctx, path.Root(name), &sv)
+	pd := req.Plan.GetAttribute(ctx, path.Root(name), &pv)
+	return !sd.HasError() && !pd.HasError() && !sv.Equal(pv)
+}
+
+func mapAttrChanged(ctx context.Context, req planmodifier.ListRequest, name string) bool {
+	var sv, pv types.Map
+	sd := req.State.GetAttribute(ctx, path.Root(name), &sv)
+	pd := req.Plan.GetAttribute(ctx, path.Root(name), &pv)
+	return !sd.HasError() && !pd.HasError() && !sv.Equal(pv)
+}
+
+func objectAttrChanged(ctx context.Context, req planmodifier.ListRequest, name string) bool {
+	var sv, pv types.Object
+	sd := req.State.GetAttribute(ctx, path.Root(name), &sv)
+	pd := req.Plan.GetAttribute(ctx, path.Root(name), &pv)
+	return !sd.HasError() && !pd.HasError() && !sv.Equal(pv)
+}
+
+func stringAttrChanged(ctx context.Context, req planmodifier.ListRequest, name string) bool {
+	var sv, pv types.String
+	sd := req.State.GetAttribute(ctx, path.Root(name), &sv)
+	pd := req.Plan.GetAttribute(ctx, path.Root(name), &pv)
+	return !sd.HasError() && !pd.HasError() && !sv.Equal(pv)
+}
+
 // UseStateUnlessNameChanges returns a plan modifier for list attributes that preserves
-// the state value when the resource name hasn't changed. This prevents plan noise on
-// built_in_environment_variables while still allowing recomputation when the name changes.
+// the state value when the resource is being updated for reasons that don't affect
+// built-in environment variables. See useStateUnlessNameChangesModifier for the full
+// list of inputs that invalidate the cached value.
 func UseStateUnlessNameChanges() planmodifier.List {
 	return useStateUnlessNameChangesModifier{}
 }
