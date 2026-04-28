@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
@@ -162,14 +163,14 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 				Optional: true,
 			},
 			"external_host": schema.StringAttribute{
-				Description: "The database external FQDN host [NOTE: only if your database accessibility is set to PUBLIC].",
+				Description:         "The database external FQDN host [NOTE: only if your database accessibility is set to PUBLIC].",
 				MarkdownDescription: "The database external FQDN host. Only available when `accessibility = \"PUBLIC\"`.",
-				Computed:    true,
+				Computed:            true,
 			},
 			"internal_host": schema.StringAttribute{
-				Description: "The database internal host (Recommended for your application)",
+				Description:         "The database internal host (Recommended for your application)",
 				MarkdownDescription: "The database internal host. Use this to connect from services within the same environment (recommended over external host).",
-				Computed:    true,
+				Computed:            true,
 			},
 			"deployment_stage_id": schema.StringAttribute{
 				Description:         "Id of the deployment stage.",

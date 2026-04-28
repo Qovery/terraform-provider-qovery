@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
@@ -47,7 +48,7 @@ func (ag AnnotationsGroup) toUpsertRequest() (*annotations_group.UpsertServiceRe
 }
 
 func (annotation AnnotationDomain) toTerraformObject() attr.Value {
-	var attributes = map[string]attr.Value{
+	attributes := map[string]attr.Value{
 		"key":   annotation.Key,
 		"value": annotation.Value,
 	}
@@ -64,7 +65,7 @@ var annotationAttrTypes = map[string]attr.Type{
 }
 
 func (annotations AnnotationList) toTerraformMap() map[string]string {
-	var elements = make(map[string]string, len(annotations))
+	elements := make(map[string]string, len(annotations))
 	for _, annotation := range annotations {
 		elements[ToString(annotation.Key)] = ToString(annotation.Value)
 	}
@@ -112,7 +113,7 @@ func fromAnnotationsGroupResponseList(ctx context.Context, initialState types.Se
 		return types.SetNull(types.StringType)
 	}
 
-	var elements = make([]string, 0, len(annotationsGroup))
+	elements := make([]string, 0, len(annotationsGroup))
 	for _, v := range annotationsGroup {
 		elements = append(elements, v.Id)
 	}
@@ -128,7 +129,7 @@ func fromAnnotationsGroupList(ctx context.Context, initialState types.Set, annot
 		return types.SetNull(types.StringType)
 	}
 
-	var elements = make([]string, 0, len(annotationsGroup))
+	elements := make([]string, 0, len(annotationsGroup))
 	for _, v := range annotationsGroup {
 		elements = append(elements, v)
 	}

@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"context"
+
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/qovery/qovery-client-go"
 
@@ -70,7 +71,7 @@ var labelsGroupAttrTypes = map[string]attr.Type{
 }
 
 func (l LabelDomain) toTerraformObject() types.Object {
-	var attributes = map[string]attr.Value{
+	attributes := map[string]attr.Value{
 		"key":                         l.Key,
 		"value":                       l.Value,
 		"propagate_to_cloud_provider": l.PropagateToCloudProvider,
@@ -83,14 +84,14 @@ func (l LabelDomain) toTerraformObject() types.Object {
 }
 
 func (labels LabelList) toTerraformSet(ctx context.Context) types.Set {
-	var labelGroupObjectType = types.ObjectType{
+	labelGroupObjectType := types.ObjectType{
 		AttrTypes: labelsGroupAttrTypes,
 	}
 	if labels == nil {
 		return types.SetNull(labelGroupObjectType)
 	}
 
-	var elements = make([]attr.Value, 0, len(labels))
+	elements := make([]attr.Value, 0, len(labels))
 	for _, label := range labels {
 		elements = append(elements, label.toTerraformObject())
 	}
@@ -132,7 +133,7 @@ func fromLabelsGroupResponseList(ctx context.Context, initialState types.Set, la
 		return types.SetNull(types.StringType)
 	}
 
-	var elements = make([]string, 0, len(labelsGroup))
+	elements := make([]string, 0, len(labelsGroup))
 	for _, v := range labelsGroup {
 		elements = append(elements, v.Id)
 	}
@@ -148,7 +149,7 @@ func fromLabelsGroupList(ctx context.Context, initialState types.Set, labelsGrou
 		return types.SetNull(types.StringType)
 	}
 
-	var elements = make([]string, 0, len(labelsGroup))
+	elements := make([]string, 0, len(labelsGroup))
 	for _, v := range labelsGroup {
 		elements = append(elements, v)
 	}

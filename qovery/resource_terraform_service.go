@@ -22,9 +22,11 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &terraformServiceResource{}
-var _ resource.ResourceWithImportState = terraformServiceResource{}
-var _ resource.ResourceWithModifyPlan = &terraformServiceResource{}
+var (
+	_ resource.ResourceWithConfigure   = &terraformServiceResource{}
+	_ resource.ResourceWithImportState = terraformServiceResource{}
+	_ resource.ResourceWithModifyPlan  = &terraformServiceResource{}
+)
 
 var (
 	terraformActionValues  = clientEnumToStringArray(terraformservice.AllowedTerraformActionValues)
@@ -69,7 +71,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			"id": schema.StringAttribute{
 				Description:         "Id of the terraform service.",
 				MarkdownDescription: "Id of the terraform service.",
-				Computed:    true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -77,7 +79,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			"environment_id": schema.StringAttribute{
 				Description:         "Id of the environment.",
 				MarkdownDescription: "Id of the environment.",
-				Required:    true,
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -85,8 +87,8 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			"deployment_stage_id": schema.StringAttribute{
 				Description:         "Id of the deployment stage.",
 				MarkdownDescription: "Id of the deployment stage.",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -94,24 +96,24 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			"is_skipped": schema.BoolAttribute{
 				Description:         "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
 				MarkdownDescription: "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
-				Optional:    true,
-				Computed:    true,
-				Default:     booldefault.StaticBool(false),
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 			},
 			"name": schema.StringAttribute{
 				Description:         "Name of the terraform service.",
 				MarkdownDescription: "Name of the terraform service.",
-				Required:    true,
+				Required:            true,
 			},
 			"description": schema.StringAttribute{
 				Description:         "Description of the terraform service.",
 				MarkdownDescription: "Description of the terraform service.",
-				Optional:    true,
+				Optional:            true,
 			},
 			"auto_deploy": schema.BoolAttribute{
 				Description:         "Specify if the terraform service will be automatically updated on every new commit.",
 				MarkdownDescription: "Specify if the terraform service will be automatically updated on every new commit.",
-				Required:    true,
+				Required:            true,
 			},
 			"terraform_action": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -134,60 +136,60 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			"git_repository": schema.SingleNestedAttribute{
 				Description:         "Terraform service git repository configuration.",
 				MarkdownDescription: "Terraform service git repository configuration.",
-				Required:    true,
+				Required:            true,
 				Attributes: map[string]schema.Attribute{
 					"url": schema.StringAttribute{
 						Description:         "Git repository URL.",
 						MarkdownDescription: "Git repository URL.",
-						Required:    true,
+						Required:            true,
 					},
 					"branch": schema.StringAttribute{
 						Description:         "Git branch.",
 						MarkdownDescription: "Git branch.",
-						Optional:    true,
+						Optional:            true,
 					},
 					"root_path": schema.StringAttribute{
 						Description:         "Root path in the git repository where Terraform files are located.",
 						MarkdownDescription: "Root path in the git repository where Terraform files are located.",
-						Optional:    true,
-						Computed:    true,
-						Default:     stringdefault.StaticString(terraformservice.DefaultRootPath),
+						Optional:            true,
+						Computed:            true,
+						Default:             stringdefault.StaticString(terraformservice.DefaultRootPath),
 					},
 					"git_token_id": schema.StringAttribute{
 						Description:         "Git token ID for private repositories.",
 						MarkdownDescription: "Git token ID for private repositories.",
-						Optional:    true,
+						Optional:            true,
 					},
 				},
 			},
 			"tfvars_files": schema.ListAttribute{
 				Description:         "List of .tfvars file paths relative to the root path.",
 				MarkdownDescription: "List of .tfvars file paths relative to the root path.",
-				Required:    true,
-				ElementType: types.StringType,
+				Required:            true,
+				ElementType:         types.StringType,
 			},
 			"variables": schema.SetNestedAttribute{
 				Description:         "Terraform input variables. Values can be marked as secret.",
 				MarkdownDescription: "Terraform input variables. Values can be marked as secret.",
-				Optional:    true,
+				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"key": schema.StringAttribute{
 							Description:         "Terraform variable name.",
 							MarkdownDescription: "Terraform variable name.",
-							Required:    true,
+							Required:            true,
 						},
 						"value": schema.StringAttribute{
 							Description:         "Terraform variable value.",
 							MarkdownDescription: "Terraform variable value.",
-							Required:    true,
+							Required:            true,
 						},
 						"is_secret": schema.BoolAttribute{
 							Description:         "Whether this variable is a secret. Secret values are encrypted and not displayed in logs.",
 							MarkdownDescription: "Whether this variable is a secret. Secret values are encrypted and not displayed in logs.",
-							Optional:    true,
-							Computed:    true,
-							Default:     booldefault.StaticBool(false),
+							Optional:            true,
+							Computed:            true,
+							Default:             booldefault.StaticBool(false),
 						},
 					},
 				},
@@ -195,26 +197,26 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			"backend": schema.SingleNestedAttribute{
 				Description:         "Terraform backend configuration. Exactly one backend type must be specified.",
 				MarkdownDescription: "Terraform backend configuration. Exactly one backend type must be specified.",
-				Required:    true,
+				Required:            true,
 				Attributes: map[string]schema.Attribute{
 					"kubernetes": schema.SingleNestedAttribute{
 						Description:         "Use Kubernetes backend for state management.",
 						MarkdownDescription: "Use Kubernetes backend for state management.",
-						Optional:    true,
-						Attributes:  map[string]schema.Attribute{},
+						Optional:            true,
+						Attributes:          map[string]schema.Attribute{},
 					},
 					"user_provided": schema.SingleNestedAttribute{
 						Description:         "Use user-provided backend configuration (configured in Terraform code).",
 						MarkdownDescription: "Use user-provided backend configuration (configured in Terraform code).",
-						Optional:    true,
-						Attributes:  map[string]schema.Attribute{},
+						Optional:            true,
+						Attributes:          map[string]schema.Attribute{},
 					},
 				},
 			},
 			"engine": schema.StringAttribute{
 				Description:         "Terraform engine to use (TERRAFORM or OPEN_TOFU).",
 				MarkdownDescription: "Terraform engine to use (TERRAFORM or OPEN_TOFU).",
-				Required:    true,
+				Required:            true,
 				Validators: []validator.String{
 					validators.NewStringEnumValidator([]string{"TERRAFORM", "OPEN_TOFU"}),
 				},
@@ -222,26 +224,26 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			"engine_version": schema.SingleNestedAttribute{
 				Description:         "Terraform/OpenTofu engine version configuration.",
 				MarkdownDescription: "Terraform/OpenTofu engine version configuration.",
-				Required:    true,
+				Required:            true,
 				Attributes: map[string]schema.Attribute{
 					"explicit_version": schema.StringAttribute{
 						Description:         "Explicit version to use for the Terraform/OpenTofu binary.",
 						MarkdownDescription: "Explicit version to use for the Terraform/OpenTofu binary.",
-						Required:    true,
+						Required:            true,
 					},
 					"read_from_terraform_block": schema.BoolAttribute{
 						Description:         "Whether to read the version from the terraform block in the code.",
 						MarkdownDescription: "Whether to read the version from the terraform block in the code.",
-						Optional:    true,
-						Computed:    true,
-						Default:     booldefault.StaticBool(false),
+						Optional:            true,
+						Computed:            true,
+						Default:             booldefault.StaticBool(false),
 					},
 				},
 			},
 			"job_resources": schema.SingleNestedAttribute{
 				Description:         "Resource allocation for the Terraform job.",
 				MarkdownDescription: "Resource allocation for the Terraform job.",
-				Required:    true,
+				Required:            true,
 				Attributes: map[string]schema.Attribute{
 					"cpu_milli": schema.Int64Attribute{
 						Description: descriptions.NewInt64MinDescription(
@@ -338,28 +340,28 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			"icon_uri": schema.StringAttribute{
 				Description:         "Icon URI representing the terraform service.",
 				MarkdownDescription: "Icon URI representing the terraform service.",
-				Optional:    true,
-				Computed:    true,
-				Default:     stringdefault.StaticString(terraformservice.DefaultIconURI),
+				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(terraformservice.DefaultIconURI),
 			},
 			"use_cluster_credentials": schema.BoolAttribute{
 				Description:         "Use cluster credentials for cloud provider authentication.",
 				MarkdownDescription: "Use cluster credentials for cloud provider authentication.",
-				Optional:    true,
-				Computed:    true,
-				Default:     booldefault.StaticBool(false),
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(false),
 			},
 			"action_extra_arguments": schema.MapAttribute{
 				Description:         "Extra CLI arguments for specific Terraform actions (plan, apply, destroy).",
 				MarkdownDescription: "Extra CLI arguments for specific Terraform actions (plan, apply, destroy).",
-				Optional:    true,
-				ElementType: types.ListType{ElemType: types.StringType},
+				Optional:            true,
+				ElementType:         types.ListType{ElemType: types.StringType},
 			},
 			"advanced_settings_json": schema.StringAttribute{
 				Description:         "Advanced settings in JSON format. See the Qovery API documentation for available settings.",
 				MarkdownDescription: "Advanced settings in JSON format. See the Qovery API documentation for available settings.",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -367,12 +369,12 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			"created_at": schema.StringAttribute{
 				Description:         "Creation date of the terraform service.",
 				MarkdownDescription: "Creation date of the terraform service.",
-				Computed:    true,
+				Computed:            true,
 			},
 			"updated_at": schema.StringAttribute{
 				Description:         "Last update date of the terraform service.",
 				MarkdownDescription: "Last update date of the terraform service.",
-				Computed:    true,
+				Computed:            true,
 			},
 		},
 	}
@@ -418,7 +420,7 @@ func (r terraformServiceResource) Read(ctx context.Context, req resource.ReadReq
 
 	// Get terraform service from API
 	// Detect import: during import, EnvironmentID is null since only ID is provided
-	var isTriggeredFromImport = state.EnvironmentID.IsNull()
+	isTriggeredFromImport := state.EnvironmentID.IsNull()
 	terraformSvc, err := r.terraformServiceService.Get(
 		ctx,
 		ToString(state.ID),

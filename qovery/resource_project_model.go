@@ -26,6 +26,7 @@ type Project struct {
 func (p Project) EnvironmentVariableList() EnvironmentVariableList {
 	return toEnvironmentVariableList(p.EnvironmentVariables)
 }
+
 func (p Project) EnvironmentVariableAliasesList() EnvironmentVariableList {
 	return toEnvironmentVariableList(p.EnvironmentVariableAliases)
 }
@@ -37,6 +38,7 @@ func (p Project) BuiltInEnvironmentVariableList() EnvironmentVariableList {
 func (p Project) SecretList() SecretList {
 	return ToSecretList(p.Secrets)
 }
+
 func (p Project) SecretAliasesList() SecretList {
 	return ToSecretList(p.SecretAliases)
 }

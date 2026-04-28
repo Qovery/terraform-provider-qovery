@@ -19,14 +19,14 @@ var storageAttrTypes = map[string]attr.Type{
 type StorageList []Storage
 
 func (ss StorageList) toTerraformSet(ctx context.Context) types.Set {
-	var storageObjectType = types.ObjectType{
+	storageObjectType := types.ObjectType{
 		AttrTypes: storageAttrTypes,
 	}
 	if ss == nil {
 		return types.SetNull(storageObjectType)
 	}
 
-	var elements = make([]attr.Value, 0, len(ss))
+	elements := make([]attr.Value, 0, len(ss))
 	for _, v := range ss {
 		elements = append(elements, v.toTerraformObject())
 	}
@@ -45,7 +45,7 @@ type Storage struct {
 }
 
 func (p Storage) toTerraformObject() types.Object {
-	var attributes = map[string]attr.Value{
+	attributes := map[string]attr.Value{
 		"id":          p.ID,
 		"type":        p.Type,
 		"mount_point": p.MountPoint,

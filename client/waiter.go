@@ -294,4 +294,3 @@ func isQueuedState(state qovery.ClusterStateEnum) bool {
 func isClusterErrorState(state qovery.ClusterStateEnum) bool {
 	return strings.HasSuffix(string(state), "_ERROR")
 }
-

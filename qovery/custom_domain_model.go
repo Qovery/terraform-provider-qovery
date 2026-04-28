@@ -22,14 +22,14 @@ var customDomainAttrTypes = map[string]attr.Type{
 type CustomDomainList []CustomDomain
 
 func (domains CustomDomainList) toTerraformSet(ctx context.Context) types.Set {
-	var domainObjectType = types.ObjectType{
+	domainObjectType := types.ObjectType{
 		AttrTypes: customDomainAttrTypes,
 	}
 	if domains == nil {
 		return types.SetNull(domainObjectType)
 	}
 
-	var elements = make([]attr.Value, 0, len(domains))
+	elements := make([]attr.Value, 0, len(domains))
 	for _, d := range domains {
 		elements = append(elements, d.toTerraformObject())
 	}
@@ -94,7 +94,7 @@ type CustomDomain struct {
 }
 
 func (d CustomDomain) toTerraformObject() types.Object {
-	var attributes = map[string]attr.Value{
+	attributes := map[string]attr.Value{
 		"id":                   d.Id,
 		"domain":               d.Domain,
 		"validation_domain":    d.ValidationDomain,

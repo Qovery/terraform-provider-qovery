@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 
@@ -15,8 +16,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &projectResource{}
-var _ resource.ResourceWithImportState = projectResource{}
+var (
+	_ resource.ResourceWithConfigure   = &projectResource{}
+	_ resource.ResourceWithImportState = projectResource{}
+)
 
 type projectResource struct {
 	projectService project.Service
@@ -232,7 +235,7 @@ func (r projectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"environment_variable_files": environmentVariableFilesSchemaAttribute("project"),
-			"secret_files":              secretFilesSchemaAttribute("project"),
+			"secret_files":               secretFilesSchemaAttribute("project"),
 		},
 	}
 }

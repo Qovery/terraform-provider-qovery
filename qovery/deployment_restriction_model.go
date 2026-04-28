@@ -51,7 +51,7 @@ func FromDeploymentRestrictionList(initialState types.Set, deploymentRestriction
 		return types.SetValueMust(deploymentRestrictionObjectType, []attr.Value{})
 	}
 
-	var elements = make([]attr.Value, 0, len(list))
+	elements := make([]attr.Value, 0, len(list))
 	for _, v := range list {
 		elements = append(elements, v.toTerraformObject())
 	}
@@ -60,7 +60,7 @@ func FromDeploymentRestrictionList(initialState types.Set, deploymentRestriction
 }
 
 func (dr DeploymentRestriction) toTerraformObject() types.Object {
-	var attributes = map[string]attr.Value{
+	attributes := map[string]attr.Value{
 		"id":    dr.Id,
 		"mode":  dr.Mode,
 		"type":  dr.Type,

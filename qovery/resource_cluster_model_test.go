@@ -814,4 +814,3 @@ func TestCluster_convertResponseToCluster_State(t *testing.T) {
 		})
 	}
 }
-

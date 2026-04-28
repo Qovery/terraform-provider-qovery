@@ -20,8 +20,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &environmentResource{}
-var _ resource.ResourceWithImportState = environmentResource{}
+var (
+	_ resource.ResourceWithConfigure   = &environmentResource{}
+	_ resource.ResourceWithImportState = environmentResource{}
+)
 
 type environmentResource struct {
 	environmentService environment.Service
@@ -311,7 +313,7 @@ func (r environmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 			"environment_variable_files": environmentVariableFilesSchemaAttribute("environment"),
-			"secret_files":              secretFilesSchemaAttribute("environment"),
+			"secret_files":               secretFilesSchemaAttribute("environment"),
 		},
 	}
 }

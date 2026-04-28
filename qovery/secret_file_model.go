@@ -24,14 +24,14 @@ var secretFileAttrTypes = map[string]attr.Type{
 type SecretFileList []SecretFile
 
 func (ss SecretFileList) toTerraformSet(ctx context.Context) types.Set {
-	var secretFileObjectType = types.ObjectType{
+	secretFileObjectType := types.ObjectType{
 		AttrTypes: secretFileAttrTypes,
 	}
 	if ss == nil {
 		return types.SetNull(secretFileObjectType)
 	}
 
-	var elements = make([]attr.Value, 0, len(ss))
+	elements := make([]attr.Value, 0, len(ss))
 	for _, v := range ss {
 		elements = append(elements, v.toTerraformObject())
 	}
@@ -130,7 +130,7 @@ type SecretFile struct {
 }
 
 func (s SecretFile) toTerraformObject() types.Object {
-	var attributes = map[string]attr.Value{
+	attributes := map[string]attr.Value{
 		"id":          s.Id,
 		"key":         s.Key,
 		"value":       s.Value,

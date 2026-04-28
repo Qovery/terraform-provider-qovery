@@ -26,8 +26,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &containerResource{}
-var _ resource.ResourceWithImportState = containerResource{}
+var (
+	_ resource.ResourceWithConfigure   = &containerResource{}
+	_ resource.ResourceWithImportState = containerResource{}
+)
 
 type containerResource struct {
 	containerService container.Service
@@ -69,23 +71,23 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"id": schema.StringAttribute{
 				Description:         "Id of the container.",
 				MarkdownDescription: "Id of the container.",
-				Computed:             true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"environment_id": schema.StringAttribute{
-				Description: "Id of the environment.",
+				Description:         "Id of the environment.",
 				MarkdownDescription: "Id of the environment. Changing this forces the container to be re-created.",
-				Required:    true,
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
 			"registry_id": schema.StringAttribute{
-				Description: "Id of the registry.",
+				Description:         "Id of the registry.",
 				MarkdownDescription: "Id of the container registry (from `qovery_container_registry`) that stores the Docker image for this container.",
-				Required:    true,
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
 				Description:         "Name of the container.",
@@ -93,23 +95,23 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Required:            true,
 			},
 			"icon_uri": schema.StringAttribute{
-				Description: "Icon URI representing the container.",
+				Description:         "Icon URI representing the container.",
 				MarkdownDescription: "Icon URI representing the container. Used in the Qovery console UI.",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"image_name": schema.StringAttribute{
-				Description: "Name of the container image.",
+				Description:         "Name of the container image.",
 				MarkdownDescription: "Name of the container image (e.g. `nginx`, `my-org/my-app`). Do not include the tag.",
-				Required:    true,
+				Required:            true,
 			},
 			"tag": schema.StringAttribute{
-				Description: "Tag of the container image.",
+				Description:         "Tag of the container image.",
 				MarkdownDescription: "Tag of the container image (e.g. `latest`, `1.0.0`, `sha-abc123`).",
-				Required:    true,
+				Required:            true,
 			},
 			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -120,7 +122,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: "CPU of the container in millicores (m) [1000m = 1 CPU].",
 				Optional:            true,
 				Computed:            true,
-				Default:  int64default.StaticInt64(container.DefaultCPU),
+				Default:             int64default.StaticInt64(container.DefaultCPU),
 				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: container.MinCPU},
 				},
@@ -134,7 +136,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: "RAM of the container in MB [1024MB = 1GB].",
 				Optional:            true,
 				Computed:            true,
-				Default:  int64default.StaticInt64(container.DefaultMemory),
+				Default:             int64default.StaticInt64(container.DefaultMemory),
 				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: container.MinMemory},
 				},
@@ -148,7 +150,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: "Minimum number of instances running for the container.",
 				Optional:            true,
 				Computed:            true,
-				Default:  int64default.StaticInt64(container.MinMinRunningInstances),
+				Default:             int64default.StaticInt64(container.MinMinRunningInstances),
 				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: container.MinMinRunningInstances},
 				},
@@ -162,7 +164,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: "Maximum number of instances running for the container.",
 				Optional:            true,
 				Computed:            true,
-				Default:  int64default.StaticInt64(container.DefaultMaxRunningInstances),
+				Default:             int64default.StaticInt64(container.DefaultMaxRunningInstances),
 				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: container.MinMaxRunningInstances},
 				},
@@ -171,28 +173,28 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Description: "Specify if the environment preview option is activated or not for this container.",
 				MarkdownDescription: "Specify if the environment preview option is activated or not for this container. " +
 					"When enabled, Qovery creates a preview environment for each pull request.",
-				Optional:    true,
-				Computed:    true,
+				Optional: true,
+				Computed: true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"entrypoint": schema.StringAttribute{
-				Description: "Entrypoint of the container.",
+				Description:         "Entrypoint of the container.",
 				MarkdownDescription: "Entrypoint of the container. Overrides the Docker image's default `ENTRYPOINT`.",
-				Optional:    true,
+				Optional:            true,
 			},
 			"storage": schema.SetNestedAttribute{
 				Description: "List of storages linked to this container.",
 				MarkdownDescription: "List of persistent storage volumes linked to this container. " +
 					"Data stored in these volumes persists across container restarts.",
-				Optional:    true,
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the storage.",
 							MarkdownDescription: "Id of the storage.",
-							Computed:             true,
+							Computed:            true,
 						},
 						"type": schema.StringAttribute{
 							Description: descriptions.NewStringEnumDescription(
@@ -230,7 +232,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Description: "List of ports linked to this container.",
 				MarkdownDescription: "List of ports linked to this container. " +
 					"At least one port must be set as `publicly_accessible = true` with an `external_port` for the container to be reachable from the internet.",
-				Optional:    true,
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Validators: []validator.Object{
 						validators.PortExternalPortValidator{},
@@ -239,7 +241,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 						"id": schema.StringAttribute{
 							Description:         "Id of the port.",
 							MarkdownDescription: "Id of the port.",
-							Computed:             true,
+							Computed:            true,
 							PlanModifiers: []planmodifier.String{
 								stringplanmodifier.UseStateForUnknown(),
 								UseUnknownForNullString(),
@@ -313,7 +315,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: "List of built-in environment variables linked to this container. " +
 					"Built-in variables are automatically generated by Qovery and include host information, port mappings, and other service metadata. " +
 					"These are read-only and cannot be modified.",
-				Computed:    true,
+				Computed: true,
 				PlanModifiers: []planmodifier.List{
 					UseStateUnlessNameChanges(),
 				},
@@ -322,22 +324,22 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 						"id": schema.StringAttribute{
 							Description:         "Id of the environment variable.",
 							MarkdownDescription: "Id of the environment variable.",
-							Computed:             true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Key of the environment variable.",
 							MarkdownDescription: "Key of the environment variable.",
-							Computed:             true,
+							Computed:            true,
 						},
 						"value": schema.StringAttribute{
 							Description:         "Value of the environment variable.",
 							MarkdownDescription: "Value of the environment variable.",
-							Computed:             true,
+							Computed:            true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the environment variable.",
 							MarkdownDescription: "Description of the environment variable.",
-							Computed:             true,
+							Computed:            true,
 						},
 					},
 				},
@@ -347,13 +349,13 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Description: "List of environment variables linked to this container.",
 				MarkdownDescription: "List of environment variables linked to this container. " +
 					"Environment variables at the container level have the highest precedence and override variables set at the project or environment level.",
-				Optional:    true,
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the environment variable.",
 							MarkdownDescription: "Id of the environment variable.",
-							Computed:             true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Key of the environment variable.",
@@ -378,13 +380,13 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: "List of environment variable aliases linked to this container. " +
 					"An alias creates a new environment variable name that references the value of an existing variable. " +
 					"The `key` is the alias name and `value` is the name of the variable being aliased.",
-				Optional:    true,
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the environment variable alias.",
 							MarkdownDescription: "Id of the environment variable alias.",
-							Computed:             true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Name of the environment variable alias.",
@@ -409,13 +411,13 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: "List of environment variable overrides linked to this container. " +
 					"An override replaces the value of an existing environment variable defined at a higher scope (project or environment). " +
 					"The `key` must match the name of the variable to override.",
-				Optional:    true,
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the environment variable override.",
 							MarkdownDescription: "Id of the environment variable override.",
-							Computed:             true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Name of the environment variable override.",
@@ -439,13 +441,13 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Description: "List of secrets linked to this container.",
 				MarkdownDescription: "List of secrets linked to this container. " +
 					"Secrets behave like environment variables but their values are stored securely and not visible in plan outputs.",
-				Optional:    true,
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the secret.",
 							MarkdownDescription: "Id of the secret.",
-							Computed:             true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Key of the secret.",
@@ -456,7 +458,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							Description:         "Value of the secret.",
 							MarkdownDescription: "Value of the secret. The value is write-only and will not be displayed in plan outputs.",
 							Required:            true,
-							Sensitive:            true,
+							Sensitive:           true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the secret.",
@@ -471,13 +473,13 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: "List of secret aliases linked to this container. " +
 					"An alias creates a new secret name that references the value of an existing secret. " +
 					"The `key` is the alias name and `value` is the name of the secret being aliased.",
-				Optional:    true,
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the secret alias.",
 							MarkdownDescription: "Id of the secret alias.",
-							Computed:             true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Name of the secret alias.",
@@ -502,13 +504,13 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: "List of secret overrides linked to this container. " +
 					"An override replaces the value of an existing secret defined at a higher scope (project or environment). " +
 					"The `key` must match the name of the secret to override.",
-				Optional:    true,
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the secret override.",
 							MarkdownDescription: "Id of the secret override.",
-							Computed:             true,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
 							Description:         "Name of the secret override.",
@@ -519,7 +521,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							Description:         "Value of the secret override.",
 							MarkdownDescription: "Value of the secret override. The value is write-only and will not be displayed in plan outputs.",
 							Required:            true,
-							Sensitive:            true,
+							Sensitive:           true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the secret override.",
@@ -530,40 +532,40 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"environment_variable_files": environmentVariableFilesSchemaAttribute("container"),
-			"secret_files":              secretFilesSchemaAttribute("container"),
-			"healthchecks": healthchecksSchemaAttributes(true),
+			"secret_files":               secretFilesSchemaAttribute("container"),
+			"healthchecks":               healthchecksSchemaAttributes(true),
 			"arguments": schema.ListAttribute{
-				Description: "List of arguments of this container.",
+				Description:         "List of arguments of this container.",
 				MarkdownDescription: "List of arguments of this container. Overrides the Docker image's default `CMD`.",
-				Optional:    true,
-				ElementType: types.StringType,
-				Computed:    true,
+				Optional:            true,
+				ElementType:         types.StringType,
+				Computed:            true,
 				PlanModifiers: []planmodifier.List{
 					listplanmodifier.UseStateForUnknown(),
 				},
-				//Default:     listdefault.StaticValue(types.ListNull(types.StringType)),
+				// Default:     listdefault.StaticValue(types.ListNull(types.StringType)),
 			},
 			"custom_domains": schema.SetNestedAttribute{
 				Description: "List of custom domains linked to this container.",
 				MarkdownDescription: "List of custom domains linked to this container. " +
 					"You must configure a CNAME record on your DNS provider pointing to the `validation_domain` value.",
-				Optional:    true,
+				Optional: true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
 							Description:         "Id of the custom domain.",
 							MarkdownDescription: "Id of the custom domain.",
-							Computed:             true,
+							Computed:            true,
 						},
 						"domain": schema.StringAttribute{
-							Description: "Your custom domain.",
+							Description:         "Your custom domain.",
 							MarkdownDescription: "Your custom domain (e.g. `app.example.com`).",
-							Required:    true,
+							Required:            true,
 						},
 						"generate_certificate": schema.BoolAttribute{
-							Description: "Qovery will generate and manage the certificate for this domain.",
+							Description:         "Qovery will generate and manage the certificate for this domain.",
 							MarkdownDescription: "Qovery will generate and manage a TLS/SSL certificate for this domain using Let's Encrypt.",
-							Optional:    true,
+							Optional:            true,
 						},
 						"use_cdn": schema.BoolAttribute{
 							Description: "Indicates if the custom domain is behind a CDN (i.e Cloudflare).\n" +
@@ -579,37 +581,37 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 						"validation_domain": schema.StringAttribute{
 							Description:         "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
 							MarkdownDescription: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
-							Computed:             true,
+							Computed:            true,
 						},
 						"status": schema.StringAttribute{
 							Description:         "Status of the custom domain.",
 							MarkdownDescription: "Status of the custom domain.",
-							Computed:             true,
+							Computed:            true,
 						},
 					},
 				},
 			},
 			"external_host": schema.StringAttribute{
-				Description: "The container external FQDN host [NOTE: only if your container is using a publicly accessible port].",
+				Description:         "The container external FQDN host [NOTE: only if your container is using a publicly accessible port].",
 				MarkdownDescription: "The container external FQDN host. Only available if your container has at least one publicly accessible port.",
-				Computed:    true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					UseStateUnlessPortsChange(),
 				},
 			},
 			"internal_host": schema.StringAttribute{
-				Description: "The container internal host.",
+				Description:         "The container internal host.",
 				MarkdownDescription: "The container internal host. Use this to communicate between services within the same environment.",
-				Computed:    true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"deployment_stage_id": schema.StringAttribute{
-				Description: "Id of the deployment stage.",
+				Description:         "Id of the deployment stage.",
 				MarkdownDescription: "Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -627,32 +629,32 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					"Use `jsonencode()` to set values. " +
 					"Only include settings you want to override. " +
 					"Full list available in [Qovery API documentation](https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings).",
-				Optional:    true,
-				Computed:    true,
+				Optional: true,
+				Computed: true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"auto_deploy": schema.BoolAttribute{
-				Description: "Specify if the container will be automatically updated after receiving a new image tag.",
+				Description:         "Specify if the container will be automatically updated after receiving a new image tag.",
 				MarkdownDescription: "Specify if the container will be automatically redeployed after receiving a new image tag from the container registry.",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.Bool{
 					boolplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"annotations_group_ids": schema.SetAttribute{
-				Description: "List of annotations group ids",
+				Description:         "List of annotations group ids",
 				MarkdownDescription: "List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the container's pods.",
-				Optional:    true,
-				ElementType: types.StringType,
+				Optional:            true,
+				ElementType:         types.StringType,
 			},
 			"labels_group_ids": schema.SetAttribute{
-				Description: "List of labels group ids",
+				Description:         "List of labels group ids",
 				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the container's pods.",
-				Optional:    true,
-				ElementType: types.StringType,
+				Optional:            true,
+				ElementType:         types.StringType,
 			},
 		},
 	}
@@ -698,7 +700,7 @@ func (r containerResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 	// Hack to know if this method is triggered through an import
 	// EnvironmentID is always present except when importing the resource
-	var isTriggeredFromImport = false
+	isTriggeredFromImport := false
 	if state.EnvironmentID.IsNull() {
 		isTriggeredFromImport = true
 	}

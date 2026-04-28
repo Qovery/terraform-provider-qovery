@@ -26,8 +26,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &jobResource{}
-var _ resource.ResourceWithImportState = jobResource{}
+var (
+	_ resource.ResourceWithConfigure   = &jobResource{}
+	_ resource.ResourceWithImportState = jobResource{}
+)
 
 type jobResource struct {
 	jobService job.Service
@@ -605,7 +607,7 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				},
 			},
 			"environment_variable_files": environmentVariableFilesSchemaAttribute("job"),
-			"secret_files":              secretFilesSchemaAttribute("job"),
+			"secret_files":               secretFilesSchemaAttribute("job"),
 			"external_host": schema.StringAttribute{
 				Description:         "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",
 				MarkdownDescription: "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",
@@ -741,7 +743,7 @@ func (r jobResource) Read(ctx context.Context, req resource.ReadRequest, resp *r
 
 	// Hack to know if this method is triggered through an import
 	// EnvironmentID is always present except when importing the resource
-	var isTriggeredFromImport = false
+	isTriggeredFromImport := false
 	if state.EnvironmentID.IsNull() {
 		isTriggeredFromImport = true
 	}

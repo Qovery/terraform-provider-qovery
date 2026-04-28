@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -15,8 +16,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &annotationsGroupResource{}
-var _ resource.ResourceWithImportState = annotationsGroupResource{}
+var (
+	_ resource.ResourceWithConfigure   = &annotationsGroupResource{}
+	_ resource.ResourceWithImportState = annotationsGroupResource{}
+)
 
 type annotationsGroupResource struct {
 	annotationsGroupService annotations_group.Service

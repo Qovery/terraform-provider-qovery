@@ -275,9 +275,11 @@ type Job struct {
 func (j Job) EnvironmentVariableList() EnvironmentVariableList {
 	return toEnvironmentVariableList(j.EnvironmentVariables)
 }
+
 func (j Job) EnvironmentVariableAliasesList() EnvironmentVariableList {
 	return toEnvironmentVariableList(j.EnvironmentVariableAliases)
 }
+
 func (j Job) EnvironmentVariableOverridesList() EnvironmentVariableList {
 	return toEnvironmentVariableList(j.EnvironmentVariableOverrides)
 }
@@ -289,9 +291,11 @@ func (j Job) BuiltInEnvironmentVariableList() EnvironmentVariableList {
 func (j Job) SecretList() SecretList {
 	return ToSecretList(j.Secrets)
 }
+
 func (j Job) SecretAliasesList() SecretList {
 	return ToSecretList(j.SecretAliases)
 }
+
 func (j Job) SecretOverridesList() SecretList {
 	return ToSecretList(j.SecretOverrides)
 }

@@ -193,7 +193,6 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		ApplicationIsSkipped:             ToBool(app.IsSkipped),
 		AdvancedSettingsJson:             ToString(app.AdvancedSettingsJson),
 	}, nil
-
 }
 
 func (app Application) toUpdateApplicationRequest(state Application) (*client.ApplicationUpdateParams, error) {
@@ -309,7 +308,6 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		ApplicationIsSkipped:             ToBool(app.IsSkipped),
 		AdvancedSettingsJson:             ToString(app.AdvancedSettingsJson),
 	}, nil
-
 }
 
 func convertResponseToApplication(ctx context.Context, state Application, app *client.ApplicationResponse) Application {

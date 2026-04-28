@@ -25,7 +25,6 @@ type containerDataSource struct {
 
 func newContainerDataSource() datasource.DataSource {
 	return &containerDataSource{}
-
 }
 
 func (d containerDataSource) Metadata(_ context.Context, req datasource.MetadataRequest, resp *datasource.MetadataResponse) {
@@ -418,7 +417,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 							Description:         "Value of the secret.",
 							MarkdownDescription: "Value of the secret.",
 							Computed:            true,
-							Sensitive:            true,
+							Sensitive:           true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the secret.",
@@ -477,7 +476,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 							Description:         "Value of the secret override.",
 							MarkdownDescription: "Value of the secret override.",
 							Computed:            true,
-							Sensitive:            true,
+							Sensitive:           true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the secret override.",

@@ -16,8 +16,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &gcpCredentialsResource{}
-var _ resource.ResourceWithImportState = gcpCredentialsResource{}
+var (
+	_ resource.ResourceWithConfigure   = &gcpCredentialsResource{}
+	_ resource.ResourceWithImportState = gcpCredentialsResource{}
+)
 
 type gcpCredentialsResource struct {
 	gcpCredentialsService credentials.GcpService

@@ -481,7 +481,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 							Description:         "Value of the secret.",
 							MarkdownDescription: "Value of the secret.",
 							Computed:            true,
-							Sensitive:            true,
+							Sensitive:           true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the secret.",
@@ -540,7 +540,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 							Description:         "Value of the secret override.",
 							MarkdownDescription: "Value of the secret override.",
 							Computed:            true,
-							Sensitive:            true,
+							Sensitive:           true,
 						},
 						"description": schema.StringAttribute{
 							Description:         "Description of the secret override.",

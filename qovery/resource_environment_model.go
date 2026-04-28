@@ -29,9 +29,11 @@ type Environment struct {
 func (e Environment) EnvironmentVariableList() EnvironmentVariableList {
 	return toEnvironmentVariableList(e.EnvironmentVariables)
 }
+
 func (e Environment) EnvironmentVariableAliasesList() EnvironmentVariableList {
 	return toEnvironmentVariableList(e.EnvironmentVariableAliases)
 }
+
 func (e Environment) EnvironmentVariableOverridesList() EnvironmentVariableList {
 	return toEnvironmentVariableList(e.EnvironmentVariableOverrides)
 }
@@ -43,9 +45,11 @@ func (e Environment) BuiltInEnvironmentVariableList() EnvironmentVariableList {
 func (e Environment) SecretList() SecretList {
 	return ToSecretList(e.Secrets)
 }
+
 func (e Environment) SecretAliasesList() SecretList {
 	return ToSecretList(e.SecretAliases)
 }
+
 func (e Environment) SecretOverridesList() SecretList {
 	return ToSecretList(e.SecretOverrides)
 }

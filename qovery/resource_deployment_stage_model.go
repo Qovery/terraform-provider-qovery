@@ -50,7 +50,7 @@ func convertDomainDeploymentStageToDeploymentStage(deploymentStageDomain *deploy
 	}
 
 	// hack to satisfy optional description as the core doesn't accept null value, the description will be always an empty string in case of null
-	var description = &deploymentStageDomain.Description
+	description := &deploymentStageDomain.Description
 	if deploymentStageDomain.Description == "" && terraformDescription.IsNull() {
 		description = nil
 	}

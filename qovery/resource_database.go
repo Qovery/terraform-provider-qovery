@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -23,8 +24,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &databaseResource{}
-var _ resource.ResourceWithImportState = databaseResource{}
+var (
+	_ resource.ResourceWithConfigure   = &databaseResource{}
+	_ resource.ResourceWithImportState = databaseResource{}
+)
 
 var (
 	// Database State
@@ -101,15 +104,15 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			"id": schema.StringAttribute{
 				Description:         "Id of the database.",
 				MarkdownDescription: "Id of the database.",
-				Computed:             true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"environment_id": schema.StringAttribute{
-				Description: "Id of the environment.",
+				Description:         "Id of the environment.",
 				MarkdownDescription: "Id of the environment. Changing this forces the database to be re-created.",
-				Required:    true,
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.RequiresReplace(),
 				},
@@ -120,10 +123,10 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Required:            true,
 			},
 			"icon_uri": schema.StringAttribute{
-				Description: "Icon URI representing the database.",
+				Description:         "Icon URI representing the database.",
 				MarkdownDescription: "Icon URI representing the database. Used in the Qovery console UI.",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 			},
 			"type": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -146,7 +149,7 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				MarkdownDescription: "Version of the database engine (e.g. `14` for PostgreSQL 14, `8.0` for MySQL 8.0). " +
 					"Available versions depend on the `type` and `mode` chosen. " +
 					"Refer to Qovery documentation for supported versions per database type.",
-				Required:    true,
+				Required: true,
 			},
 			"mode": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -184,8 +187,8 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				MarkdownDescription: "Instance type of the database. " +
 					"Required when `mode = \"MANAGED\"`. Not applicable for `CONTAINER` mode. " +
 					"The available instance types depend on your cloud provider (e.g. `db.t3.micro` for AWS RDS).",
-				Optional:    true,
-				Computed:    true,
+				Optional: true,
+				Computed: true,
 			},
 			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -224,28 +227,28 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 					&databaseStorageDefault,
 				),
 				MarkdownDescription: "Storage of the database in GB [1024MB = 1GB]. Cannot be updated after creation.",
-				Optional: true,
-				Computed: true,
-				Default:  int64default.StaticInt64(databaseStorageDefault),
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(databaseStorageDefault),
 				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: databaseStorageMin},
 				},
 			},
 			"external_host": schema.StringAttribute{
-				Description: "The database external FQDN host [NOTE: only if your database accessibility is set to PUBLIC].",
+				Description:         "The database external FQDN host [NOTE: only if your database accessibility is set to PUBLIC].",
 				MarkdownDescription: "The database external FQDN host. Only available when `accessibility = \"PUBLIC\"`.",
-				Computed:    true,
+				Computed:            true,
 			},
 			"internal_host": schema.StringAttribute{
-				Description: "The database internal host (Recommended for your application)",
+				Description:         "The database internal host (Recommended for your application)",
 				MarkdownDescription: "The database internal host. Use this to connect from services within the same environment (recommended over external host).",
-				Computed:    true,
+				Computed:            true,
 			},
 			"deployment_stage_id": schema.StringAttribute{
-				Description: "Id of the deployment stage.",
+				Description:         "Id of the deployment stage.",
 				MarkdownDescription: "Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.",
-				Optional:    true,
-				Computed:    true,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -258,31 +261,31 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Default:             booldefault.StaticBool(false),
 			},
 			"port": schema.Int64Attribute{
-				Description: "The port to connect to your database",
+				Description:         "The port to connect to your database",
 				MarkdownDescription: "The port number to connect to your database. Automatically assigned by Qovery based on the database type.",
-				Computed:    true,
+				Computed:            true,
 			},
 			"login": schema.StringAttribute{
-				Description: "The login to connect to your database",
+				Description:         "The login to connect to your database",
 				MarkdownDescription: "The login (username) to connect to your database. Automatically generated by Qovery.",
-				Computed:    true,
+				Computed:            true,
 			},
 			"password": schema.StringAttribute{
-				Description: "The password to connect to your database",
+				Description:         "The password to connect to your database",
 				MarkdownDescription: "The password to connect to your database. Automatically generated by Qovery.",
-				Computed:    true,
+				Computed:            true,
 			},
 			"annotations_group_ids": schema.SetAttribute{
-				Description: "List of annotations group ids",
+				Description:         "List of annotations group ids",
 				MarkdownDescription: "List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the database pods (only for `CONTAINER` mode).",
-				Optional:    true,
-				ElementType: types.StringType,
+				Optional:            true,
+				ElementType:         types.StringType,
 			},
 			"labels_group_ids": schema.SetAttribute{
-				Description: "List of labels group ids",
+				Description:         "List of labels group ids",
 				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the database pods (only for `CONTAINER` mode).",
-				Optional:    true,
-				ElementType: types.StringType,
+				Optional:            true,
+				ElementType:         types.StringType,
 			},
 		},
 	}

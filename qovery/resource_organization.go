@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 	"fmt"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 
@@ -18,8 +19,10 @@ import (
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ resource.ResourceWithConfigure = &organizationResource{}
-var _ resource.ResourceWithImportState = organizationResource{}
+var (
+	_ resource.ResourceWithConfigure   = &organizationResource{}
+	_ resource.ResourceWithImportState = organizationResource{}
+)
 
 var organizationPlans = clientEnumToStringArray(organization.AllowedPlanValues)
 
