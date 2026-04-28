@@ -72,19 +72,202 @@ func anyPreservesState[M planmodifier.Describer](mods []M) bool {
 }
 
 // flickerAllowlist is the set of fully-qualified attribute paths
-// (`<resource>.<dot.path.to.attr>`) that are deliberately allowed to flicker
-// as `(known after apply)` on every plan.
+// (`<resource>.<dot.path.to.attr>`) that this test will tolerate as flickering
+// `(known after apply)` on every plan.
 //
-// Each entry MUST include a justification. Adding to this list should be
-// a deliberate, reviewed decision — almost every Computed attribute should
-// preserve state, and reaching for the allowlist usually means we've missed
-// a plan modifier on the schema.
+// In a steady-state codebase this should approach empty. Today it is loaded
+// with the full set of pre-existing schema gaps as a transitional TODO list,
+// so CI stays green while we work through the fixes incrementally — each
+// fix PR adds the appropriate plan modifier and removes the corresponding
+// entry here.
+//
+// Conventions:
+//   - Entries marked "TODO:" are pre-existing gaps that need a fix. The fix
+//     is normally to add `UseStateForUnknown()` (or a state-preserving custom
+//     modifier from qovery/plan_modifiers.go) to the attribute's schema. Once
+//     the modifier is in place, the entry MUST be removed from this map.
+//   - Entries that are NOT prefixed with "TODO:" represent attributes that
+//     are *legitimately* volatile (e.g. timestamps the API restamps on every
+//     write). Their value should be a permanent reason explaining why the
+//     flicker is correct behaviour.
+//
+// Adding a new "TODO:" entry should be discouraged — it means a regression
+// went in without a modifier. Adding a permanent (non-TODO) entry should be
+// a reviewed decision with a clear justification.
+//
+// Tiers below are an organisational hint for the order of fix PRs; they have
+// no semantic meaning to the test itself.
 //
 // Format: "<terraform_resource_type>.<dot.separated.attribute.path>" -> reason.
 var flickerAllowlist = map[string]string{
-	// (intentionally empty — every Computed attribute should preserve state.
-	// If a future API change makes an attribute legitimately volatile,
-	// document the reason here and reference the API/PR that introduced it.)
+	// =====================================================================
+	// Tier 1 — Critical: cascade trigger reported in customer plan (QOV-1605
+	// follow-up). These attributes flicker as `(known after apply)` in the
+	// customer's plan and propagate "changes pending" to dependent data
+	// sources. Fix first.
+	// =====================================================================
+	"qovery_application.deployment_stage_id":       "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
+	"qovery_container.deployment_stage_id":         "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
+	"qovery_database.deployment_stage_id":          "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
+	"qovery_helm.deployment_stage_id":              "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
+	"qovery_job.deployment_stage_id":               "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
+	"qovery_job.schedule.lifecycle_type":           "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
+	"qovery_terraform_service.deployment_stage_id": "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
+
+	// =====================================================================
+	// Tier 2 — High: top-level Computed flicker on a single resource (no
+	// cross-resource cascade). Resource id, descriptions, hosts/ports.
+	// Mostly mechanical fixes.
+	// =====================================================================
+	"qovery_container_registry.description":             "TODO: add UseStateForUnknown",
+	"qovery_database.external_host":                     "TODO: add UseStateForUnknown (consider UseStateUnlessAccessibilityChanges custom modifier)",
+	"qovery_database.icon_uri":                          "TODO: add UseStateForUnknown",
+	"qovery_database.instance_type":                     "TODO: add UseStateForUnknown",
+	"qovery_database.internal_host":                     "TODO: add UseStateForUnknown",
+	"qovery_database.login":                             "TODO: add UseStateForUnknown",
+	"qovery_database.password":                          "TODO: add UseStateForUnknown",
+	"qovery_database.port":                              "TODO: add UseStateForUnknown",
+	"qovery_deployment.id":                              "TODO: add UseStateForUnknown (resource's own id flickers — strong bug)",
+	"qovery_environment.built_in_environment_variables": "TODO: add UseStateUnlessNameChanges (top-level list; same pattern as service resources)",
+	"qovery_git_token.bitbucket_workspace":              "TODO: add UseStateForUnknown",
+	"qovery_git_token.description":                      "TODO: add UseStateForUnknown",
+	"qovery_helm.auto_preview":                          "TODO: add UseStateForUnknown",
+	"qovery_helm_repository.description":                "TODO: add UseStateForUnknown",
+	"qovery_job.auto_preview":                           "TODO: add UseStateForUnknown",
+	"qovery_organization.description":                   "TODO: add UseStateForUnknown",
+	"qovery_project.built_in_environment_variables":     "TODO: add UseStateUnlessNameChanges (top-level list; same pattern as service resources)",
+	"qovery_project.description":                        "TODO: add UseStateForUnknown",
+	"qovery_scaleway_credentials.id":                    "TODO: add UseStateForUnknown (resource's own id flickers — strong bug)",
+	"qovery_terraform_service.advanced_settings_json":   "TODO: add UseStateForUnknown",
+
+	// =====================================================================
+	// Tier 3 — Medium: Computed attrs nested inside SingleNestedAttribute
+	// (schedule.*, source.*, values_override.*). Same fix pattern as Tier 2,
+	// just deeper in the schema.
+	// =====================================================================
+	"qovery_application.git_repository.branch":                       "TODO: add UseStateForUnknown",
+	"qovery_helm.source.git_repository.branch":                       "TODO: add UseStateForUnknown",
+	"qovery_helm.source.git_repository.git_token_id":                 "TODO: add UseStateForUnknown",
+	"qovery_helm.values_override.file.git_repository.git_token_id":   "TODO: add UseStateForUnknown",
+	"qovery_job.schedule.cronjob.command.entrypoint":                 "TODO: add UseStateForUnknown",
+	"qovery_job.schedule.on_delete.entrypoint":                       "TODO: add UseStateForUnknown",
+	"qovery_job.schedule.on_start.entrypoint":                        "TODO: add UseStateForUnknown",
+	"qovery_job.schedule.on_stop.entrypoint":                         "TODO: add UseStateForUnknown",
+	"qovery_job.source.docker.git_repository.root_path":              "TODO: add UseStateForUnknown",
+
+	// =====================================================================
+	// Tier 4 — Low: Computed attrs on set/list ELEMENTS (env vars, secrets,
+	// custom domains, ports, ...). The flicker is cosmetic only — visible
+	// inside the resource's own diff but does not cascade to dependent data
+	// sources. Lowest priority. May be batched into a single bulk PR.
+	// =====================================================================
+	"qovery_application.built_in_environment_variables.description":  "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.built_in_environment_variables.id":           "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.built_in_environment_variables.key":          "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.built_in_environment_variables.value":        "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.custom_domains.id":                           "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.custom_domains.status":                       "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.custom_domains.validation_domain":            "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.deployment_restrictions.id":                  "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.environment_variable_aliases.id":             "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.environment_variable_files.id":               "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.environment_variable_overrides.id":           "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.environment_variables.id":                    "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.secret_aliases.id":                           "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.secret_files.id":                             "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.secret_overrides.id":                         "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.secrets.id":                                  "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_application.storage.id":                                  "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.built_in_environment_variables.description":    "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.built_in_environment_variables.id":             "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.built_in_environment_variables.key":            "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.built_in_environment_variables.value":          "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.custom_domains.id":                             "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.custom_domains.status":                         "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.custom_domains.validation_domain":              "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.environment_variable_aliases.id":               "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.environment_variable_files.id":                 "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.environment_variable_overrides.id":             "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.environment_variables.id":                      "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.ports.protocol":                                "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.secret_aliases.id":                             "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.secret_files.id":                               "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.secret_overrides.id":                           "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.secrets.id":                                    "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.storage.id":                                    "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_environment.built_in_environment_variables.description":  "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_environment.built_in_environment_variables.id":           "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_environment.built_in_environment_variables.key":          "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_environment.built_in_environment_variables.value":        "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_environment.environment_variable_aliases.id":             "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_environment.environment_variable_files.id":               "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_environment.environment_variable_overrides.id":           "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_environment.environment_variables.id":                    "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_environment.secret_aliases.id":                           "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_environment.secret_files.id":                             "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_environment.secret_overrides.id":                         "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_environment.secrets.id":                                  "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.built_in_environment_variables.description":         "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.built_in_environment_variables.id":                  "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.built_in_environment_variables.key":                 "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.built_in_environment_variables.value":               "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.custom_domains.id":                                  "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.custom_domains.status":                              "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.custom_domains.validation_domain":                   "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.deployment_restrictions.id":                         "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.environment_variable_aliases.id":                    "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.environment_variable_files.id":                      "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.environment_variable_overrides.id":                  "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.environment_variables.id":                           "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.ports.protocol":                                     "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.secret_aliases.id":                                  "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.secret_files.id":                                    "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.secret_overrides.id":                                "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_helm.secrets.id":                                         "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_job.built_in_environment_variables.description":          "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_job.built_in_environment_variables.id":                   "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_job.built_in_environment_variables.key":                  "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_job.built_in_environment_variables.value":                "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_job.deployment_restrictions.id":                          "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_job.environment_variable_aliases.id":                     "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_job.environment_variable_files.id":                       "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_job.environment_variable_overrides.id":                   "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_job.environment_variables.id":                            "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_job.secret_aliases.id":                                   "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_job.secret_files.id":                                     "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_job.secret_overrides.id":                                 "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_job.secrets.id":                                          "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_project.built_in_environment_variables.description":      "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_project.built_in_environment_variables.id":               "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_project.built_in_environment_variables.key":              "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_project.built_in_environment_variables.value":            "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_project.environment_variable_aliases.id":                 "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_project.environment_variable_files.id":                   "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_project.environment_variables.id":                        "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_project.secret_aliases.id":                               "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_project.secret_files.id":                                 "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_project.secrets.id":                                      "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+
+	// =====================================================================
+	// Tier 5 — Needs owner review: candidates for genuine volatility.
+	// `created_at` / `updated_at` may legitimately update on every API write.
+	// `qovery_cluster.features.existing_vpc.*` may legitimately recompute
+	// when the VPC reference changes. Decide per-attribute: add a modifier,
+	// or replace this TODO with a permanent reason (no `TODO:` prefix)
+	// explaining why the flicker is correct.
+	// =====================================================================
+	"qovery_cluster.features.existing_vpc.documentdb_subnets_zone_a_ids":     "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
+	"qovery_cluster.features.existing_vpc.documentdb_subnets_zone_b_ids":     "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
+	"qovery_cluster.features.existing_vpc.documentdb_subnets_zone_c_ids":     "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
+	"qovery_cluster.features.existing_vpc.eks_create_nodes_in_private_subnet": "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
+	"qovery_cluster.features.existing_vpc.elasticache_subnets_zone_a_ids":    "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
+	"qovery_cluster.features.existing_vpc.elasticache_subnets_zone_b_ids":    "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
+	"qovery_cluster.features.existing_vpc.elasticache_subnets_zone_c_ids":    "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
+	"qovery_cluster.features.existing_vpc.rds_subnets_zone_a_ids":            "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
+	"qovery_cluster.features.existing_vpc.rds_subnets_zone_b_ids":            "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
+	"qovery_cluster.features.existing_vpc.rds_subnets_zone_c_ids":            "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
+	"qovery_terraform_service.created_at":                                    "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
+	"qovery_terraform_service.updated_at":                                    "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
 }
 
 // attributeStatus describes the relevant flags of a single schema attribute
