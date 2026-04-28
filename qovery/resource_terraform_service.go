@@ -360,6 +360,9 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 				MarkdownDescription: "Advanced settings in JSON format. See the Qovery API documentation for available settings.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"created_at": schema.StringAttribute{
 				Description:         "Creation date of the terraform service.",
