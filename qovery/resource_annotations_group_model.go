@@ -3,7 +3,6 @@ package qovery
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
@@ -43,23 +42,6 @@ func (ag AnnotationsGroup) toUpsertRequest() *annotations_group.UpsertServiceReq
 			Scopes:      scopes,
 		},
 	}
-}
-
-func (annotation AnnotationDomain) toTerraformObject() attr.Value {
-	attributes := map[string]attr.Value{
-		"key":   annotation.Key,
-		"value": annotation.Value,
-	}
-	terraformObjectValue, diagnostics := types.ObjectValue(annotationAttrTypes, attributes)
-	if diagnostics.HasError() {
-		panic("Can't creat e ObjectValue")
-	}
-	return terraformObjectValue
-}
-
-var annotationAttrTypes = map[string]attr.Type{
-	"key":   types.StringType,
-	"value": types.StringType,
 }
 
 func (annotations AnnotationList) toTerraformMap() map[string]string {

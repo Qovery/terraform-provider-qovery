@@ -4,12 +4,6 @@ run:
 issues:
   max-per-linter: 0
   max-same-issues: 0
-  # Legacy packages (pre-DDD): mute noisy linters here, then re-enable
-  # one at a time as the underlying issues are cleaned up.
-  exclude-rules:
-    - path: "^(qovery|client)/"
-      linters:
-        - unused
 
 linters:
   disable-all: true

@@ -30,13 +30,6 @@ var (
 )
 
 var (
-	// Database State
-	databaseStates = clientEnumToStringArray([]qovery.StateEnum{
-		qovery.STATEENUM_DEPLOYED,
-		qovery.STATEENUM_STOPPED,
-	})
-	databaseStateDefault = string(qovery.STATEENUM_DEPLOYED)
-
 	// Database Type
 	databaseTypes = clientEnumToStringArray(qovery.AllowedDatabaseTypeEnumEnumValues)
 
@@ -58,9 +51,6 @@ var (
 	// Database Storage
 	databaseStorageMin     int64 = 10
 	databaseStorageDefault int64 = 10
-
-	// Database Instance Type
-	databaseInstanceTypeDefault *string = nil
 )
 
 type databaseResource struct {

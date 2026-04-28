@@ -59,15 +59,7 @@ var (
 	applicationAutoPreviewDefault = false
 
 	// Application Storage
-	applicationStorageTypes         = clientEnumToStringArray(qovery.AllowedStorageTypeEnumEnumValues)
 	applicationStorageSizeMin int64 = 1 // in GB
-
-	// Application Port
-	applicationPortMin                       int64 = 1
-	applicationPortMax                       int64 = 65535
-	applicationPortProtocols                       = clientEnumToStringArray(qovery.AllowedPortProtocolEnumEnumValues)
-	applicationPortProtocolDefault                 = string(qovery.PORTPROTOCOLENUM_HTTP)
-	applicationPortPubliclyAccessibleDefault       = false
 
 	// Application Git Repository
 	applicationGitRepositoryRootPathDefault = "/"

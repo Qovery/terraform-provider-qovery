@@ -41,15 +41,6 @@ func (domains CustomDomainList) toTerraformSet(ctx context.Context) types.Set {
 	return set
 }
 
-func (domains CustomDomainList) contains(domain CustomDomain) bool {
-	for _, d := range domains {
-		if domain.Domain == d.Domain {
-			return true
-		}
-	}
-	return false
-}
-
 func (domains CustomDomainList) find(domain string) *CustomDomain {
 	for _, d := range domains {
 		if d.Domain.ValueString() == domain {

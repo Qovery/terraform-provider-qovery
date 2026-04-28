@@ -136,16 +136,6 @@ func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, e
 	}
 }
 
-func newApplicationFinalStateCheckerWaitFunc(client *Client, applicationID string) waitFunc {
-	return func(ctx context.Context) (bool, *apierrors.APIError) {
-		status, apiErr := client.getApplicationStatus(ctx, applicationID)
-		if apiErr != nil {
-			return false, apiErr
-		}
-		return isEnvFinalState(status.State), nil
-	}
-}
-
 func newClusterStatusCheckerWaitFunc(client *Client, organizationID string, clusterID string, expected qovery.ClusterStateEnum) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
 		status, apiErr := client.getClusterStatus(ctx, organizationID, clusterID)
@@ -218,16 +208,6 @@ func newDatabaseStatusCheckerWaitFunc(client *Client, databaseID string, expecte
 	}
 }
 
-func newDatabaseFinalStateCheckerWaitFunc(client *Client, databaseID string) waitFunc {
-	return func(ctx context.Context) (bool, *apierrors.APIError) {
-		status, apiErr := client.getDatabaseStatus(ctx, databaseID)
-		if apiErr != nil {
-			return false, apiErr
-		}
-		return isEnvFinalState(status.State), nil
-	}
-}
-
 func newEnvironmentFinalStateCheckerWaitFunc(client *Client, environmentID string) waitFunc {
 	return func(ctx context.Context) (bool, *apierrors.APIError) {
 		status, apiErr := client.getEnvironmentStatus(ctx, environmentID)
@@ -268,10 +248,6 @@ func isFinalState(state qovery.ClusterStateEnum) bool {
 	return !isProcessingState(state) &&
 		!isWaitingState(state) &&
 		!isQueuedState(state)
-}
-
-func isStatusError(state qovery.ClusterStateEnum) bool {
-	return strings.HasSuffix(string(state), "_ERROR")
 }
 
 func isProcessingState(state qovery.ClusterStateEnum) bool {
