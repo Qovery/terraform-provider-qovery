@@ -101,20 +101,6 @@ func anyPreservesState[M planmodifier.Describer](mods []M) bool {
 // Format: "<terraform_resource_type>.<dot.separated.attribute.path>" -> reason.
 var flickerAllowlist = map[string]string{
 	// =====================================================================
-	// Tier 1 — Critical: cascade trigger reported in customer plan (QOV-1605
-	// follow-up). These attributes flicker as `(known after apply)` in the
-	// customer's plan and propagate "changes pending" to dependent data
-	// sources. Fix first.
-	// =====================================================================
-	"qovery_application.deployment_stage_id":       "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
-	"qovery_container.deployment_stage_id":         "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
-	"qovery_database.deployment_stage_id":          "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
-	"qovery_helm.deployment_stage_id":              "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
-	"qovery_job.deployment_stage_id":               "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
-	"qovery_job.schedule.lifecycle_type":           "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
-	"qovery_terraform_service.deployment_stage_id": "TODO: add UseStateForUnknown (cascade trigger — QOV-1605 follow-up)",
-
-	// =====================================================================
 	// Tier 2 — High: top-level Computed flicker on a single resource (no
 	// cross-resource cascade). Resource id, descriptions, hosts/ports.
 	// Mostly mechanical fixes.
