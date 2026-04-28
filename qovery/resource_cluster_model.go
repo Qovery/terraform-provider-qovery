@@ -222,11 +222,9 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 				return nil, errors.New("features (vpc_subnet, static_ip, existing_vpc, karpenter) are not supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
 			}
 		}
-	} else {
+	} else if infraChartsParams != nil {
 		// infrastructure_charts_parameters should not be set for non-PARTIALLY_MANAGED modes
-		if infraChartsParams != nil {
-			return nil, errors.New("infrastructure_charts_parameters is only supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
-		}
+		return nil, errors.New("infrastructure_charts_parameters is only supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
 	}
 
 	features, err := toQoveryClusterFeatures(c.Features, c.KubernetesMode.String())

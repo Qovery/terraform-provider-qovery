@@ -328,7 +328,7 @@ func (valuesOverride HelmValuesOverride) toUpsertRequest() helm.ValuesOverride {
 
 	var file *helm.ValuesOverrideFile
 	if valuesOverride.HelmValuesOverrideFile != nil {
-		valuesOverrideFile := (*valuesOverride.HelmValuesOverrideFile).toUpsertRequest()
+		valuesOverrideFile := valuesOverride.HelmValuesOverrideFile.toUpsertRequest()
 		file = &valuesOverrideFile
 	}
 
