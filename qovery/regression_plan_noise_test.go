@@ -14,44 +14,16 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 )
 
-// Regression test for QOV-1605 / "[xyz] will be read during apply" plan noise.
-//
-// Background:
-// A `Computed` attribute without a state-preserving plan modifier (and no
-// `Default`) is recomputed as `(known after apply)` whenever the resource is
-// planned to update for ANY other reason. That false flicker propagates to
-// every data source that has an explicit or implicit dependency on the
-// resource — they get marked "will be read during apply" — which is the
-// noisy plan output users complain about.
-//
-// This test walks every resource schema in the provider (recursively into
-// nested objects) and asserts that every `Computed` attribute either:
-//   - has a state-preserving plan modifier (UseStateForUnknown or one of our
-//     custom UseStateUnless* modifiers), or
-//   - has a `Default` whose value matches what the API returns when the user
-//     omits the attribute, or
-//   - is on the `flickerAllowlist` with a documented reason.
-//
-// When this test fails, the fix is almost always to add `UseStateForUnknown()`
-// to the offending attribute's `PlanModifiers`. See `qovery/plan_modifiers.go`
-// for our custom variants when the attribute genuinely needs to be recomputed
-// under specific conditions (e.g. accessibility/name/ports changes).
+// Asserts that every Computed attribute on every resource has a state-preserving
+// plan modifier, a Default, or an explicit allowlist entry — preventing false
+// "(known after apply)" flicker that cascades into "will be read during apply"
+// noise on dependent data sources. Custom state-preserving modifiers must be
+// added to preservesState() to be recognised.
 
-// useStateForUnknownDescription is the Description() string returned by the
-// terraform-plugin-framework's built-in UseStateForUnknown() modifiers (string,
-// bool, int64, list, set, map, object). The concrete types are unexported in
-// the framework, so matching on description is the most stable identifier.
+// The framework's UseStateForUnknown modifiers have unexported concrete types,
+// so we identify them by their Description() string — the only stable signal.
 const useStateForUnknownDescription = "Once set, the value of this attribute in state will not change."
 
-// preservesState reports whether a single plan modifier preserves the prior
-// state value, either unconditionally (UseStateForUnknown) or under
-// conditions that don't fire on an unrelated update to the same resource
-// (UseStateUnlessNameChanges, UseStateUnlessPortsChange, SmartAllowApiOverride).
-//
-// This list is intentionally curated: only modifiers whose semantics
-// guarantee "no flicker on unrelated updates" qualify. New custom modifiers
-// added to qovery/plan_modifiers.go must be added here explicitly if they
-// preserve state.
 func preservesState(m planmodifier.Describer) bool {
 	switch m.(type) {
 	case useStateUnlessNameChangesModifier,
@@ -71,40 +43,13 @@ func anyPreservesState[M planmodifier.Describer](mods []M) bool {
 	return false
 }
 
-// flickerAllowlist is the set of fully-qualified attribute paths
-// (`<resource>.<dot.path.to.attr>`) that this test will tolerate as flickering
-// `(known after apply)` on every plan.
-//
-// In a steady-state codebase this should approach empty. Today it is loaded
-// with the full set of pre-existing schema gaps as a transitional TODO list,
-// so CI stays green while we work through the fixes incrementally — each
-// fix PR adds the appropriate plan modifier and removes the corresponding
-// entry here.
-//
-// Conventions:
-//   - Entries marked "TODO:" are pre-existing gaps that need a fix. The fix
-//     is normally to add `UseStateForUnknown()` (or a state-preserving custom
-//     modifier from qovery/plan_modifiers.go) to the attribute's schema. Once
-//     the modifier is in place, the entry MUST be removed from this map.
-//   - Entries that are NOT prefixed with "TODO:" represent attributes that
-//     are *legitimately* volatile (e.g. timestamps the API restamps on every
-//     write). Their value should be a permanent reason explaining why the
-//     flicker is correct behaviour.
-//
-// Adding a new "TODO:" entry should be discouraged — it means a regression
-// went in without a modifier. Adding a permanent (non-TODO) entry should be
-// a reviewed decision with a clear justification.
-//
-// Tiers below are an organisational hint for the order of fix PRs; they have
-// no semantic meaning to the test itself.
-//
-// Format: "<terraform_resource_type>.<dot.separated.attribute.path>" -> reason.
+// flickerAllowlist tolerates known flickering attributes. Format:
+// "<terraform_resource_type>.<dot.separated.attribute.path>" -> reason.
+// Entries prefixed "TODO:" are pre-existing gaps to fix incrementally; once
+// the attribute gets a state-preserving modifier, remove the entry. Entries
+// without "TODO:" document legitimately-volatile attributes — their reason
+// should explain why the flicker is correct.
 var flickerAllowlist = map[string]string{
-	// =====================================================================
-	// Tier 2 — High: top-level Computed flicker on a single resource (no
-	// cross-resource cascade). Resource id, descriptions, hosts/ports.
-	// Mostly mechanical fixes.
-	// =====================================================================
 	"qovery_container_registry.description":             "TODO: add UseStateForUnknown",
 	"qovery_database.external_host":                     "TODO: add UseStateForUnknown (consider UseStateUnlessAccessibilityChanges custom modifier)",
 	"qovery_database.icon_uri":                          "TODO: add UseStateForUnknown",
@@ -126,11 +71,6 @@ var flickerAllowlist = map[string]string{
 	"qovery_scaleway_credentials.id":                    "TODO: add UseStateForUnknown (resource's own id flickers — strong bug)",
 	"qovery_terraform_service.advanced_settings_json":   "TODO: add UseStateForUnknown",
 
-	// =====================================================================
-	// Tier 3 — Medium: Computed attrs nested inside SingleNestedAttribute
-	// (schedule.*, source.*, values_override.*). Same fix pattern as Tier 2,
-	// just deeper in the schema.
-	// =====================================================================
 	"qovery_application.git_repository.branch":                       "TODO: add UseStateForUnknown",
 	"qovery_helm.source.git_repository.branch":                       "TODO: add UseStateForUnknown",
 	"qovery_helm.source.git_repository.git_token_id":                 "TODO: add UseStateForUnknown",
@@ -141,12 +81,6 @@ var flickerAllowlist = map[string]string{
 	"qovery_job.schedule.on_stop.entrypoint":                         "TODO: add UseStateForUnknown",
 	"qovery_job.source.docker.git_repository.root_path":              "TODO: add UseStateForUnknown",
 
-	// =====================================================================
-	// Tier 4 — Low: Computed attrs on set/list ELEMENTS (env vars, secrets,
-	// custom domains, ports, ...). The flicker is cosmetic only — visible
-	// inside the resource's own diff but does not cascade to dependent data
-	// sources. Lowest priority. May be batched into a single bulk PR.
-	// =====================================================================
 	"qovery_application.built_in_environment_variables.description":  "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_application.built_in_environment_variables.id":           "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_application.built_in_environment_variables.key":          "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
@@ -234,14 +168,6 @@ var flickerAllowlist = map[string]string{
 	"qovery_project.secret_files.id":                                 "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_project.secrets.id":                                      "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 
-	// =====================================================================
-	// Tier 5 — Needs owner review: candidates for genuine volatility.
-	// `created_at` / `updated_at` may legitimately update on every API write.
-	// `qovery_cluster.features.existing_vpc.*` may legitimately recompute
-	// when the VPC reference changes. Decide per-attribute: add a modifier,
-	// or replace this TODO with a permanent reason (no `TODO:` prefix)
-	// explaining why the flicker is correct.
-	// =====================================================================
 	"qovery_cluster.features.existing_vpc.documentdb_subnets_zone_a_ids":     "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
 	"qovery_cluster.features.existing_vpc.documentdb_subnets_zone_b_ids":     "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
 	"qovery_cluster.features.existing_vpc.documentdb_subnets_zone_c_ids":     "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
@@ -256,18 +182,14 @@ var flickerAllowlist = map[string]string{
 	"qovery_terraform_service.updated_at":                                    "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
 }
 
-// attributeStatus describes the relevant flags of a single schema attribute
-// for the purposes of this test.
 type attributeStatus struct {
 	computed       bool
 	preservesState bool
 	hasDefault     bool
 }
 
-// inspectAttribute extracts (computed, has-state-preserving-modifier,
-// has-default) for a single attribute. Returns ok=false if the attribute
-// type is not one we understand — in that case the caller should add a
-// case to this switch rather than silently passing the attribute.
+// inspectAttribute returns ok=false for unrecognised attribute types so the
+// caller can fail loudly rather than silently mis-classify them.
 func inspectAttribute(attr schema.Attribute) (status attributeStatus, ok bool) {
 	switch a := attr.(type) {
 	case schema.StringAttribute:
@@ -294,8 +216,6 @@ func inspectAttribute(attr schema.Attribute) (status attributeStatus, ok bool) {
 	return attributeStatus{}, false
 }
 
-// nestedAttributes returns the inner attribute map for nested-object types,
-// or nil for leaf types.
 func nestedAttributes(attr schema.Attribute) map[string]schema.Attribute {
 	switch a := attr.(type) {
 	case schema.SingleNestedAttribute:
@@ -310,10 +230,8 @@ func nestedAttributes(attr schema.Attribute) map[string]schema.Attribute {
 	return nil
 }
 
-// walkAttributes invokes visit for every attribute under attrs, recursing
-// into nested objects. Paths use dot-separated notation (e.g.
-// `schedule.cronjob.command.entrypoint`). Iteration order is deterministic
-// (alphabetical) so test output is stable.
+// walkAttributes recurses over attrs in alphabetical order so test output is
+// deterministic. Paths use dot-separated notation.
 func walkAttributes(prefix string, attrs map[string]schema.Attribute, visit func(path string, attr schema.Attribute)) {
 	keys := make([]string, 0, len(attrs))
 	for k := range attrs {
@@ -333,17 +251,11 @@ func walkAttributes(prefix string, attrs map[string]schema.Attribute, visit func
 	}
 }
 
-// resourceCase pairs a registered terraform resource type name with its
-// instance, so that test output references the same identifier users see
-// in their HCL and plan output.
 type resourceCase struct {
 	typeName string
 	resource resource.Resource
 }
 
-// allResourceCases returns one entry per resource registered on the provider.
-// Adding a new resource to qProvider.Resources() automatically extends test
-// coverage; no test changes required.
 func allResourceCases(t *testing.T) []resourceCase {
 	t.Helper()
 	var p qProvider
@@ -364,8 +276,6 @@ func allResourceCases(t *testing.T) []resourceCase {
 	return cases
 }
 
-// schemaFor builds a fresh resource schema from the resource's Schema()
-// method. No provider configuration or API access required.
 func schemaFor(t *testing.T, r resource.Resource) schema.Schema {
 	t.Helper()
 	resp := &resource.SchemaResponse{}
@@ -376,14 +286,6 @@ func schemaFor(t *testing.T, r resource.Resource) schema.Schema {
 	return resp.Schema
 }
 
-// TestRegression_PlanNoise_NoComputedFlicker is the comprehensive lint test.
-// It walks every resource schema and reports any Computed attribute whose
-// planned value will flicker as `(known after apply)` on unrelated updates.
-//
-// To debug a failure: read the failing attribute path, open the resource's
-// schema file, locate the attribute, and add `UseStateForUnknown()` (or a
-// state-preserving custom modifier) to its `PlanModifiers`. Re-run the test
-// to confirm the gap is closed.
 func TestRegression_PlanNoise_NoComputedFlicker(t *testing.T) {
 	t.Parallel()
 
@@ -420,12 +322,8 @@ func TestRegression_PlanNoise_NoComputedFlicker(t *testing.T) {
 			sort.Strings(problems)
 			t.Errorf(
 				"%s has %d Computed attribute(s) with no state-preserving plan modifier and no Default.\n"+
-					"On any unrelated update to a resource of this type, each will flicker as\n"+
-					"`(known after apply)` and propagate spurious `changes pending` to dependent\n"+
-					"data sources/modules — the regression reported in QOV-1605.\n\n"+
-					"Fix: add `UseStateForUnknown()` (from terraform-plugin-framework) or a custom\n"+
-					"modifier from qovery/plan_modifiers.go to each attribute below. If an attribute\n"+
-					"is genuinely volatile, add it to flickerAllowlist with a written reason.\n\n"+
+					"Add UseStateForUnknown() (or a state-preserving modifier from qovery/plan_modifiers.go) to each,\n"+
+					"or add the path to flickerAllowlist with a written reason if the volatility is legitimate.\n\n"+
 					"Failing attributes:\n  - %s",
 				tc.typeName, len(problems), strings.Join(problems, "\n  - "),
 			)

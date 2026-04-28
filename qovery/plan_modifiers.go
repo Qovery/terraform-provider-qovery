@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -148,30 +149,16 @@ func UseStateUnlessPortsChange() planmodifier.String {
 	return useStateUnlessPortsChangeModifier{}
 }
 
-// useStateUnlessNameChangesModifier preserves the prior state value for a computed
-// list attribute (built_in_environment_variables) unless any attribute that the API
-// embeds into those values is changing.
+// useStateUnlessNameChangesModifier preserves the prior state value for
+// built_in_environment_variables unless an attribute the API embeds into those
+// values changes (name, ports, source/git_repository/image_*). Reusing state
+// across such a change would cause "Provider produced inconsistent result after
+// apply" because the API recomputes the env var list during apply.
 //
-// Built-in env vars are derived server-side from a fixed set of inputs:
-//
-//	QOVERY_SERVICE_NAME, QOVERY_PROJECT_NAME, …      ← name
-//	QOVERY_KUBERNETES_CLUSTER_VPC_ID, …              ← ports
-//	QOVERY_BUILD_ID, QOVERY_APPLICATION_..._GIT_..., ← source / git_repository / image_*
-//
-// If any of those inputs change, the API will recompute the env var values during
-// apply. Reusing the prior state value would then cause Terraform to error with
-// "Provider produced inconsistent result after apply" (the state we returned does
-// not match the state we promised in the plan).
-//
-// To avoid that, this modifier invalidates the cached state value whenever any of
-// the inputs the API derives from is changing. The list of inputs is enumerated
-// explicitly below; absent attributes are skipped gracefully (different service
-// resources have different shapes — application has top-level git_repository,
-// container has top-level image_name/tag/registry_id, helm/job have a `source`
-// nested object).
-//
-// Adding a new attribute that influences built-in env vars: extend the list in
-// PlanModifyList AND add coverage in qovery/resource_*_apply_consistency_test.go.
+// The trigger list below is enumerated explicitly; absent attributes are
+// skipped gracefully so the modifier can be attached to service resources
+// with different schemas (application has top-level git_repository, container
+// has top-level image_name/tag/registry_id, helm/job have a nested `source`).
 type useStateUnlessNameChangesModifier struct{}
 
 func (m useStateUnlessNameChangesModifier) Description(_ context.Context) string {
@@ -200,73 +187,40 @@ func (m useStateUnlessNameChangesModifier) PlanModifyList(ctx context.Context, r
 		return
 	}
 
-	// Ports changing — adding/removing public ports creates/removes built-in env vars
-	// (e.g. QOVERY_KUBERNETES_CLUSTER_VPC_ID), so leave as unknown to recompute.
-	// `ports` is a List on application/container and a Map on helm — try both.
-	if listAttrChanged(ctx, req, "ports") || mapAttrChanged(ctx, req, "ports") {
+	// `ports` is a List on application/container and a Map on helm — try both shapes.
+	if attrChanged[types.List](ctx, req, "ports") || attrChanged[types.Map](ctx, req, "ports") {
 		return
 	}
 
-	// `source` (single nested object) on helm and job. Image tag / registry / docker
-	// changes are embedded in QOVERY_BUILD_ID and friends — recompute.
-	if objectAttrChanged(ctx, req, "source") {
+	// `source` is on helm and job; `git_repository` is on application. Both flow
+	// into QOVERY_BUILD_ID / QOVERY_APPLICATION_*_GIT_* env vars.
+	if attrChanged[types.Object](ctx, req, "source") || attrChanged[types.Object](ctx, req, "git_repository") {
 		return
 	}
 
-	// `git_repository` (single nested object) on application — branch/url/root_path
-	// flow into QOVERY_APPLICATION_*_GIT_* env vars.
-	if objectAttrChanged(ctx, req, "git_repository") {
-		return
-	}
-
-	// On container, the image source attributes are at the top level rather than
-	// inside a `source` block. These are the API's inputs to QOVERY_BUILD_ID.
+	// On container, image source attributes are at the top level (no `source` block).
 	for _, name := range []string{"image_name", "tag", "registry_id"} {
-		if stringAttrChanged(ctx, req, name) {
+		if attrChanged[types.String](ctx, req, name) {
 			return
 		}
 	}
 
-	// Nothing relevant changed — safe to reuse state value.
 	resp.PlanValue = req.StateValue
 }
 
-// listAttrChanged reports whether the named root attribute is present on both
-// state and plan AND its values differ. Returns false when the attribute is
-// absent from the schema (e.g. the modifier is attached to a resource that
-// doesn't have this attribute) — that's the graceful "not applicable" path.
-func listAttrChanged(ctx context.Context, req planmodifier.ListRequest, name string) bool {
-	var sv, pv types.List
+// attrChanged reports whether the named root attribute differs between state and
+// plan. Returns false when the attribute is absent from the schema — the graceful
+// "not applicable" path that lets one modifier serve resources with different shapes.
+func attrChanged[T attr.Value](ctx context.Context, req planmodifier.ListRequest, name string) bool {
+	var sv, pv T
 	sd := req.State.GetAttribute(ctx, path.Root(name), &sv)
 	pd := req.Plan.GetAttribute(ctx, path.Root(name), &pv)
 	return !sd.HasError() && !pd.HasError() && !sv.Equal(pv)
 }
 
-func mapAttrChanged(ctx context.Context, req planmodifier.ListRequest, name string) bool {
-	var sv, pv types.Map
-	sd := req.State.GetAttribute(ctx, path.Root(name), &sv)
-	pd := req.Plan.GetAttribute(ctx, path.Root(name), &pv)
-	return !sd.HasError() && !pd.HasError() && !sv.Equal(pv)
-}
-
-func objectAttrChanged(ctx context.Context, req planmodifier.ListRequest, name string) bool {
-	var sv, pv types.Object
-	sd := req.State.GetAttribute(ctx, path.Root(name), &sv)
-	pd := req.Plan.GetAttribute(ctx, path.Root(name), &pv)
-	return !sd.HasError() && !pd.HasError() && !sv.Equal(pv)
-}
-
-func stringAttrChanged(ctx context.Context, req planmodifier.ListRequest, name string) bool {
-	var sv, pv types.String
-	sd := req.State.GetAttribute(ctx, path.Root(name), &sv)
-	pd := req.Plan.GetAttribute(ctx, path.Root(name), &pv)
-	return !sd.HasError() && !pd.HasError() && !sv.Equal(pv)
-}
-
-// UseStateUnlessNameChanges returns a plan modifier for list attributes that preserves
-// the state value when the resource is being updated for reasons that don't affect
-// built-in environment variables. See useStateUnlessNameChangesModifier for the full
-// list of inputs that invalidate the cached value.
+// UseStateUnlessNameChanges returns a plan modifier for built_in_environment_variables
+// that preserves state across updates that don't change any input the API embeds in
+// the env var values. See useStateUnlessNameChangesModifier for the trigger list.
 func UseStateUnlessNameChanges() planmodifier.List {
 	return useStateUnlessNameChangesModifier{}
 }

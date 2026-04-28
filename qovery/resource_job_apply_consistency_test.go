@@ -9,20 +9,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-// TestAcc_Job_ApplyConsistencyOnImageTagChange is the regression test for
-// the customer-reported "Provider produced inconsistent result after apply"
-// error against `built_in_environment_variables[N].value`, where N held an
-// entry like QOVERY_BUILD_ID containing the prior image tag.
-//
-// The bug pattern: the original `UseStateUnlessNameChanges` modifier only
-// invalidated the cached env-var list when `name` or `ports` changed. A tag
-// change left the list reused from state, and the API then returned a list
-// containing the new tag — apply diverged from plan, framework errored.
-//
-// This test applies once at tag "1.0.0", then re-applies at "1.0.1". A
-// regression here surfaces as a concrete apply-time failure.
-//
-// Companion: see resource_container/helm/application_apply_consistency_test.go.
+// Re-applies with the source.image tag mutated. A regression in
+// useStateUnlessNameChangesModifier (state reused while built-in env vars
+// actually changed — QOVERY_BUILD_ID embeds the tag) surfaces here as
+// "Provider produced inconsistent result after apply".
 func TestAcc_Job_ApplyConsistencyOnImageTagChange(t *testing.T) {
 	t.Parallel()
 	testName := "job-apply-consistency"

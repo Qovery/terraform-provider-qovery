@@ -9,22 +9,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-// TestAcc_Helm_ApplyConsistencyOnSourceChange exercises the `source` arm
-// of the `useStateUnlessNameChangesModifier` invalidation list. If the
-// modifier reuses the cached `built_in_environment_variables` list across
-// a source change, apply diverges from plan and the framework errors with
-// "Provider produced inconsistent result after apply".
-//
-// Note: depending on the Qovery API's behaviour, changing only the chart
-// version may or may not actually mutate the built-in env var list — if it
-// doesn't, the test passes vacuously. The point of having it is to catch
-// any future regression that breaks the modifier's invalidation logic on
-// `source` changes.
-//
-// If the chart version below stops being available in the upstream helm
-// repo, replace it with any other version returned by `helm search`.
-//
-// Companion: see resource_application/container/job_apply_consistency_test.go.
+// Re-applies with the helm `source` mutated. A regression in
+// useStateUnlessNameChangesModifier surfaces here as "Provider produced
+// inconsistent result after apply". If the chart version below stops being
+// available upstream, swap it for any other version from `helm search`.
 func TestAcc_Helm_ApplyConsistencyOnSourceChange(t *testing.T) {
 	t.Parallel()
 	testName := "helm-apply-consistency"

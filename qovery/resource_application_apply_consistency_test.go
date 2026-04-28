@@ -9,19 +9,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-// TestAcc_Application_ApplyConsistencyOnGitRepositoryChange exercises the
-// `git_repository` arm of the `useStateUnlessNameChangesModifier` invalidation
-// list. Application built-in env vars (e.g. QOVERY_APPLICATION_*_GIT_*) embed
-// values from the git_repository config — if the modifier reuses the cached
-// list across a git_repository change, apply diverges from plan and the
-// framework errors with "Provider produced inconsistent result after apply".
-//
-// We change `git_repository.root_path` because it's metadata-only at the
-// qovery_application API layer (no repo-side validation required at save
-// time, unlike branch which must exist on the remote), keeping the test
-// stable independent of test-repo content.
-//
-// Companion: see resource_container/helm/job_apply_consistency_test.go.
+// Re-applies with git_repository mutated. A regression in
+// useStateUnlessNameChangesModifier (state reused while built-in env vars
+// actually changed) surfaces here as "Provider produced inconsistent result
+// after apply". root_path is mutated because it requires no repo-side state.
 func TestAcc_Application_ApplyConsistencyOnGitRepositoryChange(t *testing.T) {
 	t.Parallel()
 	testName := "application-apply-consistency"
