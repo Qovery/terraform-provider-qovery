@@ -345,6 +345,7 @@ var extendedTestObjectType = tftypes.Object{
 		"image_name":                     tftypes.String,
 		"tag":                            tftypes.String,
 		"registry_id":                    tftypes.String,
+		"mode":                           tftypes.String,
 		"built_in_environment_variables": tftypes.List{ElementType: tftypes.String},
 	},
 }
@@ -376,6 +377,7 @@ func extendedTestSchema() schema.Schema {
 			"image_name":  schema.StringAttribute{},
 			"tag":         schema.StringAttribute{},
 			"registry_id": schema.StringAttribute{},
+			"mode":        schema.StringAttribute{},
 			"built_in_environment_variables": schema.ListAttribute{
 				ElementType: types.StringType,
 			},
@@ -392,6 +394,7 @@ type extendedTestArgs struct {
 	imageName    string
 	tag          string
 	registryID   string
+	mode         string
 }
 
 func makeExtendedRaw(a extendedTestArgs) tftypes.Value {
@@ -420,6 +423,7 @@ func makeExtendedRaw(a extendedTestArgs) tftypes.Value {
 		"image_name":                     tftypes.NewValue(tftypes.String, a.imageName),
 		"tag":                            tftypes.NewValue(tftypes.String, a.tag),
 		"registry_id":                    tftypes.NewValue(tftypes.String, a.registryID),
+		"mode":                           tftypes.NewValue(tftypes.String, a.mode),
 		"built_in_environment_variables": tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, []tftypes.Value{}),
 	})
 }
@@ -436,6 +440,7 @@ func TestUseStateUnlessNameChanges_ValueAffectingAttrChanges(t *testing.T) {
 		imageName:    "img",
 		tag:          "1.0.0",
 		registryID:   "reg-1",
+		mode:         "PRODUCTION",
 	}
 
 	cases := []struct {
@@ -450,6 +455,7 @@ func TestUseStateUnlessNameChanges_ValueAffectingAttrChanges(t *testing.T) {
 		{"image_name", func(a *extendedTestArgs) { a.imageName = "other-img" }, true},
 		{"tag", func(a *extendedTestArgs) { a.tag = "2.0.0" }, true},
 		{"registry_id", func(a *extendedTestArgs) { a.registryID = "reg-2" }, true},
+		{"mode", func(a *extendedTestArgs) { a.mode = "STAGING" }, true},
 		{"unchanged", func(a *extendedTestArgs) {}, false},
 	}
 

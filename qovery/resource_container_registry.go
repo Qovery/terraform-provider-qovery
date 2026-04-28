@@ -113,6 +113,9 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 				MarkdownDescription: "Description of the container registry.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"config": schema.SingleNestedAttribute{
 				Description: "Configuration needed to authenticate the container registry.",

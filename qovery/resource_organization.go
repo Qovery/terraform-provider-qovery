@@ -94,6 +94,9 @@ func (r organizationResource) Schema(_ context.Context, _ resource.SchemaRequest
 				MarkdownDescription: "Description of the organization.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}

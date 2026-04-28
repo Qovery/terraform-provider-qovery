@@ -82,6 +82,9 @@ func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				MarkdownDescription: "Description of the git token.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"type": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -104,6 +107,9 @@ func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				MarkdownDescription: "Bitbucket workspace where the token has permissions. Required only when `type` is `BITBUCKET`.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"token": schema.StringAttribute{
 				Description:         "Value of the git token (personal access token or app token from the git provider). Sensitive.",
