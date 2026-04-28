@@ -93,9 +93,11 @@ tasks:
     deps:
       - install-golangci-lint
     cmds:
-      - golangci-lint run ./internal/...
+      - golangci-lint run ./internal/... ./qovery/... ./client/...
     sources:
       - "internal/**/*.go"
+      - "qovery/**/*.go"
+      - "client/**/*.go"
       - go.mod
       - go.sum
       - .golangci.yml
@@ -105,9 +107,11 @@ tasks:
     deps:
       - install-golangci-lint
     cmds:
-      - golangci-lint run --fix ./internal/...
+      - golangci-lint run --fix ./internal/... ./qovery/... ./client/...
     sources:
       - "internal/**/*.go"
+      - "qovery/**/*.go"
+      - "client/**/*.go"
       - go.mod
       - go.sum
       - .golangci.yml
