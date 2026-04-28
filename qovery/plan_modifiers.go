@@ -151,14 +151,18 @@ func UseStateUnlessPortsChange() planmodifier.String {
 
 // useStateUnlessNameChangesModifier preserves the prior state value for
 // built_in_environment_variables unless an attribute the API embeds into those
-// values changes (name, ports, source/git_repository/image_*). Reusing state
-// across such a change would cause "Provider produced inconsistent result after
-// apply" because the API recomputes the env var list during apply.
+// values changes. Reusing state across such a change causes "Provider produced
+// inconsistent result after apply" because the API recomputes the env var list
+// during apply and the post-apply value diverges from the planned value.
 //
-// The trigger list below is enumerated explicitly; absent attributes are
-// skipped gracefully so the modifier can be attached to service resources
-// with different schemas (application has top-level git_repository, container
-// has top-level image_name/tag/registry_id, helm/job have a nested `source`).
+// Triggers: name, ports, source, git_repository, values_override, schedule,
+// image_name, tag, registry_id. The mapping from each trigger to the affected
+// QOVERY_* env vars lives in q-core's `core/variable/domain/VariableDomain.kt`.
+//
+// Absent attributes are skipped gracefully so the same modifier can serve
+// resources with different schemas (application has top-level git_repository,
+// container has top-level image_name/tag/registry_id, helm has values_override
+// + source, job has schedule + source).
 type useStateUnlessNameChangesModifier struct{}
 
 func (m useStateUnlessNameChangesModifier) Description(_ context.Context) string {
@@ -192,10 +196,14 @@ func (m useStateUnlessNameChangesModifier) PlanModifyList(ctx context.Context, r
 		return
 	}
 
-	// `source` is on helm and job; `git_repository` is on application. Both flow
-	// into QOVERY_BUILD_ID / QOVERY_APPLICATION_*_GIT_* env vars.
-	if attrChanged[types.Object](ctx, req, "source") || attrChanged[types.Object](ctx, req, "git_repository") {
-		return
+	// `source` is on helm and job; `git_repository` is on application;
+	// `values_override` is on helm (commit hash of values file flows into
+	// QOVERY_HELM_VALUE_COMMIT_ID); `schedule` is on job (its shape flows
+	// into QOVERY_JOB_ACTION).
+	for _, name := range []string{"source", "git_repository", "values_override", "schedule"} {
+		if objectAttrChanged(ctx, req, name) {
+			return
+		}
 	}
 
 	// On container, image source attributes are at the top level (no `source` block).
@@ -206,6 +214,48 @@ func (m useStateUnlessNameChangesModifier) PlanModifyList(ctx context.Context, r
 	}
 
 	resp.PlanValue = req.StateValue
+}
+
+// objectAttrChanged reports whether the named Object attribute has a *user-visible*
+// change between state and plan. Sub-attributes that are unknown in the plan are
+// ignored, because terraform-plugin-framework does not guarantee plan-modifier
+// execution order across sibling attributes: a nested Computed attribute (e.g.
+// schedule.lifecycle_type with stringplanmodifier.UseStateForUnknown()) may still
+// be unknown when this list modifier runs, even though it will be frozen to its
+// state value before the plan is finalized. Comparing the raw Object would
+// otherwise produce false positives whenever a sibling attribute changes.
+func objectAttrChanged(ctx context.Context, req planmodifier.ListRequest, name string) bool {
+	var sv, pv types.Object
+	sd := req.State.GetAttribute(ctx, path.Root(name), &sv)
+	pd := req.Plan.GetAttribute(ctx, path.Root(name), &pv)
+	if sd.HasError() || pd.HasError() {
+		return false
+	}
+	if sv.IsNull() != pv.IsNull() {
+		return true
+	}
+	if sv.IsNull() {
+		return false
+	}
+
+	stateAttrs := sv.Attributes()
+	planAttrs := pv.Attributes()
+	for k, stateVal := range stateAttrs {
+		planVal, ok := planAttrs[k]
+		if !ok {
+			continue
+		}
+		// Ignore unknown plan values: a sibling/nested plan modifier (e.g.
+		// UseStateForUnknown) will freeze them to state before the final plan,
+		// so they are not user-driven changes.
+		if planVal.IsUnknown() {
+			continue
+		}
+		if !stateVal.Equal(planVal) {
+			return true
+		}
+	}
+	return false
 }
 
 // attrChanged reports whether the named root attribute differs between state and

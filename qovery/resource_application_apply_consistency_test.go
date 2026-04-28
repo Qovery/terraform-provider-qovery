@@ -9,11 +9,16 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-// Re-applies with git_repository mutated. A regression in
-// useStateUnlessNameChangesModifier (state reused while built-in env vars
-// actually changed) surfaces here as "Provider produced inconsistent result
-// after apply". root_path is mutated because it requires no repo-side state.
-func TestAcc_Application_ApplyConsistencyOnGitRepositoryChange(t *testing.T) {
+// Re-applies with `name` mutated to verify useStateUnlessNameChangesModifier
+// invalidates cached built_in_environment_variables on a value-affecting
+// attribute change. git_repository E2E coverage isn't reliable here — the
+// Qovery API resolves and validates Dockerfile existence at the configured
+// root_path, so toggling root_path between two valid-but-different values
+// requires multiple Dockerfile-bearing subdirectories on the test repo;
+// branch/url toggles likewise require alternate refs the test repo doesn't
+// guarantee. The modifier's git_repository-change branch is covered by unit
+// tests in plan_modifiers_test.go.
+func TestAcc_Application_ApplyConsistencyOnNameChange(t *testing.T) {
 	t.Parallel()
 	testName := "application-apply-consistency"
 
@@ -22,13 +27,13 @@ func TestAcc_Application_ApplyConsistencyOnGitRepositoryChange(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
 		Steps: []resource.TestStep{
-			{Config: testAccApplicationApplyConsistencyConfig(testName, "/")},
-			{Config: testAccApplicationApplyConsistencyConfig(testName, "/cmd")},
+			{Config: testAccApplicationApplyConsistencyConfig(testName, generateTestName(testName))},
+			{Config: testAccApplicationApplyConsistencyConfig(testName, generateTestName(testName)+"-renamed")},
 		},
 	})
 }
 
-func testAccApplicationApplyConsistencyConfig(testName, rootPath string) string {
+func testAccApplicationApplyConsistencyConfig(testName, name string) string {
 	return fmt.Sprintf(`
 %s
 
@@ -42,16 +47,14 @@ resource "qovery_application" "test" {
   healthchecks    = {}
 
   git_repository = {
-    url       = "%s"
-    branch    = "%s"
-    root_path = "%s"
+    url          = "%s"
+    git_token_id = "%s"
   }
 }
 `,
 		testAccEnvironmentDefaultConfig(testName),
-		generateTestName(testName),
+		name,
 		applicationRepositoryURL,
-		applicationBranch,
-		rootPath,
+		getTestQoverySandboxGitTokenID(),
 	)
 }

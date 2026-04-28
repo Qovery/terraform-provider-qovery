@@ -9,11 +9,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-// Re-applies with the helm `source` mutated. A regression in
-// useStateUnlessNameChangesModifier surfaces here as "Provider produced
-// inconsistent result after apply". If the chart version below stops being
-// available upstream, swap it for any other version from `helm search`.
-func TestAcc_Helm_ApplyConsistencyOnSourceChange(t *testing.T) {
+// Re-applies with `name` mutated to verify useStateUnlessNameChangesModifier
+// invalidates cached built_in_environment_variables on a value-affecting
+// attribute change. Source-change E2E coverage is unreliable here (the
+// upstream helm repo carries a single chart version, and git_repository
+// state isn't fully controlled); covered by unit tests in
+// plan_modifiers_test.go instead.
+func TestAcc_Helm_ApplyConsistencyOnNameChange(t *testing.T) {
 	t.Parallel()
 	testName := "helm-apply-consistency"
 
@@ -22,13 +24,13 @@ func TestAcc_Helm_ApplyConsistencyOnSourceChange(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccQoveryHelmDestroy("qovery_helm.test"),
 		Steps: []resource.TestStep{
-			{Config: testAccHelmApplyConsistencyConfig(testName, "1.0.0")},
-			{Config: testAccHelmApplyConsistencyConfig(testName, "0.1.0")},
+			{Config: testAccHelmApplyConsistencyConfig(testName, generateTestName(testName))},
+			{Config: testAccHelmApplyConsistencyConfig(testName, generateTestName(testName)+"-renamed")},
 		},
 	})
 }
 
-func testAccHelmApplyConsistencyConfig(testName, chartVersion string) string {
+func testAccHelmApplyConsistencyConfig(testName, name string) string {
 	return fmt.Sprintf(`
 %s
 
@@ -37,6 +39,7 @@ func testAccHelmApplyConsistencyConfig(testName, chartVersion string) string {
 resource "qovery_helm" "test" {
   environment_id               = qovery_environment.test.id
   name                         = "%s"
+  description                  = "apply consistency regression test"
   timeout_sec                  = 600
   auto_preview                 = false
   auto_deploy                  = false
@@ -46,7 +49,7 @@ resource "qovery_helm" "test" {
     helm_repository = {
       helm_repository_id = qovery_helm_repository.test.id
       chart_name         = "httpbin"
-      chart_version      = "%s"
+      chart_version      = "1.0.0"
     }
   }
 
@@ -55,7 +58,6 @@ resource "qovery_helm" "test" {
 `,
 		testAccEnvironmentDefaultConfig(testName),
 		testAccHelmRepositoryConfig(testName, "https://gitlab.com/mulesoft-int/helm-repository/-/raw/master/", "HTTPS"),
-		generateTestName(testName),
-		chartVersion,
+		name,
 	)
 }

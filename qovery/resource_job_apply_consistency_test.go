@@ -9,11 +9,12 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
-// Re-applies with the source.image tag mutated. A regression in
-// useStateUnlessNameChangesModifier (state reused while built-in env vars
-// actually changed — QOVERY_BUILD_ID embeds the tag) surfaces here as
-// "Provider produced inconsistent result after apply".
-func TestAcc_Job_ApplyConsistencyOnImageTagChange(t *testing.T) {
+// Re-applies with `name` mutated to verify useStateUnlessNameChangesModifier
+// invalidates cached built_in_environment_variables on a value-affecting
+// attribute change. source.image tag E2E coverage is blocked by the
+// single-tag test ECR fixture; that branch is covered by unit tests in
+// plan_modifiers_test.go.
+func TestAcc_Job_ApplyConsistencyOnNameChange(t *testing.T) {
 	t.Parallel()
 	testName := "job-apply-consistency"
 
@@ -22,13 +23,13 @@ func TestAcc_Job_ApplyConsistencyOnImageTagChange(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccQoveryJobDestroy("qovery_job.test"),
 		Steps: []resource.TestStep{
-			{Config: testAccJobApplyConsistencyConfig(testName, "1.0.0")},
-			{Config: testAccJobApplyConsistencyConfig(testName, "1.0.1")},
+			{Config: testAccJobApplyConsistencyConfig(testName, generateTestName(testName))},
+			{Config: testAccJobApplyConsistencyConfig(testName, generateTestName(testName)+"-renamed")},
 		},
 	})
 }
 
-func testAccJobApplyConsistencyConfig(testName, tag string) string {
+func testAccJobApplyConsistencyConfig(testName, name string) string {
 	return fmt.Sprintf(`
 %s
 
@@ -64,8 +65,8 @@ resource "qovery_job" "test" {
 `,
 		testAccEnvironmentDefaultConfig(testName),
 		testAccContainerRegistryDefaultConfig(testName),
-		generateTestName(testName),
+		name,
 		jobImageName,
-		tag,
+		jobImageTag,
 	)
 }

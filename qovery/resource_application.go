@@ -268,6 +268,9 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Optional: true,
 				Computed: true,
 				Default:  booldefault.StaticBool(applicationAutoPreviewDefault),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"entrypoint": schema.StringAttribute{
 				Description: "Entrypoint of the application.",

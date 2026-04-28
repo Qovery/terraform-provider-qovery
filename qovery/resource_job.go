@@ -189,6 +189,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				MarkdownDescription: "Specify if the environment preview option is activated or not for this job.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"healthchecks": healthchecksSchemaAttributes(true),
 			"schedule": schema.SingleNestedAttribute{
