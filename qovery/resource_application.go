@@ -268,6 +268,9 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Optional: true,
 				Computed: true,
 				Default:  booldefault.StaticBool(applicationAutoPreviewDefault),
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"entrypoint": schema.StringAttribute{
 				Description: "Entrypoint of the application.",
@@ -691,6 +694,9 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				MarkdownDescription: "Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"is_skipped": schema.BoolAttribute{
 				Description:         "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",

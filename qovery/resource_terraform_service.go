@@ -87,6 +87,9 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 				MarkdownDescription: "Id of the deployment stage.",
 				Optional:    true,
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"is_skipped": schema.BoolAttribute{
 				Description:         "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",

@@ -3,6 +3,7 @@ package qovery
 import (
 	"context"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -148,11 +149,20 @@ func UseStateUnlessPortsChange() planmodifier.String {
 	return useStateUnlessPortsChangeModifier{}
 }
 
-// useStateUnlessNameChangesModifier uses the prior state value for a computed list
-// attribute unless the resource's "name" or "ports" attributes are changing.
-// Built-in environment variables contain values derived from the service name
-// (e.g. QOVERY_SERVICE_NAME) and port configuration (e.g. QOVERY_KUBERNETES_CLUSTER_VPC_ID),
-// so their values must be recomputed when either changes.
+// useStateUnlessNameChangesModifier preserves the prior state value for
+// built_in_environment_variables unless an attribute the API embeds into those
+// values changes. Reusing state across such a change causes "Provider produced
+// inconsistent result after apply" because the API recomputes the env var list
+// during apply and the post-apply value diverges from the planned value.
+//
+// Triggers: name, ports, source, git_repository, values_override, schedule,
+// image_name, tag, registry_id. The mapping from each trigger to the affected
+// QOVERY_* env vars lives in q-core's `core/variable/domain/VariableDomain.kt`.
+//
+// Absent attributes are skipped gracefully so the same modifier can serve
+// resources with different schemas (application has top-level git_repository,
+// container has top-level image_name/tag/registry_id, helm has values_override
+// + source, job has schedule + source).
 type useStateUnlessNameChangesModifier struct{}
 
 func (m useStateUnlessNameChangesModifier) Description(_ context.Context) string {
@@ -181,23 +191,86 @@ func (m useStateUnlessNameChangesModifier) PlanModifyList(ctx context.Context, r
 		return
 	}
 
-	// Ports changing — adding/removing public ports creates/removes built-in env vars
-	// (e.g. QOVERY_KUBERNETES_CLUSTER_VPC_ID), so leave as unknown to recompute.
-	var statePorts, planPorts types.List
-	stateDiags := req.State.GetAttribute(ctx, path.Root("ports"), &statePorts)
-	planDiags := req.Plan.GetAttribute(ctx, path.Root("ports"), &planPorts)
-	// Only compare if both attributes exist (some resources don't have ports)
-	if !stateDiags.HasError() && !planDiags.HasError() && !statePorts.Equal(planPorts) {
+	// `ports` is a List on application/container and a Map on helm — try both shapes.
+	if attrChanged[types.List](ctx, req, "ports") || attrChanged[types.Map](ctx, req, "ports") {
 		return
 	}
 
-	// Nothing relevant changed — safe to reuse state value.
+	// `source` is on helm and job; `git_repository` is on application;
+	// `values_override` is on helm (commit hash of values file flows into
+	// QOVERY_HELM_VALUE_COMMIT_ID); `schedule` is on job (its shape flows
+	// into QOVERY_JOB_ACTION).
+	for _, name := range []string{"source", "git_repository", "values_override", "schedule"} {
+		if objectAttrChanged(ctx, req, name) {
+			return
+		}
+	}
+
+	// On container, image source attributes are at the top level (no `source` block).
+	for _, name := range []string{"image_name", "tag", "registry_id"} {
+		if attrChanged[types.String](ctx, req, name) {
+			return
+		}
+	}
+
 	resp.PlanValue = req.StateValue
 }
 
-// UseStateUnlessNameChanges returns a plan modifier for list attributes that preserves
-// the state value when the resource name hasn't changed. This prevents plan noise on
-// built_in_environment_variables while still allowing recomputation when the name changes.
+// objectAttrChanged reports whether the named Object attribute has a *user-visible*
+// change between state and plan. Sub-attributes that are unknown in the plan are
+// ignored, because terraform-plugin-framework does not guarantee plan-modifier
+// execution order across sibling attributes: a nested Computed attribute (e.g.
+// schedule.lifecycle_type with stringplanmodifier.UseStateForUnknown()) may still
+// be unknown when this list modifier runs, even though it will be frozen to its
+// state value before the plan is finalized. Comparing the raw Object would
+// otherwise produce false positives whenever a sibling attribute changes.
+func objectAttrChanged(ctx context.Context, req planmodifier.ListRequest, name string) bool {
+	var sv, pv types.Object
+	sd := req.State.GetAttribute(ctx, path.Root(name), &sv)
+	pd := req.Plan.GetAttribute(ctx, path.Root(name), &pv)
+	if sd.HasError() || pd.HasError() {
+		return false
+	}
+	if sv.IsNull() != pv.IsNull() {
+		return true
+	}
+	if sv.IsNull() {
+		return false
+	}
+
+	stateAttrs := sv.Attributes()
+	planAttrs := pv.Attributes()
+	for k, stateVal := range stateAttrs {
+		planVal, ok := planAttrs[k]
+		if !ok {
+			continue
+		}
+		// Ignore unknown plan values: a sibling/nested plan modifier (e.g.
+		// UseStateForUnknown) will freeze them to state before the final plan,
+		// so they are not user-driven changes.
+		if planVal.IsUnknown() {
+			continue
+		}
+		if !stateVal.Equal(planVal) {
+			return true
+		}
+	}
+	return false
+}
+
+// attrChanged reports whether the named root attribute differs between state and
+// plan. Returns false when the attribute is absent from the schema — the graceful
+// "not applicable" path that lets one modifier serve resources with different shapes.
+func attrChanged[T attr.Value](ctx context.Context, req planmodifier.ListRequest, name string) bool {
+	var sv, pv T
+	sd := req.State.GetAttribute(ctx, path.Root(name), &sv)
+	pd := req.Plan.GetAttribute(ctx, path.Root(name), &pv)
+	return !sd.HasError() && !pd.HasError() && !sv.Equal(pv)
+}
+
+// UseStateUnlessNameChanges returns a plan modifier for built_in_environment_variables
+// that preserves state across updates that don't change any input the API embeds in
+// the env var values. See useStateUnlessNameChangesModifier for the trigger list.
 func UseStateUnlessNameChanges() planmodifier.List {
 	return useStateUnlessNameChangesModifier{}
 }

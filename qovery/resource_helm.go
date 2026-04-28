@@ -117,6 +117,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				MarkdownDescription: "Specify if the environment preview option is activated or not for this helm.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.Bool{
+					boolplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"auto_deploy": schema.BoolAttribute{
 				Description:         "Specify if the helm service will be automatically updated on every new commit on the branch.",
@@ -642,6 +645,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				MarkdownDescription: "Id of the deployment stage. Controls the order of service deployment within an environment.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"is_skipped": schema.BoolAttribute{
 				Description:         "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
