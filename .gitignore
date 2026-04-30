@@ -14,8 +14,10 @@ bin
 **/.terraform/*
 
 # AI
-CLAUDE.md
-.claude/
+CLAUDE.local.md
+!.claude/
+.claude/*
+!.claude/rules/
 .cursor/
 .cursorrules
 .specify/
