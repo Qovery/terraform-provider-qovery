@@ -676,6 +676,11 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 										MarkdownDescription: "Qovery Git token ID used to access the repository.",
 										Computed:            true,
 									},
+									"commit_id": schema.StringAttribute{
+										Description:         "Optional git commit SHA to pin EKS Anywhere configuration.",
+										MarkdownDescription: "Optional git commit SHA to pin EKS Anywhere configuration to a specific revision.",
+										Computed:            true,
+									},
 									"branch": schema.StringAttribute{
 										Description:         "Repository branch name.",
 										MarkdownDescription: "Repository branch name.",

@@ -1489,6 +1489,7 @@ func createInfrastructureChartsParametersAttrTypes() map[string]attr.Type {
 					AttrTypes: map[string]attr.Type{
 						"url":          types.StringType,
 						"git_token_id": types.StringType,
+						"commit_id":    types.StringType,
 						"branch":       types.StringType,
 						"provider":     types.StringType,
 					},
@@ -1611,6 +1612,11 @@ func toQoveryInfrastructureChartsParameters(obj types.Object) (*qovery.ClusterIn
 		gitTokenID := gitTokenIDAttr.(types.String).ValueString()
 
 		gitRepository := qovery.NewClusterEksAnywhereGitRepository(url, gitTokenID)
+
+		if commitIDAttr, ok := gitRepositoryAttrs["commit_id"]; ok && !commitIDAttr.IsNull() && !commitIDAttr.IsUnknown() {
+			commitID := commitIDAttr.(types.String).ValueString()
+			gitRepository.CommitId = &commitID
+		}
 
 		if branchAttr, ok := gitRepositoryAttrs["branch"]; ok && !branchAttr.IsNull() && !branchAttr.IsUnknown() {
 			branch := branchAttr.(types.String).ValueString()
@@ -1763,8 +1769,12 @@ func fromQoveryInfrastructureChartsParameters(params *qovery.ClusterInfrastructu
 		gitRepositoryVals := map[string]attr.Value{
 			"url":          types.StringValue(eksAnywhere.GitRepository.Url),
 			"git_token_id": types.StringValue(eksAnywhere.GitRepository.GitTokenId),
+			"commit_id":    types.StringNull(),
 			"branch":       types.StringNull(),
 			"provider":     types.StringNull(),
+		}
+		if eksAnywhere.GitRepository.CommitId != nil {
+			gitRepositoryVals["commit_id"] = types.StringValue(*eksAnywhere.GitRepository.CommitId)
 		}
 		if eksAnywhere.GitRepository.Branch != nil {
 			gitRepositoryVals["branch"] = types.StringValue(*eksAnywhere.GitRepository.Branch)

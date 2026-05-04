@@ -827,6 +827,7 @@ func TestToQoveryInfrastructureChartsParameters_EksAnywhereAndClusterBackup(t *t
 	gitRepository := types.ObjectValueMust(gitRepositoryAttrTypes, map[string]attr.Value{
 		"url":          types.StringValue("https://github.com/org/eks-anywhere.git"),
 		"git_token_id": types.StringValue("git-token-id"),
+		"commit_id":    types.StringValue("abcdef1234567890"),
 		"branch":       types.StringValue("main"),
 		"provider":     types.StringValue("GITHUB"),
 	})
@@ -864,6 +865,8 @@ func TestToQoveryInfrastructureChartsParameters_EksAnywhereAndClusterBackup(t *t
 	assert.Equal(t, "clusters/prod/cluster.yaml", params.EksAnywhereParameters.YamlFilePath)
 	assert.Equal(t, "https://github.com/org/eks-anywhere.git", params.EksAnywhereParameters.GitRepository.Url)
 	assert.Equal(t, "git-token-id", params.EksAnywhereParameters.GitRepository.GitTokenId)
+	require.NotNil(t, params.EksAnywhereParameters.GitRepository.CommitId)
+	assert.Equal(t, "abcdef1234567890", *params.EksAnywhereParameters.GitRepository.CommitId)
 	require.NotNil(t, params.EksAnywhereParameters.GitRepository.Branch)
 	assert.Equal(t, "main", *params.EksAnywhereParameters.GitRepository.Branch)
 	require.NotNil(t, params.EksAnywhereParameters.GitRepository.Provider)
@@ -883,12 +886,14 @@ func TestFromQoveryInfrastructureChartsParameters_EksAnywhereAndClusterBackup(t 
 	t.Parallel()
 
 	branch := "main"
+	commitID := "abcdef1234567890"
 	provider := qovery.GITPROVIDERENUM_GITHUB
 
 	eksAnywhere := qovery.NewClusterInfrastructureEksAnywhereParameters(
 		qovery.ClusterEksAnywhereGitRepository{
 			Url:        "https://github.com/org/eks-anywhere.git",
 			GitTokenId: "git-token-id",
+			CommitId:   &commitID,
 			Branch:     &branch,
 			Provider:   &provider,
 		},
@@ -920,6 +925,7 @@ func TestFromQoveryInfrastructureChartsParameters_EksAnywhereAndClusterBackup(t 
 	require.False(t, gitRepositoryAttr.IsNull())
 	assert.Equal(t, "https://github.com/org/eks-anywhere.git", gitRepositoryAttr.Attributes()["url"].(types.String).ValueString())
 	assert.Equal(t, "git-token-id", gitRepositoryAttr.Attributes()["git_token_id"].(types.String).ValueString())
+	assert.Equal(t, "abcdef1234567890", gitRepositoryAttr.Attributes()["commit_id"].(types.String).ValueString())
 	assert.Equal(t, "main", gitRepositoryAttr.Attributes()["branch"].(types.String).ValueString())
 	assert.Equal(t, "GITHUB", gitRepositoryAttr.Attributes()["provider"].(types.String).ValueString())
 

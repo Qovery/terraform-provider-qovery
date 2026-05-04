@@ -811,6 +811,11 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 										MarkdownDescription: "Qovery Git token ID used to access the repository.",
 										Required:            true,
 									},
+									"commit_id": schema.StringAttribute{
+										Description:         "Optional git commit SHA to pin EKS Anywhere configuration.",
+										MarkdownDescription: "Optional git commit SHA to pin EKS Anywhere configuration to a specific revision. If omitted, the latest commit from the selected branch is used.",
+										Optional:            true,
+									},
 									"branch": schema.StringAttribute{
 										Description:         "Repository branch name. Defaults to the repository default branch when omitted.",
 										MarkdownDescription: "Repository branch name. Defaults to the repository default branch when omitted.",
