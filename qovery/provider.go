@@ -66,6 +66,9 @@ type qProvider struct {
 	// azureCredentialsService is an instance of a credentials.AzureService that handles the domain logic.
 	azureCredentialsService credentials.AzureService
 
+	// eksAnywhereVsphereCredentialsService is an instance of a credentials.EksAnywhereVsphereService that handles the domain logic.
+	eksAnywhereVsphereCredentialsService credentials.EksAnywhereVsphereService
+
 	// projectService is an instance of a project.Service that handles the domain logic.
 	projectService project.Service
 
@@ -176,6 +179,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.scalewayCredentialsService = domainServices.CredentialsScaleway
 	p.gcpCredentialsService = domainServices.CredentialsGcp
 	p.azureCredentialsService = domainServices.CredentialsAzure
+	p.eksAnywhereVsphereCredentialsService = domainServices.CredentialsEksAnywhereVsphere
 	p.projectService = domainServices.Project
 	p.containerService = domainServices.Container
 	p.jobService = domainServices.Job
@@ -216,6 +220,7 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newAnnotationsGroupResource,
 		newLabelsGroupResource,
 		newTerraformServiceResource,
+		newEksAnywhereVsphereCredentialsResource,
 	}
 }
 
@@ -242,6 +247,7 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 		newhelmRepositoryDataSource,
 		newAnnotationsGroupDataSource,
 		newLabelsGroupDataSource,
+		newEksAnywhereVsphereCredentialsDataSource,
 	}
 }
 

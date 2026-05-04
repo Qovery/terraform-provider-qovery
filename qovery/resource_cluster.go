@@ -786,6 +786,87 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 							},
 						},
 					},
+					"eks_anywhere_parameters": schema.SingleNestedAttribute{
+						Description:         "EKS Anywhere GitOps parameters.",
+						MarkdownDescription: "Configuration for EKS Anywhere GitOps integration. Use this block to declare the Git repository and YAML path used for EKS Anywhere cluster lifecycle.",
+						Optional:            true,
+						Attributes: map[string]schema.Attribute{
+							"yaml_file_path": schema.StringAttribute{
+								Description:         "Path to the EKS Anywhere cluster YAML file in the Git repository.",
+								MarkdownDescription: "Path to the EKS Anywhere cluster YAML file in the Git repository (for example: `clusters/prod/cluster.yaml`).",
+								Required:            true,
+							},
+							"git_repository": schema.SingleNestedAttribute{
+								Description:         "Git repository settings used for EKS Anywhere.",
+								MarkdownDescription: "Git repository settings used by Qovery to read and update EKS Anywhere configuration.",
+								Required:            true,
+								Attributes: map[string]schema.Attribute{
+									"url": schema.StringAttribute{
+										Description:         "Git repository URL.",
+										MarkdownDescription: "Git repository URL containing the EKS Anywhere YAML files.",
+										Required:            true,
+									},
+									"git_token_id": schema.StringAttribute{
+										Description:         "Qovery Git token ID used to access the repository.",
+										MarkdownDescription: "Qovery Git token ID used to access the repository.",
+										Required:            true,
+									},
+									"branch": schema.StringAttribute{
+										Description:         "Repository branch name. Defaults to the repository default branch when omitted.",
+										MarkdownDescription: "Repository branch name. Defaults to the repository default branch when omitted.",
+										Optional:            true,
+									},
+									"provider": schema.StringAttribute{
+										Description:         "Git provider (`BITBUCKET`, `GITHUB`, `GITLAB`).",
+										MarkdownDescription: "Git provider (`BITBUCKET`, `GITHUB`, `GITLAB`).",
+										Optional:            true,
+										Validators: []validator.String{
+											validators.NewStringEnumValidator([]string{"BITBUCKET", "GITHUB", "GITLAB"}),
+										},
+									},
+								},
+							},
+							"cluster_backup": schema.SingleNestedAttribute{
+								Description:         "EKS Anywhere cluster backup parameters.",
+								MarkdownDescription: "Backup settings for EKS Anywhere clusters.",
+								Optional:            true,
+								Attributes: map[string]schema.Attribute{
+									"enabled": schema.BoolAttribute{
+										Description:         "Enable or disable EKS Anywhere cluster backup.",
+										MarkdownDescription: "Enable or disable EKS Anywhere cluster backup.",
+										Optional:            true,
+									},
+									"s3": schema.SingleNestedAttribute{
+										Description:         "S3 settings used to store backup artifacts.",
+										MarkdownDescription: "S3 settings used to store backup artifacts.",
+										Required:            true,
+										Attributes: map[string]schema.Attribute{
+											"bucket": schema.StringAttribute{
+												Description:         "S3 bucket name used to store EKS Anywhere backup artifacts.",
+												MarkdownDescription: "S3 bucket name used to store EKS Anywhere backup artifacts.",
+												Required:            true,
+											},
+											"region": schema.StringAttribute{
+												Description:         "AWS region where the backup bucket is hosted.",
+												MarkdownDescription: "AWS region where the backup bucket is hosted.",
+												Required:            true,
+											},
+											"role_arn": schema.StringAttribute{
+												Description:         "IAM role ARN assumed to upload backup artifacts.",
+												MarkdownDescription: "IAM role ARN assumed to upload backup artifacts.",
+												Required:            true,
+											},
+											"key_prefix": schema.StringAttribute{
+												Description:         "Optional S3 key prefix used for backup object keys.",
+												MarkdownDescription: "Optional S3 key prefix used for backup object keys.",
+												Optional:            true,
+											},
+										},
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},

@@ -42,6 +42,7 @@ type Repositories struct {
 	CredentialsScaleway            credentials.ScalewayRepository
 	CredentialsGcp                 credentials.GcpRepository
 	CredentialsAzure               credentials.AzureRepository
+	CredentialsEksAnywhereVsphere  credentials.EksAnywhereVsphereRepository
 	Organization                   organization.Repository
 	Project                        project.Repository
 	ProjectEnvironmentVariable     variable.Repository
@@ -105,6 +106,7 @@ func WithQoveryAPI(apiToken string, providerVersion string, host string) Configu
 		repos.CredentialsScaleway = qoveryAPI.CredentialsScaleway
 		repos.CredentialsGcp = qoveryAPI.CredentialsGcp
 		repos.CredentialsAzure = qoveryAPI.CredentialsAzure
+		repos.CredentialsEksAnywhereVsphere = qoveryAPI.CredentialsEksAnywhereVsphere
 		repos.Organization = qoveryAPI.Organization
 		repos.Project = qoveryAPI.Project
 		repos.ProjectEnvironmentVariable = qoveryAPI.ProjectEnvironmentVariable

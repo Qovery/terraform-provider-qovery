@@ -814,3 +814,123 @@ func TestCluster_convertResponseToCluster_State(t *testing.T) {
 		})
 	}
 }
+
+func TestToQoveryInfrastructureChartsParameters_EksAnywhereAndClusterBackup(t *testing.T) {
+	t.Parallel()
+
+	attrTypes := createInfrastructureChartsParametersAttrTypes()
+	eksAnywhereAttrTypes := attrTypes[infraChartsEksAnywhereKey].(types.ObjectType).AttrTypes
+	gitRepositoryAttrTypes := eksAnywhereAttrTypes["git_repository"].(types.ObjectType).AttrTypes
+	clusterBackupAttrTypes := eksAnywhereAttrTypes[infraChartsClusterBackupKey].(types.ObjectType).AttrTypes
+	clusterBackupS3AttrTypes := clusterBackupAttrTypes["s3"].(types.ObjectType).AttrTypes
+
+	gitRepository := types.ObjectValueMust(gitRepositoryAttrTypes, map[string]attr.Value{
+		"url":          types.StringValue("https://github.com/org/eks-anywhere.git"),
+		"git_token_id": types.StringValue("git-token-id"),
+		"branch":       types.StringValue("main"),
+		"provider":     types.StringValue("GITHUB"),
+	})
+
+	clusterBackupS3 := types.ObjectValueMust(clusterBackupS3AttrTypes, map[string]attr.Value{
+		"bucket":     types.StringValue("my-backup-bucket"),
+		"region":     types.StringValue("eu-west-3"),
+		"role_arn":   types.StringValue("arn:aws:iam::123456789012:role/backup-role"),
+		"key_prefix": types.StringValue("eks-anywhere/backups"),
+	})
+
+	clusterBackup := types.ObjectValueMust(clusterBackupAttrTypes, map[string]attr.Value{
+		"enabled": types.BoolValue(true),
+		"s3":      clusterBackupS3,
+	})
+
+	eksAnywhere := types.ObjectValueMust(eksAnywhereAttrTypes, map[string]attr.Value{
+		"yaml_file_path":            types.StringValue("clusters/prod/cluster.yaml"),
+		"git_repository":            gitRepository,
+		infraChartsClusterBackupKey: clusterBackup,
+	})
+
+	input := types.ObjectValueMust(attrTypes, map[string]attr.Value{
+		infraChartsNginxKey:       types.ObjectNull(attrTypes[infraChartsNginxKey].(types.ObjectType).AttrTypes),
+		infraChartsCertManagerKey: types.ObjectNull(attrTypes[infraChartsCertManagerKey].(types.ObjectType).AttrTypes),
+		infraChartsMetalLbKey:     types.ObjectNull(attrTypes[infraChartsMetalLbKey].(types.ObjectType).AttrTypes),
+		infraChartsEksAnywhereKey: eksAnywhere,
+	})
+
+	params, err := toQoveryInfrastructureChartsParameters(input)
+	require.NoError(t, err)
+	require.NotNil(t, params)
+	require.NotNil(t, params.EksAnywhereParameters)
+
+	assert.Equal(t, "clusters/prod/cluster.yaml", params.EksAnywhereParameters.YamlFilePath)
+	assert.Equal(t, "https://github.com/org/eks-anywhere.git", params.EksAnywhereParameters.GitRepository.Url)
+	assert.Equal(t, "git-token-id", params.EksAnywhereParameters.GitRepository.GitTokenId)
+	require.NotNil(t, params.EksAnywhereParameters.GitRepository.Branch)
+	assert.Equal(t, "main", *params.EksAnywhereParameters.GitRepository.Branch)
+	require.NotNil(t, params.EksAnywhereParameters.GitRepository.Provider)
+	assert.Equal(t, qovery.GITPROVIDERENUM_GITHUB, *params.EksAnywhereParameters.GitRepository.Provider)
+
+	require.NotNil(t, params.EksAnywhereParameters.ClusterBackup)
+	require.NotNil(t, params.EksAnywhereParameters.ClusterBackup.Enabled)
+	assert.Equal(t, true, *params.EksAnywhereParameters.ClusterBackup.Enabled)
+	assert.Equal(t, "my-backup-bucket", params.EksAnywhereParameters.ClusterBackup.S3.Bucket)
+	assert.Equal(t, "eu-west-3", params.EksAnywhereParameters.ClusterBackup.S3.Region)
+	assert.Equal(t, "arn:aws:iam::123456789012:role/backup-role", params.EksAnywhereParameters.ClusterBackup.S3.RoleArn)
+	require.NotNil(t, params.EksAnywhereParameters.ClusterBackup.S3.KeyPrefix)
+	assert.Equal(t, "eks-anywhere/backups", *params.EksAnywhereParameters.ClusterBackup.S3.KeyPrefix)
+}
+
+func TestFromQoveryInfrastructureChartsParameters_EksAnywhereAndClusterBackup(t *testing.T) {
+	t.Parallel()
+
+	branch := "main"
+	provider := qovery.GITPROVIDERENUM_GITHUB
+
+	eksAnywhere := qovery.NewClusterInfrastructureEksAnywhereParameters(
+		qovery.ClusterEksAnywhereGitRepository{
+			Url:        "https://github.com/org/eks-anywhere.git",
+			GitTokenId: "git-token-id",
+			Branch:     &branch,
+			Provider:   &provider,
+		},
+		"clusters/prod/cluster.yaml",
+	)
+	enabled := true
+	keyPrefix := "eks-anywhere/backups"
+	eksAnywhere.ClusterBackup = &qovery.ClusterInfrastructureEksAnywhereBackupParameters{
+		Enabled: &enabled,
+		S3: qovery.ClusterInfrastructureEksAnywhereBackupS3Parameters{
+			Bucket:    "my-backup-bucket",
+			Region:    "eu-west-3",
+			RoleArn:   "arn:aws:iam::123456789012:role/backup-role",
+			KeyPrefix: &keyPrefix,
+		},
+	}
+
+	params := qovery.NewClusterInfrastructureChartsParameters()
+	params.EksAnywhereParameters = eksAnywhere
+
+	result := fromQoveryInfrastructureChartsParameters(params)
+	require.False(t, result.IsNull())
+
+	eksAnywhereAttr := result.Attributes()[infraChartsEksAnywhereKey].(types.Object)
+	require.False(t, eksAnywhereAttr.IsNull())
+	assert.Equal(t, "clusters/prod/cluster.yaml", eksAnywhereAttr.Attributes()["yaml_file_path"].(types.String).ValueString())
+
+	gitRepositoryAttr := eksAnywhereAttr.Attributes()["git_repository"].(types.Object)
+	require.False(t, gitRepositoryAttr.IsNull())
+	assert.Equal(t, "https://github.com/org/eks-anywhere.git", gitRepositoryAttr.Attributes()["url"].(types.String).ValueString())
+	assert.Equal(t, "git-token-id", gitRepositoryAttr.Attributes()["git_token_id"].(types.String).ValueString())
+	assert.Equal(t, "main", gitRepositoryAttr.Attributes()["branch"].(types.String).ValueString())
+	assert.Equal(t, "GITHUB", gitRepositoryAttr.Attributes()["provider"].(types.String).ValueString())
+
+	clusterBackupAttr := eksAnywhereAttr.Attributes()[infraChartsClusterBackupKey].(types.Object)
+	require.False(t, clusterBackupAttr.IsNull())
+	assert.Equal(t, true, clusterBackupAttr.Attributes()["enabled"].(types.Bool).ValueBool())
+
+	s3Attr := clusterBackupAttr.Attributes()["s3"].(types.Object)
+	require.False(t, s3Attr.IsNull())
+	assert.Equal(t, "my-backup-bucket", s3Attr.Attributes()["bucket"].(types.String).ValueString())
+	assert.Equal(t, "eu-west-3", s3Attr.Attributes()["region"].(types.String).ValueString())
+	assert.Equal(t, "arn:aws:iam::123456789012:role/backup-role", s3Attr.Attributes()["role_arn"].(types.String).ValueString())
+	assert.Equal(t, "eks-anywhere/backups", s3Attr.Attributes()["key_prefix"].(types.String).ValueString())
+}
