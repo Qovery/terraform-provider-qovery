@@ -244,6 +244,7 @@ Read-Only:
 Read-Only:
 
 - `branch` (String) Repository branch name.
+- `commit_id` (String) Optional git commit SHA to pin EKS Anywhere configuration to a specific revision.
 - `git_token_id` (String) Qovery Git token ID used to access the repository.
 - `provider` (String) Git provider (`BITBUCKET`, `GITHUB`, `GITLAB`).
 - `url` (String) Git repository URL.

@@ -506,6 +506,7 @@ Required:
 Optional:
 
 - `branch` (String) Repository branch name. Defaults to the repository default branch when omitted.
+- `commit_id` (String) Optional git commit SHA to pin EKS Anywhere configuration to a specific revision. If omitted, the latest commit from the selected branch is used.
 - `provider` (String) Git provider (`BITBUCKET`, `GITHUB`, `GITLAB`).
 
 
