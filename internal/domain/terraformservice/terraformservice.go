@@ -180,6 +180,7 @@ func (v Variable) Validate() error {
 type Backend struct {
 	Kubernetes   *KubernetesBackend
 	UserProvided *UserProvidedBackend
+	Blueprint    *BlueprintBackend
 }
 
 // KubernetesBackend represents a Kubernetes backend (empty struct)
@@ -188,17 +189,41 @@ type KubernetesBackend struct{}
 // UserProvidedBackend represents a user-provided backend (empty struct)
 type UserProvidedBackend struct{}
 
+// BlueprintBackend represents a blueprint-managed backend where the user provides
+// backend type and config at creation time. The platform generates and injects
+// backend.tf for the created service.
+type BlueprintBackend struct {
+	Type   string
+	Config map[string]string
+}
+
 // Validate validates the Backend
 func (b Backend) Validate() error {
 	hasKubernetes := b.Kubernetes != nil
 	hasUserProvided := b.UserProvided != nil
+	hasBlueprint := b.Blueprint != nil
 
-	if !hasKubernetes && !hasUserProvided {
+	count := 0
+	if hasKubernetes {
+		count++
+	}
+	if hasUserProvided {
+		count++
+	}
+	if hasBlueprint {
+		count++
+	}
+
+	if count == 0 {
 		return ErrMissingBackendType
 	}
 
-	if hasKubernetes && hasUserProvided {
+	if count > 1 {
 		return ErrMultipleBackendTypes
+	}
+
+	if hasBlueprint && b.Blueprint.Type == "" {
+		return fmt.Errorf("blueprint backend type is required")
 	}
 
 	return nil

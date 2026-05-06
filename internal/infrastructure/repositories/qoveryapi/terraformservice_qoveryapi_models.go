@@ -55,6 +55,17 @@ func newQoveryTerraformRequestFromDomain(request terraformservice.UpsertReposito
 		// User-provided backend (empty map)
 		userProvidedBackend := qovery.NewTerraformBackendOneOf1(make(map[string]any))
 		backend = qovery.TerraformBackendOneOf1AsTerraformBackend(userProvidedBackend)
+	} else if request.Backend.Blueprint != nil {
+		blueprintBackendModel := qovery.NewTerraformBackendBlueprint(request.Backend.Blueprint.Type)
+		if len(request.Backend.Blueprint.Config) > 0 {
+			configMap := make(map[string]string)
+			for k, v := range request.Backend.Blueprint.Config {
+				configMap[k] = v
+			}
+			blueprintBackendModel.Config = &configMap
+		}
+		blueprintBackend := qovery.NewTerraformBackendOneOf2(*blueprintBackendModel)
+		backend = qovery.TerraformBackendOneOf2AsTerraformBackend(blueprintBackend)
 	}
 
 	// Build engine_version
@@ -197,6 +208,18 @@ func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, dep
 		backend.Kubernetes = &terraformservice.KubernetesBackend{}
 	} else if response.Backend.TerraformBackendOneOf1 != nil {
 		backend.UserProvided = &terraformservice.UserProvidedBackend{}
+	} else if response.Backend.TerraformBackendOneOf2 != nil {
+		blueprintData := response.Backend.TerraformBackendOneOf2.GetBlueprint()
+		config := make(map[string]string)
+		if blueprintData.Config != nil {
+			for k, v := range *blueprintData.Config {
+				config[k] = v
+			}
+		}
+		backend.Blueprint = &terraformservice.BlueprintBackend{
+			Type:   blueprintData.Type,
+			Config: config,
+		}
 	}
 
 	// Extract engine version
