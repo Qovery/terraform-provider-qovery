@@ -47,15 +47,14 @@ func newQoveryTerraformRequestFromDomain(request terraformservice.UpsertReposito
 
 	// Build backend (oneOf)
 	var backend qovery.TerraformBackend
-	if request.Backend.Kubernetes != nil {
-		// Kubernetes backend (empty map)
+	switch {
+	case request.Backend.Kubernetes != nil:
 		kubernetesBackend := qovery.NewTerraformBackendOneOf(make(map[string]any))
 		backend = qovery.TerraformBackendOneOfAsTerraformBackend(kubernetesBackend)
-	} else if request.Backend.UserProvided != nil {
-		// User-provided backend (empty map)
+	case request.Backend.UserProvided != nil:
 		userProvidedBackend := qovery.NewTerraformBackendOneOf1(make(map[string]any))
 		backend = qovery.TerraformBackendOneOf1AsTerraformBackend(userProvidedBackend)
-	} else if request.Backend.Blueprint != nil {
+	case request.Backend.Blueprint != nil:
 		blueprintBackendModel := qovery.NewTerraformBackendBlueprint(request.Backend.Blueprint.Type)
 		if len(request.Backend.Blueprint.Config) > 0 {
 			configMap := make(map[string]string)
@@ -204,11 +203,12 @@ func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, dep
 
 	// Extract backend
 	backend := terraformservice.Backend{}
-	if response.Backend.TerraformBackendOneOf != nil {
+	switch {
+	case response.Backend.TerraformBackendOneOf != nil:
 		backend.Kubernetes = &terraformservice.KubernetesBackend{}
-	} else if response.Backend.TerraformBackendOneOf1 != nil {
+	case response.Backend.TerraformBackendOneOf1 != nil:
 		backend.UserProvided = &terraformservice.UserProvidedBackend{}
-	} else if response.Backend.TerraformBackendOneOf2 != nil {
+	case response.Backend.TerraformBackendOneOf2 != nil:
 		blueprintData := response.Backend.TerraformBackendOneOf2.GetBlueprint()
 		config := make(map[string]string)
 		if blueprintData.Config != nil {

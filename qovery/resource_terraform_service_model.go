@@ -45,8 +45,8 @@ type TerraformGitRepository struct {
 
 type TerraformBackend struct {
 	Kubernetes   *TerraformKubernetesBackend   `tfsdk:"kubernetes"`
-	UserProvided *TerraformUserProvidedBackend  `tfsdk:"user_provided"`
-	Blueprint    *TerraformBlueprintBackend     `tfsdk:"blueprint"`
+	UserProvided *TerraformUserProvidedBackend `tfsdk:"user_provided"`
+	Blueprint    *TerraformBlueprintBackend    `tfsdk:"blueprint"`
 }
 
 type TerraformKubernetesBackend struct{}
