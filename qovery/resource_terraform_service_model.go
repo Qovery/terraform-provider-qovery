@@ -46,11 +46,17 @@ type TerraformGitRepository struct {
 type TerraformBackend struct {
 	Kubernetes   *TerraformKubernetesBackend   `tfsdk:"kubernetes"`
 	UserProvided *TerraformUserProvidedBackend `tfsdk:"user_provided"`
+	Blueprint    *TerraformBlueprintBackend    `tfsdk:"blueprint"`
 }
 
 type TerraformKubernetesBackend struct{}
 
 type TerraformUserProvidedBackend struct{}
+
+type TerraformBlueprintBackend struct {
+	Type   types.String            `tfsdk:"type"`
+	Config map[string]types.String `tfsdk:"config"`
+}
 
 type TerraformEngineVersion struct {
 	ExplicitVersion        types.String `tfsdk:"explicit_version"`
@@ -145,6 +151,16 @@ func (b *TerraformBackend) toDomain() terraformservice.Backend {
 	}
 	if b.UserProvided != nil {
 		backend.UserProvided = &terraformservice.UserProvidedBackend{}
+	}
+	if b.Blueprint != nil {
+		config := make(map[string]string)
+		for k, v := range b.Blueprint.Config {
+			config[k] = v.ValueString()
+		}
+		backend.Blueprint = &terraformservice.BlueprintBackend{
+			Type:   b.Blueprint.Type.ValueString(),
+			Config: config,
+		}
 	}
 
 	return backend
@@ -277,6 +293,16 @@ func fromBackend(b terraformservice.Backend) *TerraformBackend {
 	}
 	if b.UserProvided != nil {
 		backend.UserProvided = &TerraformUserProvidedBackend{}
+	}
+	if b.Blueprint != nil {
+		config := make(map[string]types.String)
+		for k, v := range b.Blueprint.Config {
+			config[k] = FromString(v)
+		}
+		backend.Blueprint = &TerraformBlueprintBackend{
+			Type:   FromString(b.Blueprint.Type),
+			Config: config,
+		}
 	}
 
 	return backend
@@ -426,15 +452,23 @@ func (t TerraformService) Validate() error {
 		return errors.New("backend is required")
 	}
 
-	hasKubernetes := t.Backend.Kubernetes != nil
-	hasUserProvided := t.Backend.UserProvided != nil
-
-	if !hasKubernetes && !hasUserProvided {
-		return errors.New("exactly one backend type must be specified: kubernetes or user_provided")
+	count := 0
+	if t.Backend.Kubernetes != nil {
+		count++
+	}
+	if t.Backend.UserProvided != nil {
+		count++
+	}
+	if t.Backend.Blueprint != nil {
+		count++
 	}
 
-	if hasKubernetes && hasUserProvided {
-		return errors.New("cannot specify both kubernetes and user_provided backend types")
+	if count == 0 {
+		return errors.New("exactly one backend type must be specified: kubernetes, user_provided, or blueprint")
+	}
+
+	if count > 1 {
+		return errors.New("cannot specify multiple backend types, choose exactly one: kubernetes, user_provided, or blueprint")
 	}
 
 	return nil

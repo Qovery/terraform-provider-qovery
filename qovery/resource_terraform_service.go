@@ -211,6 +211,24 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 						Optional:            true,
 						Attributes:          map[string]schema.Attribute{},
 					},
+					"blueprint": schema.SingleNestedAttribute{
+						Description:         "Blueprint-managed backend. The user provides backend type and config at creation time. The platform generates and injects backend.tf for the created service.",
+						MarkdownDescription: "Blueprint-managed backend. The user provides backend type and config at creation time. The platform generates and injects backend.tf for the created service.",
+						Optional:            true,
+						Attributes: map[string]schema.Attribute{
+							"type": schema.StringAttribute{
+								Description:         "Terraform backend type (e.g. s3, gcs, azurerm).",
+								MarkdownDescription: "Terraform backend type (e.g. `s3`, `gcs`, `azurerm`).",
+								Required:            true,
+							},
+							"config": schema.MapAttribute{
+								Description:         "Static backend configuration (bucket, region, etc.). Credentials should be provided via environment variables, not here.",
+								MarkdownDescription: "Static backend configuration (bucket, region, etc.). Credentials should be provided via environment variables, not here.",
+								Optional:            true,
+								ElementType:         types.StringType,
+							},
+						},
+					},
 				},
 			},
 			"engine": schema.StringAttribute{

@@ -135,8 +135,21 @@ resource "qovery_terraform_service" "my_terraform_service" {
 
 Optional:
 
+- `blueprint` (Attributes) Blueprint-managed backend. The user provides backend type and config at creation time. The platform generates and injects backend.tf for the created service. (see [below for nested schema](#nestedatt--backend--blueprint))
 - `kubernetes` (Attributes) Use Kubernetes backend for state management. (see [below for nested schema](#nestedatt--backend--kubernetes))
 - `user_provided` (Attributes) Use user-provided backend configuration (configured in Terraform code). (see [below for nested schema](#nestedatt--backend--user_provided))
+
+<a id="nestedatt--backend--blueprint"></a>
+### Nested Schema for `backend.blueprint`
+
+Required:
+
+- `type` (String) Terraform backend type (e.g. `s3`, `gcs`, `azurerm`).
+
+Optional:
+
+- `config` (Map of String) Static backend configuration (bucket, region, etc.). Credentials should be provided via environment variables, not here.
+
 
 <a id="nestedatt--backend--kubernetes"></a>
 ### Nested Schema for `backend.kubernetes`
