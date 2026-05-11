@@ -4,7 +4,7 @@ go 1.26.2
 
 require (
 	github.com/AlekSi/pointer v1.2.0
-	github.com/adhocore/gronx v1.19.5
+	github.com/adhocore/gronx v1.19.7
 	github.com/brianvoe/gofakeit/v6 v6.28.0
 	github.com/go-playground/validator/v10 v10.30.2
 	github.com/google/uuid v1.6.0
