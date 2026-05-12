@@ -1,4 +1,5 @@
-//go:build unit || !integration
+//go:build unit && !integration
+// +build unit,!integration
 
 package qovery
 
@@ -813,6 +814,253 @@ func TestCluster_convertResponseToCluster_State(t *testing.T) {
 			assert.Equal(t, tc.expectedState, out.State.ValueString())
 		})
 	}
+}
+
+func clusterOutputObject(values map[string]string) types.Object {
+	attrs := allNullClusterOutputValues()
+	for k, v := range values {
+		attrs[k] = types.StringValue(v)
+	}
+	return types.ObjectValueMust(clusterInfrastructureOutputsAttrTypes, attrs)
+}
+
+func TestFromQoveryClusterOutput(t *testing.T) {
+	t.Parallel()
+
+	priorStateWithOidc := clusterOutputObject(map[string]string{
+		"cluster_name":        "qovery-z64614976",
+		"cluster_arn":         "arn:aws:eks:us-east-1:123456789012:cluster/qovery-z64614976",
+		"cluster_oidc_issuer": "https://oidc.eks.us-east-1.amazonaws.com/id/PRIOR",
+		"vpc_id":              "vpc-prior",
+	})
+	emptyPriorState := types.ObjectNull(clusterInfrastructureOutputsAttrTypes)
+
+	tests := []struct {
+		name                string
+		api                 *qovery.InfrastructureOutputs
+		priorState          types.Object
+		expectedName        string
+		expectedArn         string
+		expectedSelfLink    string
+		expectedOidcIssuer  string
+		expectedVpcId       string
+		expectPriorReturned bool
+	}{
+		{
+			name:                "api nil and prior state empty -> all nulls",
+			api:                 nil,
+			priorState:          emptyPriorState,
+			expectPriorReturned: false,
+		},
+		{
+			name:                "api nil and prior state has values -> prior state preserved",
+			api:                 nil,
+			priorState:          priorStateWithOidc,
+			expectPriorReturned: true,
+		},
+		{
+			name: "api EKS payload -> EKS fields populated",
+			api: &qovery.InfrastructureOutputs{
+				EksInfrastructureOutputs: qovery.NewEksInfrastructureOutputs(
+					"EKS",
+					"qovery-zABC",
+					"arn:aws:eks:us-east-1:123456789012:cluster/qovery-zABC",
+					"https://oidc.eks.us-east-1.amazonaws.com/id/NEW",
+					"vpc-new",
+				),
+			},
+			priorState:         priorStateWithOidc,
+			expectedName:       "qovery-zABC",
+			expectedArn:        "arn:aws:eks:us-east-1:123456789012:cluster/qovery-zABC",
+			expectedOidcIssuer: "https://oidc.eks.us-east-1.amazonaws.com/id/NEW",
+			expectedVpcId:      "vpc-new",
+		},
+		{
+			name: "api AKS payload -> AKS fields populated",
+			api: &qovery.InfrastructureOutputs{
+				AksInfrastructureOutputs: qovery.NewAksInfrastructureOutputs(
+					"AKS",
+					"aks-cluster",
+					"https://oidc.aks.example.com/issuer",
+				),
+			},
+			priorState:         emptyPriorState,
+			expectedName:       "aks-cluster",
+			expectedOidcIssuer: "https://oidc.aks.example.com/issuer",
+		},
+		{
+			name: "api GKE payload -> GKE fields populated",
+			api: &qovery.InfrastructureOutputs{
+				GkeInfrastructureOutputs: qovery.NewGkeInfrastructureOutputs(
+					"GKE",
+					"gke-cluster",
+					"https://container.googleapis.com/projects/p/locations/l/clusters/c",
+				),
+			},
+			priorState:       emptyPriorState,
+			expectedName:     "gke-cluster",
+			expectedSelfLink: "https://container.googleapis.com/projects/p/locations/l/clusters/c",
+		},
+		{
+			name: "api Kapsule payload -> only cluster_name populated",
+			api: &qovery.InfrastructureOutputs{
+				KapsuleInfrastructureOutputs: qovery.NewKapsuleInfrastructureOutputs(
+					"SCW_KAPSULE",
+					"kapsule-cluster",
+				),
+			},
+			priorState:   emptyPriorState,
+			expectedName: "kapsule-cluster",
+		},
+		{
+			name:                "api non-nil but unknown discriminator + prior state has values -> prior preserved",
+			api:                 &qovery.InfrastructureOutputs{}, // all sub-types nil
+			priorState:          priorStateWithOidc,
+			expectPriorReturned: true,
+		},
+		{
+			name:                "api non-nil but unknown discriminator + empty prior state -> all nulls",
+			api:                 &qovery.InfrastructureOutputs{},
+			priorState:          emptyPriorState,
+			expectPriorReturned: false,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			out := fromQoveryClusterOutput(tc.api, tc.priorState)
+
+			if tc.expectPriorReturned {
+				assert.True(t, out.Equal(tc.priorState), "expected prior state to be returned unchanged")
+				return
+			}
+
+			require.False(t, out.IsNull())
+			require.False(t, out.IsUnknown())
+			attrs := out.Attributes()
+
+			getStr := func(key string) string {
+				v, ok := attrs[key].(types.String)
+				require.Truef(t, ok, "%s is not a String", key)
+				if v.IsNull() || v.IsUnknown() {
+					return ""
+				}
+				return v.ValueString()
+			}
+
+			assert.Equal(t, tc.expectedName, getStr("cluster_name"))
+			assert.Equal(t, tc.expectedArn, getStr("cluster_arn"))
+			assert.Equal(t, tc.expectedSelfLink, getStr("cluster_self_link"))
+			assert.Equal(t, tc.expectedOidcIssuer, getStr("cluster_oidc_issuer"))
+			assert.Equal(t, tc.expectedVpcId, getStr("vpc_id"))
+		})
+	}
+}
+
+func TestCluster_convertResponseToCluster_InfrastructureOutputs(t *testing.T) {
+	t.Parallel()
+
+	ctx := context.Background()
+
+	priorOidc := "https://oidc.eks.us-east-1.amazonaws.com/id/PRIOR"
+	priorArn := "arn:aws:eks:us-east-1:123456789012:cluster/qovery-zABC"
+	priorState := Cluster{
+		InfrastructureOutputs: clusterOutputObject(map[string]string{
+			"cluster_name":        "qovery-zABC",
+			"cluster_arn":         priorArn,
+			"cluster_oidc_issuer": priorOidc,
+			"vpc_id":              "vpc-prior",
+		}),
+	}
+
+	t.Run("api returns nil infra outputs -> prior state preserved end-to-end", func(t *testing.T) {
+		t.Parallel()
+		// Reproduces the production scenario: cluster in DEPLOYMENT_ERROR, API returns
+		// infrastructure_outputs: null. Without the fallback, every downstream resource
+		// referencing qovery_cluster.cluster.infrastructure_outputs.* would see null.
+		res := &client.ClusterResponse{
+			OrganizationID: "org-123",
+			ClusterResponse: &qovery.Cluster{
+				Id:                    "cluster-123",
+				Name:                  "c",
+				CloudProvider:         qovery.CLOUDVENDORENUM_AWS,
+				Region:                "us-east-1",
+				InfrastructureOutputs: nil,
+			},
+			ClusterInfo:         makeTestClusterInfo("cred-123"),
+			ClusterRoutingTable: &client.ClusterRoutingTable{},
+		}
+
+		out := convertResponseToCluster(ctx, res, priorState)
+
+		require.False(t, out.InfrastructureOutputs.IsNull())
+		attrs := out.InfrastructureOutputs.Attributes()
+		assert.Equal(t, priorOidc, attrs["cluster_oidc_issuer"].(types.String).ValueString())
+		assert.Equal(t, priorArn, attrs["cluster_arn"].(types.String).ValueString())
+		assert.Equal(t, "vpc-prior", attrs["vpc_id"].(types.String).ValueString())
+	})
+
+	t.Run("api returns fresh EKS outputs -> api values win over prior state", func(t *testing.T) {
+		t.Parallel()
+		res := &client.ClusterResponse{
+			OrganizationID: "org-123",
+			ClusterResponse: &qovery.Cluster{
+				Id:            "cluster-123",
+				Name:          "c",
+				CloudProvider: qovery.CLOUDVENDORENUM_AWS,
+				Region:        "us-east-1",
+				InfrastructureOutputs: &qovery.InfrastructureOutputs{
+					EksInfrastructureOutputs: qovery.NewEksInfrastructureOutputs(
+						"EKS",
+						"qovery-zNEW",
+						"arn:aws:eks:us-east-1:123456789012:cluster/qovery-zNEW",
+						"https://oidc.eks.us-east-1.amazonaws.com/id/NEW",
+						"vpc-new",
+					),
+				},
+			},
+			ClusterInfo:         makeTestClusterInfo("cred-123"),
+			ClusterRoutingTable: &client.ClusterRoutingTable{},
+		}
+
+		out := convertResponseToCluster(ctx, res, priorState)
+
+		require.False(t, out.InfrastructureOutputs.IsNull())
+		attrs := out.InfrastructureOutputs.Attributes()
+		assert.Equal(t, "https://oidc.eks.us-east-1.amazonaws.com/id/NEW", attrs["cluster_oidc_issuer"].(types.String).ValueString())
+		assert.Equal(t, "vpc-new", attrs["vpc_id"].(types.String).ValueString())
+	})
+
+	t.Run("api returns nil + no prior state -> all nulls", func(t *testing.T) {
+		t.Parallel()
+		// First-deploy or fresh-import case: cluster has never been deployed, no prior values.
+		emptyState := Cluster{
+			InfrastructureOutputs: types.ObjectNull(clusterInfrastructureOutputsAttrTypes),
+		}
+		res := &client.ClusterResponse{
+			OrganizationID: "org-123",
+			ClusterResponse: &qovery.Cluster{
+				Id:                    "cluster-123",
+				Name:                  "c",
+				CloudProvider:         qovery.CLOUDVENDORENUM_AWS,
+				Region:                "us-east-1",
+				InfrastructureOutputs: nil,
+			},
+			ClusterInfo:         makeTestClusterInfo("cred-123"),
+			ClusterRoutingTable: &client.ClusterRoutingTable{},
+		}
+
+		out := convertResponseToCluster(ctx, res, emptyState)
+
+		require.False(t, out.InfrastructureOutputs.IsNull())
+		attrs := out.InfrastructureOutputs.Attributes()
+		for k, v := range attrs {
+			s, ok := v.(types.String)
+			require.Truef(t, ok, "%s is not a String", k)
+			assert.Truef(t, s.IsNull(), "expected %s to be null", k)
+		}
+	})
 }
 
 func TestToQoveryInfrastructureChartsParameters_EksAnywhereAndClusterBackup(t *testing.T) {

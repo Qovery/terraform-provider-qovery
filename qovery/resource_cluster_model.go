@@ -380,13 +380,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		cluster.MaxRunningNodes = types.Int64Null()
 		cluster.Features = types.ObjectNull(createFeaturesAttrTypes())
 		cluster.RoutingTables = types.SetNull(types.ObjectType{AttrTypes: clusterRouteAttrTypes})
-		cluster.InfrastructureOutputs = types.ObjectNull(map[string]attr.Type{
-			"cluster_name":        types.StringType,
-			"cluster_arn":         types.StringType,
-			"cluster_self_link":   types.StringType,
-			"cluster_oidc_issuer": types.StringType,
-			"vpc_id":              types.StringType,
-		})
+		cluster.InfrastructureOutputs = types.ObjectNull(clusterInfrastructureOutputsAttrTypes)
 		// Preserve kubeconfig from initialPlan - it's fetched separately via API in Read operation
 		cluster.Kubeconfig = initialPlan.Kubeconfig
 	} else {
@@ -408,7 +402,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 
 		cluster.Features = fromQoveryClusterFeatures(res.ClusterResponse.Features)
 		cluster.RoutingTables = routingTable.toTerraformSet(ctx, initialPlan.RoutingTables)
-		cluster.InfrastructureOutputs = fromQoveryClusterOutput(res.ClusterResponse.InfrastructureOutputs)
+		cluster.InfrastructureOutputs = fromQoveryClusterOutput(res.ClusterResponse.InfrastructureOutputs, initialPlan.InfrastructureOutputs)
 		// Kubeconfig is not applicable for non-PARTIALLY_MANAGED clusters
 		cluster.Kubeconfig = types.StringNull()
 	}
@@ -416,30 +410,31 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 	return cluster
 }
 
+var clusterInfrastructureOutputsAttrTypes = map[string]attr.Type{
+	"cluster_name":        types.StringType,
+	"cluster_arn":         types.StringType,
+	"cluster_self_link":   types.StringType,
+	"cluster_oidc_issuer": types.StringType,
+	"vpc_id":              types.StringType,
+}
+
+// fromQoveryClusterOutput converts the API InfrastructureOutputs to a Terraform Object.
+// Falls back to the prior state when the API returns nil or an unrecognized payload: these
+// are read-only outputs populated by a successful deploy, and the API can temporarily omit
+// them (e.g. when the cluster is in DEPLOYMENT_ERROR), which would otherwise break any
+// downstream resource referencing them.
 func fromQoveryClusterOutput(
 	infrastructureOutputs *qovery.InfrastructureOutputs,
+	priorState types.Object,
 ) types.Object {
-	// Define the schema once for consistency
-	attrTypes := map[string]attr.Type{
-		"cluster_name":        types.StringType,
-		"cluster_arn":         types.StringType,
-		"cluster_self_link":   types.StringType,
-		"cluster_oidc_issuer": types.StringType,
-		"vpc_id":              types.StringType,
-	}
-
-	// Default null values
-	values := map[string]attr.Value{
-		"cluster_name":        types.StringNull(),
-		"cluster_arn":         types.StringNull(),
-		"cluster_self_link":   types.StringNull(),
-		"cluster_oidc_issuer": types.StringNull(),
-		"vpc_id":              types.StringNull(),
-	}
-
 	if infrastructureOutputs == nil {
-		return types.ObjectValueMust(attrTypes, values)
+		if clusterOutputHasAnyKnownValue(priorState) {
+			return priorState
+		}
+		return types.ObjectValueMust(clusterInfrastructureOutputsAttrTypes, allNullClusterOutputValues())
 	}
+
+	values := allNullClusterOutputValues()
 
 	switch {
 	case infrastructureOutputs.AksInfrastructureOutputs != nil:
@@ -462,9 +457,43 @@ func fromQoveryClusterOutput(
 	case infrastructureOutputs.KapsuleInfrastructureOutputs != nil:
 		out := infrastructureOutputs.KapsuleInfrastructureOutputs
 		values["cluster_name"] = types.StringValue(out.ClusterName)
+
+	default:
+		if clusterOutputHasAnyKnownValue(priorState) {
+			return priorState
+		}
 	}
 
-	return types.ObjectValueMust(attrTypes, values)
+	return types.ObjectValueMust(clusterInfrastructureOutputsAttrTypes, values)
+}
+
+func allNullClusterOutputValues() map[string]attr.Value {
+	return map[string]attr.Value{
+		"cluster_name":        types.StringNull(),
+		"cluster_arn":         types.StringNull(),
+		"cluster_self_link":   types.StringNull(),
+		"cluster_oidc_issuer": types.StringNull(),
+		"vpc_id":              types.StringNull(),
+	}
+}
+
+// clusterOutputHasAnyKnownValue reports whether the cluster InfrastructureOutputs object
+// holds at least one non-empty string attribute. All cluster output attributes are strings;
+// any non-String attr would be a schema bug and is treated as not-yet-known.
+func clusterOutputHasAnyKnownValue(o types.Object) bool {
+	if o.IsNull() || o.IsUnknown() {
+		return false
+	}
+	for _, v := range o.Attributes() {
+		s, ok := v.(types.String)
+		if !ok {
+			continue
+		}
+		if !s.IsNull() && !s.IsUnknown() && s.ValueString() != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func fromQoveryClusterFeatures(
