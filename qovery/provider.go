@@ -203,6 +203,7 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newApplicationResource,
 		newAwsCredentialsResource,
 		newClusterResource,
+		newClusterDNSProviderResource,
 		newDatabaseResource,
 		newEnvironmentResource,
 		newOrganizationResource,
