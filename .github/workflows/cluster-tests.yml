@@ -112,3 +112,65 @@ jobs:
           echo "::error::Destroy failed twice — manual cleanup may be required for tf-smoke-${{ matrix.cloud }}-${{ github.run_id }}"
           exit 1
         timeout-minutes: 60
+
+  notify-slack:
+    name: Notify Slack
+    needs: [smoke]
+    if: always() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute per-cloud status & duration
+        id: gather
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          jobs_json=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs" --paginate)
+          summary=$(echo "$jobs_json" | jq -r '
+            .jobs[]
+            | select(.name | startswith("aws-") or startswith("azure-") or startswith("gcp-") or startswith("scaleway-"))
+            | {
+                name: .name,
+                conclusion: .conclusion,
+                started: .started_at,
+                completed: .completed_at,
+              }
+            | .duration_min = (((.completed | fromdate) - (.started | fromdate)) / 60 | floor)
+            | "\(if .conclusion == "success" then ":white_check_mark:" else ":x:" end) *\(.name)* — \(.conclusion) (\(.duration_min) min)"
+          ')
+          {
+            echo 'summary<<EOF'
+            echo "$summary"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Daily Cluster Smoke Tests*\n${{ steps.gather.outputs.summary }}"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
