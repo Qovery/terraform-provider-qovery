@@ -1,0 +1,107 @@
+name: Cluster Smoke Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      cloud:
+        description: "Cloud to test (or 'all')"
+        type: choice
+        required: true
+        default: aws-karpenter
+        options:
+          - aws-karpenter
+          - all
+
+concurrency:
+  group: cluster-tests
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TF_VERSION: "1.14.*"
+
+jobs:
+  smoke:
+    name: ${{ matrix.cloud }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud:
+          - aws-karpenter
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v6
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Resolve credentials_id for matrix entry
+        id: creds
+        run: |
+          case "${{ matrix.cloud }}" in
+            aws-karpenter)    echo "id=${{ secrets.TEST_AWS_CREDENTIALS_ID }}" >> "$GITHUB_OUTPUT" ;;
+            azure-aks)        echo "id=${{ secrets.TEST_AZURE_CREDENTIALS_ID }}" >> "$GITHUB_OUTPUT" ;;
+            gcp-gke)          echo "id=${{ secrets.TEST_GCP_CREDENTIALS_ID }}" >> "$GITHUB_OUTPUT" ;;
+            scaleway-kapsule) echo "id=${{ secrets.TEST_SCALEWAY_CREDENTIALS_ID }}" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unknown cloud: ${{ matrix.cloud }}"; exit 1 ;;
+          esac
+
+      - name: Terraform init
+        working-directory: tests/cluster-smoke/${{ matrix.cloud }}
+        env:
+          QOVERY_API_TOKEN: ${{ secrets.QOVERY_API_TOKEN }}
+        run: terraform init -input=false
+
+      - name: Terraform apply
+        id: apply
+        working-directory: tests/cluster-smoke/${{ matrix.cloud }}
+        env:
+          QOVERY_API_TOKEN: ${{ secrets.QOVERY_API_TOKEN }}
+          TF_VAR_credentials_id: ${{ steps.creds.outputs.id }}
+          TF_VAR_organization_id: ${{ secrets.TEST_ORGANIZATION_ID }}
+          TF_VAR_cluster_name: tf-smoke-${{ matrix.cloud }}-${{ github.run_id }}
+        run: terraform apply -auto-approve -input=false
+        timeout-minutes: 120
+
+      - name: Terraform plan (drift check)
+        id: drift
+        working-directory: tests/cluster-smoke/${{ matrix.cloud }}
+        env:
+          QOVERY_API_TOKEN: ${{ secrets.QOVERY_API_TOKEN }}
+          TF_VAR_credentials_id: ${{ steps.creds.outputs.id }}
+          TF_VAR_organization_id: ${{ secrets.TEST_ORGANIZATION_ID }}
+          TF_VAR_cluster_name: tf-smoke-${{ matrix.cloud }}-${{ github.run_id }}
+        run: terraform plan -detailed-exitcode -input=false
+
+      - name: Terraform destroy (always, with retry)
+        if: always()
+        working-directory: tests/cluster-smoke/${{ matrix.cloud }}
+        env:
+          QOVERY_API_TOKEN: ${{ secrets.QOVERY_API_TOKEN }}
+          TF_VAR_credentials_id: ${{ steps.creds.outputs.id }}
+          TF_VAR_organization_id: ${{ secrets.TEST_ORGANIZATION_ID }}
+          TF_VAR_cluster_name: tf-smoke-${{ matrix.cloud }}-${{ github.run_id }}
+        run: |
+          set +e
+          for attempt in 1 2; do
+            echo "::group::Destroy attempt $attempt"
+            terraform destroy -auto-approve -input=false
+            rc=$?
+            echo "::endgroup::"
+            if [ $rc -eq 0 ]; then
+              echo "Destroy succeeded on attempt $attempt"
+              exit 0
+            fi
+            echo "Destroy failed on attempt $attempt (rc=$rc), retrying in 60s..."
+            sleep 60
+          done
+          echo "::error::Destroy failed twice — manual cleanup may be required for tf-smoke-${{ matrix.cloud }}-${{ github.run_id }}"
+          exit 1
+        timeout-minutes: 60
