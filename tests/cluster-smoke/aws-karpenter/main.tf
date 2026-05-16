@@ -31,7 +31,7 @@ resource "qovery_cluster" "smoke" {
   cloud_provider  = "AWS"
   region          = "eu-west-3"
   kubernetes_mode = "MANAGED"
-  state           = "READY"
+  state           = "DEPLOYED"
 
   features = {
     vpc_subnet = "10.0.0.0/16"
