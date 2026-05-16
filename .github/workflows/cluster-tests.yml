@@ -11,6 +11,7 @@ on:
         options:
           - aws-karpenter
           - azure-aks
+          - gcp-gke
           - all
 
 concurrency:
@@ -35,6 +36,7 @@ jobs:
         cloud:
           - aws-karpenter
           - azure-aks
+          - gcp-gke
     steps:
       - name: Check out source code
         uses: actions/checkout@v6
