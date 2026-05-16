@@ -25,6 +25,7 @@ env:
 jobs:
   smoke:
     name: ${{ matrix.cloud }}
+    if: github.event_name == 'schedule' || github.event.inputs.cloud == 'all' || github.event.inputs.cloud == matrix.cloud
     runs-on: ubuntu-latest
     timeout-minutes: 180
     strategy:
