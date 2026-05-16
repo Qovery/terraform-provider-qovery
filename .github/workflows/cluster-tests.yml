@@ -10,6 +10,7 @@ on:
         default: aws-karpenter
         options:
           - aws-karpenter
+          - azure-aks
           - all
 
 concurrency:
@@ -33,6 +34,7 @@ jobs:
       matrix:
         cloud:
           - aws-karpenter
+          - azure-aks
     steps:
       - name: Check out source code
         uses: actions/checkout@v6
