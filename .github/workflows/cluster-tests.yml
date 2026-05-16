@@ -12,6 +12,7 @@ on:
           - aws-karpenter
           - azure-aks
           - gcp-gke
+          - scaleway-kapsule
           - all
 
 concurrency:
@@ -37,6 +38,7 @@ jobs:
           - aws-karpenter
           - azure-aks
           - gcp-gke
+          - scaleway-kapsule
     steps:
       - name: Check out source code
         uses: actions/checkout@v6
