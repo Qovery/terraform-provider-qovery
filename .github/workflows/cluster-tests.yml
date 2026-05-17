@@ -26,19 +26,30 @@ env:
   TF_VERSION: "1.14.*"
 
 jobs:
+  setup:
+    name: Resolve matrix
+    runs-on: ubuntu-latest
+    outputs:
+      clouds: ${{ steps.compute.outputs.clouds }}
+    steps:
+      - name: Compute cloud list from trigger
+        id: compute
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.cloud }}" = "all" ]; then
+            echo 'clouds=["aws-karpenter","azure-aks","gcp-gke","scaleway-kapsule"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "clouds=[\"${{ github.event.inputs.cloud }}\"]" >> "$GITHUB_OUTPUT"
+          fi
+
   smoke:
     name: ${{ matrix.cloud }}
-    if: github.event_name == 'schedule' || github.event.inputs.cloud == 'all' || github.event.inputs.cloud == matrix.cloud
+    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 180
     strategy:
       fail-fast: false
       matrix:
-        cloud:
-          - aws-karpenter
-          - azure-aks
-          - gcp-gke
-          - scaleway-kapsule
+        cloud: ${{ fromJson(needs.setup.outputs.clouds) }}
     steps:
       - name: Check out source code
         uses: actions/checkout@v6
