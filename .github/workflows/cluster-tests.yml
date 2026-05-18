@@ -113,7 +113,7 @@ jobs:
           TF_VAR_credentials_id: ${{ steps.creds.outputs.id }}
           TF_VAR_organization_id: ${{ github.event.inputs.organization_id != '' && github.event.inputs.organization_id || secrets.TEST_ORGANIZATION_ID }}
           TF_VAR_cluster_name: tf-smoke-${{ matrix.cloud }}-${{ github.run_id }}
-        run: terraform plan -detailed-exitcode -input=false
+        run: terraform plan -detailed-exitcode -input=false -lock=false
 
       - name: Terraform destroy (always, with retry)
         if: always()
@@ -127,7 +127,7 @@ jobs:
           set +e
           for attempt in 1 2; do
             echo "::group::Destroy attempt $attempt"
-            terraform destroy -auto-approve -input=false
+            terraform destroy -auto-approve -input=false -lock=false
             rc=$?
             echo "::endgroup::"
             if [ $rc -eq 0 ]; then
