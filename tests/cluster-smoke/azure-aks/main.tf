@@ -32,7 +32,7 @@ resource "qovery_cluster" "smoke" {
   region            = "westeurope"
   kubernetes_mode   = "MANAGED"
   instance_type     = "Standard_B2s_v2"
-  min_running_nodes = 1
+  min_running_nodes = 3
   max_running_nodes = 3
   state             = "DEPLOYED"
 }

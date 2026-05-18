@@ -29,10 +29,10 @@ resource "qovery_cluster" "smoke" {
   organization_id   = var.organization_id
   name              = var.cluster_name
   cloud_provider    = "SCW"
-  region            = "fr-par"
+  region            = "fr-par-1"
   kubernetes_mode   = "MANAGED"
   instance_type     = "DEV1-M"
-  min_running_nodes = 1
+  min_running_nodes = 3
   max_running_nodes = 3
   state             = "DEPLOYED"
 }
