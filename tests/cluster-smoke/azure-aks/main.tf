@@ -29,7 +29,7 @@ resource "qovery_cluster" "smoke" {
   organization_id   = var.organization_id
   name              = var.cluster_name
   cloud_provider    = "AZURE"
-  region            = "westeurope"
+  region            = "francecentral"
   kubernetes_mode   = "MANAGED"
   instance_type     = "Standard_B2s_v2"
   min_running_nodes = 3
