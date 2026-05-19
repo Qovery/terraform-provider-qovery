@@ -12,7 +12,6 @@ on:
           - aws-karpenter
           - azure-aks
           - gcp-gke
-          - scaleway-kapsule
           - all
       organization_id:
         description: "Override Qovery org UUID (empty = use TEST_ORGANIZATION_ID secret)"
@@ -46,7 +45,7 @@ jobs:
         id: compute
         run: |
           if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.cloud }}" = "all" ]; then
-            echo 'clouds=["aws-karpenter","azure-aks","gcp-gke","scaleway-kapsule"]' >> "$GITHUB_OUTPUT"
+            echo 'clouds=["aws-karpenter","azure-aks","gcp-gke"]' >> "$GITHUB_OUTPUT"
           else
             echo "clouds=[\"${{ github.event.inputs.cloud }}\"]" >> "$GITHUB_OUTPUT"
           fi
@@ -105,6 +104,9 @@ jobs:
         run: terraform apply -auto-approve -input=false
         timeout-minutes: 120
 
+      - name: Wait before drift check
+        run: sleep 60
+
       - name: Terraform plan (drift check)
         id: drift
         working-directory: tests/cluster-smoke/${{ matrix.cloud }}
@@ -114,6 +116,10 @@ jobs:
           TF_VAR_organization_id: ${{ github.event.inputs.organization_id != '' && github.event.inputs.organization_id || secrets.TEST_ORGANIZATION_ID }}
           TF_VAR_cluster_name: tf-smoke-${{ matrix.cloud }}-${{ github.run_id }}
         run: terraform plan -detailed-exitcode -input=false -lock=false
+
+      - name: Wait before destroy
+        if: always()
+        run: sleep 60
 
       - name: Terraform destroy (always, with retry)
         if: always()

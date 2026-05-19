@@ -6,8 +6,8 @@ Daily integration check that creates a fresh Qovery cluster on each cloud provid
 
 - **Workflow:** `.github/workflows/cluster-tests.yml`
 - **Schedule:** Mon–Fri 03:00 UTC (enabled in a later commit; until then, `workflow_dispatch` only)
-- **Clouds:** AWS (EKS+Karpenter), Azure (AKS), GCP (GKE Autopilot), Scaleway (Kapsule)
-- **Manual trigger:** `gh workflow run cluster-tests.yml -f cloud=<cloud>` where `<cloud>` is one of `aws-karpenter`, `azure-aks`, `gcp-gke`, `scaleway-kapsule`, `all`.
+- **Clouds:** AWS (EKS+Karpenter), Azure (AKS), GCP (GKE Autopilot)
+- **Manual trigger:** `gh workflow run cluster-tests.yml -f cloud=<cloud>` where `<cloud>` is one of `aws-karpenter`, `azure-aks`, `gcp-gke`, `all`.
 
 ## Reading the Slack message
 
@@ -18,7 +18,6 @@ Daily Cluster Smoke Tests
 :white_check_mark: aws-karpenter — success (47 min)
 :x: azure-aks — failure (12 min)
 :white_check_mark: gcp-gke — success (23 min)
-:white_check_mark: scaleway-kapsule — success (18 min)
 ```
 
 Click "View Run" to see logs. Per-cloud duration is the heartbeat for speed regressions — eyeball it over a week.
@@ -43,4 +42,4 @@ There is no automated reaper. If a workflow run is hard-cancelled mid-apply, a r
 
 ## Costs (rough)
 
-Per scheduled run: ~$1–3 in cloud compute across all four clouds (cluster control plane minutes + minimal nodes). Mon–Fri only = ~$25–65/month.
+Per scheduled run: ~$1–3 in cloud compute across all three clouds (cluster control plane minutes + minimal nodes). Mon–Fri only = ~$25–65/month.
