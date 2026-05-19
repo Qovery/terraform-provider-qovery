@@ -37,7 +37,7 @@ env:
 jobs:
   setup:
     name: Resolve matrix
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     outputs:
       clouds: ${{ steps.compute.outputs.clouds }}
     steps:
@@ -53,8 +53,12 @@ jobs:
   smoke:
     name: ${{ matrix.cloud }}
     needs: setup
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     timeout-minutes: 180
+    env:
+      QOVERY_API_TOKEN: ${{ secrets.QOVERY_API_TOKEN }}
+      TF_VAR_organization_id: ${{ github.event.inputs.organization_id != '' && github.event.inputs.organization_id || secrets.TEST_ORGANIZATION_ID }}
+      TF_VAR_cluster_name: tf-smoke-${{ matrix.cloud }}-${{ github.run_id }}
     strategy:
       fail-fast: false
       matrix:
@@ -62,6 +66,9 @@ jobs:
     steps:
       - name: Check out source code
         uses: actions/checkout@v6
+        with:
+          sparse-checkout: tests/cluster-smoke/${{ matrix.cloud }}
+          sparse-checkout-cone-mode: false
 
       - name: Set up Terraform
         uses: hashicorp/setup-terraform@v4
@@ -89,46 +96,28 @@ jobs:
 
       - name: Terraform init
         working-directory: tests/cluster-smoke/${{ matrix.cloud }}
-        env:
-          QOVERY_API_TOKEN: ${{ secrets.QOVERY_API_TOKEN }}
         run: terraform init -input=false
 
       - name: Terraform apply
         id: apply
         working-directory: tests/cluster-smoke/${{ matrix.cloud }}
         env:
-          QOVERY_API_TOKEN: ${{ secrets.QOVERY_API_TOKEN }}
           TF_VAR_credentials_id: ${{ steps.creds.outputs.id }}
-          TF_VAR_organization_id: ${{ github.event.inputs.organization_id != '' && github.event.inputs.organization_id || secrets.TEST_ORGANIZATION_ID }}
-          TF_VAR_cluster_name: tf-smoke-${{ matrix.cloud }}-${{ github.run_id }}
         run: terraform apply -auto-approve -input=false
         timeout-minutes: 120
-
-      - name: Wait before drift check
-        run: sleep 60
 
       - name: Terraform plan (drift check)
         id: drift
         working-directory: tests/cluster-smoke/${{ matrix.cloud }}
         env:
-          QOVERY_API_TOKEN: ${{ secrets.QOVERY_API_TOKEN }}
           TF_VAR_credentials_id: ${{ steps.creds.outputs.id }}
-          TF_VAR_organization_id: ${{ github.event.inputs.organization_id != '' && github.event.inputs.organization_id || secrets.TEST_ORGANIZATION_ID }}
-          TF_VAR_cluster_name: tf-smoke-${{ matrix.cloud }}-${{ github.run_id }}
         run: terraform plan -detailed-exitcode -input=false -lock=false
-
-      - name: Wait before destroy
-        if: always()
-        run: sleep 60
 
       - name: Terraform destroy (always, with retry)
         if: always()
         working-directory: tests/cluster-smoke/${{ matrix.cloud }}
         env:
-          QOVERY_API_TOKEN: ${{ secrets.QOVERY_API_TOKEN }}
           TF_VAR_credentials_id: ${{ steps.creds.outputs.id }}
-          TF_VAR_organization_id: ${{ github.event.inputs.organization_id != '' && github.event.inputs.organization_id || secrets.TEST_ORGANIZATION_ID }}
-          TF_VAR_cluster_name: tf-smoke-${{ matrix.cloud }}-${{ github.run_id }}
         run: |
           set +e
           for attempt in 1 2; do
