@@ -1,0 +1,201 @@
+name: Cluster Smoke Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      cloud:
+        description: "Cloud to test (or 'all')"
+        type: choice
+        required: true
+        default: aws-karpenter
+        options:
+          - aws-karpenter
+          - azure-aks
+          - gcp-gke
+          - all
+      organization_id:
+        description: "Override Qovery org UUID (empty = use TEST_ORGANIZATION_ID secret)"
+        type: string
+        required: false
+        default: ""
+      credentials_id:
+        description: "Override Qovery credentials UUID for the selected cloud (empty = use per-cloud secret). Ignored when cloud=all."
+        type: string
+        required: false
+        default: ""
+  schedule:
+    - cron: "0 3 * * 1-5" # Mon–Fri 03:00 UTC
+
+concurrency:
+  group: cluster-tests
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  TF_VERSION: "1.14.*"
+
+jobs:
+  setup:
+    name: Resolve matrix
+    runs-on: ubuntu-latest
+    outputs:
+      clouds: ${{ steps.compute.outputs.clouds }}
+    steps:
+      - name: Compute cloud list from trigger
+        id: compute
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.cloud }}" = "all" ]; then
+            echo 'clouds=["aws-karpenter","azure-aks","gcp-gke"]' >> "$GITHUB_OUTPUT"
+          else
+            echo "clouds=[\"${{ github.event.inputs.cloud }}\"]" >> "$GITHUB_OUTPUT"
+          fi
+
+  smoke:
+    name: ${{ matrix.cloud }}
+    needs: setup
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    env:
+      QOVERY_API_TOKEN: ${{ secrets.QOVERY_API_TOKEN }}
+      TF_VAR_organization_id: ${{ github.event.inputs.organization_id != '' && github.event.inputs.organization_id || secrets.TEST_ORGANIZATION_ID }}
+      TF_VAR_cluster_name: tf-smoke-${{ matrix.cloud }}-${{ github.run_id }}
+    strategy:
+      fail-fast: false
+      matrix:
+        cloud: ${{ fromJson(needs.setup.outputs.clouds) }}
+    steps:
+      - name: Check out source code
+        uses: actions/checkout@v6
+        with:
+          sparse-checkout: tests/cluster-smoke/${{ matrix.cloud }}
+          sparse-checkout-cone-mode: false
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: ${{ env.TF_VERSION }}
+          terraform_wrapper: false
+
+      - name: Resolve credentials_id for matrix entry
+        id: creds
+        env:
+          INPUT_CREDENTIALS_ID: ${{ github.event.inputs.credentials_id }}
+          INPUT_CLOUD: ${{ github.event.inputs.cloud }}
+        run: |
+          if [ -n "$INPUT_CREDENTIALS_ID" ] && [ "$INPUT_CLOUD" != "all" ]; then
+            echo "id=$INPUT_CREDENTIALS_ID" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "${{ matrix.cloud }}" in
+            aws-karpenter)    echo "id=${{ secrets.TEST_AWS_CREDENTIALS_ID }}" >> "$GITHUB_OUTPUT" ;;
+            azure-aks)        echo "id=${{ secrets.TEST_AZURE_CREDENTIALS_ID }}" >> "$GITHUB_OUTPUT" ;;
+            gcp-gke)          echo "id=${{ secrets.TEST_GCP_CREDENTIALS_ID }}" >> "$GITHUB_OUTPUT" ;;
+            scaleway-kapsule) echo "id=${{ secrets.TEST_SCALEWAY_CREDENTIALS_ID }}" >> "$GITHUB_OUTPUT" ;;
+            *) echo "Unknown cloud: ${{ matrix.cloud }}"; exit 1 ;;
+          esac
+
+      - name: Terraform init
+        working-directory: tests/cluster-smoke/${{ matrix.cloud }}
+        run: terraform init -input=false
+
+      - name: Terraform apply
+        id: apply
+        working-directory: tests/cluster-smoke/${{ matrix.cloud }}
+        env:
+          TF_VAR_credentials_id: ${{ steps.creds.outputs.id }}
+        run: terraform apply -auto-approve -input=false
+        timeout-minutes: 120
+
+      - name: Terraform plan (drift check)
+        id: drift
+        working-directory: tests/cluster-smoke/${{ matrix.cloud }}
+        env:
+          TF_VAR_credentials_id: ${{ steps.creds.outputs.id }}
+        run: terraform plan -detailed-exitcode -input=false -lock=false
+
+      - name: Terraform destroy (always, with retry)
+        if: always()
+        working-directory: tests/cluster-smoke/${{ matrix.cloud }}
+        env:
+          TF_VAR_credentials_id: ${{ steps.creds.outputs.id }}
+        run: |
+          set +e
+          for attempt in 1 2; do
+            echo "::group::Destroy attempt $attempt"
+            terraform destroy -auto-approve -input=false -lock=false
+            rc=$?
+            echo "::endgroup::"
+            if [ $rc -eq 0 ]; then
+              echo "Destroy succeeded on attempt $attempt"
+              exit 0
+            fi
+            echo "Destroy failed on attempt $attempt (rc=$rc), retrying in 60s..."
+            sleep 60
+          done
+          echo "::error::Destroy failed twice — manual cleanup may be required for tf-smoke-${{ matrix.cloud }}-${{ github.run_id }}"
+          exit 1
+        timeout-minutes: 60
+
+  notify-slack:
+    name: Notify Slack
+    needs: [smoke]
+    if: always() && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Compute per-cloud status & duration
+        id: gather
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          jobs_json=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs" --paginate)
+          summary=$(echo "$jobs_json" | jq -r '
+            .jobs[]
+            | select(.name | startswith("aws-") or startswith("azure-") or startswith("gcp-") or startswith("scaleway-"))
+            | {
+                name: .name,
+                conclusion: .conclusion,
+                started: .started_at,
+                completed: .completed_at,
+              }
+            | .duration_min = (((.completed | fromdate) - (.started | fromdate)) / 60 | floor)
+            | "\(if .conclusion == "success" then ":white_check_mark:" else ":x:" end) *\(.name)* — \(.conclusion) (\(.duration_min) min)"
+          ')
+          {
+            echo 'summary<<EOF'
+            echo "$summary"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Send Slack notification
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
+          webhook-type: incoming-webhook
+          payload: |
+            {
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*Daily Cluster Smoke Tests*\n${{ steps.gather.outputs.summary }}"
+                  }
+                },
+                {
+                  "type": "actions",
+                  "elements": [
+                    {
+                      "type": "button",
+                      "text": {
+                        "type": "plain_text",
+                        "text": "View Run"
+                      },
+                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+                    }
+                  ]
+                }
+              ]
+            }
