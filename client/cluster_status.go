@@ -46,5 +46,5 @@ func (c *Client) updateClusterStatus(ctx context.Context, organizationID string,
 		}
 	}
 
-	return status.Status, nil
+	return &status.Status, nil
 }

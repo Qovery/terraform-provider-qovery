@@ -32,7 +32,7 @@ func (c *Client) deployCluster(ctx context.Context, organizationID string, clust
 	if apiError != nil {
 		return nil, apiError
 	}
-	return clusterStatus.Status, nil
+	return &clusterStatus.Status, nil
 }
 
 func (c *Client) stopCluster(ctx context.Context, organizationID string, cluster *qovery.Cluster) (*qovery.ClusterStateEnum, *apierrors.APIError) {
@@ -75,5 +75,5 @@ func (c *Client) stopCluster(ctx context.Context, organizationID string, cluster
 	if apiError != nil {
 		return nil, apiErr
 	}
-	return clusterStatus.Status, nil
+	return &clusterStatus.Status, nil
 }
