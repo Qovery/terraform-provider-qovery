@@ -104,6 +104,7 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				MarkdownDescription: "Id of the environment. Changing this forces the database to be re-created.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 					stringplanmodifier.RequiresReplace(),
 				},
 			},

@@ -76,9 +76,10 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 			},
 			"environment_id": schema.StringAttribute{
 				Description:         "Id of the environment.",
-				MarkdownDescription: "Id of the environment.",
+				MarkdownDescription: "Id of the environment. Changing this forces the job to be re-created.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 					stringplanmodifier.RequiresReplace(),
 				},
 			},
