@@ -101,7 +101,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 - `backend` (Attributes) Terraform backend configuration. Exactly one backend type must be specified. (see [below for nested schema](#nestedatt--backend))
 - `engine` (String) Terraform engine to use (TERRAFORM or OPEN_TOFU).
 - `engine_version` (Attributes) Terraform/OpenTofu engine version configuration. (see [below for nested schema](#nestedatt--engine_version))
-- `environment_id` (String) Id of the environment.
+- `environment_id` (String) Id of the environment. Changing this forces the terraform service to be re-created.
 - `git_repository` (Attributes) Terraform service git repository configuration. (see [below for nested schema](#nestedatt--git_repository))
 - `job_resources` (Attributes) Resource allocation for the Terraform job. (see [below for nested schema](#nestedatt--job_resources))
 - `name` (String) Name of the terraform service.

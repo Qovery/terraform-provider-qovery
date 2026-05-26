@@ -163,7 +163,7 @@ resource "qovery_helm" "my_helm_from_git" {
 
 - `allow_cluster_wide_resources` (Boolean) Allow this chart to deploy resources outside of this environment namespace (including CRDs or non-namespaced resources)
 - `description` (String) Description of the helm service.
-- `environment_id` (String) Id of the environment.
+- `environment_id` (String) Id of the environment. Changing this forces the helm service to be re-created.
 - `name` (String) Name of the helm service.
 - `source` (Attributes) Helm chart source. Use `helm_repository` to deploy from a Helm repository, or `git_repository` to deploy from a git repository. (see [below for nested schema](#nestedatt--source))
 - `values_override` (Attributes) Define your own overrides to customize the helm chart behaviour. (see [below for nested schema](#nestedatt--values_override))

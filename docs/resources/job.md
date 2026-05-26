@@ -163,7 +163,7 @@ You can find complete examples within these repositories:
 
 ### Required
 
-- `environment_id` (String) Id of the environment.
+- `environment_id` (String) Id of the environment. Changing this forces the job to be re-created.
 - `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service. At least one of `readiness_probe` or `liveness_probe` should be configured for production workloads. (see [below for nested schema](#nestedatt--healthchecks))
 - `name` (String) Name of the job.
 - `schedule` (Attributes) Job's schedule configuration. Use `on_start`, `on_stop`, and `on_delete` for lifecycle jobs, or `cronjob` for cron jobs. (see [below for nested schema](#nestedatt--schedule))
