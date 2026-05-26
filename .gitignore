@@ -56,4 +56,4 @@ terraform.rc
 terraform
 
 # Ignore test output json file
-test-output.json
+test-output.json.worktrees/
