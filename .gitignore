@@ -57,3 +57,4 @@ terraform
 
 # Ignore test output json file
 test-output.json.worktrees/
+test-output.json

@@ -74,7 +74,7 @@ func (r deploymentStageResource) Schema(_ context.Context, _ resource.SchemaRequ
 				MarkdownDescription: "Identifier of the environment for this deployment stage (UUID format). **Cannot be changed after creation** (forces resource replacement).",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{

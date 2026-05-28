@@ -82,7 +82,7 @@ func (r environmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				MarkdownDescription: "Identifier of the cluster where this environment will be deployed (UUID format). **Cannot be changed after creation** (forces resource replacement).",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
