@@ -10,6 +10,7 @@ var (
 	ErrInvalidArgoCdDestinationClusterMapping = errors.New("invalid argocd destination cluster mapping")
 	ErrInvalidOrganizationIDParam             = errors.New("invalid organization id param")
 	ErrInvalidAgentClusterIDParam             = errors.New("invalid agent cluster id param")
+	ErrInvalidClusterIDParam                  = errors.New("invalid cluster id param")
 	ErrInvalidUpsertRequest                   = errors.New("invalid argocd destination cluster mapping upsert request")
 )
 

@@ -38,28 +38,28 @@ var (
 type Services struct {
 	repos *repositories.Repositories
 
-	CredentialsAws                credentials.AwsService
-	CredentialsScaleway           credentials.ScalewayService
-	CredentialsGcp                credentials.GcpService
-	CredentialsAzure              credentials.AzureService
-	CredentialsEksAnywhereVsphere credentials.EksAnywhereVsphereService
-	Organization                  organization.Service
-	Project                       project.Service
-	Container                     container.Service
-	Job                           job.Service
-	ContainerRegistry             registry.Service
-	Environment                   environment.Service
-	DeploymentStage               deploymentstage.Service
-	Deployment                    newdeployment.Service
-	GitToken                      gittoken.Service
-	Helm                          helm.Service
-	HelmRepository                helmRepository.Service
-	AnnotationsGroup              annotations_group.Service
-	LabelsGroup                   labels_group.Service
-	DeploymentRestrictionService            deploymentrestriction.DeploymentRestrictionService
-	TerraformService                        terraformservice.Service
-	ArgoCdCredentials                       argoCdCredentials.Service
-	ArgoCdDestinationClusterMapping         argoCdDestinationClusterMapping.Service
+	CredentialsAws                  credentials.AwsService
+	CredentialsScaleway             credentials.ScalewayService
+	CredentialsGcp                  credentials.GcpService
+	CredentialsAzure                credentials.AzureService
+	CredentialsEksAnywhereVsphere   credentials.EksAnywhereVsphereService
+	Organization                    organization.Service
+	Project                         project.Service
+	Container                       container.Service
+	Job                             job.Service
+	ContainerRegistry               registry.Service
+	Environment                     environment.Service
+	DeploymentStage                 deploymentstage.Service
+	Deployment                      newdeployment.Service
+	GitToken                        gittoken.Service
+	Helm                            helm.Service
+	HelmRepository                  helmRepository.Service
+	AnnotationsGroup                annotations_group.Service
+	LabelsGroup                     labels_group.Service
+	DeploymentRestrictionService    deploymentrestriction.DeploymentRestrictionService
+	TerraformService                terraformservice.Service
+	ArgoCdCredentials               argoCdCredentials.Service
+	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Service
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.

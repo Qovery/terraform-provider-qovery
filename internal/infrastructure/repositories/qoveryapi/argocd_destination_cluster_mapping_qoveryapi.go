@@ -58,7 +58,7 @@ func (a argoCdDestinationClusterMappingQoveryAPI) Get(ctx context.Context, orgID
 					}
 					clusterUUID, err := uuid.Parse(linked.QoveryClusterId)
 					if err != nil {
-						return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIDParam.Error())
+						return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidClusterIDParam.Error())
 					}
 					return &argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping{
 						OrganizationID:   orgUUID,
@@ -109,7 +109,7 @@ func newDomainArgoCdDestinationClusterMappingFromResponse(orgID string, res *qov
 	}
 	clusterUUID, err := uuid.Parse(res.GetClusterId())
 	if err != nil {
-		return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIDParam.Error())
+		return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidClusterIDParam.Error())
 	}
 	return &argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping{
 		OrganizationID:   orgUUID,
