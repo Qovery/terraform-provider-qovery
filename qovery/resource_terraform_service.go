@@ -78,10 +78,10 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			},
 			"environment_id": schema.StringAttribute{
 				Description:         "Id of the environment.",
-				MarkdownDescription: "Id of the environment.",
+				MarkdownDescription: "Id of the environment. Changing this forces the terraform service to be re-created.",
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"deployment_stage_id": schema.StringAttribute{

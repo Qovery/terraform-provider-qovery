@@ -6,6 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
@@ -277,4 +278,28 @@ func attrChanged[T attr.Value](ctx context.Context, req planmodifier.ListRequest
 // the env var values. See useStateUnlessNameChangesModifier for the trigger list.
 func UseStateUnlessNameChanges() planmodifier.List {
 	return useStateUnlessNameChangesModifier{}
+}
+
+// RequiresReplaceIfKnownChange triggers resource replacement only when the planned
+// value is known AND differs from state. When the planned value is unknown,
+// replacement is suppressed.
+//
+// Use this in place of stringplanmodifier.RequiresReplace() on attributes that may
+// be sourced from data sources (e.g. environment_id, cluster_id).
+func RequiresReplaceIfKnownChange() planmodifier.String {
+	return stringplanmodifier.RequiresReplaceIf(
+		requiresReplaceIfKnownChangeFunc,
+		"If the value changes to a different known value, Terraform will destroy and recreate the resource. Replacement is skipped when the planned value is unknown.",
+		"If the value changes to a different known value, Terraform will destroy and recreate the resource. Replacement is **skipped when the planned value is unknown** (e.g., a deferred data source during a `-target` apply).",
+	)
+}
+
+// requiresReplaceIfKnownChangeFunc is the predicate evaluated by
+// RequiresReplaceIfKnownChange after the framework's gates (resource create/destroy,
+// plan==state) have passed.
+func requiresReplaceIfKnownChangeFunc(_ context.Context, req planmodifier.StringRequest, resp *stringplanmodifier.RequiresReplaceIfFuncResponse) {
+	if req.PlanValue.IsUnknown() {
+		return
+	}
+	resp.RequiresReplace = true
 }
