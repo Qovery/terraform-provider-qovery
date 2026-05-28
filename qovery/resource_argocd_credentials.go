@@ -63,7 +63,7 @@ func (r argoCdCredentialsResource) Schema(_ context.Context, _ resource.SchemaRe
 				Description: "Id of the cluster.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"argocd_url": schema.StringAttribute{

@@ -65,21 +65,21 @@ func (r argoCdDestinationClusterMappingResource) Schema(_ context.Context, _ res
 				Description: "Id of the organization.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"agent_cluster_id": schema.StringAttribute{
 				Description: "Id of the Qovery cluster where the ArgoCD instance is running.",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"argocd_cluster_url": schema.StringAttribute{
 				Description: "URL of the ArgoCD destination cluster (e.g. https://kubernetes.default.svc).",
 				Required:    true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.RequiresReplace(),
+					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"cluster_id": schema.StringAttribute{
