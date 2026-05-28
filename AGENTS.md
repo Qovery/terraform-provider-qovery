@@ -168,7 +168,7 @@ deploymentStage, _, _ := c.client.DeploymentStageMainCallsAPI.GetServiceDeployme
 | **Unit**       | `unit`        | `internal/` | Fast, isolated, mock-based        | `task test`    |
 | **Acceptance** | `integration` | `qovery/`   | Terraform lifecycle with real API | `task testacc` |
 
-**Rule**: Write unit tests first. Acceptance tests only for critical Terraform paths.
+**Rule**: Write unit tests first. Whenever feasible, add an acceptance test alongside — especially for Terraform-visible behavior (plan/apply errors, replacement triggers, state consistency). Unit-only is fine for purely internal logic; acceptance-only is reserved for paths that can't be unit-tested.
 
 ### Directory Structure
 
