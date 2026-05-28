@@ -23,10 +23,6 @@ func (c ArgoCdCredentials) Validate() error {
 	return validator.New().Struct(c)
 }
 
-func (c ArgoCdCredentials) IsValid() bool {
-	return c.Validate() == nil
-}
-
 type UpsertRequest struct {
 	ArgocdUrl   string `validate:"required"`
 	ArgocdToken string `validate:"required"`
@@ -37,8 +33,4 @@ func (r UpsertRequest) Validate() error {
 		return errors.Wrap(err, ErrInvalidUpsertRequest.Error())
 	}
 	return nil
-}
-
-func (r UpsertRequest) IsValid() bool {
-	return r.Validate() == nil
 }
