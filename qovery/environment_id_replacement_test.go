@@ -244,8 +244,6 @@ func collectVulnerableAttributes(t *testing.T) []vulnerableAttribute {
 		{"qovery_terraform_service", "environment_id", schemaOf(terraformServiceResource{})},
 		{"qovery_deployment_stage", "environment_id", schemaOf(deploymentStageResource{})},
 		{"qovery_environment", "cluster_id", schemaOf(environmentResource{})},
-		// QOV-1946 — parent-ID attributes that previously allowed in-place updates
-		// and produced "Provider produced inconsistent result after apply".
 		{"qovery_environment", "project_id", schemaOf(environmentResource{})},
 		{"qovery_project", "organization_id", schemaOf(projectResource{})},
 		{"qovery_cluster", "organization_id", schemaOf(clusterResource{})},

@@ -402,17 +402,8 @@ func TestAcc_EnvironmentWithMode(t *testing.T) {
 	})
 }
 
-// TestAcc_EnvironmentProjectIDChangeForcesReplacement asserts that changing
-// project_id on an existing qovery_environment triggers a destroy-and-recreate.
-//
-// Before QOV-1946, project_id was Required but lacked a RequiresReplace plan
-// modifier. Terraform planned an in-place update, but the Qovery API has no
-// endpoint to move an environment between projects — so apply produced:
-//   "Provider produced inconsistent result after apply: .project_id was
-//   <project_B_id> but returned <project_A_id>".
-//
-// Today: step 2 fails with that error → test fails.
-// After fix: step 2 destroys+recreates the environment → ID changes → test passes.
+// Asserts that changing project_id on an existing qovery_environment triggers
+// a destroy-and-recreate (new resource ID) rather than an in-place update.
 func TestAcc_EnvironmentProjectIDChangeForcesReplacement(t *testing.T) {
 	t.Parallel()
 	testName := "environment-project-id-replace"
@@ -442,7 +433,6 @@ func TestAcc_EnvironmentProjectIDChangeForcesReplacement(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccQoveryEnvironmentDestroy("qovery_environment.test"),
 		Steps: []resource.TestStep{
-			// Step 1: create environment under project "a"
 			{
 				Config: testAccEnvironmentDualProjectConfig(testName, "a"),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -451,7 +441,6 @@ func TestAcc_EnvironmentProjectIDChangeForcesReplacement(t *testing.T) {
 					captureID,
 				),
 			},
-			// Step 2: switch project_id to project "b" — must trigger replacement.
 			{
 				Config: testAccEnvironmentDualProjectConfig(testName, "b"),
 				Check: resource.ComposeAggregateTestCheckFunc(
@@ -505,9 +494,8 @@ func testAccQoveryEnvironmentDestroy(resourceName string) resource.TestCheckFunc
 	}
 }
 
-// testAccEnvironmentDualProjectConfig declares two projects ("a" and "b") and
-// wires the environment to the one named by `target` (either "a" or "b").
-// Used by TestAcc_EnvironmentProjectIDChangeForcesReplacement.
+// Declares two projects ("a" and "b") and wires the environment to the one
+// named by target.
 func testAccEnvironmentDualProjectConfig(testName, target string) string {
 	return fmt.Sprintf(`
 resource "qovery_project" "a" {
