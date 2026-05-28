@@ -26,7 +26,7 @@ func (a ArgoCdDestinationClusterMapping) toUpsertRequest() argoCdDestinationClus
 
 func convertDomainArgoCdDestinationClusterMappingToTF(res *argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping) ArgoCdDestinationClusterMapping {
 	return ArgoCdDestinationClusterMapping{
-		Id:               FromString(fmt.Sprintf("%s:%s", res.AgentClusterID.String(), res.ArgocdClusterUrl)),
+		Id:               FromString(fmt.Sprintf("%s,%s,%s", res.OrganizationID.String(), res.AgentClusterID.String(), res.ArgocdClusterUrl)),
 		OrganizationId:   FromString(res.OrganizationID.String()),
 		AgentClusterId:   FromString(res.AgentClusterID.String()),
 		ArgocdClusterUrl: FromString(res.ArgocdClusterUrl),

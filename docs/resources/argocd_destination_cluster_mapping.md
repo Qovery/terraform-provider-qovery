@@ -30,7 +30,7 @@ resource "qovery_argocd_destination_cluster_mapping" "example" {
 
 ### Read-Only
 
-- `id` (String) Composite identifier of the mapping (agent_cluster_id:argocd_cluster_url).
+- `id` (String) Composite identifier of the mapping, matching the import format (organization_id,agent_cluster_id,argocd_cluster_url).
 ## Import
 ```shell
 terraform import qovery_argocd_destination_cluster_mapping.my_mapping "<organization_id>,<agent_cluster_id>,<argocd_cluster_url>"

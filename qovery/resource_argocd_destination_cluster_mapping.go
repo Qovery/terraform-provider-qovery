@@ -55,7 +55,7 @@ func (r argoCdDestinationClusterMappingResource) Schema(_ context.Context, _ res
 		Description: "Provides a Qovery ArgoCD destination cluster mapping resource. This maps an ArgoCD destination cluster URL to a Qovery cluster.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Composite identifier of the mapping (agent_cluster_id:argocd_cluster_url).",
+				Description: "Composite identifier of the mapping, matching the import format (organization_id,agent_cluster_id,argocd_cluster_url).",
 				Computed:    true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
