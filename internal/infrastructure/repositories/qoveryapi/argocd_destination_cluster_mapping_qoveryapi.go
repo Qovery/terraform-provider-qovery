@@ -44,33 +44,43 @@ func (a argoCdDestinationClusterMappingQoveryAPI) Get(ctx context.Context, orgID
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceArgoCdDestinationClusterMapping, agentClusterID, resp, err)
 	}
 
+	// agentFound lets us distinguish a genuine deletion from ArgoCD eventual consistency:
+	// if the agent cluster is present in the live list but the mapping is not among its linked
+	// clusters, ArgoCD has polled the agent and no longer reports the mapping → genuine deletion.
+	// If the agent cluster is absent entirely, ArgoCD has not polled it yet → soft not-found.
+	agentFound := false
 	for _, instance := range list.GetResults() {
-		if instance.AgentClusterId == agentClusterID {
-			for _, linked := range instance.GetLinkedClusters() {
-				if linked.ArgocdClusterUrl == argocdClusterUrl {
-					orgUUID, err := uuid.Parse(orgID)
-					if err != nil {
-						return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidOrganizationIDParam.Error())
-					}
-					agentUUID, err := uuid.Parse(agentClusterID)
-					if err != nil {
-						return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIDParam.Error())
-					}
-					clusterUUID, err := uuid.Parse(linked.QoveryClusterId)
-					if err != nil {
-						return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidClusterIDParam.Error())
-					}
-					return &argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping{
-						OrganizationID:   orgUUID,
-						AgentClusterID:   agentUUID,
-						ArgocdClusterUrl: argocdClusterUrl,
-						ClusterID:        clusterUUID,
-					}, nil
+		if instance.AgentClusterId != agentClusterID {
+			continue
+		}
+		agentFound = true
+		for _, linked := range instance.GetLinkedClusters() {
+			if linked.ArgocdClusterUrl == argocdClusterUrl {
+				orgUUID, err := uuid.Parse(orgID)
+				if err != nil {
+					return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidOrganizationIDParam.Error())
 				}
+				agentUUID, err := uuid.Parse(agentClusterID)
+				if err != nil {
+					return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIDParam.Error())
+				}
+				clusterUUID, err := uuid.Parse(linked.QoveryClusterId)
+				if err != nil {
+					return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidClusterIDParam.Error())
+				}
+				return &argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping{
+					OrganizationID:   orgUUID,
+					AgentClusterID:   agentUUID,
+					ArgocdClusterUrl: argocdClusterUrl,
+					ClusterID:        clusterUUID,
+				}, nil
 			}
 		}
 	}
 
+	if agentFound {
+		return nil, argoCdDestinationClusterMapping.ErrNotFound
+	}
 	return nil, argoCdDestinationClusterMapping.ErrNotFoundInList
 }
 

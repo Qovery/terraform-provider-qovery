@@ -123,9 +123,17 @@ func (r argoCdDestinationClusterMappingResource) Read(ctx context.Context, req r
 		state.ArgocdClusterUrl.ValueString(),
 	)
 	if err != nil {
-		// The list API only surfaces clusters ArgoCD has actively discovered; a
-		// mapping may not appear until ArgoCD has polled the destination. Preserve
-		// existing state rather than surfacing a spurious error.
+		// ArgoCD has polled the agent cluster but no longer reports this mapping, so it was
+		// genuinely deleted out-of-band. Drop it from state so Terraform plans a re-create.
+		if errors.Is(err, argoCdDestinationClusterMapping.ErrNotFound) {
+			tflog.Warn(ctx, "argocd destination cluster mapping no longer present in live cluster list — removing from state",
+				map[string]any{"agent_cluster_id": state.AgentClusterId.ValueString()})
+			resp.State.RemoveResource(ctx)
+			return
+		}
+		// The agent cluster is not yet visible in the live list; a freshly-saved mapping may
+		// not appear until ArgoCD has polled it. Preserve existing state rather than surfacing
+		// a spurious error (or wrongly dropping a mapping that does still exist).
 		if errors.Is(err, argoCdDestinationClusterMapping.ErrNotFoundInList) {
 			tflog.Warn(ctx, "argocd destination cluster mapping not yet visible in live cluster list — preserving state",
 				map[string]any{"agent_cluster_id": state.AgentClusterId.ValueString()})
