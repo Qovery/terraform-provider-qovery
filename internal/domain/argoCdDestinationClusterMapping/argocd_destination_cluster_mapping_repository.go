@@ -1,5 +1,7 @@
 package argoCdDestinationClusterMapping
 
+//go:generate mockery --testonly --with-expecter --name=Repository --structname=ArgoCdDestinationClusterMappingRepository --filename=argocd_destination_cluster_mapping_repository_mock.go --output=../../infrastructure/repositories/mocks_test/ --outpkg=mocks_test
+
 import "context"
 
 // Repository represents the interface to implement to handle the persistence of ArgoCD destination cluster mappings.
