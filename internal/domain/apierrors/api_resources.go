@@ -51,5 +51,7 @@ const (
 	APIResourceAnnotationsGroup               APIResource = "annotations group"
 	APIResourceLabelsGroup                    APIResource = "labels group"
 	APIResourceTerraformService               APIResource = "terraform service"
-	APIResourceEksAnywhereVsphereCredentials  APIResource = "eks anywhere vsphere credentials"
+	APIResourceEksAnywhereVsphereCredentials       APIResource = "eks anywhere vsphere credentials"
+	APIResourceArgoCdCredentials                   APIResource = "argocd credentials"
+	APIResourceArgoCdDestinationClusterMapping     APIResource = "argocd destination cluster mapping"
 )

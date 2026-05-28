@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdCredentials"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdDestinationClusterMapping"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
@@ -74,10 +76,12 @@ type QoveryAPI struct {
 	HelmDeployment                 deployment.Repository
 	HelmEnvironmentVariable        variable.Repository
 	HelmSecret                     secret.Repository
-	HelmRepository                 helmRepository.Repository
-	AnnotationsGroup               annotations_group.Repository
-	LabelsGroup                    labels_group.Repository
-	TerraformService               terraformservice.Repository
+	HelmRepository                      helmRepository.Repository
+	AnnotationsGroup                    annotations_group.Repository
+	LabelsGroup                         labels_group.Repository
+	TerraformService                    terraformservice.Repository
+	ArgoCdCredentials                   argoCdCredentials.Repository
+	ArgoCdDestinationClusterMapping     argoCdDestinationClusterMapping.Repository
 }
 
 // New returns a new instance of QoveryAPI and applies the given configs.
@@ -253,6 +257,16 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	argoCdCredentialsAPI, err := newArgoCdCredentialsQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
+	argoCdDestinationClusterMappingAPI, err := newArgoCdDestinationClusterMappingQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create a new QoveryAPI instance.
 	qoveryAPI := &QoveryAPI{
 		Client:                         apiClient,
@@ -285,10 +299,12 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		HelmDeployment:                 helmDeploymentAPI,
 		HelmEnvironmentVariable:        helmEnvironmentVariableAPI,
 		HelmSecret:                     helmSecretAPI,
-		HelmRepository:                 helmRepositoryAPI,
-		AnnotationsGroup:               annotationsGroupAPI,
-		LabelsGroup:                    labelsGroupAPI,
-		TerraformService:               terraformServiceAPI,
+		HelmRepository:                      helmRepositoryAPI,
+		AnnotationsGroup:                    annotationsGroupAPI,
+		LabelsGroup:                         labelsGroupAPI,
+		TerraformService:                    terraformServiceAPI,
+		ArgoCdCredentials:                   argoCdCredentialsAPI,
+		ArgoCdDestinationClusterMapping:     argoCdDestinationClusterMappingAPI,
 	}
 
 	// Apply all the configs to the qoveryAPI instance.

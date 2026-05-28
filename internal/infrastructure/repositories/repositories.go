@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdCredentials"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdDestinationClusterMapping"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
@@ -68,10 +70,12 @@ type Repositories struct {
 	HelmDeployment                 deployment.Repository
 	HelmEnvironmentVariable        variable.Repository
 	HelmSecret                     secret.Repository
-	HelmRepository                 helmRepository.Repository
-	AnnotationsGroupRepository     annotations_group.Repository
-	LabelsGroupRepository          labels_group.Repository
-	TerraformService               terraformservice.Repository
+	HelmRepository                       helmRepository.Repository
+	AnnotationsGroupRepository           annotations_group.Repository
+	LabelsGroupRepository                labels_group.Repository
+	TerraformService                     terraformservice.Repository
+	ArgoCdCredentials                    argoCdCredentials.Repository
+	ArgoCdDestinationClusterMapping      argoCdDestinationClusterMapping.Repository
 }
 
 func New(configs ...Configuration) (*Repositories, error) {
@@ -136,6 +140,8 @@ func WithQoveryAPI(apiToken string, providerVersion string, host string) Configu
 		repos.AnnotationsGroupRepository = qoveryAPI.AnnotationsGroup
 		repos.LabelsGroupRepository = qoveryAPI.LabelsGroup
 		repos.TerraformService = qoveryAPI.TerraformService
+		repos.ArgoCdCredentials = qoveryAPI.ArgoCdCredentials
+		repos.ArgoCdDestinationClusterMapping = qoveryAPI.ArgoCdDestinationClusterMapping
 
 		return nil
 	}

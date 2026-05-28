@@ -1,0 +1,120 @@
+package qoveryapi
+
+import (
+	"context"
+
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
+	"github.com/qovery/qovery-client-go"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdDestinationClusterMapping"
+)
+
+var _ argoCdDestinationClusterMapping.Repository = argoCdDestinationClusterMappingQoveryAPI{}
+
+type argoCdDestinationClusterMappingQoveryAPI struct {
+	client *qovery.APIClient
+}
+
+func newArgoCdDestinationClusterMappingQoveryAPI(client *qovery.APIClient) (argoCdDestinationClusterMapping.Repository, error) {
+	if client == nil {
+		return nil, ErrInvalidQoveryAPIClient
+	}
+	return &argoCdDestinationClusterMappingQoveryAPI{client: client}, nil
+}
+
+func (a argoCdDestinationClusterMappingQoveryAPI) Create(ctx context.Context, orgID string, request argoCdDestinationClusterMapping.UpsertRequest) (*argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping, error) {
+	req := qovery.NewArgoCdDestinationClusterMappingRequest(request.AgentClusterId, request.ArgocdClusterUrl, request.ClusterId)
+	res, resp, err := a.client.ArgoCDAPI.
+		SaveArgoCdDestinationClusterMapping(ctx, orgID).
+		ArgoCdDestinationClusterMappingRequest(*req).
+		Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceArgoCdDestinationClusterMapping, request.AgentClusterId, resp, err)
+	}
+	return newDomainArgoCdDestinationClusterMappingFromResponse(orgID, res)
+}
+
+func (a argoCdDestinationClusterMappingQoveryAPI) Get(ctx context.Context, orgID string, agentClusterID string, argocdClusterUrl string) (*argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping, error) {
+	list, resp, err := a.client.ArgoCDAPI.
+		ListArgoCdDestinationClusterMappings(ctx, orgID).
+		Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceArgoCdDestinationClusterMapping, agentClusterID, resp, err)
+	}
+
+	for _, instance := range list.GetResults() {
+		if instance.AgentClusterId == agentClusterID {
+			for _, linked := range instance.GetLinkedClusters() {
+				if linked.ArgocdClusterUrl == argocdClusterUrl {
+					orgUUID, err := uuid.Parse(orgID)
+					if err != nil {
+						return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidOrganizationIDParam.Error())
+					}
+					agentUUID, err := uuid.Parse(agentClusterID)
+					if err != nil {
+						return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIDParam.Error())
+					}
+					clusterUUID, err := uuid.Parse(linked.QoveryClusterId)
+					if err != nil {
+						return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIDParam.Error())
+					}
+					return &argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping{
+						OrganizationID:   orgUUID,
+						AgentClusterID:   agentUUID,
+						ArgocdClusterUrl: argocdClusterUrl,
+						ClusterID:        clusterUUID,
+					}, nil
+				}
+			}
+		}
+	}
+
+	return nil, argoCdDestinationClusterMapping.ErrNotFoundInList
+}
+
+func (a argoCdDestinationClusterMappingQoveryAPI) Update(ctx context.Context, orgID string, request argoCdDestinationClusterMapping.UpsertRequest) (*argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping, error) {
+	req := qovery.NewArgoCdDestinationClusterMappingRequest(request.AgentClusterId, request.ArgocdClusterUrl, request.ClusterId)
+	res, resp, err := a.client.ArgoCDAPI.
+		SaveArgoCdDestinationClusterMapping(ctx, orgID).
+		ArgoCdDestinationClusterMappingRequest(*req).
+		Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceArgoCdDestinationClusterMapping, request.AgentClusterId, resp, err)
+	}
+	return newDomainArgoCdDestinationClusterMappingFromResponse(orgID, res)
+}
+
+func (a argoCdDestinationClusterMappingQoveryAPI) Delete(ctx context.Context, orgID string, agentClusterID string, argocdClusterUrl string) error {
+	resp, err := a.client.ArgoCDAPI.
+		DeleteArgoCdDestinationClusterMapping(ctx, orgID).
+		AgentClusterId(agentClusterID).
+		ArgocdClusterUrl(argocdClusterUrl).
+		Execute()
+	if err != nil || resp.StatusCode >= 300 {
+		return apierrors.NewDeleteAPIError(apierrors.APIResourceArgoCdDestinationClusterMapping, agentClusterID, resp, err)
+	}
+	return nil
+}
+
+func newDomainArgoCdDestinationClusterMappingFromResponse(orgID string, res *qovery.ArgoCdDestinationClusterMappingResponse) (*argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping, error) {
+	orgUUID, err := uuid.Parse(orgID)
+	if err != nil {
+		return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidOrganizationIDParam.Error())
+	}
+	agentUUID, err := uuid.Parse(res.AgentClusterId)
+	if err != nil {
+		return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIDParam.Error())
+	}
+	clusterUUID, err := uuid.Parse(res.GetClusterId())
+	if err != nil {
+		return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIDParam.Error())
+	}
+	return &argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping{
+		OrganizationID:   orgUUID,
+		AgentClusterID:   agentUUID,
+		ArgocdClusterUrl: res.ArgocdClusterUrl,
+		ClusterID:        clusterUUID,
+	}, nil
+}
