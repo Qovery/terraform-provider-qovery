@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
@@ -94,13 +92,13 @@ func (a argoCdCredentialsQoveryAPI) checkConnection(ctx context.Context, cluster
 }
 
 func newDomainArgoCdCredentialsFromQovery(res *qovery.ArgoCdCredentialsResponse) (*argoCdCredentials.ArgoCdCredentials, error) {
-	id, err := uuid.Parse(res.Id)
+	id, err := parseUUID(res.Id, argoCdCredentials.ErrInvalidClusterIDParam)
 	if err != nil {
-		return nil, errors.Wrap(err, argoCdCredentials.ErrInvalidClusterIDParam.Error())
+		return nil, err
 	}
-	clusterID, err := uuid.Parse(res.ClusterId)
+	clusterID, err := parseUUID(res.ClusterId, argoCdCredentials.ErrInvalidClusterIDParam)
 	if err != nil {
-		return nil, errors.Wrap(err, argoCdCredentials.ErrInvalidClusterIDParam.Error())
+		return nil, err
 	}
 	return &argoCdCredentials.ArgoCdCredentials{
 		ID:          id,

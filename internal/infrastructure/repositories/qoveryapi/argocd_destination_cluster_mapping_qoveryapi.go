@@ -3,8 +3,6 @@ package qoveryapi
 import (
 	"context"
 
-	"github.com/google/uuid"
-	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
@@ -56,17 +54,17 @@ func (a argoCdDestinationClusterMappingQoveryAPI) Get(ctx context.Context, orgID
 		agentFound = true
 		for _, linked := range instance.GetLinkedClusters() {
 			if linked.ArgocdClusterUrl == argocdClusterUrl {
-				orgUUID, err := uuid.Parse(orgID)
+				orgUUID, err := parseUUID(orgID, argoCdDestinationClusterMapping.ErrInvalidOrganizationIDParam)
 				if err != nil {
-					return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidOrganizationIDParam.Error())
+					return nil, err
 				}
-				agentUUID, err := uuid.Parse(agentClusterID)
+				agentUUID, err := parseUUID(agentClusterID, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIDParam)
 				if err != nil {
-					return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIDParam.Error())
+					return nil, err
 				}
-				clusterUUID, err := uuid.Parse(linked.QoveryClusterId)
+				clusterUUID, err := parseUUID(linked.QoveryClusterId, argoCdDestinationClusterMapping.ErrInvalidClusterIDParam)
 				if err != nil {
-					return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidClusterIDParam.Error())
+					return nil, err
 				}
 				return &argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping{
 					OrganizationID:   orgUUID,
@@ -109,17 +107,17 @@ func (a argoCdDestinationClusterMappingQoveryAPI) Delete(ctx context.Context, or
 }
 
 func newDomainArgoCdDestinationClusterMappingFromResponse(orgID string, res *qovery.ArgoCdDestinationClusterMappingResponse) (*argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping, error) {
-	orgUUID, err := uuid.Parse(orgID)
+	orgUUID, err := parseUUID(orgID, argoCdDestinationClusterMapping.ErrInvalidOrganizationIDParam)
 	if err != nil {
-		return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidOrganizationIDParam.Error())
+		return nil, err
 	}
-	agentUUID, err := uuid.Parse(res.AgentClusterId)
+	agentUUID, err := parseUUID(res.AgentClusterId, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIDParam)
 	if err != nil {
-		return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIDParam.Error())
+		return nil, err
 	}
-	clusterUUID, err := uuid.Parse(res.GetClusterId())
+	clusterUUID, err := parseUUID(res.GetClusterId(), argoCdDestinationClusterMapping.ErrInvalidClusterIDParam)
 	if err != nil {
-		return nil, errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidClusterIDParam.Error())
+		return nil, err
 	}
 	return &argoCdDestinationClusterMapping.ArgoCdDestinationClusterMapping{
 		OrganizationID:   orgUUID,

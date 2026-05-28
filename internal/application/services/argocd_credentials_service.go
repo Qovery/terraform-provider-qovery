@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdCredentials"
@@ -72,11 +71,5 @@ func (s argoCdCredentialsService) Delete(ctx context.Context, clusterID string) 
 }
 
 func (s argoCdCredentialsService) checkClusterID(clusterID string) error {
-	if clusterID == "" {
-		return argoCdCredentials.ErrInvalidClusterIdParam
-	}
-	if _, err := uuid.Parse(clusterID); err != nil {
-		return errors.Wrap(err, argoCdCredentials.ErrInvalidClusterIdParam.Error())
-	}
-	return nil
+	return validateUUIDParam(clusterID, argoCdCredentials.ErrInvalidClusterIdParam)
 }

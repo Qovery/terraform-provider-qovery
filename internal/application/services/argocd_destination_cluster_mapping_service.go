@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdDestinationClusterMapping"
@@ -78,21 +77,9 @@ func (s argoCdDestinationClusterMappingService) Delete(ctx context.Context, orgI
 }
 
 func (s argoCdDestinationClusterMappingService) checkOrgID(orgID string) error {
-	if orgID == "" {
-		return argoCdDestinationClusterMapping.ErrInvalidOrganizationIdParam
-	}
-	if _, err := uuid.Parse(orgID); err != nil {
-		return errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidOrganizationIdParam.Error())
-	}
-	return nil
+	return validateUUIDParam(orgID, argoCdDestinationClusterMapping.ErrInvalidOrganizationIdParam)
 }
 
 func (s argoCdDestinationClusterMappingService) checkAgentClusterID(agentClusterID string) error {
-	if agentClusterID == "" {
-		return argoCdDestinationClusterMapping.ErrInvalidAgentClusterIdParam
-	}
-	if _, err := uuid.Parse(agentClusterID); err != nil {
-		return errors.Wrap(err, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIdParam.Error())
-	}
-	return nil
+	return validateUUIDParam(agentClusterID, argoCdDestinationClusterMapping.ErrInvalidAgentClusterIdParam)
 }
