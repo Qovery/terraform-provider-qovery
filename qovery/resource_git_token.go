@@ -71,9 +71,12 @@ func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization.",
-				MarkdownDescription: "Id of the organization.",
+				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
+				MarkdownDescription: "Id of the organization. **Cannot be changed after creation** (forces resource replacement).",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					RequiresReplaceIfKnownChange(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Description:         "Name of the git token.",

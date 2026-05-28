@@ -65,9 +65,12 @@ func (r eksAnywhereVsphereCredentialsResource) Schema(_ context.Context, _ resou
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization.",
-				MarkdownDescription: "ID of the Qovery organization in which to create the credentials.",
+				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
+				MarkdownDescription: "ID of the Qovery organization in which to create the credentials. **Cannot be changed after creation** (forces resource replacement).",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					RequiresReplaceIfKnownChange(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Description:         "Name of the EKS Anywhere vSphere credentials.",

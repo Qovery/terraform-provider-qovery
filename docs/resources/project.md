@@ -84,7 +84,7 @@ resource "qovery_project" "my_project" {
 ### Required
 
 - `name` (String) Name of the project.
-- `organization_id` (String) Identifier of the organization containing this project (UUID format).
+- `organization_id` (String) Identifier of the organization containing this project (UUID format). **Cannot be changed after creation** (forces resource replacement).
 
 ### Optional
 

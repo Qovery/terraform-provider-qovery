@@ -97,9 +97,12 @@ func (r deploymentResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 			},
 			"environment_id": schema.StringAttribute{
-				Description:         "Identifier of the environment to deploy (UUID format).",
-				MarkdownDescription: "Identifier of the environment to deploy (UUID format).",
+				Description:         "Identifier of the environment to deploy (UUID format). Cannot be changed after creation (forces resource replacement).",
+				MarkdownDescription: "Identifier of the environment to deploy (UUID format). **Cannot be changed after creation** (forces resource replacement).",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					RequiresReplaceIfKnownChange(),
+				},
 			},
 			"version": schema.StringAttribute{
 				Description: "Version identifier to force a redeployment when desired_state hasn't changed. " +

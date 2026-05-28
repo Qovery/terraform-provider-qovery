@@ -28,7 +28,7 @@ resource "qovery_scaleway_credentials" "my_scaleway_creds" {
 ### Required
 
 - `name` (String) Name of the Scaleway credentials. Used for display purposes in the Qovery console.
-- `organization_id` (String) ID of the Qovery organization in which to create the credentials.
+- `organization_id` (String) ID of the Qovery organization in which to create the credentials. **Cannot be changed after creation** (forces resource replacement).
 - `scaleway_access_key` (String) Scaleway API access key (e.g., `SCWxxxxxxxxxxxxxxxxx`). Found in the Scaleway console under IAM > API Keys. Use a variable reference instead of hardcoding this value.
 - `scaleway_organization_id` (String) Scaleway organization ID (UUID format). Found in the Scaleway console under Organization Settings.
 - `scaleway_project_id` (String) Scaleway project ID (UUID format). Resources will be created in this project. Found in the Scaleway console under Project Settings.

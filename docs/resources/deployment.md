@@ -36,7 +36,7 @@ resource "qovery_deployment" "my_deployment" {
 
 - `desired_state` (String) Desired state of the deployment. Setting this to `RUNNING` starts all services, `STOPPED` stops all services, and `RESTARTED` triggers a restart of all running services.
 	- Can be: `RESTARTED`, `RUNNING`, `STOPPED`.
-- `environment_id` (String) Identifier of the environment to deploy (UUID format).
+- `environment_id` (String) Identifier of the environment to deploy (UUID format). **Cannot be changed after creation** (forces resource replacement).
 
 ### Optional
 

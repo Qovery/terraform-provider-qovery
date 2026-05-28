@@ -34,7 +34,7 @@ resource "qovery_aws_credentials" "my_aws_role_creds" {
 ### Required
 
 - `name` (String) Name of the AWS credentials. Used for display purposes in the Qovery console.
-- `organization_id` (String) ID of the Qovery organization in which to create the credentials.
+- `organization_id` (String) ID of the Qovery organization in which to create the credentials. **Cannot be changed after creation** (forces resource replacement).
 
 ### Optional
 

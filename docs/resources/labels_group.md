@@ -43,7 +43,7 @@ resource "qovery_labels_group" "my_labels_group" {
 
 - `labels` (Attributes Set) Set of labels to include in this group. Each label consists of a key, value, and propagation setting. (see [below for nested schema](#nestedatt--labels))
 - `name` (String) Name of the labels group. Must be unique within the organization.
-- `organization_id` (String) Id of the organization.
+- `organization_id` (String) Id of the organization. **Cannot be changed after creation** (forces resource replacement).
 
 ### Read-Only
 
