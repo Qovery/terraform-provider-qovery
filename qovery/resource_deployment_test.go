@@ -48,6 +48,64 @@ func TestAcc_Deployment(t *testing.T) {
 	})
 }
 
+// Asserts that changing qovery_deployment.environment_id updates in place (stable ID)
+// rather than replacing — a replacement would delete the previous environment.
+func TestAcc_DeploymentEnvironmentIDChangeDoesNotForceReplacement(t *testing.T) {
+	t.Parallel()
+	testName := "deployment-env-id-no-replace"
+
+	var deploymentID string
+	captureDeploymentID := func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources["qovery_deployment.test"]
+		if !ok {
+			return fmt.Errorf("deployment not found: qovery_deployment.test")
+		}
+		deploymentID = rs.Primary.ID
+		return nil
+	}
+	assertDeploymentIDUnchanged := func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources["qovery_deployment.test"]
+		if !ok {
+			return fmt.Errorf("deployment not found: qovery_deployment.test")
+		}
+		if rs.Primary.ID != deploymentID {
+			return fmt.Errorf("expected deployment to update in place (stable ID %s), but ID changed to %s — environment_id wrongly forces replacement", deploymentID, rs.Primary.ID)
+		}
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy: resource.ComposeAggregateTestCheckFunc(
+			testAccQoveryEnvironmentDestroy("qovery_environment.previous"),
+			testAccQoveryEnvironmentDestroy("qovery_environment.target"),
+		),
+		Steps: []resource.TestStep{
+			// Step 1: deployment targets the (empty) previous environment; STOPPED is a no-op create.
+			{
+				Config: testAccDeploymentRetargetConfig(testName, "qovery_environment.previous.id", "STOPPED"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryEnvironmentExists("qovery_environment.previous"),
+					testAccQoveryEnvironmentExists("qovery_environment.target"),
+					resource.TestCheckResourceAttrPair("qovery_deployment.test", "environment_id", "qovery_environment.previous", "id"),
+					captureDeploymentID,
+				),
+			},
+			// Step 2: retarget environment_id to the target environment — must update in place, not replace.
+			{
+				Config: testAccDeploymentRetargetConfig(testName, "qovery_environment.target.id", "RUNNING"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryEnvironmentExists("qovery_environment.previous"), // previous env survives — not deleted by a replacement
+					testAccQoveryContainerHasState("DEPLOYED"),
+					resource.TestCheckResourceAttrPair("qovery_deployment.test", "environment_id", "qovery_environment.target", "id"),
+					assertDeploymentIDUnchanged,
+				),
+			},
+		},
+	})
+}
+
 func testAccDeploymentDestroy() resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		resourceName := "qovery_environment.test"
@@ -229,6 +287,65 @@ resource "qovery_deployment" "deployment_test" {
 		getTestQoverySandboxGitTokenID(),
 		generateTestName("container"),
 		generateTestName("database"),
+		desiredState,
+	)
+}
+
+// Declares an empty "previous" environment and a "target" environment holding one
+// deployable container, with the deployment wired to envRef at the given desired state.
+func testAccDeploymentRetargetConfig(testName, envRef, desiredState string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_environment" "previous" {
+  cluster_id = "%s"
+  project_id = qovery_project.test.id
+  name = "%s"
+}
+
+resource "qovery_environment" "target" {
+  cluster_id = "%s"
+  project_id = qovery_project.test.id
+  name = "%s"
+}
+
+resource "qovery_container_registry" "test" {
+  organization_id = "%s"
+  name = "%s"
+  kind = "ECR"
+  url = "%s"
+  config = {
+    region = "eu-west-3"
+    access_key_id = "%s"
+    secret_access_key = "%s"
+  }
+}
+
+resource "qovery_container" "container_test" {
+  environment_id = qovery_environment.target.id
+  registry_id = qovery_container_registry.test.id
+  name = "%s"
+  image_name = "terraform-provider-tests-container"
+  tag = "1.0.0"
+  healthchecks = {}
+}
+
+resource "qovery_deployment" "test" {
+  environment_id = %s
+  desired_state  = "%s"
+
+  depends_on = [qovery_container.container_test]
+}
+`,
+		testAccProjectDefaultConfig(testName),
+		getTestClusterID(), generateTestName(testName+"-previous"),
+		getTestClusterID(), generateTestName(testName+"-target"),
+		getTestOrganizationID(), generateTestName(testName+"-registry"),
+		getTestAwsEcrURL(),
+		getTestAWSCredentialsAccessKeyID(),
+		getTestAWSCredentialsSecretAccessKey(),
+		generateTestName(testName+"-container"),
+		envRef,
 		desiredState,
 	)
 }

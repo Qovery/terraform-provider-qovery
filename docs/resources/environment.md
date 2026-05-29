@@ -107,7 +107,7 @@ You can find complete examples within these repositories:
 
 - `cluster_id` (String) Identifier of the cluster where this environment will be deployed (UUID format). **Cannot be changed after creation** (forces resource replacement).
 - `name` (String) Name of the environment.
-- `project_id` (String) Identifier of the project containing this environment (UUID format).
+- `project_id` (String) Identifier of the project containing this environment (UUID format). **Cannot be changed after creation** (forces resource replacement).
 
 ### Optional
 

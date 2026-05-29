@@ -100,7 +100,7 @@ resource "qovery_container_registry" "gcp_artifact_registry" {
   - `AZURE_CR`: Azure Container Registry.
   - `GENERIC_CR`: Any OCI-compatible container registry.
 - `name` (String) Name of the container registry.
-- `organization_id` (String) Id of the organization.
+- `organization_id` (String) Id of the organization. **Cannot be changed after creation** (forces resource replacement).
 - `url` (String) URL of the container registry (e.g. `https://docker.io` for Docker Hub, `https://<account_id>.dkr.ecr.<region>.amazonaws.com` for ECR).
 
 ### Optional

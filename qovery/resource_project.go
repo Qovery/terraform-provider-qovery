@@ -67,9 +67,12 @@ func (r projectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Identifier of the organization containing this project (UUID format).",
-				MarkdownDescription: "Identifier of the organization containing this project (UUID format).",
+				Description:         "Identifier of the organization containing this project (UUID format). Cannot be changed after creation (forces resource replacement).",
+				MarkdownDescription: "Identifier of the organization containing this project (UUID format). **Cannot be changed after creation** (forces resource replacement).",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					RequiresReplaceIfKnownChange(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Description:         "Name of the project.",

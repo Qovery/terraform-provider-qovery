@@ -96,6 +96,7 @@ func (r deploymentResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			// environment_id deliberately does not force replacement: its Delete deletes the target environment.
 			"environment_id": schema.StringAttribute{
 				Description:         "Identifier of the environment to deploy (UUID format).",
 				MarkdownDescription: "Identifier of the environment to deploy (UUID format).",

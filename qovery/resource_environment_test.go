@@ -402,6 +402,57 @@ func TestAcc_EnvironmentWithMode(t *testing.T) {
 	})
 }
 
+// Asserts that changing project_id on an existing qovery_environment triggers
+// a destroy-and-recreate (new resource ID) rather than an in-place update.
+func TestAcc_EnvironmentProjectIDChangeForcesReplacement(t *testing.T) {
+	t.Parallel()
+	testName := "environment-project-id-replace"
+
+	var originalID string
+	captureID := func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources["qovery_environment.test"]
+		if !ok {
+			return fmt.Errorf("environment not found: qovery_environment.test")
+		}
+		originalID = rs.Primary.ID
+		return nil
+	}
+	assertIDChanged := func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources["qovery_environment.test"]
+		if !ok {
+			return fmt.Errorf("environment not found: qovery_environment.test")
+		}
+		if rs.Primary.ID == originalID {
+			return fmt.Errorf("expected environment to be replaced (new ID), but ID stayed %s — RequiresReplaceIfKnownChange missing on project_id?", originalID)
+		}
+		return nil
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryEnvironmentDestroy("qovery_environment.test"),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccEnvironmentDualProjectConfig(testName, "a"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					resource.TestCheckResourceAttrPair("qovery_environment.test", "project_id", "qovery_project.a", "id"),
+					captureID,
+				),
+			},
+			{
+				Config: testAccEnvironmentDualProjectConfig(testName, "b"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					resource.TestCheckResourceAttrPair("qovery_environment.test", "project_id", "qovery_project.b", "id"),
+					assertIDChanged,
+				),
+			},
+		},
+	})
+}
+
 func testAccQoveryEnvironmentExists(resourceName string) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
@@ -441,6 +492,32 @@ func testAccQoveryEnvironmentDestroy(resourceName string) resource.TestCheckFunc
 		}
 		return nil
 	}
+}
+
+// Declares two projects ("a" and "b") and wires the environment to the one
+// named by target.
+func testAccEnvironmentDualProjectConfig(testName, target string) string {
+	return fmt.Sprintf(`
+resource "qovery_project" "a" {
+  organization_id = "%s"
+  name = "%s-a"
+}
+
+resource "qovery_project" "b" {
+  organization_id = "%s"
+  name = "%s-b"
+}
+
+resource "qovery_environment" "test" {
+  cluster_id = "%s"
+  project_id = qovery_project.%s.id
+  name = "%s"
+}
+`,
+		getTestOrganizationID(), generateTestName(testName),
+		getTestOrganizationID(), generateTestName(testName),
+		getTestClusterID(), target, generateTestName(testName),
+	)
 }
 
 func testAccEnvironmentDefaultConfig(testName string) string {

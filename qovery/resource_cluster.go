@@ -126,9 +126,12 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization.",
-				MarkdownDescription: "ID of the Qovery organization in which to create the cluster.",
+				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
+				MarkdownDescription: "ID of the Qovery organization in which to create the cluster. **Cannot be changed after creation** (forces resource replacement).",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					RequiresReplaceIfKnownChange(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Description:         "Name of the cluster.",

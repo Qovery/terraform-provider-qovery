@@ -37,7 +37,7 @@ resource "qovery_helm_repository" "my_helm_repository" {
 - `kind` (String) Kind of the helm repository. Use `HTTPS` for standard Helm repositories, or one of the `OCI_*` values for OCI-based registries.
 	- Can be: `HTTPS`, `OCI_DOCKER_HUB`, `OCI_DOCR`, `OCI_ECR`, `OCI_GENERIC_CR`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR`, `OCI_PUBLIC_ECR`, `OCI_SCALEWAY_CR`.
 - `name` (String) Name of the helm repository. Must be unique within the organization.
-- `organization_id` (String) Id of the organization.
+- `organization_id` (String) Id of the organization. **Cannot be changed after creation** (forces resource replacement).
 - `skip_tls_verification` (Boolean) Whether to bypass TLS certificate verification when connecting to the repository. Set to `true` for self-signed certificates.
 - `url` (String) URL of the helm repository (e.g. `https://charts.example.com` for HTTPS, or `https://docker.io` for OCI Docker Hub).
 

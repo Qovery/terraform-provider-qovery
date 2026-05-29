@@ -275,7 +275,7 @@ You can find complete examples within these repositories:
   - `ON_PREMISE` - On-premise infrastructure.
 - `credentials_id` (String) ID of the cloud provider credentials to use for this cluster. Must match the `cloud_provider` type (e.g., use `qovery_aws_credentials.id` for AWS clusters, `qovery_gcp_credentials.id` for GCP clusters).
 - `name` (String) Name of the cluster. Must be unique within the organization.
-- `organization_id` (String) ID of the Qovery organization in which to create the cluster.
+- `organization_id` (String) ID of the Qovery organization in which to create the cluster. **Cannot be changed after creation** (forces resource replacement).
 - `region` (String) Cloud provider region where the cluster will be deployed (e.g., `us-east-2` for AWS, `europe-west9` for GCP, `pl-waw-1` for Scaleway, `westeurope` for Azure). For PARTIALLY_MANAGED clusters, use `on-premise`.
 
 ### Optional

@@ -33,7 +33,7 @@ resource "qovery_annotations_group" "my_annotations_group" {
 
 - `annotations` (Map of String) Map of annotation key-value pairs to include in this group. Keys and values must conform to Kubernetes annotation constraints.
 - `name` (String) Name of the annotations group. Must be unique within the organization.
-- `organization_id` (String) Id of the organization.
+- `organization_id` (String) Id of the organization. **Cannot be changed after creation** (forces resource replacement).
 - `scopes` (Set of String) Set of Kubernetes resource types to which these annotations will be applied. Valid values are: `PODS`, `DEPLOYMENTS`, `STATEFUL_SETS`, `SERVICES`, `INGRESS`, `HPA`, `SECRETS`, `JOBS`, `CRON_JOBS`.
 
 ### Read-Only

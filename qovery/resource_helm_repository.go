@@ -75,9 +75,12 @@ func (r helmRepositoryResource) Schema(_ context.Context, _ resource.SchemaReque
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization.",
-				MarkdownDescription: "Id of the organization.",
+				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
+				MarkdownDescription: "Id of the organization. **Cannot be changed after creation** (forces resource replacement).",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					RequiresReplaceIfKnownChange(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Description:         "Name of the helm repository. Must be unique within the organization.",

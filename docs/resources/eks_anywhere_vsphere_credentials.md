@@ -38,7 +38,7 @@ resource "qovery_eks_anywhere_vsphere_credentials" "my_eks_anywhere_vsphere_role
 ### Required
 
 - `name` (String) Name of the EKS Anywhere vSphere credentials. Used for display purposes in the Qovery console.
-- `organization_id` (String) ID of the Qovery organization in which to create the credentials.
+- `organization_id` (String) ID of the Qovery organization in which to create the credentials. **Cannot be changed after creation** (forces resource replacement).
 - `vsphere_password` (String, Sensitive) Password used to authenticate against the vSphere API. This is a sensitive value and will not be displayed in plan output.
 - `vsphere_user` (String) Username used to authenticate against the vSphere API.
 

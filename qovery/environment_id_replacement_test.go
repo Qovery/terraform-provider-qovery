@@ -244,6 +244,18 @@ func collectVulnerableAttributes(t *testing.T) []vulnerableAttribute {
 		{"qovery_terraform_service", "environment_id", schemaOf(terraformServiceResource{})},
 		{"qovery_deployment_stage", "environment_id", schemaOf(deploymentStageResource{})},
 		{"qovery_environment", "cluster_id", schemaOf(environmentResource{})},
+		{"qovery_environment", "project_id", schemaOf(environmentResource{})},
+		{"qovery_project", "organization_id", schemaOf(projectResource{})},
+		{"qovery_cluster", "organization_id", schemaOf(clusterResource{})},
+		{"qovery_annotations_group", "organization_id", schemaOf(annotationsGroupResource{})},
+		{"qovery_labels_group", "organization_id", schemaOf(labelsGroupResource{})},
+		{"qovery_container_registry", "organization_id", schemaOf(containerRegistryResource{})},
+		{"qovery_helm_repository", "organization_id", schemaOf(helmRepositoryResource{})},
+		{"qovery_git_token", "organization_id", schemaOf(gitTokenResource{})},
+		{"qovery_aws_credentials", "organization_id", schemaOf(awsCredentialsResource{})},
+		{"qovery_gcp_credentials", "organization_id", schemaOf(gcpCredentialsResource{})},
+		{"qovery_scaleway_credentials", "organization_id", schemaOf(scalewayCredentialsResource{})},
+		{"qovery_eks_anywhere_vsphere_credentials", "organization_id", schemaOf(eksAnywhereVsphereCredentialsResource{})},
 	}
 }
 
@@ -277,6 +289,21 @@ func TestVulnerableAttributes_UseRequiresReplaceIfKnownChange(t *testing.T) {
 				"%s.%s must not use stock stringplanmodifier.RequiresReplace()", v.resourceName, v.attrName)
 		})
 	}
+}
+
+// Asserts qovery_deployment.environment_id does not force replacement, since its
+// Delete deletes the target environment.
+func TestDeployment_EnvironmentID_DoesNotForceReplacement(t *testing.T) {
+	t.Parallel()
+
+	var resp resource.SchemaResponse
+	deploymentResource{}.Schema(context.Background(), resource.SchemaRequest{}, &resp)
+	mods := getPlanModifiers(t, resp.Schema, "environment_id")
+
+	assert.False(t, hasRequiresReplaceIfKnownChange(mods),
+		"qovery_deployment.environment_id must NOT force replacement: Delete deletes the previous environment")
+	assert.False(t, hasStockRequiresReplace(mods),
+		"qovery_deployment.environment_id must NOT force replacement: Delete deletes the previous environment")
 }
 
 // ----------------------------------------------------------------------------

@@ -45,7 +45,7 @@ resource "qovery_git_token" "bitbucket_token" {
 ### Required
 
 - `name` (String) Name of the git token.
-- `organization_id` (String) Id of the organization.
+- `organization_id` (String) Id of the organization. **Cannot be changed after creation** (forces resource replacement).
 - `token` (String, Sensitive) Value of the git token (personal access token or app token from the git provider). Sensitive.
 - `type` (String) Type of the git token.
 	- Can be: `BITBUCKET`, `GITHUB`, `GITLAB`.

@@ -26,7 +26,7 @@ resource "qovery_gcp_credentials" "my_gcp_credentials" {
 
 - `gcp_credentials` (String, Sensitive) GCP service account key in JSON format. This is a sensitive value and will not be displayed in plan output. Use `file()` to load from a file: `file("${path.module}/service-account.json")`.
 - `name` (String) Name of the GCP credentials. Used for display purposes in the Qovery console.
-- `organization_id` (String) ID of the Qovery organization in which to create the credentials.
+- `organization_id` (String) ID of the Qovery organization in which to create the credentials. **Cannot be changed after creation** (forces resource replacement).
 
 ### Read-Only
 

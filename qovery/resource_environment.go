@@ -73,9 +73,12 @@ func (r environmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 			"project_id": schema.StringAttribute{
-				Description:         "Identifier of the project containing this environment (UUID format).",
-				MarkdownDescription: "Identifier of the project containing this environment (UUID format).",
+				Description:         "Identifier of the project containing this environment (UUID format). Cannot be changed after creation (forces resource replacement).",
+				MarkdownDescription: "Identifier of the project containing this environment (UUID format). **Cannot be changed after creation** (forces resource replacement).",
 				Required:            true,
+				PlanModifiers: []planmodifier.String{
+					RequiresReplaceIfKnownChange(),
+				},
 			},
 			"cluster_id": schema.StringAttribute{
 				Description:         "Identifier of the cluster where this environment will be deployed (UUID format). Cannot be changed after creation (forces resource replacement).",
