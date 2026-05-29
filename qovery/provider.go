@@ -13,6 +13,8 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/internal/application/services"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdCredentials"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdDestinationClusterMapping"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
@@ -106,6 +108,12 @@ type qProvider struct {
 
 	// terraformServiceService is an instance of a terraformservice.Service that handles the domain logic.
 	terraformServiceService terraformservice.Service
+
+	// argoCdCredentialsService is an instance of an argoCdCredentials.Service that handles the domain logic.
+	argoCdCredentialsService argoCdCredentials.Service
+
+	// argoCdDestinationClusterMappingService is an instance of an argoCdDestinationClusterMapping.Service that handles the domain logic.
+	argoCdDestinationClusterMappingService argoCdDestinationClusterMapping.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -193,6 +201,8 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.annotationsGroupService = domainServices.AnnotationsGroup
 	p.labelsGroupService = domainServices.LabelsGroup
 	p.terraformServiceService = domainServices.TerraformService
+	p.argoCdCredentialsService = domainServices.ArgoCdCredentials
+	p.argoCdDestinationClusterMappingService = domainServices.ArgoCdDestinationClusterMapping
 
 	resp.DataSourceData = p
 	resp.ResourceData = p
@@ -221,6 +231,8 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newLabelsGroupResource,
 		newTerraformServiceResource,
 		newEksAnywhereVsphereCredentialsResource,
+		newArgoCdCredentialsResource,
+		newArgoCdDestinationClusterMappingResource,
 	}
 }
 

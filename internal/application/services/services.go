@@ -3,6 +3,8 @@ package services
 import (
 	"github.com/pkg/errors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdCredentials"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdDestinationClusterMapping"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
@@ -36,26 +38,28 @@ var (
 type Services struct {
 	repos *repositories.Repositories
 
-	CredentialsAws                credentials.AwsService
-	CredentialsScaleway           credentials.ScalewayService
-	CredentialsGcp                credentials.GcpService
-	CredentialsAzure              credentials.AzureService
-	CredentialsEksAnywhereVsphere credentials.EksAnywhereVsphereService
-	Organization                  organization.Service
-	Project                       project.Service
-	Container                     container.Service
-	Job                           job.Service
-	ContainerRegistry             registry.Service
-	Environment                   environment.Service
-	DeploymentStage               deploymentstage.Service
-	Deployment                    newdeployment.Service
-	GitToken                      gittoken.Service
-	Helm                          helm.Service
-	HelmRepository                helmRepository.Service
-	AnnotationsGroup              annotations_group.Service
-	LabelsGroup                   labels_group.Service
-	DeploymentRestrictionService  deploymentrestriction.DeploymentRestrictionService
-	TerraformService              terraformservice.Service
+	CredentialsAws                  credentials.AwsService
+	CredentialsScaleway             credentials.ScalewayService
+	CredentialsGcp                  credentials.GcpService
+	CredentialsAzure                credentials.AzureService
+	CredentialsEksAnywhereVsphere   credentials.EksAnywhereVsphereService
+	Organization                    organization.Service
+	Project                         project.Service
+	Container                       container.Service
+	Job                             job.Service
+	ContainerRegistry               registry.Service
+	Environment                     environment.Service
+	DeploymentStage                 deploymentstage.Service
+	Deployment                      newdeployment.Service
+	GitToken                        gittoken.Service
+	Helm                            helm.Service
+	HelmRepository                  helmRepository.Service
+	AnnotationsGroup                annotations_group.Service
+	LabelsGroup                     labels_group.Service
+	DeploymentRestrictionService    deploymentrestriction.DeploymentRestrictionService
+	TerraformService                terraformservice.Service
+	ArgoCdCredentials               argoCdCredentials.Service
+	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Service
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -247,6 +251,16 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
+	argoCdCredentialsService, err := NewArgoCdCredentialsService(services.repos.ArgoCdCredentials)
+	if err != nil {
+		return nil, err
+	}
+
+	argoCdDestinationClusterMappingService, err := NewArgoCdDestinationClusterMappingService(services.repos.ArgoCdDestinationClusterMapping)
+	if err != nil {
+		return nil, err
+	}
+
 	services.CredentialsAws = credentialsAwsService
 	services.CredentialsScaleway = credentialsScalewayService
 	services.CredentialsGcp = credentialsGcpService
@@ -267,6 +281,8 @@ func New(configs ...Configuration) (*Services, error) {
 	services.AnnotationsGroup = annotationsGroupService
 	services.LabelsGroup = labelsGroupService
 	services.TerraformService = terraformServiceService
+	services.ArgoCdCredentials = argoCdCredentialsService
+	services.ArgoCdDestinationClusterMapping = argoCdDestinationClusterMappingService
 
 	return services, nil
 }

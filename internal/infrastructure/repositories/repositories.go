@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdCredentials"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdDestinationClusterMapping"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
@@ -38,40 +40,42 @@ var (
 type Configuration func(repos *Repositories) error
 
 type Repositories struct {
-	CredentialsAws                 credentials.AwsRepository
-	CredentialsScaleway            credentials.ScalewayRepository
-	CredentialsGcp                 credentials.GcpRepository
-	CredentialsAzure               credentials.AzureRepository
-	CredentialsEksAnywhereVsphere  credentials.EksAnywhereVsphereRepository
-	Organization                   organization.Repository
-	Project                        project.Repository
-	ProjectEnvironmentVariable     variable.Repository
-	ProjectSecret                  secret.Repository
-	Container                      container.Repository
-	ContainerDeployment            deployment.Repository
-	ContainerEnvironmentVariable   variable.Repository
-	ContainerSecret                secret.Repository
-	ContainerRegistry              registry.Repository
-	Job                            job.Repository
-	JobDeployment                  deployment.Repository
-	JobEnvironmentVariable         variable.Repository
-	JobSecret                      secret.Repository
-	Environment                    environment.Repository
-	EnvironmentDeployment          deployment.Repository
-	EnvironmentEnvironmentVariable variable.Repository
-	EnvironmentSecret              secret.Repository
-	DeploymentStage                deploymentstage.Repository
-	DeploymentEnvironment          newdeployment.EnvironmentRepository
-	DeploymentStatus               newdeployment.DeploymentStatusRepository
-	QoveryClient                   *qovery.APIClient
-	Helm                           helm.Repository
-	HelmDeployment                 deployment.Repository
-	HelmEnvironmentVariable        variable.Repository
-	HelmSecret                     secret.Repository
-	HelmRepository                 helmRepository.Repository
-	AnnotationsGroupRepository     annotations_group.Repository
-	LabelsGroupRepository          labels_group.Repository
-	TerraformService               terraformservice.Repository
+	CredentialsAws                  credentials.AwsRepository
+	CredentialsScaleway             credentials.ScalewayRepository
+	CredentialsGcp                  credentials.GcpRepository
+	CredentialsAzure                credentials.AzureRepository
+	CredentialsEksAnywhereVsphere   credentials.EksAnywhereVsphereRepository
+	Organization                    organization.Repository
+	Project                         project.Repository
+	ProjectEnvironmentVariable      variable.Repository
+	ProjectSecret                   secret.Repository
+	Container                       container.Repository
+	ContainerDeployment             deployment.Repository
+	ContainerEnvironmentVariable    variable.Repository
+	ContainerSecret                 secret.Repository
+	ContainerRegistry               registry.Repository
+	Job                             job.Repository
+	JobDeployment                   deployment.Repository
+	JobEnvironmentVariable          variable.Repository
+	JobSecret                       secret.Repository
+	Environment                     environment.Repository
+	EnvironmentDeployment           deployment.Repository
+	EnvironmentEnvironmentVariable  variable.Repository
+	EnvironmentSecret               secret.Repository
+	DeploymentStage                 deploymentstage.Repository
+	DeploymentEnvironment           newdeployment.EnvironmentRepository
+	DeploymentStatus                newdeployment.DeploymentStatusRepository
+	QoveryClient                    *qovery.APIClient
+	Helm                            helm.Repository
+	HelmDeployment                  deployment.Repository
+	HelmEnvironmentVariable         variable.Repository
+	HelmSecret                      secret.Repository
+	HelmRepository                  helmRepository.Repository
+	AnnotationsGroupRepository      annotations_group.Repository
+	LabelsGroupRepository           labels_group.Repository
+	TerraformService                terraformservice.Repository
+	ArgoCdCredentials               argoCdCredentials.Repository
+	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Repository
 }
 
 func New(configs ...Configuration) (*Repositories, error) {
@@ -136,6 +140,8 @@ func WithQoveryAPI(apiToken string, providerVersion string, host string) Configu
 		repos.AnnotationsGroupRepository = qoveryAPI.AnnotationsGroup
 		repos.LabelsGroupRepository = qoveryAPI.LabelsGroup
 		repos.TerraformService = qoveryAPI.TerraformService
+		repos.ArgoCdCredentials = qoveryAPI.ArgoCdCredentials
+		repos.ArgoCdDestinationClusterMapping = qoveryAPI.ArgoCdDestinationClusterMapping
 
 		return nil
 	}
