@@ -256,7 +256,6 @@ func collectVulnerableAttributes(t *testing.T) []vulnerableAttribute {
 		{"qovery_gcp_credentials", "organization_id", schemaOf(gcpCredentialsResource{})},
 		{"qovery_scaleway_credentials", "organization_id", schemaOf(scalewayCredentialsResource{})},
 		{"qovery_eks_anywhere_vsphere_credentials", "organization_id", schemaOf(eksAnywhereVsphereCredentialsResource{})},
-		{"qovery_deployment", "environment_id", schemaOf(deploymentResource{})},
 	}
 }
 
@@ -290,6 +289,21 @@ func TestVulnerableAttributes_UseRequiresReplaceIfKnownChange(t *testing.T) {
 				"%s.%s must not use stock stringplanmodifier.RequiresReplace()", v.resourceName, v.attrName)
 		})
 	}
+}
+
+// Asserts qovery_deployment.environment_id does not force replacement, since its
+// Delete deletes the target environment.
+func TestDeployment_EnvironmentID_DoesNotForceReplacement(t *testing.T) {
+	t.Parallel()
+
+	var resp resource.SchemaResponse
+	deploymentResource{}.Schema(context.Background(), resource.SchemaRequest{}, &resp)
+	mods := getPlanModifiers(t, resp.Schema, "environment_id")
+
+	assert.False(t, hasRequiresReplaceIfKnownChange(mods),
+		"qovery_deployment.environment_id must NOT force replacement: Delete deletes the previous environment")
+	assert.False(t, hasStockRequiresReplace(mods),
+		"qovery_deployment.environment_id must NOT force replacement: Delete deletes the previous environment")
 }
 
 // ----------------------------------------------------------------------------
