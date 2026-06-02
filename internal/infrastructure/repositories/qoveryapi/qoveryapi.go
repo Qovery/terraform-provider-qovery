@@ -88,7 +88,6 @@ type QoveryAPI struct {
 func New(configs ...Configuration) (*QoveryAPI, error) {
 	// Initialize the qovery api client.
 	cfg := qovery.NewConfiguration()
-	cfg.AddDefaultHeader("content-type", "application/json")
 	apiClient := qovery.NewAPIClient(cfg)
 
 	// Initialize repositories implementations.
