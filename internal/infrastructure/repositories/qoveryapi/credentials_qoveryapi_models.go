@@ -93,10 +93,10 @@ func newQoveryScalewayCredentialsRequestFromDomain(request credentials.UpsertSca
 
 // newQoveryGcpCredentialsRequestFromDomain takes the domain request credentials.UpsertGcpRequest and turns it into a qovery.GcpCredentialsRequest to make the api call.
 func newQoveryGcpCredentialsRequestFromDomain(request credentials.UpsertGcpRequest) qovery.GcpCredentialsRequest {
-	return qovery.GcpCredentialsRequest{
+	return qovery.GcpServiceAccountKeyCredentialsRequestAsGcpCredentialsRequest(&qovery.GcpServiceAccountKeyCredentialsRequest{
 		Name:           request.Name,
 		GcpCredentials: request.GcpCredentials,
-	}
+	})
 }
 
 // newQoveryAzureCredentialsRequestFromDomain takes the domain request credentials.UpsertAzureRequest and turns it into a qovery.AzureCredentialsRequest to make the api call.
