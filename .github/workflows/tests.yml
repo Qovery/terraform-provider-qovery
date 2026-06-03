@@ -12,7 +12,8 @@ on:
       - "README.md"
       - ".gitignore"
   schedule:
-    - cron: "0 9 * * 1-5" # 9:00 UTC, Mon-Fri
+    - cron: "0 9 * * 1-5"  # 09:00 UTC, Mon-Fri
+    - cron: "0 16 * * 1-5" # 16:00 UTC, Mon-Fri (18:00 Paris)
 
 permissions:
   contents: read
@@ -219,7 +220,7 @@ jobs:
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Trigger:*\nScheduled (9:00 UTC)"
+                      "text": "*Trigger:*\nScheduled (${{ github.event.schedule == '0 9 * * 1-5' && '09:00 UTC, morning' || '16:00 UTC, end of day' }})"
                     }
                   ]
                 },
