@@ -10,6 +10,10 @@ type Client struct {
 	api *qovery.APIClient
 }
 
+func (c *Client) API() *qovery.APIClient {
+	return c.api
+}
+
 func New(token string, version string, host string) *Client {
 	return &Client{
 		NewQoveryAPIClient(token, version, host),
