@@ -15,6 +15,7 @@ const (
 	APIResourceApplicationStatus                      APIResource = "application status"
 	APIResourceCluster                                APIResource = "cluster"
 	APIResourceClusterCloudProvider                   APIResource = "cluster cloud provider"
+	APIResourceClusterDNSProvider                     APIResource = "cluster DNS provider"
 	APIResourceClusterInstanceType                    APIResource = "cluster instance type"
 	APIResourceClusterRoutingTable                    APIResource = "cluster routing table"
 	APIResourceClusterStatus                          APIResource = "cluster status"
