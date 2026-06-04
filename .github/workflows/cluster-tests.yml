@@ -23,6 +23,11 @@ on:
         type: string
         required: false
         default: ""
+      notify_slack:
+        description: "Send the Slack summary for this manual run"
+        type: boolean
+        required: false
+        default: false
   schedule:
     - cron: "0 3 * * 1-5" # Mon–Fri 03:00 UTC
 
@@ -141,61 +146,66 @@ jobs:
   notify-slack:
     name: Notify Slack
     needs: [smoke]
-    if: always() && github.event_name == 'schedule'
+    if: always() && (github.event_name == 'schedule' || inputs.notify_slack)
     runs-on: ubuntu-latest
     steps:
-      - name: Compute per-cloud status & duration
+      - name: Build Slack payload (per-step status & durations)
         id: gather
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
-          jobs_json=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs" --paginate)
-          summary=$(echo "$jobs_json" | jq -r '
-            .jobs[]
-            | select(.name | startswith("aws-") or startswith("azure-") or startswith("gcp-") or startswith("scaleway-"))
-            | {
-                name: .name,
-                conclusion: .conclusion,
-                started: .started_at,
-                completed: .completed_at,
-              }
-            | .duration_min = (((.completed | fromdate) - (.started | fromdate)) / 60 | floor)
-            | "\(if .conclusion == "success" then ":white_check_mark:" else ":x:" end) *\(.name)* — \(.conclusion) (\(.duration_min) min)"
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            title="Daily Cluster Smoke Tests"
+          else
+            title="Cluster Smoke Tests (manual run)"
+          fi
+          payload=$(gh api "repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/jobs" --paginate | jq -c -n \
+            --arg title "$title" \
+            --arg run_url "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}" '
+            def step_label: {"Terraform apply": "create", "Terraform plan (drift check)": "diff"}[.] //
+                            (if startswith("Terraform destroy") then "delete" else . end);
+            def mins: if .started_at and .completed_at
+                      then (((.completed_at | fromdate) - (.started_at | fromdate)) / 60) else null end;
+            def fmt: if . == null then "?" elif . < 1 then "<1m" else "\(. | floor)m" end;
+            def step_line($s):
+              if $s == null then empty
+              elif $s.conclusion == "skipped" then "\($s.name | step_label) — skipped"
+              elif $s.conclusion == "success" then "\($s.name | step_label) :white_check_mark: \($s | mins | fmt)"
+              elif $s.conclusion == "cancelled" then "\($s.name | step_label) :stop_button: \($s | mins | fmt)"
+              else "\($s.name | step_label) :x: \($s | mins | fmt)"
+              end;
+
+            [inputs | .jobs[]] | map(select(.name | test("^(aws|azure|gcp|scaleway)-")))
+            | map(
+                . as $job
+                | ([$job.steps[] | select(.conclusion == "failure" or .conclusion == "cancelled")] | first) as $bad
+                | ([$job.steps[] | select(.name == "Terraform apply")] | first) as $create
+                | ([$job.steps[] | select(.name == "Terraform plan (drift check)")] | first) as $diff
+                | ([$job.steps[] | select(.name | startswith("Terraform destroy"))] | first) as $delete
+                | ($job | mins | fmt) as $total
+                | (if $job.conclusion == "success" then "*\($job.name)* :white_check_mark: \($total)"
+                   elif $job.conclusion == "cancelled" then "*\($job.name)* :stop_button: cancelled\(if $bad then " at \($bad.name | step_label)" else "" end) — \($total)"
+                   else "*\($job.name)* :x:\(if $bad then " at \($bad.name | step_label)" else "" end) — \($total)"
+                   end
+                   + (if $delete and $delete.conclusion == "failure" then " :warning: cleanup needed" else "" end)) as $header
+                | { type: "mrkdwn", text: ([$header, step_line($create), step_line($diff), step_line($delete)] | join("\n")) }
+              )
+            | (if length > 0
+               then [{type: "section", fields: .}]
+               else [{type: "section", text: {type: "mrkdwn", text: "No smoke jobs found in this run."}}]
+               end) as $body
+            | { blocks: ([
+                  {type: "section", text: {type: "mrkdwn", text: "*\($title)*"}}
+                ] + $body + [
+                  {type: "actions", elements: [{type: "button", text: {type: "plain_text", text: "View Run"}, url: $run_url}]}
+                ]) }
           ')
-          {
-            echo 'summary<<EOF'
-            echo "$summary"
-            echo 'EOF'
-          } >> "$GITHUB_OUTPUT"
+          echo "payload=$payload" >> "$GITHUB_OUTPUT"
 
       - name: Send Slack notification
         uses: slackapi/slack-github-action@v2.0.0
         with:
           webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
           webhook-type: incoming-webhook
-          payload: |
-            {
-              "blocks": [
-                {
-                  "type": "section",
-                  "text": {
-                    "type": "mrkdwn",
-                    "text": "*Daily Cluster Smoke Tests*\n${{ steps.gather.outputs.summary }}"
-                  }
-                },
-                {
-                  "type": "actions",
-                  "elements": [
-                    {
-                      "type": "button",
-                      "text": {
-                        "type": "plain_text",
-                        "text": "View Run"
-                      },
-                      "url": "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
-                    }
-                  ]
-                }
-              ]
-            }
+          payload: ${{ steps.gather.outputs.payload }}
