@@ -59,6 +59,7 @@ type Cluster struct {
 	InfrastructureOutputs          types.Object `tfsdk:"infrastructure_outputs"`
 	InfrastructureChartsParameters types.Object `tfsdk:"infrastructure_charts_parameters"`
 	LabelsGroupIds                 types.Set    `tfsdk:"labels_group_ids"`
+	SecretManagerAccesses          types.List   `tfsdk:"secret_manager_accesses"`
 }
 
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
@@ -115,6 +116,16 @@ func (c Cluster) hasRoutingTableDiff(state *Cluster) bool {
 		}
 	}
 	return false
+}
+
+func (c Cluster) hasSecretManagerAccessesDiff(state *Cluster) bool {
+	if c.SecretManagerAccesses.IsNull() || c.SecretManagerAccesses.IsUnknown() {
+		return state != nil && !state.SecretManagerAccesses.IsNull() && !state.SecretManagerAccesses.IsUnknown() && len(state.SecretManagerAccesses.Elements()) > 0
+	}
+	if state == nil || state.SecretManagerAccesses.IsNull() || state.SecretManagerAccesses.IsUnknown() {
+		return len(c.SecretManagerAccesses.Elements()) > 0
+	}
+	return !c.SecretManagerAccesses.Equal(state.SecretManagerAccesses)
 }
 
 func (c Cluster) hasInfraChartsParamsDiff(state *Cluster) bool {
@@ -274,7 +285,12 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		}
 	}
 
-	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || c.hasInfraChartsParamsDiff(state)
+	secretManagerAccesses, err := toQoverySecretManagerAccessRequests(c.SecretManagerAccesses)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to parse secret_manager_accesses")
+	}
+
+	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || c.hasInfraChartsParamsDiff(state) || c.hasSecretManagerAccessesDiff(state)
 
 	desiredState, err := qovery.NewClusterStateEnumFromValue(ToString(c.State))
 	if err != nil {
@@ -319,6 +335,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			Features:                       features,
 			InfrastructureChartsParameters: infraChartsParams,
 			LabelsGroups:                   labelsGroups,
+			SecretManagerAccesses:          secretManagerAccesses,
 		},
 		ClusterRoutingTable:  routingTable.toUpsertRequest(),
 		AdvancedSettingsJson: ToString(c.AdvancedSettingsJson),
@@ -369,6 +386,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		AdvancedSettingsJson:           FromString(res.AdvancedSettingsJson),
 		InfrastructureChartsParameters: fromQoveryInfrastructureChartsParameters(res.ClusterResponse.InfrastructureChartsParameters),
 		LabelsGroupIds:                 fromLabelsGroupList(ctx, initialPlan.LabelsGroupIds, labelsGroupIds),
+		SecretManagerAccesses:          fromQoverySecretManagerAccesses(ctx, res.ClusterResponse.SecretManagerAccesses, initialPlan.SecretManagerAccesses),
 	}
 
 	// For PARTIALLY_MANAGED (EKS Anywhere) clusters, these fields are not applicable
