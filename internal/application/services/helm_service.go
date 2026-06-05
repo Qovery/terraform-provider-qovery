@@ -24,6 +24,7 @@ type helmService struct {
 	variableService              variable.Service
 	secretService                secret.Service
 	deploymentRestrictionService deploymentrestriction.DeploymentRestrictionService
+	externalSecretRepository     variable.ExternalSecretRepository
 }
 
 // NewHelmService return a new instance of a helm.Service that uses the given helm.Repository.
@@ -33,6 +34,7 @@ func NewHelmService(
 	variableService variable.Service,
 	secretService secret.Service,
 	deploymentRestrictionService deploymentrestriction.DeploymentRestrictionService,
+	externalSecretRepository variable.ExternalSecretRepository,
 ) (helm.Service, error) {
 	if helmRepository == nil {
 		return nil, ErrInvalidRepository
@@ -50,12 +52,17 @@ func NewHelmService(
 		return nil, ErrInvalidService
 	}
 
+	if externalSecretRepository == nil {
+		return nil, ErrInvalidRepository
+	}
+
 	return &helmService{
 		helmRepository:               helmRepository,
 		variableService:              variableService,
 		secretService:                secretService,
 		helmDeploymentService:        helmDeploymentService,
 		deploymentRestrictionService: deploymentRestrictionService,
+		externalSecretRepository:     externalSecretRepository,
 	}, nil
 }
 
@@ -91,6 +98,10 @@ func (s helmService) Create(ctx context.Context, environmentID string, request h
 		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, newHelm.ID.String(), domain.HELM, request.DeploymentRestrictionsDiff); apiErr != nil {
 			return nil, apiErr
 		}
+	}
+
+	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, newHelm.ID.String(), request.ExternalSecrets); err != nil {
+		return nil, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
 	}
 
 	newHelm, err = s.refreshHelm(ctx, *newHelm)
@@ -154,6 +165,10 @@ func (s helmService) Update(ctx context.Context, helmID string, request helm.Ups
 		}
 	}
 
+	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, updateHelm.ID.String(), request.ExternalSecrets); err != nil {
+		return nil, errors.Wrap(err, helm.ErrFailedToUpdateHelm.Error())
+	}
+
 	updateHelm, err = s.refreshHelm(ctx, *updateHelm)
 	if err != nil {
 		return nil, errors.Wrap(err, helm.ErrFailedToUpdateHelm.Error())
@@ -190,6 +205,11 @@ func (s helmService) refreshHelm(ctx context.Context, helm helm.Helm) (*helm.Hel
 		return nil, err
 	}
 
+	externalSecrets, err := s.externalSecretRepository.List(ctx, helm.ID.String())
+	if err != nil {
+		return nil, err
+	}
+
 	status, err := s.helmDeploymentService.GetStatus(ctx, helm.ID.String())
 	if err != nil {
 		return nil, err
@@ -207,6 +227,8 @@ func (s helmService) refreshHelm(ctx context.Context, helm helm.Helm) (*helm.Hel
 	if err := helm.SetSecrets(secrets); err != nil {
 		return nil, err
 	}
+
+	helm.SetExternalSecrets(externalSecrets)
 
 	if err := helm.SetState(status.State); err != nil {
 		return nil, err

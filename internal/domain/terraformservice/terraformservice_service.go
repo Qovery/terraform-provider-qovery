@@ -5,6 +5,8 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
 var (
@@ -27,7 +29,7 @@ type Service interface {
 // UpsertServiceRequest represents the parameters needed to create & update a TerraformService.
 type UpsertServiceRequest struct {
 	TerraformServiceUpsertRequest UpsertRepositoryRequest
-	// Future: Add variable/secret diff requests if needed
+	ExternalSecrets               variable.ExternalSecretDiffRequest
 }
 
 // Validate returns an error to tell whether the UpsertServiceRequest is valid or not.

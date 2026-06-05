@@ -1,6 +1,8 @@
 package services
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdCredentials"
@@ -22,6 +24,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/terraformservice"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 	"github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories"
 )
 
@@ -60,6 +63,12 @@ type Services struct {
 	TerraformService                terraformservice.Service
 	ArgoCdCredentials               argoCdCredentials.Service
 	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Service
+
+	ApplicationExternalSecretRepository      variable.ExternalSecretRepository
+	ContainerExternalSecretRepository        variable.ExternalSecretRepository
+	JobExternalSecretRepository              variable.ExternalSecretRepository
+	HelmExternalSecretRepository             variable.ExternalSecretRepository
+	TerraformServiceExternalSecretRepository variable.ExternalSecretRepository
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -141,7 +150,7 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
-	containerService, err := NewContainerService(services.repos.Container, containerDeploymentService, containerEnvironmentVariableService, containerSecretService)
+	containerService, err := NewContainerService(services.repos.Container, containerDeploymentService, containerEnvironmentVariableService, containerSecretService, services.repos.ContainerExternalSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -166,7 +175,7 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
-	jobService, err := NewJobService(services.repos.Job, jobDeploymentService, jobEnvironmentVariableService, jobSecretService, deploymentRestrictionService)
+	jobService, err := NewJobService(services.repos.Job, jobDeploymentService, jobEnvironmentVariableService, jobSecretService, deploymentRestrictionService, services.repos.JobExternalSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -226,7 +235,7 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
-	helmService, err := NewHelmService(services.repos.Helm, helmDeploymentService, helmEnvironmentVariableService, helmSecretService, deploymentRestrictionService)
+	helmService, err := NewHelmService(services.repos.Helm, helmDeploymentService, helmEnvironmentVariableService, helmSecretService, deploymentRestrictionService, services.repos.HelmExternalSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +255,7 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
-	terraformServiceService, err := NewTerraformServiceService(services.repos.TerraformService)
+	terraformServiceService, err := NewTerraformServiceService(services.repos.TerraformService, services.repos.TerraformServiceExternalSecret)
 	if err != nil {
 		return nil, err
 	}
@@ -284,7 +293,36 @@ func New(configs ...Configuration) (*Services, error) {
 	services.ArgoCdCredentials = argoCdCredentialsService
 	services.ArgoCdDestinationClusterMapping = argoCdDestinationClusterMappingService
 
+	services.ApplicationExternalSecretRepository = services.repos.ApplicationExternalSecret
+	services.ContainerExternalSecretRepository = services.repos.ContainerExternalSecret
+	services.JobExternalSecretRepository = services.repos.JobExternalSecret
+	services.HelmExternalSecretRepository = services.repos.HelmExternalSecret
+	services.TerraformServiceExternalSecretRepository = services.repos.TerraformServiceExternalSecret
+
 	return services, nil
+}
+
+// applyExternalSecretsDiff applies the external secrets diff to the given service.
+func applyExternalSecretsDiff(ctx context.Context, repo variable.ExternalSecretRepository, serviceID string, diff variable.ExternalSecretDiffRequest) error {
+	for _, d := range diff.Delete {
+		if err := repo.Delete(ctx, d.VariableID); err != nil {
+			return errors.Wrap(err, "failed to delete external secret")
+		}
+	}
+
+	for _, c := range diff.Create {
+		if _, err := repo.Create(ctx, serviceID, c.ExternalSecretUpsertRequest); err != nil {
+			return errors.Wrap(err, "failed to create external secret")
+		}
+	}
+
+	for _, u := range diff.Update {
+		if _, err := repo.Update(ctx, u.VariableID, u.ExternalSecretUpsertRequest); err != nil {
+			return errors.Wrap(err, "failed to update external secret")
+		}
+	}
+
+	return nil
 }
 
 func WithQoveryRepository(apiToken string, providerVersion string, host string) Configuration {

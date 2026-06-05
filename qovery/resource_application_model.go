@@ -10,6 +10,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 	"github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories/qoveryapi"
 )
 
@@ -38,6 +39,7 @@ type Application struct {
 	SecretVariableOverrides      types.Set                 `tfsdk:"secret_overrides"`
 	EnvironmentVariableFiles     types.Set                 `tfsdk:"environment_variable_files"`
 	SecretFiles                  types.Set                 `tfsdk:"secret_files"`
+	ExternalSecrets              types.Set                 `tfsdk:"external_secrets"`
 	ExternalHost                 types.String              `tfsdk:"external_host"`
 	InternalHost                 types.String              `tfsdk:"internal_host"`
 	Entrypoint                   types.String              `tfsdk:"entrypoint"`
@@ -87,6 +89,10 @@ func (app Application) EnvironmentVariableFileList() EnvironmentVariableFileList
 
 func (app Application) SecretFileList() SecretFileList {
 	return toSecretFileList(app.SecretFiles)
+}
+
+func (app Application) ExternalSecretList() ExternalSecretList {
+	return toExternalSecretList(app.ExternalSecrets)
 }
 
 func (app Application) CustomDomainsList() CustomDomainList {
@@ -310,7 +316,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 	}, nil
 }
 
-func convertResponseToApplication(ctx context.Context, state Application, app *client.ApplicationResponse) Application {
+func convertResponseToApplication(ctx context.Context, state Application, app *client.ApplicationResponse, externalSecrets variable.ExternalSecrets) Application {
 	healthchecks := convertHealthchecksResponseToDomain(app.ApplicationResponse.Healthchecks)
 	return Application{
 		Id:                           FromString(app.ApplicationResponse.Id),
@@ -350,6 +356,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		AnnotationsGroupIds:          fromAnnotationsGroupResponseList(ctx, state.AnnotationsGroupIds, app.ApplicationResponse.AnnotationsGroups),
 		LabelsGroupIds:               fromLabelsGroupResponseList(ctx, state.LabelsGroupIds, app.ApplicationResponse.LabelsGroups),
 		DockerTargetBuildStage:       FromNullableString(app.ApplicationResponse.DockerTargetBuildStage),
+		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(externalSecrets).toTerraformSet(ctx),
 	}
 }
 

@@ -533,6 +533,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			},
 			"environment_variable_files": environmentVariableFilesSchemaAttribute("container"),
 			"secret_files":               secretFilesSchemaAttribute("container"),
+			"external_secrets":           externalSecretsSchemaAttribute("container"),
 			"healthchecks":               healthchecksSchemaAttributes(true),
 			"arguments": schema.ListAttribute{
 				Description:         "List of arguments of this container.",

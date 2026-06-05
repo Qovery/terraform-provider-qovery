@@ -199,6 +199,7 @@ resource "qovery_container" "my_container" {
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this container. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this container. An override replaces the value of an existing environment variable defined at a higher scope (project or environment). The `key` must match the name of the variable to override. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this container. Environment variables at the container level have the highest precedence and override variables set at the project or environment level. (see [below for nested schema](#nestedatt--environment_variables))
+- `external_secrets` (Attributes Set) List of external secrets linked to this container. External secrets reference upstream secrets (e.g. from AWS Secrets Manager) via a secret manager access configuration. (see [below for nested schema](#nestedatt--external_secrets))
 - `icon_uri` (String) Icon URI representing the container. Used in the Qovery console UI.
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
 - `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the container's pods.
@@ -454,6 +455,20 @@ Optional:
 Read-Only:
 
 - `id` (String) Id of the environment variable.
+
+
+<a id="nestedatt--external_secrets"></a>
+### Nested Schema for `external_secrets`
+
+Required:
+
+- `key` (String) Name of the external secret.
+- `reference` (String) Reference to the upstream secret (e.g. the secret name or ARN in AWS Secrets Manager).
+- `secret_manager_access_id` (String) Id of the secret manager access to use for this external secret.
+
+Read-Only:
+
+- `id` (String) Id of the external secret.
 
 
 <a id="nestedatt--ports"></a>

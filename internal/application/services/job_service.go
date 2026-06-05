@@ -24,6 +24,7 @@ type jobService struct {
 	variableService              variable.Service
 	secretService                secret.Service
 	deploymentRestrictionService deploymentrestriction.DeploymentRestrictionService
+	externalSecretRepository     variable.ExternalSecretRepository
 }
 
 // NewJobService return a new instance of a job.Service that uses the given job.Repository.
@@ -33,6 +34,7 @@ func NewJobService(
 	variableService variable.Service,
 	secretService secret.Service,
 	deploymentRestrictionService deploymentrestriction.DeploymentRestrictionService,
+	externalSecretRepository variable.ExternalSecretRepository,
 ) (job.Service, error) {
 	if jobRepository == nil {
 		return nil, ErrInvalidRepository
@@ -50,12 +52,17 @@ func NewJobService(
 		return nil, ErrInvalidService
 	}
 
+	if externalSecretRepository == nil {
+		return nil, ErrInvalidRepository
+	}
+
 	return &jobService{
 		jobRepository:                jobRepository,
 		variableService:              variableService,
 		secretService:                secretService,
 		jobDeploymentService:         jobDeploymentService,
 		deploymentRestrictionService: deploymentRestrictionService,
+		externalSecretRepository:     externalSecretRepository,
 	}, nil
 }
 
@@ -91,6 +98,10 @@ func (s jobService) Create(ctx context.Context, environmentID string, request jo
 		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, newJob.ID.String(), domain.JOB, request.DeploymentRestrictionsDiff); apiErr != nil {
 			return nil, apiErr
 		}
+	}
+
+	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, newJob.ID.String(), request.ExternalSecrets); err != nil {
+		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
 
 	newJob, err = s.refreshJob(ctx, *newJob)
@@ -154,6 +165,10 @@ func (s jobService) Update(ctx context.Context, jobID string, request job.Upsert
 		}
 	}
 
+	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, updateJob.ID.String(), request.ExternalSecrets); err != nil {
+		return nil, errors.Wrap(err, job.ErrFailedToUpdateJob.Error())
+	}
+
 	updateJob, err = s.refreshJob(ctx, *updateJob)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrFailedToUpdateJob.Error())
@@ -190,6 +205,11 @@ func (s jobService) refreshJob(ctx context.Context, job job.Job) (*job.Job, erro
 		return nil, err
 	}
 
+	externalSecrets, err := s.externalSecretRepository.List(ctx, job.ID.String())
+	if err != nil {
+		return nil, err
+	}
+
 	status, err := s.jobDeploymentService.GetStatus(ctx, job.ID.String())
 	if err != nil {
 		return nil, err
@@ -207,6 +227,8 @@ func (s jobService) refreshJob(ctx context.Context, job job.Job) (*job.Job, erro
 	if err := job.SetSecrets(secrets); err != nil {
 		return nil, err
 	}
+
+	job.SetExternalSecrets(externalSecrets)
 
 	if err := job.SetState(status.State); err != nil {
 		return nil, err

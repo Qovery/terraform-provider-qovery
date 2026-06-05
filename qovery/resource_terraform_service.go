@@ -375,6 +375,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 				Optional:            true,
 				ElementType:         types.ListType{ElemType: types.StringType},
 			},
+			"external_secrets": externalSecretsSchemaAttribute("terraform service"),
 			"advanced_settings_json": schema.StringAttribute{
 				Description:         "Advanced settings in JSON format. See the Qovery API documentation for available settings.",
 				MarkdownDescription: "Advanced settings in JSON format. See the Qovery API documentation for available settings.",
@@ -407,7 +408,7 @@ func (r terraformServiceResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	// Create API request from plan
-	request, err := plan.toUpsertServiceRequest()
+	request, err := plan.toUpsertServiceRequest(nil)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on terraform service create", err.Error())
 		return
@@ -421,7 +422,7 @@ func (r terraformServiceResource) Create(ctx context.Context, req resource.Creat
 	}
 
 	// Convert domain entity to Terraform state
-	state := convertDomainTerraformServiceToTerraformService(plan, terraformSvc)
+	state := convertDomainTerraformServiceToTerraformService(ctx, plan, terraformSvc)
 	tflog.Trace(ctx, "created terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 
 	// Set state
@@ -451,7 +452,7 @@ func (r terraformServiceResource) Read(ctx context.Context, req resource.ReadReq
 	}
 
 	// Convert domain entity to Terraform state
-	state = convertDomainTerraformServiceToTerraformService(state, terraformSvc)
+	state = convertDomainTerraformServiceToTerraformService(ctx, state, terraformSvc)
 	tflog.Trace(ctx, "read terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 
 	// Set state
@@ -468,7 +469,7 @@ func (r terraformServiceResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	// Create API request from plan
-	request, err := plan.toUpsertServiceRequest()
+	request, err := plan.toUpsertServiceRequest(&state)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on terraform service update", err.Error())
 		return
@@ -482,7 +483,7 @@ func (r terraformServiceResource) Update(ctx context.Context, req resource.Updat
 	}
 
 	// Convert domain entity to Terraform state
-	state = convertDomainTerraformServiceToTerraformService(plan, terraformSvc)
+	state = convertDomainTerraformServiceToTerraformService(ctx, plan, terraformSvc)
 	tflog.Trace(ctx, "updated terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 
 	// Set state

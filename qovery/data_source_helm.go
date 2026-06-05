@@ -358,6 +358,19 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 					},
 				},
 			},
+			"external_secrets": schema.SetNestedAttribute{
+				Description:         "List of external secrets linked to this helm.",
+				MarkdownDescription: "List of external secrets linked to this helm.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id":                       schema.StringAttribute{Computed: true},
+						"key":                      schema.StringAttribute{Computed: true},
+						"reference":                schema.StringAttribute{Computed: true},
+						"secret_manager_access_id": schema.StringAttribute{Computed: true},
+					},
+				},
+			},
 			"external_host": schema.StringAttribute{
 				Description:         "The helm external FQDN host [NOTE: only if your helm is using a publicly accessible port].",
 				MarkdownDescription: "The helm external FQDN host [NOTE: only if your helm is using a publicly accessible port].",

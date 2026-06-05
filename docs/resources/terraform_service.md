@@ -113,6 +113,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 - `advanced_settings_json` (String) Advanced settings in JSON format. See the Qovery API documentation for available settings.
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `description` (String) Description of the terraform service.
+- `external_secrets` (Attributes Set) List of external secrets linked to this terraform service. External secrets reference upstream secrets (e.g. from AWS Secrets Manager) via a secret manager access configuration. (see [below for nested schema](#nestedatt--external_secrets))
 - `icon_uri` (String) Icon URI representing the terraform service.
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
 - `terraform_action` (String) Action to force a specific Terraform behavior on autodeploy.
@@ -203,6 +204,20 @@ Optional:
 - `storage_gib` (Number) Storage of the terraform job in GiB [1 GiB = 1024 MiB]. WARNING: Cannot be reduced after creation.
 	- Must be: `>= 1`.
 	- Default: `20`.
+
+
+<a id="nestedatt--external_secrets"></a>
+### Nested Schema for `external_secrets`
+
+Required:
+
+- `key` (String) Name of the external secret.
+- `reference` (String) Reference to the upstream secret (e.g. the secret name or ARN in AWS Secrets Manager).
+- `secret_manager_access_id` (String) Id of the secret manager access to use for this external secret.
+
+Read-Only:
+
+- `id` (String) Id of the external secret.
 
 
 <a id="nestedatt--variables"></a>

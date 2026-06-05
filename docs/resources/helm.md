@@ -181,6 +181,7 @@ resource "qovery_helm" "my_helm_from_git" {
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this helm. (see [below for nested schema](#nestedatt--environment_variables))
+- `external_secrets` (Attributes Set) List of external secrets linked to this helm. External secrets reference upstream secrets (e.g. from AWS Secrets Manager) via a secret manager access configuration. (see [below for nested schema](#nestedatt--external_secrets))
 - `icon_uri` (String) Icon URI representing the helm service.
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
 - `ports` (Attributes Map) List of ports linked to this helm. (see [below for nested schema](#nestedatt--ports))
@@ -377,6 +378,20 @@ Optional:
 Read-Only:
 
 - `id` (String) Id of the environment variable.
+
+
+<a id="nestedatt--external_secrets"></a>
+### Nested Schema for `external_secrets`
+
+Required:
+
+- `key` (String) Name of the external secret.
+- `reference` (String) Reference to the upstream secret (e.g. the secret name or ARN in AWS Secrets Manager).
+- `secret_manager_access_id` (String) Id of the secret manager access to use for this external secret.
+
+Read-Only:
+
+- `id` (String) Id of the external secret.
 
 
 <a id="nestedatt--ports"></a>

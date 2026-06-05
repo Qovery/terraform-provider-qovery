@@ -63,6 +63,7 @@ data "qovery_job" "my_job" {
 - `environment_id` (String) Id of the environment.
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this job. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `external_host` (String) The job external FQDN host [NOTE: only if your job is using a publicly accessible port].
+- `external_secrets` (Attributes Set) List of external secrets linked to this job. (see [below for nested schema](#nestedatt--external_secrets))
 - `internal_host` (String) The job internal host.
 - `name` (String) Name of the job.
 - `schedule` (Attributes) Job's schedule configuration. Use `on_start`, `on_stop`, and `on_delete` for lifecycle jobs, or `cronjob` for cron jobs. (see [below for nested schema](#nestedatt--schedule))
@@ -362,6 +363,17 @@ Read-Only:
 - `key` (String) Key of the environment variable file.
 - `mount_path` (String) Mount path of the environment variable file.
 - `value` (String) Value of the environment variable file.
+
+
+<a id="nestedatt--external_secrets"></a>
+### Nested Schema for `external_secrets`
+
+Read-Only:
+
+- `id` (String)
+- `key` (String)
+- `reference` (String)
+- `secret_manager_access_id` (String)
 
 
 <a id="nestedatt--schedule"></a>

@@ -76,6 +76,7 @@ type Job struct {
 	EnvironmentVariables         variable.Variables
 	EnvironmentVariableAliases   variable.Variables
 	EnvironmentVariableOverrides variable.Variables
+	ExternalSecrets              variable.ExternalSecrets
 	Secrets                      secret.Secrets
 	SecretAliases                secret.Secrets
 	SecretOverrides              secret.Secrets
@@ -295,6 +296,11 @@ func (c *Job) SetEnvironmentVariables(vars variable.Variables) error {
 	c.BuiltInEnvironmentVariables = builtIn
 
 	return nil
+}
+
+// SetExternalSecrets sets the ExternalSecrets field of the job.
+func (c *Job) SetExternalSecrets(secrets variable.ExternalSecrets) {
+	c.ExternalSecrets = secrets
 }
 
 // SetSecrets takes a secret.Secrets and sets the attributes Secrets of the job.

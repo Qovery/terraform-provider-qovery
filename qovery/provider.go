@@ -29,6 +29,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/terraformservice"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
 const APITokenEnvName = "QOVERY_API_TOKEN"
@@ -114,6 +115,9 @@ type qProvider struct {
 
 	// argoCdDestinationClusterMappingService is an instance of an argoCdDestinationClusterMapping.Service that handles the domain logic.
 	argoCdDestinationClusterMappingService argoCdDestinationClusterMapping.Service
+
+	// applicationExternalSecretRepository handles external secrets for applications.
+	applicationExternalSecretRepository variable.ExternalSecretRepository
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -203,6 +207,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.terraformServiceService = domainServices.TerraformService
 	p.argoCdCredentialsService = domainServices.ArgoCdCredentials
 	p.argoCdDestinationClusterMappingService = domainServices.ArgoCdDestinationClusterMapping
+	p.applicationExternalSecretRepository = domainServices.ApplicationExternalSecretRepository
 
 	resp.DataSourceData = p
 	resp.ResourceData = p

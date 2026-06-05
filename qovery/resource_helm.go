@@ -579,6 +579,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 			},
 			"environment_variable_files": environmentVariableFilesSchemaAttribute("helm"),
 			"secret_files":               secretFilesSchemaAttribute("helm"),
+			"external_secrets":           externalSecretsSchemaAttribute("helm"),
 			"custom_domains": schema.SetNestedAttribute{
 				Description:         "List of custom domains linked to this helm.",
 				MarkdownDescription: "List of custom domains linked to this helm.",

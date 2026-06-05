@@ -21,10 +21,11 @@ type containerService struct {
 	containerDeploymentService deployment.Service
 	variableService            variable.Service
 	secretService              secret.Service
+	externalSecretRepository   variable.ExternalSecretRepository
 }
 
 // NewContainerService return a new instance of a container.Service that uses the given container.Repository.
-func NewContainerService(containerRepository container.Repository, containerDeploymentService deployment.Service, variableService variable.Service, secretService secret.Service) (container.Service, error) {
+func NewContainerService(containerRepository container.Repository, containerDeploymentService deployment.Service, variableService variable.Service, secretService secret.Service, externalSecretRepository variable.ExternalSecretRepository) (container.Service, error) {
 	if containerRepository == nil {
 		return nil, ErrInvalidRepository
 	}
@@ -41,11 +42,16 @@ func NewContainerService(containerRepository container.Repository, containerDepl
 		return nil, ErrInvalidService
 	}
 
+	if externalSecretRepository == nil {
+		return nil, ErrInvalidRepository
+	}
+
 	return &containerService{
 		containerRepository:        containerRepository,
 		variableService:            variableService,
 		secretService:              secretService,
 		containerDeploymentService: containerDeploymentService,
+		externalSecretRepository:   externalSecretRepository,
 	}, nil
 }
 
@@ -74,6 +80,10 @@ func (s containerService) Create(ctx context.Context, environmentID string, requ
 
 	_, err = s.secretService.Update(ctx, cont.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, request.SecretFiles, overridesAuthorizedScopes)
 	if err != nil {
+		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
+	}
+
+	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, cont.ID.String(), request.ExternalSecrets); err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
@@ -132,6 +142,10 @@ func (s containerService) Update(ctx context.Context, containerID string, reques
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
 	}
 
+	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, cont.ID.String(), request.ExternalSecrets); err != nil {
+		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
+	}
+
 	cont, err = s.refreshContainer(ctx, *cont)
 	if err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
@@ -168,6 +182,11 @@ func (s containerService) refreshContainer(ctx context.Context, cont container.C
 		return nil, err
 	}
 
+	externalSecrets, err := s.externalSecretRepository.List(ctx, cont.ID.String())
+	if err != nil {
+		return nil, err
+	}
+
 	status, err := s.containerDeploymentService.GetStatus(ctx, cont.ID.String())
 	if err != nil {
 		return nil, err
@@ -180,6 +199,8 @@ func (s containerService) refreshContainer(ctx context.Context, cont container.C
 	if err := cont.SetSecrets(secrets); err != nil {
 		return nil, err
 	}
+
+	cont.SetExternalSecrets(externalSecrets)
 
 	if err := cont.SetState(status.State); err != nil {
 		return nil, err

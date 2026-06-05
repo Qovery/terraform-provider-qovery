@@ -260,6 +260,7 @@ type Job struct {
 	SecretOverrides              types.Set     `tfsdk:"secret_overrides"`
 	EnvironmentVariableFiles     types.Set     `tfsdk:"environment_variable_files"`
 	SecretFiles                  types.Set     `tfsdk:"secret_files"`
+	ExternalSecrets              types.Set     `tfsdk:"external_secrets"`
 	Port                         types.Int64   `tfsdk:"port"`
 	ExternalHost                 types.String  `tfsdk:"external_host"`
 	InternalHost                 types.String  `tfsdk:"internal_host"`
@@ -308,6 +309,10 @@ func (j Job) SecretFileList() SecretFileList {
 	return toSecretFileList(j.SecretFiles)
 }
 
+func (j Job) ExternalSecretList() ExternalSecretList {
+	return toExternalSecretList(j.ExternalSecrets)
+}
+
 func (j Job) DeploymentRestrictionDiff(deploymentRestrictionsState *types.Set) (*deploymentrestriction.ServiceDeploymentRestrictionsDiff, error) {
 	return deploymentrestriction.ToDeploymentRestrictionDiff(j.DeploymentRestrictions, deploymentRestrictionsState)
 }
@@ -322,6 +327,7 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 	var stateSecretOverrides SecretList
 	var stateSecretFiles SecretFileList
 	var stateDeploymentRestrictions types.Set
+	var stateExternalSecrets ExternalSecretList
 
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
@@ -333,6 +339,7 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 		stateSecretOverrides = state.SecretOverridesList()
 		stateSecretFiles = state.SecretFileList()
 		stateDeploymentRestrictions = state.DeploymentRestrictions
+		stateExternalSecrets = state.ExternalSecretList()
 	}
 
 	deploymentRestrictionsDiff, err := j.DeploymentRestrictionDiff(&stateDeploymentRestrictions)
@@ -350,6 +357,7 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 		SecretAliases:                j.SecretAliasesList().diffRequest(stateSecretAliases),
 		SecretOverrides:              j.SecretOverridesList().diffRequest(stateSecretOverrides),
 		SecretFiles:                  j.SecretFileList().diffRequest(stateSecretFiles),
+		ExternalSecrets:              j.ExternalSecretList().diffRequest(stateExternalSecrets),
 		DeploymentRestrictionsDiff:   *deploymentRestrictionsDiff,
 	}, nil
 }
@@ -430,5 +438,6 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, job.JobDeploymentRestrictions),
 		AnnotationsGroupIds:          fromAnnotationsGroupList(ctx, state.AnnotationsGroupIds, job.AnnotationsGroupIds),
 		LabelssGroupIds:              fromLabelsGroupList(ctx, state.LabelssGroupIds, job.LabelsGroupIds),
+		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(job.ExternalSecrets).toTerraformSet(ctx),
 	}
 }

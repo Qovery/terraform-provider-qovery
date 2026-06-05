@@ -15,6 +15,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
@@ -82,6 +83,12 @@ type QoveryAPI struct {
 	TerraformService                terraformservice.Repository
 	ArgoCdCredentials               argoCdCredentials.Repository
 	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Repository
+
+	ApplicationExternalSecret      variable.ExternalSecretRepository
+	ContainerExternalSecret        variable.ExternalSecretRepository
+	JobExternalSecret              variable.ExternalSecretRepository
+	HelmExternalSecret             variable.ExternalSecretRepository
+	TerraformServiceExternalSecret variable.ExternalSecretRepository
 }
 
 // New returns a new instance of QoveryAPI and applies the given configs.
@@ -256,6 +263,31 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	applicationExternalSecretAPI, err := newExternalSecretsQoveryAPI(apiClient, qovery.APIVARIABLESCOPEENUM_APPLICATION, apierrors.APIResourceApplicationExternalSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	containerExternalSecretAPI, err := newExternalSecretsQoveryAPI(apiClient, qovery.APIVARIABLESCOPEENUM_CONTAINER, apierrors.APIResourceContainerExternalSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	jobExternalSecretAPI, err := newExternalSecretsQoveryAPI(apiClient, qovery.APIVARIABLESCOPEENUM_JOB, apierrors.APIResourceJobExternalSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	helmExternalSecretAPI, err := newExternalSecretsQoveryAPI(apiClient, qovery.APIVARIABLESCOPEENUM_HELM, apierrors.APIResourceHelmExternalSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	terraformServiceExternalSecretAPI, err := newExternalSecretsQoveryAPI(apiClient, qovery.APIVARIABLESCOPEENUM_TERRAFORM, apierrors.APIResourceTerraformServiceExternalSecret)
+	if err != nil {
+		return nil, err
+	}
+
 	argoCdCredentialsAPI, err := newArgoCdCredentialsQoveryAPI(apiClient)
 	if err != nil {
 		return nil, err
@@ -304,6 +336,12 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		TerraformService:                terraformServiceAPI,
 		ArgoCdCredentials:               argoCdCredentialsAPI,
 		ArgoCdDestinationClusterMapping: argoCdDestinationClusterMappingAPI,
+
+		ApplicationExternalSecret:      applicationExternalSecretAPI,
+		ContainerExternalSecret:        containerExternalSecretAPI,
+		JobExternalSecret:              jobExternalSecretAPI,
+		HelmExternalSecret:             helmExternalSecretAPI,
+		TerraformServiceExternalSecret: terraformServiceExternalSecretAPI,
 	}
 
 	// Apply all the configs to the qoveryAPI instance.
