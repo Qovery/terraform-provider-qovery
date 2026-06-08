@@ -111,6 +111,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 
 - `action_extra_arguments` (Map of List of String) Extra CLI arguments for specific Terraform actions (plan, apply, destroy).
 - `advanced_settings_json` (String) Advanced settings in JSON format. See the Qovery API documentation for available settings.
+- `blueprint_id` (String) The blueprint ID the terraform service has been created from.
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `description` (String) Description of the terraform service.
 - `icon_uri` (String) Icon URI representing the terraform service.
