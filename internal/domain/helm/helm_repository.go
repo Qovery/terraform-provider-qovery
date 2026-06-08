@@ -41,6 +41,7 @@ type UpsertRepositoryRequest struct {
 	IsSkipped                 bool
 	AdvancedSettingsJson      string
 	CustomDomains             client.CustomDomainsDiff
+	BlueprintID               *string
 }
 
 func (r UpsertRepositoryRequest) Validate() error {

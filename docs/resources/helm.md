@@ -174,6 +174,7 @@ resource "qovery_helm" "my_helm_from_git" {
 - `arguments` (List of String) Helm CLI arguments passed to the helm command (e.g. `--wait`, `--atomic`, `--debug`).
 - `auto_deploy` (Boolean) Specify if the helm service will be automatically updated on every new commit on the branch.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this helm.
+- `blueprint_id` (String) The blueprint ID the helm service has been created from.
 - `custom_domains` (Attributes Set) List of custom domains linked to this helm. (see [below for nested schema](#nestedatt--custom_domains))
 - `deployment_restrictions` (Attributes Set) List of deployment restrictions. (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `deployment_stage_id` (String) Id of the deployment stage. Controls the order of service deployment within an environment.

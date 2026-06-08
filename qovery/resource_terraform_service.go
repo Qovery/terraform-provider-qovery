@@ -110,6 +110,15 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 				MarkdownDescription: "Description of the terraform service.",
 				Optional:            true,
 			},
+			"blueprint_id": schema.StringAttribute{
+				Description:         "The blueprint ID the terraform service has been created from.",
+				MarkdownDescription: "The blueprint ID the terraform service has been created from.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"auto_deploy": schema.BoolAttribute{
 				Description:         "Specify if the terraform service will be automatically updated on every new commit.",
 				MarkdownDescription: "Specify if the terraform service will be automatically updated on every new commit.",

@@ -130,6 +130,7 @@ type TerraformService struct {
 	AdvancedSettingsJson  string
 	CreatedAt             time.Time
 	UpdatedAt             *time.Time
+	BlueprintID           *string
 }
 
 // GitRepository represents the git repository configuration

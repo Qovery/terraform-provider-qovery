@@ -47,6 +47,7 @@ type Helm struct {
 	AdvancedSettingsJson         types.String         `tfsdk:"advanced_settings_json"`
 	DeploymentRestrictions       types.Set            `tfsdk:"deployment_restrictions"`
 	CustomDomains                types.Set            `tfsdk:"custom_domains"`
+	BlueprintID                  types.String         `tfsdk:"blueprint_id"`
 }
 
 type HelmSource struct {
@@ -233,6 +234,7 @@ func (h Helm) toUpsertRepositoryRequest(customDomainsDiff client.CustomDomainsDi
 		Ports:                     ports,
 		AdvancedSettingsJson:      ToString(h.AdvancedSettingsJson),
 		CustomDomains:             customDomainsDiff,
+		BlueprintID:               ToStringPointer(h.BlueprintID),
 	}, nil
 }
 
@@ -502,5 +504,6 @@ func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) H
 		AdvancedSettingsJson:         FromString(helm.AdvancedSettingsJson),
 		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, helm.JobDeploymentRestrictions),
 		CustomDomains:                fromCustomDomainList(state.CustomDomains, helm.CustomDomains).toTerraformSet(ctx),
+		BlueprintID:                  FromStringPointer(helm.BlueprintID),
 	}
 }

@@ -33,6 +33,7 @@ data "qovery_terraform_service" "my_terraform_service" {
 - `advanced_settings_json` (String) Advanced settings in JSON format.
 - `auto_deploy` (Boolean) Specify if the terraform service will be automatically updated on every new commit.
 - `backend` (Attributes) Terraform backend configuration. Indicates which backend type is used. (see [below for nested schema](#nestedatt--backend))
+- `blueprint_id` (String) The blueprint ID the terraform service has been created from.
 - `created_at` (String) Creation date of the terraform service.
 - `description` (String) Description of the terraform service.
 - `engine` (String) Terraform engine.
