@@ -128,6 +128,10 @@ func newQoveryTerraformRequestFromDomain(request terraformservice.UpsertReposito
 		req.ActionExtraArguments = &request.ActionExtraArguments
 	}
 
+	if request.BlueprintID != nil {
+		req.BlueprintId = *qovery.NewNullableString(request.BlueprintID)
+	}
+
 	return req, nil
 }
 
@@ -286,6 +290,10 @@ func newDomainTerraformServiceFromQovery(response *qovery.TerraformResponse, dep
 
 	if response.UpdatedAt != nil {
 		service.UpdatedAt = response.UpdatedAt
+	}
+
+	if response.BlueprintId.IsSet() {
+		service.BlueprintID = response.BlueprintId.Get()
 	}
 
 	return service, nil

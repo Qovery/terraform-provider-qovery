@@ -76,6 +76,11 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 				MarkdownDescription: "Description of the helm service.",
 				Computed:            true,
 			},
+			"blueprint_id": schema.StringAttribute{
+				Description:         "The blueprint ID the helm service has been created from.",
+				MarkdownDescription: "The blueprint ID the helm service has been created from.",
+				Computed:            true,
+			},
 			"icon_uri": schema.StringAttribute{
 				Description:         "Icon URI representing the helm service.",
 				MarkdownDescription: "Icon URI representing the helm service.",

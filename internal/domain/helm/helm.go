@@ -63,6 +63,7 @@ type Helm struct {
 	AdvancedSettingsJson         string
 	JobDeploymentRestrictions    []deploymentrestriction.ServiceDeploymentRestriction
 	CustomDomains                []*qovery.CustomDomain
+	BlueprintID                  *string
 }
 
 type SourceResponse struct {
@@ -119,6 +120,7 @@ type NewHelmParams struct {
 	IsSkipped                 bool
 	AdvancedSettingsJson      string
 	CustomDomains             []*qovery.CustomDomain
+	BlueprintID               *string
 }
 
 func NewHelm(params NewHelmParams) (*Helm, error) {
@@ -178,6 +180,7 @@ func NewHelm(params NewHelmParams) (*Helm, error) {
 		IsSkipped:                 params.IsSkipped,
 		AdvancedSettingsJson:      params.AdvancedSettingsJson,
 		CustomDomains:             params.CustomDomains,
+		BlueprintID:               params.BlueprintID,
 	}
 
 	environmentVariables := make(variable.Variables, len(params.EnvironmentVariables))

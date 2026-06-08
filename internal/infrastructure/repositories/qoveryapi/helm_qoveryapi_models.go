@@ -27,6 +27,7 @@ type AggregateHelmResponse struct {
 	Source                    helm.SourceResponse
 	ValuesOverride            qovery.HelmResponseAllOfValuesOverride
 	Ports                     []qovery.HelmResponseAllOfPorts
+	BlueprintID               *string
 }
 
 func getAggregateHelmResponse(helmResponse *qovery.HelmResponse) AggregateHelmResponse {
@@ -35,6 +36,11 @@ func getAggregateHelmResponse(helmResponse *qovery.HelmResponse) AggregateHelmRe
 		source.Git = &git.Git
 	} else if repo := helmResponse.Source.HelmResponseAllOfSourceOneOf1; repo != nil {
 		source.Repository = &repo.Repository
+	}
+
+	var blueprintID *string
+	if helmResponse.BlueprintId.IsSet() {
+		blueprintID = helmResponse.BlueprintId.Get()
 	}
 
 	return AggregateHelmResponse{
@@ -53,6 +59,7 @@ func getAggregateHelmResponse(helmResponse *qovery.HelmResponse) AggregateHelmRe
 		Source:                    source,
 		ValuesOverride:            helmResponse.ValuesOverride,
 		Ports:                     helmResponse.Ports,
+		BlueprintID:               blueprintID,
 	}
 }
 
@@ -187,6 +194,7 @@ func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageI
 		IsSkipped:                 isSkipped,
 		AdvancedSettingsJson:      advancedSettingsJson,
 		CustomDomains:             customDomains,
+		BlueprintID:               h.BlueprintID,
 	})
 }
 
@@ -204,7 +212,7 @@ func newQoveryHelmRequestFromDomain(request helm.UpsertRepositoryRequest) (*qove
 		return nil, errors.Wrap(err, helm.ErrInvalidUpsertRequest.Error())
 	}
 
-	return &qovery.HelmRequest{
+	req := &qovery.HelmRequest{
 		Name:                      request.Name,
 		Description:               request.Description,
 		IconUri:                   request.IconUri,
@@ -221,7 +229,13 @@ func newQoveryHelmRequestFromDomain(request helm.UpsertRepositoryRequest) (*qove
 			SetJson:   request.ValuesOverride.SetJson,
 			File:      *fileValuesOverride,
 		},
-	}, nil
+	}
+
+	if request.BlueprintID != nil {
+		req.BlueprintId = *qovery.NewNullableString(request.BlueprintID)
+	}
+
+	return req, nil
 }
 
 func newQoveryHelmSourceRequestFromDomain(source helm.Source) *qovery.HelmRequestAllOfSource {

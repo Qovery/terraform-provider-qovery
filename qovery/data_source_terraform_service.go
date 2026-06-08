@@ -83,6 +83,11 @@ func (d terraformServiceDataSource) Schema(_ context.Context, _ datasource.Schem
 				MarkdownDescription: "Description of the terraform service.",
 				Computed:            true,
 			},
+			"blueprint_id": schema.StringAttribute{
+				Description:         "The blueprint ID the terraform service has been created from.",
+				MarkdownDescription: "The blueprint ID the terraform service has been created from.",
+				Computed:            true,
+			},
 			"auto_deploy": schema.BoolAttribute{
 				Description:         "Specify if the terraform service will be automatically updated on every new commit.",
 				MarkdownDescription: "Specify if the terraform service will be automatically updated on every new commit.",

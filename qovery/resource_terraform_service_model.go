@@ -34,6 +34,7 @@ type TerraformService struct {
 	AdvancedSettingsJson  types.String            `tfsdk:"advanced_settings_json"`
 	CreatedAt             types.String            `tfsdk:"created_at"`
 	UpdatedAt             types.String            `tfsdk:"updated_at"`
+	BlueprintID           types.String            `tfsdk:"blueprint_id"`
 }
 
 type TerraformGitRepository struct {
@@ -114,6 +115,7 @@ func (t TerraformService) toUpsertRepositoryRequest() (terraformservice.UpsertRe
 		UseClusterCredentials: ToBool(t.UseClusterCredentials),
 		ActionExtraArguments:  toActionExtraArguments(t.ActionExtraArguments),
 		AdvancedSettingsJson:  ToString(t.AdvancedSettingsJson),
+		BlueprintID:           ToStringPointer(t.BlueprintID),
 	}, nil
 }
 
@@ -264,6 +266,7 @@ func convertDomainTerraformServiceToTerraformService(plan TerraformService, ts *
 		AdvancedSettingsJson:  FromString(ts.AdvancedSettingsJson),
 		CreatedAt:             FromTime(ts.CreatedAt),
 		UpdatedAt:             FromTimePointer(ts.UpdatedAt),
+		BlueprintID:           FromStringPointer(ts.BlueprintID),
 	}
 }
 

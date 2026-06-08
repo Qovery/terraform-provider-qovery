@@ -95,6 +95,15 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				MarkdownDescription: "Description of the helm service.",
 				Required:            true,
 			},
+			"blueprint_id": schema.StringAttribute{
+				Description:         "The blueprint ID the helm service has been created from.",
+				MarkdownDescription: "The blueprint ID the helm service has been created from.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
 			"icon_uri": schema.StringAttribute{
 				Description:         "Icon URI representing the helm service.",
 				MarkdownDescription: "Icon URI representing the helm service.",

@@ -38,6 +38,7 @@ type UpsertRepositoryRequest struct {
 	UseClusterCredentials bool
 	ActionExtraArguments  map[string][]string
 	AdvancedSettingsJson  string
+	BlueprintID           *string
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.
