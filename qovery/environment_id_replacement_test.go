@@ -324,14 +324,15 @@ func TestClusterNatGateways_IsOptionalAndComputed(t *testing.T) {
 
 // TestClusterNatGateways_HasObjectDefault asserts that features.nat_gateways carries an
 // ObjectDefault (not UseStateForUnknown) so omitting the block in config resets the value
-// to the default {static_ips_count: 1} rather than keeping the previous state. This is
-// the semantic flip introduced by the value-based nat_gateways design.
+// to the default {static_ips_enabled:false, static_ips_count:1} rather than keeping the
+// previous state. This is the semantic flip introduced by the value-based nat_gateways
+// design (v3: explicit opt-in via static_ips_enabled).
 func TestClusterNatGateways_HasObjectDefault(t *testing.T) {
 	t.Parallel()
 
 	nat := clusterNatGatewaysAttribute(t)
 	require.NotNil(t, nat.Default,
-		"features.nat_gateways must carry an ObjectDefault so omitting the block resets to {static_ips_count:1}")
+		"features.nat_gateways must carry an ObjectDefault so omitting the block resets to {static_ips_enabled:false, static_ips_count:1}")
 
 	ctx := context.Background()
 	req := defaults.ObjectRequest{}
@@ -344,10 +345,14 @@ func TestClusterNatGateways_HasObjectDefault(t *testing.T) {
 	require.False(t, defaultVal.IsUnknown(), "default value must not be unknown")
 
 	attrs := defaultVal.Attributes()
+	enabledAttr, ok := attrs["static_ips_enabled"].(types.Bool)
+	require.True(t, ok, "default value must have static_ips_enabled as Bool")
+	assert.False(t, enabledAttr.ValueBool(),
+		"default nat_gateways must have static_ips_enabled=false (ephemeral egress is the platform default)")
 	countAttr, ok := attrs["static_ips_count"].(types.Int64)
 	require.True(t, ok, "default value must have static_ips_count as Int64")
 	assert.Equal(t, int64(1), countAttr.ValueInt64(),
-		"default nat_gateways must be {static_ips_count: 1}")
+		"default nat_gateways must be {static_ips_enabled:false, static_ips_count:1}")
 
 	// Confirm the type structure matches createNatGatewaysFeatureAttrTypes().
 	expectedAttrTypes := createNatGatewaysFeatureAttrTypes()

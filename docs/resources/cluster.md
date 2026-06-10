@@ -328,12 +328,16 @@ Optional:
 
 ~> **Warning:** This configuration cannot be changed after cluster creation. (see [below for nested schema](#nestedatt--features--gcp_existing_vpc))
 - `karpenter` (Attributes) Karpenter configuration for AWS EKS clusters. [Karpenter](https://karpenter.sh/) is a Kubernetes node autoscaler that automatically provisions right-sized compute resources. When Karpenter is enabled, do not set `instance_type`, `min_running_nodes`, or `max_running_nodes` — Karpenter manages node scaling automatically. (see [below for nested schema](#nestedatt--features--karpenter))
-- `nat_gateways` (Attributes) GCP NAT Gateway static IP configuration. Configure this block when `static_ip` is `true` to choose how many static egress IPs are allocated.
+- `nat_gateways` (Attributes) GCP NAT Gateway static egress IP configuration. Reserved static egress IPs are an explicit opt-in via `static_ips_enabled = true` (requires `static_ip = true`).
 
-~> **Note:** To disable static egress IPs, set `static_ip` to `false`. Omitting this block resets `static_ips_count` to its default (1). This block is ignored on non-GCP clusters and when `static_ip` is `false`; only the default value is accepted in those cases. (see [below for nested schema](#nestedatt--features--nat_gateways))
+Omitting this block or setting `static_ips_enabled = false` keeps the platform default (ephemeral egress IPs).
+
+Removing this block after it was enabled resets to disabled with a visible diff on the next plan.
+
+~> **Note:** This block is ignored on non-GCP clusters; only the default value `{static_ips_enabled=false, static_ips_count=1}` is accepted in those cases. (see [below for nested schema](#nestedatt--features--nat_gateways))
 - `static_ip` (Boolean) Whether to assign static IP addresses to the cluster nodes or NAT gateways. Useful when your services need to be allowlisted by IP. Default: `false`.
 
-~> **Warning:** This value cannot be changed after cluster creation. Changing it will require destroying and recreating the cluster.
+~> **Warning:** This value cannot be changed once the cluster has been deployed — the API rejects the change. Destroy and recreate the cluster to change it. On GCP, reserved static egress IPs are toggled via `nat_gateways.static_ips_enabled`, which remains editable after deployment.
 - `vpc_subnet` (String) Custom VPC CIDR block for non-GCP clusters. This defines the IP address range for the entire VPC. Default: `10.0.0.0/16`.
 
 ~> **Note:** This value is ignored for GCP clusters unless a non-default value is configured, which is rejected because GCP uses its own network configuration.
@@ -474,7 +478,8 @@ Required:
 
 Optional:
 
-- `static_ips_count` (Number) Number of static IPs to allocate for GCP NAT gateways. Must be greater than or equal to `1` when `static_ip` is `true`. Default: `1`.
+- `static_ips_count` (Number) Number of static IPs to allocate for GCP NAT gateways. Must be greater than or equal to `1`. Meaningful only when `static_ips_enabled` is `true`. Default: `1`.
+- `static_ips_enabled` (Boolean) Whether to reserve static egress IPs for the GCP NAT gateways. Default: `false` (ephemeral egress IPs).
 
 
 

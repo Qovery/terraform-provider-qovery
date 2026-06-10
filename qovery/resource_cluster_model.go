@@ -670,14 +670,32 @@ func fromQoveryClusterFeatures(
 		attributeTypes[featureKeyStaticIP] = types.BoolType
 	}
 
+	// Determine the final static_ip bool (arbitration: STATIC_IP feature wins when present;
+	// else derive from NAT enabled flag). We need it before building nat_gateways so we can
+	// decide whether to normalize remembered params or emit them verbatim.
+	finalStaticIP := false
+	if staticIPVal, ok := attributes[featureKeyStaticIP]; ok {
+		if bv, ok2 := staticIPVal.(types.Bool); ok2 && !bv.IsNull() && !bv.IsUnknown() {
+			finalStaticIP = bv.ValueBool()
+		}
+	}
+
 	if hasGcpNatGateways {
 		natGatewayAttrTypes := createNatGatewaysFeatureAttrTypes()
-		count := int64(1)
-		if natGatewaysStaticIPEnabled {
+		var enabled bool
+		var count int64
+		if finalStaticIP {
+			// Verbatim mapping: emit what the API returned.
+			enabled = natGatewaysStaticIPEnabled
 			count = int64(natGatewaysStaticIPCount)
+		} else {
+			// static_ip=false: normalize to default to preserve consistency invariant.
+			enabled = false
+			count = 1
 		}
 		natGatewayObj, diagnostics := types.ObjectValue(natGatewayAttrTypes, map[string]attr.Value{
-			"static_ips_count": types.Int64Value(count),
+			"static_ips_enabled": types.BoolValue(enabled),
+			"static_ips_count":   types.Int64Value(count),
 		})
 		if diagnostics.HasError() {
 			panic(fmt.Errorf("bad %s feature: %s", featureKeyNatGateways, diagnostics.Errors()))
@@ -703,7 +721,8 @@ func fromQoveryClusterFeatures(
 	if attributes[featureKeyNatGateways] == nil {
 		natGatewaysAttrTypes := createNatGatewaysFeatureAttrTypes()
 		attributes[featureKeyNatGateways] = types.ObjectValueMust(natGatewaysAttrTypes, map[string]attr.Value{
-			"static_ips_count": types.Int64Value(1),
+			"static_ips_enabled": types.BoolValue(false),
+			"static_ips_count":   types.Int64Value(1),
 		})
 		attributeTypes[featureKeyNatGateways] = types.ObjectType{AttrTypes: natGatewaysAttrTypes}
 	}
@@ -774,13 +793,22 @@ func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string) 
 		staticIPEnabled = ToBool(staticIPAttr.(types.Bool))
 	}
 
-	// Apply-time backstop: count > 1 on non-GCP or when static_ip is false is unsupported.
-	// Plan-time validation (ValidateConfig) provides the earlier user-facing error.
+	// Apply-time backstop: nat_gateways with enabled=true or count>1 is only valid for
+	// GCP clusters with static_ip enabled. Plan-time validation (ValidateConfig) provides
+	// the earlier user-facing error; this is a defensive safety net.
 	if hasNatGateways && !natGatewaysAttr.IsNull() && !natGatewaysAttr.IsUnknown() {
 		natGateways := natGatewaysAttr.(types.Object)
-		count := ToInt32(natGateways.Attributes()["static_ips_count"].(types.Int64))
-		if (cloudProvider != "GCP" || !staticIPEnabled) && count > 1 {
-			return nil, errors.New("features.nat_gateways with static_ips_count > 1 is only supported for GCP clusters with static_ip enabled")
+		natAttrs := natGateways.Attributes()
+		blockEnabled := false
+		if ev, ok := natAttrs["static_ips_enabled"]; ok && !ev.IsNull() && !ev.IsUnknown() {
+			blockEnabled = ev.(types.Bool).ValueBool()
+		}
+		blockCount := int32(1)
+		if cv, ok := natAttrs["static_ips_count"]; ok && !cv.IsNull() && !cv.IsUnknown() {
+			blockCount = ToInt32(cv.(types.Int64))
+		}
+		if (blockEnabled || blockCount > 1) && !(cloudProvider == "GCP" && staticIPEnabled) {
+			return nil, errors.New("features.nat_gateways with static_ips_enabled or static_ips_count > 1 requires a GCP cluster with features.static_ip enabled")
 		}
 	}
 
@@ -795,25 +823,36 @@ func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string) 
 		})
 
 		if cloudProvider == "GCP" && staticIPEnabled {
-			count := int32(1)
+			// GCP with static_ip=true: ALWAYS emit NAT_GATEWAY verbatim from the block
+			// (including the disabled shape {false,1}) to keep DB params in sync with plan.
+			blockEnabled := false
+			blockCount := int32(1)
 			if hasNatGateways && !natGatewaysAttr.IsNull() && !natGatewaysAttr.IsUnknown() {
 				natGateways := natGatewaysAttr.(types.Object)
-				count = ToInt32(natGateways.Attributes()["static_ips_count"].(types.Int64))
+				natAttrs := natGateways.Attributes()
+				if ev, ok := natAttrs["static_ips_enabled"]; ok && !ev.IsNull() && !ev.IsUnknown() {
+					blockEnabled = ev.(types.Bool).ValueBool()
+				}
+				if cv, ok := natAttrs["static_ips_count"]; ok && !cv.IsNull() && !cv.IsUnknown() {
+					blockCount = ToInt32(cv.(types.Int64))
+				}
 			}
 			natGatewayType := qovery.ClusterFeatureNatGatewayTypeGcpAsClusterFeatureNatGatewayParametersNatGatewayType(
-				qovery.NewClusterFeatureNatGatewayTypeGcp("gcp", true, count),
+				qovery.NewClusterFeatureNatGatewayTypeGcp("gcp", blockEnabled, blockCount),
 			)
 			natGatewayParameters := qovery.ClusterFeatureNatGatewayParameters{}
 			natGatewayParameters.SetNatGatewayType(natGatewayType)
-			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
+			natValue := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
 				ClusterFeatureNatGatewayParameters: &natGatewayParameters,
 			})
 
 			features = append(features, qovery.ClusterRequestFeaturesInner{
 				Id:    new(featureIdNatGateway),
-				Value: *value,
+				Value: *natValue,
 			})
 		}
+		// GCP && !staticIPEnabled: emit nothing (absent = not configured in q-core).
+		// Non-GCP: never emit NAT_GATEWAY.
 	}
 
 	return appendRemainingQoveryClusterFeatures(features, f)
@@ -1268,7 +1307,8 @@ func createFeaturesAttrTypes() map[string]attr.Type {
 
 func createNatGatewaysFeatureAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"static_ips_count": types.Int64Type,
+		"static_ips_enabled": types.BoolType,
+		"static_ips_count":   types.Int64Type,
 	}
 }
 

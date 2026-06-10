@@ -248,14 +248,16 @@ func TestAcc_ClusterWithReadyState(t *testing.T) {
 
 // TestAcc_ClusterGcpNatGateways verifies the value-based semantics of
 // features.nat_gateways against the real API, on a GCP cluster in READY state
-// (no cloud infra provisioned). It pins the three Terraform-visible invariants
-// of the design:
-//  1. an explicit static_ips_count round-trips through create/Read,
-//  2. removing the block resets the count to its default (1) with a visible
-//     diff — it does NOT silently keep the previous value, and the post-apply
-//     Read matches the planned default (no "inconsistent result" error),
+// (no cloud infra provisioned). It pins the four Terraform-visible invariants
+// of the v3 design:
+//  1. explicit {static_ips_enabled=true, static_ips_count=3} round-trips through
+//     create/Read (both fields visible in state),
+//  2. removing the block resets to the default {false,1} with a visible diff —
+//     it does NOT silently keep the previous value; post-apply Read matches the
+//     planned default (no "inconsistent result" error),
 //  3. static_ip = false disables the feature while nat_gateways stays at the
-//     default object (never null) in state.
+//     default object {false,1} (never null) in state,
+//  4. import verify (same ignores as other GCP tests).
 func TestAcc_ClusterGcpNatGateways(t *testing.T) {
 	t.Parallel()
 	testName := "cluster-gcp-nat-gateways"
@@ -264,36 +266,42 @@ func TestAcc_ClusterGcpNatGateways(t *testing.T) {
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
 		Steps: []resource.TestStep{
-			// Create with static_ip=true and an explicit count.
+			// Step 1: create with static_ip=true and an explicit enabled=true, count=3.
 			{
-				Config: testAccClusterGCPNatGatewaysConfig(testName, true, "nat_gateways = { static_ips_count = 3 }"),
+				Config: testAccClusterGCPNatGatewaysConfig(testName, true, "nat_gateways = { static_ips_enabled = true, static_ips_count = 3 }"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "GCP"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "true"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "features.nat_gateways.static_ips_enabled", "true"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.nat_gateways.static_ips_count", "3"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
 				),
 			},
-			// Remove the block: the object default must reset the count to 1.
+			// Step 2: remove the block — ObjectDefault resets to {false,1} (visible diff).
 			{
 				Config: testAccClusterGCPNatGatewaysConfig(testName, true, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "true"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "features.nat_gateways.static_ips_enabled", "false"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.nat_gateways.static_ips_count", "1"),
 				),
 			},
-			// Disable static IPs: nat_gateways stays at the default object.
+			// Step 3: disable static_ip — nat_gateways stays at default {false,1}.
+			// NOTE: this transition is only accepted because the cluster is in READY
+			// state (never deployed). q-core rejects enabling/disabling static_ip on an
+			// already DEPLOYED cluster (isStaticIpUpdateForbiddenOnDeployedCluster).
 			{
 				Config: testAccClusterGCPNatGatewaysConfig(testName, false, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "false"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "features.nat_gateways.static_ips_enabled", "false"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.nat_gateways.static_ips_count", "1"),
 				),
 			},
-			// Import
+			// Step 4: import verify.
 			{
 				ResourceName:        "qovery_cluster.test",
 				ImportState:         true,

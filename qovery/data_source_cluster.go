@@ -163,19 +163,25 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 					},
 					"static_ip": schema.BoolAttribute{
 						Description: descriptions.NewBoolDefaultDescription(
-							"Static IP (AWS and GCP) [NOTE: can't be updated after creation].",
+							"Static IP (AWS and GCP) [NOTE: can't be updated once the cluster has been deployed].",
 							clusterFeatureStaticIPDefault,
 						),
-						MarkdownDescription: "Whether static IPs are enabled. Immutable after creation.",
+						MarkdownDescription: "Whether static IPs are enabled. Immutable once the cluster has been deployed.",
 						Optional:            true,
 						Computed:            true,
 					},
 					"nat_gateways": schema.SingleNestedAttribute{
 						Description:         "GCP NAT Gateway static IP configuration.",
-						MarkdownDescription: "GCP NAT Gateway static IP configuration.",
+						MarkdownDescription: "GCP NAT Gateway static egress IP configuration.",
 						Optional:            true,
 						Computed:            true,
 						Attributes: map[string]schema.Attribute{
+							"static_ips_enabled": schema.BoolAttribute{
+								Description:         "Whether static egress IPs are reserved for the GCP NAT gateways.",
+								MarkdownDescription: "Whether static egress IPs are reserved for the GCP NAT gateways.",
+								Optional:            true,
+								Computed:            true,
+							},
 							"static_ips_count": schema.Int64Attribute{
 								Description:         "Number of static IPs allocated for GCP NAT gateways.",
 								MarkdownDescription: "Number of static IPs allocated for GCP NAT gateways.",

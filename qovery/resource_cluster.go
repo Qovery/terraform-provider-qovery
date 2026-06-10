@@ -273,11 +273,11 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					},
 					"static_ip": schema.BoolAttribute{
 						Description: descriptions.NewBoolDefaultDescription(
-							"Static IP (AWS and GCP) [NOTE: can't be updated after creation].",
+							"Static IP (AWS and GCP) [NOTE: can't be updated once the cluster has been deployed].",
 							clusterFeatureStaticIPDefault,
 						),
 						MarkdownDescription: "Whether to assign static IP addresses to the cluster nodes or NAT gateways. Useful when your services need to be allowlisted by IP. Default: `false`.\n\n" +
-							"~> **Warning:** This value cannot be changed after cluster creation. Changing it will require destroying and recreating the cluster.",
+							"~> **Warning:** This value cannot be changed once the cluster has been deployed — the API rejects the change. Destroy and recreate the cluster to change it. On GCP, reserved static egress IPs are toggled via `nat_gateways.static_ips_enabled`, which remains editable after deployment.",
 						Optional: true,
 						Computed: true,
 						Default:  booldefault.StaticBool(clusterFeatureStaticIPDefault),
@@ -286,16 +286,28 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						Optional:    true,
 						Computed:    true,
 						Description: "GCP NAT Gateway static IP configuration.",
-						MarkdownDescription: "GCP NAT Gateway static IP configuration. Configure this block when `static_ip` is `true` to choose how many static egress IPs are allocated.\n\n" +
-							"~> **Note:** To disable static egress IPs, set `static_ip` to `false`. Omitting this block resets `static_ips_count` to its default (1). This block is ignored on non-GCP clusters and when `static_ip` is `false`; only the default value is accepted in those cases.",
+						MarkdownDescription: "GCP NAT Gateway static egress IP configuration. Reserved static egress IPs are an explicit opt-in via `static_ips_enabled = true` (requires `static_ip = true`).\n\n" +
+							"Omitting this block or setting `static_ips_enabled = false` keeps the platform default (ephemeral egress IPs).\n\n" +
+							"Removing this block after it was enabled resets to disabled with a visible diff on the next plan.\n\n" +
+							"~> **Note:** This block is ignored on non-GCP clusters; only the default value `{static_ips_enabled=false, static_ips_count=1}` is accepted in those cases.",
 						Default: objectdefault.StaticValue(types.ObjectValueMust(
 							createNatGatewaysFeatureAttrTypes(),
-							map[string]attr.Value{"static_ips_count": types.Int64Value(1)},
+							map[string]attr.Value{
+								"static_ips_enabled": types.BoolValue(false),
+								"static_ips_count":   types.Int64Value(1),
+							},
 						)),
 						Attributes: map[string]schema.Attribute{
+							"static_ips_enabled": schema.BoolAttribute{
+								Description:         "Whether to reserve static egress IPs for the GCP NAT gateways. Default: false (ephemeral egress IPs).",
+								MarkdownDescription: "Whether to reserve static egress IPs for the GCP NAT gateways. Default: `false` (ephemeral egress IPs).",
+								Optional:            true,
+								Computed:            true,
+								Default:             booldefault.StaticBool(false),
+							},
 							"static_ips_count": schema.Int64Attribute{
-								Description:         "Number of static IPs to allocate for GCP NAT gateways.",
-								MarkdownDescription: "Number of static IPs to allocate for GCP NAT gateways. Must be greater than or equal to `1` when `static_ip` is `true`. Default: `1`.",
+								Description:         "Number of static IPs to allocate for GCP NAT gateways. Meaningful only when static_ips_enabled is true.",
+								MarkdownDescription: "Number of static IPs to allocate for GCP NAT gateways. Must be greater than or equal to `1`. Meaningful only when `static_ips_enabled` is `true`. Default: `1`.",
 								Optional:            true,
 								Computed:            true,
 								Default:             int64default.StaticInt64(1),
@@ -1111,10 +1123,15 @@ func (r clusterResource) ValidateConfig(ctx context.Context, req resource.Valida
 // validateNatGatewaysConfig encapsulates the cross-attribute nat_gateways validation
 // rules so they can be unit-tested without constructing a full tfsdk.Config.
 //
-// Rules:
-//   - Rule A: nat_gateways.static_ips_count > 1 on a non-GCP cluster → error.
-//   - Rule B: nat_gateways.static_ips_count > 1 when static_ip is false (or null) → error.
-//   - Rule C: nat_gateways block explicitly present (non-null) on a non-GCP cluster → warning.
+// v3 rules (enabled-driven):
+//   - Rule A (error): static_ips_enabled=true OR static_ips_count>1, on a non-GCP cluster →
+//     "features.nat_gateways is only supported for GCP clusters."
+//   - Rule B (error): static_ips_enabled=true AND static_ip is null-or-known-false →
+//     "features.nat_gateways.static_ips_enabled requires features.static_ip to be true."
+//     Skipped when static_ip is unknown (plan-time variable, benefit of the doubt).
+//   - Rule B2 (warning): static_ips_count>1 AND static_ips_enabled is known-false →
+//     "static_ips_count has no effect while static_ips_enabled is false."
+//   - Rule C (warning): block explicitly non-null on non-GCP → ignored-on-this-provider.
 //
 // Checks are skipped when cloudProvider or the relevant nested values are unknown
 // (variable-driven, not yet resolved at plan time).
@@ -1143,62 +1160,78 @@ func validateNatGatewaysConfig(cloudProvider types.String, features types.Object
 	}
 
 	natGatewaysObj := natGatewaysAttr.(types.Object)
+	natAttrs := natGatewaysObj.Attributes()
 
-	// Extract static_ips_count.
-	countAttr, hasCount := natGatewaysObj.Attributes()["static_ips_count"]
-	if !hasCount || countAttr.IsNull() || countAttr.IsUnknown() {
-		// Count not resolvable — only emit the non-GCP warning if applicable.
-		if !cloudProvider.IsNull() && !cloudProvider.IsUnknown() && cloudProvider.ValueString() != "GCP" {
-			diags.AddAttributeWarning(
-				path.Root("features").AtName(featureKeyNatGateways),
-				"nat_gateways ignored on non-GCP cluster",
-				"features.nat_gateways is ignored on non-GCP clusters and when static_ip is false; only the default value is accepted in those cases.",
-			)
-		}
-		return diags
+	// Extract static_ips_enabled (may be null/unknown if not resolved yet).
+	enabledKnownTrue := false
+	enabledKnownFalse := false
+	if ev, ok := natAttrs["static_ips_enabled"]; ok && !ev.IsNull() && !ev.IsUnknown() {
+		v := ev.(types.Bool).ValueBool()
+		enabledKnownTrue = v
+		enabledKnownFalse = !v
 	}
 
-	count := countAttr.(types.Int64).ValueInt64()
+	// Extract static_ips_count (may be null/unknown).
+	var count int64
+	countKnown := false
+	if cv, ok := natAttrs["static_ips_count"]; ok && !cv.IsNull() && !cv.IsUnknown() {
+		count = cv.(types.Int64).ValueInt64()
+		countKnown = true
+	}
 
-	// Rule C: nat_gateways block explicitly set on non-GCP → warning (even count == 1).
+	// Rule C: block explicitly non-null on non-GCP → warning (always, regardless of values).
 	if !cloudProvider.IsNull() && !cloudProvider.IsUnknown() && cloudProvider.ValueString() != "GCP" {
 		diags.AddAttributeWarning(
 			path.Root("features").AtName(featureKeyNatGateways),
 			"nat_gateways ignored on non-GCP cluster",
-			"features.nat_gateways is ignored on non-GCP clusters and when static_ip is false; only the default value is accepted in those cases.",
+			"features.nat_gateways is ignored on non-GCP clusters; only the default value is accepted.",
 		)
 	}
 
-	if count <= 1 {
-		return diags
-	}
-
-	// Rule A: count > 1 on non-GCP → error.
+	// Rule A (error): enabled=true OR count>1 on non-GCP → error.
 	if !cloudProvider.IsNull() && !cloudProvider.IsUnknown() && cloudProvider.ValueString() != "GCP" {
-		diags.AddAttributeError(
-			path.Root("features").AtName(featureKeyNatGateways),
-			"Invalid nat_gateways",
-			"features.nat_gateways is only supported for GCP clusters.",
-		)
+		if enabledKnownTrue || (countKnown && count > 1) {
+			diags.AddAttributeError(
+				path.Root("features").AtName(featureKeyNatGateways),
+				"Invalid nat_gateways",
+				"features.nat_gateways is only supported for GCP clusters.",
+			)
+			return diags
+		}
 		return diags
 	}
 
-	// Rule B: count > 1 when static_ip is false or null on a known-GCP cluster → error.
-	// Only check when cloud_provider is known to be GCP; when unknown, skip (can't
-	// confirm the provider so we give the benefit of the doubt at plan time).
-	if !cloudProvider.IsNull() && !cloudProvider.IsUnknown() && cloudProvider.ValueString() == "GCP" {
+	// From here on, cloud_provider is either unknown or GCP.
+	// Rules B and B2 are only validated when cloud_provider is known to be GCP — when
+	// unknown, we give the benefit of the doubt (variable-driven at plan time).
+	if cloudProvider.IsNull() || cloudProvider.IsUnknown() {
+		return diags
+	}
+
+	// Rule B (error): enabled=true AND static_ip is null-or-known-false → error.
+	// Skip when static_ip is unknown (variable-driven at plan time).
+	if enabledKnownTrue {
 		staticIPAttr, hasStaticIP := features.Attributes()[featureKeyStaticIP]
-		if hasStaticIP && !staticIPAttr.IsUnknown() {
-			// Treat null as the config-default false.
-			staticIPFalse := staticIPAttr.IsNull() || !staticIPAttr.(types.Bool).ValueBool()
+		if !hasStaticIP || !staticIPAttr.IsUnknown() {
+			// Treat an absent key or a null value as the config-default false.
+			staticIPFalse := !hasStaticIP || staticIPAttr.IsNull() || !staticIPAttr.(types.Bool).ValueBool()
 			if staticIPFalse {
 				diags.AddAttributeError(
 					path.Root("features").AtName(featureKeyNatGateways),
 					"Invalid nat_gateways",
-					"features.nat_gateways requires features.static_ip to be true.",
+					"features.nat_gateways.static_ips_enabled requires features.static_ip to be true.",
 				)
 			}
 		}
+	}
+
+	// Rule B2 (warning): count>1 AND enabled is known false → count has no effect.
+	if countKnown && count > 1 && enabledKnownFalse {
+		diags.AddAttributeWarning(
+			path.Root("features").AtName(featureKeyNatGateways),
+			"static_ips_count has no effect",
+			"static_ips_count has no effect while static_ips_enabled is false.",
+		)
 	}
 
 	return diags
