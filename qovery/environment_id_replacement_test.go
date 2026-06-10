@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -273,6 +274,70 @@ func TestClusterVpcSubnet_RealChange_ForcesReplacement(t *testing.T) {
 
 	assert.True(t, runVpcSubnetModifiers(t, oldCidr, newCidr),
 		"a genuine vpc_subnet change must force cluster replacement")
+}
+
+// ----------------------------------------------------------------------------
+// PR #588 finding #2 — features.nat_gateways must be Optional+Computed.
+//
+// The Read path (fromQoveryClusterFeatures) populates features.nat_gateways with a
+// non-null object whenever the API reports a GCP cluster with NAT static IPs
+// enabled. If the attribute is Optional-only (not Computed), the framework pins its
+// planned value to config: a user importing / managing a Console-created GCP cluster
+// whose config omits the block gets a perpetual plan diff, a silent disable of the
+// static egress IPs on the next apply, or a "Provider produced inconsistent result
+// after apply" error when the backend keeps NAT enabled. The data source already
+// declares it Optional+Computed; the resource must match. UseStateForUnknown keeps
+// the Computed value plan-stable (no churn) when config omits the block.
+// ----------------------------------------------------------------------------
+
+// clusterNatGatewaysAttribute returns the nested features.nat_gateways attribute
+// of the cluster resource schema.
+func clusterNatGatewaysAttribute(t *testing.T) schema.SingleNestedAttribute {
+	t.Helper()
+	var resp resource.SchemaResponse
+	clusterResource{}.Schema(context.Background(), resource.SchemaRequest{}, &resp)
+
+	features, ok := resp.Schema.Attributes["features"].(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("features is not a SingleNestedAttribute")
+	}
+	nat, ok := features.Attributes["nat_gateways"].(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("features.nat_gateways is not a SingleNestedAttribute")
+	}
+	return nat
+}
+
+// TestClusterNatGateways_IsOptionalAndComputed asserts the fix for finding #2: the
+// resource attribute must be Optional AND Computed so the framework can absorb a
+// value the API returns for an unconfigured block.
+func TestClusterNatGateways_IsOptionalAndComputed(t *testing.T) {
+	t.Parallel()
+
+	nat := clusterNatGatewaysAttribute(t)
+	assert.True(t, nat.Optional, "features.nat_gateways must be Optional")
+	assert.True(t, nat.Computed,
+		"PR#588 finding #2: features.nat_gateways must be Computed so the framework can absorb a server-set value for import/Console GCP clusters")
+}
+
+// TestClusterNatGateways_UsesStateForUnknown asserts features.nat_gateways carries
+// UseStateForUnknown so the now-Computed attribute stays plan-stable when config
+// omits the block (avoids "known after apply" plan noise).
+func TestClusterNatGateways_UsesStateForUnknown(t *testing.T) {
+	t.Parallel()
+
+	nat := clusterNatGatewaysAttribute(t)
+	ctx := context.Background()
+	want := objectplanmodifier.UseStateForUnknown().Description(ctx)
+
+	found := false
+	for _, m := range nat.PlanModifiers {
+		if m.Description(ctx) == want {
+			found = true
+		}
+	}
+	assert.True(t, found,
+		"features.nat_gateways should use objectplanmodifier.UseStateForUnknown() to stay plan-stable when config omits the block")
 }
 
 // ----------------------------------------------------------------------------

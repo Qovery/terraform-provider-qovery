@@ -279,10 +279,18 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						Default:  booldefault.StaticBool(clusterFeatureStaticIPDefault),
 					},
 					"nat_gateways": schema.SingleNestedAttribute{
-						Optional:    true,
+						Optional: true,
+						// Computed so the framework can absorb the value the API returns
+						// for an unconfigured block (import / Console-created GCP clusters).
+						// UseStateForUnknown keeps it plan-stable when config omits it. See
+						// PR #588 finding #2.
+						Computed:    true,
 						Description: "GCP NAT Gateway static IP configuration.",
 						MarkdownDescription: "GCP NAT Gateway static IP configuration. Configure this block when `static_ip` is `true` to choose how many static egress IPs are allocated.\n\n" +
 							"~> **Note:** Omit this block to keep static egress IPs disabled. This block is ignored when `static_ip` is `false`.",
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
+						},
 						Attributes: map[string]schema.Attribute{
 							"static_ips_count": schema.Int64Attribute{
 								Description:         "Number of static IPs to allocate for GCP NAT gateways.",
