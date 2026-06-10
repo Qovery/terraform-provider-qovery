@@ -12,13 +12,14 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/defaults"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // testSchemaEnvironmentID is a minimal schema with one string attribute used for
@@ -286,8 +287,9 @@ func TestClusterVpcSubnet_RealChange_ForcesReplacement(t *testing.T) {
 // whose config omits the block gets a perpetual plan diff, a silent disable of the
 // static egress IPs on the next apply, or a "Provider produced inconsistent result
 // after apply" error when the backend keeps NAT enabled. The data source already
-// declares it Optional+Computed; the resource must match. UseStateForUnknown keeps
-// the Computed value plan-stable (no churn) when config omits the block.
+// declares it Optional+Computed; the resource must match. ObjectDefault fills the
+// omitted block with {static_ips_count: 1}, so omission means "reset to default"
+// (value-based semantics) instead of "keep whatever state has".
 // ----------------------------------------------------------------------------
 
 // clusterNatGatewaysAttribute returns the nested features.nat_gateways attribute
@@ -320,24 +322,37 @@ func TestClusterNatGateways_IsOptionalAndComputed(t *testing.T) {
 		"PR#588 finding #2: features.nat_gateways must be Computed so the framework can absorb a server-set value for import/Console GCP clusters")
 }
 
-// TestClusterNatGateways_UsesStateForUnknown asserts features.nat_gateways carries
-// UseStateForUnknown so the now-Computed attribute stays plan-stable when config
-// omits the block (avoids "known after apply" plan noise).
-func TestClusterNatGateways_UsesStateForUnknown(t *testing.T) {
+// TestClusterNatGateways_HasObjectDefault asserts that features.nat_gateways carries an
+// ObjectDefault (not UseStateForUnknown) so omitting the block in config resets the value
+// to the default {static_ips_count: 1} rather than keeping the previous state. This is
+// the semantic flip introduced by the value-based nat_gateways design.
+func TestClusterNatGateways_HasObjectDefault(t *testing.T) {
 	t.Parallel()
 
 	nat := clusterNatGatewaysAttribute(t)
-	ctx := context.Background()
-	want := objectplanmodifier.UseStateForUnknown().Description(ctx)
+	require.NotNil(t, nat.Default,
+		"features.nat_gateways must carry an ObjectDefault so omitting the block resets to {static_ips_count:1}")
 
-	found := false
-	for _, m := range nat.PlanModifiers {
-		if m.Description(ctx) == want {
-			found = true
-		}
-	}
-	assert.True(t, found,
-		"features.nat_gateways should use objectplanmodifier.UseStateForUnknown() to stay plan-stable when config omits the block")
+	ctx := context.Background()
+	req := defaults.ObjectRequest{}
+	resp := &defaults.ObjectResponse{}
+	nat.Default.DefaultObject(ctx, req, resp)
+	require.False(t, resp.Diagnostics.HasError(), "DefaultObject must not produce diagnostics: %v", resp.Diagnostics)
+
+	defaultVal := resp.PlanValue
+	require.False(t, defaultVal.IsNull(), "default value must not be null")
+	require.False(t, defaultVal.IsUnknown(), "default value must not be unknown")
+
+	attrs := defaultVal.Attributes()
+	countAttr, ok := attrs["static_ips_count"].(types.Int64)
+	require.True(t, ok, "default value must have static_ips_count as Int64")
+	assert.Equal(t, int64(1), countAttr.ValueInt64(),
+		"default nat_gateways must be {static_ips_count: 1}")
+
+	// Confirm the type structure matches createNatGatewaysFeatureAttrTypes().
+	expectedAttrTypes := createNatGatewaysFeatureAttrTypes()
+	assert.Equal(t, types.ObjectType{AttrTypes: expectedAttrTypes}, defaultVal.Type(ctx),
+		"default object type must match the nat_gateways attribute type schema")
 }
 
 // ----------------------------------------------------------------------------

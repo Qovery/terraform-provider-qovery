@@ -719,68 +719,12 @@ func TestToQoveryClusterFeatures_GcpNatGateways(t *testing.T) {
 	]`, string(payload))
 }
 
-func TestToQoveryClusterFeatures_GcpStaticIPWithoutNatGatewaysDisablesStaticEgressIPs(t *testing.T) {
-	t.Parallel()
-
-	featuresObj := types.ObjectValueMust(
-		createFeaturesAttrTypes(),
-		map[string]attr.Value{
-			featureKeyVpcSubnet:      types.StringValue(clusterFeatureVpcSubnetDefault),
-			featureKeyStaticIP:       types.BoolValue(true),
-			featureKeyNatGateways:    types.ObjectNull(createNatGatewaysFeatureAttrTypes()),
-			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
-			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
-			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
-		},
-	)
-
-	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
-	require.NoError(t, err)
-
-	require.NotEmpty(t, features)
-	var natGatewayFeature *qovery.ClusterRequestFeaturesInner
-	for i := range features {
-		if features[i].GetId() == featureIdNatGateway {
-			natGatewayFeature = &features[i]
-			break
-		}
-	}
-	require.NotNil(t, natGatewayFeature)
-	natGatewayParams := natGatewayFeature.GetValue().ClusterFeatureNatGatewayParameters
-	require.NotNil(t, natGatewayParams)
-	gcpNatGateway := natGatewayParams.GetNatGatewayType().ClusterFeatureNatGatewayTypeGcp
-	require.NotNil(t, gcpNatGateway)
-	assert.False(t, gcpNatGateway.StaticIpsEnabled)
-	assert.Equal(t, int32(1), gcpNatGateway.StaticIpsCount)
-}
-
-func TestToQoveryClusterFeatures_RejectsNatGatewaysWhenStaticIPDisabled(t *testing.T) {
-	t.Parallel()
-
-	natGatewayObj := types.ObjectValueMust(createNatGatewaysFeatureAttrTypes(), map[string]attr.Value{
-		"static_ips_count": types.Int64Value(1),
-	})
-	featuresObj := types.ObjectValueMust(
-		createFeaturesAttrTypes(),
-		map[string]attr.Value{
-			featureKeyVpcSubnet:      types.StringValue(clusterFeatureVpcSubnetDefault),
-			featureKeyStaticIP:       types.BoolValue(false),
-			featureKeyNatGateways:    natGatewayObj,
-			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
-			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
-			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
-		},
-	)
-
-	_, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
-	require.ErrorContains(t, err, "features.nat_gateways can only be configured when features.static_ip is true")
-}
-
 func TestToQoveryClusterFeatures_NatGatewaysRequiresGCP(t *testing.T) {
 	t.Parallel()
 
+	// count=3 triggers the apply-time backstop (count > 1 on non-GCP).
 	natGatewayObj := types.ObjectValueMust(createNatGatewaysFeatureAttrTypes(), map[string]attr.Value{
-		"static_ips_count": types.Int64Value(1),
+		"static_ips_count": types.Int64Value(3),
 	})
 	featuresObj := types.ObjectValueMust(
 		createFeaturesAttrTypes(),
@@ -795,7 +739,114 @@ func TestToQoveryClusterFeatures_NatGatewaysRequiresGCP(t *testing.T) {
 	)
 
 	_, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "AWS")
-	require.ErrorContains(t, err, "features.nat_gateways is only supported for GCP clusters")
+	require.ErrorContains(t, err, "features.nat_gateways with static_ips_count > 1 is only supported for GCP clusters with static_ip enabled")
+}
+
+// TestToQoveryClusterFeatures_GcpStaticIPWithDefaultBlock_EmitsEnabledCountOne pins the
+// semantic flip from old behavior: with the default block {static_ips_count:1} and
+// static_ip=true on GCP, the converter must emit NAT_GATEWAY with static_ips_enabled=true
+// and static_ips_count=1. Previously (presence-based semantics) a null/absent block
+// with static_ip=true emitted enabled=false — that dead state is now removed.
+func TestToQoveryClusterFeatures_GcpStaticIPWithDefaultBlock_EmitsEnabledCountOne(t *testing.T) {
+	t.Parallel()
+
+	// The default block: {static_ips_count: 1} — what the schema ObjectDefault provides.
+	natGatewayObj := types.ObjectValueMust(createNatGatewaysFeatureAttrTypes(), map[string]attr.Value{
+		"static_ips_count": types.Int64Value(1),
+	})
+	featuresObj := types.ObjectValueMust(
+		createFeaturesAttrTypes(),
+		map[string]attr.Value{
+			featureKeyVpcSubnet:      types.StringValue(clusterFeatureVpcSubnetDefault),
+			featureKeyStaticIP:       types.BoolValue(true),
+			featureKeyNatGateways:    natGatewayObj,
+			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
+			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
+			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+		},
+	)
+
+	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
+	require.NoError(t, err)
+
+	var natGatewayFeature *qovery.ClusterRequestFeaturesInner
+	for i := range features {
+		if features[i].GetId() == featureIdNatGateway {
+			natGatewayFeature = &features[i]
+			break
+		}
+	}
+	require.NotNil(t, natGatewayFeature, "NAT_GATEWAY feature must be emitted")
+	natGatewayParams := natGatewayFeature.GetValue().ClusterFeatureNatGatewayParameters
+	require.NotNil(t, natGatewayParams)
+	gcpNatGateway := natGatewayParams.GetNatGatewayType().ClusterFeatureNatGatewayTypeGcp
+	require.NotNil(t, gcpNatGateway)
+	assert.True(t, gcpNatGateway.StaticIpsEnabled, "default block + static_ip=true must emit enabled=true")
+	assert.Equal(t, int32(1), gcpNatGateway.StaticIpsCount, "default count=1")
+
+	payload, err := json.Marshal(features)
+	require.NoError(t, err)
+	assert.JSONEq(t, `[
+		{
+			"id": "STATIC_IP",
+			"value": true
+		},
+		{
+			"id": "NAT_GATEWAY",
+			"value": {
+				"nat_gateway_type": {
+					"provider": "gcp",
+					"static_ips_enabled": true,
+					"static_ips_count": 1
+				}
+			}
+		}
+	]`, string(payload))
+}
+
+// TestToQoveryClusterFeatures_NonGcpIgnoresDefaultNatGateways asserts that on a non-GCP
+// cluster (AWS, SCW) the default block {static_ips_count:1} is silently ignored:
+// no NAT_GATEWAY feature is emitted and no error is returned. Only count > 1 triggers
+// the apply-time backstop on non-GCP.
+func TestToQoveryClusterFeatures_NonGcpIgnoresDefaultNatGateways(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		provider string
+	}{
+		{"AWS"},
+		{"SCW"},
+	}
+
+	for _, tt := range tests {
+		tt := tt
+		t.Run(tt.provider, func(t *testing.T) {
+			t.Parallel()
+
+			natGatewayObj := types.ObjectValueMust(createNatGatewaysFeatureAttrTypes(), map[string]attr.Value{
+				"static_ips_count": types.Int64Value(1),
+			})
+			featuresObj := types.ObjectValueMust(
+				createFeaturesAttrTypes(),
+				map[string]attr.Value{
+					featureKeyVpcSubnet:      types.StringValue(clusterFeatureVpcSubnetDefault),
+					featureKeyStaticIP:       types.BoolValue(true),
+					featureKeyNatGateways:    natGatewayObj,
+					featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
+					featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
+					featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+				},
+			)
+
+			features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", tt.provider)
+			require.NoError(t, err, "default nat_gateways block with count=1 must not error on %s", tt.provider)
+
+			for _, f := range features {
+				assert.NotEqual(t, featureIdNatGateway, f.GetId(),
+					"no NAT_GATEWAY feature must be emitted for non-GCP provider %s", tt.provider)
+			}
+		})
+	}
 }
 
 func TestFromQoveryClusterFeatures_GcpNatGateways(t *testing.T) {
@@ -866,6 +917,38 @@ func TestFromQoveryClusterFeatures_NoVpcSubnetFeature_DefaultsToDefaultCidr(t *t
 		"PR#588 finding #1: Read fallback for an absent VPC_SUBNET feature now yields the default, not \"\"")
 }
 
+// TestFromQoveryClusterFeatures_NoNatGatewayFeature_DefaultsToCountOne pins the Read
+// fallback invariant: when the API feature list contains no NAT_GATEWAY entry at all
+// (e.g. any non-GCP cluster), nat_gateways must still be a non-null default object
+// {static_ips_count: 1} rather than null. This ensures state is always consistent
+// regardless of cloud provider.
+func TestFromQoveryClusterFeatures_NoNatGatewayFeature_DefaultsToCountOne(t *testing.T) {
+	t.Parallel()
+
+	staticIPFeatureID := featureIdStaticIP
+	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+		{
+			Id: &staticIPFeatureID,
+			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
+				&qovery.ClusterFeatureResponseValueObject{
+					ClusterFeatureBooleanResponse: qovery.NewClusterFeatureBooleanResponse(
+						qovery.CLUSTERFEATURERESPONSETYPEENUM_BOOLEAN,
+						false,
+					),
+				},
+			),
+		},
+	})
+
+	require.False(t, result.IsNull())
+	natGatewaysAttr := result.Attributes()[featureKeyNatGateways].(types.Object)
+	require.False(t, natGatewaysAttr.IsNull(),
+		"nat_gateways must be the default object {static_ips_count:1} when no NAT_GATEWAY feature is present")
+	staticIPCountAttr := natGatewaysAttr.Attributes()["static_ips_count"].(types.Int64)
+	assert.Equal(t, int64(1), staticIPCountAttr.ValueInt64(),
+		"default nat_gateways count must be 1 when no NAT feature is returned by the API")
+}
+
 func TestFromQoveryClusterFeatures_GcpNatGatewaysDisabled(t *testing.T) {
 	t.Parallel()
 
@@ -893,51 +976,12 @@ func TestFromQoveryClusterFeatures_GcpNatGatewaysDisabled(t *testing.T) {
 	staticIPAttr := result.Attributes()[featureKeyStaticIP].(types.Bool)
 	assert.False(t, staticIPAttr.ValueBool())
 
+	// When NAT_GATEWAY is present but disabled, Read returns the default {static_ips_count:1}
+	// rather than null, so state is never null (prevents apply-time inconsistency).
 	natGatewaysAttr := result.Attributes()[featureKeyNatGateways].(types.Object)
-	assert.True(t, natGatewaysAttr.IsNull())
-}
-
-func TestFromQoveryClusterFeatures_StaticIPEnabledDoesNotExposeDisabledNatGatewayStaticIPs(t *testing.T) {
-	t.Parallel()
-
-	staticIPFeatureID := featureIdStaticIP
-	natGatewayFeatureID := featureIdNatGateway
-	natGatewayType := qovery.ClusterFeatureNatGatewayTypeGcpAsClusterFeatureNatGatewayParametersNatGatewayType(
-		qovery.NewClusterFeatureNatGatewayTypeGcp("gcp", false, 1),
-	)
-	natGatewayParameters := qovery.ClusterFeatureNatGatewayParameters{}
-	natGatewayParameters.SetNatGatewayType(natGatewayType)
-
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
-		{
-			Id: &staticIPFeatureID,
-			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
-				&qovery.ClusterFeatureResponseValueObject{
-					ClusterFeatureBooleanResponse: qovery.NewClusterFeatureBooleanResponse(
-						qovery.CLUSTERFEATURERESPONSETYPEENUM_BOOLEAN,
-						true,
-					),
-				},
-			),
-		},
-		{
-			Id: &natGatewayFeatureID,
-			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
-				&qovery.ClusterFeatureResponseValueObject{
-					ClusterFeatureNatGatewayParametersResponse: &qovery.ClusterFeatureNatGatewayParametersResponse{
-						Value: *qovery.NewNullableClusterFeatureNatGatewayParameters(&natGatewayParameters),
-					},
-				},
-			),
-		},
-	})
-
-	require.False(t, result.IsNull())
-	staticIPAttr := result.Attributes()[featureKeyStaticIP].(types.Bool)
-	assert.True(t, staticIPAttr.ValueBool())
-
-	natGatewaysAttr := result.Attributes()[featureKeyNatGateways].(types.Object)
-	assert.True(t, natGatewaysAttr.IsNull(), "NAT_GATEWAY static IP count is exposed only when static_ips_enabled is true")
+	require.False(t, natGatewaysAttr.IsNull(), "Read always returns the default object when NAT feature is present, even when disabled")
+	staticIPCountAttr := natGatewaysAttr.Attributes()["static_ips_count"].(types.Int64)
+	assert.Equal(t, int64(1), staticIPCountAttr.ValueInt64(), "disabled NAT feature → default count=1")
 }
 
 func TestFromQoveryClusterFeatures_StaticIPFeatureOverridesNatGatewayEnabledFlag(t *testing.T) {
@@ -979,8 +1023,13 @@ func TestFromQoveryClusterFeatures_StaticIPFeatureOverridesNatGatewayEnabledFlag
 	staticIPAttr := result.Attributes()[featureKeyStaticIP].(types.Bool)
 	assert.False(t, staticIPAttr.ValueBool(), "STATIC_IP is the source of truth for the toggle")
 
+	// When NAT_GATEWAY has static_ips_enabled=true, fromQoveryClusterFeatures returns the
+	// API count regardless of the STATIC_IP boolean. The nat_gateways block is {count:2}
+	// (not null) because the API returned an enabled NAT feature.
 	natGatewaysAttr := result.Attributes()[featureKeyNatGateways].(types.Object)
-	assert.True(t, natGatewaysAttr.IsNull(), "NAT_GATEWAY params are ignored while STATIC_IP is disabled")
+	require.False(t, natGatewaysAttr.IsNull(), "NAT_GATEWAY block should be non-null when NAT feature has static_ips_enabled=true")
+	staticIPCountAttr := natGatewaysAttr.Attributes()["static_ips_count"].(types.Int64)
+	assert.Equal(t, int64(2), staticIPCountAttr.ValueInt64(), "count from API should be reflected even when STATIC_IP is disabled")
 }
 
 func TestCluster_toUpsertClusterRequest_LabelsGroupIds(t *testing.T) {
@@ -1639,6 +1688,7 @@ func TestCluster_toUpsertClusterRequest_SpecChangeForcesDeploy(t *testing.T) {
 		{"disk_size change", func(c *Cluster) { c.DiskSize = types.Int64Value(40) }, true},
 		{"name only (metadata)", func(c *Cluster) { c.Name = types.StringValue("renamed") }, false},
 		{"description only (metadata)", func(c *Cluster) { c.Description = types.StringValue("new desc") }, false},
+		{"production only (metadata)", func(c *Cluster) { c.Production = types.BoolValue(true) }, false},
 	}
 
 	for _, tc := range tests {
@@ -1678,6 +1728,7 @@ func TestCluster_hasClusterSpecDiff(t *testing.T) {
 		{"labels_group_ids", func(c *Cluster) { c.LabelsGroupIds = labels }, true},
 		{"name (metadata)", func(c *Cluster) { c.Name = types.StringValue("renamed") }, false},
 		{"description (metadata)", func(c *Cluster) { c.Description = types.StringValue("d") }, false},
+		{"production only (metadata)", func(c *Cluster) { c.Production = types.BoolValue(true) }, false},
 	}
 
 	// nil state is the create path — never a spec "diff".
