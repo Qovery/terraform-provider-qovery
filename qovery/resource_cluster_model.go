@@ -749,6 +749,11 @@ func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string) 
 	if vpcSubnetAttr, ok := f.Attributes()[featureKeyVpcSubnet]; ok {
 		vpcSubnet := vpcSubnetAttr.(types.String)
 		if cloudProvider != "GCP" {
+			// Normalize the legacy empty-string state value to the schema default so a
+			// provider upgrade doesn't manufacture a features diff (and a forced redeploy).
+			if !vpcSubnet.IsNull() && !vpcSubnet.IsUnknown() && vpcSubnet.ValueString() == "" {
+				vpcSubnet = types.StringValue(clusterFeatureVpcSubnetDefault)
+			}
 			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
 				String: ToStringPointer(vpcSubnet),
 			})

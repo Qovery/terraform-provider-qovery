@@ -1790,4 +1790,27 @@ func TestCluster_hasFeaturesDiff(t *testing.T) {
 		assert.True(t, plan.hasFeaturesDiff(&state),
 			"a real feature value change must report a diff")
 	})
+
+	// Legacy upgrade path: a pre-#588 provider stored vpc_subnet="" in state (the old
+	// Read fallback) while the post-#588 schema Default plans "10.0.0.0/16". On a
+	// -refresh=false apply the stale "" survives in state; the two values are the same
+	// logical config, so they must not produce a features diff (which would set
+	// ForceUpdate=true and redeploy the cluster for a change the user never made).
+	t.Run("legacy empty vpc_subnet vs default -> no diff", func(t *testing.T) {
+		t.Parallel()
+
+		legacyFeatures := types.ObjectValueMust(createFeaturesAttrTypes(), map[string]attr.Value{
+			featureKeyVpcSubnet:      types.StringValue(""),
+			featureKeyStaticIP:       types.BoolValue(true),
+			featureKeyNatGateways:    types.ObjectNull(createNatGatewaysFeatureAttrTypes()),
+			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
+			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
+			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+		})
+
+		plan := mk(features(true)) // vpc_subnet = "10.0.0.0/16" (schema default)
+		state := mk(legacyFeatures)
+		assert.False(t, plan.hasFeaturesDiff(&state),
+			"legacy vpc_subnet=\"\" in state vs planned default must not force a redeploy")
+	})
 }
