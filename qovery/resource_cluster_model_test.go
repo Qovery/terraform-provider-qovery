@@ -834,6 +834,38 @@ func TestFromQoveryClusterFeatures_GcpNatGateways(t *testing.T) {
 	assert.Equal(t, clusterFeatureVpcSubnetDefault, vpcSubnetAttr.ValueString())
 }
 
+// TestFromQoveryClusterFeatures_NoVpcSubnetFeature_DefaultsToDefaultCidr pins the
+// second half of PR #588 finding #1: when the API returns a non-empty feature list
+// that contains no VPC_SUBNET entry (the normal GCP case), the Read fallback now
+// fills vpc_subnet with clusterFeatureVpcSubnetDefault ("10.0.0.0/16"). Before #588
+// this fallback produced "". The flip is harmless on its own, but combined with the
+// newly added RequiresReplaceIfKnownChange() on vpc_subnet it lets a legacy state
+// value of "" differ from this default and force a cluster replacement — see
+// TestRequiresReplaceIfKnownChange_VpcSubnetLegacyEmptyState_ForcesReplacement.
+func TestFromQoveryClusterFeatures_NoVpcSubnetFeature_DefaultsToDefaultCidr(t *testing.T) {
+	t.Parallel()
+
+	staticIPFeatureID := featureIdStaticIP
+	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+		{
+			Id: &staticIPFeatureID,
+			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
+				&qovery.ClusterFeatureResponseValueObject{
+					ClusterFeatureBooleanResponse: qovery.NewClusterFeatureBooleanResponse(
+						qovery.CLUSTERFEATURERESPONSETYPEENUM_BOOLEAN,
+						false,
+					),
+				},
+			),
+		},
+	})
+
+	require.False(t, result.IsNull())
+	vpcSubnetAttr := result.Attributes()[featureKeyVpcSubnet].(types.String)
+	assert.Equal(t, clusterFeatureVpcSubnetDefault, vpcSubnetAttr.ValueString(),
+		"PR#588 finding #1: Read fallback for an absent VPC_SUBNET feature now yields the default, not \"\"")
+}
+
 func TestFromQoveryClusterFeatures_GcpNatGatewaysDisabled(t *testing.T) {
 	t.Parallel()
 

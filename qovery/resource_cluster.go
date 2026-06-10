@@ -262,7 +262,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						Computed: true,
 						Default:  stringdefault.StaticString(clusterFeatureVpcSubnetDefault),
 						PlanModifiers: []planmodifier.String{
-							RequiresReplaceIfKnownChange(),
+							// Treat a legacy state value of "" as the default so a provider
+							// upgrade doesn't manufacture a phantom replacement.
+							RequiresReplaceIfKnownChangeTreatingEmptyAs(clusterFeatureVpcSubnetDefault),
 						},
 					},
 					"static_ip": schema.BoolAttribute{

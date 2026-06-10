@@ -185,6 +185,97 @@ func TestRequiresReplaceIfKnownChange_RealChange_Integration(t *testing.T) {
 }
 
 // ----------------------------------------------------------------------------
+// PR #588 finding #1 — vpc_subnet phantom-replacement on provider upgrade.
+//
+// #588 did two things at once:
+//   1. added a replace modifier to features.vpc_subnet (it had none before), and
+//   2. changed the Read fallback for vpc_subnet from "" to clusterFeatureVpcSubnetDefault
+//      ("10.0.0.0/16") — see fromQoveryClusterFeatures (resource_cluster_model.go).
+//
+// A cluster created by a pre-#588 provider stored features.vpc_subnet="" in state
+// (GCP / any cluster whose API response carries no VPC_SUBNET feature). After the
+// upgrade the schema Default makes the planned value "10.0.0.0/16". On a normal
+// `terraform apply` refresh rewrites state "" -> default first, so plan==state and
+// no replacement happens. But on `terraform plan/apply -refresh=false` (common in
+// CI) the stale "" survives, so a naive replace modifier sees a *known* plan
+// ("10.0.0.0/16") that differs from the *known* state ("") and forces a
+// DESTROY+RECREATE of the cluster — a phantom change driven purely by the
+// read-default flip, not by user intent.
+//
+// Fix: features.vpc_subnet must use a replace modifier that treats "" and the
+// schema default as equivalent, so the representation flip never triggers
+// replacement while a genuine subnet change still does. These two tests pull the
+// ACTUAL modifiers wired on features.vpc_subnet from the cluster schema, so they
+// fail if anyone reverts to an unsafe modifier.
+// ----------------------------------------------------------------------------
+
+// clusterVpcSubnetPlanModifiers returns the plan modifiers wired on the nested
+// features.vpc_subnet attribute of the cluster resource schema.
+func clusterVpcSubnetPlanModifiers(t *testing.T) []planmodifier.String {
+	t.Helper()
+	var resp resource.SchemaResponse
+	clusterResource{}.Schema(context.Background(), resource.SchemaRequest{}, &resp)
+
+	features, ok := resp.Schema.Attributes["features"].(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("features is not a SingleNestedAttribute")
+	}
+	vpcSubnet, ok := features.Attributes["vpc_subnet"].(schema.StringAttribute)
+	if !ok {
+		t.Fatalf("features.vpc_subnet is not a StringAttribute")
+	}
+	return vpcSubnet.PlanModifiers
+}
+
+// runVpcSubnetModifiers runs every modifier wired on features.vpc_subnet with the
+// given state/plan values and reports whether any of them requested replacement.
+func runVpcSubnetModifiers(t *testing.T, state, plan types.String) bool {
+	t.Helper()
+	requiresReplace := false
+	for _, mod := range clusterVpcSubnetPlanModifiers(t) {
+		resp := &planmodifier.StringResponse{PlanValue: plan}
+		mod.PlanModifyString(context.Background(), planmodifier.StringRequest{
+			Config:      buildConfig(&plan),
+			ConfigValue: plan,
+			State:       buildState(&state),
+			StateValue:  state,
+			Plan:        buildPlan(&plan),
+			PlanValue:   plan,
+		}, resp)
+		if resp.RequiresReplace {
+			requiresReplace = true
+		}
+	}
+	return requiresReplace
+}
+
+// TestClusterVpcSubnet_LegacyEmptyState_DoesNotForceReplacement asserts the safe
+// behavior: a legacy state value of "" against the planned schema default
+// "10.0.0.0/16" must NOT force a cluster replacement (the phantom-change case).
+func TestClusterVpcSubnet_LegacyEmptyState_DoesNotForceReplacement(t *testing.T) {
+	t.Parallel()
+
+	legacyState := types.StringValue("")               // written by a pre-#588 provider
+	plannedDefault := types.StringValue("10.0.0.0/16") // clusterFeatureVpcSubnetDefault
+
+	assert.False(t, runVpcSubnetModifiers(t, legacyState, plannedDefault),
+		"PR#588 finding #1: legacy vpc_subnet=\"\" -> default \"10.0.0.0/16\" must NOT force cluster replacement")
+}
+
+// TestClusterVpcSubnet_RealChange_ForcesReplacement guards the other direction:
+// vpc_subnet is immutable, so a genuine change between two distinct known CIDRs
+// must still force replacement (the fix must not over-suppress).
+func TestClusterVpcSubnet_RealChange_ForcesReplacement(t *testing.T) {
+	t.Parallel()
+
+	oldCidr := types.StringValue("10.0.0.0/16")
+	newCidr := types.StringValue("10.1.0.0/16")
+
+	assert.True(t, runVpcSubnetModifiers(t, oldCidr, newCidr),
+		"a genuine vpc_subnet change must force cluster replacement")
+}
+
+// ----------------------------------------------------------------------------
 // Schema regression tests — verify each known RequiresReplace ID attribute uses
 // RequiresReplaceIfKnownChange().
 // ----------------------------------------------------------------------------
