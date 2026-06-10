@@ -287,7 +287,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						Computed:    true,
 						Description: "GCP NAT Gateway static IP configuration.",
 						MarkdownDescription: "GCP NAT Gateway static IP configuration. Configure this block when `static_ip` is `true` to choose how many static egress IPs are allocated.\n\n" +
-							"~> **Note:** Omit this block to keep static egress IPs disabled. This block is ignored when `static_ip` is `false`.",
+							"~> **Note:** To disable static egress IPs, set `static_ip` to `false`. On an existing cluster, removing this block keeps the current configuration (it does not disable or reset it); set `nat_gateways = {}` to reset `static_ips_count` to its default.",
 						PlanModifiers: []planmodifier.Object{
 							objectplanmodifier.UseStateForUnknown(),
 						},

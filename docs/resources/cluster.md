@@ -330,7 +330,7 @@ Optional:
 - `karpenter` (Attributes) Karpenter configuration for AWS EKS clusters. [Karpenter](https://karpenter.sh/) is a Kubernetes node autoscaler that automatically provisions right-sized compute resources. When Karpenter is enabled, do not set `instance_type`, `min_running_nodes`, or `max_running_nodes` — Karpenter manages node scaling automatically. (see [below for nested schema](#nestedatt--features--karpenter))
 - `nat_gateways` (Attributes) GCP NAT Gateway static IP configuration. Configure this block when `static_ip` is `true` to choose how many static egress IPs are allocated.
 
-~> **Note:** Omit this block to keep static egress IPs disabled. This block is ignored when `static_ip` is `false`. (see [below for nested schema](#nestedatt--features--nat_gateways))
+~> **Note:** To disable static egress IPs, set `static_ip` to `false`. On an existing cluster, removing this block keeps the current configuration (it does not disable or reset it); set `nat_gateways = {}` to reset `static_ips_count` to its default. (see [below for nested schema](#nestedatt--features--nat_gateways))
 - `static_ip` (Boolean) Whether to assign static IP addresses to the cluster nodes or NAT gateways. Useful when your services need to be allowlisted by IP. Default: `false`.
 
 ~> **Warning:** This value cannot be changed after cluster creation. Changing it will require destroying and recreating the cluster.
