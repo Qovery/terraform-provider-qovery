@@ -328,10 +328,15 @@ Optional:
 
 ~> **Warning:** This configuration cannot be changed after cluster creation. (see [below for nested schema](#nestedatt--features--gcp_existing_vpc))
 - `karpenter` (Attributes) Karpenter configuration for AWS EKS clusters. [Karpenter](https://karpenter.sh/) is a Kubernetes node autoscaler that automatically provisions right-sized compute resources. When Karpenter is enabled, do not set `instance_type`, `min_running_nodes`, or `max_running_nodes` — Karpenter manages node scaling automatically. (see [below for nested schema](#nestedatt--features--karpenter))
-- `static_ip` (Boolean) Whether to assign static/elastic IP addresses to the cluster nodes (AWS only). Useful when your services need to be allowlisted by IP. Default: `false`.
+- `nat_gateways` (Attributes) GCP NAT Gateway static IP configuration. Configure this block when `static_ip` is `true` to choose how many static egress IPs are allocated.
+
+~> **Note:** Omit this block to keep static egress IPs disabled. This block is ignored when `static_ip` is `false`. (see [below for nested schema](#nestedatt--features--nat_gateways))
+- `static_ip` (Boolean) Whether to assign static IP addresses to the cluster nodes or NAT gateways. Useful when your services need to be allowlisted by IP. Default: `false`.
 
 ~> **Warning:** This value cannot be changed after cluster creation. Changing it will require destroying and recreating the cluster.
-- `vpc_subnet` (String) Custom VPC CIDR block for AWS clusters. This defines the IP address range for the entire VPC. Default: `10.0.0.0/16`.
+- `vpc_subnet` (String) Custom VPC CIDR block for non-GCP clusters. This defines the IP address range for the entire VPC. Default: `10.0.0.0/16`.
+
+~> **Note:** This value is ignored for GCP clusters unless a non-default value is configured, which is rejected because GCP uses its own network configuration.
 
 ~> **Warning:** This value cannot be changed after cluster creation. Changing it will require destroying and recreating the cluster.
 
@@ -462,6 +467,14 @@ Required:
 
 
 
+
+
+<a id="nestedatt--features--nat_gateways"></a>
+### Nested Schema for `features.nat_gateways`
+
+Optional:
+
+- `static_ips_count` (Number) Number of static IPs to allocate for GCP NAT gateways. Must be greater than or equal to `1` when `static_ip` is `true`. Default: `1`.
 
 
 

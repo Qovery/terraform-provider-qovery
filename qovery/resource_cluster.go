@@ -17,6 +17,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -251,25 +252,47 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Attributes: map[string]schema.Attribute{
 					"vpc_subnet": schema.StringAttribute{
 						Description: descriptions.NewStringDefaultDescription(
-							"Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].",
+							"Custom VPC subnet (not supported for GCP) [NOTE: can't be updated after creation].",
 							clusterFeatureVpcSubnetDefault,
 						),
-						MarkdownDescription: "Custom VPC CIDR block for AWS clusters. This defines the IP address range for the entire VPC. Default: `10.0.0.0/16`.\n\n" +
+						MarkdownDescription: "Custom VPC CIDR block for non-GCP clusters. This defines the IP address range for the entire VPC. Default: `10.0.0.0/16`.\n\n" +
+							"~> **Note:** This value is ignored for GCP clusters unless a non-default value is configured, which is rejected because GCP uses its own network configuration.\n\n" +
 							"~> **Warning:** This value cannot be changed after cluster creation. Changing it will require destroying and recreating the cluster.",
 						Optional: true,
 						Computed: true,
 						Default:  stringdefault.StaticString(clusterFeatureVpcSubnetDefault),
+						PlanModifiers: []planmodifier.String{
+							RequiresReplaceIfKnownChange(),
+						},
 					},
 					"static_ip": schema.BoolAttribute{
 						Description: descriptions.NewBoolDefaultDescription(
-							"Static IP (AWS only) [NOTE: can't be updated after creation].",
+							"Static IP (AWS and GCP) [NOTE: can't be updated after creation].",
 							clusterFeatureStaticIPDefault,
 						),
-						MarkdownDescription: "Whether to assign static/elastic IP addresses to the cluster nodes (AWS only). Useful when your services need to be allowlisted by IP. Default: `false`.\n\n" +
+						MarkdownDescription: "Whether to assign static IP addresses to the cluster nodes or NAT gateways. Useful when your services need to be allowlisted by IP. Default: `false`.\n\n" +
 							"~> **Warning:** This value cannot be changed after cluster creation. Changing it will require destroying and recreating the cluster.",
 						Optional: true,
 						Computed: true,
 						Default:  booldefault.StaticBool(clusterFeatureStaticIPDefault),
+					},
+					"nat_gateways": schema.SingleNestedAttribute{
+						Optional:    true,
+						Description: "GCP NAT Gateway static IP configuration.",
+						MarkdownDescription: "GCP NAT Gateway static IP configuration. Configure this block when `static_ip` is `true` to choose how many static egress IPs are allocated.\n\n" +
+							"~> **Note:** Omit this block to keep static egress IPs disabled. This block is ignored when `static_ip` is `false`.",
+						Attributes: map[string]schema.Attribute{
+							"static_ips_count": schema.Int64Attribute{
+								Description:         "Number of static IPs to allocate for GCP NAT gateways.",
+								MarkdownDescription: "Number of static IPs to allocate for GCP NAT gateways. Must be greater than or equal to `1` when `static_ip` is `true`. Default: `1`.",
+								Optional:            true,
+								Computed:            true,
+								Default:             int64default.StaticInt64(1),
+								Validators: []validator.Int64{
+									validators.Int64MinValidator{Min: 1},
+								},
+							},
+						},
 					},
 					"existing_vpc": schema.SingleNestedAttribute{
 						Optional:    true,

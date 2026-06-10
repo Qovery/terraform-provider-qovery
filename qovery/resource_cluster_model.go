@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"reflect"
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -21,6 +22,8 @@ const (
 	featureIdVpcSubnet       = "VPC_SUBNET"
 	featureKeyStaticIP       = "static_ip"
 	featureIdStaticIP        = "STATIC_IP"
+	featureKeyNatGateways    = "nat_gateways"
+	featureIdNatGateway      = "NAT_GATEWAY"
 	featureIdExistingVpc     = "EXISTING_VPC"
 	featureKeyExistingVpc    = "existing_vpc"
 	featureIdKarpenter       = "KARPENTER"
@@ -62,12 +65,12 @@ type Cluster struct {
 }
 
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
-	clusterFeatures, _ := toQoveryClusterFeatures(c.Features, c.KubernetesMode.String())
+	clusterFeatures, _ := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider))
 	if state == nil {
 		return len(clusterFeatures) > 0
 	}
 
-	stateFeature, _ := toQoveryClusterFeatures(state.Features, c.KubernetesMode.String())
+	stateFeature, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider))
 	if len(clusterFeatures) != len(stateFeature) {
 		return true
 	}
@@ -80,7 +83,7 @@ func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
 
 	for _, cf := range clusterFeatures {
 		value := cf.GetValue()
-		if stateValue, ok := stateFeaturesByID[cf.GetId()]; !ok || stateValue != value.GetActualInstance() {
+		if stateValue, ok := stateFeaturesByID[cf.GetId()]; !ok || !reflect.DeepEqual(stateValue, value.GetActualInstance()) {
 			return true
 		}
 	}
@@ -229,7 +232,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		return nil, errors.New("infrastructure_charts_parameters is only supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
 	}
 
-	features, err := toQoveryClusterFeatures(c.Features, c.KubernetesMode.String())
+	features, err := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider))
 	if err != nil {
 		return nil, err
 	}
@@ -332,7 +335,7 @@ func IsKarpenterAlreadyInstalled(state *Cluster) bool {
 		return false
 	}
 
-	oldFeatures, _ := toQoveryClusterFeatures(state.Features, state.KubernetesMode.String())
+	oldFeatures, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider))
 	for _, f := range oldFeatures {
 		if f.Id != nil && *f.Id == featureIdKarpenter {
 			return true
@@ -506,6 +509,10 @@ func fromQoveryClusterFeatures(
 
 	attributes := make(map[string]attr.Value)
 	attributeTypes := make(map[string]attr.Type)
+	hasStaticIPFeature := false
+	natGatewaysStaticIPEnabled := false
+	var natGatewaysStaticIPCount int32
+	hasGcpNatGateways := false
 	for _, f := range clusterFeatures {
 		if f.Id == nil {
 			continue
@@ -518,7 +525,17 @@ func fromQoveryClusterFeatures(
 				attributes[featureKeyVpcSubnet] = basetypes.NewStringNull()
 			}
 			attributeTypes[featureKeyVpcSubnet] = types.StringType
+		case featureIdNatGateway:
+			if f.GetValueObject().ClusterFeatureNatGatewayParametersResponse != nil {
+				natGateways := f.GetValueObject().ClusterFeatureNatGatewayParametersResponse.GetValue()
+				if gcpNatGateways := natGateways.GetNatGatewayType().ClusterFeatureNatGatewayTypeGcp; gcpNatGateways != nil {
+					hasGcpNatGateways = true
+					natGatewaysStaticIPEnabled = gcpNatGateways.StaticIpsEnabled
+					natGatewaysStaticIPCount = gcpNatGateways.StaticIpsCount
+				}
+			}
 		case featureIdStaticIP:
+			hasStaticIPFeature = true
 			if f.GetValueObject().ClusterFeatureBooleanResponse != nil {
 				attributes[featureKeyStaticIP] = FromBool(f.GetValueObject().ClusterFeatureBooleanResponse.Value)
 			} else {
@@ -625,12 +642,32 @@ func fromQoveryClusterFeatures(
 		}
 	}
 
+	staticIPEnabled := natGatewaysStaticIPEnabled
+	if hasStaticIPFeature {
+		staticIPAttr := attributes[featureKeyStaticIP].(types.Bool)
+		staticIPEnabled = staticIPAttr.ValueBool()
+	} else if hasGcpNatGateways {
+		attributes[featureKeyStaticIP] = types.BoolValue(natGatewaysStaticIPEnabled)
+		attributeTypes[featureKeyStaticIP] = types.BoolType
+	}
+
+	if hasGcpNatGateways && staticIPEnabled && natGatewaysStaticIPEnabled {
+		natGatewayAttrTypes := createNatGatewaysFeatureAttrTypes()
+		natGatewayObj, diagnostics := types.ObjectValue(natGatewayAttrTypes, map[string]attr.Value{
+			"static_ips_count": FromInt32(natGatewaysStaticIPCount),
+		})
+		if diagnostics.HasError() {
+			panic(fmt.Errorf("bad %s feature: %s", featureKeyNatGateways, diagnostics.Errors()))
+		}
+		attributes[featureKeyNatGateways] = natGatewayObj
+		attributeTypes[featureKeyNatGateways] = types.ObjectType{AttrTypes: natGatewayAttrTypes}
+	}
+
 	// All attributes should be fill even if no feature is present.
 	// This is mandatory to satisfy the terraform framework schema.
 
 	if attributes[featureKeyVpcSubnet] == nil {
-		defaultFeatureKeyVpcSubnet := ""
-		attributes[featureKeyVpcSubnet] = FromStringPointer(&defaultFeatureKeyVpcSubnet)
+		attributes[featureKeyVpcSubnet] = FromStringPointer(&clusterFeatureVpcSubnetDefault)
 		attributeTypes[featureKeyVpcSubnet] = types.StringType
 	}
 
@@ -638,6 +675,12 @@ func fromQoveryClusterFeatures(
 		defaultFeatureKeyStaticIP := false
 		attributes[featureKeyStaticIP] = FromBoolPointer(&defaultFeatureKeyStaticIP)
 		attributeTypes[featureKeyStaticIP] = types.BoolType
+	}
+
+	if attributes[featureKeyNatGateways] == nil {
+		natGatewaysAttrTypes := createNatGatewaysFeatureAttrTypes()
+		attributes[featureKeyNatGateways] = types.ObjectNull(natGatewaysAttrTypes)
+		attributeTypes[featureKeyNatGateways] = types.ObjectType{AttrTypes: natGatewaysAttrTypes}
 	}
 
 	// featureKeyExistingVpc includes actually 2 entries: featureKeyExistingVpc and featureKeyVpcSubnet
@@ -672,34 +715,81 @@ func fromQoveryClusterFeatures(
 	return terraformObjectValue
 }
 
-func toQoveryClusterFeatures(f types.Object, mode string) ([]qovery.ClusterRequestFeaturesInner, error) {
+func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string) ([]qovery.ClusterRequestFeaturesInner, error) {
 	if f.IsNull() || f.IsUnknown() || mode == "K3S" {
 		return nil, nil
 	}
 
 	features := make([]qovery.ClusterRequestFeaturesInner, 0, len(f.Attributes()))
-	if _, ok := f.Attributes()[featureKeyVpcSubnet]; ok {
-		value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
-			String: ToStringPointer(f.Attributes()[featureKeyVpcSubnet].(types.String)),
-		})
+	if vpcSubnetAttr, ok := f.Attributes()[featureKeyVpcSubnet]; ok {
+		vpcSubnet := vpcSubnetAttr.(types.String)
+		if cloudProvider != "GCP" {
+			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
+				String: ToStringPointer(vpcSubnet),
+			})
 
-		features = append(features, qovery.ClusterRequestFeaturesInner{
-			Id:    new(featureIdVpcSubnet),
-			Value: *value,
-		})
+			features = append(features, qovery.ClusterRequestFeaturesInner{
+				Id:    new(featureIdVpcSubnet),
+				Value: *value,
+			})
+		} else if !vpcSubnet.IsNull() && !vpcSubnet.IsUnknown() && vpcSubnet.ValueString() != "" && vpcSubnet.ValueString() != clusterFeatureVpcSubnetDefault {
+			return nil, errors.New("features.vpc_subnet is not supported for GCP clusters")
+		}
 	}
 
-	if _, ok := f.Attributes()[featureKeyStaticIP]; ok {
+	staticIPAttr, hasStaticIP := f.Attributes()[featureKeyStaticIP]
+	natGatewaysAttr, hasNatGateways := f.Attributes()[featureKeyNatGateways]
+	staticIPEnabled := false
+	if hasStaticIP {
+		staticIPEnabled = ToBool(staticIPAttr.(types.Bool))
+	}
+
+	hasKnownNatGateways := hasNatGateways && !natGatewaysAttr.IsNull() && !natGatewaysAttr.IsUnknown()
+	if hasKnownNatGateways && !staticIPEnabled {
+		return nil, errors.New("features.nat_gateways can only be configured when features.static_ip is true")
+	}
+	if hasKnownNatGateways && staticIPEnabled && cloudProvider != "GCP" {
+		return nil, errors.New("features.nat_gateways is only supported for GCP clusters")
+	}
+
+	if hasStaticIP {
 		value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
-			Bool: ToBoolPointer(f.Attributes()[featureKeyStaticIP].(types.Bool)),
+			Bool: ToBoolPointer(staticIPAttr.(types.Bool)),
 		})
 
 		features = append(features, qovery.ClusterRequestFeaturesInner{
 			Id:    new(featureIdStaticIP),
 			Value: *value,
 		})
+
+		if cloudProvider == "GCP" && staticIPEnabled {
+			staticIPCount := int32(1)
+			staticIPsEnabled := false
+			if hasKnownNatGateways {
+				natGateways := natGatewaysAttr.(types.Object)
+				staticIPCount = ToInt32(natGateways.Attributes()["static_ips_count"].(types.Int64))
+				staticIPsEnabled = true
+			}
+			natGatewayType := qovery.ClusterFeatureNatGatewayTypeGcpAsClusterFeatureNatGatewayParametersNatGatewayType(
+				qovery.NewClusterFeatureNatGatewayTypeGcp("gcp", staticIPsEnabled, staticIPCount),
+			)
+			natGatewayParameters := qovery.ClusterFeatureNatGatewayParameters{}
+			natGatewayParameters.SetNatGatewayType(natGatewayType)
+			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
+				ClusterFeatureNatGatewayParameters: &natGatewayParameters,
+			})
+
+			features = append(features, qovery.ClusterRequestFeaturesInner{
+				Id:    new(featureIdNatGateway),
+				Value: *value,
+			})
+		}
 	}
 
+	return appendRemainingQoveryClusterFeatures(features, f)
+}
+
+func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeaturesInner, f types.Object) ([]qovery.ClusterRequestFeaturesInner, error) {
 	if _, ok := f.Attributes()[featureKeyExistingVpc]; ok {
 		v := f.Attributes()[featureKeyExistingVpc].(types.Object)
 		if !v.IsNull() {
@@ -1139,9 +1229,16 @@ func createFeaturesAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		featureKeyVpcSubnet:      types.StringType,
 		featureKeyStaticIP:       types.BoolType,
+		featureKeyNatGateways:    types.ObjectType{AttrTypes: createNatGatewaysFeatureAttrTypes()},
 		featureKeyExistingVpc:    types.ObjectType{AttrTypes: createExistingVpcFeatureAttrTypes()},
 		featureKeyGcpExistingVpc: types.ObjectType{AttrTypes: createGcpExistingVpcFeatureAttrTypes()},
 		featureKeyKarpenter:      types.ObjectType{AttrTypes: createKarpenterFeatureAttrTypes()},
+	}
+}
+
+func createNatGatewaysFeatureAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"static_ips_count": types.Int64Type,
 	}
 }
 
