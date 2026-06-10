@@ -131,6 +131,24 @@ func (c Cluster) hasInfraChartsParamsDiff(state *Cluster) bool {
 	return !c.InfrastructureChartsParameters.Equal(state.InfrastructureChartsParameters)
 }
 
+// hasClusterSpecDiff reports whether any deploy-affecting cluster spec attribute
+// changed between plan and state. Qovery persists these on EditCluster but only
+// applies them to the running cluster on a (re)deploy, which is gated by
+// ClusterUpsertParams.ForceUpdate — so a change here must force a deploy, otherwise
+// the edit is saved but silently not applied. Metadata-only attributes (name,
+// description) are intentionally excluded: they apply without a redeploy.
+func (c Cluster) hasClusterSpecDiff(state *Cluster) bool {
+	if state == nil {
+		return false
+	}
+	return !c.InstanceType.Equal(state.InstanceType) ||
+		!c.DiskSize.Equal(state.DiskSize) ||
+		!c.MinRunningNodes.Equal(state.MinRunningNodes) ||
+		!c.MaxRunningNodes.Equal(state.MaxRunningNodes) ||
+		!c.KubernetesMode.Equal(state.KubernetesMode) ||
+		!c.LabelsGroupIds.Equal(state.LabelsGroupIds)
+}
+
 func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertParams, error) {
 	cloudProvider, err := qovery.NewCloudProviderEnumFromValue(ToString(c.CloudProvider))
 	if err != nil {
@@ -277,7 +295,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		}
 	}
 
-	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || c.hasInfraChartsParamsDiff(state)
+	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || c.hasInfraChartsParamsDiff(state) || c.hasClusterSpecDiff(state)
 
 	desiredState, err := qovery.NewClusterStateEnumFromValue(ToString(c.State))
 	if err != nil {

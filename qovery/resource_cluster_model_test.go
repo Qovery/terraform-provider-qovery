@@ -1590,3 +1590,153 @@ func TestFromQoveryInfrastructureChartsParameters_EksAnywhereAndClusterBackup(t 
 	assert.Equal(t, "arn:aws:iam::123456789012:role/backup-role", s3Attr.Attributes()["role_arn"].(types.String).ValueString())
 	assert.Equal(t, "eks-anywhere/backups", s3Attr.Attributes()["key_prefix"].(types.String).ValueString())
 }
+
+// ----------------------------------------------------------------------------
+// PR #588 finding #3 — forceUpdate must fire on deploy-affecting spec changes.
+//
+// Qovery applies cluster spec changes (instance_type, node counts, disk_size,
+// kubernetes_mode, labels) only on a (re)deploy; EditCluster alone persists the spec
+// to the DB without applying it to the running cluster. The deploy is gated by
+// ClusterUpsertParams.ForceUpdate. Changing such an attribute must set
+// ForceUpdate=true so the change is actually deployed; metadata-only changes
+// (name/description) must NOT force a redeploy.
+// ----------------------------------------------------------------------------
+
+func baseScwCluster() Cluster {
+	return Cluster{
+		OrganizationId:                 types.StringValue("org-123"),
+		CredentialsId:                  types.StringValue("cred-123"),
+		Name:                           types.StringValue("c"),
+		CloudProvider:                  types.StringValue("SCW"),
+		Region:                         types.StringValue("fr-par"),
+		KubernetesMode:                 types.StringValue("MANAGED"),
+		State:                          types.StringValue("DEPLOYED"),
+		InstanceType:                   types.StringValue("DEV1-L"),
+		DiskSize:                       types.Int64Value(20),
+		MinRunningNodes:                types.Int64Value(3),
+		MaxRunningNodes:                types.Int64Value(10),
+		Production:                     types.BoolValue(false),
+		AdvancedSettingsJson:           types.StringValue("{}"),
+		Features:                       types.ObjectNull(map[string]attr.Type{}),
+		RoutingTables:                  types.SetNull(types.ObjectType{AttrTypes: clusterRouteAttrTypes}),
+		LabelsGroupIds:                 types.SetNull(types.StringType),
+		InfrastructureChartsParameters: types.ObjectNull(createInfrastructureChartsParametersAttrTypes()),
+	}
+}
+
+func TestCluster_toUpsertClusterRequest_SpecChangeForcesDeploy(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name   string
+		mutate func(*Cluster)
+		want   bool
+	}{
+		{"no change", func(*Cluster) {}, false},
+		{"instance_type change", func(c *Cluster) { c.InstanceType = types.StringValue("DEV1-XL") }, true},
+		{"min_running_nodes change", func(c *Cluster) { c.MinRunningNodes = types.Int64Value(5) }, true},
+		{"max_running_nodes change", func(c *Cluster) { c.MaxRunningNodes = types.Int64Value(20) }, true},
+		{"disk_size change", func(c *Cluster) { c.DiskSize = types.Int64Value(40) }, true},
+		{"name only (metadata)", func(c *Cluster) { c.Name = types.StringValue("renamed") }, false},
+		{"description only (metadata)", func(c *Cluster) { c.Description = types.StringValue("new desc") }, false},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			state := baseScwCluster()
+			plan := baseScwCluster()
+			tc.mutate(&plan)
+
+			params, err := plan.toUpsertClusterRequest(&state)
+			require.NoError(t, err)
+			assert.Equal(t, tc.want, params.ForceUpdate,
+				"PR#588 finding #3: ForceUpdate for change %q", tc.name)
+		})
+	}
+}
+
+// TestCluster_hasClusterSpecDiff exercises the spec-diff helper directly, including
+// kubernetes_mode and labels_group_ids, and confirms metadata changes are ignored.
+func TestCluster_hasClusterSpecDiff(t *testing.T) {
+	t.Parallel()
+
+	labels := types.SetValueMust(types.StringType, []attr.Value{types.StringValue("lg-2")})
+
+	tests := []struct {
+		name   string
+		mutate func(*Cluster)
+		want   bool
+	}{
+		{"identical", func(*Cluster) {}, false},
+		{"instance_type", func(c *Cluster) { c.InstanceType = types.StringValue("DEV1-XL") }, true},
+		{"disk_size", func(c *Cluster) { c.DiskSize = types.Int64Value(40) }, true},
+		{"min_running_nodes", func(c *Cluster) { c.MinRunningNodes = types.Int64Value(5) }, true},
+		{"max_running_nodes", func(c *Cluster) { c.MaxRunningNodes = types.Int64Value(20) }, true},
+		{"kubernetes_mode", func(c *Cluster) { c.KubernetesMode = types.StringValue("SELF_MANAGED") }, true},
+		{"labels_group_ids", func(c *Cluster) { c.LabelsGroupIds = labels }, true},
+		{"name (metadata)", func(c *Cluster) { c.Name = types.StringValue("renamed") }, false},
+		{"description (metadata)", func(c *Cluster) { c.Description = types.StringValue("d") }, false},
+	}
+
+	// nil state is the create path — never a spec "diff".
+	t.Run("nil state", func(t *testing.T) {
+		t.Parallel()
+		plan := baseScwCluster()
+		assert.False(t, plan.hasClusterSpecDiff(nil))
+	})
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			state := baseScwCluster()
+			plan := baseScwCluster()
+			tc.mutate(&plan)
+			assert.Equal(t, tc.want, plan.hasClusterSpecDiff(&state),
+				"PR#588 finding #3: hasClusterSpecDiff for %q", tc.name)
+		})
+	}
+}
+
+// TestCluster_hasFeaturesDiff guards the reflect.DeepEqual comparison (#588): two
+// structurally-identical feature sets must NOT report a diff (the pre-#588 pointer
+// comparison always did), while a real feature value change must.
+func TestCluster_hasFeaturesDiff(t *testing.T) {
+	t.Parallel()
+
+	features := func(staticIP bool) types.Object {
+		return types.ObjectValueMust(createFeaturesAttrTypes(), map[string]attr.Value{
+			featureKeyVpcSubnet:      types.StringValue("10.0.0.0/16"),
+			featureKeyStaticIP:       types.BoolValue(staticIP),
+			featureKeyNatGateways:    types.ObjectNull(createNatGatewaysFeatureAttrTypes()),
+			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
+			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
+			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+		})
+	}
+	mk := func(f types.Object) Cluster {
+		return Cluster{
+			CloudProvider:  types.StringValue("SCW"),
+			KubernetesMode: types.StringValue("MANAGED"),
+			Features:       f,
+		}
+	}
+
+	t.Run("identical features -> no diff", func(t *testing.T) {
+		t.Parallel()
+		plan := mk(features(true))
+		state := mk(features(true))
+		assert.False(t, plan.hasFeaturesDiff(&state),
+			"PR#588: identical features must not report a diff (reflect.DeepEqual)")
+	})
+
+	t.Run("changed static_ip -> diff", func(t *testing.T) {
+		t.Parallel()
+		plan := mk(features(true))
+		state := mk(features(false))
+		assert.True(t, plan.hasFeaturesDiff(&state),
+			"a real feature value change must report a diff")
+	})
+}
