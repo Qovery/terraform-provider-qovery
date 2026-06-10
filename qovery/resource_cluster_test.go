@@ -246,6 +246,66 @@ func TestAcc_ClusterWithReadyState(t *testing.T) {
 	}
 }
 
+// TestAcc_ClusterGcpNatGateways verifies the value-based semantics of
+// features.nat_gateways against the real API, on a GCP cluster in READY state
+// (no cloud infra provisioned). It pins the three Terraform-visible invariants
+// of the design:
+//  1. an explicit static_ips_count round-trips through create/Read,
+//  2. removing the block resets the count to its default (1) with a visible
+//     diff — it does NOT silently keep the previous value, and the post-apply
+//     Read matches the planned default (no "inconsistent result" error),
+//  3. static_ip = false disables the feature while nat_gateways stays at the
+//     default object (never null) in state.
+func TestAcc_ClusterGcpNatGateways(t *testing.T) {
+	t.Parallel()
+	testName := "cluster-gcp-nat-gateways"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
+		Steps: []resource.TestStep{
+			// Create with static_ip=true and an explicit count.
+			{
+				Config: testAccClusterGCPNatGatewaysConfig(testName, true, "nat_gateways = { static_ips_count = 3 }"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "GCP"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "true"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "features.nat_gateways.static_ips_count", "3"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
+				),
+			},
+			// Remove the block: the object default must reset the count to 1.
+			{
+				Config: testAccClusterGCPNatGatewaysConfig(testName, true, ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "true"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "features.nat_gateways.static_ips_count", "1"),
+				),
+			},
+			// Disable static IPs: nat_gateways stays at the default object.
+			{
+				Config: testAccClusterGCPNatGatewaysConfig(testName, false, ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "false"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "features.nat_gateways.static_ips_count", "1"),
+				),
+			},
+			// Import
+			{
+				ResourceName:        "qovery_cluster.test",
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
+				// GCP AUTO_PILOT returns sentinel INT_MAX for min/max_running_nodes — ignore on import.
+				ImportStateVerifyIgnore: []string{"advanced_settings_json", "min_running_nodes", "max_running_nodes"},
+			},
+		},
+	})
+}
+
 // --- Test check helpers ---
 
 func testAccQoveryClusterExists(resourceName string) resource.TestCheckFunc {
@@ -489,6 +549,28 @@ resource "qovery_cluster" "test" {
   state           = "READY"
 }
 `, getTestGCPCredentialsID(), getTestOrganizationID(), generateTestName(testName))
+}
+
+// testAccClusterGCPNatGatewaysConfig builds a GCP cluster in READY state with
+// features.static_ip set to staticIP and an optional nat_gateways block passed
+// verbatim (empty string to omit the block).
+func testAccClusterGCPNatGatewaysConfig(testName string, staticIP bool, natGatewaysBlock string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id  = "%s"
+  organization_id = "%s"
+  name            = "%s"
+  cloud_provider  = "GCP"
+  region          = "europe-west9"
+  kubernetes_mode = "MANAGED"
+  instance_type   = "AUTO_PILOT"
+  state           = "READY"
+  features = {
+    static_ip = %t
+    %s
+  }
+}
+`, getTestGCPCredentialsID(), getTestOrganizationID(), generateTestName(testName), staticIP, natGatewaysBlock)
 }
 
 func testAccClusterDefaultConfigWithVpcPeering(testName string, cloudProvider string, region string, instanceType string, vpcSubnet string, routingTable map[string]string) string {
