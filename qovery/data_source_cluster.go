@@ -154,21 +154,41 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 				Attributes: map[string]schema.Attribute{
 					"vpc_subnet": schema.StringAttribute{
 						Description: descriptions.NewStringDefaultDescription(
-							"Custom VPC subnet (AWS only) [NOTE: can't be updated after creation].",
+							"Custom VPC subnet (not supported for GCP) [NOTE: can't be updated after creation].",
 							clusterFeatureVpcSubnetDefault,
 						),
-						MarkdownDescription: "Custom VPC CIDR block (AWS only). Immutable after creation.",
+						MarkdownDescription: "Custom VPC CIDR block (not supported for GCP). Immutable after creation.",
 						Optional:            true,
 						Computed:            true,
 					},
 					"static_ip": schema.BoolAttribute{
 						Description: descriptions.NewBoolDefaultDescription(
-							"Static IP (AWS only) [NOTE: can't be updated after creation].",
+							"Static IP (AWS and GCP) [NOTE: can't be updated once the cluster has been deployed].",
 							clusterFeatureStaticIPDefault,
 						),
-						MarkdownDescription: "Whether static/elastic IPs are enabled (AWS only). Immutable after creation.",
+						MarkdownDescription: "Whether static IPs are enabled. Immutable once the cluster has been deployed.",
 						Optional:            true,
 						Computed:            true,
+					},
+					"nat_gateways": schema.SingleNestedAttribute{
+						Description:         "GCP NAT Gateway static IP configuration.",
+						MarkdownDescription: "GCP NAT Gateway static egress IP configuration.",
+						Optional:            true,
+						Computed:            true,
+						Attributes: map[string]schema.Attribute{
+							"static_ips_enabled": schema.BoolAttribute{
+								Description:         "Whether static egress IPs are reserved for the GCP NAT gateways.",
+								MarkdownDescription: "Whether static egress IPs are reserved for the GCP NAT gateways.",
+								Optional:            true,
+								Computed:            true,
+							},
+							"static_ips_count": schema.Int64Attribute{
+								Description:         "Number of static IPs allocated for GCP NAT gateways.",
+								MarkdownDescription: "Number of static IPs allocated for GCP NAT gateways.",
+								Optional:            true,
+								Computed:            true,
+							},
+						},
 					},
 					"existing_vpc": schema.SingleNestedAttribute{
 						Description:         "Network configuration if you want to install qovery on an existing VPC",

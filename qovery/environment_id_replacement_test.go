@@ -12,12 +12,14 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/defaults"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // testSchemaEnvironmentID is a minimal schema with one string attribute used for
@@ -182,6 +184,180 @@ func TestRequiresReplaceIfKnownChange_RealChange_Integration(t *testing.T) {
 
 	assert.True(t, resp.RequiresReplace,
 		"a known-value change must require replacement")
+}
+
+// ----------------------------------------------------------------------------
+// PR #588 finding #1 — vpc_subnet phantom-replacement on provider upgrade.
+//
+// #588 did two things at once:
+//   1. added a replace modifier to features.vpc_subnet (it had none before), and
+//   2. changed the Read fallback for vpc_subnet from "" to clusterFeatureVpcSubnetDefault
+//      ("10.0.0.0/16") — see fromQoveryClusterFeatures (resource_cluster_model.go).
+//
+// A cluster created by a pre-#588 provider stored features.vpc_subnet="" in state
+// (GCP / any cluster whose API response carries no VPC_SUBNET feature). After the
+// upgrade the schema Default makes the planned value "10.0.0.0/16". On a normal
+// `terraform apply` refresh rewrites state "" -> default first, so plan==state and
+// no replacement happens. But on `terraform plan/apply -refresh=false` (common in
+// CI) the stale "" survives, so a naive replace modifier sees a *known* plan
+// ("10.0.0.0/16") that differs from the *known* state ("") and forces a
+// DESTROY+RECREATE of the cluster — a phantom change driven purely by the
+// read-default flip, not by user intent.
+//
+// Fix: features.vpc_subnet must use a replace modifier that treats "" and the
+// schema default as equivalent, so the representation flip never triggers
+// replacement while a genuine subnet change still does. These two tests pull the
+// ACTUAL modifiers wired on features.vpc_subnet from the cluster schema, so they
+// fail if anyone reverts to an unsafe modifier.
+// ----------------------------------------------------------------------------
+
+// clusterVpcSubnetPlanModifiers returns the plan modifiers wired on the nested
+// features.vpc_subnet attribute of the cluster resource schema.
+func clusterVpcSubnetPlanModifiers(t *testing.T) []planmodifier.String {
+	t.Helper()
+	var resp resource.SchemaResponse
+	clusterResource{}.Schema(context.Background(), resource.SchemaRequest{}, &resp)
+
+	features, ok := resp.Schema.Attributes["features"].(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("features is not a SingleNestedAttribute")
+	}
+	vpcSubnet, ok := features.Attributes["vpc_subnet"].(schema.StringAttribute)
+	if !ok {
+		t.Fatalf("features.vpc_subnet is not a StringAttribute")
+	}
+	return vpcSubnet.PlanModifiers
+}
+
+// runVpcSubnetModifiers runs every modifier wired on features.vpc_subnet with the
+// given state/plan values and reports whether any of them requested replacement.
+func runVpcSubnetModifiers(t *testing.T, state, plan types.String) bool {
+	t.Helper()
+	requiresReplace := false
+	for _, mod := range clusterVpcSubnetPlanModifiers(t) {
+		resp := &planmodifier.StringResponse{PlanValue: plan}
+		mod.PlanModifyString(context.Background(), planmodifier.StringRequest{
+			Config:      buildConfig(&plan),
+			ConfigValue: plan,
+			State:       buildState(&state),
+			StateValue:  state,
+			Plan:        buildPlan(&plan),
+			PlanValue:   plan,
+		}, resp)
+		if resp.RequiresReplace {
+			requiresReplace = true
+		}
+	}
+	return requiresReplace
+}
+
+// TestClusterVpcSubnet_LegacyEmptyState_DoesNotForceReplacement asserts the safe
+// behavior: a legacy state value of "" against the planned schema default
+// "10.0.0.0/16" must NOT force a cluster replacement (the phantom-change case).
+func TestClusterVpcSubnet_LegacyEmptyState_DoesNotForceReplacement(t *testing.T) {
+	t.Parallel()
+
+	legacyState := types.StringValue("")               // written by a pre-#588 provider
+	plannedDefault := types.StringValue("10.0.0.0/16") // clusterFeatureVpcSubnetDefault
+
+	assert.False(t, runVpcSubnetModifiers(t, legacyState, plannedDefault),
+		"PR#588 finding #1: legacy vpc_subnet=\"\" -> default \"10.0.0.0/16\" must NOT force cluster replacement")
+}
+
+// TestClusterVpcSubnet_RealChange_ForcesReplacement guards the other direction:
+// vpc_subnet is immutable, so a genuine change between two distinct known CIDRs
+// must still force replacement (the fix must not over-suppress).
+func TestClusterVpcSubnet_RealChange_ForcesReplacement(t *testing.T) {
+	t.Parallel()
+
+	oldCidr := types.StringValue("10.0.0.0/16")
+	newCidr := types.StringValue("10.1.0.0/16")
+
+	assert.True(t, runVpcSubnetModifiers(t, oldCidr, newCidr),
+		"a genuine vpc_subnet change must force cluster replacement")
+}
+
+// ----------------------------------------------------------------------------
+// PR #588 finding #2 — features.nat_gateways must be Optional+Computed.
+//
+// The Read path (fromQoveryClusterFeatures) populates features.nat_gateways with a
+// non-null object whenever the API reports a GCP cluster with NAT static IPs
+// enabled. If the attribute is Optional-only (not Computed), the framework pins its
+// planned value to config: a user importing / managing a Console-created GCP cluster
+// whose config omits the block gets a perpetual plan diff, a silent disable of the
+// static egress IPs on the next apply, or a "Provider produced inconsistent result
+// after apply" error when the backend keeps NAT enabled. The data source already
+// declares it Optional+Computed; the resource must match. ObjectDefault fills the
+// omitted block with {static_ips_count: 1}, so omission means "reset to default"
+// (value-based semantics) instead of "keep whatever state has".
+// ----------------------------------------------------------------------------
+
+// clusterNatGatewaysAttribute returns the nested features.nat_gateways attribute
+// of the cluster resource schema.
+func clusterNatGatewaysAttribute(t *testing.T) schema.SingleNestedAttribute {
+	t.Helper()
+	var resp resource.SchemaResponse
+	clusterResource{}.Schema(context.Background(), resource.SchemaRequest{}, &resp)
+
+	features, ok := resp.Schema.Attributes["features"].(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("features is not a SingleNestedAttribute")
+	}
+	nat, ok := features.Attributes["nat_gateways"].(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("features.nat_gateways is not a SingleNestedAttribute")
+	}
+	return nat
+}
+
+// TestClusterNatGateways_IsOptionalAndComputed asserts the fix for finding #2: the
+// resource attribute must be Optional AND Computed so the framework can absorb a
+// value the API returns for an unconfigured block.
+func TestClusterNatGateways_IsOptionalAndComputed(t *testing.T) {
+	t.Parallel()
+
+	nat := clusterNatGatewaysAttribute(t)
+	assert.True(t, nat.Optional, "features.nat_gateways must be Optional")
+	assert.True(t, nat.Computed,
+		"PR#588 finding #2: features.nat_gateways must be Computed so the framework can absorb a server-set value for import/Console GCP clusters")
+}
+
+// TestClusterNatGateways_HasObjectDefault asserts that features.nat_gateways carries an
+// ObjectDefault (not UseStateForUnknown) so omitting the block in config resets the value
+// to the default {static_ips_enabled:false, static_ips_count:1} rather than keeping the
+// previous state. This is the semantic flip introduced by the value-based nat_gateways
+// design (v3: explicit opt-in via static_ips_enabled).
+func TestClusterNatGateways_HasObjectDefault(t *testing.T) {
+	t.Parallel()
+
+	nat := clusterNatGatewaysAttribute(t)
+	require.NotNil(t, nat.Default,
+		"features.nat_gateways must carry an ObjectDefault so omitting the block resets to {static_ips_enabled:false, static_ips_count:1}")
+
+	ctx := context.Background()
+	req := defaults.ObjectRequest{}
+	resp := &defaults.ObjectResponse{}
+	nat.Default.DefaultObject(ctx, req, resp)
+	require.False(t, resp.Diagnostics.HasError(), "DefaultObject must not produce diagnostics: %v", resp.Diagnostics)
+
+	defaultVal := resp.PlanValue
+	require.False(t, defaultVal.IsNull(), "default value must not be null")
+	require.False(t, defaultVal.IsUnknown(), "default value must not be unknown")
+
+	attrs := defaultVal.Attributes()
+	enabledAttr, ok := attrs["static_ips_enabled"].(types.Bool)
+	require.True(t, ok, "default value must have static_ips_enabled as Bool")
+	assert.False(t, enabledAttr.ValueBool(),
+		"default nat_gateways must have static_ips_enabled=false (ephemeral egress is the platform default)")
+	countAttr, ok := attrs["static_ips_count"].(types.Int64)
+	require.True(t, ok, "default value must have static_ips_count as Int64")
+	assert.Equal(t, int64(1), countAttr.ValueInt64(),
+		"default nat_gateways must be {static_ips_enabled:false, static_ips_count:1}")
+
+	// Confirm the type structure matches createNatGatewaysFeatureAttrTypes().
+	expectedAttrTypes := createNatGatewaysFeatureAttrTypes()
+	assert.Equal(t, types.ObjectType{AttrTypes: expectedAttrTypes}, defaultVal.Type(ctx),
+		"default object type must match the nat_gateways attribute type schema")
 }
 
 // ----------------------------------------------------------------------------

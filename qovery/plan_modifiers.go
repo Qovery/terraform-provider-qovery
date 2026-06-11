@@ -303,3 +303,47 @@ func requiresReplaceIfKnownChangeFunc(_ context.Context, req planmodifier.String
 	}
 	resp.RequiresReplace = true
 }
+
+// RequiresReplaceIfKnownChangeTreatingEmptyAs behaves like RequiresReplaceIfKnownChange
+// but treats an empty-string value as equal to defaultValue when comparing state and
+// plan. Use it on an Optional+Computed string attribute whose schema Default is
+// defaultValue, when a legacy provider version may have persisted "" in state for the
+// same logical value.
+//
+// Without this, upgrading the provider can manufacture a phantom change: state holds
+// the legacy "" while the schema Default makes the planned value defaultValue, and on a
+// `-refresh=false` plan (where state isn't rewritten first) a plain RequiresReplace
+// modifier would destroy and recreate the resource even though nothing the user owns
+// changed. A genuine change between two distinct non-empty values still forces
+// replacement. See features.vpc_subnet
+func RequiresReplaceIfKnownChangeTreatingEmptyAs(defaultValue string) planmodifier.String {
+	return stringplanmodifier.RequiresReplaceIf(
+		requiresReplaceIfKnownChangeTreatingEmptyAsFunc(defaultValue),
+		"If the value changes to a different known value, Terraform will destroy and recreate the resource. An empty value is treated as the default, and replacement is skipped when the planned value is unknown.",
+		"If the value changes to a different known value, Terraform will destroy and recreate the resource. An empty value is treated as the default (`"+defaultValue+"`), and replacement is **skipped when the planned value is unknown**.",
+	)
+}
+
+// requiresReplaceIfKnownChangeTreatingEmptyAsFunc builds the predicate for
+// RequiresReplaceIfKnownChangeTreatingEmptyAs. It normalizes null/empty values to
+// defaultValue before deciding whether the change is real.
+func requiresReplaceIfKnownChangeTreatingEmptyAsFunc(defaultValue string) stringplanmodifier.RequiresReplaceIfFunc {
+	normalize := func(v types.String) string {
+		if v.IsNull() || v.IsUnknown() {
+			return defaultValue
+		}
+		if s := v.ValueString(); s != "" {
+			return s
+		}
+		return defaultValue
+	}
+	return func(_ context.Context, req planmodifier.StringRequest, resp *stringplanmodifier.RequiresReplaceIfFuncResponse) {
+		if req.PlanValue.IsUnknown() {
+			return
+		}
+		if normalize(req.StateValue) == normalize(req.PlanValue) {
+			return
+		}
+		resp.RequiresReplace = true
+	}
+}

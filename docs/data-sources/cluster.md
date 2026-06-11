@@ -52,8 +52,9 @@ Optional:
 - `existing_vpc` (Attributes) AWS existing VPC configuration, if the cluster is deployed on an existing VPC. (see [below for nested schema](#nestedatt--features--existing_vpc))
 - `gcp_existing_vpc` (Attributes) GCP existing VPC configuration, if the cluster is deployed on an existing GCP VPC. (see [below for nested schema](#nestedatt--features--gcp_existing_vpc))
 - `karpenter` (Attributes) Karpenter configuration for AWS EKS clusters. (see [below for nested schema](#nestedatt--features--karpenter))
-- `static_ip` (Boolean) Whether static/elastic IPs are enabled (AWS only). Immutable after creation.
-- `vpc_subnet` (String) Custom VPC CIDR block (AWS only). Immutable after creation.
+- `nat_gateways` (Attributes) GCP NAT Gateway static egress IP configuration. (see [below for nested schema](#nestedatt--features--nat_gateways))
+- `static_ip` (Boolean) Whether static IPs are enabled. Immutable once the cluster has been deployed.
+- `vpc_subnet` (String) Custom VPC CIDR block (not supported for GCP). Immutable after creation.
 
 <a id="nestedatt--features--existing_vpc"></a>
 ### Nested Schema for `features.existing_vpc`
@@ -178,6 +179,15 @@ Required:
 
 
 
+
+
+<a id="nestedatt--features--nat_gateways"></a>
+### Nested Schema for `features.nat_gateways`
+
+Optional:
+
+- `static_ips_count` (Number) Number of static IPs allocated for GCP NAT gateways.
+- `static_ips_enabled` (Boolean) Whether static egress IPs are reserved for the GCP NAT gateways.
 
 
 
