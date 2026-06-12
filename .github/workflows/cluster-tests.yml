@@ -170,10 +170,10 @@ jobs:
             def fmt: if . == null then "?" elif . < 1 then "<1m" else "\(. | floor)m" end;
             def step_line($s):
               if $s == null then empty
-              elif $s.conclusion == "skipped" then "\($s.name | step_label) — skipped"
-              elif $s.conclusion == "success" then "\($s.name | step_label) :white_check_mark: \($s | mins | fmt)"
-              elif $s.conclusion == "cancelled" then "\($s.name | step_label) :stop_button: \($s | mins | fmt)"
-              else "\($s.name | step_label) :x: \($s | mins | fmt)"
+              elif $s.conclusion == "skipped" then "> :heavy_minus_sign: \($s.name | step_label) skipped"
+              elif $s.conclusion == "success" then "> :white_check_mark: \($s.name | step_label) \($s | mins | fmt)"
+              elif $s.conclusion == "cancelled" then "> :stop_button: \($s.name | step_label) \($s | mins | fmt)"
+              else "> :x: \($s.name | step_label) \($s | mins | fmt)"
               end;
 
             [inputs | .jobs[]] | map(select(.name | test("^(aws|azure|gcp|scaleway)-")))
