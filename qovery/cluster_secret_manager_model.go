@@ -41,7 +41,12 @@ func toQoverySecretManagerAccessRequests(set types.Set) ([]qovery.SecretManagerA
 		obj := elem.(types.Object)
 		attrs := obj.Attributes()
 
-		name := attrs["name"].(types.String).ValueString()
+		nameAttr := attrs["name"].(types.String)
+		if nameAttr.IsNull() || nameAttr.IsUnknown() || nameAttr.ValueString() == "" {
+			err := errors.New("name is required")
+			return nil, errors.Wrapf(err, "Name is required and cannot be empty")
+		}
+		name := nameAttr.ValueString()
 		id := attrs["id"].(types.String)
 
 		endpoint, err := toQoverySecretManagerEndpoint(attrs["endpoint"].(types.Object))
