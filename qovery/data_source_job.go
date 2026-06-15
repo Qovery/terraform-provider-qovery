@@ -629,6 +629,35 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 					},
 				},
 			},
+			"external_secrets": schema.SetNestedAttribute{
+				Description:         "List of external secrets linked to this job.",
+				MarkdownDescription: "List of external secrets linked to this job.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id":                       schema.StringAttribute{Computed: true},
+						"key":                      schema.StringAttribute{Computed: true},
+						"description":              schema.StringAttribute{Computed: true},
+						"reference":                schema.StringAttribute{Computed: true},
+						"secret_manager_access_id": schema.StringAttribute{Computed: true},
+					},
+				},
+			},
+			"external_secret_files": schema.SetNestedAttribute{
+				Description:         "List of external secret files linked to this job.",
+				MarkdownDescription: "List of external secret files linked to this job.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id":                       schema.StringAttribute{Computed: true},
+						"key":                      schema.StringAttribute{Computed: true},
+						"description":              schema.StringAttribute{Computed: true},
+						"mount_path":               schema.StringAttribute{Computed: true},
+						"reference":                schema.StringAttribute{Computed: true},
+						"secret_manager_access_id": schema.StringAttribute{Computed: true},
+					},
+				},
+			},
 			"external_host": schema.StringAttribute{
 				Description:         "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",
 				MarkdownDescription: "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",

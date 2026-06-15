@@ -13,6 +13,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
@@ -21,7 +22,9 @@ import (
 var _ datasource.DataSourceWithConfigure = &applicationDataSource{}
 
 type applicationDataSource struct {
-	client *client.Client
+	client                       *client.Client
+	externalSecretRepository     variable.ExternalSecretRepository
+	externalSecretFileRepository variable.ExternalSecretFileRepository
 }
 
 func newApplicationDataSource() datasource.DataSource {
@@ -48,6 +51,8 @@ func (d *applicationDataSource) Configure(_ context.Context, req datasource.Conf
 	}
 
 	d.client = provider.client
+	d.externalSecretRepository = provider.applicationExternalSecretRepository
+	d.externalSecretFileRepository = provider.applicationExternalSecretFileRepository
 }
 
 func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
@@ -619,6 +624,50 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 					},
 				},
 			},
+			"external_secrets": schema.SetNestedAttribute{
+				Description:         "List of external secrets linked to this application.",
+				MarkdownDescription: "List of external secrets linked to this application.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the external secret.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the external secret.",
+							Computed:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the external secret.",
+							Computed:    true,
+						},
+						"reference": schema.StringAttribute{
+							Description: "Reference to the upstream secret.",
+							Computed:    true,
+						},
+						"secret_manager_access_id": schema.StringAttribute{
+							Description: "Id of the secret manager access.",
+							Computed:    true,
+						},
+					},
+				},
+			},
+			"external_secret_files": schema.SetNestedAttribute{
+				Description:         "List of external secret files linked to this application.",
+				MarkdownDescription: "List of external secret files linked to this application.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id":                       schema.StringAttribute{Computed: true},
+						"key":                      schema.StringAttribute{Computed: true},
+						"description":              schema.StringAttribute{Computed: true},
+						"mount_path":               schema.StringAttribute{Computed: true},
+						"reference":                schema.StringAttribute{Computed: true},
+						"secret_manager_access_id": schema.StringAttribute{Computed: true},
+					},
+				},
+			},
 			"healthchecks": healthchecksSchemaAttributes(false),
 			"custom_domains": schema.SetNestedAttribute{
 				Description:         "List of custom domains linked to this application.",
@@ -765,7 +814,19 @@ func (d applicationDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	state := convertResponseToApplication(ctx, data, application)
+	externalSecrets, err := d.externalSecretRepository.List(ctx, data.Id.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+
+	externalSecretFiles, err := d.externalSecretFileRepository.List(ctx, data.Id.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+
+	state := convertResponseToApplication(ctx, data, application, externalSecrets, externalSecretFiles)
 	tflog.Trace(ctx, "read application", map[string]any{"application_id": state.Id.ValueString()})
 
 	// Set state

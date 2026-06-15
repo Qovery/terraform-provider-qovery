@@ -555,6 +555,35 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 					},
 				},
 			},
+			"external_secrets": schema.SetNestedAttribute{
+				Description:         "List of external secrets linked to this container.",
+				MarkdownDescription: "List of external secrets linked to this container.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id":                       schema.StringAttribute{Computed: true},
+						"key":                      schema.StringAttribute{Computed: true},
+						"description":              schema.StringAttribute{Computed: true},
+						"reference":                schema.StringAttribute{Computed: true},
+						"secret_manager_access_id": schema.StringAttribute{Computed: true},
+					},
+				},
+			},
+			"external_secret_files": schema.SetNestedAttribute{
+				Description:         "List of external secret files linked to this container.",
+				MarkdownDescription: "List of external secret files linked to this container.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id":                       schema.StringAttribute{Computed: true},
+						"key":                      schema.StringAttribute{Computed: true},
+						"description":              schema.StringAttribute{Computed: true},
+						"mount_path":               schema.StringAttribute{Computed: true},
+						"reference":                schema.StringAttribute{Computed: true},
+						"secret_manager_access_id": schema.StringAttribute{Computed: true},
+					},
+				},
+			},
 			"healthchecks": healthchecksSchemaAttributes(false),
 			"arguments": schema.ListAttribute{
 				Description:         "List of arguments of this container.",

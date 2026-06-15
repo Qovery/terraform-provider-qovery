@@ -23,6 +23,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
@@ -67,7 +68,9 @@ var (
 )
 
 type applicationResource struct {
-	client *client.Client
+	client                       *client.Client
+	externalSecretRepository     variable.ExternalSecretRepository
+	externalSecretFileRepository variable.ExternalSecretFileRepository
 }
 
 func newApplicationResource() resource.Resource {
@@ -94,6 +97,8 @@ func (r *applicationResource) Configure(_ context.Context, req resource.Configur
 	}
 
 	r.client = provider.client
+	r.externalSecretRepository = provider.applicationExternalSecretRepository
+	r.externalSecretFileRepository = provider.applicationExternalSecretFileRepository
 }
 
 func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -621,6 +626,8 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			},
 			"environment_variable_files": environmentVariableFilesSchemaAttribute("application"),
 			"secret_files":               secretFilesSchemaAttribute("application"),
+			"external_secrets":           externalSecretsSchemaAttribute("application"),
+			"external_secret_files":      externalSecretFilesSchemaAttribute("application"),
 			"healthchecks":               healthchecksSchemaAttributes(true),
 			"custom_domains": schema.SetNestedAttribute{
 				Description:         "List of custom domains linked to this application.",
@@ -793,8 +800,19 @@ func (r applicationResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	externalSecrets, err := r.externalSecretRepository.List(ctx, application.ApplicationResponse.Id)
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	externalSecretFiles, err := r.externalSecretFileRepository.List(ctx, application.ApplicationResponse.Id)
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+
 	// Initialize state values
-	state := convertResponseToApplication(ctx, plan, application)
+	state := convertResponseToApplication(ctx, plan, application, externalSecrets, externalSecretFiles)
 	tflog.Trace(ctx, "created application", map[string]any{"application_id": state.Id.ValueString()})
 
 	// Set state
@@ -824,8 +842,19 @@ func (r applicationResource) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
+	externalSecrets, err := r.externalSecretRepository.List(ctx, state.Id.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	externalSecretFiles, err := r.externalSecretFileRepository.List(ctx, state.Id.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+
 	// Refresh state values
-	state = convertResponseToApplication(ctx, state, application)
+	state = convertResponseToApplication(ctx, state, application, externalSecrets, externalSecretFiles)
 	tflog.Trace(ctx, "read application", map[string]any{"application_id": state.Id.ValueString()})
 
 	// Set state
@@ -854,8 +883,19 @@ func (r applicationResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
+	externalSecrets, err := r.externalSecretRepository.List(ctx, state.Id.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+	externalSecretFiles, err := r.externalSecretFileRepository.List(ctx, state.Id.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(err.Error(), err.Error())
+		return
+	}
+
 	// Update state values
-	state = convertResponseToApplication(ctx, plan, application)
+	state = convertResponseToApplication(ctx, plan, application, externalSecrets, externalSecretFiles)
 	tflog.Trace(ctx, "updated application", map[string]any{"application_id": state.Id.ValueString()})
 
 	// Set state
