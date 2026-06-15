@@ -165,6 +165,7 @@ var flickerAllowlist = map[string]string{
 	"qovery_cluster.features.existing_vpc.rds_subnets_zone_a_ids":             "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
 	"qovery_cluster.features.existing_vpc.rds_subnets_zone_b_ids":             "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
 	"qovery_cluster.features.existing_vpc.rds_subnets_zone_c_ids":             "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
+	"qovery_cluster.secret_manager_accesses.id":                               "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
 	"qovery_terraform_service.created_at":                                     "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
 	"qovery_terraform_service.updated_at":                                     "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
 }
