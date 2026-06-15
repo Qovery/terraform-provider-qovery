@@ -923,6 +923,79 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					},
 				},
 			},
+			"secret_manager_accesses": schema.SetNestedAttribute{
+				Description:         "List of secret manager accesses for the cluster.",
+				MarkdownDescription: "List of external secret manager configurations for the cluster. Each entry grants the cluster access to a secret provider (AWS Parameter Store, AWS Secrets Manager, or GCP Secret Manager).",
+				Optional:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the secret manager access.",
+							Computed:    true,
+						},
+						"name": schema.StringAttribute{
+							Description: "Name of the secret manager access.",
+							Required:    true,
+						},
+						"endpoint": schema.SingleNestedAttribute{
+							Description: "Endpoint configuration for the secret manager.",
+							Required:    true,
+							Attributes: map[string]schema.Attribute{
+								"type": schema.StringAttribute{
+									Description: "Type of secret manager endpoint. One of: AWS_PARAMETER_STORE, AWS_SECRET_MANAGER, GCP_SECRET_MANAGER.",
+									Required:    true,
+									Validators: []validator.String{
+										validators.NewStringEnumValidator([]string{"AWS_PARAMETER_STORE", "AWS_SECRET_MANAGER", "GCP_SECRET_MANAGER"}),
+									},
+								},
+								"region": schema.StringAttribute{
+									Description: "Region of the secret manager endpoint.",
+									Required:    true,
+								},
+								"project_id": schema.StringAttribute{
+									Description: "GCP project ID. Required when type is GCP_SECRET_MANAGER.",
+									Optional:    true,
+								},
+							},
+						},
+						"authentication": schema.SingleNestedAttribute{
+							Description: "Authentication configuration for the secret manager.",
+							Required:    true,
+							Attributes: map[string]schema.Attribute{
+								"type": schema.StringAttribute{
+									Description: "Authentication mode. One of: AUTOMATICALLY_CONFIGURED, AWS_ROLE_ARN, AWS_STATIC_CREDENTIALS, GCP_JSON_CREDENTIALS.",
+									Required:    true,
+									Validators: []validator.String{
+										validators.NewStringEnumValidator([]string{"AUTOMATICALLY_CONFIGURED", "AWS_ROLE_ARN", "AWS_STATIC_CREDENTIALS", "GCP_JSON_CREDENTIALS"}),
+									},
+								},
+								"role_arn": schema.StringAttribute{
+									Description: "IAM role ARN. Required when type is AWS_ROLE_ARN.",
+									Optional:    true,
+								},
+								"region": schema.StringAttribute{
+									Description: "AWS region. Required when type is AWS_STATIC_CREDENTIALS.",
+									Optional:    true,
+								},
+								"access_key": schema.StringAttribute{
+									Description: "AWS access key ID. Required when type is AWS_STATIC_CREDENTIALS.",
+									Optional:    true,
+								},
+								"secret_key": schema.StringAttribute{
+									Description: "AWS secret access key. Required when type is AWS_STATIC_CREDENTIALS.",
+									Optional:    true,
+									Sensitive:   true,
+								},
+								"json_credentials": schema.StringAttribute{
+									Description: "GCP service account JSON credentials. Required when type is GCP_JSON_CREDENTIALS.",
+									Optional:    true,
+									Sensitive:   true,
+								},
+							},
+						},
+					},
+				},
+			},
 		},
 	}
 }
