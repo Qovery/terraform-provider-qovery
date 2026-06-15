@@ -36,6 +36,8 @@ type UpsertServiceRequest struct {
 	SecretAliases                secret.DiffRequest
 	SecretOverrides              secret.DiffRequest
 	SecretFiles                  secret.DiffRequest
+	ExternalSecrets              variable.ExternalSecretDiffRequest
+	ExternalSecretFiles          variable.ExternalSecretFileDiffRequest
 	AdvancedSettingsJson         string
 }
 

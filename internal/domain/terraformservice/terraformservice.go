@@ -10,6 +10,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
 const (
@@ -119,6 +121,8 @@ type TerraformService struct {
 	GitRepository         GitRepository `validate:"required"`
 	TfVarFiles            []string
 	Variables             []Variable
+	ExternalSecrets       variable.ExternalSecrets
+	ExternalSecretFiles   variable.ExternalSecretFiles
 	Backend               Backend       `validate:"required"`
 	Engine                Engine        `validate:"required"`
 	EngineVersion         EngineVersion `validate:"required"`
