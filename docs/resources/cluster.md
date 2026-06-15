@@ -306,6 +306,7 @@ You can find complete examples within these repositories:
 ~> **Note:** Must be set to `1` for K3S clusters. Do not set this attribute when Karpenter is enabled (Karpenter manages scaling automatically).
 - `production` (Boolean) Flag to mark this cluster as a production cluster. Production clusters may have different default settings and safeguards. Default: `false`.
 - `routing_table` (Attributes Set) Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections). (see [below for nested schema](#nestedatt--routing_table))
+- `secret_manager_accesses` (Attributes Set) List of external secret manager configurations for the cluster. Each entry grants the cluster access to a secret provider (AWS Parameter Store, AWS Secrets Manager, or GCP Secret Manager). (see [below for nested schema](#nestedatt--secret_manager_accesses))
 - `state` (String) Desired state of the cluster. Default: `DEPLOYED`.
 
   - `DEPLOYED` - The cluster is running and ready to accept workloads.
@@ -584,6 +585,49 @@ Required:
 - `description` (String) Human-readable description of the route's purpose.
 - `destination` (String) Destination CIDR block for the route (e.g., `10.1.0.0/16`).
 - `target` (String) Target gateway or endpoint for the route (e.g., a VPC peering connection ID or NAT gateway ID).
+
+
+<a id="nestedatt--secret_manager_accesses"></a>
+### Nested Schema for `secret_manager_accesses`
+
+Required:
+
+- `authentication` (Attributes) Authentication configuration for the secret manager. (see [below for nested schema](#nestedatt--secret_manager_accesses--authentication))
+- `endpoint` (Attributes) Endpoint configuration for the secret manager. (see [below for nested schema](#nestedatt--secret_manager_accesses--endpoint))
+- `name` (String) Name of the secret manager access.
+
+Read-Only:
+
+- `id` (String) Id of the secret manager access.
+
+<a id="nestedatt--secret_manager_accesses--authentication"></a>
+### Nested Schema for `secret_manager_accesses.authentication`
+
+Required:
+
+- `type` (String) Authentication mode. One of: AUTOMATICALLY_CONFIGURED, AWS_ROLE_ARN, AWS_STATIC_CREDENTIALS, GCP_JSON_CREDENTIALS.
+
+Optional:
+
+- `access_key` (String) AWS access key ID. Required when type is AWS_STATIC_CREDENTIALS.
+- `json_credentials` (String, Sensitive) GCP service account JSON credentials. Required when type is GCP_JSON_CREDENTIALS.
+- `region` (String) AWS region. Required when type is AWS_STATIC_CREDENTIALS.
+- `role_arn` (String) IAM role ARN. Required when type is AWS_ROLE_ARN.
+- `secret_key` (String, Sensitive) AWS secret access key. Required when type is AWS_STATIC_CREDENTIALS.
+
+
+<a id="nestedatt--secret_manager_accesses--endpoint"></a>
+### Nested Schema for `secret_manager_accesses.endpoint`
+
+Required:
+
+- `region` (String) Region of the secret manager endpoint.
+- `type` (String) Type of secret manager endpoint. One of: AWS_PARAMETER_STORE, AWS_SECRET_MANAGER, GCP_SECRET_MANAGER.
+
+Optional:
+
+- `project_id` (String) GCP project ID. Required when type is GCP_SECRET_MANAGER.
+
 
 
 <a id="nestedatt--infrastructure_outputs"></a>

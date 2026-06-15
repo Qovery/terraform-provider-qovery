@@ -31,6 +31,7 @@ data "qovery_cluster" "my_cluster" {
 - `min_running_nodes` (Number) Minimum number of nodes for the cluster autoscaler.
 - `production` (Boolean) Whether this cluster is flagged as a production cluster.
 - `routing_table` (Attributes Set) Custom routing table entries for the cluster VPC. (see [below for nested schema](#nestedatt--routing_table))
+- `secret_manager_accesses` (Attributes Set) List of external secret manager configurations for the cluster. Each entry grants the cluster access to a secret provider (AWS Parameter Store, AWS Secrets Manager, or GCP Secret Manager). (see [below for nested schema](#nestedatt--secret_manager_accesses))
 - `state` (String) Current state of the cluster (`DEPLOYED` or `STOPPED`).
 
 ### Read-Only
@@ -199,6 +200,49 @@ Read-Only:
 - `description` (String) Description of the route.
 - `destination` (String) Destination CIDR block for the route.
 - `target` (String) Target gateway or endpoint for the route.
+
+
+<a id="nestedatt--secret_manager_accesses"></a>
+### Nested Schema for `secret_manager_accesses`
+
+Required:
+
+- `authentication` (Attributes) Authentication configuration for the secret manager. (see [below for nested schema](#nestedatt--secret_manager_accesses--authentication))
+- `endpoint` (Attributes) Endpoint configuration for the secret manager. (see [below for nested schema](#nestedatt--secret_manager_accesses--endpoint))
+- `name` (String) Name of the secret manager access.
+
+Read-Only:
+
+- `id` (String) Id of the secret manager access.
+
+<a id="nestedatt--secret_manager_accesses--authentication"></a>
+### Nested Schema for `secret_manager_accesses.authentication`
+
+Required:
+
+- `type` (String) Authentication mode. One of: AUTOMATICALLY_CONFIGURED, AWS_ROLE_ARN, AWS_STATIC_CREDENTIALS, GCP_JSON_CREDENTIALS.
+
+Optional:
+
+- `access_key` (String) AWS access key ID. Required when type is AWS_STATIC_CREDENTIALS.
+- `json_credentials` (String, Sensitive) GCP service account JSON credentials. Required when type is GCP_JSON_CREDENTIALS.
+- `region` (String) AWS region. Required when type is AWS_STATIC_CREDENTIALS.
+- `role_arn` (String) IAM role ARN. Required when type is AWS_ROLE_ARN.
+- `secret_key` (String, Sensitive) AWS secret access key. Required when type is AWS_STATIC_CREDENTIALS.
+
+
+<a id="nestedatt--secret_manager_accesses--endpoint"></a>
+### Nested Schema for `secret_manager_accesses.endpoint`
+
+Required:
+
+- `region` (String) Region of the secret manager endpoint.
+- `type` (String) Type of secret manager endpoint. One of: AWS_PARAMETER_STORE, AWS_SECRET_MANAGER, GCP_SECRET_MANAGER.
+
+Optional:
+
+- `project_id` (String) GCP project ID. Required when type is GCP_SECRET_MANAGER.
+
 
 
 <a id="nestedatt--infrastructure_charts_parameters"></a>
