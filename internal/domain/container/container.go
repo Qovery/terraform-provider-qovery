@@ -78,6 +78,8 @@ type Container struct {
 	Ports                       port.Ports
 	EnvironmentVariables        variable.Variables
 	BuiltInEnvironmentVariables variable.Variables
+	ExternalSecrets             variable.ExternalSecrets
+	ExternalSecretFiles         variable.ExternalSecretFiles
 	Secrets                     secret.Secrets
 	InternalHost                *string
 	ExternalHost                *string
@@ -252,6 +254,16 @@ func (c *Container) SetEnvironmentVariables(vars variable.Variables) error {
 	}
 
 	return nil
+}
+
+// SetExternalSecrets sets the ExternalSecrets field of the container.
+func (c *Container) SetExternalSecrets(secrets variable.ExternalSecrets) {
+	c.ExternalSecrets = secrets
+}
+
+// SetExternalSecretFiles sets the ExternalSecretFiles field of the container.
+func (c *Container) SetExternalSecretFiles(files variable.ExternalSecretFiles) {
+	c.ExternalSecretFiles = files
 }
 
 // SetSecrets takes a secret.Secrets and sets the attributes Secrets of the container.

@@ -7,6 +7,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/terraformservice"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
 // Ensure terraformServiceService defined types fully satisfy the terraformservice.Service interface.
@@ -14,17 +15,29 @@ var _ terraformservice.Service = terraformServiceService{}
 
 // terraformServiceService implements the interface terraformservice.Service.
 type terraformServiceService struct {
-	terraformServiceRepository terraformservice.Repository
+	terraformServiceRepository   terraformservice.Repository
+	externalSecretRepository     variable.ExternalSecretRepository
+	externalSecretFileRepository variable.ExternalSecretFileRepository
 }
 
 // NewTerraformServiceService return a new instance of a terraformservice.Service that uses the given terraformservice.Repository.
-func NewTerraformServiceService(terraformServiceRepository terraformservice.Repository) (terraformservice.Service, error) {
+func NewTerraformServiceService(terraformServiceRepository terraformservice.Repository, externalSecretRepository variable.ExternalSecretRepository, externalSecretFileRepository variable.ExternalSecretFileRepository) (terraformservice.Service, error) {
 	if terraformServiceRepository == nil {
 		return nil, ErrInvalidRepository
 	}
 
+	if externalSecretRepository == nil {
+		return nil, ErrInvalidRepository
+	}
+
+	if externalSecretFileRepository == nil {
+		return nil, ErrInvalidRepository
+	}
+
 	return &terraformServiceService{
-		terraformServiceRepository: terraformServiceRepository,
+		terraformServiceRepository:   terraformServiceRepository,
+		externalSecretRepository:     externalSecretRepository,
+		externalSecretFileRepository: externalSecretFileRepository,
 	}, nil
 }
 
@@ -43,6 +56,26 @@ func (s terraformServiceService) Create(ctx context.Context, environmentID strin
 		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
 	}
 
+	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, newTerraformService.ID.String(), request.ExternalSecrets); err != nil {
+		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
+	}
+
+	if err := applyExternalSecretFilesDiff(ctx, s.externalSecretFileRepository, newTerraformService.ID.String(), request.ExternalSecretFiles); err != nil {
+		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
+	}
+
+	externalSecrets, err := s.externalSecretRepository.List(ctx, newTerraformService.ID.String())
+	if err != nil {
+		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
+	}
+	newTerraformService.ExternalSecrets = externalSecrets
+
+	externalSecretFiles, err := s.externalSecretFileRepository.List(ctx, newTerraformService.ID.String())
+	if err != nil {
+		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
+	}
+	newTerraformService.ExternalSecretFiles = externalSecretFiles
+
 	return newTerraformService, nil
 }
 
@@ -56,6 +89,18 @@ func (s terraformServiceService) Get(ctx context.Context, terraformServiceID str
 	if err != nil {
 		return nil, errors.Wrap(err, terraformservice.ErrFailedToGetTerraformService.Error())
 	}
+
+	externalSecrets, err := s.externalSecretRepository.List(ctx, terraformServiceID)
+	if err != nil {
+		return nil, errors.Wrap(err, terraformservice.ErrFailedToGetTerraformService.Error())
+	}
+	fetchedTerraformService.ExternalSecrets = externalSecrets
+
+	externalSecretFiles, err := s.externalSecretFileRepository.List(ctx, terraformServiceID)
+	if err != nil {
+		return nil, errors.Wrap(err, terraformservice.ErrFailedToGetTerraformService.Error())
+	}
+	fetchedTerraformService.ExternalSecretFiles = externalSecretFiles
 
 	return fetchedTerraformService, nil
 }
@@ -74,6 +119,26 @@ func (s terraformServiceService) Update(ctx context.Context, terraformServiceID 
 	if err != nil {
 		return nil, errors.Wrap(err, terraformservice.ErrFailedToUpdateTerraformService.Error())
 	}
+
+	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, terraformServiceID, request.ExternalSecrets); err != nil {
+		return nil, errors.Wrap(err, terraformservice.ErrFailedToUpdateTerraformService.Error())
+	}
+
+	if err := applyExternalSecretFilesDiff(ctx, s.externalSecretFileRepository, terraformServiceID, request.ExternalSecretFiles); err != nil {
+		return nil, errors.Wrap(err, terraformservice.ErrFailedToUpdateTerraformService.Error())
+	}
+
+	externalSecrets, err := s.externalSecretRepository.List(ctx, terraformServiceID)
+	if err != nil {
+		return nil, errors.Wrap(err, terraformservice.ErrFailedToUpdateTerraformService.Error())
+	}
+	updatedTerraformService.ExternalSecrets = externalSecrets
+
+	externalSecretFiles, err := s.externalSecretFileRepository.List(ctx, terraformServiceID)
+	if err != nil {
+		return nil, errors.Wrap(err, terraformservice.ErrFailedToUpdateTerraformService.Error())
+	}
+	updatedTerraformService.ExternalSecretFiles = externalSecretFiles
 
 	return updatedTerraformService, nil
 }

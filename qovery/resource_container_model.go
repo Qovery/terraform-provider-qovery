@@ -36,6 +36,8 @@ type Container struct {
 	SecretOverrides              types.Set     `tfsdk:"secret_overrides"`
 	EnvironmentVariableFiles     types.Set     `tfsdk:"environment_variable_files"`
 	SecretFiles                  types.Set     `tfsdk:"secret_files"`
+	ExternalSecrets              types.Set     `tfsdk:"external_secrets"`
+	ExternalSecretFiles          types.Set     `tfsdk:"external_secret_files"`
 	Storages                     types.Set     `tfsdk:"storage"`
 	Ports                        types.List    `tfsdk:"ports"`
 	Arguments                    types.List    `tfsdk:"arguments"`
@@ -87,6 +89,14 @@ func (cont Container) SecretFileList() SecretFileList {
 	return toSecretFileList(cont.SecretFiles)
 }
 
+func (cont Container) ExternalSecretList() ExternalSecretList {
+	return toExternalSecretList(cont.ExternalSecrets)
+}
+
+func (cont Container) ExternalSecretFileList() ExternalSecretFileList {
+	return toExternalSecretFileList(cont.ExternalSecretFiles)
+}
+
 func (cont Container) StorageList() StorageList {
 	return toStorageList(cont.Storages)
 }
@@ -113,6 +123,8 @@ func (cont Container) toUpsertServiceRequest(state *Container) *container.Upsert
 	var stateSecretOverrides SecretList
 	var stateSecretFiles SecretFileList
 	var stateCustomDomains CustomDomainList
+	var stateExternalSecrets ExternalSecretList
+	var stateExternalSecretFiles ExternalSecretFileList
 
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
@@ -124,6 +136,8 @@ func (cont Container) toUpsertServiceRequest(state *Container) *container.Upsert
 		stateSecretOverrides = state.SecretOverridesList()
 		stateSecretFiles = state.SecretFileList()
 		stateCustomDomains = state.CustomDomainsList()
+		stateExternalSecrets = state.ExternalSecretList()
+		stateExternalSecretFiles = state.ExternalSecretFileList()
 	}
 
 	return &container.UpsertServiceRequest{
@@ -136,6 +150,8 @@ func (cont Container) toUpsertServiceRequest(state *Container) *container.Upsert
 		SecretAliases:                cont.SecretAliasesList().diffRequest(stateSecretAliases),
 		SecretOverrides:              cont.SecretOverridesList().diffRequest(stateSecretOverrides),
 		SecretFiles:                  cont.SecretFileList().diffRequest(stateSecretFiles),
+		ExternalSecrets:              cont.ExternalSecretList().diffRequest(stateExternalSecrets),
+		ExternalSecretFiles:          cont.ExternalSecretFileList().diffRequest(stateExternalSecretFiles),
 	}
 }
 
@@ -228,5 +244,7 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		AutoDeploy:                   FromBoolPointer(container.AutoDeploy),
 		AnnotationsGroupIds:          fromAnnotationsGroupList(ctx, state.AnnotationsGroupIds, container.AnnotationsGroupIds),
 		LabelsGroupIds:               fromLabelsGroupList(ctx, state.LabelsGroupIds, container.LabelsGroupIds),
+		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(container.ExternalSecrets, state.ExternalSecrets, variable.ScopeContainer).toTerraformSet(ctx),
+		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(container.ExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeContainer).toTerraformSet(ctx),
 	}
 }
