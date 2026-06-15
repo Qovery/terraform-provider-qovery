@@ -154,10 +154,20 @@ func convertDomainExternalSecretsToExternalSecretList(secrets variable.ExternalS
 		list = append(list, ExternalSecretItem{
 			Id:                    FromString(s.ID.String()),
 			Key:                   FromString(s.Key),
-			Description:           FromString(s.Description),
+			Description:           normalizeOptionalStringField(s.Description),
 			Reference:             FromString(s.Reference),
 			SecretManagerAccessId: FromString(s.SecretManagerAccessId),
 		})
 	}
 	return list
+}
+
+// normalizeOptionalStringField converts an API string to types.String, returning null
+// for empty strings. The API cannot distinguish null from "" for optional string fields,
+// so we normalize "" to null to match what the user set in the plan.
+func normalizeOptionalStringField(s string) types.String {
+	if s == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(s)
 }

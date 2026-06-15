@@ -206,7 +206,7 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
-	environmentService, err := NewEnvironmentService(services.repos.Environment, environmentDeploymentService, environmentEnvironmentVariableService, environmentSecretService)
+	environmentService, err := NewEnvironmentService(services.repos.Environment, environmentDeploymentService, environmentEnvironmentVariableService, environmentSecretService, services.repos.EnvironmentExternalSecret, services.repos.EnvironmentExternalSecretFile)
 	if err != nil {
 		return nil, err
 	}

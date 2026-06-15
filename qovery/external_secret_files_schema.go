@@ -4,6 +4,8 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 )
 
 func externalSecretFilesSchemaAttribute(resourceType string) schema.SetNestedAttribute {
@@ -17,6 +19,9 @@ func externalSecretFilesSchemaAttribute(resourceType string) schema.SetNestedAtt
 					Description:         "Id of the external secret file.",
 					MarkdownDescription: "Id of the external secret file.",
 					Computed:            true,
+					PlanModifiers: []planmodifier.String{
+						stringplanmodifier.UseStateForUnknown(),
+					},
 				},
 				"key": schema.StringAttribute{
 					Description:         "Name of the external secret file.",

@@ -177,7 +177,7 @@ func convertDomainExternalSecretFilesToExternalSecretFileList(files variable.Ext
 		list = append(list, ExternalSecretFileItem{
 			Id:                    FromString(f.ID.String()),
 			Key:                   FromString(f.Key),
-			Description:           FromString(f.Description),
+			Description:           normalizeOptionalStringField(f.Description),
 			MountPath:             FromString(f.MountPath),
 			Reference:             FromString(f.Reference),
 			SecretManagerAccessId: FromString(f.SecretManagerAccessId),

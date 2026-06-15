@@ -89,12 +89,14 @@ type QoveryAPI struct {
 	JobExternalSecret              variable.ExternalSecretRepository
 	HelmExternalSecret             variable.ExternalSecretRepository
 	TerraformServiceExternalSecret variable.ExternalSecretRepository
+	EnvironmentExternalSecret      variable.ExternalSecretRepository
 
 	ApplicationExternalSecretFile      variable.ExternalSecretFileRepository
 	ContainerExternalSecretFile        variable.ExternalSecretFileRepository
 	JobExternalSecretFile              variable.ExternalSecretFileRepository
 	HelmExternalSecretFile             variable.ExternalSecretFileRepository
 	TerraformServiceExternalSecretFile variable.ExternalSecretFileRepository
+	EnvironmentExternalSecretFile      variable.ExternalSecretFileRepository
 }
 
 // New returns a new instance of QoveryAPI and applies the given configs.
@@ -319,6 +321,16 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	environmentExternalSecretAPI, err := newExternalSecretsQoveryAPI(apiClient, qovery.APIVARIABLESCOPEENUM_ENVIRONMENT, apierrors.APIResourceEnvironmentExternalSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	environmentExternalSecretFileAPI, err := newExternalSecretFilesQoveryAPI(apiClient, qovery.APIVARIABLESCOPEENUM_ENVIRONMENT, apierrors.APIResourceEnvironmentExternalSecretFile)
+	if err != nil {
+		return nil, err
+	}
+
 	argoCdCredentialsAPI, err := newArgoCdCredentialsQoveryAPI(apiClient)
 	if err != nil {
 		return nil, err
@@ -373,12 +385,14 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		JobExternalSecret:              jobExternalSecretAPI,
 		HelmExternalSecret:             helmExternalSecretAPI,
 		TerraformServiceExternalSecret: terraformServiceExternalSecretAPI,
+		EnvironmentExternalSecret:      environmentExternalSecretAPI,
 
 		ApplicationExternalSecretFile:      applicationExternalSecretFileAPI,
 		ContainerExternalSecretFile:        containerExternalSecretFileAPI,
 		JobExternalSecretFile:              jobExternalSecretFileAPI,
 		HelmExternalSecretFile:             helmExternalSecretFileAPI,
 		TerraformServiceExternalSecretFile: terraformServiceExternalSecretFileAPI,
+		EnvironmentExternalSecretFile:      environmentExternalSecretFileAPI,
 	}
 
 	// Apply all the configs to the qoveryAPI instance.
