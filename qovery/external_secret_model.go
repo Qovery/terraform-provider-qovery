@@ -1,0 +1,195 @@
+package qovery
+
+import (
+	"context"
+
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/types"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
+)
+
+var externalSecretAttrTypes = map[string]attr.Type{
+	"id":                       types.StringType,
+	"key":                      types.StringType,
+	"description":              types.StringType,
+	"reference":                types.StringType,
+	"secret_manager_access_id": types.StringType,
+}
+
+type ExternalSecretList []ExternalSecretItem
+
+type ExternalSecretItem struct {
+	Id                    types.String `tfsdk:"id"`
+	Key                   types.String `tfsdk:"key"`
+	Description           types.String `tfsdk:"description"`
+	Reference             types.String `tfsdk:"reference"`
+	SecretManagerAccessId types.String `tfsdk:"secret_manager_access_id"`
+}
+
+func (list ExternalSecretList) toTerraformSet(ctx context.Context) types.Set {
+	objectType := types.ObjectType{AttrTypes: externalSecretAttrTypes}
+	if list == nil {
+		return types.SetNull(objectType)
+	}
+
+	elements := make([]attr.Value, 0, len(list))
+	for _, item := range list {
+		elements = append(elements, item.toTerraformObject())
+	}
+	set, diagnostics := types.SetValueFrom(ctx, objectType, elements)
+	if diagnostics.HasError() {
+		panic("should never happen")
+	}
+	return set
+}
+
+func (list ExternalSecretList) contains(key string) bool {
+	for _, item := range list {
+		if item.Key.ValueString() == key {
+			return true
+		}
+	}
+	return false
+}
+
+func (list ExternalSecretList) find(key string) *ExternalSecretItem {
+	for _, item := range list {
+		if item.Key.ValueString() == key {
+			return &item
+		}
+	}
+	return nil
+}
+
+func (list ExternalSecretList) diffRequest(old ExternalSecretList) variable.ExternalSecretDiffRequest {
+	diff := variable.ExternalSecretDiffRequest{
+		Create: []variable.ExternalSecretDiffCreateRequest{},
+		Update: []variable.ExternalSecretDiffUpdateRequest{},
+		Delete: []variable.ExternalSecretDiffDeleteRequest{},
+	}
+
+	for _, e := range old {
+		if updated := list.find(e.Key.ValueString()); updated != nil {
+			if updated.Reference != e.Reference || updated.SecretManagerAccessId != e.SecretManagerAccessId || updated.Description != e.Description {
+				diff.Update = append(diff.Update, variable.ExternalSecretDiffUpdateRequest{
+					VariableID: e.Id.ValueString(),
+					ExternalSecretUpsertRequest: variable.ExternalSecretUpsertRequest{
+						Key:                   e.Key.ValueString(),
+						Description:           updated.Description.ValueString(),
+						Reference:             updated.Reference.ValueString(),
+						SecretManagerAccessId: updated.SecretManagerAccessId.ValueString(),
+					},
+				})
+			}
+		} else {
+			diff.Delete = append(diff.Delete, variable.ExternalSecretDiffDeleteRequest{
+				VariableID: e.Id.ValueString(),
+			})
+		}
+	}
+
+	for _, e := range list {
+		if !old.contains(e.Key.ValueString()) {
+			diff.Create = append(diff.Create, variable.ExternalSecretDiffCreateRequest{
+				ExternalSecretUpsertRequest: variable.ExternalSecretUpsertRequest{
+					Key:                   e.Key.ValueString(),
+					Description:           e.Description.ValueString(),
+					Reference:             e.Reference.ValueString(),
+					SecretManagerAccessId: e.SecretManagerAccessId.ValueString(),
+				},
+			})
+		}
+	}
+
+	return diff
+}
+
+func (item ExternalSecretItem) toTerraformObject() types.Object {
+	attributes := map[string]attr.Value{
+		"id":                       item.Id,
+		"key":                      item.Key,
+		"description":              item.Description,
+		"reference":                item.Reference,
+		"secret_manager_access_id": item.SecretManagerAccessId,
+	}
+	obj, diagnostics := types.ObjectValue(externalSecretAttrTypes, attributes)
+	if diagnostics.HasError() {
+		panic("should never happen")
+	}
+	return obj
+}
+
+func toExternalSecretItem(v types.Object) ExternalSecretItem {
+	return ExternalSecretItem{
+		Id:                    v.Attributes()["id"].(types.String),
+		Key:                   v.Attributes()["key"].(types.String),
+		Description:           v.Attributes()["description"].(types.String),
+		Reference:             v.Attributes()["reference"].(types.String),
+		SecretManagerAccessId: v.Attributes()["secret_manager_access_id"].(types.String),
+	}
+}
+
+func toExternalSecretList(s types.Set) ExternalSecretList {
+	if s.IsNull() || s.IsUnknown() {
+		return nil
+	}
+
+	list := make(ExternalSecretList, 0, len(s.Elements()))
+	for _, elem := range s.Elements() {
+		list = append(list, toExternalSecretItem(elem.(types.Object)))
+	}
+	return list
+}
+
+func convertDomainExternalSecretsToExternalSecretList(externalSecrets variable.ExternalSecrets, planValue types.Set, scope variable.Scope) ExternalSecretList {
+	planMap := buildExternalSecretPlanMap(planValue)
+	list := make(ExternalSecretList, 0, len(externalSecrets))
+	for _, externalSecret := range externalSecrets {
+		if externalSecret.Scope != scope || externalSecret.VariableType != "EXTERNAL_SECRET" {
+			continue
+		}
+		planItem := planMap[externalSecret.Key]
+		list = append(list, ExternalSecretItem{
+			Id:                    FromString(externalSecret.ID.String()),
+			Key:                   FromString(externalSecret.Key),
+			Description:           planAwareOptionalString(externalSecret.Description, planItem.Description),
+			Reference:             FromString(externalSecret.Reference),
+			SecretManagerAccessId: FromString(externalSecret.SecretManagerAccessId),
+		})
+	}
+
+	// We need to re-do the check in case the external secrets come from a higher scope
+	if len(list) == 0 {
+		if planValue.IsNull() {
+			return nil
+		}
+		return ExternalSecretList{}
+	}
+
+	return list
+}
+
+// buildExternalSecretPlanMap returns a map keyed by secret key from the plan set.
+func buildExternalSecretPlanMap(planValue types.Set) map[string]ExternalSecretItem {
+	list := toExternalSecretList(planValue)
+	m := make(map[string]ExternalSecretItem, len(list))
+	for _, item := range list {
+		m[item.Key.ValueString()] = item
+	}
+	return m
+}
+
+// planAwareOptionalString returns the API value as types.String while preserving the
+// null/non-null distinction from the plan. When the plan description is non-null (even ""),
+// the user explicitly set it — return a non-null string. When null, normalize "" to null
+// since the API cannot distinguish the two.
+func planAwareOptionalString(apiVal string, planDesc types.String) types.String {
+	if !planDesc.IsNull() {
+		return types.StringValue(apiVal)
+	}
+	if apiVal == "" {
+		return types.StringNull()
+	}
+	return types.StringValue(apiVal)
+}
