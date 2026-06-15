@@ -280,6 +280,35 @@ func (d terraformServiceDataSource) Schema(_ context.Context, _ datasource.Schem
 				Computed:            true,
 				ElementType:         types.ListType{ElemType: types.StringType},
 			},
+			"external_secrets": schema.SetNestedAttribute{
+				Description:         "List of external secrets linked to this terraform service.",
+				MarkdownDescription: "List of external secrets linked to this terraform service.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id":                       schema.StringAttribute{Computed: true},
+						"key":                      schema.StringAttribute{Computed: true},
+						"description":              schema.StringAttribute{Computed: true},
+						"reference":                schema.StringAttribute{Computed: true},
+						"secret_manager_access_id": schema.StringAttribute{Computed: true},
+					},
+				},
+			},
+			"external_secret_files": schema.SetNestedAttribute{
+				Description:         "List of external secret files linked to this terraform service.",
+				MarkdownDescription: "List of external secret files linked to this terraform service.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id":                       schema.StringAttribute{Computed: true},
+						"key":                      schema.StringAttribute{Computed: true},
+						"description":              schema.StringAttribute{Computed: true},
+						"mount_path":               schema.StringAttribute{Computed: true},
+						"reference":                schema.StringAttribute{Computed: true},
+						"secret_manager_access_id": schema.StringAttribute{Computed: true},
+					},
+				},
+			},
 			"advanced_settings_json": schema.StringAttribute{
 				Description:         "Advanced settings in JSON format.",
 				MarkdownDescription: "Advanced settings in JSON format.",
@@ -320,7 +349,7 @@ func (d terraformServiceDataSource) Read(ctx context.Context, req datasource.Rea
 	}
 
 	// Convert domain entity to Terraform state
-	state := convertDomainTerraformServiceToTerraformService(data, terraformSvc)
+	state := convertDomainTerraformServiceToTerraformService(ctx, data, terraformSvc)
 	tflog.Trace(ctx, "read terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 
 	// Set state

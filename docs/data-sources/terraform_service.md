@@ -40,6 +40,8 @@ data "qovery_terraform_service" "my_terraform_service" {
 	- Can be: `OPEN_TOFU`, `TERRAFORM`.
 - `engine_version` (Attributes) Terraform/OpenTofu engine version configuration. (see [below for nested schema](#nestedatt--engine_version))
 - `environment_id` (String) Id of the environment.
+- `external_secret_files` (Attributes Set) List of external secret files linked to this terraform service. (see [below for nested schema](#nestedatt--external_secret_files))
+- `external_secrets` (Attributes Set) List of external secrets linked to this terraform service. (see [below for nested schema](#nestedatt--external_secrets))
 - `git_repository` (Attributes) Terraform service git repository configuration. (see [below for nested schema](#nestedatt--git_repository))
 - `icon_uri` (String) Icon URI representing the terraform service.
 - `job_resources` (Attributes) Resource allocation for the Terraform job. (see [below for nested schema](#nestedatt--job_resources))
@@ -76,6 +78,31 @@ Read-Only:
 
 - `explicit_version` (String) Explicit version to use for the Terraform/OpenTofu binary.
 - `read_from_terraform_block` (Boolean) Whether to read the version from the terraform block in the code.
+
+
+<a id="nestedatt--external_secret_files"></a>
+### Nested Schema for `external_secret_files`
+
+Read-Only:
+
+- `description` (String)
+- `id` (String)
+- `key` (String)
+- `mount_path` (String)
+- `reference` (String)
+- `secret_manager_access_id` (String)
+
+
+<a id="nestedatt--external_secrets"></a>
+### Nested Schema for `external_secrets`
+
+Read-Only:
+
+- `description` (String)
+- `id` (String)
+- `key` (String)
+- `reference` (String)
+- `secret_manager_access_id` (String)
 
 
 <a id="nestedatt--git_repository"></a>
