@@ -11,6 +11,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
 type ApplicationResponse struct {
@@ -47,6 +48,8 @@ type ApplicationCreateParams struct {
 	SecretFilesDiff                  SecretsDiff
 	AdvancedSettingsJson             string
 	DeploymentRestrictionsDiff       deploymentrestriction.ServiceDeploymentRestrictionsDiff
+	ExternalSecretsDiff              variable.ExternalSecretDiffRequest
+	ExternalSecretFilesDiff          variable.ExternalSecretFileDiffRequest
 }
 
 type ApplicationUpdateParams struct {
@@ -65,6 +68,8 @@ type ApplicationUpdateParams struct {
 	AdvancedSettingsJson             string
 	DeploymentRestrictionsDiff       deploymentrestriction.ServiceDeploymentRestrictionsDiff
 	DockerTargetBuildStage           *string
+	ExternalSecretsDiff              variable.ExternalSecretDiffRequest
+	ExternalSecretFilesDiff          variable.ExternalSecretFileDiffRequest
 }
 
 func (c *Client) CreateApplication(ctx context.Context, environmentID string, params *ApplicationCreateParams) (*ApplicationResponse, *apierrors.APIError) {
@@ -106,6 +111,8 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 		applicationDeploymentStage.Id,
 		getServiceIsSkipped(applicationDeploymentStage, application.Id),
 		params.AdvancedSettingsJson,
+		params.ExternalSecretsDiff,
+		params.ExternalSecretFilesDiff,
 	)
 }
 
@@ -214,6 +221,8 @@ func (c *Client) UpdateApplication(ctx context.Context, applicationID string, pa
 		applicationDeploymentStage.Id,
 		getServiceIsSkipped(applicationDeploymentStage, applicationID),
 		params.AdvancedSettingsJson,
+		params.ExternalSecretsDiff,
+		params.ExternalSecretFilesDiff,
 	)
 }
 
@@ -264,6 +273,8 @@ func (c *Client) updateApplication(
 	deploymentStageId string,
 	isSkipped bool,
 	advancedSettingsJson string,
+	externalSecretsDiff variable.ExternalSecretDiffRequest,
+	externalSecretFilesDiff variable.ExternalSecretFileDiffRequest,
 ) (*ApplicationResponse, *apierrors.APIError) {
 	if !environmentVariablesDiff.IsEmpty() {
 		if apiErr := c.updateApplicationEnvironmentVariables(ctx, application.Id, environmentVariablesDiff); apiErr != nil {
@@ -333,6 +344,18 @@ func (c *Client) updateApplication(
 
 	if !customDomainsDiff.IsEmpty() {
 		if apiErr := c.updateApplicationCustomDomains(ctx, application.Id, customDomainsDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
+	if !externalSecretsDiff.IsEmpty() {
+		if apiErr := c.updateApplicationExternalSecrets(ctx, application.Id, externalSecretsDiff); apiErr != nil {
+			return nil, apiErr
+		}
+	}
+
+	if !externalSecretFilesDiff.IsEmpty() {
+		if apiErr := c.updateApplicationExternalSecretFiles(ctx, application.Id, externalSecretFilesDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}

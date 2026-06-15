@@ -23,6 +23,8 @@ type TerraformService struct {
 	GitRepository         *TerraformGitRepository `tfsdk:"git_repository"`
 	TfVarFiles            types.List              `tfsdk:"tfvars_files"`
 	Variables             types.Set               `tfsdk:"variables"`
+	ExternalSecrets       types.Set               `tfsdk:"external_secrets"`
+	ExternalSecretFiles   types.Set               `tfsdk:"external_secret_files"`
 	Backend               *TerraformBackend       `tfsdk:"backend"`
 	Engine                types.String            `tfsdk:"engine"`
 	EngineVersion         *TerraformEngineVersion `tfsdk:"engine_version"`
@@ -78,14 +80,23 @@ type TerraformVariable struct {
 }
 
 // toUpsertServiceRequest converts Terraform model to domain service request
-func (t TerraformService) toUpsertServiceRequest() (*terraformservice.UpsertServiceRequest, error) {
+func (t TerraformService) toUpsertServiceRequest(state *TerraformService) (*terraformservice.UpsertServiceRequest, error) {
 	req, err := t.toUpsertRepositoryRequest()
 	if err != nil {
 		return nil, err
 	}
 
+	var stateExternalSecrets ExternalSecretList
+	var stateExternalSecretFiles ExternalSecretFileList
+	if state != nil {
+		stateExternalSecrets = toExternalSecretList(state.ExternalSecrets)
+		stateExternalSecretFiles = toExternalSecretFileList(state.ExternalSecretFiles)
+	}
+
 	return &terraformservice.UpsertServiceRequest{
 		TerraformServiceUpsertRequest: req,
+		ExternalSecrets:               toExternalSecretList(t.ExternalSecrets).diffRequest(stateExternalSecrets),
+		ExternalSecretFiles:           toExternalSecretFileList(t.ExternalSecretFiles).diffRequest(stateExternalSecretFiles),
 	}, nil
 }
 
@@ -242,7 +253,7 @@ func toActionExtraArguments(argsMap types.Map) map[string][]string {
 }
 
 // convertDomainTerraformServiceToTerraformService converts domain entity to Terraform model
-func convertDomainTerraformServiceToTerraformService(plan TerraformService, ts *terraformservice.TerraformService) TerraformService {
+func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan TerraformService, ts *terraformservice.TerraformService) TerraformService {
 	return TerraformService{
 		ID:                    FromString(ts.ID.String()),
 		EnvironmentID:         FromString(ts.EnvironmentID.String()),
@@ -267,6 +278,8 @@ func convertDomainTerraformServiceToTerraformService(plan TerraformService, ts *
 		CreatedAt:             FromTime(ts.CreatedAt),
 		UpdatedAt:             FromTimePointer(ts.UpdatedAt),
 		BlueprintID:           FromStringPointer(ts.BlueprintID),
+		ExternalSecrets:       convertDomainExternalSecretsToExternalSecretList(ts.ExternalSecrets, plan.ExternalSecrets).toTerraformSet(ctx),
+		ExternalSecretFiles:   convertDomainExternalSecretFilesToExternalSecretFileList(ts.ExternalSecretFiles, plan.ExternalSecretFiles).toTerraformSet(ctx),
 	}
 }
 

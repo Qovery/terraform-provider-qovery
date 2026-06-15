@@ -76,6 +76,18 @@ type Repositories struct {
 	TerraformService                terraformservice.Repository
 	ArgoCdCredentials               argoCdCredentials.Repository
 	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Repository
+
+	ApplicationExternalSecret      variable.ExternalSecretRepository
+	ContainerExternalSecret        variable.ExternalSecretRepository
+	JobExternalSecret              variable.ExternalSecretRepository
+	HelmExternalSecret             variable.ExternalSecretRepository
+	TerraformServiceExternalSecret variable.ExternalSecretRepository
+
+	ApplicationExternalSecretFile      variable.ExternalSecretFileRepository
+	ContainerExternalSecretFile        variable.ExternalSecretFileRepository
+	JobExternalSecretFile              variable.ExternalSecretFileRepository
+	HelmExternalSecretFile             variable.ExternalSecretFileRepository
+	TerraformServiceExternalSecretFile variable.ExternalSecretFileRepository
 }
 
 func New(configs ...Configuration) (*Repositories, error) {
@@ -142,6 +154,18 @@ func WithQoveryAPI(apiToken string, providerVersion string, host string) Configu
 		repos.TerraformService = qoveryAPI.TerraformService
 		repos.ArgoCdCredentials = qoveryAPI.ArgoCdCredentials
 		repos.ArgoCdDestinationClusterMapping = qoveryAPI.ArgoCdDestinationClusterMapping
+
+		repos.ApplicationExternalSecret = qoveryAPI.ApplicationExternalSecret
+		repos.ContainerExternalSecret = qoveryAPI.ContainerExternalSecret
+		repos.JobExternalSecret = qoveryAPI.JobExternalSecret
+		repos.HelmExternalSecret = qoveryAPI.HelmExternalSecret
+		repos.TerraformServiceExternalSecret = qoveryAPI.TerraformServiceExternalSecret
+
+		repos.ApplicationExternalSecretFile = qoveryAPI.ApplicationExternalSecretFile
+		repos.ContainerExternalSecretFile = qoveryAPI.ContainerExternalSecretFile
+		repos.JobExternalSecretFile = qoveryAPI.JobExternalSecretFile
+		repos.HelmExternalSecretFile = qoveryAPI.HelmExternalSecretFile
+		repos.TerraformServiceExternalSecretFile = qoveryAPI.TerraformServiceExternalSecretFile
 
 		return nil
 	}

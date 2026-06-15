@@ -10,6 +10,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 	"github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories/qoveryapi"
 )
 
@@ -38,6 +39,8 @@ type Application struct {
 	SecretVariableOverrides      types.Set                 `tfsdk:"secret_overrides"`
 	EnvironmentVariableFiles     types.Set                 `tfsdk:"environment_variable_files"`
 	SecretFiles                  types.Set                 `tfsdk:"secret_files"`
+	ExternalSecrets              types.Set                 `tfsdk:"external_secrets"`
+	ExternalSecretFiles          types.Set                 `tfsdk:"external_secret_files"`
 	ExternalHost                 types.String              `tfsdk:"external_host"`
 	InternalHost                 types.String              `tfsdk:"internal_host"`
 	Entrypoint                   types.String              `tfsdk:"entrypoint"`
@@ -87,6 +90,14 @@ func (app Application) EnvironmentVariableFileList() EnvironmentVariableFileList
 
 func (app Application) SecretFileList() SecretFileList {
 	return toSecretFileList(app.SecretFiles)
+}
+
+func (app Application) ExternalSecretList() ExternalSecretList {
+	return toExternalSecretList(app.ExternalSecrets)
+}
+
+func (app Application) ExternalSecretFileList() ExternalSecretFileList {
+	return toExternalSecretFileList(app.ExternalSecretFiles)
 }
 
 func (app Application) CustomDomainsList() CustomDomainList {
@@ -189,6 +200,8 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		SecretFilesDiff:                  app.SecretFileList().diff(nil),
 		CustomDomainsDiff:                app.CustomDomainsList().diff(nil),
 		DeploymentRestrictionsDiff:       *deploymentRestrictions,
+		ExternalSecretsDiff:              app.ExternalSecretList().diffRequest(nil),
+		ExternalSecretFilesDiff:          app.ExternalSecretFileList().diffRequest(nil),
 		ApplicationDeploymentStageID:     ToString(app.DeploymentStageId),
 		ApplicationIsSkipped:             ToBool(app.IsSkipped),
 		AdvancedSettingsJson:             ToString(app.AdvancedSettingsJson),
@@ -304,13 +317,15 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		SecretFilesDiff:                  app.SecretFileList().diff(state.SecretFileList()),
 		CustomDomainsDiff:                app.CustomDomainsList().diff(state.CustomDomainsList()),
 		DeploymentRestrictionsDiff:       *deploymentRestrictions,
+		ExternalSecretsDiff:              app.ExternalSecretList().diffRequest(state.ExternalSecretList()),
+		ExternalSecretFilesDiff:          app.ExternalSecretFileList().diffRequest(state.ExternalSecretFileList()),
 		ApplicationDeploymentStageID:     ToString(app.DeploymentStageId),
 		ApplicationIsSkipped:             ToBool(app.IsSkipped),
 		AdvancedSettingsJson:             ToString(app.AdvancedSettingsJson),
 	}, nil
 }
 
-func convertResponseToApplication(ctx context.Context, state Application, app *client.ApplicationResponse) Application {
+func convertResponseToApplication(ctx context.Context, state Application, app *client.ApplicationResponse, externalSecrets variable.ExternalSecrets, externalSecretFiles variable.ExternalSecretFiles) Application {
 	healthchecks := convertHealthchecksResponseToDomain(app.ApplicationResponse.Healthchecks)
 	return Application{
 		Id:                           FromString(app.ApplicationResponse.Id),
@@ -350,6 +365,8 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		AnnotationsGroupIds:          fromAnnotationsGroupResponseList(ctx, state.AnnotationsGroupIds, app.ApplicationResponse.AnnotationsGroups),
 		LabelsGroupIds:               fromLabelsGroupResponseList(ctx, state.LabelsGroupIds, app.ApplicationResponse.LabelsGroups),
 		DockerTargetBuildStage:       FromNullableString(app.ApplicationResponse.DockerTargetBuildStage),
+		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(externalSecrets, state.ExternalSecrets).toTerraformSet(ctx),
+		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(externalSecretFiles, state.ExternalSecretFiles).toTerraformSet(ctx),
 	}
 }
 
