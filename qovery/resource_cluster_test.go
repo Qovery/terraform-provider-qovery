@@ -441,11 +441,15 @@ func testAccQoveryClusterExists(resourceName string) resource.TestCheckFunc {
 		if rs.Primary.ID == "" {
 			return fmt.Errorf("cluster.id not found")
 		}
-		_, apiErr := apiClient.GetCluster(context.TODO(), getTestOrganizationID(), rs.Primary.ID, "{}", false)
-		if apiErr != nil {
-			return apiErr
+		var apiErr *apierrors.APIError
+		for attempt := 0; attempt < 3; attempt++ {
+			_, apiErr = apiClient.GetCluster(context.TODO(), getTestOrganizationID(), rs.Primary.ID, "{}", false)
+			if apiErr == nil {
+				return nil
+			}
+			time.Sleep(3 * time.Second)
 		}
-		return nil
+		return apiErr
 	}
 }
 
