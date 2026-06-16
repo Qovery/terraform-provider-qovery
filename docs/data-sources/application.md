@@ -72,6 +72,8 @@ data "qovery_application" "my_application" {
 - `environment_id` (String) Id of the environment.
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this application. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `external_host` (String) The application external FQDN host. Only available if your application is using a publicly accessible port.
+- `external_secret_files` (Attributes Set) List of external secret files linked to this application. (see [below for nested schema](#nestedatt--external_secret_files))
+- `external_secrets` (Attributes Set) List of external secrets linked to this application. (see [below for nested schema](#nestedatt--external_secrets))
 - `git_repository` (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
 - `internal_host` (String) The application internal host.
 - `name` (String) Name of the application.
@@ -387,6 +389,31 @@ Read-Only:
 - `key` (String) Key of the environment variable file.
 - `mount_path` (String) Mount path of the environment variable file.
 - `value` (String) Value of the environment variable file.
+
+
+<a id="nestedatt--external_secret_files"></a>
+### Nested Schema for `external_secret_files`
+
+Read-Only:
+
+- `description` (String)
+- `id` (String)
+- `key` (String)
+- `mount_path` (String)
+- `reference` (String)
+- `secret_manager_access_id` (String)
+
+
+<a id="nestedatt--external_secrets"></a>
+### Nested Schema for `external_secrets`
+
+Read-Only:
+
+- `description` (String) Description of the external secret.
+- `id` (String) Id of the external secret.
+- `key` (String) Name of the external secret.
+- `reference` (String) Reference to the upstream secret.
+- `secret_manager_access_id` (String) Id of the secret manager access.
 
 
 <a id="nestedatt--git_repository"></a>

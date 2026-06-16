@@ -35,6 +35,8 @@ type CreateServiceRequest struct {
 	SecretAliases                secret.DiffRequest
 	SecretOverrides              secret.DiffRequest
 	SecretFiles                  secret.DiffRequest
+	ExternalSecrets              variable.ExternalSecretDiffRequest
+	ExternalSecretFiles          variable.ExternalSecretFileDiffRequest
 }
 
 // Validate returns an error to tell whether the CreateServiceRequest is valid or not.
@@ -70,6 +72,8 @@ type UpdateServiceRequest struct {
 	SecretAliases                secret.DiffRequest
 	SecretOverrides              secret.DiffRequest
 	SecretFiles                  secret.DiffRequest
+	ExternalSecrets              variable.ExternalSecretDiffRequest
+	ExternalSecretFiles          variable.ExternalSecretFileDiffRequest
 }
 
 // Validate returns an error to tell whether the UpdateServiceRequest is valid or not.

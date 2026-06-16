@@ -620,6 +620,50 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 					},
 				},
 			},
+			"external_secrets": schema.SetNestedAttribute{
+				Description:         "List of external secrets linked to this application.",
+				MarkdownDescription: "List of external secrets linked to this application.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							Description: "Id of the external secret.",
+							Computed:    true,
+						},
+						"key": schema.StringAttribute{
+							Description: "Name of the external secret.",
+							Computed:    true,
+						},
+						"description": schema.StringAttribute{
+							Description: "Description of the external secret.",
+							Computed:    true,
+						},
+						"reference": schema.StringAttribute{
+							Description: "Reference to the upstream secret.",
+							Computed:    true,
+						},
+						"secret_manager_access_id": schema.StringAttribute{
+							Description: "Id of the secret manager access.",
+							Computed:    true,
+						},
+					},
+				},
+			},
+			"external_secret_files": schema.SetNestedAttribute{
+				Description:         "List of external secret files linked to this application.",
+				MarkdownDescription: "List of external secret files linked to this application.",
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id":                       schema.StringAttribute{Computed: true},
+						"key":                      schema.StringAttribute{Computed: true},
+						"description":              schema.StringAttribute{Computed: true},
+						"mount_path":               schema.StringAttribute{Computed: true},
+						"reference":                schema.StringAttribute{Computed: true},
+						"secret_manager_access_id": schema.StringAttribute{Computed: true},
+					},
+				},
+			},
 			"healthchecks": healthchecksSchemaAttributes(false),
 			"custom_domains": schema.SetNestedAttribute{
 				Description:         "List of custom domains linked to this application.",

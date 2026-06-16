@@ -13,6 +13,8 @@ const (
 	APIResourceApplicationSecretAlias                 APIResource = "application secret alias"
 	APIResourceApplicationSecretOverride              APIResource = "application secret override"
 	APIResourceApplicationStatus                      APIResource = "application status"
+	APIResourceApplicationExternalSecret              APIResource = "application external secret"
+	APIResourceApplicationExternalSecretFile          APIResource = "application external secret file"
 	APIResourceCluster                                APIResource = "cluster"
 	APIResourceClusterCloudProvider                   APIResource = "cluster cloud provider"
 	APIResourceClusterDNSProvider                     APIResource = "cluster DNS provider"

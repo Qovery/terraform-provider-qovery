@@ -24,6 +24,8 @@ type Environment struct {
 	SecretOverrides              types.Set    `tfsdk:"secret_overrides"`
 	EnvironmentVariableFiles     types.Set    `tfsdk:"environment_variable_files"`
 	SecretFiles                  types.Set    `tfsdk:"secret_files"`
+	ExternalSecrets              types.Set    `tfsdk:"external_secrets"`
+	ExternalSecretFiles          types.Set    `tfsdk:"external_secret_files"`
 }
 
 func (e Environment) EnvironmentVariableList() EnvironmentVariableList {
@@ -62,6 +64,14 @@ func (e Environment) SecretFileList() SecretFileList {
 	return toSecretFileList(e.SecretFiles)
 }
 
+func (e Environment) ExternalSecretList() ExternalSecretList {
+	return toExternalSecretList(e.ExternalSecrets)
+}
+
+func (e Environment) ExternalSecretFileList() ExternalSecretFileList {
+	return toExternalSecretFileList(e.ExternalSecretFiles)
+}
+
 func (e Environment) toCreateEnvironmentRequest() (*environment.CreateServiceRequest, error) {
 	mode, err := environment.NewModeFromString(ToString(e.Mode))
 	if err != nil {
@@ -82,6 +92,8 @@ func (e Environment) toCreateEnvironmentRequest() (*environment.CreateServiceReq
 		SecretAliases:                e.SecretAliasesList().diffRequest(nil),
 		SecretOverrides:              e.SecretOverridesList().diffRequest(nil),
 		SecretFiles:                  e.SecretFileList().diffRequest(nil),
+		ExternalSecrets:              e.ExternalSecretList().diffRequest(nil),
+		ExternalSecretFiles:          e.ExternalSecretFileList().diffRequest(nil),
 	}, nil
 }
 
@@ -108,6 +120,8 @@ func (e Environment) toUpdateEnvironmentRequest(state Environment) (*environment
 		SecretAliases:                e.SecretAliasesList().diffRequest(state.SecretAliasesList()),
 		SecretOverrides:              e.SecretOverridesList().diffRequest(state.SecretOverridesList()),
 		SecretFiles:                  e.SecretFileList().diffRequest(state.SecretFileList()),
+		ExternalSecrets:              e.ExternalSecretList().diffRequest(state.ExternalSecretList()),
+		ExternalSecretFiles:          e.ExternalSecretFileList().diffRequest(state.ExternalSecretFileList()),
 	}, nil
 }
 
@@ -127,5 +141,7 @@ func convertDomainEnvironmentToEnvironment(ctx context.Context, state Environmen
 		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, env.Secrets, variable.ScopeEnvironment, "OVERRIDE").toTerraformSet(ctx),
 		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, env.EnvironmentVariables, variable.ScopeEnvironment).toTerraformSet(ctx),
 		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, env.Secrets, variable.ScopeEnvironment).toTerraformSet(ctx),
+		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(env.ExternalSecrets, state.ExternalSecrets, variable.ScopeEnvironment).toTerraformSet(ctx),
+		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(env.ExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeEnvironment).toTerraformSet(ctx),
 	}
 }

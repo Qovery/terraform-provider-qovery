@@ -21,10 +21,12 @@ type environmentService struct {
 	environmentDeploymentService deployment.Service
 	variableService              variable.Service
 	secretService                secret.Service
+	externalSecretRepository     variable.ExternalSecretRepository
+	externalSecretFileRepository variable.ExternalSecretFileRepository
 }
 
 // NewEnvironmentService return a new instance of an environment.Service that uses the given environment.Repository.
-func NewEnvironmentService(environmentRepository environment.Repository, environmentDeploymentService deployment.Service, variableService variable.Service, secretService secret.Service) (environment.Service, error) {
+func NewEnvironmentService(environmentRepository environment.Repository, environmentDeploymentService deployment.Service, variableService variable.Service, secretService secret.Service, externalSecretRepository variable.ExternalSecretRepository, externalSecretFileRepository variable.ExternalSecretFileRepository) (environment.Service, error) {
 	if environmentRepository == nil {
 		return nil, ErrInvalidRepository
 	}
@@ -41,11 +43,21 @@ func NewEnvironmentService(environmentRepository environment.Repository, environ
 		return nil, ErrInvalidService
 	}
 
+	if externalSecretRepository == nil {
+		return nil, ErrInvalidRepository
+	}
+
+	if externalSecretFileRepository == nil {
+		return nil, ErrInvalidRepository
+	}
+
 	return &environmentService{
 		environmentRepository:        environmentRepository,
 		environmentDeploymentService: environmentDeploymentService,
 		variableService:              variableService,
 		secretService:                secretService,
+		externalSecretRepository:     externalSecretRepository,
+		externalSecretFileRepository: externalSecretFileRepository,
 	}, nil
 }
 
@@ -73,6 +85,14 @@ func (s environmentService) Create(ctx context.Context, projectID string, reques
 
 	_, err = s.secretService.Update(ctx, env.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, request.SecretFiles, overridesAuthorizedScopes)
 	if err != nil {
+		return nil, errors.Wrap(err, environment.ErrFailedToCreateEnvironment.Error())
+	}
+
+	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, env.ID.String(), request.ExternalSecrets); err != nil {
+		return nil, errors.Wrap(err, environment.ErrFailedToCreateEnvironment.Error())
+	}
+
+	if err := applyExternalSecretFilesDiff(ctx, s.externalSecretFileRepository, env.ID.String(), request.ExternalSecretFiles); err != nil {
 		return nil, errors.Wrap(err, environment.ErrFailedToCreateEnvironment.Error())
 	}
 
@@ -130,7 +150,15 @@ func (s environmentService) Update(ctx context.Context, environmentID string, re
 		return nil, errors.Wrap(err, environment.ErrFailedToUpdateEnvironment.Error())
 	}
 
-	if !request.EnvironmentVariables.IsEmpty() || !request.Secrets.IsEmpty() {
+	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, env.ID.String(), request.ExternalSecrets); err != nil {
+		return nil, errors.Wrap(err, environment.ErrFailedToUpdateEnvironment.Error())
+	}
+
+	if err := applyExternalSecretFilesDiff(ctx, s.externalSecretFileRepository, env.ID.String(), request.ExternalSecretFiles); err != nil {
+		return nil, errors.Wrap(err, environment.ErrFailedToUpdateEnvironment.Error())
+	}
+
+	if !request.EnvironmentVariables.IsEmpty() || !request.Secrets.IsEmpty() || !request.ExternalSecrets.IsEmpty() || !request.ExternalSecretFiles.IsEmpty() {
 		_, err := s.environmentDeploymentService.Redeploy(ctx, environmentID)
 		if err != nil {
 			return nil, errors.Wrap(err, environment.ErrFailedToUpdateEnvironment.Error())
@@ -183,6 +211,16 @@ func (s environmentService) refreshEnvironment(ctx context.Context, env environm
 		return nil, err
 	}
 
+	externalSecrets, err := s.externalSecretRepository.List(ctx, env.ID.String())
+	if err != nil {
+		return nil, err
+	}
+
+	externalSecretFiles, err := s.externalSecretFileRepository.List(ctx, env.ID.String())
+	if err != nil {
+		return nil, err
+	}
+
 	if err := env.SetEnvironmentVariables(envVars); err != nil {
 		return nil, err
 	}
@@ -191,7 +229,10 @@ func (s environmentService) refreshEnvironment(ctx context.Context, env environm
 		return nil, err
 	}
 
-	return &env, err
+	env.SetExternalSecrets(externalSecrets)
+	env.SetExternalSecretFiles(externalSecretFiles)
+
+	return &env, nil
 }
 
 // checkProjectID validates that the given projectID is valid.

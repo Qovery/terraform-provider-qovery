@@ -50,6 +50,8 @@ type Helm struct {
 	Ports                        []Port
 	BuiltInEnvironmentVariables  variable.Variables
 	EnvironmentVariables         variable.Variables
+	ExternalSecrets              variable.ExternalSecrets
+	ExternalSecretFiles          variable.ExternalSecretFiles
 	EnvironmentVariableAliases   variable.Variables
 	EnvironmentVariableOverrides variable.Variables
 	Secrets                      secret.Secrets
@@ -249,6 +251,30 @@ func (h *Helm) SetEnvironmentVariables(vars variable.Variables) error {
 	}
 
 	return nil
+}
+
+// SetExternalSecrets sets the ExternalSecrets field of the helm service, excluding BUILT_IN scoped items.
+func (h *Helm) SetExternalSecrets(secrets variable.ExternalSecrets) {
+	filtered := make(variable.ExternalSecrets, 0, len(secrets))
+	for _, s := range secrets {
+		if s.Scope == variable.ScopeBuiltIn {
+			continue
+		}
+		filtered = append(filtered, s)
+	}
+	h.ExternalSecrets = filtered
+}
+
+// SetExternalSecretFiles sets the ExternalSecretFiles field of the helm service, excluding BUILT_IN scoped items.
+func (h *Helm) SetExternalSecretFiles(files variable.ExternalSecretFiles) {
+	filtered := make(variable.ExternalSecretFiles, 0, len(files))
+	for _, f := range files {
+		if f.Scope == variable.ScopeBuiltIn {
+			continue
+		}
+		filtered = append(filtered, f)
+	}
+	h.ExternalSecretFiles = filtered
 }
 
 func (h *Helm) SetSecrets(secrets secret.Secrets) error {
