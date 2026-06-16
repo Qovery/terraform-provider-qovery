@@ -1975,6 +1975,50 @@ func TestCluster_hasClusterSpecDiff(t *testing.T) {
 	}
 }
 
+// TestCluster_hasKedaDiff guards that a keda toggle forces a redeploy. Without it,
+// EditCluster persists keda but ForceUpdate stays false and the operator is never
+// installed/removed on the running cluster.
+func TestCluster_hasKedaDiff(t *testing.T) {
+	t.Parallel()
+
+	keda := func(enabled bool) types.Object {
+		return types.ObjectValueMust(createKedaAttrTypes(), map[string]attr.Value{
+			"enabled": types.BoolValue(enabled),
+		})
+	}
+
+	t.Run("nil state without keda is not a diff", func(t *testing.T) {
+		t.Parallel()
+		plan := baseScwCluster()
+		assert.False(t, plan.hasKedaDiff(nil))
+	})
+
+	t.Run("nil state with keda enabled is a diff", func(t *testing.T) {
+		t.Parallel()
+		plan := baseScwCluster()
+		plan.Keda = keda(true)
+		assert.True(t, plan.hasKedaDiff(nil))
+	})
+
+	t.Run("identical keda is not a diff", func(t *testing.T) {
+		t.Parallel()
+		state := baseScwCluster()
+		state.Keda = keda(false)
+		plan := baseScwCluster()
+		plan.Keda = keda(false)
+		assert.False(t, plan.hasKedaDiff(&state))
+	})
+
+	t.Run("toggled keda is a diff", func(t *testing.T) {
+		t.Parallel()
+		state := baseScwCluster()
+		state.Keda = keda(false)
+		plan := baseScwCluster()
+		plan.Keda = keda(true)
+		assert.True(t, plan.hasKedaDiff(&state))
+	})
+}
+
 // TestCluster_hasFeaturesDiff guards the reflect.DeepEqual comparison (#588): two
 // structurally-identical feature sets must NOT report a diff (the pre-#588 pointer
 // comparison always did), while a real feature value change must.

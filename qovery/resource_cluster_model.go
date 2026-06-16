@@ -92,6 +92,17 @@ func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
 	return false
 }
 
+// hasKedaDiff reports whether the keda configuration changed between plan and
+// state. KEDA installs/removes the operator on the cluster, which only takes
+// effect on a (re)deploy gated by ClusterUpsertParams.ForceUpdate — so a toggle
+// must force a deploy, otherwise EditCluster saves it but it is never applied.
+func (c Cluster) hasKedaDiff(state *Cluster) bool {
+	if state == nil {
+		return toQoveryClusterKeda(c.Keda) != nil
+	}
+	return !c.Keda.Equal(state.Keda)
+}
+
 func (c Cluster) hasRoutingTableDiff(state *Cluster) bool {
 	clusterRoutes := toClusterRouteList(c.RoutingTables).toUpsertRequest().Routes
 	if state == nil {
@@ -200,6 +211,12 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		// kubeconfig is required for PARTIALLY_MANAGED
 		if c.Kubeconfig.IsNull() || c.Kubeconfig.IsUnknown() || c.Kubeconfig.ValueString() == "" {
 			return nil, errors.New("kubeconfig is required when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
+		}
+
+		// keda is not applicable for PARTIALLY_MANAGED: convertResponseToCluster forces it
+		// to null, so a config-set value would yield "inconsistent result after apply".
+		if toQoveryClusterKeda(c.Keda) != nil {
+			return nil, errors.New("keda is not supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
 		}
 
 		// infrastructure_charts_parameters is required for PARTIALLY_MANAGED
@@ -317,7 +334,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		return nil, errors.Wrap(err, "failed to parse secret_manager_accesses")
 	}
 
-	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || c.hasInfraChartsParamsDiff(state) || c.hasClusterSpecDiff(state) || c.hasSecretManagerAccessesDiff(state)
+	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || c.hasInfraChartsParamsDiff(state) || c.hasClusterSpecDiff(state) || c.hasSecretManagerAccessesDiff(state) || c.hasKedaDiff(state)
 
 	desiredState, err := qovery.NewClusterStateEnumFromValue(ToString(c.State))
 	if err != nil {
