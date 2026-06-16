@@ -199,6 +199,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				Optional: true,
 				Computed: true,
 			},
+			"autoscaling": autoscalingDataSourceSchema(),
 			"auto_preview": schema.BoolAttribute{
 				Description: descriptions.NewBoolDefaultDescription(
 					"Specify if the environment preview option is activated or not for this application.",

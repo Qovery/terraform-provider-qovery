@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/autoscaling"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
@@ -90,6 +91,7 @@ type Container struct {
 	AutoDeploy                  *bool
 	AnnotationsGroupIds         []string
 	LabelsGroupIds              []string
+	Autoscaling                 *autoscaling.AutoscalingPolicy
 }
 
 // Validate returns an error to tell whether the Container domain model is valid or not.
@@ -100,6 +102,12 @@ func (c Container) Validate() error {
 
 	if err := c.Ports.Validate(); err != nil {
 		return errors.Wrap(err, ErrInvalidContainer.Error())
+	}
+
+	if c.Autoscaling != nil {
+		if err := c.Autoscaling.Validate(); err != nil {
+			return errors.Wrap(err, ErrInvalidContainer.Error())
+		}
 	}
 
 	if err := validator.New().Struct(c); err != nil {
@@ -143,6 +151,7 @@ type NewContainerParams struct {
 	AutoDeploy             *bool
 	AnnotationsGroupIds    []string
 	LabelsGroupIds         []string
+	Autoscaling            *autoscaling.AutoscalingPolicy
 }
 
 // NewContainer returns a new instance of a Container domain model.
@@ -199,6 +208,7 @@ func NewContainer(params NewContainerParams) (*Container, error) {
 		AutoDeploy:           params.AutoDeploy,
 		AnnotationsGroupIds:  params.AnnotationsGroupIds,
 		LabelsGroupIds:       params.LabelsGroupIds,
+		Autoscaling:          params.Autoscaling,
 	}
 
 	if err := c.SetEnvironmentVariables(params.EnvironmentVariables); err != nil {

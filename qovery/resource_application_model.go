@@ -51,6 +51,7 @@ type Application struct {
 	AnnotationsGroupIds          types.Set                 `tfsdk:"annotations_group_ids"`
 	LabelsGroupIds               types.Set                 `tfsdk:"labels_group_ids"`
 	DockerTargetBuildStage       types.String              `tfsdk:"docker_target_build_stage"`
+	Autoscaling                  types.Object              `tfsdk:"autoscaling"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
@@ -157,6 +158,11 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		return nil, err
 	}
 
+	autoscalingPolicy, err := toQoveryAutoscalingRequest(app.Autoscaling)
+	if err != nil {
+		return nil, err
+	}
+
 	return &client.ApplicationCreateParams{
 		ApplicationRequest: qovery.ApplicationRequest{
 			Name:                   ToString(app.Name),
@@ -178,6 +184,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			AnnotationsGroups:      annotationsGroups,
 			LabelsGroups:           labelsGroups,
 			DockerTargetBuildStage: ToNullableString(app.DockerTargetBuildStage),
+			Autoscaling:            autoscalingPolicy,
 		},
 		EnvironmentVariablesDiff:         app.EnvironmentVariableList().diff(nil),
 		EnvironmentVariableAliasesDiff:   app.EnvironmentVariableAliasList().diff(nil),
@@ -271,6 +278,11 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		return nil, err
 	}
 
+	autoscalingPolicy, err := toQoveryAutoscalingRequest(app.Autoscaling)
+	if err != nil {
+		return nil, err
+	}
+
 	applicationEditRequest := qovery.ApplicationEditRequest{
 		Name:                   ToStringPointer(app.Name),
 		IconUri:                ToStringPointer(app.IconUri),
@@ -291,6 +303,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		AnnotationsGroups:      annotationsGroups,
 		LabelsGroups:           labelsGroups,
 		DockerTargetBuildStage: ToNullableString(app.DockerTargetBuildStage),
+		Autoscaling:            autoscalingPolicy,
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:           applicationEditRequest,
@@ -350,6 +363,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		AnnotationsGroupIds:          fromAnnotationsGroupResponseList(ctx, state.AnnotationsGroupIds, app.ApplicationResponse.AnnotationsGroups),
 		LabelsGroupIds:               fromLabelsGroupResponseList(ctx, state.LabelsGroupIds, app.ApplicationResponse.LabelsGroups),
 		DockerTargetBuildStage:       FromNullableString(app.ApplicationResponse.DockerTargetBuildStage),
+		Autoscaling:                  fromAutoscalingResponse(app.ApplicationResponse.Autoscaling),
 	}
 }
 

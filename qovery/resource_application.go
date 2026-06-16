@@ -235,7 +235,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Computed:            true,
 				Default:             int64default.StaticInt64(applicationMinRunningInstancesDefault),
 				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: applicationMinRunningInstancesMin},
+					validators.MinRunningInstancesAutoscalingValidator{AutoscalingAttributePath: "autoscaling"},
 				},
 			},
 			"max_running_instances": schema.Int64Attribute{
@@ -252,6 +252,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					validators.Int64MinValidator{Min: applicationMaxRunningInstancesMin},
 				},
 			},
+			"autoscaling": autoscalingResourceSchema(),
 			"auto_preview": schema.BoolAttribute{
 				Description: descriptions.NewBoolDefaultDescription(
 					"Specify if the environment preview option is activated or not for this application.",

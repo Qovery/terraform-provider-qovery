@@ -199,6 +199,7 @@ You can find complete examples within these repositories:
 - `arguments` (List of String) List of arguments of this application. Overrides the Docker image's default `CMD`.
 - `auto_deploy` (Boolean) Specify if the application will be automatically redeployed after receiving a new commit on the configured branch.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application. When enabled, Qovery creates a preview environment for each pull request. Default: `false`.
+- `autoscaling` (Attributes) Event-driven autoscaling (KEDA) configuration. KEDA is additive to the CPU/memory HPA (min/max_running_instances) and unlocks scale-to-zero (min_running_instances = 0). Requires KEDA to be enabled on the cluster. (see [below for nested schema](#nestedatt--autoscaling))
 - `build_mode` (String) Build mode of the application.
   - `DOCKER`: Build using a Dockerfile in the repository. Requires `dockerfile_path` to be set.
   - `BUILDPACKS`: Build using Cloud Native Buildpacks (auto-detects language and framework).
@@ -392,6 +393,47 @@ Optional:
 
 - `host` (String) Optional host to connect to. Defaults to the pod IP if not specified.
 
+
+
+
+
+<a id="nestedatt--autoscaling"></a>
+### Nested Schema for `autoscaling`
+
+Required:
+
+- `scalers` (Attributes Set) List of KEDA scalers driving the autoscaling. At least one scaler is required. (see [below for nested schema](#nestedatt--autoscaling--scalers))
+
+Optional:
+
+- `cooldown_period_seconds` (Number) Period in seconds to wait after the last trigger before scaling back down.
+- `polling_interval_seconds` (Number) Interval in seconds between each KEDA polling of the scalers.
+
+<a id="nestedatt--autoscaling--scalers"></a>
+### Nested Schema for `autoscaling.scalers`
+
+Required:
+
+- `role` (String) Role of the scaler: PRIMARY or SAFETY.
+- `scaler_type` (String) Type of the KEDA scaler (e.g. cpu, memory, prometheus, cron).
+
+Optional:
+
+- `config_json` (String) Scaler configuration as JSON. Mutually exclusive with config_yaml.
+- `config_yaml` (String) Scaler configuration as raw YAML. Mutually exclusive with config_json.
+- `enabled` (Boolean) Whether the scaler is enabled. Defaults to true.
+- `trigger_authentication` (Attributes) Inline KEDA TriggerAuthentication for this scaler. (see [below for nested schema](#nestedatt--autoscaling--scalers--trigger_authentication))
+
+<a id="nestedatt--autoscaling--scalers--trigger_authentication"></a>
+### Nested Schema for `autoscaling.scalers.trigger_authentication`
+
+Required:
+
+- `name` (String) Name of the trigger authentication.
+
+Optional:
+
+- `config_yaml` (String) Raw KEDA TriggerAuthentication YAML configuration.
 
 
 

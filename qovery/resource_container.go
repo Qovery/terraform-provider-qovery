@@ -152,7 +152,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Computed:            true,
 				Default:             int64default.StaticInt64(container.MinMinRunningInstances),
 				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: container.MinMinRunningInstances},
+					validators.MinRunningInstancesAutoscalingValidator{AutoscalingAttributePath: "autoscaling"},
 				},
 			},
 			"max_running_instances": schema.Int64Attribute{
@@ -169,6 +169,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					validators.Int64MinValidator{Min: container.MinMaxRunningInstances},
 				},
 			},
+			"autoscaling": autoscalingResourceSchema(),
 			"auto_preview": schema.BoolAttribute{
 				Description: "Specify if the environment preview option is activated or not for this container.",
 				MarkdownDescription: "Specify if the environment preview option is activated or not for this container. " +

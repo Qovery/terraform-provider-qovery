@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/autoscaling"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
 )
@@ -47,6 +48,7 @@ type UpsertRepositoryRequest struct {
 	AutoDeploy           qovery.NullableBool
 	AnnotationsGroupIds  []string
 	LabelsGroupIds       []string
+	Autoscaling          *autoscaling.AutoscalingPolicy
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.

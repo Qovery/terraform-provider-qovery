@@ -59,6 +59,7 @@ data "qovery_container" "my_container" {
 
 ### Read-Only
 
+- `autoscaling` (Attributes) Event-driven autoscaling (KEDA) configuration. KEDA is additive to the CPU/memory HPA (min/max_running_instances) and unlocks scale-to-zero (min_running_instances = 0). Requires KEDA to be enabled on the cluster. (see [below for nested schema](#nestedatt--autoscaling))
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this container. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this container. (see [below for nested schema](#nestedatt--environment_variable_files))
@@ -335,6 +336,38 @@ Read-Only:
 	- Must be: `>= 1`.
 - `type` (String) Type of the storage for the container.
 	- Can be: `FAST_SSD`.
+
+
+<a id="nestedatt--autoscaling"></a>
+### Nested Schema for `autoscaling`
+
+Read-Only:
+
+- `cooldown_period_seconds` (Number) Period in seconds to wait after the last trigger before scaling back down.
+- `polling_interval_seconds` (Number) Interval in seconds between each KEDA polling of the scalers.
+- `scalers` (Attributes Set) List of KEDA scalers driving the autoscaling. (see [below for nested schema](#nestedatt--autoscaling--scalers))
+
+<a id="nestedatt--autoscaling--scalers"></a>
+### Nested Schema for `autoscaling.scalers`
+
+Read-Only:
+
+- `config_json` (String) Scaler configuration as JSON.
+- `config_yaml` (String) Scaler configuration as raw YAML.
+- `enabled` (Boolean) Whether the scaler is enabled.
+- `role` (String) Role of the scaler: PRIMARY or SAFETY.
+- `scaler_type` (String) Type of the KEDA scaler.
+- `trigger_authentication` (Attributes) Inline KEDA TriggerAuthentication for this scaler. (see [below for nested schema](#nestedatt--autoscaling--scalers--trigger_authentication))
+
+<a id="nestedatt--autoscaling--scalers--trigger_authentication"></a>
+### Nested Schema for `autoscaling.scalers.trigger_authentication`
+
+Read-Only:
+
+- `config_yaml` (String) Raw KEDA TriggerAuthentication YAML configuration.
+- `name` (String) Name of the trigger authentication.
+
+
 
 
 <a id="nestedatt--built_in_environment_variables"></a>
