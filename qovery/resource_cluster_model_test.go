@@ -2035,13 +2035,13 @@ func TestFromQoveryClusterKeda(t *testing.T) {
 	testCases := []struct {
 		TestName      string
 		Input         *qovery.ClusterKeda
-		ExpectNull    bool
 		ExpectEnabled bool
 	}{
 		{
-			TestName:   "nil_returns_null_object",
-			Input:      nil,
-			ExpectNull: true,
+			// The API omits keda when disabled; nil maps to the disabled shape, not null.
+			TestName:      "nil_maps_to_disabled",
+			Input:         nil,
+			ExpectEnabled: false,
 		},
 		{
 			TestName:      "enabled_true",
@@ -2060,10 +2060,6 @@ func TestFromQoveryClusterKeda(t *testing.T) {
 		t.Run(tc.TestName, func(t *testing.T) {
 			t.Parallel()
 			got := fromQoveryClusterKeda(tc.Input)
-			if tc.ExpectNull {
-				assert.True(t, got.IsNull())
-				return
-			}
 			require.False(t, got.IsNull())
 			enabled := got.Attributes()["enabled"].(types.Bool)
 			assert.Equal(t, tc.ExpectEnabled, enabled.ValueBool())

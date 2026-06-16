@@ -524,6 +524,19 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 					},
 				},
 			},
+			"keda": schema.SingleNestedAttribute{
+				Description:         "KEDA configuration of the cluster.",
+				MarkdownDescription: "KEDA configuration of the cluster. When enabled, the KEDA operator is installed on the cluster, unlocking event-driven autoscaling (including scale-to-zero) for services.",
+				Optional:            true,
+				Computed:            true,
+				Attributes: map[string]schema.Attribute{
+					"enabled": schema.BoolAttribute{
+						Description:         "Whether the KEDA operator is installed on the cluster.",
+						MarkdownDescription: "Whether the KEDA operator is installed on the cluster.",
+						Computed:            true,
+					},
+				},
+			},
 			"routing_table": schema.SetNestedAttribute{
 				Description:         "List of routes of the cluster.",
 				MarkdownDescription: "Custom routing table entries for the cluster VPC.",

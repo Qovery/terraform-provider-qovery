@@ -481,13 +481,18 @@ func toQoveryClusterKeda(k types.Object) *qovery.ClusterKeda {
 }
 
 // fromQoveryClusterKeda converts the API `keda` model to a Terraform object.
+// The API omits `keda` when KEDA is disabled, so a nil pointer maps to the
+// disabled shape `{enabled = false}` rather than null. `keda` is Optional+Computed,
+// so always returning a known value keeps apply results consistent with the plan
+// (a planned `{enabled = false}` must not become null after apply).
 func fromQoveryClusterKeda(k *qovery.ClusterKeda) types.Object {
-	if k == nil {
-		return types.ObjectNull(createKedaAttrTypes())
+	enabled := false
+	if k != nil {
+		enabled = k.GetEnabled()
 	}
 
 	return types.ObjectValueMust(createKedaAttrTypes(), map[string]attr.Value{
-		"enabled": types.BoolValue(k.GetEnabled()),
+		"enabled": types.BoolValue(enabled),
 	})
 }
 
