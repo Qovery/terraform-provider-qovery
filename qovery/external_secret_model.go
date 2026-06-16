@@ -180,10 +180,7 @@ func buildExternalSecretPlanMap(planValue types.Set) map[string]ExternalSecretIt
 	return m
 }
 
-// planAwareOptionalString returns the API value as types.String while preserving the
-// null/non-null distinction from the plan. When the plan description is non-null (even ""),
-// the user explicitly set it — return a non-null string. When null, normalize "" to null
-// since the API cannot distinguish the two.
+// planAwareOptionalString preserves null vs "" distinction from plan; normalizes API "" to null when plan is null.
 func planAwareOptionalString(apiVal string, planDesc types.String) types.String {
 	if !planDesc.IsNull() {
 		return types.StringValue(apiVal)

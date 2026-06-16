@@ -64,9 +64,7 @@ func (list ExternalSecretFileList) find(key string) *ExternalSecretFileItem {
 	return nil
 }
 
-// diffRequest computes Create/Update/Delete operations between the desired state (list) and the prior state (old).
-// If mount_path changes for a given key, the entry is deleted and recreated since the update API does not support
-// changing mount_path. Changes to reference, secret_manager_access_id, or description trigger an Update.
+// diffRequest computes Create/Update/Delete ops; mount_path changes trigger delete+recreate.
 func (list ExternalSecretFileList) diffRequest(old ExternalSecretFileList) variable.ExternalSecretFileDiffRequest {
 	diff := variable.ExternalSecretFileDiffRequest{
 		Create: []variable.ExternalSecretFileDiffCreateRequest{},

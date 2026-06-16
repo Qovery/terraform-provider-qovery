@@ -63,18 +63,6 @@ type Services struct {
 	TerraformService                terraformservice.Service
 	ArgoCdCredentials               argoCdCredentials.Service
 	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Service
-
-	ApplicationExternalSecretRepository      variable.ExternalSecretRepository
-	ContainerExternalSecretRepository        variable.ExternalSecretRepository
-	JobExternalSecretRepository              variable.ExternalSecretRepository
-	HelmExternalSecretRepository             variable.ExternalSecretRepository
-	TerraformServiceExternalSecretRepository variable.ExternalSecretRepository
-
-	ApplicationExternalSecretFileRepository      variable.ExternalSecretFileRepository
-	ContainerExternalSecretFileRepository        variable.ExternalSecretFileRepository
-	JobExternalSecretFileRepository              variable.ExternalSecretFileRepository
-	HelmExternalSecretFileRepository             variable.ExternalSecretFileRepository
-	TerraformServiceExternalSecretFileRepository variable.ExternalSecretFileRepository
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -298,18 +286,6 @@ func New(configs ...Configuration) (*Services, error) {
 	services.TerraformService = terraformServiceService
 	services.ArgoCdCredentials = argoCdCredentialsService
 	services.ArgoCdDestinationClusterMapping = argoCdDestinationClusterMappingService
-
-	services.ApplicationExternalSecretRepository = services.repos.ApplicationExternalSecret
-	services.ContainerExternalSecretRepository = services.repos.ContainerExternalSecret
-	services.JobExternalSecretRepository = services.repos.JobExternalSecret
-	services.HelmExternalSecretRepository = services.repos.HelmExternalSecret
-	services.TerraformServiceExternalSecretRepository = services.repos.TerraformServiceExternalSecret
-
-	services.ApplicationExternalSecretFileRepository = services.repos.ApplicationExternalSecretFile
-	services.ContainerExternalSecretFileRepository = services.repos.ContainerExternalSecretFile
-	services.JobExternalSecretFileRepository = services.repos.JobExternalSecretFile
-	services.HelmExternalSecretFileRepository = services.repos.HelmExternalSecretFile
-	services.TerraformServiceExternalSecretFileRepository = services.repos.TerraformServiceExternalSecretFile
 
 	return services, nil
 }

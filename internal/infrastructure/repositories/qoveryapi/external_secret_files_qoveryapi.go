@@ -51,7 +51,7 @@ func (p externalSecretFilesQoveryAPI) Create(ctx context.Context, serviceID stri
 		return nil, apierrors.NewCreateAPIError(p.apiResource, request.Key, resp, err)
 	}
 
-	return newDomainExternalSecretFileFromQovery(v)
+	return NewExternalSecretFileFromQovery(v)
 }
 
 func (p externalSecretFilesQoveryAPI) Update(ctx context.Context, variableID string, request variable.ExternalSecretFileUpsertRequest) (*variable.ExternalSecretFile, error) {
@@ -69,7 +69,7 @@ func (p externalSecretFilesQoveryAPI) Update(ctx context.Context, variableID str
 		return nil, apierrors.NewUpdateAPIError(p.apiResource, variableID, resp, err)
 	}
 
-	return newDomainExternalSecretFileFromQovery(v)
+	return NewExternalSecretFileFromQovery(v)
 }
 
 func (p externalSecretFilesQoveryAPI) Delete(ctx context.Context, variableID string) error {
@@ -103,7 +103,7 @@ func newDomainExternalSecretFilesFromQovery(list *qovery.VariableResponseList) (
 		if !strings.EqualFold(string(v.VariableType), "FILE_EXTERNAL_SECRET") {
 			continue
 		}
-		f, err := newDomainExternalSecretFileFromQovery(&v)
+		f, err := NewExternalSecretFileFromQovery(&v)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +112,7 @@ func newDomainExternalSecretFilesFromQovery(list *qovery.VariableResponseList) (
 	return files, nil
 }
 
-func newDomainExternalSecretFileFromQovery(v *qovery.VariableResponse) (*variable.ExternalSecretFile, error) {
+func NewExternalSecretFileFromQovery(v *qovery.VariableResponse) (*variable.ExternalSecretFile, error) {
 	reference := ""
 	if v.Value.IsSet() && v.Value.Get() != nil {
 		reference = *v.Value.Get()

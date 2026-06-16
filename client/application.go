@@ -162,12 +162,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string, advan
 		return nil, apiErr
 	}
 
-	externalSecrets, apiErr := c.getApplicationExternalSecrets(ctx, application.Id)
-	if apiErr != nil {
-		return nil, apiErr
-	}
-
-	externalSecretFiles, apiErr := c.getApplicationExternalSecretFiles(ctx, application.Id)
+	externalSecrets, externalSecretFiles, apiErr := c.getApplicationExternalSecretsAndFiles(ctx, application.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -411,12 +406,7 @@ func (c *Client) updateApplication(
 		return nil, apiErr
 	}
 
-	externalSecrets, apiErr := c.getApplicationExternalSecrets(ctx, application.Id)
-	if apiErr != nil {
-		return nil, apiErr
-	}
-
-	externalSecretFiles, apiErr := c.getApplicationExternalSecretFiles(ctx, application.Id)
+	externalSecrets, externalSecretFiles, apiErr := c.getApplicationExternalSecretsAndFiles(ctx, application.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}

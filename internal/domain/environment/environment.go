@@ -143,11 +143,25 @@ func (p *Environment) SetEnvironmentVariables(vars variable.Variables) error {
 }
 
 func (p *Environment) SetExternalSecrets(secrets variable.ExternalSecrets) {
-	p.ExternalSecrets = secrets
+	filtered := make(variable.ExternalSecrets, 0, len(secrets))
+	for _, s := range secrets {
+		if s.Scope == variable.ScopeBuiltIn {
+			continue
+		}
+		filtered = append(filtered, s)
+	}
+	p.ExternalSecrets = filtered
 }
 
 func (p *Environment) SetExternalSecretFiles(files variable.ExternalSecretFiles) {
-	p.ExternalSecretFiles = files
+	filtered := make(variable.ExternalSecretFiles, 0, len(files))
+	for _, f := range files {
+		if f.Scope == variable.ScopeBuiltIn {
+			continue
+		}
+		filtered = append(filtered, f)
+	}
+	p.ExternalSecretFiles = filtered
 }
 
 func (p *Environment) SetSecrets(secrets secret.Secrets) error {

@@ -50,7 +50,7 @@ func (p externalSecretsQoveryAPI) Create(ctx context.Context, serviceID string, 
 		return nil, apierrors.NewCreateAPIError(p.apiResource, request.Key, resp, err)
 	}
 
-	return newDomainExternalSecretFromQovery(v)
+	return NewExternalSecretFromQovery(v)
 }
 
 func (p externalSecretsQoveryAPI) Update(ctx context.Context, variableID string, request variable.ExternalSecretUpsertRequest) (*variable.ExternalSecret, error) {
@@ -68,7 +68,7 @@ func (p externalSecretsQoveryAPI) Update(ctx context.Context, variableID string,
 		return nil, apierrors.NewUpdateAPIError(p.apiResource, variableID, resp, err)
 	}
 
-	return newDomainExternalSecretFromQovery(v)
+	return NewExternalSecretFromQovery(v)
 }
 
 func (p externalSecretsQoveryAPI) Delete(ctx context.Context, variableID string) error {
@@ -103,7 +103,7 @@ func newDomainExternalSecretsFromQovery(list *qovery.VariableResponseList) (vari
 		if !strings.EqualFold(string(v.VariableType), "EXTERNAL_SECRET") {
 			continue
 		}
-		s, err := newDomainExternalSecretFromQovery(&v)
+		s, err := NewExternalSecretFromQovery(&v)
 		if err != nil {
 			return nil, err
 		}
@@ -112,7 +112,7 @@ func newDomainExternalSecretsFromQovery(list *qovery.VariableResponseList) (vari
 	return secrets, nil
 }
 
-func newDomainExternalSecretFromQovery(v *qovery.VariableResponse) (*variable.ExternalSecret, error) {
+func NewExternalSecretFromQovery(v *qovery.VariableResponse) (*variable.ExternalSecret, error) {
 	reference := ""
 	if v.Value.IsSet() && v.Value.Get() != nil {
 		reference = *v.Value.Get()

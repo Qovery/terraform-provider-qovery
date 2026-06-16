@@ -253,14 +253,28 @@ func (h *Helm) SetEnvironmentVariables(vars variable.Variables) error {
 	return nil
 }
 
-// SetExternalSecrets sets the ExternalSecrets field of the helm service.
+// SetExternalSecrets sets the ExternalSecrets field of the helm service, excluding BUILT_IN scoped items.
 func (h *Helm) SetExternalSecrets(secrets variable.ExternalSecrets) {
-	h.ExternalSecrets = secrets
+	filtered := make(variable.ExternalSecrets, 0, len(secrets))
+	for _, s := range secrets {
+		if s.Scope == variable.ScopeBuiltIn {
+			continue
+		}
+		filtered = append(filtered, s)
+	}
+	h.ExternalSecrets = filtered
 }
 
-// SetExternalSecretFiles sets the ExternalSecretFiles field of the helm service.
+// SetExternalSecretFiles sets the ExternalSecretFiles field of the helm service, excluding BUILT_IN scoped items.
 func (h *Helm) SetExternalSecretFiles(files variable.ExternalSecretFiles) {
-	h.ExternalSecretFiles = files
+	filtered := make(variable.ExternalSecretFiles, 0, len(files))
+	for _, f := range files {
+		if f.Scope == variable.ScopeBuiltIn {
+			continue
+		}
+		filtered = append(filtered, f)
+	}
+	h.ExternalSecretFiles = filtered
 }
 
 func (h *Helm) SetSecrets(secrets secret.Secrets) error {

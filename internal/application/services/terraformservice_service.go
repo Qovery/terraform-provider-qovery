@@ -68,13 +68,13 @@ func (s terraformServiceService) Create(ctx context.Context, environmentID strin
 	if err != nil {
 		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
 	}
-	newTerraformService.ExternalSecrets = externalSecrets
+	newTerraformService.SetExternalSecrets(externalSecrets)
 
 	externalSecretFiles, err := s.externalSecretFileRepository.List(ctx, newTerraformService.ID.String())
 	if err != nil {
 		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
 	}
-	newTerraformService.ExternalSecretFiles = externalSecretFiles
+	newTerraformService.SetExternalSecretFiles(externalSecretFiles)
 
 	return newTerraformService, nil
 }
@@ -94,13 +94,13 @@ func (s terraformServiceService) Get(ctx context.Context, terraformServiceID str
 	if err != nil {
 		return nil, errors.Wrap(err, terraformservice.ErrFailedToGetTerraformService.Error())
 	}
-	fetchedTerraformService.ExternalSecrets = externalSecrets
+	fetchedTerraformService.SetExternalSecrets(externalSecrets)
 
 	externalSecretFiles, err := s.externalSecretFileRepository.List(ctx, terraformServiceID)
 	if err != nil {
 		return nil, errors.Wrap(err, terraformservice.ErrFailedToGetTerraformService.Error())
 	}
-	fetchedTerraformService.ExternalSecretFiles = externalSecretFiles
+	fetchedTerraformService.SetExternalSecretFiles(externalSecretFiles)
 
 	return fetchedTerraformService, nil
 }
@@ -132,13 +132,13 @@ func (s terraformServiceService) Update(ctx context.Context, terraformServiceID 
 	if err != nil {
 		return nil, errors.Wrap(err, terraformservice.ErrFailedToUpdateTerraformService.Error())
 	}
-	updatedTerraformService.ExternalSecrets = externalSecrets
+	updatedTerraformService.SetExternalSecrets(externalSecrets)
 
 	externalSecretFiles, err := s.externalSecretFileRepository.List(ctx, terraformServiceID)
 	if err != nil {
 		return nil, errors.Wrap(err, terraformservice.ErrFailedToUpdateTerraformService.Error())
 	}
-	updatedTerraformService.ExternalSecretFiles = externalSecretFiles
+	updatedTerraformService.SetExternalSecretFiles(externalSecretFiles)
 
 	return updatedTerraformService, nil
 }

@@ -109,7 +109,7 @@ func (c *Client) updateApplicationExternalSecretFiles(ctx context.Context, appli
 	return nil
 }
 
-func (c *Client) getApplicationExternalSecrets(ctx context.Context, applicationID string) (variable.ExternalSecrets, *apierrors.APIError) {
+func (c *Client) getApplicationExternalSecretsAndFiles(ctx context.Context, applicationID string) (variable.ExternalSecrets, variable.ExternalSecretFiles, *apierrors.APIError) {
 	vars, resp, err := c.api.VariableMainCallsAPI.
 		ListVariables(ctx).
 		ParentId(applicationID).
@@ -117,46 +117,28 @@ func (c *Client) getApplicationExternalSecrets(ctx context.Context, applicationI
 		IsSecret(false).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadError(apierrors.APIResourceApplicationExternalSecret, applicationID, resp, err)
+		return nil, nil, apierrors.NewReadError(apierrors.APIResourceApplicationExternalSecret, applicationID, resp, err)
 	}
 
 	secrets := make(variable.ExternalSecrets, 0)
-	for _, v := range vars.GetResults() {
-		if !strings.EqualFold(string(v.VariableType), "EXTERNAL_SECRET") {
-			continue
-		}
-		s, convErr := newApplicationExternalSecretFromQovery(&v)
-		if convErr != nil {
-			return nil, apierrors.NewReadError(apierrors.APIResourceApplicationExternalSecret, applicationID, nil, convErr)
-		}
-		secrets = append(secrets, *s)
-	}
-	return secrets, nil
-}
-
-func (c *Client) getApplicationExternalSecretFiles(ctx context.Context, applicationID string) (variable.ExternalSecretFiles, *apierrors.APIError) {
-	vars, resp, err := c.api.VariableMainCallsAPI.
-		ListVariables(ctx).
-		ParentId(applicationID).
-		Scope(qovery.APIVARIABLESCOPEENUM_APPLICATION).
-		IsSecret(false).
-		Execute()
-	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewReadError(apierrors.APIResourceApplicationExternalSecretFile, applicationID, resp, err)
-	}
-
 	files := make(variable.ExternalSecretFiles, 0)
 	for _, v := range vars.GetResults() {
-		if !strings.EqualFold(string(v.VariableType), "FILE_EXTERNAL_SECRET") {
-			continue
+		switch {
+		case strings.EqualFold(string(v.VariableType), "EXTERNAL_SECRET"):
+			s, convErr := newApplicationExternalSecretFromQovery(&v)
+			if convErr != nil {
+				return nil, nil, apierrors.NewReadError(apierrors.APIResourceApplicationExternalSecret, applicationID, nil, convErr)
+			}
+			secrets = append(secrets, *s)
+		case strings.EqualFold(string(v.VariableType), "FILE_EXTERNAL_SECRET"):
+			f, convErr := newApplicationExternalSecretFileFromQovery(&v)
+			if convErr != nil {
+				return nil, nil, apierrors.NewReadError(apierrors.APIResourceApplicationExternalSecretFile, applicationID, nil, convErr)
+			}
+			files = append(files, *f)
 		}
-		f, convErr := newApplicationExternalSecretFileFromQovery(&v)
-		if convErr != nil {
-			return nil, apierrors.NewReadError(apierrors.APIResourceApplicationExternalSecretFile, applicationID, nil, convErr)
-		}
-		files = append(files, *f)
 	}
-	return files, nil
+	return secrets, files, nil
 }
 
 func newApplicationExternalSecretFromQovery(v *qovery.VariableResponse) (*variable.ExternalSecret, error) {
@@ -179,7 +161,6 @@ func newApplicationExternalSecretFromQovery(v *qovery.VariableResponse) (*variab
 	if err != nil {
 		return nil, errors.Wrap(err, variable.ErrInvalidScopeParam.Error())
 	}
-
 	return &variable.ExternalSecret{
 		ID:                    uuid.MustParse(v.GetId()),
 		Key:                   v.Key,
@@ -216,7 +197,6 @@ func newApplicationExternalSecretFileFromQovery(v *qovery.VariableResponse) (*va
 	if err != nil {
 		return nil, errors.Wrap(err, variable.ErrInvalidScopeParam.Error())
 	}
-
 	return &variable.ExternalSecretFile{
 		ID:                    uuid.MustParse(v.GetId()),
 		Key:                   v.Key,
