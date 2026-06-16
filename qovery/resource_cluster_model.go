@@ -386,6 +386,16 @@ func IsKarpenterAlreadyInstalled(state *Cluster) bool {
 	return false
 }
 
+// responseHasKarpenter reports whether the API cluster response has the Karpenter feature enabled.
+func responseHasKarpenter(features []qovery.ClusterFeatureResponse) bool {
+	for _, f := range features {
+		if f.Id != nil && *f.Id == featureIdKarpenter {
+			return true
+		}
+	}
+	return false
+}
+
 func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, initialPlan Cluster) Cluster {
 	routingTable := fromClusterRoutingTable(res.ClusterRoutingTable)
 
@@ -434,14 +444,18 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		cluster.InstanceType = FromStringPointer(res.ClusterResponse.InstanceType)
 		cluster.DiskSize = FromInt32Pointer(res.ClusterResponse.DiskSize)
 
-		// GCP Autopilot: preserve plan values for node counts since the API returns sentinel values.
+		// GCP Autopilot and Karpenter manage node scaling themselves, so min/max_running_nodes
+		// are not set in config and the API returns unstable sentinel values (e.g. MaxInt32 right
+		// after create, a real number on later reads). Preserve the plan values to avoid a spurious
+		// "inconsistent result after apply" on update.
 		isAutoPilot := res.ClusterResponse.InstanceType != nil && *res.ClusterResponse.InstanceType == instanceTypeAutoPilot
-		if isAutoPilot && !initialPlan.MinRunningNodes.IsNull() && !initialPlan.MinRunningNodes.IsUnknown() {
+		nodeCountsManaged := isAutoPilot || responseHasKarpenter(res.ClusterResponse.Features)
+		if nodeCountsManaged && !initialPlan.MinRunningNodes.IsNull() && !initialPlan.MinRunningNodes.IsUnknown() {
 			cluster.MinRunningNodes = initialPlan.MinRunningNodes
 		} else {
 			cluster.MinRunningNodes = FromInt32Pointer(res.ClusterResponse.MinRunningNodes)
 		}
-		if isAutoPilot && !initialPlan.MaxRunningNodes.IsNull() && !initialPlan.MaxRunningNodes.IsUnknown() {
+		if nodeCountsManaged && !initialPlan.MaxRunningNodes.IsNull() && !initialPlan.MaxRunningNodes.IsUnknown() {
 			cluster.MaxRunningNodes = initialPlan.MaxRunningNodes
 		} else {
 			cluster.MaxRunningNodes = FromInt32Pointer(res.ClusterResponse.MaxRunningNodes)

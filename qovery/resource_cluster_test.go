@@ -149,11 +149,18 @@ func TestAcc_ClusterWithKeda(t *testing.T) {
 				),
 			},
 			// Plan stability — no diff on re-apply of the same config.
-			// No KEDA-toggle update step: Karpenter cluster updates trigger Karpenter IAM
-			// validation that fails with test credentials (same reason TestAcc_Cluster is skipped).
 			{
 				Config:   testAccClusterConfigWithKeda(testName, true),
 				PlanOnly: true,
+			},
+			// Update KEDA to disabled — exercises the toggle/redeploy path.
+			{
+				Config: testAccClusterConfigWithKeda(testName, false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "keda.enabled", "false"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
+				),
 			},
 			// Import
 			{

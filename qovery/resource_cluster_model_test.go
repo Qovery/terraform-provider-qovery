@@ -1353,6 +1353,72 @@ func TestCluster_convertResponseToCluster_LabelsGroupIds(t *testing.T) {
 	})
 }
 
+func TestCluster_convertResponseToCluster_KarpenterNodeCounts(t *testing.T) {
+	ctx := context.Background()
+
+	karpenterID := featureIdKarpenter
+	const sentinel int64 = 2147483647 // MaxInt32, returned by the API right after a Karpenter create
+	apiMin := int32(1)
+	apiMax := int32(10)
+
+	newRes := func(features []qovery.ClusterFeatureResponse) *client.ClusterResponse {
+		return &client.ClusterResponse{
+			OrganizationID: "org-123",
+			ClusterResponse: &qovery.Cluster{
+				Id:              "cluster-123",
+				Name:            "c",
+				CloudProvider:   qovery.CLOUDVENDORENUM_AWS,
+				Region:          "us-east-1",
+				MinRunningNodes: &apiMin,
+				MaxRunningNodes: &apiMax,
+				Features:        features,
+			},
+			ClusterInfo:         makeTestClusterInfo("cred-123"),
+			ClusterRoutingTable: &client.ClusterRoutingTable{},
+		}
+	}
+
+	t.Run("karpenter preserves plan node counts over API sentinel", func(t *testing.T) {
+		t.Parallel()
+		res := newRes([]qovery.ClusterFeatureResponse{{Id: &karpenterID}})
+		initialPlan := Cluster{
+			MinRunningNodes: types.Int64Value(sentinel),
+			MaxRunningNodes: types.Int64Value(sentinel),
+		}
+
+		out := convertResponseToCluster(ctx, res, initialPlan)
+
+		assert.Equal(t, sentinel, out.MinRunningNodes.ValueInt64())
+		assert.Equal(t, sentinel, out.MaxRunningNodes.ValueInt64())
+	})
+
+	t.Run("non-karpenter uses API node counts", func(t *testing.T) {
+		t.Parallel()
+		res := newRes(nil)
+		initialPlan := Cluster{
+			MinRunningNodes: types.Int64Value(sentinel),
+			MaxRunningNodes: types.Int64Value(sentinel),
+		}
+
+		out := convertResponseToCluster(ctx, res, initialPlan)
+
+		assert.Equal(t, int64(apiMin), out.MinRunningNodes.ValueInt64())
+		assert.Equal(t, int64(apiMax), out.MaxRunningNodes.ValueInt64())
+	})
+}
+
+func TestResponseHasKarpenter(t *testing.T) {
+	t.Parallel()
+
+	karpenterID := featureIdKarpenter
+	otherID := featureIdVpcSubnet
+
+	assert.True(t, responseHasKarpenter([]qovery.ClusterFeatureResponse{{Id: &karpenterID}}))
+	assert.False(t, responseHasKarpenter([]qovery.ClusterFeatureResponse{{Id: &otherID}}))
+	assert.False(t, responseHasKarpenter([]qovery.ClusterFeatureResponse{{Id: nil}}))
+	assert.False(t, responseHasKarpenter(nil))
+}
+
 func TestCluster_toUpsertClusterRequest_DesiredState(t *testing.T) {
 	tests := []struct {
 		name          string
