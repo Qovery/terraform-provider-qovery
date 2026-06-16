@@ -70,7 +70,7 @@ type Container struct {
 	Tag                         string    `validate:"required"`
 	CPU                         int32     `validate:"required"`
 	Memory                      int32     `validate:"required"`
-	MinRunningInstances         int32     `validate:"required"`
+	MinRunningInstances         int32     `validate:"gte=0"`
 	MaxRunningInstances         int32     `validate:"required"`
 	AutoPreview                 bool
 	Entrypoint                  *string
