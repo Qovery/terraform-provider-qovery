@@ -230,9 +230,7 @@ func toQoveryAutoscaling(o types.Object) *autoscaling.AutoscalingPolicy {
 		if cj, ok := sAttrs["config_json"].(jsontypes.Normalized); ok && !cj.IsNull() && !cj.IsUnknown() {
 			scaler.Config.ConfigJSON = cj.ValueString()
 		}
-		if cy := objectAttrToString(sAttrs["config_yaml"]); cy != "" {
-			scaler.Config.ConfigYAML = cy
-		}
+		scaler.Config.ConfigYAML = objectAttrToString(sAttrs["config_yaml"])
 
 		if ta, ok := sAttrs["trigger_authentication"].(types.Object); ok && !ta.IsNull() && !ta.IsUnknown() {
 			taAttrs := ta.Attributes()
@@ -292,7 +290,7 @@ func fromAutoscaling(p *autoscaling.AutoscalingPolicy) types.Object {
 		if s.TriggerAuth != nil {
 			triggerAuth = types.ObjectValueMust(autoscalingTriggerAuthAttrTypes(), map[string]attr.Value{
 				"name":        types.StringValue(s.TriggerAuth.Name),
-				"config_yaml": fromStringPointerNull(s.TriggerAuth.ConfigYAML),
+				"config_yaml": FromStringPointer(s.TriggerAuth.ConfigYAML),
 			})
 		}
 
@@ -309,8 +307,8 @@ func fromAutoscaling(p *autoscaling.AutoscalingPolicy) types.Object {
 	scalers := types.SetValueMust(types.ObjectType{AttrTypes: autoscalingScalerAttrTypes()}, scalerElems)
 
 	return types.ObjectValueMust(autoscalingAttrTypes(), map[string]attr.Value{
-		"polling_interval_seconds": int32PointerToInt64Value(p.PollingIntervalSeconds),
-		"cooldown_period_seconds":  int32PointerToInt64Value(p.CooldownPeriodSeconds),
+		"polling_interval_seconds": FromInt32Pointer(p.PollingIntervalSeconds),
+		"cooldown_period_seconds":  FromInt32Pointer(p.CooldownPeriodSeconds),
 		"scalers":                  scalers,
 	})
 }
@@ -329,18 +327,10 @@ func fromAutoscalingResponse(res *qovery.AutoscalingPolicyResponse) types.Object
 
 func int64ObjectAttrToInt32Pointer(v attr.Value) *int32 {
 	i, ok := v.(types.Int64)
-	if !ok || i.IsNull() || i.IsUnknown() {
+	if !ok {
 		return nil
 	}
-	val := int32(i.ValueInt64())
-	return &val
-}
-
-func int32PointerToInt64Value(v *int32) types.Int64 {
-	if v == nil {
-		return types.Int64Null()
-	}
-	return types.Int64Value(int64(*v))
+	return ToInt32Pointer(i)
 }
 
 func objectAttrToString(v attr.Value) string {
@@ -353,11 +343,10 @@ func objectAttrToString(v attr.Value) string {
 
 func objectAttrToStringPointer(v attr.Value) *string {
 	s, ok := v.(types.String)
-	if !ok || s.IsNull() || s.IsUnknown() {
+	if !ok {
 		return nil
 	}
-	val := s.ValueString()
-	return &val
+	return ToStringPointer(s)
 }
 
 func objectAttrToBool(v attr.Value) bool {
@@ -366,11 +355,4 @@ func objectAttrToBool(v attr.Value) bool {
 		return false
 	}
 	return b.ValueBool()
-}
-
-func fromStringPointerNull(v *string) types.String {
-	if v == nil {
-		return types.StringNull()
-	}
-	return types.StringValue(*v)
 }
