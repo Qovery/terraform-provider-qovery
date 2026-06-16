@@ -45,6 +45,8 @@ type Environment struct {
 	EnvironmentVariables        variable.Variables
 	BuiltInEnvironmentVariables variable.Variables
 	Secrets                     secret.Secrets
+	ExternalSecrets             variable.ExternalSecrets
+	ExternalSecretFiles         variable.ExternalSecretFiles
 }
 
 // Validate returns an error to tell whether the Environment domain model is valid or not.
@@ -138,6 +140,28 @@ func (p *Environment) SetEnvironmentVariables(vars variable.Variables) error {
 	p.BuiltInEnvironmentVariables = builtIn
 
 	return nil
+}
+
+func (p *Environment) SetExternalSecrets(secrets variable.ExternalSecrets) {
+	filtered := make(variable.ExternalSecrets, 0, len(secrets))
+	for _, s := range secrets {
+		if s.Scope == variable.ScopeBuiltIn {
+			continue
+		}
+		filtered = append(filtered, s)
+	}
+	p.ExternalSecrets = filtered
+}
+
+func (p *Environment) SetExternalSecretFiles(files variable.ExternalSecretFiles) {
+	filtered := make(variable.ExternalSecretFiles, 0, len(files))
+	for _, f := range files {
+		if f.Scope == variable.ScopeBuiltIn {
+			continue
+		}
+		filtered = append(filtered, f)
+	}
+	p.ExternalSecretFiles = filtered
 }
 
 func (p *Environment) SetSecrets(secrets secret.Secrets) error {

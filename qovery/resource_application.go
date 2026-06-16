@@ -621,6 +621,8 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			},
 			"environment_variable_files": environmentVariableFilesSchemaAttribute("application"),
 			"secret_files":               secretFilesSchemaAttribute("application"),
+			"external_secrets":           externalSecretsSchemaAttribute("application"),
+			"external_secret_files":      externalSecretFilesSchemaAttribute("application"),
 			"healthchecks":               healthchecksSchemaAttributes(true),
 			"custom_domains": schema.SetNestedAttribute{
 				Description:         "List of custom domains linked to this application.",

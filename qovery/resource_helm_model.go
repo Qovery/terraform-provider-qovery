@@ -40,6 +40,8 @@ type Helm struct {
 	SecretOverrides              types.Set            `tfsdk:"secret_overrides"`
 	EnvironmentVariableFiles     types.Set            `tfsdk:"environment_variable_files"`
 	SecretFiles                  types.Set            `tfsdk:"secret_files"`
+	ExternalSecrets              types.Set            `tfsdk:"external_secrets"`
+	ExternalSecretFiles          types.Set            `tfsdk:"external_secret_files"`
 	ExternalHost                 types.String         `tfsdk:"external_host"`
 	InternalHost                 types.String         `tfsdk:"internal_host"`
 	DeploymentStageId            types.String         `tfsdk:"deployment_stage_id"`
@@ -136,6 +138,14 @@ func (h Helm) SecretFileList() SecretFileList {
 	return toSecretFileList(h.SecretFiles)
 }
 
+func (h Helm) ExternalSecretList() ExternalSecretList {
+	return toExternalSecretList(h.ExternalSecrets)
+}
+
+func (h Helm) ExternalSecretFileList() ExternalSecretFileList {
+	return toExternalSecretFileList(h.ExternalSecretFiles)
+}
+
 func (j Helm) DeploymentRestrictionDiff(deploymentRestrictionsState *types.Set) (*deploymentrestriction.ServiceDeploymentRestrictionsDiff, error) {
 	return deploymentrestriction.ToDeploymentRestrictionDiff(j.DeploymentRestrictions, deploymentRestrictionsState)
 }
@@ -155,6 +165,8 @@ func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, e
 	var stateSecretFiles SecretFileList
 	var stateDeploymentRestrictions types.Set
 	var stateCustomDomains CustomDomainList
+	var stateExternalSecrets ExternalSecretList
+	var stateExternalSecretFiles ExternalSecretFileList
 
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
@@ -167,6 +179,8 @@ func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, e
 		stateSecretFiles = state.SecretFileList()
 		stateDeploymentRestrictions = state.DeploymentRestrictions
 		stateCustomDomains = state.CustomDomainsList()
+		stateExternalSecrets = state.ExternalSecretList()
+		stateExternalSecretFiles = state.ExternalSecretFileList()
 	}
 
 	helmRequest, err := h.toUpsertRepositoryRequest(h.CustomDomainsList().diff(stateCustomDomains))
@@ -189,6 +203,8 @@ func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, e
 		SecretAliases:                h.SecretAliasesList().diffRequest(stateSecretAliases),
 		SecretOverrides:              h.SecretOverridesList().diffRequest(stateSecretOverrides),
 		SecretFiles:                  h.SecretFileList().diffRequest(stateSecretFiles),
+		ExternalSecrets:              h.ExternalSecretList().diffRequest(stateExternalSecrets),
+		ExternalSecretFiles:          h.ExternalSecretFileList().diffRequest(stateExternalSecretFiles),
 		DeploymentRestrictionsDiff:   *deploymentRestrictionsDiff,
 	}, nil
 }
@@ -505,5 +521,7 @@ func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) H
 		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, helm.JobDeploymentRestrictions),
 		CustomDomains:                fromCustomDomainList(state.CustomDomains, helm.CustomDomains).toTerraformSet(ctx),
 		BlueprintID:                  FromStringPointer(helm.BlueprintID),
+		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(helm.ExternalSecrets, state.ExternalSecrets, variable.ScopeHelm).toTerraformSet(ctx),
+		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(helm.ExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeHelm).toTerraformSet(ctx),
 	}
 }

@@ -10,6 +10,8 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+
+	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
 const (
@@ -119,6 +121,8 @@ type TerraformService struct {
 	GitRepository         GitRepository `validate:"required"`
 	TfVarFiles            []string
 	Variables             []Variable
+	ExternalSecrets       variable.ExternalSecrets
+	ExternalSecretFiles   variable.ExternalSecretFiles
 	Backend               Backend       `validate:"required"`
 	Engine                Engine        `validate:"required"`
 	EngineVersion         EngineVersion `validate:"required"`
@@ -131,6 +135,30 @@ type TerraformService struct {
 	CreatedAt             time.Time
 	UpdatedAt             *time.Time
 	BlueprintID           *string
+}
+
+// SetExternalSecrets sets the ExternalSecrets field, excluding BUILT_IN scoped items.
+func (ts *TerraformService) SetExternalSecrets(secrets variable.ExternalSecrets) {
+	filtered := make(variable.ExternalSecrets, 0, len(secrets))
+	for _, s := range secrets {
+		if s.Scope == variable.ScopeBuiltIn {
+			continue
+		}
+		filtered = append(filtered, s)
+	}
+	ts.ExternalSecrets = filtered
+}
+
+// SetExternalSecretFiles sets the ExternalSecretFiles field, excluding BUILT_IN scoped items.
+func (ts *TerraformService) SetExternalSecretFiles(files variable.ExternalSecretFiles) {
+	filtered := make(variable.ExternalSecretFiles, 0, len(files))
+	for _, f := range files {
+		if f.Scope == variable.ScopeBuiltIn {
+			continue
+		}
+		filtered = append(filtered, f)
+	}
+	ts.ExternalSecretFiles = filtered
 }
 
 // GitRepository represents the git repository configuration

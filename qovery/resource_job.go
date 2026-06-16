@@ -608,6 +608,8 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 			},
 			"environment_variable_files": environmentVariableFilesSchemaAttribute("job"),
 			"secret_files":               secretFilesSchemaAttribute("job"),
+			"external_secrets":           externalSecretsSchemaAttribute("job"),
+			"external_secret_files":      externalSecretFilesSchemaAttribute("job"),
 			"external_host": schema.StringAttribute{
 				Description:         "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",
 				MarkdownDescription: "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",

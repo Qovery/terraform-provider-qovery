@@ -76,6 +76,8 @@ type Job struct {
 	EnvironmentVariables         variable.Variables
 	EnvironmentVariableAliases   variable.Variables
 	EnvironmentVariableOverrides variable.Variables
+	ExternalSecrets              variable.ExternalSecrets
+	ExternalSecretFiles          variable.ExternalSecretFiles
 	Secrets                      secret.Secrets
 	SecretAliases                secret.Secrets
 	SecretOverrides              secret.Secrets
@@ -295,6 +297,30 @@ func (c *Job) SetEnvironmentVariables(vars variable.Variables) error {
 	c.BuiltInEnvironmentVariables = builtIn
 
 	return nil
+}
+
+// SetExternalSecrets sets the ExternalSecrets field of the job, excluding BUILT_IN scoped items.
+func (c *Job) SetExternalSecrets(secrets variable.ExternalSecrets) {
+	filtered := make(variable.ExternalSecrets, 0, len(secrets))
+	for _, s := range secrets {
+		if s.Scope == variable.ScopeBuiltIn {
+			continue
+		}
+		filtered = append(filtered, s)
+	}
+	c.ExternalSecrets = filtered
+}
+
+// SetExternalSecretFiles sets the ExternalSecretFiles field of the job, excluding BUILT_IN scoped items.
+func (c *Job) SetExternalSecretFiles(files variable.ExternalSecretFiles) {
+	filtered := make(variable.ExternalSecretFiles, 0, len(files))
+	for _, f := range files {
+		if f.Scope == variable.ScopeBuiltIn {
+			continue
+		}
+		filtered = append(filtered, f)
+	}
+	c.ExternalSecretFiles = filtered
 }
 
 // SetSecrets takes a secret.Secrets and sets the attributes Secrets of the job.

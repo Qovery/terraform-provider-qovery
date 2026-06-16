@@ -41,6 +41,8 @@ resource "qovery_deployment" "example" {
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this environment. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `cluster_id` (String) Identifier of the cluster where this environment is deployed.
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this environment. (see [below for nested schema](#nestedatt--environment_variable_files))
+- `external_secret_files` (Attributes Set) List of external secret files linked to this container. (see [below for nested schema](#nestedatt--external_secret_files))
+- `external_secrets` (Attributes Set) List of external secrets linked to this environment. (see [below for nested schema](#nestedatt--external_secrets))
 - `name` (String) Name of the environment.
 - `project_id` (String) Identifier of the project containing this environment.
 - `secret_files` (Attributes Set) List of secret files linked to this environment. (see [below for nested schema](#nestedatt--secret_files))
@@ -132,6 +134,31 @@ Read-Only:
 - `key` (String) Key of the environment variable file.
 - `mount_path` (String) Mount path of the environment variable file.
 - `value` (String) Value of the environment variable file.
+
+
+<a id="nestedatt--external_secret_files"></a>
+### Nested Schema for `external_secret_files`
+
+Read-Only:
+
+- `description` (String)
+- `id` (String)
+- `key` (String)
+- `mount_path` (String)
+- `reference` (String)
+- `secret_manager_access_id` (String)
+
+
+<a id="nestedatt--external_secrets"></a>
+### Nested Schema for `external_secrets`
+
+Read-Only:
+
+- `description` (String)
+- `id` (String)
+- `key` (String)
+- `reference` (String)
+- `secret_manager_access_id` (String)
 
 
 <a id="nestedatt--secret_files"></a>
