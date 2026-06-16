@@ -164,11 +164,14 @@ func TestAcc_ClusterWithKeda(t *testing.T) {
 			},
 			// Import
 			{
-				ResourceName:            "qovery_cluster.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
-				ImportStateVerifyIgnore: []string{"advanced_settings_json"},
+				ResourceName:        "qovery_cluster.test",
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
+				// Karpenter manages node scaling, so the API returns sentinel min/max values
+				// that the resource preserves from plan but import reads back raw — ignore them
+				// (same as the GCP Autopilot import steps).
+				ImportStateVerifyIgnore: []string{"advanced_settings_json", "min_running_nodes", "max_running_nodes"},
 			},
 		},
 	})
