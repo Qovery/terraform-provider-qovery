@@ -595,6 +595,7 @@ func fromQoveryClusterFeatures(
 					"ip_range_services_name":         FromNullableString(gcpVpc.IpRangeServicesName),
 					"ip_range_pods_name":             FromNullableString(gcpVpc.IpRangePodsName),
 					"additional_ip_range_pods_names": fromStringArrayNullIfEmpty(gcpVpc.AdditionalIpRangePodsNames),
+					"private_nodes":                  FromBoolPointer(gcpVpc.PrivateNodes),
 				})
 				if diagnostics.HasError() {
 					panic(fmt.Errorf("bad %s feature: %s", featureKeyGcpExistingVpc, diagnostics.Errors()))
@@ -922,6 +923,7 @@ func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeatur
 				IpRangeServicesName:        ToNullableString(attrs["ip_range_services_name"].(types.String)),
 				IpRangePodsName:            ToNullableString(attrs["ip_range_pods_name"].(types.String)),
 				AdditionalIpRangePodsNames: ToStringArray(attrs["additional_ip_range_pods_names"].(types.List)),
+				PrivateNodes:               ToBoolPointer(attrs["private_nodes"].(types.Bool)),
 			}
 			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
 				ClusterFeatureGcpExistingVpc: &feature,
@@ -1363,6 +1365,7 @@ func createGcpExistingVpcFeatureAttrTypes() map[string]attr.Type {
 		"ip_range_services_name":         types.StringType,
 		"ip_range_pods_name":             types.StringType,
 		"additional_ip_range_pods_names": types.ListType{ElemType: types.StringType},
+		"private_nodes":                  types.BoolType,
 	}
 }
 

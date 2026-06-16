@@ -384,6 +384,7 @@ Optional:
 - `additional_ip_range_pods_names` (List of String) Additional secondary IP range names for pods. Use this when you need multiple pod IP ranges (e.g., for multi-tenancy or large clusters).
 - `ip_range_pods_name` (String) Name of the primary secondary IP range in the subnetwork to use for GKE pods.
 - `ip_range_services_name` (String) Name of the secondary IP range in the subnetwork to use for GKE services (ClusterIP range).
+- `private_nodes` (Boolean) Make GKE nodes private with no public IPs. Node traffic goes through the gateway instead of exposing node public addresses.
 - `subnetwork_name` (String) Name of the GCP subnetwork within the VPC to use for the GKE cluster nodes.
 - `vpc_project_id` (String) GCP project ID that owns the VPC. If omitted, defaults to the project associated with your GCP credentials. Use this when the VPC is in a different project (Shared VPC pattern).
 
