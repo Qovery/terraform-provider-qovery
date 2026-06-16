@@ -1972,3 +1972,112 @@ func TestCluster_hasFeaturesDiff(t *testing.T) {
 			"legacy vpc_subnet=\"\" in state vs planned default must not force a redeploy")
 	})
 }
+
+func TestToQoveryClusterKeda(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		TestName string
+		Input    types.Object
+		Expected *qovery.ClusterKeda
+	}{
+		{
+			TestName: "null_object_returns_nil",
+			Input:    types.ObjectNull(createKedaAttrTypes()),
+			Expected: nil,
+		},
+		{
+			TestName: "unknown_object_returns_nil",
+			Input:    types.ObjectUnknown(createKedaAttrTypes()),
+			Expected: nil,
+		},
+		{
+			TestName: "enabled_true",
+			Input: types.ObjectValueMust(createKedaAttrTypes(), map[string]attr.Value{
+				"enabled": types.BoolValue(true),
+			}),
+			Expected: qovery.NewClusterKeda(true),
+		},
+		{
+			TestName: "enabled_false",
+			Input: types.ObjectValueMust(createKedaAttrTypes(), map[string]attr.Value{
+				"enabled": types.BoolValue(false),
+			}),
+			Expected: qovery.NewClusterKeda(false),
+		},
+		{
+			TestName: "enabled_null_defaults_false",
+			Input: types.ObjectValueMust(createKedaAttrTypes(), map[string]attr.Value{
+				"enabled": types.BoolNull(),
+			}),
+			Expected: qovery.NewClusterKeda(false),
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+			got := toQoveryClusterKeda(tc.Input)
+			if tc.Expected == nil {
+				assert.Nil(t, got)
+				return
+			}
+			require.NotNil(t, got)
+			assert.Equal(t, tc.Expected.GetEnabled(), got.GetEnabled())
+		})
+	}
+}
+
+func TestFromQoveryClusterKeda(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		TestName      string
+		Input         *qovery.ClusterKeda
+		ExpectNull    bool
+		ExpectEnabled bool
+	}{
+		{
+			TestName:   "nil_returns_null_object",
+			Input:      nil,
+			ExpectNull: true,
+		},
+		{
+			TestName:      "enabled_true",
+			Input:         qovery.NewClusterKeda(true),
+			ExpectEnabled: true,
+		},
+		{
+			TestName:      "enabled_false",
+			Input:         qovery.NewClusterKeda(false),
+			ExpectEnabled: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+			got := fromQoveryClusterKeda(tc.Input)
+			if tc.ExpectNull {
+				assert.True(t, got.IsNull())
+				return
+			}
+			require.False(t, got.IsNull())
+			enabled := got.Attributes()["enabled"].(types.Bool)
+			assert.Equal(t, tc.ExpectEnabled, enabled.ValueBool())
+		})
+	}
+}
+
+func TestClusterKeda_RoundTrip(t *testing.T) {
+	t.Parallel()
+
+	for _, enabled := range []bool{true, false} {
+		obj := fromQoveryClusterKeda(qovery.NewClusterKeda(enabled))
+		got := toQoveryClusterKeda(obj)
+		require.NotNil(t, got)
+		assert.Equal(t, enabled, got.GetEnabled())
+	}
+}

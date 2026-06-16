@@ -55,6 +55,7 @@ type Cluster struct {
 	MaxRunningNodes                types.Int64  `tfsdk:"max_running_nodes"`
 	Production                     types.Bool   `tfsdk:"production"`
 	Features                       types.Object `tfsdk:"features"`
+	Keda                           types.Object `tfsdk:"keda"`
 	RoutingTables                  types.Set    `tfsdk:"routing_table"`
 	State                          types.String `tfsdk:"state"`
 	AdvancedSettingsJson           types.String `tfsdk:"advanced_settings_json"`
@@ -359,6 +360,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			MaxRunningNodes:                maxRunningNodes,
 			Production:                     ToBoolPointer(c.Production),
 			Features:                       features,
+			Keda:                           toQoveryClusterKeda(c.Keda),
 			InfrastructureChartsParameters: infraChartsParams,
 			LabelsGroups:                   labelsGroups,
 			SecretManagerAccesses:          secretManagerAccesses,
@@ -423,6 +425,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		cluster.MinRunningNodes = types.Int64Null()
 		cluster.MaxRunningNodes = types.Int64Null()
 		cluster.Features = types.ObjectNull(createFeaturesAttrTypes())
+		cluster.Keda = types.ObjectNull(createKedaAttrTypes())
 		cluster.RoutingTables = types.SetNull(types.ObjectType{AttrTypes: clusterRouteAttrTypes})
 		cluster.InfrastructureOutputs = types.ObjectNull(clusterInfrastructureOutputsAttrTypes)
 		// Preserve kubeconfig from initialPlan - it's fetched separately via API in Read operation
@@ -445,6 +448,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		}
 
 		cluster.Features = fromQoveryClusterFeatures(res.ClusterResponse.Features)
+		cluster.Keda = fromQoveryClusterKeda(res.ClusterResponse.Keda)
 		cluster.RoutingTables = routingTable.toTerraformSet(ctx, initialPlan.RoutingTables)
 		cluster.InfrastructureOutputs = fromQoveryClusterOutput(res.ClusterResponse.InfrastructureOutputs, initialPlan.InfrastructureOutputs)
 		// Kubeconfig is not applicable for non-PARTIALLY_MANAGED clusters
@@ -452,6 +456,39 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 	}
 
 	return cluster
+}
+
+// createKedaAttrTypes returns the attribute types for the cluster `keda` nested object.
+func createKedaAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"enabled": types.BoolType,
+	}
+}
+
+// toQoveryClusterKeda converts the Terraform `keda` object to the API model.
+// Returns nil when the block is absent so the API applies its own default.
+func toQoveryClusterKeda(k types.Object) *qovery.ClusterKeda {
+	if k.IsNull() || k.IsUnknown() {
+		return nil
+	}
+
+	enabled := false
+	if v, ok := k.Attributes()["enabled"].(types.Bool); ok && !v.IsNull() && !v.IsUnknown() {
+		enabled = v.ValueBool()
+	}
+
+	return qovery.NewClusterKeda(enabled)
+}
+
+// fromQoveryClusterKeda converts the API `keda` model to a Terraform object.
+func fromQoveryClusterKeda(k *qovery.ClusterKeda) types.Object {
+	if k == nil {
+		return types.ObjectNull(createKedaAttrTypes())
+	}
+
+	return types.ObjectValueMust(createKedaAttrTypes(), map[string]attr.Value{
+		"enabled": types.BoolValue(k.GetEnabled()),
+	})
 }
 
 var clusterInfrastructureOutputsAttrTypes = map[string]attr.Type{

@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
@@ -654,6 +655,26 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 									},
 								},
 							},
+						},
+					},
+				},
+			},
+			"keda": schema.SingleNestedAttribute{
+				Description:         "KEDA configuration of the cluster.",
+				MarkdownDescription: "Optional KEDA configuration. KEDA ([Kubernetes Event-driven Autoscaling](https://keda.sh/)) installs the KEDA operator on the cluster, which unlocks event-driven autoscaling (including scale-to-zero) for services. Toggling this triggers a cluster redeploy.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+				Attributes: map[string]schema.Attribute{
+					"enabled": schema.BoolAttribute{
+						Description:         "Whether the KEDA operator is installed on the cluster.",
+						MarkdownDescription: "Whether the KEDA operator is installed on the cluster. Default: `false`.",
+						Optional:            true,
+						Computed:            true,
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
 						},
 					},
 				},

@@ -291,6 +291,7 @@ You can find complete examples within these repositories:
   - **GCP**: Machine types or `AUTO_PILOT` for GKE Autopilot mode.
   - **Scaleway**: Node types (e.g., `DEV1-L`, `GP1-S`).
   - **Azure**: VM sizes (e.g., `Standard_B2s_v2`, `Standard_D4s_v3`).
+- `keda` (Attributes) Optional KEDA configuration. KEDA ([Kubernetes Event-driven Autoscaling](https://keda.sh/)) installs the KEDA operator on the cluster, which unlocks event-driven autoscaling (including scale-to-zero) for services. Toggling this triggers a cluster redeploy. (see [below for nested schema](#nestedatt--keda))
 - `kubeconfig` (String, Sensitive) Kubeconfig YAML content for connecting to the cluster. **Required** for `PARTIALLY_MANAGED` (EKS Anywhere) clusters. This is a sensitive value and will not be displayed in plan output. Use `file()` to read from a file.
 - `kubernetes_mode` (String) Kubernetes management mode for the cluster. Default: `MANAGED`.
 
@@ -575,6 +576,14 @@ Optional:
 - `publish_status_address` (String) Public IP address reported in the ingress status. This is the IP that external DNS will resolve to.
 - `replica_count` (Number) Number of Nginx ingress controller replicas. Increase for high-availability setups.
 
+
+
+<a id="nestedatt--keda"></a>
+### Nested Schema for `keda`
+
+Optional:
+
+- `enabled` (Boolean) Whether the KEDA operator is installed on the cluster. Default: `false`.
 
 
 <a id="nestedatt--routing_table"></a>

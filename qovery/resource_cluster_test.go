@@ -130,6 +130,50 @@ func TestAcc_ClusterWithStaticIP(t *testing.T) {
 	})
 }
 
+func TestAcc_ClusterWithKeda(t *testing.T) {
+	t.Parallel()
+	testName := "cluster-with-keda"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
+		Steps: []resource.TestStep{
+			// Create with KEDA enabled
+			{
+				Config: testAccClusterKarpenterConfigWithKeda(testName, true),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "keda.enabled", "true"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
+				),
+			},
+			// Plan stability — no diff on re-apply of the same config
+			{
+				Config:   testAccClusterKarpenterConfigWithKeda(testName, true),
+				PlanOnly: true,
+			},
+			// Update KEDA to disabled
+			{
+				Config: testAccClusterKarpenterConfigWithKeda(testName, false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "keda.enabled", "false"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
+				),
+			},
+			// Import
+			{
+				ResourceName:            "qovery_cluster.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
+				ImportStateVerifyIgnore: []string{"advanced_settings_json"},
+			},
+		},
+	})
+}
+
 // TestAcc_ClusterWithVpcPeering is kept skipped — it requires pre-existing VPC infrastructure.
 func TestAcc_ClusterWithVpcPeering(t *testing.T) {
 	t.SkipNow()
@@ -547,6 +591,40 @@ resource "qovery_cluster" "test" {
   }
 }
 `, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName))
+}
+
+func testAccClusterKarpenterConfigWithKeda(testName string, kedaEnabled bool) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id  = "%s"
+  organization_id = "%s"
+  name            = "%s"
+  cloud_provider  = "AWS"
+  region          = "eu-west-3"
+  kubernetes_mode = "MANAGED"
+  state           = "READY"
+
+  keda = {
+    enabled = %t
+  }
+
+  features = {
+    vpc_subnet = "10.0.0.0/16"
+    karpenter = {
+      spot_enabled                 = true
+      disk_size_in_gib             = 50
+      default_service_architecture = "AMD64"
+      qovery_node_pools = {
+        requirements = [
+          { key = "InstanceSize",   operator = "In", values = ["small", "medium", "large"] },
+          { key = "InstanceFamily", operator = "In", values = ["t3a"] },
+          { key = "Arch",           operator = "In", values = ["AMD64"] },
+        ]
+      }
+    }
+  }
+}
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), kedaEnabled)
 }
 
 func testAccClusterAWSReadyConfig(testName string) string {
