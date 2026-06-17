@@ -16,6 +16,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/terraformservice"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
@@ -35,6 +37,7 @@ var (
 
 type terraformServiceResource struct {
 	terraformServiceService terraformservice.Service
+	advancedSettingsService *advanced_settings.ServiceAdvancedSettingsService
 }
 
 func newTerraformServiceResource() resource.Resource {
@@ -61,6 +64,7 @@ func (r *terraformServiceResource) Configure(_ context.Context, req resource.Con
 	}
 
 	r.terraformServiceService = provider.terraformServiceService
+	r.advancedSettingsService = provider.advancedSettingsService
 }
 
 func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -523,6 +527,7 @@ func (r terraformServiceResource) ImportState(ctx context.Context, req resource.
 }
 
 func (r terraformServiceResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.TERRAFORM, req.Config, &resp.Diagnostics)
 	// Prevent storage reduction
 	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
 		return

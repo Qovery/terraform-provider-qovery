@@ -21,6 +21,8 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
@@ -31,6 +33,7 @@ import (
 var (
 	_ resource.ResourceWithConfigure   = &applicationResource{}
 	_ resource.ResourceWithImportState = applicationResource{}
+	_ resource.ResourceWithModifyPlan  = applicationResource{}
 )
 
 var (
@@ -67,7 +70,8 @@ var (
 )
 
 type applicationResource struct {
-	client *client.Client
+	client                  *client.Client
+	advancedSettingsService *advanced_settings.ServiceAdvancedSettingsService
 }
 
 func newApplicationResource() resource.Resource {
@@ -94,6 +98,7 @@ func (r *applicationResource) Configure(_ context.Context, req resource.Configur
 	}
 
 	r.client = provider.client
+	r.advancedSettingsService = provider.advancedSettingsService
 }
 
 func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -889,4 +894,8 @@ func (r applicationResource) Delete(ctx context.Context, req resource.DeleteRequ
 // ImportState imports a qovery application resource using its id
 func (r applicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r applicationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.APPLICATION, req.Config, &resp.Diagnostics)
 }

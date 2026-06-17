@@ -18,6 +18,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
@@ -29,10 +31,12 @@ import (
 var (
 	_ resource.ResourceWithConfigure   = &containerResource{}
 	_ resource.ResourceWithImportState = containerResource{}
+	_ resource.ResourceWithModifyPlan  = containerResource{}
 )
 
 type containerResource struct {
-	containerService container.Service
+	containerService        container.Service
+	advancedSettingsService *advanced_settings.ServiceAdvancedSettingsService
 }
 
 func newContainerResource() resource.Resource {
@@ -59,6 +63,7 @@ func (r *containerResource) Configure(_ context.Context, req resource.ConfigureR
 	}
 
 	r.containerService = provider.containerService
+	r.advancedSettingsService = provider.advancedSettingsService
 }
 
 func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -769,4 +774,8 @@ func (r containerResource) Delete(ctx context.Context, req resource.DeleteReques
 // ImportState imports a qovery container resource using its id
 func (r containerResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r containerResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.CONTAINER, req.Config, &resp.Diagnostics)
 }

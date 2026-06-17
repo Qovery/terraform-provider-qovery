@@ -19,23 +19,26 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
-
-	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
 var (
 	_ resource.ResourceWithConfigure   = &helmResource{}
 	_ resource.ResourceWithImportState = helmResource{}
+	_ resource.ResourceWithModifyPlan  = helmResource{}
 )
 
 var helmPortProtocols = clientEnumToStringArray(helm.AllowedProtocols)
 
 type helmResource struct {
-	helmService helm.Service
+	helmService             helm.Service
+	advancedSettingsService *advanced_settings.ServiceAdvancedSettingsService
 }
 
 func newHelmResource() resource.Resource {
@@ -62,6 +65,7 @@ func (r *helmResource) Configure(_ context.Context, req resource.ConfigureReques
 	}
 
 	r.helmService = provider.helmService
+	r.advancedSettingsService = provider.advancedSettingsService
 }
 
 func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -824,4 +828,8 @@ func (r helmResource) Delete(ctx context.Context, req resource.DeleteRequest, re
 // ImportState imports a qovery helm resource using its id
 func (r helmResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r helmResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.HELM, req.Config, &resp.Diagnostics)
 }
