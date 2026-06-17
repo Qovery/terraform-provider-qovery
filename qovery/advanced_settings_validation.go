@@ -50,7 +50,7 @@ func warnUnknownAdvancedSettings(
 	for _, key := range unknown {
 		diags.AddAttributeWarning(
 			path.Root(advancedSettingsJSONAttr),
-			"Unknown advanced setting",
+			fmt.Sprintf("Unknown advanced setting %q", key),
 			fmt.Sprintf(
 				"The advanced setting %q is not a valid setting for this service type and will "+
 					"have no effect. Remove it from advanced_settings_json to clear this warning. "+
