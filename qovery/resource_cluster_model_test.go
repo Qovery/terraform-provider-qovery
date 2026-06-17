@@ -1366,6 +1366,72 @@ func TestCluster_convertResponseToCluster_LabelsGroupIds(t *testing.T) {
 	})
 }
 
+func TestCluster_convertResponseToCluster_KarpenterNodeCounts(t *testing.T) {
+	ctx := context.Background()
+
+	karpenterID := featureIdKarpenter
+	const sentinel int64 = 2147483647 // MaxInt32, returned by the API right after a Karpenter create
+	apiMin := int32(1)
+	apiMax := int32(10)
+
+	newRes := func(features []qovery.ClusterFeatureResponse) *client.ClusterResponse {
+		return &client.ClusterResponse{
+			OrganizationID: "org-123",
+			ClusterResponse: &qovery.Cluster{
+				Id:              "cluster-123",
+				Name:            "c",
+				CloudProvider:   qovery.CLOUDVENDORENUM_AWS,
+				Region:          "us-east-1",
+				MinRunningNodes: &apiMin,
+				MaxRunningNodes: &apiMax,
+				Features:        features,
+			},
+			ClusterInfo:         makeTestClusterInfo("cred-123"),
+			ClusterRoutingTable: &client.ClusterRoutingTable{},
+		}
+	}
+
+	t.Run("karpenter preserves plan node counts over API sentinel", func(t *testing.T) {
+		t.Parallel()
+		res := newRes([]qovery.ClusterFeatureResponse{{Id: &karpenterID}})
+		initialPlan := Cluster{
+			MinRunningNodes: types.Int64Value(sentinel),
+			MaxRunningNodes: types.Int64Value(sentinel),
+		}
+
+		out := convertResponseToCluster(ctx, res, initialPlan)
+
+		assert.Equal(t, sentinel, out.MinRunningNodes.ValueInt64())
+		assert.Equal(t, sentinel, out.MaxRunningNodes.ValueInt64())
+	})
+
+	t.Run("non-karpenter uses API node counts", func(t *testing.T) {
+		t.Parallel()
+		res := newRes(nil)
+		initialPlan := Cluster{
+			MinRunningNodes: types.Int64Value(sentinel),
+			MaxRunningNodes: types.Int64Value(sentinel),
+		}
+
+		out := convertResponseToCluster(ctx, res, initialPlan)
+
+		assert.Equal(t, int64(apiMin), out.MinRunningNodes.ValueInt64())
+		assert.Equal(t, int64(apiMax), out.MaxRunningNodes.ValueInt64())
+	})
+}
+
+func TestResponseHasKarpenter(t *testing.T) {
+	t.Parallel()
+
+	karpenterID := featureIdKarpenter
+	otherID := featureIdVpcSubnet
+
+	assert.True(t, responseHasKarpenter([]qovery.ClusterFeatureResponse{{Id: &karpenterID}}))
+	assert.False(t, responseHasKarpenter([]qovery.ClusterFeatureResponse{{Id: &otherID}}))
+	assert.False(t, responseHasKarpenter([]qovery.ClusterFeatureResponse{{Id: nil}}))
+	assert.False(t, responseHasKarpenter(nil))
+}
+
 func TestCluster_toUpsertClusterRequest_DesiredState(t *testing.T) {
 	tests := []struct {
 		name          string
@@ -1922,6 +1988,50 @@ func TestCluster_hasClusterSpecDiff(t *testing.T) {
 	}
 }
 
+// TestCluster_hasKedaDiff guards that a keda toggle forces a redeploy. Without it,
+// EditCluster persists keda but ForceUpdate stays false and the operator is never
+// installed/removed on the running cluster.
+func TestCluster_hasKedaDiff(t *testing.T) {
+	t.Parallel()
+
+	keda := func(enabled bool) types.Object {
+		return types.ObjectValueMust(createKedaAttrTypes(), map[string]attr.Value{
+			"enabled": types.BoolValue(enabled),
+		})
+	}
+
+	t.Run("nil state without keda is not a diff", func(t *testing.T) {
+		t.Parallel()
+		plan := baseScwCluster()
+		assert.False(t, plan.hasKedaDiff(nil))
+	})
+
+	t.Run("nil state with keda enabled is a diff", func(t *testing.T) {
+		t.Parallel()
+		plan := baseScwCluster()
+		plan.Keda = keda(true)
+		assert.True(t, plan.hasKedaDiff(nil))
+	})
+
+	t.Run("identical keda is not a diff", func(t *testing.T) {
+		t.Parallel()
+		state := baseScwCluster()
+		state.Keda = keda(false)
+		plan := baseScwCluster()
+		plan.Keda = keda(false)
+		assert.False(t, plan.hasKedaDiff(&state))
+	})
+
+	t.Run("toggled keda is a diff", func(t *testing.T) {
+		t.Parallel()
+		state := baseScwCluster()
+		state.Keda = keda(false)
+		plan := baseScwCluster()
+		plan.Keda = keda(true)
+		assert.True(t, plan.hasKedaDiff(&state))
+	})
+}
+
 // TestCluster_hasFeaturesDiff guards the reflect.DeepEqual comparison (#588): two
 // structurally-identical feature sets must NOT report a diff (the pre-#588 pointer
 // comparison always did), while a real feature value change must.
@@ -1984,4 +2094,109 @@ func TestCluster_hasFeaturesDiff(t *testing.T) {
 		assert.False(t, plan.hasFeaturesDiff(&state),
 			"legacy vpc_subnet=\"\" in state vs planned default must not force a redeploy")
 	})
+}
+
+func TestToQoveryClusterKeda(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		TestName string
+		Input    types.Object
+		Expected *qovery.ClusterKeda
+	}{
+		{
+			TestName: "null_object_returns_nil",
+			Input:    types.ObjectNull(createKedaAttrTypes()),
+			Expected: nil,
+		},
+		{
+			TestName: "unknown_object_returns_nil",
+			Input:    types.ObjectUnknown(createKedaAttrTypes()),
+			Expected: nil,
+		},
+		{
+			TestName: "enabled_true",
+			Input: types.ObjectValueMust(createKedaAttrTypes(), map[string]attr.Value{
+				"enabled": types.BoolValue(true),
+			}),
+			Expected: qovery.NewClusterKeda(true),
+		},
+		{
+			TestName: "enabled_false",
+			Input: types.ObjectValueMust(createKedaAttrTypes(), map[string]attr.Value{
+				"enabled": types.BoolValue(false),
+			}),
+			Expected: qovery.NewClusterKeda(false),
+		},
+		{
+			TestName: "enabled_null_defaults_false",
+			Input: types.ObjectValueMust(createKedaAttrTypes(), map[string]attr.Value{
+				"enabled": types.BoolNull(),
+			}),
+			Expected: qovery.NewClusterKeda(false),
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+			got := toQoveryClusterKeda(tc.Input)
+			if tc.Expected == nil {
+				assert.Nil(t, got)
+				return
+			}
+			require.NotNil(t, got)
+			assert.Equal(t, tc.Expected.GetEnabled(), got.GetEnabled())
+		})
+	}
+}
+
+func TestFromQoveryClusterKeda(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		TestName      string
+		Input         *qovery.ClusterKeda
+		ExpectEnabled bool
+	}{
+		{
+			// The API omits keda when disabled; nil maps to the disabled shape, not null.
+			TestName:      "nil_maps_to_disabled",
+			Input:         nil,
+			ExpectEnabled: false,
+		},
+		{
+			TestName:      "enabled_true",
+			Input:         qovery.NewClusterKeda(true),
+			ExpectEnabled: true,
+		},
+		{
+			TestName:      "enabled_false",
+			Input:         qovery.NewClusterKeda(false),
+			ExpectEnabled: false,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+			got := fromQoveryClusterKeda(tc.Input)
+			require.False(t, got.IsNull())
+			enabled := got.Attributes()["enabled"].(types.Bool)
+			assert.Equal(t, tc.ExpectEnabled, enabled.ValueBool())
+		})
+	}
+}
+
+func TestClusterKeda_RoundTrip(t *testing.T) {
+	t.Parallel()
+
+	for _, enabled := range []bool{true, false} {
+		obj := fromQoveryClusterKeda(qovery.NewClusterKeda(enabled))
+		got := toQoveryClusterKeda(obj)
+		require.NotNil(t, got)
+		assert.Equal(t, enabled, got.GetEnabled())
+	}
 }

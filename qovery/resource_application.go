@@ -235,7 +235,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Computed:            true,
 				Default:             int64default.StaticInt64(applicationMinRunningInstancesDefault),
 				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: applicationMinRunningInstancesMin},
+					validators.MinRunningInstancesAutoscalingValidator{AutoscalingAttributePath: "autoscaling"},
 				},
 			},
 			"max_running_instances": schema.Int64Attribute{
@@ -252,6 +252,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					validators.Int64MinValidator{Min: applicationMaxRunningInstancesMin},
 				},
 			},
+			"autoscaling": autoscalingResourceSchema(),
 			"auto_preview": schema.BoolAttribute{
 				Description: descriptions.NewBoolDefaultDescription(
 					"Specify if the environment preview option is activated or not for this application.",
@@ -889,4 +890,10 @@ func (r applicationResource) Delete(ctx context.Context, req resource.DeleteRequ
 // ImportState imports a qovery application resource using its id
 func (r applicationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+// ModifyPlan enforces KEDA autoscaling constraints at plan time so the backend
+// never rejects them mid-apply (which would leave the service partially mutated).
+func (r applicationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	validateAutoscalingPlan(ctx, req.Plan, req.State, &resp.Diagnostics)
 }

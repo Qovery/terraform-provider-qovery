@@ -21,13 +21,56 @@ resource "qovery_container" "my_container" {
   tag            = "1.25-alpine"
 
   # Optional
-  entrypoint            = "/docker-entrypoint.sh"
-  auto_preview          = true
-  auto_deploy           = true
-  cpu                   = 500
-  memory                = 512
-  min_running_instances = 1
+  entrypoint   = "/docker-entrypoint.sh"
+  auto_preview = true
+  auto_deploy  = true
+  cpu          = 500
+  memory       = 512
+  # min_running_instances = 0 enables scale-to-zero. Only allowed when an
+  # `autoscaling` (KEDA) block is set below, otherwise the minimum is 1.
+  min_running_instances = 0
   max_running_instances = 3
+
+  # Event-driven autoscaling (KEDA). Additive to the CPU/memory HPA above.
+  # Requires KEDA enabled on the cluster (see qovery_cluster `keda`).
+  autoscaling = {
+    polling_interval_seconds = 30
+    cooldown_period_seconds  = 300
+
+    scalers = [
+      # PRIMARY scaler driving scale-up/down from a Prometheus metric.
+      {
+        scaler_type = "prometheus"
+        role        = "PRIMARY"
+        enabled     = true
+        config_json = jsonencode({
+          serverAddress = "http://prometheus.cluster.local:9090"
+          query         = "sum(rate(http_requests_total[1m]))"
+          threshold     = "100"
+        })
+      },
+      # SAFETY scaler defined as raw YAML, with inline trigger authentication.
+      {
+        scaler_type = "cron"
+        role        = "SAFETY"
+        config_yaml = <<-EOT
+          timezone: Europe/Paris
+          start: 0 8 * * 1-5
+          end: 0 20 * * 1-5
+          desiredReplicas: "2"
+        EOT
+        trigger_authentication = {
+          name        = "my-trigger-auth"
+          config_yaml = <<-EOT
+            secretTargetRef:
+              - parameter: connectionString
+                name: my-secret
+                key: connection
+          EOT
+        }
+      }
+    ]
+  }
 
   # Port configuration
   ports = [
@@ -191,6 +234,7 @@ resource "qovery_container" "my_container" {
 - `arguments` (List of String) List of arguments of this container. Overrides the Docker image's default `CMD`.
 - `auto_deploy` (Boolean) Specify if the container will be automatically redeployed after receiving a new image tag from the container registry.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this container. When enabled, Qovery creates a preview environment for each pull request.
+- `autoscaling` (Attributes) Event-driven autoscaling (KEDA) configuration. KEDA is additive to the CPU/memory HPA (min/max_running_instances) and unlocks scale-to-zero (min_running_instances = 0). Requires KEDA to be enabled on the cluster. (see [below for nested schema](#nestedatt--autoscaling))
 - `cpu` (Number) CPU of the container in millicores (m) [1000m = 1 CPU].
 - `custom_domains` (Attributes Set) List of custom domains linked to this container. You must configure a CNAME record on your DNS provider pointing to the `validation_domain` value. (see [below for nested schema](#nestedatt--custom_domains))
 - `deployment_stage_id` (String) Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.
@@ -364,6 +408,47 @@ Optional:
 
 - `host` (String) Optional host to connect to. Defaults to the pod IP if not specified.
 
+
+
+
+
+<a id="nestedatt--autoscaling"></a>
+### Nested Schema for `autoscaling`
+
+Required:
+
+- `scalers` (Attributes Set) List of KEDA scalers driving the autoscaling. At least one scaler is required. (see [below for nested schema](#nestedatt--autoscaling--scalers))
+
+Optional:
+
+- `cooldown_period_seconds` (Number) Period in seconds to wait after the last trigger before scaling back down. Defaults to 300.
+- `polling_interval_seconds` (Number) Interval in seconds between each KEDA polling of the scalers. Defaults to 30.
+
+<a id="nestedatt--autoscaling--scalers"></a>
+### Nested Schema for `autoscaling.scalers`
+
+Required:
+
+- `role` (String) Role of the scaler: PRIMARY or SAFETY.
+- `scaler_type` (String) Type of the KEDA scaler (e.g. cpu, memory, prometheus, cron).
+
+Optional:
+
+- `config_json` (String) Scaler configuration as JSON. Mutually exclusive with config_yaml.
+- `config_yaml` (String) Scaler configuration as raw YAML. Mutually exclusive with config_json.
+- `enabled` (Boolean) Whether the scaler is enabled. Defaults to true.
+- `trigger_authentication` (Attributes) Inline KEDA TriggerAuthentication for this scaler. (see [below for nested schema](#nestedatt--autoscaling--scalers--trigger_authentication))
+
+<a id="nestedatt--autoscaling--scalers--trigger_authentication"></a>
+### Nested Schema for `autoscaling.scalers.trigger_authentication`
+
+Required:
+
+- `name` (String) Name of the trigger authentication.
+
+Optional:
+
+- `config_yaml` (String) Raw KEDA TriggerAuthentication YAML configuration.
 
 
 

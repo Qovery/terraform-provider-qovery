@@ -9,6 +9,7 @@ import (
 	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/autoscaling"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 )
@@ -204,4 +205,114 @@ func TestNewQoveryContainerRequestFromDomain(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestNewDomainContainerFromQovery_Autoscaling covers the autoscaling glue in
+// the response→domain direction: the KEDA policy is unwrapped and response-only
+// fields are dropped.
+func TestNewDomainContainerFromQovery_Autoscaling(t *testing.T) {
+	t.Parallel()
+
+	resp := &qovery.ContainerResponse{
+		Id:          gofakeit.UUID(),
+		Environment: qovery.ReferenceObject{Id: gofakeit.UUID()},
+		Registry: qovery.ContainerRegistryProviderDetailsResponse{
+			Id:   gofakeit.UUID(),
+			Name: gofakeit.Name(),
+			Url:  gofakeit.URL(),
+			Kind: qovery.CONTAINERREGISTRYKINDENUM_DOCKER_HUB,
+		},
+		Name:                gofakeit.Name(),
+		IconUri:             fmt.Sprintf("app://qovery-console/%v", gofakeit.Name()),
+		ImageName:           gofakeit.Name(),
+		Tag:                 gofakeit.Word(),
+		Cpu:                 int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
+		Memory:              int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
+		MinRunningInstances: int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
+		MaxRunningInstances: int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
+		Healthchecks: qovery.Healthcheck{
+			ReadinessProbe: *qovery.NewNullableProbe(nil),
+			LivenessProbe:  *qovery.NewNullableProbe(nil),
+		},
+		Autoscaling: &qovery.AutoscalingPolicyResponse{
+			KedaAutoscalingResponse: &qovery.KedaAutoscalingResponse{
+				Id:                     gofakeit.UUID(),
+				ServiceId:              gofakeit.UUID(),
+				Mode:                   qovery.AUTOSCALINGMODE_KEDA,
+				PollingIntervalSeconds: 30,
+				CooldownPeriodSeconds:  300,
+				Scalers: []qovery.KedaScalerResponse{
+					{
+						Id:         gofakeit.UUID(),
+						ScalerType: "prometheus",
+						Enabled:    true,
+						Role:       qovery.KEDASCALERROLE_PRIMARY,
+						ConfigJson: map[string]any{"query": "up"},
+					},
+				},
+			},
+		},
+	}
+
+	cont, err := newDomainContainerFromQovery(resp, uuid.NewString(), false, "", &qovery.CustomDomainResponseList{})
+	assert.NoError(t, err)
+	assert.NotNil(t, cont)
+
+	assert.NotNil(t, cont.Autoscaling)
+	assert.Equal(t, int32(30), *cont.Autoscaling.PollingIntervalSeconds)
+	assert.Equal(t, int32(300), *cont.Autoscaling.CooldownPeriodSeconds)
+	assert.Len(t, cont.Autoscaling.Scalers, 1)
+
+	scaler := cont.Autoscaling.Scalers[0]
+	assert.Equal(t, "prometheus", scaler.ScalerType)
+	assert.True(t, scaler.Enabled)
+	assert.Equal(t, autoscaling.RolePrimary, scaler.Role)
+	assert.JSONEq(t, `{"query":"up"}`, scaler.Config.ConfigJSON)
+}
+
+// TestNewQoveryContainerRequestFromDomain_Autoscaling covers the autoscaling
+// glue in the domain→request direction: the policy is wrapped into a KEDA
+// request and exposed on the container request.
+func TestNewQoveryContainerRequestFromDomain_Autoscaling(t *testing.T) {
+	t.Parallel()
+
+	request := container.UpsertRepositoryRequest{
+		RegistryID: gofakeit.UUID(),
+		Name:       gofakeit.Name(),
+		ImageName:  gofakeit.Name(),
+		Tag:        gofakeit.Word(),
+		Autoscaling: &autoscaling.AutoscalingPolicy{
+			Scalers: []autoscaling.Scaler{
+				{
+					ScalerType: "cpu",
+					Enabled:    true,
+					Role:       autoscaling.RolePrimary,
+					Config:     autoscaling.Config{ConfigJSON: `{"value":"80"}`},
+				},
+			},
+		},
+	}
+
+	req, err := newQoveryContainerRequestFromDomain(request)
+	assert.NoError(t, err)
+	assert.NotNil(t, req.Autoscaling)
+	assert.NotNil(t, req.Autoscaling.KedaAutoscalingRequest)
+	assert.Equal(t, qovery.AUTOSCALINGMODE_KEDA, req.Autoscaling.KedaAutoscalingRequest.Mode)
+	assert.Len(t, req.Autoscaling.KedaAutoscalingRequest.Scalers, 1)
+	assert.Equal(t, "cpu", req.Autoscaling.KedaAutoscalingRequest.Scalers[0].ScalerType)
+}
+
+// TestNewQoveryContainerRequestFromDomain_NoAutoscaling guards that an absent
+// policy leaves the request field nil (omitempty → no KEDA payload sent).
+func TestNewQoveryContainerRequestFromDomain_NoAutoscaling(t *testing.T) {
+	t.Parallel()
+
+	req, err := newQoveryContainerRequestFromDomain(container.UpsertRepositoryRequest{
+		RegistryID: gofakeit.UUID(),
+		Name:       gofakeit.Name(),
+		ImageName:  gofakeit.Name(),
+		Tag:        gofakeit.Word(),
+	})
+	assert.NoError(t, err)
+	assert.Nil(t, req.Autoscaling)
 }

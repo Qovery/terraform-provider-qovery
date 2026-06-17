@@ -137,7 +137,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        terraform: ["1.13.*", "1.14.*"]
+        terraform: ["1.15.*"]
       max-parallel: 1
     steps:
       - name: Check out source code

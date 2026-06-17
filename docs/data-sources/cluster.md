@@ -26,6 +26,7 @@ data "qovery_cluster" "my_cluster" {
 - `disk_size` (Number) Disk size of the cluster nodes in GB.
 - `features` (Attributes) Cluster features configuration including VPC settings, static IPs, existing VPC, and Karpenter. (see [below for nested schema](#nestedatt--features))
 - `instance_type` (String) Instance type of the cluster nodes (e.g., `t3a.xlarge` for AWS, `DEV1-L` for Scaleway, `AUTO_PILOT` for GCP).
+- `keda` (Attributes) KEDA configuration of the cluster. When enabled, the KEDA operator is installed on the cluster, unlocking event-driven autoscaling (including scale-to-zero) for services. (see [below for nested schema](#nestedatt--keda))
 - `kubernetes_mode` (String) Kubernetes management mode (`MANAGED`, `SELF_MANAGED`, or `PARTIALLY_MANAGED`).
 - `max_running_nodes` (Number) Maximum number of nodes for the cluster autoscaler.
 - `min_running_nodes` (Number) Minimum number of nodes for the cluster autoscaler.
@@ -191,6 +192,14 @@ Optional:
 - `static_ips_count` (Number) Number of static IPs allocated for GCP NAT gateways.
 - `static_ips_enabled` (Boolean) Whether static egress IPs are reserved for the GCP NAT gateways.
 
+
+
+<a id="nestedatt--keda"></a>
+### Nested Schema for `keda`
+
+Read-Only:
+
+- `enabled` (Boolean) Whether the KEDA operator is installed on the cluster.
 
 
 <a id="nestedatt--routing_table"></a>

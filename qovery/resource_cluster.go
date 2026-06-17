@@ -668,6 +668,26 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					},
 				},
 			},
+			"keda": schema.SingleNestedAttribute{
+				Description:         "KEDA configuration of the cluster.",
+				MarkdownDescription: "Optional KEDA configuration. KEDA ([Kubernetes Event-driven Autoscaling](https://keda.sh/)) installs the KEDA operator on the cluster, which unlocks event-driven autoscaling (including scale-to-zero) for services. Toggling this triggers a cluster redeploy.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.Object{
+					objectplanmodifier.UseStateForUnknown(),
+				},
+				Attributes: map[string]schema.Attribute{
+					"enabled": schema.BoolAttribute{
+						Description:         "Whether the KEDA operator is installed on the cluster.",
+						MarkdownDescription: "Whether the KEDA operator is installed on the cluster. Default: `false`.",
+						Optional:            true,
+						Computed:            true,
+						PlanModifiers: []planmodifier.Bool{
+							boolplanmodifier.UseStateForUnknown(),
+						},
+					},
+				},
+			},
 			"routing_table": schema.SetNestedAttribute{
 				Description:         "List of routes of the cluster.",
 				MarkdownDescription: "Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections).",

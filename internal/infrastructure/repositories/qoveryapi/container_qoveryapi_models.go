@@ -4,6 +4,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/autoscaling"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
@@ -48,6 +49,11 @@ func newDomainContainerFromQovery(
 		labelsGroupIds = append(labelsGroupIds, labelsGroupId.Id)
 	}
 
+	autoscalingPolicy, err := autoscaling.FromQoveryResponse(c.Autoscaling)
+	if err != nil {
+		return nil, errors.Wrap(err, container.ErrInvalidContainer.Error())
+	}
+
 	return container.NewContainer(container.NewContainerParams{
 		ContainerID:            c.Id,
 		EnvironmentID:          c.Environment.Id,
@@ -73,6 +79,7 @@ func newDomainContainerFromQovery(
 		AutoDeploy:             c.AutoDeploy,
 		AnnotationsGroupIds:    annotationsGroupIds,
 		LabelsGroupIds:         labelsGroupIds,
+		Autoscaling:            autoscalingPolicy,
 	})
 }
 
@@ -98,6 +105,15 @@ func newQoveryContainerRequestFromDomain(request container.UpsertRepositoryReque
 		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
 	}
 
+	var autoscalingPolicy *qovery.AutoscalingPolicyRequest
+	if request.Autoscaling != nil {
+		policy, err := autoscaling.ToQoveryRequest(*request.Autoscaling)
+		if err != nil {
+			return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
+		}
+		autoscalingPolicy = &policy
+	}
+
 	return &qovery.ContainerRequest{
 		RegistryId:          request.RegistryID,
 		Name:                request.Name,
@@ -117,5 +133,6 @@ func newQoveryContainerRequestFromDomain(request container.UpsertRepositoryReque
 		AutoDeploy:          request.AutoDeploy,
 		AnnotationsGroups:   annotationsGroups,
 		LabelsGroups:        labelsGroups,
+		Autoscaling:         autoscalingPolicy,
 	}, nil
 }
