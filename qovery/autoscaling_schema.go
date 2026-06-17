@@ -391,7 +391,7 @@ func validateAutoscalingPlan(ctx context.Context, plan tfsdk.Plan, state tfsdk.S
 				path.Root("min_running_instances"),
 				"Invalid Running Instances Range",
 				fmt.Sprintf(
-					"When a KEDA `autoscaling` block is set, min_running_instances must be strictly less than max_running_instances, got min=%d max=%d.",
+					"When a KEDA `autoscaling` block is set, min_running_instances must be strictly less than max_running_instances (got min=%d max=%d). Set max_running_instances explicitly, greater than min_running_instances.",
 					planMin.ValueInt64(), planMax.ValueInt64(),
 				),
 			)
@@ -426,7 +426,8 @@ func validateAutoscalingPlan(ctx context.Context, plan tfsdk.Plan, state tfsdk.S
 			"Invalid HPA to KEDA Transition",
 			"Switching a service that uses HPA (min_running_instances != max_running_instances) directly to KEDA "+
 				"autoscaling is rejected by the API. Perform a two-step change: first set min_running_instances equal "+
-				"to max_running_instances and apply, then add the KEDA `autoscaling` block in a second apply.",
+				"to max_running_instances WITHOUT an autoscaling block and apply; then, in a second apply, add the KEDA "+
+				"`autoscaling` block AND set min_running_instances strictly less than max_running_instances.",
 		)
 	}
 }
