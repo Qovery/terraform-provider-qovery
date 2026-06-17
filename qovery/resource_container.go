@@ -771,3 +771,9 @@ func (r containerResource) Delete(ctx context.Context, req resource.DeleteReques
 func (r containerResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
+
+// ModifyPlan enforces KEDA autoscaling constraints at plan time so the backend
+// never rejects them mid-apply (which would leave the service partially mutated).
+func (r containerResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	validateAutoscalingPlan(ctx, req.Plan, req.State, &resp.Diagnostics)
+}

@@ -10,12 +10,14 @@ import (
 )
 
 // ScalerConfigExactlyOneValidator validates that every scaler in the set sets
-// exactly one of `config_json` / `config_yaml`. It mirrors the API's
-// config_json ⊻ config_yaml constraint at plan time.
+// exactly one of `config_json` / `config_yaml`, and that at least one scaler is
+// enabled. It mirrors the API constraints (config_json ⊻ config_yaml, and the
+// requirement that a KEDA policy carries at least one enabled scaler) at plan
+// time, before any service mutation reaches the backend.
 type ScalerConfigExactlyOneValidator struct{}
 
 func (v ScalerConfigExactlyOneValidator) Description(_ context.Context) string {
-	return "each scaler must set exactly one of config_json or config_yaml"
+	return "each scaler must set exactly one of config_json or config_yaml, and at least one scaler must be enabled"
 }
 
 func (v ScalerConfigExactlyOneValidator) MarkdownDescription(ctx context.Context) string {
@@ -36,6 +38,7 @@ func (v ScalerConfigExactlyOneValidator) ValidateSet(ctx context.Context, req va
 		return
 	}
 
+	enabledCount := 0
 	for i, elem := range req.ConfigValue.Elements() {
 		obj, ok := elem.(types.Object)
 		if !ok || obj.IsNull() || obj.IsUnknown() {
@@ -53,7 +56,32 @@ func (v ScalerConfigExactlyOneValidator) ValidateSet(ctx context.Context, req va
 				fmt.Sprintf("Scaler at index %d must set exactly one of config_json or config_yaml.", i),
 			)
 		}
+
+		// `enabled` defaults to true and is only applied at plan time, so a null
+		// or unknown value here means the scaler will be enabled. Only an
+		// explicit `enabled = false` disables it.
+		if !isScalerExplicitlyDisabled(attrs["enabled"]) {
+			enabledCount++
+		}
 	}
+
+	if enabledCount == 0 {
+		resp.Diagnostics.AddAttributeError(
+			req.Path,
+			"Invalid Scaler Configuration",
+			"When a KEDA autoscaling block is set, at least one scaler must be enabled. All scalers currently have enabled = false.",
+		)
+	}
+}
+
+// isScalerExplicitlyDisabled reports whether the `enabled` attribute is set to a
+// concrete false value. Null/unknown counts as enabled (default true).
+func isScalerExplicitlyDisabled(v attr.Value) bool {
+	b, ok := v.(types.Bool)
+	if !ok || b.IsNull() || b.IsUnknown() {
+		return false
+	}
+	return !b.ValueBool()
 }
 
 func isAttrSet(v attr.Value) bool {
