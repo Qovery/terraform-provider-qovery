@@ -15,9 +15,7 @@ func ToQoveryRequest(p AutoscalingPolicy) (qovery.AutoscalingPolicyRequest, erro
 	scalers := make([]qovery.KedaScalerRequest, 0, len(p.Scalers))
 	for _, s := range p.Scalers {
 		scaler := qovery.NewKedaScalerRequest(s.ScalerType, qovery.KedaScalerRole(s.Role))
-
-		enabled := s.Enabled
-		scaler.Enabled = &enabled
+		scaler.Enabled = &s.Enabled
 
 		switch {
 		case s.Config.ConfigJSON != "":
@@ -27,8 +25,7 @@ func ToQoveryRequest(p AutoscalingPolicy) (qovery.AutoscalingPolicyRequest, erro
 			}
 			scaler.ConfigJson = configJSON
 		case s.Config.ConfigYAML != "":
-			configYAML := s.Config.ConfigYAML
-			scaler.ConfigYaml = &configYAML
+			scaler.ConfigYaml = &s.Config.ConfigYAML
 		}
 
 		if s.TriggerAuth != nil {

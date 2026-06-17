@@ -274,6 +274,9 @@ func fromAutoscaling(p *autoscaling.AutoscalingPolicy) types.Object {
 		return types.ObjectNull(autoscalingAttrTypes())
 	}
 
+	triggerAuthAttrTypes := autoscalingTriggerAuthAttrTypes()
+	scalerAttrTypes := autoscalingScalerAttrTypes()
+
 	scalerElems := make([]attr.Value, 0, len(p.Scalers))
 	for _, s := range p.Scalers {
 		configJSON := jsontypes.NewNormalizedNull()
@@ -286,15 +289,15 @@ func fromAutoscaling(p *autoscaling.AutoscalingPolicy) types.Object {
 			configYAML = types.StringValue(s.Config.ConfigYAML)
 		}
 
-		triggerAuth := types.ObjectNull(autoscalingTriggerAuthAttrTypes())
+		triggerAuth := types.ObjectNull(triggerAuthAttrTypes)
 		if s.TriggerAuth != nil {
-			triggerAuth = types.ObjectValueMust(autoscalingTriggerAuthAttrTypes(), map[string]attr.Value{
+			triggerAuth = types.ObjectValueMust(triggerAuthAttrTypes, map[string]attr.Value{
 				"name":        types.StringValue(s.TriggerAuth.Name),
 				"config_yaml": FromStringPointer(s.TriggerAuth.ConfigYAML),
 			})
 		}
 
-		scalerElems = append(scalerElems, types.ObjectValueMust(autoscalingScalerAttrTypes(), map[string]attr.Value{
+		scalerElems = append(scalerElems, types.ObjectValueMust(scalerAttrTypes, map[string]attr.Value{
 			"scaler_type":            types.StringValue(s.ScalerType),
 			"enabled":                types.BoolValue(s.Enabled),
 			"role":                   types.StringValue(string(s.Role)),
@@ -304,7 +307,7 @@ func fromAutoscaling(p *autoscaling.AutoscalingPolicy) types.Object {
 		}))
 	}
 
-	scalers := types.SetValueMust(types.ObjectType{AttrTypes: autoscalingScalerAttrTypes()}, scalerElems)
+	scalers := types.SetValueMust(types.ObjectType{AttrTypes: scalerAttrTypes}, scalerElems)
 
 	return types.ObjectValueMust(autoscalingAttrTypes(), map[string]attr.Value{
 		"polling_interval_seconds": FromInt32Pointer(p.PollingIntervalSeconds),
