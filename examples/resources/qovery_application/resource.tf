@@ -13,14 +13,48 @@ resource "qovery_application" "my_application" {
   dockerfile_path = "Dockerfile" # Required when build_mode = "DOCKER"
 
   # Optional
-  auto_preview          = false
-  auto_deploy           = true
-  cpu                   = 500
-  memory                = 512
-  min_running_instances = 1
+  auto_preview = false
+  auto_deploy  = true
+  cpu          = 500
+  memory       = 512
+  # min_running_instances = 0 enables scale-to-zero. Only allowed when an
+  # `autoscaling` (KEDA) block is set below, otherwise the minimum is 1.
+  min_running_instances = 0
   max_running_instances = 3
   entrypoint            = "/bin/sh"
   arguments             = ["-c", "start-server"]
+
+  # Event-driven autoscaling (KEDA). Additive to the CPU/memory HPA above.
+  # Requires KEDA enabled on the cluster (see qovery_cluster `keda`).
+  autoscaling = {
+    polling_interval_seconds = 30
+    cooldown_period_seconds  = 300
+
+    scalers = [
+      # PRIMARY scaler driving scale-up/down from a Prometheus metric.
+      {
+        scaler_type = "prometheus"
+        role        = "PRIMARY"
+        enabled     = true
+        config_json = jsonencode({
+          serverAddress = "http://prometheus.cluster.local:9090"
+          query         = "sum(rate(http_requests_total[1m]))"
+          threshold     = "100"
+        })
+      },
+      # SAFETY scaler defined as raw YAML.
+      {
+        scaler_type = "cron"
+        role        = "SAFETY"
+        config_yaml = <<-EOT
+          timezone: Europe/Paris
+          start: 0 8 * * 1-5
+          end: 0 20 * * 1-5
+          desiredReplicas: "2"
+        EOT
+      }
+    ]
+  }
 
   # Port configuration
   ports = [

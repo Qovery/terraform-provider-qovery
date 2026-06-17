@@ -157,7 +157,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Computed:            true,
 				Default:             int64default.StaticInt64(container.MinMinRunningInstances),
 				Validators: []validator.Int64{
-					validators.Int64MinValidator{Min: container.MinMinRunningInstances},
+					validators.MinRunningInstancesAutoscalingValidator{AutoscalingAttributePath: "autoscaling"},
 				},
 			},
 			"max_running_instances": schema.Int64Attribute{
@@ -174,6 +174,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					validators.Int64MinValidator{Min: container.MinMaxRunningInstances},
 				},
 			},
+			"autoscaling": autoscalingResourceSchema(),
 			"auto_preview": schema.BoolAttribute{
 				Description: "Specify if the environment preview option is activated or not for this container.",
 				MarkdownDescription: "Specify if the environment preview option is activated or not for this container. " +
@@ -776,6 +777,10 @@ func (r containerResource) ImportState(ctx context.Context, req resource.ImportS
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
+// ModifyPlan enforces KEDA autoscaling constraints at plan time so the backend
+// never rejects them mid-apply (which would leave the service partially mutated),
+// and warns about advanced_settings_json keys that are unknown for this service type.
 func (r containerResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	validateAutoscalingPlan(ctx, req.Plan, req.State, &resp.Diagnostics)
 	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.CONTAINER, req.Config, &resp.Diagnostics)
 }

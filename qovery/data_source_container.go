@@ -146,6 +146,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Optional: true,
 				Computed: true,
 			},
+			"autoscaling": autoscalingDataSourceSchema(),
 			"auto_preview": schema.BoolAttribute{
 				Description:         "Specify if the environment preview option is activated or not for this container.",
 				MarkdownDescription: "Specify if the environment preview option is activated or not for this container.",

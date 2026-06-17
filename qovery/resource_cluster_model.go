@@ -55,6 +55,7 @@ type Cluster struct {
 	MaxRunningNodes                types.Int64  `tfsdk:"max_running_nodes"`
 	Production                     types.Bool   `tfsdk:"production"`
 	Features                       types.Object `tfsdk:"features"`
+	Keda                           types.Object `tfsdk:"keda"`
 	RoutingTables                  types.Set    `tfsdk:"routing_table"`
 	State                          types.String `tfsdk:"state"`
 	AdvancedSettingsJson           types.String `tfsdk:"advanced_settings_json"`
@@ -89,6 +90,17 @@ func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
 		}
 	}
 	return false
+}
+
+// hasKedaDiff reports whether the keda configuration changed between plan and
+// state. KEDA installs/removes the operator on the cluster, which only takes
+// effect on a (re)deploy gated by ClusterUpsertParams.ForceUpdate — so a toggle
+// must force a deploy, otherwise EditCluster saves it but it is never applied.
+func (c Cluster) hasKedaDiff(state *Cluster) bool {
+	if state == nil {
+		return toQoveryClusterKeda(c.Keda) != nil
+	}
+	return !c.Keda.Equal(state.Keda)
 }
 
 func (c Cluster) hasRoutingTableDiff(state *Cluster) bool {
@@ -199,6 +211,12 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		// kubeconfig is required for PARTIALLY_MANAGED
 		if c.Kubeconfig.IsNull() || c.Kubeconfig.IsUnknown() || c.Kubeconfig.ValueString() == "" {
 			return nil, errors.New("kubeconfig is required when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
+		}
+
+		// keda is not applicable for PARTIALLY_MANAGED: convertResponseToCluster forces it
+		// to null, so a config-set value would yield "inconsistent result after apply".
+		if toQoveryClusterKeda(c.Keda) != nil {
+			return nil, errors.New("keda is not supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
 		}
 
 		// infrastructure_charts_parameters is required for PARTIALLY_MANAGED
@@ -316,7 +334,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		return nil, errors.Wrap(err, "failed to parse secret_manager_accesses")
 	}
 
-	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || c.hasInfraChartsParamsDiff(state) || c.hasClusterSpecDiff(state) || c.hasSecretManagerAccessesDiff(state)
+	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || c.hasInfraChartsParamsDiff(state) || c.hasClusterSpecDiff(state) || c.hasSecretManagerAccessesDiff(state) || c.hasKedaDiff(state)
 
 	desiredState, err := qovery.NewClusterStateEnumFromValue(ToString(c.State))
 	if err != nil {
@@ -359,6 +377,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			MaxRunningNodes:                maxRunningNodes,
 			Production:                     ToBoolPointer(c.Production),
 			Features:                       features,
+			Keda:                           toQoveryClusterKeda(c.Keda),
 			InfrastructureChartsParameters: infraChartsParams,
 			LabelsGroups:                   labelsGroups,
 			SecretManagerAccesses:          secretManagerAccesses,
@@ -377,6 +396,16 @@ func IsKarpenterAlreadyInstalled(state *Cluster) bool {
 
 	oldFeatures, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider))
 	for _, f := range oldFeatures {
+		if f.Id != nil && *f.Id == featureIdKarpenter {
+			return true
+		}
+	}
+	return false
+}
+
+// responseHasKarpenter reports whether the API cluster response has the Karpenter feature enabled.
+func responseHasKarpenter(features []qovery.ClusterFeatureResponse) bool {
+	for _, f := range features {
 		if f.Id != nil && *f.Id == featureIdKarpenter {
 			return true
 		}
@@ -423,6 +452,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		cluster.MinRunningNodes = types.Int64Null()
 		cluster.MaxRunningNodes = types.Int64Null()
 		cluster.Features = types.ObjectNull(createFeaturesAttrTypes())
+		cluster.Keda = types.ObjectNull(createKedaAttrTypes())
 		cluster.RoutingTables = types.SetNull(types.ObjectType{AttrTypes: clusterRouteAttrTypes})
 		cluster.InfrastructureOutputs = types.ObjectNull(clusterInfrastructureOutputsAttrTypes)
 		// Preserve kubeconfig from initialPlan - it's fetched separately via API in Read operation
@@ -431,20 +461,25 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		cluster.InstanceType = FromStringPointer(res.ClusterResponse.InstanceType)
 		cluster.DiskSize = FromInt32Pointer(res.ClusterResponse.DiskSize)
 
-		// GCP Autopilot: preserve plan values for node counts since the API returns sentinel values.
+		// GCP Autopilot and Karpenter manage node scaling themselves, so min/max_running_nodes
+		// are not set in config and the API returns unstable sentinel values (e.g. MaxInt32 right
+		// after create, a real number on later reads). Preserve the plan values to avoid a spurious
+		// "inconsistent result after apply" on update.
 		isAutoPilot := res.ClusterResponse.InstanceType != nil && *res.ClusterResponse.InstanceType == instanceTypeAutoPilot
-		if isAutoPilot && !initialPlan.MinRunningNodes.IsNull() && !initialPlan.MinRunningNodes.IsUnknown() {
+		nodeCountsManaged := isAutoPilot || responseHasKarpenter(res.ClusterResponse.Features)
+		if nodeCountsManaged && !initialPlan.MinRunningNodes.IsNull() && !initialPlan.MinRunningNodes.IsUnknown() {
 			cluster.MinRunningNodes = initialPlan.MinRunningNodes
 		} else {
 			cluster.MinRunningNodes = FromInt32Pointer(res.ClusterResponse.MinRunningNodes)
 		}
-		if isAutoPilot && !initialPlan.MaxRunningNodes.IsNull() && !initialPlan.MaxRunningNodes.IsUnknown() {
+		if nodeCountsManaged && !initialPlan.MaxRunningNodes.IsNull() && !initialPlan.MaxRunningNodes.IsUnknown() {
 			cluster.MaxRunningNodes = initialPlan.MaxRunningNodes
 		} else {
 			cluster.MaxRunningNodes = FromInt32Pointer(res.ClusterResponse.MaxRunningNodes)
 		}
 
 		cluster.Features = fromQoveryClusterFeatures(res.ClusterResponse.Features)
+		cluster.Keda = fromQoveryClusterKeda(res.ClusterResponse.Keda)
 		cluster.RoutingTables = routingTable.toTerraformSet(ctx, initialPlan.RoutingTables)
 		cluster.InfrastructureOutputs = fromQoveryClusterOutput(res.ClusterResponse.InfrastructureOutputs, initialPlan.InfrastructureOutputs)
 		// Kubeconfig is not applicable for non-PARTIALLY_MANAGED clusters
@@ -452,6 +487,44 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 	}
 
 	return cluster
+}
+
+// createKedaAttrTypes returns the attribute types for the cluster `keda` nested object.
+func createKedaAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"enabled": types.BoolType,
+	}
+}
+
+// toQoveryClusterKeda converts the Terraform `keda` object to the API model.
+// Returns nil when the block is absent so the API applies its own default.
+func toQoveryClusterKeda(k types.Object) *qovery.ClusterKeda {
+	if k.IsNull() || k.IsUnknown() {
+		return nil
+	}
+
+	enabled := false
+	if v, ok := k.Attributes()["enabled"].(types.Bool); ok && !v.IsNull() && !v.IsUnknown() {
+		enabled = v.ValueBool()
+	}
+
+	return qovery.NewClusterKeda(enabled)
+}
+
+// fromQoveryClusterKeda converts the API `keda` model to a Terraform object.
+// The API omits `keda` when KEDA is disabled, so a nil pointer maps to the
+// disabled shape `{enabled = false}` rather than null. `keda` is Optional+Computed,
+// so always returning a known value keeps apply results consistent with the plan
+// (a planned `{enabled = false}` must not become null after apply).
+func fromQoveryClusterKeda(k *qovery.ClusterKeda) types.Object {
+	enabled := false
+	if k != nil {
+		enabled = k.GetEnabled()
+	}
+
+	return types.ObjectValueMust(createKedaAttrTypes(), map[string]attr.Value{
+		"enabled": types.BoolValue(enabled),
+	})
 }
 
 var clusterInfrastructureOutputsAttrTypes = map[string]attr.Type{

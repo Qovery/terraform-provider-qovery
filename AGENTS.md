@@ -113,8 +113,9 @@ client/                  → Qovery API client and error handling
 4. Create application service in `internal/application/services/`
 5. Implement Terraform resource in `qovery/resource_{entity}.go`
 6. Create model in `qovery/resource_{entity}_model.go`
-7. Write tests with proper build tags
-8. Add examples in `examples/resources/qovery_{entity}/`
+7. Mirror the schema in `data_source_{entity}.go` — the resource and data source **share the same model struct**, so every model field needs a matching data source attribute (usually `Computed: true`). A missing attribute is a **runtime** error (`mismatch between struct and object: Struct defines fields not found in object`), not a compile error, so it slips past `go build`.
+8. Write tests with proper build tags
+9. Add examples in `examples/resources/qovery_{entity}/`
 
 ### Qovery Service Resource Patterns
 
@@ -156,6 +157,7 @@ deploymentStage, _, _ := c.client.DeploymentStageMainCallsAPI.GetServiceDeployme
 - [ ] Model conversion function accepts and uses `deploymentStageID` parameter
 - [ ] Terraform schema has `deployment_stage_id` as Optional + Computed
 - [ ] Terraform model struct has `DeploymentStageId types.String` field
+- [ ] Mirror every new attribute in `data_source_{entity}.go` schema (the data source shares the model struct — a missing attribute fails at **runtime** with `mismatch between struct and object: Struct defines fields not found in object`, not at `go build`)
 - [ ] Run `task docs` to regenerate documentation
 - [ ] Add acceptance tests for the new resource/attribute
 

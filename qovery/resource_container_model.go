@@ -51,6 +51,7 @@ type Container struct {
 	AutoDeploy                   types.Bool    `tfsdk:"auto_deploy"`
 	AnnotationsGroupIds          types.Set     `tfsdk:"annotations_group_ids"`
 	LabelsGroupIds               types.Set     `tfsdk:"labels_group_ids"`
+	Autoscaling                  types.Object  `tfsdk:"autoscaling"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
@@ -203,6 +204,7 @@ func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomD
 		AutoDeploy:           *qovery.NewNullableBool(ToBoolPointer(cont.AutoDeploy)),
 		AnnotationsGroupIds:  annotationsGroupIds,
 		LabelsGroupIds:       labelsGroupIds,
+		Autoscaling:          toQoveryAutoscaling(cont.Autoscaling),
 	}
 }
 
@@ -244,6 +246,7 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		AutoDeploy:                   FromBoolPointer(container.AutoDeploy),
 		AnnotationsGroupIds:          fromAnnotationsGroupList(ctx, state.AnnotationsGroupIds, container.AnnotationsGroupIds),
 		LabelsGroupIds:               fromLabelsGroupList(ctx, state.LabelsGroupIds, container.LabelsGroupIds),
+		Autoscaling:                  fromAutoscaling(container.Autoscaling),
 		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(container.ExternalSecrets, state.ExternalSecrets, variable.ScopeContainer).toTerraformSet(ctx),
 		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(container.ExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeContainer).toTerraformSet(ctx),
 	}
