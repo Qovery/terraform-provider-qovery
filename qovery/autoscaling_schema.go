@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
@@ -52,6 +53,14 @@ func autoscalingAttrTypes() map[string]attr.Type {
 	}
 }
 
+// Backend defaults for the KEDA polling/cooldown windows. Declared as static
+// schema defaults so an omitted value resolves at plan time instead of surfacing
+// as a null-then-computed inconsistency after apply.
+const (
+	autoscalingPollingIntervalSecondsDefault = 30
+	autoscalingCooldownPeriodSecondsDefault  = 300
+)
+
 const autoscalingDescription = "Event-driven autoscaling (KEDA) configuration. " +
 	"KEDA is additive to the CPU/memory HPA (min/max_running_instances) and unlocks " +
 	"scale-to-zero (min_running_instances = 0). Requires KEDA to be enabled on the cluster."
@@ -65,17 +74,22 @@ func autoscalingResourceSchema() schema.SingleNestedAttribute {
 		Optional:            true,
 		Attributes: map[string]schema.Attribute{
 			"polling_interval_seconds": schema.Int64Attribute{
-				Description: "Interval in seconds between each KEDA polling of the scalers.",
+				Description: "Interval in seconds between each KEDA polling of the scalers. Defaults to 30.",
 				Optional:    true,
 				Computed:    true,
+				// Static default matches the backend default so adding an autoscaling
+				// block without this field does not yield a null plan value that the
+				// API then fills in (which fails with "inconsistent result after apply").
+				Default: int64default.StaticInt64(autoscalingPollingIntervalSecondsDefault),
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
 			"cooldown_period_seconds": schema.Int64Attribute{
-				Description: "Period in seconds to wait after the last trigger before scaling back down.",
+				Description: "Period in seconds to wait after the last trigger before scaling back down. Defaults to 300.",
 				Optional:    true,
 				Computed:    true,
+				Default:     int64default.StaticInt64(autoscalingCooldownPeriodSecondsDefault),
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},

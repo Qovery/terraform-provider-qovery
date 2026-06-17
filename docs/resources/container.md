@@ -421,8 +421,8 @@ Required:
 
 Optional:
 
-- `cooldown_period_seconds` (Number) Period in seconds to wait after the last trigger before scaling back down.
-- `polling_interval_seconds` (Number) Interval in seconds between each KEDA polling of the scalers.
+- `cooldown_period_seconds` (Number) Period in seconds to wait after the last trigger before scaling back down. Defaults to 300.
+- `polling_interval_seconds` (Number) Interval in seconds between each KEDA polling of the scalers. Defaults to 30.
 
 <a id="nestedatt--autoscaling--scalers"></a>
 ### Nested Schema for `autoscaling.scalers`

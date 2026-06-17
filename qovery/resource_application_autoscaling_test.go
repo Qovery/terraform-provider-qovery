@@ -112,6 +112,91 @@ func TestAcc_ApplicationHpaToKedaTransitionRejected(t *testing.T) {
 	})
 }
 
+// Regression: the documented two-step migration must be allowed. A service whose
+// prior state has min == max (NONE mode, not HPA) can gain a KEDA autoscaling
+// block in a single apply without being blocked by the HPA->KEDA guard.
+func TestAcc_ApplicationEqualInstancesToKedaAllowed(t *testing.T) {
+	t.Parallel()
+	testName := "application-equal-to-keda-allowed"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
+		Steps: []resource.TestStep{
+			// Step 1: min == max (NONE mode, no autoscaling).
+			{
+				Config: testAccApplicationConfigEqualInstances(testName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "1"),
+				),
+			},
+			// Step 2: add a KEDA autoscaling block with min < max -> must succeed.
+			{
+				Config: testAccApplicationConfigEqualInstancesToKeda(testName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "0"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "3"),
+					resource.TestCheckResourceAttr("qovery_application.test", "autoscaling.scalers.#", "1"),
+				),
+			},
+		},
+	})
+}
+
+func testAccApplicationConfigEqualInstances(testName string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_application" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  build_mode = "DOCKER"
+  dockerfile_path = "Dockerfile"
+  git_repository = {
+    url = "%s"
+    git_token_id = "%s"
+  }
+  min_running_instances = 1
+  max_running_instances = 1
+  healthchecks = {}
+}
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(),
+	)
+}
+
+func testAccApplicationConfigEqualInstancesToKeda(testName string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_application" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  build_mode = "DOCKER"
+  dockerfile_path = "Dockerfile"
+  git_repository = {
+    url = "%s"
+    git_token_id = "%s"
+  }
+  min_running_instances = 0
+  max_running_instances = 3
+  healthchecks = {}
+  autoscaling = {
+    scalers = [
+      {
+        scaler_type = "prometheus"
+        role        = "PRIMARY"
+        config_json = jsonencode({ query = "up" })
+      },
+    ]
+  }
+}
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(),
+	)
+}
+
 func testAccApplicationConfigAutoscalingMinEqualsMax(testName string) string {
 	return fmt.Sprintf(`
 %s

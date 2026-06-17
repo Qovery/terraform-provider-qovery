@@ -138,6 +138,89 @@ func TestAcc_ContainerHpaToKedaTransitionRejected(t *testing.T) {
 	})
 }
 
+// Regression: the documented two-step migration must be allowed. A service whose
+// prior state has min == max (NONE mode, not HPA) can gain a KEDA autoscaling
+// block in a single apply without being blocked by the HPA->KEDA guard.
+func TestAcc_ContainerEqualInstancesToKedaAllowed(t *testing.T) {
+	t.Parallel()
+	testName := "container-equal-to-keda-allowed"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryContainerDestroy("qovery_container.test"),
+		Steps: []resource.TestStep{
+			// Step 1: min == max (NONE mode, no autoscaling).
+			{
+				Config: testAccContainerConfigEqualInstances(testName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "1"),
+					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "1"),
+				),
+			},
+			// Step 2: add a KEDA autoscaling block with min < max -> must succeed.
+			{
+				Config: testAccContainerConfigEqualInstancesToKeda(testName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "min_running_instances", "0"),
+					resource.TestCheckResourceAttr("qovery_container.test", "max_running_instances", "3"),
+					resource.TestCheckResourceAttr("qovery_container.test", "autoscaling.scalers.#", "1"),
+				),
+			},
+		},
+	})
+}
+
+func testAccContainerConfigEqualInstances(testName string) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_container" "test" {
+  environment_id = qovery_environment.test.id
+  registry_id = qovery_container_registry.test.id
+  name = "%s"
+  image_name = "%s"
+  tag = "%s"
+  min_running_instances = 1
+  max_running_instances = 1
+  healthchecks = {}
+}
+`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag,
+	)
+}
+
+func testAccContainerConfigEqualInstancesToKeda(testName string) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_container" "test" {
+  environment_id = qovery_environment.test.id
+  registry_id = qovery_container_registry.test.id
+  name = "%s"
+  image_name = "%s"
+  tag = "%s"
+  min_running_instances = 0
+  max_running_instances = 3
+  healthchecks = {}
+  autoscaling = {
+    scalers = [
+      {
+        scaler_type = "prometheus"
+        role        = "PRIMARY"
+        config_json = jsonencode({ query = "up" })
+      },
+    ]
+  }
+}
+`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag,
+	)
+}
+
 func testAccContainerConfigAutoscalingMinEqualsMax(testName string) string {
 	return fmt.Sprintf(`
 %s
