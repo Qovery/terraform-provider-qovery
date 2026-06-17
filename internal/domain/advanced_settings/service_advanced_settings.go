@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"sort"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
@@ -14,10 +16,20 @@ import (
 
 type ServiceAdvancedSettingsService struct {
 	apiConfig *qovery.Configuration
+
+	// defaultKeysCache caches the set of valid advanced setting keys per service type.
+	// The default set is static for a provider run. It is a reference-type map guarded by
+	// a pointer mutex so that value-receiver method copies share the same cache.
+	defaultKeysCache map[int]map[string]struct{}
+	cacheMu          *sync.Mutex
 }
 
 func NewServiceAdvancedSettingsService(apiConfig *qovery.Configuration) *ServiceAdvancedSettingsService {
-	return &ServiceAdvancedSettingsService{apiConfig: apiConfig}
+	return &ServiceAdvancedSettingsService{
+		apiConfig:        apiConfig,
+		defaultKeysCache: make(map[int]map[string]struct{}),
+		cacheMu:          &sync.Mutex{},
+	}
 }
 
 // Compute the URL to GET or PUT advanced settings for any service type
@@ -79,37 +91,6 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 	}
 
 	//
-	// Get default service advanced settings
-	defaultAdvancedSettingsUrl, err := c.computeDefaultServiceAdvancedSettingsUrl(serviceType)
-	if err != nil {
-		return nil, err
-	}
-	getDefaultAdvancedSettingsRequest, err := http.NewRequest("GET", *defaultAdvancedSettingsUrl, nil)
-	if err != nil {
-		return nil, err
-	}
-	getDefaultAdvancedSettingsRequest.Header.Set("Authorization", apiToken)
-	getDefaultAdvancedSettingsRequest.Header.Set("Content-Type", "application/json")
-	getDefaultAdvancedSettingsRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
-
-	respGetDefaultAdvancedSettings, err := httpClient.Do(getDefaultAdvancedSettingsRequest)
-	if err != nil {
-		return nil, err
-	}
-	defer respGetDefaultAdvancedSettings.Body.Close()
-
-	if respGetDefaultAdvancedSettings.StatusCode >= 400 {
-		return nil, errors.New("Cannot get default advanced settings :" + respGetDefaultAdvancedSettings.Status)
-	}
-
-	defaultServiceAdvancedSettingsJson, err := io.ReadAll(respGetDefaultAdvancedSettings.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	defaultAdvancedSettingsJsonString := string(defaultServiceAdvancedSettingsJson)
-
-	//
 	// Get service advanced settings
 	urlAdvancedSettings, err := c.computeServiceAdvancedSettingsUrl(serviceType, serviceId)
 	if err != nil {
@@ -152,8 +133,8 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 		return nil, err
 	}
 
-	defaultAdvancedSettingsHashMap := make(map[string]any)
-	if err := json.Unmarshal([]byte(defaultAdvancedSettingsJsonString), &defaultAdvancedSettingsHashMap); err != nil {
+	defaultAdvancedSettingsHashMap, err := c.fetchDefaultAdvancedSettings(serviceType)
+	if err != nil {
 		return nil, err
 	}
 
@@ -266,4 +247,99 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 	}
 
 	return nil
+}
+
+// fetchDefaultAdvancedSettings fetches and parses the default advanced settings for a service
+// type. These represent the full set of valid keys for that service type.
+func (c ServiceAdvancedSettingsService) fetchDefaultAdvancedSettings(serviceType int) (map[string]any, error) {
+	defaultAdvancedSettingsUrl, err := c.computeDefaultServiceAdvancedSettingsUrl(serviceType)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", *defaultAdvancedSettingsUrl, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", c.apiConfig.DefaultHeader["Authorization"])
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("User-Agent", c.apiConfig.UserAgent)
+
+	resp, err := (&http.Client{}).Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return nil, errors.New("Cannot get default advanced settings :" + resp.Status)
+	}
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	defaults := make(map[string]any)
+	if err := json.Unmarshal(body, &defaults); err != nil {
+		return nil, err
+	}
+	return defaults, nil
+}
+
+// defaultSettingKeys returns the set of valid advanced setting keys for a service type,
+// caching the result per service type.
+func (c ServiceAdvancedSettingsService) defaultSettingKeys(serviceType int) (map[string]struct{}, error) {
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
+
+	if cached, ok := c.defaultKeysCache[serviceType]; ok {
+		return cached, nil
+	}
+
+	defaults, err := c.fetchDefaultAdvancedSettings(serviceType)
+	if err != nil {
+		return nil, err
+	}
+
+	keys := make(map[string]struct{}, len(defaults))
+	for k := range defaults {
+		keys[k] = struct{}{}
+	}
+	c.defaultKeysCache[serviceType] = keys
+	return keys, nil
+}
+
+// computeUnknownKeys returns the keys in advancedSettings that are absent from validKeys,
+// sorted for deterministic output.
+func computeUnknownKeys(validKeys map[string]struct{}, advancedSettings map[string]any) []string {
+	unknown := make([]string, 0)
+	for key := range advancedSettings {
+		if _, ok := validKeys[key]; !ok {
+			unknown = append(unknown, key)
+		}
+	}
+	sort.Strings(unknown)
+	return unknown
+}
+
+// UnknownSettingKeys returns the advanced setting keys present in advancedSettingsJson that are
+// not valid for the given service type (absent from that type's default settings). It returns
+// nil for an empty input.
+func (c ServiceAdvancedSettingsService) UnknownSettingKeys(serviceType int, advancedSettingsJson string) ([]string, error) {
+	if advancedSettingsJson == "" || advancedSettingsJson == "{}" {
+		return nil, nil
+	}
+
+	validKeys, err := c.defaultSettingKeys(serviceType)
+	if err != nil {
+		return nil, err
+	}
+
+	provided := make(map[string]any)
+	if err := json.Unmarshal([]byte(advancedSettingsJson), &provided); err != nil {
+		return nil, err
+	}
+
+	return computeUnknownKeys(validKeys, provided), nil
 }
