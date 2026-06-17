@@ -7,14 +7,28 @@ import (
 )
 
 type HelmRepository struct {
-	Id                  types.String             `tfsdk:"id"`
-	OrganizationId      types.String             `tfsdk:"organization_id"`
-	Name                types.String             `tfsdk:"name"`
-	Kind                types.String             `tfsdk:"kind"`
-	URL                 types.String             `tfsdk:"url"`
-	Description         types.String             `tfsdk:"description"`
-	Config              *ContainerRegistryConfig `tfsdk:"config"`
-	SkipTlsVerification types.Bool               `tfsdk:"skip_tls_verification"`
+	Id                  types.String          `tfsdk:"id"`
+	OrganizationId      types.String          `tfsdk:"organization_id"`
+	Name                types.String          `tfsdk:"name"`
+	Kind                types.String          `tfsdk:"kind"`
+	URL                 types.String          `tfsdk:"url"`
+	Description         types.String          `tfsdk:"description"`
+	Config              *HelmRepositoryConfig `tfsdk:"config"`
+	SkipTlsVerification types.Bool            `tfsdk:"skip_tls_verification"`
+}
+
+// HelmRepositoryConfig holds the authentication config for a helm repository.
+// It mirrors the container registry config but without GCP `json_credentials`,
+// which is not supported by the helm repository API.
+type HelmRepositoryConfig struct {
+	AccessKeyID       types.String `tfsdk:"access_key_id"`
+	SecretAccessKey   types.String `tfsdk:"secret_access_key"`
+	Region            types.String `tfsdk:"region"`
+	ScalewayAccessKey types.String `tfsdk:"scaleway_access_key"`
+	ScalewaySecretKey types.String `tfsdk:"scaleway_secret_key"`
+	ScalewayProjectId types.String `tfsdk:"scaleway_project_id"`
+	Username          types.String `tfsdk:"username"`
+	Password          types.String `tfsdk:"password"`
 }
 
 type HelmRepositoryDataSource struct {
