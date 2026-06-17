@@ -12,6 +12,7 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/internal/application/services"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdCredentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdDestinationClusterMapping"
@@ -109,6 +110,10 @@ type qProvider struct {
 	// terraformServiceService is an instance of a terraformservice.Service that handles the domain logic.
 	terraformServiceService terraformservice.Service
 
+	// advancedSettingsService validates advanced_settings_json keys at plan time.
+	// It holds a per-service-type cache, so it is constructed once and shared across resources.
+	advancedSettingsService *advanced_settings.ServiceAdvancedSettingsService
+
 	// argoCdCredentialsService is an instance of an argoCdCredentials.Service that handles the domain logic.
 	argoCdCredentialsService argoCdCredentials.Service
 
@@ -182,6 +187,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	// Create a new Qovery client and set it to the provider client
 	p.configured = true
 	p.client = client.New(token, p.version, host)
+	p.advancedSettingsService = advanced_settings.NewServiceAdvancedSettingsService(p.client.GetConfig())
 	p.organizationService = domainServices.Organization
 	p.awsCredentialsService = domainServices.CredentialsAws
 	p.scalewayCredentialsService = domainServices.CredentialsScaleway
