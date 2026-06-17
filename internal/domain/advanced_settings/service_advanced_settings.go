@@ -288,12 +288,14 @@ func (c ServiceAdvancedSettingsService) fetchDefaultAdvancedSettings(serviceType
 }
 
 // defaultSettingKeys returns the set of valid advanced setting keys for a service type,
-// caching the result per service type.
+// caching the result per service type. The cache lock is released during the HTTP fetch so
+// concurrent plan-time validations for other service types are not serialized behind it; a
+// double-check on re-lock avoids storing a redundant result if another goroutine raced us.
 func (c ServiceAdvancedSettingsService) defaultSettingKeys(serviceType int) (map[string]struct{}, error) {
 	c.cacheMu.Lock()
-	defer c.cacheMu.Unlock()
-
-	if cached, ok := c.defaultKeysCache[serviceType]; ok {
+	cached, ok := c.defaultKeysCache[serviceType]
+	c.cacheMu.Unlock()
+	if ok {
 		return cached, nil
 	}
 
@@ -305,6 +307,12 @@ func (c ServiceAdvancedSettingsService) defaultSettingKeys(serviceType int) (map
 	keys := make(map[string]struct{}, len(defaults))
 	for k := range defaults {
 		keys[k] = struct{}{}
+	}
+
+	c.cacheMu.Lock()
+	defer c.cacheMu.Unlock()
+	if cached, ok := c.defaultKeysCache[serviceType]; ok {
+		return cached, nil
 	}
 	c.defaultKeysCache[serviceType] = keys
 	return keys, nil

@@ -18,7 +18,8 @@ const advancedSettingsJSONAttr = "advanced_settings_json"
 
 // warnUnknownAdvancedSettings adds a plan-time warning for each key in advanced_settings_json
 // that is not valid for the given service type. It never blocks the plan: a null/unknown
-// attribute or any fetch error degrades silently to "no warning".
+// attribute or any error (config read, defaults fetch, or JSON parse) degrades silently to
+// "no warning".
 func warnUnknownAdvancedSettings(
 	ctx context.Context,
 	svc *advanced_settings.ServiceAdvancedSettingsService,
@@ -41,7 +42,7 @@ func warnUnknownAdvancedSettings(
 
 	unknown, err := svc.UnknownSettingKeys(serviceType, raw.ValueString())
 	if err != nil {
-		tflog.Warn(ctx, "could not validate advanced settings keys", map[string]interface{}{
+		tflog.Warn(ctx, "could not validate advanced settings keys", map[string]any{
 			"error": err.Error(),
 		})
 		return
