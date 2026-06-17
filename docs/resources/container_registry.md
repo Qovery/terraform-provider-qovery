@@ -71,8 +71,8 @@ resource "qovery_container_registry" "gcp_artifact_registry" {
   kind            = "GCP_ARTIFACT_REGISTRY"
   url             = "https://<region>-docker.pkg.dev"
   config = {
-    username = "_json_key"
-    password = "<gcp_service_account_json_key>"
+    region           = "<region>"
+    json_credentials = "<gcp_service_account_json_key>"
   }
   description = "GCP Artifact Registry"
 
@@ -118,8 +118,9 @@ resource "qovery_container_registry" "gcp_artifact_registry" {
 Optional:
 
 - `access_key_id` (String) AWS Access Key ID. Required if `kind` is `ECR` or `PUBLIC_ECR`.
+- `json_credentials` (String, Sensitive) GCP service account JSON key used to authenticate with the registry. Required if `kind` is `GCP_ARTIFACT_REGISTRY`.
 - `password` (String) Password or access token for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`.
-- `region` (String) Region of the registry. Required if `kind` is `ECR` or `SCALEWAY_CR` (e.g. `us-east-1`, `fr-par`).
+- `region` (String) Region of the registry. Required if `kind` is `ECR`, `SCALEWAY_CR` or `GCP_ARTIFACT_REGISTRY` (e.g. `us-east-1`, `fr-par`).
 - `scaleway_access_key` (String) Scaleway Access Key. Required if `kind` is `SCALEWAY_CR`.
 - `scaleway_project_id` (String) Scaleway Project ID. Required if `kind` is `SCALEWAY_CR`.
 - `scaleway_secret_key` (String) Scaleway Secret Key. Required if `kind` is `SCALEWAY_CR`.
