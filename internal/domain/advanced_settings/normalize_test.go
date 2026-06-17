@@ -185,6 +185,28 @@ func TestComputeOverriddenSettings(t *testing.T) {
 			isTriggeredFromImport: true,
 			expected:              map[string]any{"new_setting": "value"},
 		},
+		{
+			testName: "unknown_state_key_absent_from_current_and_defaults_is_preserved",
+			current:  map[string]any{"static_ip": true},
+			defaults: map[string]any{"static_ip": false},
+			state:    map[string]any{"static_ip": true, "network.dns.ndots": float64(1)},
+			expected: map[string]any{"static_ip": true, "network.dns.ndots": float64(1)},
+		},
+		{
+			testName: "unknown_state_key_value_is_normalized",
+			current:  map[string]any{},
+			defaults: map[string]any{},
+			state:    map[string]any{"security.automount_service_account_token": "true"},
+			expected: map[string]any{"security.automount_service_account_token": true},
+		},
+		{
+			testName:              "import_does_not_resurrect_unknown_keys",
+			current:               map[string]any{"static_ip": true},
+			defaults:              map[string]any{"static_ip": false},
+			state:                 map[string]any{},
+			isTriggeredFromImport: true,
+			expected:              map[string]any{"static_ip": true},
+		},
 	}
 
 	for _, tc := range testCases {

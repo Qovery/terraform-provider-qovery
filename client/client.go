@@ -31,3 +31,9 @@ func NewQoveryAPIClient(token string, version string, host string) *qovery.APICl
 
 	return qovery.NewAPIClient(cfg)
 }
+
+// GetConfig returns the underlying qovery-client configuration. Used by resources that need to
+// build a ServiceAdvancedSettingsService for plan-time validation.
+func (c *Client) GetConfig() *qovery.Configuration {
+	return c.api.GetConfig()
+}

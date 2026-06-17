@@ -19,6 +19,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
@@ -29,10 +31,12 @@ import (
 var (
 	_ resource.ResourceWithConfigure   = &jobResource{}
 	_ resource.ResourceWithImportState = jobResource{}
+	_ resource.ResourceWithModifyPlan  = jobResource{}
 )
 
 type jobResource struct {
-	jobService job.Service
+	jobService              job.Service
+	advancedSettingsService *advanced_settings.ServiceAdvancedSettingsService
 }
 
 func newJobResource() resource.Resource {
@@ -59,6 +63,7 @@ func (r *jobResource) Configure(_ context.Context, req resource.ConfigureRequest
 	}
 
 	r.jobService = provider.jobService
+	r.advancedSettingsService = provider.advancedSettingsService
 }
 
 func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -820,4 +825,8 @@ func (r jobResource) Delete(ctx context.Context, req resource.DeleteRequest, res
 // ImportState imports a qovery job resource using its id
 func (r jobResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+func (r jobResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.JOB, req.Config, &resp.Diagnostics)
 }

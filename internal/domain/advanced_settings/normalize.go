@@ -62,5 +62,23 @@ func computeOverriddenSettings(
 			overridden[name] = normalizeJSONValue(stateValue)
 		}
 	}
+
+	// Preserve "unknown" overrides: keys present in state but absent from both the API
+	// response (current) and the defaults. The API does not recognize these keys for this
+	// service type, so it never returns them. Dropping them here would cause a perpetual
+	// diff: state loses the key on refresh, then the next plan re-adds it from config.
+	// Carrying the state value forward keeps the refreshed value equal to the configured
+	// value. On import state is empty, so this loop is a no-op and import behavior is
+	// unchanged.
+	for name, stateValue := range state {
+		if _, inCurrent := current[name]; inCurrent {
+			continue
+		}
+		if _, inDefaults := defaults[name]; inDefaults {
+			continue
+		}
+		overridden[name] = normalizeJSONValue(stateValue)
+	}
+
 	return overridden
 }
