@@ -119,6 +119,7 @@ type UpsertRequestConfig struct {
 	ScalewayAccessKey *string
 	ScalewaySecretKey *string
 	ScalewayProjectId *string
+	JsonCredentials   *string
 	Username          *string
 	Password          *string
 }

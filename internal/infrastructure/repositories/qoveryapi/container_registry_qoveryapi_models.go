@@ -41,6 +41,7 @@ func newQoveryContainerRegistryRequestFromDomain(request registry.UpsertRequest)
 			ScalewayAccessKey: request.Config.ScalewayAccessKey,
 			ScalewaySecretKey: request.Config.ScalewaySecretKey,
 			ScalewayProjectId: request.Config.ScalewayProjectId,
+			JsonCredentials:   request.Config.JsonCredentials,
 			Username:          request.Config.Username,
 			Password:          request.Config.Password,
 		},

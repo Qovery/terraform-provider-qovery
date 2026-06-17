@@ -140,8 +140,8 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 						Optional:            true,
 					},
 					"region": schema.StringAttribute{
-						Description:         "Required if kind is `ECR` or `SCALEWAY_CR`.",
-						MarkdownDescription: "Region of the registry. Required if `kind` is `ECR` or `SCALEWAY_CR` (e.g. `us-east-1`, `fr-par`).",
+						Description:         "Required if kind is `ECR`, `SCALEWAY_CR` or `GCP_ARTIFACT_REGISTRY`.",
+						MarkdownDescription: "Region of the registry. Required if `kind` is `ECR`, `SCALEWAY_CR` or `GCP_ARTIFACT_REGISTRY` (e.g. `us-east-1`, `fr-par`).",
 						Optional:            true,
 					},
 					"scaleway_access_key": schema.StringAttribute{
@@ -158,6 +158,12 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 						Description:         "Required if kind is `SCALEWAY_CR`.",
 						MarkdownDescription: "Scaleway Project ID. Required if `kind` is `SCALEWAY_CR`.",
 						Optional:            true,
+					},
+					"json_credentials": schema.StringAttribute{
+						Description:         "Required if kind is `GCP_ARTIFACT_REGISTRY`.",
+						MarkdownDescription: "GCP service account JSON key used to authenticate with the registry. Required if `kind` is `GCP_ARTIFACT_REGISTRY`.",
+						Optional:            true,
+						Sensitive:           true,
 					},
 					"username": schema.StringAttribute{
 						Description:         "Required if kind is `DOCKER_HUB`, `GITHUB_CR`, `GITLAB_CR`, or `GENERIC_CR`.",

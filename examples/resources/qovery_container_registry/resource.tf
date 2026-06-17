@@ -57,8 +57,8 @@ resource "qovery_container_registry" "gcp_artifact_registry" {
   kind            = "GCP_ARTIFACT_REGISTRY"
   url             = "https://<region>-docker.pkg.dev"
   config = {
-    username = "_json_key"
-    password = "<gcp_service_account_json_key>"
+    region           = "<region>"
+    json_credentials = "<gcp_service_account_json_key>"
   }
   description = "GCP Artifact Registry"
 

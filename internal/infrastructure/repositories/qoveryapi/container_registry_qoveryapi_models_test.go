@@ -97,3 +97,24 @@ func TestNewQoveryRegistryEditRequestFromDomain(t *testing.T) {
 		})
 	}
 }
+
+func TestNewQoveryRegistryRequestFromDomain_Config(t *testing.T) {
+	t.Parallel()
+
+	jsonCredentials := gofakeit.UUID()
+	region := gofakeit.Word()
+
+	req, err := newQoveryContainerRegistryRequestFromDomain(registry.UpsertRequest{
+		Name: gofakeit.Name(),
+		Kind: registry.KindGcpArtifactRegistry.String(),
+		URL:  gofakeit.URL(),
+		Config: registry.UpsertRequestConfig{
+			Region:          &region,
+			JsonCredentials: &jsonCredentials,
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, &region, req.Config.Region)
+	assert.Equal(t, &jsonCredentials, req.Config.JsonCredentials)
+}
