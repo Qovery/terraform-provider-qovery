@@ -86,7 +86,7 @@ resource "qovery_cluster" "cluster" {
 
   # KEDA event-driven autoscaling operator.
   # Installs KEDA on the cluster, unlocking event-driven autoscaling and
-  # scale-to-zero (min_running_instances = 0) for services. Toggling triggers a redeploy.
+  # scale-to-zero (min_running_instances = 0) for services.
   keda = {
     enabled = true
   }
