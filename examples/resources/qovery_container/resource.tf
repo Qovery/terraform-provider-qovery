@@ -7,13 +7,56 @@ resource "qovery_container" "my_container" {
   tag            = "1.25-alpine"
 
   # Optional
-  entrypoint            = "/docker-entrypoint.sh"
-  auto_preview          = true
-  auto_deploy           = true
-  cpu                   = 500
-  memory                = 512
-  min_running_instances = 1
+  entrypoint   = "/docker-entrypoint.sh"
+  auto_preview = true
+  auto_deploy  = true
+  cpu          = 500
+  memory       = 512
+  # min_running_instances = 0 enables scale-to-zero. Only allowed when an
+  # `autoscaling` (KEDA) block is set below, otherwise the minimum is 1.
+  min_running_instances = 0
   max_running_instances = 3
+
+  # Event-driven autoscaling (KEDA). Additive to the CPU/memory HPA above.
+  # Requires KEDA enabled on the cluster (see qovery_cluster `keda`).
+  autoscaling = {
+    polling_interval_seconds = 30
+    cooldown_period_seconds  = 300
+
+    scalers = [
+      # PRIMARY scaler driving scale-up/down from a Prometheus metric.
+      {
+        scaler_type = "prometheus"
+        role        = "PRIMARY"
+        enabled     = true
+        config_json = jsonencode({
+          serverAddress = "http://prometheus.cluster.local:9090"
+          query         = "sum(rate(http_requests_total[1m]))"
+          threshold     = "100"
+        })
+      },
+      # SAFETY scaler defined as raw YAML, with inline trigger authentication.
+      {
+        scaler_type = "cron"
+        role        = "SAFETY"
+        config_yaml = <<-EOT
+          timezone: Europe/Paris
+          start: 0 8 * * 1-5
+          end: 0 20 * * 1-5
+          desiredReplicas: "2"
+        EOT
+        trigger_authentication = {
+          name        = "my-trigger-auth"
+          config_yaml = <<-EOT
+            secretTargetRef:
+              - parameter: connectionString
+                name: my-secret
+                key: connection
+          EOT
+        }
+      }
+    ]
+  }
 
   # Port configuration
   ports = [

@@ -84,6 +84,13 @@ resource "qovery_cluster" "cluster" {
     }
   }
 
+  # KEDA event-driven autoscaling operator.
+  # Installs KEDA on the cluster, unlocking event-driven autoscaling and
+  # scale-to-zero (min_running_instances = 0) for services. Toggling triggers a redeploy.
+  keda = {
+    enabled = true
+  }
+
   # Labels groups are only supported on EKS (AWS MANAGED) clusters.
   labels_group_ids = [qovery_labels_group.cluster_labels.id]
 
