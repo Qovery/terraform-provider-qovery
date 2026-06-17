@@ -380,6 +380,7 @@ func buildGcpExistingVpcFeatureObject(
 	ipRangeServicesName types.String,
 	ipRangePodsName types.String,
 	additionalIpRangePodsNames types.List,
+	privateNodes types.Bool,
 ) types.Object {
 	gcpVpcAttrTypes := createGcpExistingVpcFeatureAttrTypes()
 	gcpVpcObj := types.ObjectValueMust(gcpVpcAttrTypes, map[string]attr.Value{
@@ -389,6 +390,7 @@ func buildGcpExistingVpcFeatureObject(
 		"ip_range_services_name":         ipRangeServicesName,
 		"ip_range_pods_name":             ipRangePodsName,
 		"additional_ip_range_pods_names": additionalIpRangePodsNames,
+		"private_nodes":                  privateNodes,
 	})
 
 	return types.ObjectValueMust(
@@ -415,6 +417,7 @@ func TestToQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 		ipRangeServicesName        types.String
 		ipRangePodsName            types.String
 		additionalIpRangePodsNames types.List
+		privateNodes               types.Bool
 	}{
 		{
 			name:                       "all fields populated",
@@ -424,6 +427,7 @@ func TestToQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 			ipRangeServicesName:        types.StringValue("gke-services"),
 			ipRangePodsName:            types.StringValue("gke-pods"),
 			additionalIpRangePodsNames: types.ListValueMust(types.StringType, []attr.Value{types.StringValue("extra-1"), types.StringValue("extra-2")}),
+			privateNodes:               types.BoolValue(true),
 		},
 		{
 			name:                       "only required vpc_name",
@@ -433,6 +437,7 @@ func TestToQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 			ipRangeServicesName:        types.StringNull(),
 			ipRangePodsName:            types.StringNull(),
 			additionalIpRangePodsNames: types.ListNull(types.StringType),
+			privateNodes:               types.BoolValue(false),
 		},
 		{
 			name:                       "empty additional_ip_range_pods_names list",
@@ -442,6 +447,7 @@ func TestToQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 			ipRangeServicesName:        types.StringNull(),
 			ipRangePodsName:            types.StringNull(),
 			additionalIpRangePodsNames: types.ListValueMust(types.StringType, []attr.Value{}),
+			privateNodes:               types.BoolValue(false),
 		},
 	}
 
@@ -451,7 +457,7 @@ func TestToQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 
 			featuresObj := buildGcpExistingVpcFeatureObject(
 				tt.vpcName, tt.vpcProjectID, tt.subnetworkName,
-				tt.ipRangeServicesName, tt.ipRangePodsName, tt.additionalIpRangePodsNames,
+				tt.ipRangeServicesName, tt.ipRangePodsName, tt.additionalIpRangePodsNames, tt.privateNodes,
 			)
 
 			features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
@@ -470,6 +476,7 @@ func TestToQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 			gcpValue := gcpFeature.GetValue().ClusterFeatureGcpExistingVpc
 			require.NotNil(t, gcpValue, "expected GCP VPC value to be present")
 			assert.Equal(t, tt.vpcName, gcpValue.VpcName)
+			assert.Equal(t, tt.privateNodes.ValueBool(), gcpValue.GetPrivateNodes())
 
 			if tt.vpcProjectID.IsNull() {
 				assert.Nil(t, gcpValue.VpcProjectId.Get(), "vpc_project_id value should be nil")
@@ -485,10 +492,11 @@ func TestFromQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 	t.Parallel()
 
 	tests := []struct {
-		name             string
-		buildResponse    func() []qovery.ClusterFeatureResponse
-		expectGcpVpcNull bool
-		expectedVpcName  string
+		name                 string
+		buildResponse        func() []qovery.ClusterFeatureResponse
+		expectGcpVpcNull     bool
+		expectedVpcName      string
+		expectedPrivateNodes bool
 	}{
 		{
 			name: "GCP VPC feature with all fields",
@@ -512,6 +520,7 @@ func TestFromQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 										IpRangeServicesName:        *qovery.NewNullableString(&servicesRange),
 										IpRangePodsName:            *qovery.NewNullableString(&podsRange),
 										AdditionalIpRangePodsNames: []string{"extra-1"},
+										PrivateNodes:               qovery.PtrBool(true),
 									},
 								},
 							},
@@ -519,8 +528,9 @@ func TestFromQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 					},
 				}
 			},
-			expectGcpVpcNull: false,
-			expectedVpcName:  "my-existing-vpc",
+			expectGcpVpcNull:     false,
+			expectedVpcName:      "my-existing-vpc",
+			expectedPrivateNodes: true,
 		},
 		{
 			name: "GCP VPC feature with only vpc_name",
@@ -541,8 +551,9 @@ func TestFromQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 					},
 				}
 			},
-			expectGcpVpcNull: false,
-			expectedVpcName:  "minimal-vpc",
+			expectGcpVpcNull:     false,
+			expectedVpcName:      "minimal-vpc",
+			expectedPrivateNodes: false,
 		},
 		{
 			name: "no features returns null GCP VPC",
@@ -575,6 +586,8 @@ func TestFromQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 
 			vpcNameAttr := gcpVpcObj.Attributes()["vpc_name"].(types.String)
 			assert.Equal(t, tt.expectedVpcName, vpcNameAttr.ValueString())
+			privateNodesAttr := gcpVpcObj.Attributes()["private_nodes"].(types.Bool)
+			assert.Equal(t, tt.expectedPrivateNodes, privateNodesAttr.ValueBool())
 
 			// When GCP VPC is set, AWS existing_vpc should be null
 			awsVpcAttr := result.Attributes()[featureKeyExistingVpc].(types.Object)

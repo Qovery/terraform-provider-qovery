@@ -97,6 +97,7 @@ Optional:
 - `additional_ip_range_pods_names` (List of String) Additional secondary IP range names for pods.
 - `ip_range_pods_name` (String) Name of the secondary IP range for pods.
 - `ip_range_services_name` (String) Name of the secondary IP range for GKE services.
+- `private_nodes` (Boolean) Whether GKE nodes are private with no public IPs and route traffic through the gateway.
 - `subnetwork_name` (String) Name of the GCP subnetwork within the VPC.
 - `vpc_project_id` (String) GCP project ID that owns the VPC.
 

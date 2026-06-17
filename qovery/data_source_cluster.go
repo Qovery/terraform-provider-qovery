@@ -352,6 +352,12 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 								ElementType:         types.StringType,
 								Optional:            true,
 							},
+							"private_nodes": schema.BoolAttribute{
+								Description:         "Whether GKE nodes are created without public IPs",
+								MarkdownDescription: "Whether GKE nodes are private with no public IPs and route traffic through the gateway.",
+								Optional:            true,
+								Computed:            true,
+							},
 						},
 					},
 					"karpenter": schema.SingleNestedAttribute{
