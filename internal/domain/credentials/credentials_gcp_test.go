@@ -22,27 +22,60 @@ func TestUpsertGcpRequest_Validate(t *testing.T) {
 		{
 			TestName: "fail_with_empty_name",
 			Request: credentials.UpsertGcpRequest{
-				GcpCredentials: gofakeit.UUID(),
+				ServiceAccountKey: &credentials.GcpServiceAccountKeyCredentials{GcpCredentials: gofakeit.UUID()},
+			},
+			ExpectedError: credentials.ErrInvalidUpsertGcpRequest,
+		},
+		{
+			TestName:      "fail_with_no_auth_mode",
+			Request:       credentials.UpsertGcpRequest{Name: gofakeit.Name()},
+			ExpectedError: credentials.ErrInvalidUpsertGcpRequest,
+		},
+		{
+			TestName: "fail_with_both_auth_modes",
+			Request: credentials.UpsertGcpRequest{
+				Name:              gofakeit.Name(),
+				ServiceAccountKey: &credentials.GcpServiceAccountKeyCredentials{GcpCredentials: gofakeit.UUID()},
+				WorkloadIdentity: &credentials.GcpWorkloadIdentityCredentials{
+					ServiceAccountEmail:              "qovery@proj.iam.gserviceaccount.com",
+					WorkloadIdentityProviderResource: "projects/123/locations/global/workloadIdentityPools/p/providers/pr",
+				},
 			},
 			ExpectedError: credentials.ErrInvalidUpsertGcpRequest,
 		},
 		{
 			TestName: "fail_with_empty_gcp_credentials",
 			Request: credentials.UpsertGcpRequest{
-				Name: gofakeit.Name(),
+				Name:              gofakeit.Name(),
+				ServiceAccountKey: &credentials.GcpServiceAccountKeyCredentials{},
 			},
 			ExpectedError: credentials.ErrInvalidUpsertGcpRequest,
 		},
 		{
-			TestName:      "fail_with_all_empty_fields",
-			Request:       credentials.UpsertGcpRequest{},
+			TestName: "fail_with_wif_missing_provider_resource",
+			Request: credentials.UpsertGcpRequest{
+				Name: gofakeit.Name(),
+				WorkloadIdentity: &credentials.GcpWorkloadIdentityCredentials{
+					ServiceAccountEmail: "qovery@proj.iam.gserviceaccount.com",
+				},
+			},
 			ExpectedError: credentials.ErrInvalidUpsertGcpRequest,
 		},
 		{
-			TestName: "success_with_valid_request",
+			TestName: "success_with_service_account_key",
 			Request: credentials.UpsertGcpRequest{
-				Name:           gofakeit.Name(),
-				GcpCredentials: `{"type": "service_account", "project_id": "test-project"}`,
+				Name:              gofakeit.Name(),
+				ServiceAccountKey: &credentials.GcpServiceAccountKeyCredentials{GcpCredentials: `{"type":"service_account","project_id":"test-project"}`},
+			},
+		},
+		{
+			TestName: "success_with_workload_identity",
+			Request: credentials.UpsertGcpRequest{
+				Name: gofakeit.Name(),
+				WorkloadIdentity: &credentials.GcpWorkloadIdentityCredentials{
+					ServiceAccountEmail:              "qovery@proj.iam.gserviceaccount.com",
+					WorkloadIdentityProviderResource: "projects/123/locations/global/workloadIdentityPools/p/providers/pr",
+				},
 			},
 		},
 	}

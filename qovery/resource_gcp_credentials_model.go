@@ -24,8 +24,10 @@ type GCPCredentialsDataSource struct {
 // toUpsertGcpRequest converts the Terraform model to a domain request.
 func (creds GCPCredentials) toUpsertGcpRequest() credentials.UpsertGcpRequest {
 	return credentials.UpsertGcpRequest{
-		Name:           ToString(creds.Name),
-		GcpCredentials: ToString(creds.GcpCredentials),
+		Name: ToString(creds.Name),
+		ServiceAccountKey: &credentials.GcpServiceAccountKeyCredentials{
+			GcpCredentials: ToString(creds.GcpCredentials),
+		},
 	}
 }
 

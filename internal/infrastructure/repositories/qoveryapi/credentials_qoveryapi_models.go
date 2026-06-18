@@ -95,7 +95,7 @@ func newQoveryScalewayCredentialsRequestFromDomain(request credentials.UpsertSca
 func newQoveryGcpCredentialsRequestFromDomain(request credentials.UpsertGcpRequest) qovery.GcpCredentialsRequest {
 	return qovery.GcpServiceAccountKeyCredentialsRequestAsGcpCredentialsRequest(&qovery.GcpServiceAccountKeyCredentialsRequest{
 		Name:           request.Name,
-		GcpCredentials: request.GcpCredentials,
+		GcpCredentials: request.ServiceAccountKey.GcpCredentials,
 	})
 }
 
