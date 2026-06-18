@@ -56,10 +56,20 @@ func computeOverriddenSettings(
 		}
 		normalizedCurrent := normalizeJSONValue(value)
 		normalizedDefault := normalizeJSONValue(defaultValue)
-		if !reflect.DeepEqual(normalizedDefault, normalizedCurrent) {
+		// When state already reflects the remote value (after normalization),
+		// emit the state's *raw* scalar form rather than the normalized one. The
+		// config drives advanced_settings_json as a JSON string, so a customer who
+		// wrote "true"/"60" (string) in jsonencode keeps those values in state;
+		// coercing them to true/60 (native) on refresh would produce a permanent
+		// diff (QOV-2027). Normalization is still used for the comparison so real
+		// drift is detected — it just no longer rewrites the stored encoding.
+		switch {
+		case inState && reflect.DeepEqual(normalizeJSONValue(stateValue), normalizedCurrent):
+			overridden[name] = stateValue
+		case !reflect.DeepEqual(normalizedDefault, normalizedCurrent):
 			overridden[name] = normalizedCurrent
-		} else if inState {
-			overridden[name] = normalizeJSONValue(stateValue)
+		case inState:
+			overridden[name] = stateValue
 		}
 	}
 
@@ -77,7 +87,10 @@ func computeOverriddenSettings(
 		if _, inDefaults := defaults[name]; inDefaults {
 			continue
 		}
-		overridden[name] = normalizeJSONValue(stateValue)
+		// Preserve the state's raw scalar form for the same reason as above
+		// (QOV-2027): the API never returns these keys, so the state value is the
+		// only source of truth and must round-trip unchanged against the config.
+		overridden[name] = stateValue
 	}
 
 	return overridden
