@@ -130,6 +130,38 @@ func TestAcc_ClusterWithStaticIP(t *testing.T) {
 	})
 }
 
+// TestAcc_ClusterAdvancedSettingsStringScalar reproduces QOV-2027: advanced
+// settings declared with string scalar values in jsonencode() (e.g. "2" instead
+// of 2) must not produce a perpetual diff. The API returns the value as a native
+// number, so without form preservation the refreshed state ({"k":2}) would no
+// longer match the configured string ({"k":"2"}) and every plan would re-propose
+// the change. The PlanOnly step asserts the re-plan after refresh is empty.
+func TestAcc_ClusterAdvancedSettingsStringScalar(t *testing.T) {
+	t.Parallel()
+	testName := "cluster-adv-settings-string-scalar"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
+		Steps: []resource.TestStep{
+			// Apply with a string-valued advanced setting.
+			{
+				Config: testAccClusterKarpenterConfigWithStringAdvancedSettings(testName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttrSet("qovery_cluster.test", "advanced_settings_json"),
+				),
+			},
+			// Re-plan the same config: must be empty (no string->native coercion diff).
+			{
+				Config:             testAccClusterKarpenterConfigWithStringAdvancedSettings(testName),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 func TestAcc_ClusterWithKeda(t *testing.T) {
 	t.Parallel()
 	testName := "cluster-with-keda"
@@ -596,6 +628,42 @@ resource "qovery_cluster" "test" {
       }
     }
   }
+}
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName))
+}
+
+func testAccClusterKarpenterConfigWithStringAdvancedSettings(testName string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id  = "%s"
+  organization_id = "%s"
+  name            = "%s"
+  cloud_provider  = "AWS"
+  region          = "eu-west-3"
+  kubernetes_mode = "MANAGED"
+  state           = "READY"
+
+  features = {
+    vpc_subnet = "10.0.0.0/16"
+    karpenter = {
+      spot_enabled                 = true
+      disk_size_in_gib             = 50
+      default_service_architecture = "AMD64"
+      qovery_node_pools = {
+        requirements = [
+          { key = "InstanceSize",   operator = "In", values = ["small", "medium", "large"] },
+          { key = "InstanceFamily", operator = "In", values = ["t3a"] },
+          { key = "Arch",           operator = "In", values = ["AMD64"] },
+        ]
+      }
+    }
+  }
+
+  # String scalar value (QOV-2027). The API returns this as a native number;
+  # the provider must preserve the "2" string form so the plan stays empty.
+  advanced_settings_json = jsonencode({
+    "loki.log_retention_in_week" = "2"
+  })
 }
 `, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName))
 }
