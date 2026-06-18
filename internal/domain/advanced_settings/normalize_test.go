@@ -143,11 +143,13 @@ func TestComputeOverriddenSettings(t *testing.T) {
 			expected:              map[string]any{},
 		},
 		{
-			testName: "state_value_normalized_when_matching_default",
+			// State's raw scalar form is preserved so the config string round-trips
+			// without a perpetual diff (QOV-2027); comparison still normalizes.
+			testName: "state_value_form_preserved_when_matching_default",
 			current:  map[string]any{"static_ip": false},
 			defaults: map[string]any{"static_ip": false},
 			state:    map[string]any{"static_ip": "false"},
-			expected: map[string]any{"static_ip": false},
+			expected: map[string]any{"static_ip": "false"},
 		},
 		{
 			testName: "numeric_string_normalized",
@@ -193,11 +195,13 @@ func TestComputeOverriddenSettings(t *testing.T) {
 			expected: map[string]any{"static_ip": true, "network.dns.ndots": float64(1)},
 		},
 		{
-			testName: "unknown_state_key_value_is_normalized",
+			// Unknown keys (never returned by the API) round-trip in the state's raw
+			// scalar form so the config string matches on refresh (QOV-2027).
+			testName: "unknown_state_key_value_form_preserved",
 			current:  map[string]any{},
 			defaults: map[string]any{},
 			state:    map[string]any{"security.automount_service_account_token": "true"},
-			expected: map[string]any{"security.automount_service_account_token": true},
+			expected: map[string]any{"security.automount_service_account_token": "true"},
 		},
 		{
 			testName:              "import_does_not_resurrect_unknown_keys",
@@ -284,5 +288,64 @@ func TestComputeOverriddenSettingsStringBoolRoundTrip(t *testing.T) {
 	staticIP := parsed["qovery.static_ip_mode"]
 	if _, isBool := staticIP.(bool); !isBool {
 		t.Errorf("qovery.static_ip_mode should be bool after normalization, got %T (%v)", staticIP, staticIP)
+	}
+}
+
+// TestComputeOverriddenSettingsPreservesStateScalarForm reproduces QOV-2027:
+// the customer declares advanced settings with STRING scalar values in their
+// jsonencode() config (e.g. "true", "60"). After the first apply, state holds
+// those raw strings. On the next refresh, computeOverriddenSettings must keep
+// the state's original textual form rather than coercing it to the native
+// JSON type — otherwise the refreshed state ({"k":true}) no longer matches the
+// configured string ({"k":"true"}) and Terraform reports a perpetual diff.
+//
+// The comparison still normalizes (so genuine drift is detected), but when the
+// state already reflects remote reality the output preserves the state's form.
+func TestComputeOverriddenSettingsPreservesStateScalarForm(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		testName string
+		current  map[string]any
+		defaults map[string]any
+		state    map[string]any
+		expected map[string]any
+	}{
+		{
+			// API returns native bool, state holds the customer's string "true".
+			testName: "string_state_bool_current_preserves_string",
+			current:  map[string]any{"k8s.deploy_api_gateway": true},
+			defaults: map[string]any{"k8s.deploy_api_gateway": false},
+			state:    map[string]any{"k8s.deploy_api_gateway": "true"},
+			expected: map[string]any{"k8s.deploy_api_gateway": "true"},
+		},
+		{
+			// API returns native number, state holds the customer's string "60".
+			testName: "string_state_number_current_preserves_string",
+			current:  map[string]any{"envoy.gateway_api.http_request_timeout_seconds": float64(60)},
+			defaults: map[string]any{"envoy.gateway_api.http_request_timeout_seconds": float64(30)},
+			state:    map[string]any{"envoy.gateway_api.http_request_timeout_seconds": "60"},
+			expected: map[string]any{"envoy.gateway_api.http_request_timeout_seconds": "60"},
+		},
+		{
+			// Genuine drift: remote overrides away from default and the state string
+			// no longer matches it — surface the real (normalized) remote value.
+			testName: "real_drift_still_surfaces_current",
+			current:  map[string]any{"k8s.deploy_api_gateway": true},
+			defaults: map[string]any{"k8s.deploy_api_gateway": false},
+			state:    map[string]any{"k8s.deploy_api_gateway": "false"},
+			expected: map[string]any{"k8s.deploy_api_gateway": true},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.testName, func(t *testing.T) {
+			t.Parallel()
+			result := computeOverriddenSettings(tc.current, tc.defaults, tc.state, false)
+			if !reflect.DeepEqual(result, tc.expected) {
+				t.Errorf("computeOverriddenSettings() = %v, want %v", result, tc.expected)
+			}
+		})
 	}
 }
