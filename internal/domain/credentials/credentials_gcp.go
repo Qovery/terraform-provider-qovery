@@ -40,15 +40,13 @@ func (r UpsertGcpRequest) Validate() error {
 		return errors.Wrap(errors.New("only one of ServiceAccountKey or WorkloadIdentity must be provided"), ErrInvalidUpsertGcpRequest.Error())
 	}
 
-	if r.ServiceAccountKey != nil {
-		if err := validator.New().Struct(r.ServiceAccountKey); err != nil {
-			return errors.Wrap(err, ErrInvalidUpsertGcpRequest.Error())
-		}
-	}
+	// Exactly one auth mode is set at this point; validate it.
+	authMode := any(r.ServiceAccountKey)
 	if r.WorkloadIdentity != nil {
-		if err := validator.New().Struct(r.WorkloadIdentity); err != nil {
-			return errors.Wrap(err, ErrInvalidUpsertGcpRequest.Error())
-		}
+		authMode = r.WorkloadIdentity
+	}
+	if err := validator.New().Struct(authMode); err != nil {
+		return errors.Wrap(err, ErrInvalidUpsertGcpRequest.Error())
 	}
 
 	return nil

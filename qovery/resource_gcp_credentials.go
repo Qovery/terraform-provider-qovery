@@ -90,12 +90,6 @@ func (r gcpCredentialsResource) Schema(_ context.Context, _ resource.SchemaReque
 				MarkdownDescription: "GCP service account key in JSON format. Mutually exclusive with `service_account_email`/`workload_identity_provider_resource`. This is a sensitive value and will not be displayed in plan output. Use `file()` to load from a file: `file(\"${path.module}/service-account.json\")`.",
 				Optional:            true,
 				Sensitive:           true,
-				Validators: []validator.String{
-					stringvalidator.ConflictsWith(
-						path.MatchRoot("service_account_email"),
-						path.MatchRoot("workload_identity_provider_resource"),
-					),
-				},
 			},
 			"service_account_email": schema.StringAttribute{
 				Description:         "GCP service account email to impersonate via Workload Identity Federation.",
