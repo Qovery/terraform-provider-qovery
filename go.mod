@@ -11,11 +11,12 @@ require (
 	github.com/hashicorp/terraform-plugin-docs v0.25.0
 	github.com/hashicorp/terraform-plugin-framework v1.19.0
 	github.com/hashicorp/terraform-plugin-framework-jsontypes v0.2.0
+	github.com/hashicorp/terraform-plugin-framework-validators v0.19.0
 	github.com/hashicorp/terraform-plugin-go v0.31.0
 	github.com/hashicorp/terraform-plugin-log v0.10.0
 	github.com/hashicorp/terraform-plugin-sdk/v2 v2.40.0
 	github.com/pkg/errors v0.9.1
-	github.com/qovery/qovery-client-go v0.0.0-20260615121858-0128d01fec47
+	github.com/qovery/qovery-client-go v0.0.0-20260617081619-38e8ab5b0f61
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/sethvargo/go-envconfig v1.1.0
 	github.com/stretchr/testify v1.11.1

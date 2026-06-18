@@ -2,7 +2,11 @@
 
 Provides a Qovery GCP credentials resource. This is used to create and manage GCP credentials that Qovery uses to provision and manage GKE clusters in your Google Cloud project.
 
-Authentication uses a **GCP service account key** in JSON format. The service account must have sufficient permissions to manage GKE clusters and associated resources. Use `file()` to read the JSON key from a file rather than hardcoding it.
+Supports two authentication modes:
+- **Service account key** (`gcp_credentials`): a GCP service account key in JSON format.
+- **Workload Identity Federation** (`service_account_email` + `workload_identity_provider_resource`): keyless authentication via WIF.
+
+Exactly one mode must be configured.
 
 
 ## Example
@@ -12,10 +16,19 @@ Authentication uses a **GCP service account key** in JSON format. The service ac
 </div><br />
 
 ```terraform
+# Authenticate with a GCP service account key (JSON)
 resource "qovery_gcp_credentials" "my_gcp_credentials" {
   organization_id = qovery_organization.my_organization.id
   name            = "my-gcp-credentials"
   gcp_credentials = file("${path.module}/service-account.json")
+}
+
+# Authenticate with Workload Identity Federation (keyless)
+resource "qovery_gcp_credentials" "my_gcp_wif_credentials" {
+  organization_id                     = qovery_organization.my_organization.id
+  name                                = "my-gcp-wif-credentials"
+  service_account_email               = "qovery@my-project.iam.gserviceaccount.com"
+  workload_identity_provider_resource = "projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider"
 }
 ```
 
@@ -24,9 +37,14 @@ resource "qovery_gcp_credentials" "my_gcp_credentials" {
 
 ### Required
 
-- `gcp_credentials` (String, Sensitive) GCP service account key in JSON format. This is a sensitive value and will not be displayed in plan output. Use `file()` to load from a file: `file("${path.module}/service-account.json")`.
 - `name` (String) Name of the GCP credentials. Used for display purposes in the Qovery console.
 - `organization_id` (String) ID of the Qovery organization in which to create the credentials. **Cannot be changed after creation** (forces resource replacement).
+
+### Optional
+
+- `gcp_credentials` (String, Sensitive) GCP service account key in JSON format. Mutually exclusive with `service_account_email`/`workload_identity_provider_resource`. This is a sensitive value and will not be displayed in plan output. Use `file()` to load from a file: `file("${path.module}/service-account.json")`.
+- `service_account_email` (String) GCP service account email to impersonate (e.g. `qovery@my-project.iam.gserviceaccount.com`). Required together with `workload_identity_provider_resource` when using Workload Identity Federation. Mutually exclusive with `gcp_credentials`.
+- `workload_identity_provider_resource` (String) Full Workload Identity Provider resource path (e.g. `projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider`). Required together with `service_account_email`. Mutually exclusive with `gcp_credentials`.
 
 ### Read-Only
 

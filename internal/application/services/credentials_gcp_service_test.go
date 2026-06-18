@@ -68,8 +68,8 @@ func TestCredentialsGcpService_Create(t *testing.T) {
 			TestName:       "fail_with_empty_organization_id",
 			OrganizationID: "",
 			Request: credentials.UpsertGcpRequest{
-				Name:           gofakeit.Name(),
-				GcpCredentials: gofakeit.UUID(),
+				Name:              gofakeit.Name(),
+				ServiceAccountKey: &credentials.GcpServiceAccountKeyCredentials{GcpCredentials: gofakeit.UUID()},
 			},
 			SetupMock:     func(m *mocks_test.CredentialsGcpRepository) {},
 			ExpectedError: credentials.ErrFailedToCreateGcpCredentials,
@@ -78,8 +78,8 @@ func TestCredentialsGcpService_Create(t *testing.T) {
 			TestName:       "fail_with_invalid_organization_id",
 			OrganizationID: "invalid-uuid",
 			Request: credentials.UpsertGcpRequest{
-				Name:           gofakeit.Name(),
-				GcpCredentials: gofakeit.UUID(),
+				Name:              gofakeit.Name(),
+				ServiceAccountKey: &credentials.GcpServiceAccountKeyCredentials{GcpCredentials: gofakeit.UUID()},
 			},
 			SetupMock:     func(m *mocks_test.CredentialsGcpRepository) {},
 			ExpectedError: credentials.ErrFailedToCreateGcpCredentials,
@@ -97,8 +97,8 @@ func TestCredentialsGcpService_Create(t *testing.T) {
 			TestName:       "fail_with_repository_error",
 			OrganizationID: uuid.NewString(),
 			Request: credentials.UpsertGcpRequest{
-				Name:           gofakeit.Name(),
-				GcpCredentials: gofakeit.UUID(),
+				Name:              gofakeit.Name(),
+				ServiceAccountKey: &credentials.GcpServiceAccountKeyCredentials{GcpCredentials: gofakeit.UUID()},
 			},
 			SetupMock: func(m *mocks_test.CredentialsGcpRepository) {
 				m.EXPECT().Create(mock.Anything, mock.Anything, mock.Anything).
@@ -110,8 +110,8 @@ func TestCredentialsGcpService_Create(t *testing.T) {
 			TestName:       "success",
 			OrganizationID: uuid.NewString(),
 			Request: credentials.UpsertGcpRequest{
-				Name:           gofakeit.Name(),
-				GcpCredentials: gofakeit.UUID(),
+				Name:              gofakeit.Name(),
+				ServiceAccountKey: &credentials.GcpServiceAccountKeyCredentials{GcpCredentials: gofakeit.UUID()},
 			},
 			SetupMock: func(m *mocks_test.CredentialsGcpRepository) {
 				creds := &credentials.Credentials{
@@ -243,8 +243,8 @@ func TestCredentialsGcpService_Update(t *testing.T) {
 			OrganizationID: "",
 			CredentialsID:  uuid.NewString(),
 			Request: credentials.UpsertGcpRequest{
-				Name:           gofakeit.Name(),
-				GcpCredentials: gofakeit.UUID(),
+				Name:              gofakeit.Name(),
+				ServiceAccountKey: &credentials.GcpServiceAccountKeyCredentials{GcpCredentials: gofakeit.UUID()},
 			},
 			SetupMock:     func(m *mocks_test.CredentialsGcpRepository) {},
 			ExpectedError: credentials.ErrFailedToUpdateGcpCredentials,
@@ -254,8 +254,8 @@ func TestCredentialsGcpService_Update(t *testing.T) {
 			OrganizationID: uuid.NewString(),
 			CredentialsID:  "",
 			Request: credentials.UpsertGcpRequest{
-				Name:           gofakeit.Name(),
-				GcpCredentials: gofakeit.UUID(),
+				Name:              gofakeit.Name(),
+				ServiceAccountKey: &credentials.GcpServiceAccountKeyCredentials{GcpCredentials: gofakeit.UUID()},
 			},
 			SetupMock:     func(m *mocks_test.CredentialsGcpRepository) {},
 			ExpectedError: credentials.ErrFailedToUpdateGcpCredentials,
@@ -275,8 +275,8 @@ func TestCredentialsGcpService_Update(t *testing.T) {
 			OrganizationID: uuid.NewString(),
 			CredentialsID:  uuid.NewString(),
 			Request: credentials.UpsertGcpRequest{
-				Name:           gofakeit.Name(),
-				GcpCredentials: gofakeit.UUID(),
+				Name:              gofakeit.Name(),
+				ServiceAccountKey: &credentials.GcpServiceAccountKeyCredentials{GcpCredentials: gofakeit.UUID()},
 			},
 			SetupMock: func(m *mocks_test.CredentialsGcpRepository) {
 				creds := &credentials.Credentials{

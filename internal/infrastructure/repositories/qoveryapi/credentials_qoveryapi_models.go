@@ -36,6 +36,12 @@ func newDomainCredentialsFromQovery(organizationID string, creds *qovery.Cluster
 			OrganizationID: organizationID,
 			Name:           castedCreds.GetName(),
 		})
+	case *qovery.GcpWorkloadIdentityFederationClusterCredentials:
+		return credentials.NewCredentials(credentials.NewCredentialsParams{
+			CredentialsID:  castedCreds.GetId(),
+			OrganizationID: organizationID,
+			Name:           castedCreds.GetName(),
+		})
 	case *qovery.AzureStaticClusterCredentials:
 		return credentials.NewCredentials(credentials.NewCredentialsParams{
 			CredentialsID:  castedCreds.GetId(),
@@ -93,9 +99,17 @@ func newQoveryScalewayCredentialsRequestFromDomain(request credentials.UpsertSca
 
 // newQoveryGcpCredentialsRequestFromDomain takes the domain request credentials.UpsertGcpRequest and turns it into a qovery.GcpCredentialsRequest to make the api call.
 func newQoveryGcpCredentialsRequestFromDomain(request credentials.UpsertGcpRequest) qovery.GcpCredentialsRequest {
+	if request.WorkloadIdentity != nil {
+		return qovery.GcpWorkloadIdentityFederationCredentialsRequestAsGcpCredentialsRequest(&qovery.GcpWorkloadIdentityFederationCredentialsRequest{
+			Name:                             request.Name,
+			ServiceAccountEmail:              request.WorkloadIdentity.ServiceAccountEmail,
+			WorkloadIdentityProviderResource: request.WorkloadIdentity.WorkloadIdentityProviderResource,
+		})
+	}
+
 	return qovery.GcpServiceAccountKeyCredentialsRequestAsGcpCredentialsRequest(&qovery.GcpServiceAccountKeyCredentialsRequest{
 		Name:           request.Name,
-		GcpCredentials: request.GcpCredentials,
+		GcpCredentials: request.ServiceAccountKey.GcpCredentials,
 	})
 }
 

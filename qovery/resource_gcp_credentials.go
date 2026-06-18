@@ -5,11 +5,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
@@ -17,8 +20,9 @@ import (
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
 var (
-	_ resource.ResourceWithConfigure   = &gcpCredentialsResource{}
-	_ resource.ResourceWithImportState = gcpCredentialsResource{}
+	_ resource.ResourceWithConfigure        = &gcpCredentialsResource{}
+	_ resource.ResourceWithImportState      = gcpCredentialsResource{}
+	_ resource.ResourceWithConfigValidators = &gcpCredentialsResource{}
 )
 
 type gcpCredentialsResource struct {
@@ -53,10 +57,12 @@ func (r *gcpCredentialsResource) Configure(_ context.Context, req resource.Confi
 
 func (r gcpCredentialsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery GCP credentials resource. This can be used to create and manage Qovery GCP credentials.",
+		Description: "Provides a Qovery GCP credentials resource. This can be used to create and manage Qovery GCP credentials. Supports both service account key and Workload Identity Federation authentication modes.",
 		MarkdownDescription: "Provides a Qovery GCP credentials resource. This is used to create and manage GCP credentials that Qovery uses to provision and manage GKE clusters in your Google Cloud project.\n\n" +
-			"Authentication uses a **GCP service account key** in JSON format. The service account must have sufficient permissions to manage GKE clusters and associated resources. " +
-			"Use `file()` to read the JSON key from a file rather than hardcoding it.",
+			"Supports two authentication modes:\n" +
+			"- **Service account key** (`gcp_credentials`): a GCP service account key in JSON format.\n" +
+			"- **Workload Identity Federation** (`service_account_email` + `workload_identity_provider_resource`): keyless authentication via WIF.\n\n" +
+			"Exactly one mode must be configured.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description:         "Id of the GCP credentials.",
@@ -80,12 +86,39 @@ func (r gcpCredentialsResource) Schema(_ context.Context, _ resource.SchemaReque
 				Required:            true,
 			},
 			"gcp_credentials": schema.StringAttribute{
-				Description:         "Your GCP service account credentials JSON.",
-				MarkdownDescription: "GCP service account key in JSON format. This is a sensitive value and will not be displayed in plan output. Use `file()` to load from a file: `file(\"${path.module}/service-account.json\")`.",
-				Required:            true,
+				Description:         "Your GCP service account credentials JSON. Mutually exclusive with the Workload Identity Federation fields.",
+				MarkdownDescription: "GCP service account key in JSON format. Mutually exclusive with `service_account_email`/`workload_identity_provider_resource`. This is a sensitive value and will not be displayed in plan output. Use `file()` to load from a file: `file(\"${path.module}/service-account.json\")`.",
+				Optional:            true,
 				Sensitive:           true,
 			},
+			"service_account_email": schema.StringAttribute{
+				Description:         "GCP service account email to impersonate via Workload Identity Federation.",
+				MarkdownDescription: "GCP service account email to impersonate (e.g. `qovery@my-project.iam.gserviceaccount.com`). Required together with `workload_identity_provider_resource` when using Workload Identity Federation. Mutually exclusive with `gcp_credentials`.",
+				Optional:            true,
+				Validators: []validator.String{
+					stringvalidator.AlsoRequires(path.MatchRoot("workload_identity_provider_resource")),
+				},
+			},
+			"workload_identity_provider_resource": schema.StringAttribute{
+				Description:         "Full GCP Workload Identity Provider resource.",
+				MarkdownDescription: "Full Workload Identity Provider resource path (e.g. `projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider`). Required together with `service_account_email`. Mutually exclusive with `gcp_credentials`.",
+				Optional:            true,
+				Validators: []validator.String{
+					stringvalidator.AlsoRequires(path.MatchRoot("service_account_email")),
+				},
+			},
 		},
+	}
+}
+
+// ConfigValidators enforces that exactly one authentication mode is configured:
+// either gcp_credentials (service account key) or the Workload Identity Federation fields.
+func (r gcpCredentialsResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.ExactlyOneOf(
+			path.MatchRoot("gcp_credentials"),
+			path.MatchRoot("service_account_email"),
+		),
 	}
 }
 
