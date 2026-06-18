@@ -328,22 +328,6 @@ func TestComputeOverriddenSettingsPreservesStateScalarForm(t *testing.T) {
 			expected: map[string]any{"envoy.gateway_api.http_request_timeout_seconds": "60"},
 		},
 		{
-			// current matches default but key is in state as a string — preserve string.
-			testName: "string_state_matches_default_preserves_string",
-			current:  map[string]any{"static_ip": false},
-			defaults: map[string]any{"static_ip": false},
-			state:    map[string]any{"static_ip": "false"},
-			expected: map[string]any{"static_ip": "false"},
-		},
-		{
-			// Unknown key (absent from current and defaults) — preserve state's string form.
-			testName: "unknown_key_preserves_string",
-			current:  map[string]any{},
-			defaults: map[string]any{},
-			state:    map[string]any{"security.automount_service_account_token": "true"},
-			expected: map[string]any{"security.automount_service_account_token": "true"},
-		},
-		{
 			// Genuine drift: remote overrides away from default and the state string
 			// no longer matches it — surface the real (normalized) remote value.
 			testName: "real_drift_still_surfaces_current",

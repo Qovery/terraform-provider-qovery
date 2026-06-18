@@ -56,6 +56,7 @@ func computeOverriddenSettings(
 		}
 		normalizedCurrent := normalizeJSONValue(value)
 		normalizedDefault := normalizeJSONValue(defaultValue)
+		normalizedState := normalizeJSONValue(stateValue)
 		// When state already reflects the remote value (after normalization),
 		// emit the state's *raw* scalar form rather than the normalized one. The
 		// config drives advanced_settings_json as a JSON string, so a customer who
@@ -64,7 +65,7 @@ func computeOverriddenSettings(
 		// diff (QOV-2027). Normalization is still used for the comparison so real
 		// drift is detected — it just no longer rewrites the stored encoding.
 		switch {
-		case inState && reflect.DeepEqual(normalizeJSONValue(stateValue), normalizedCurrent):
+		case inState && reflect.DeepEqual(normalizedState, normalizedCurrent):
 			overridden[name] = stateValue
 		case !reflect.DeepEqual(normalizedDefault, normalizedCurrent):
 			overridden[name] = normalizedCurrent
