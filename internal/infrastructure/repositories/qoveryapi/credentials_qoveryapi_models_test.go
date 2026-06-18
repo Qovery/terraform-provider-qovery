@@ -122,6 +122,61 @@ func TestNewQoveryAwsCredentialsRequestFromDomain(t *testing.T) {
 	}
 }
 
+func TestNewQoveryGcpCredentialsRequestFromDomain(t *testing.T) {
+	t.Parallel()
+
+	t.Run("service_account_key", func(t *testing.T) {
+		t.Parallel()
+		json := `{"type":"service_account"}`
+		req := newQoveryGcpCredentialsRequestFromDomain(credentials.UpsertGcpRequest{
+			Name:              "key-creds",
+			ServiceAccountKey: &credentials.GcpServiceAccountKeyCredentials{GcpCredentials: json},
+		})
+		assert.NotNil(t, req.GcpServiceAccountKeyCredentialsRequest)
+		assert.Nil(t, req.GcpWorkloadIdentityFederationCredentialsRequest)
+		assert.Equal(t, "key-creds", req.GcpServiceAccountKeyCredentialsRequest.Name)
+		assert.Equal(t, json, req.GcpServiceAccountKeyCredentialsRequest.GcpCredentials)
+	})
+
+	t.Run("workload_identity_federation", func(t *testing.T) {
+		t.Parallel()
+		req := newQoveryGcpCredentialsRequestFromDomain(credentials.UpsertGcpRequest{
+			Name: "wif-creds",
+			WorkloadIdentity: &credentials.GcpWorkloadIdentityCredentials{
+				ServiceAccountEmail:              "qovery@proj.iam.gserviceaccount.com",
+				WorkloadIdentityProviderResource: "projects/123/locations/global/workloadIdentityPools/p/providers/pr",
+			},
+		})
+		assert.NotNil(t, req.GcpWorkloadIdentityFederationCredentialsRequest)
+		assert.Nil(t, req.GcpServiceAccountKeyCredentialsRequest)
+		assert.Equal(t, "wif-creds", req.GcpWorkloadIdentityFederationCredentialsRequest.Name)
+		assert.Equal(t, "qovery@proj.iam.gserviceaccount.com", req.GcpWorkloadIdentityFederationCredentialsRequest.ServiceAccountEmail)
+		assert.Equal(t, "projects/123/locations/global/workloadIdentityPools/p/providers/pr", req.GcpWorkloadIdentityFederationCredentialsRequest.WorkloadIdentityProviderResource)
+	})
+}
+
+func TestNewDomainCredentialsFromQovery_GcpWif(t *testing.T) {
+	t.Parallel()
+
+	orgID := gofakeit.UUID()
+	credID := gofakeit.UUID()
+	name := gofakeit.Name()
+
+	creds, err := newDomainCredentialsFromQovery(orgID, &qovery.ClusterCredentials{
+		GcpWorkloadIdentityFederationClusterCredentials: &qovery.GcpWorkloadIdentityFederationClusterCredentials{
+			Id:         credID,
+			Name:       name,
+			ObjectType: "GcpWorkloadIdentityFederationClusterCredentials",
+		},
+	})
+
+	assert.NoError(t, err)
+	assert.NotNil(t, creds)
+	assert.Equal(t, credID, creds.ID.String())
+	assert.Equal(t, name, creds.Name)
+	assert.Equal(t, orgID, creds.OrganizationID.String())
+}
+
 func TestNewQoveryScalewayCredentialsRequestFromDomain(t *testing.T) {
 	t.Parallel()
 
