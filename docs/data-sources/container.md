@@ -63,6 +63,7 @@ data "qovery_container" "my_container" {
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this container. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this container. (see [below for nested schema](#nestedatt--environment_variable_files))
+- `ephemeral_storage` (Number) Ephemeral storage of the container in GiB. When unset, the platform default is used.
 - `external_host` (String) The container external FQDN host. Only available if your container is using a publicly accessible port.
 - `external_secret_files` (Attributes Set) List of external secret files linked to this container. (see [below for nested schema](#nestedatt--external_secret_files))
 - `external_secrets` (Attributes Set) List of external secrets linked to this container. (see [below for nested schema](#nestedatt--external_secrets))

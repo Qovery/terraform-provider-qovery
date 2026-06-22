@@ -70,8 +70,9 @@ type Container struct {
 	Tag                         string    `validate:"required"`
 	CPU                         int32     `validate:"required"`
 	Memory                      int32     `validate:"required"`
-	MinRunningInstances         int32     `validate:"gte=0"`
-	MaxRunningInstances         int32     `validate:"required"`
+	EphemeralStorage            *int32
+	MinRunningInstances         int32 `validate:"gte=0"`
+	MaxRunningInstances         int32 `validate:"required"`
 	AutoPreview                 bool
 	Entrypoint                  *string
 	Arguments                   []string
@@ -135,6 +136,7 @@ type NewContainerParams struct {
 	Tag                    string
 	CPU                    int32
 	Memory                 int32
+	EphemeralStorage       *int32
 	MinRunningInstances    int32
 	MaxRunningInstances    int32
 	AutoPreview            bool
@@ -197,6 +199,7 @@ func NewContainer(params NewContainerParams) (*Container, error) {
 		Entrypoint:           params.Entrypoint,
 		CPU:                  params.CPU,
 		Memory:               params.Memory,
+		EphemeralStorage:     params.EphemeralStorage,
 		MinRunningInstances:  params.MinRunningInstances,
 		MaxRunningInstances:  params.MaxRunningInstances,
 		Arguments:            params.Arguments,

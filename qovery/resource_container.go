@@ -146,6 +146,12 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					validators.Int64MinValidator{Min: container.MinMemory},
 				},
 			},
+			"ephemeral_storage": schema.Int64Attribute{
+				Description:         "Ephemeral storage of the container in GiB. When unset, the platform default is used.",
+				MarkdownDescription: "Ephemeral storage of the container in GiB. When unset, the platform default is used.",
+				Optional:            true,
+				Computed:            true,
+			},
 			"min_running_instances": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Minimum number of instances running for the container.",

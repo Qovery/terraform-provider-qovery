@@ -168,6 +168,11 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 					validators.Int64MinValidator{Min: applicationMemoryMin},
 				},
 			},
+			"ephemeral_storage": schema.Int64Attribute{
+				Description:         "Ephemeral storage of the application in GiB. When unset, the platform default is used.",
+				MarkdownDescription: "Ephemeral storage of the application in GiB. When unset, the platform default is used.",
+				Computed:            true,
+			},
 			"min_running_instances": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Minimum number of instances running for the application.",

@@ -17,10 +17,12 @@ resource "qovery_job" "my_cron_job" {
   name           = "my-cron-job"
 
   # Optional
-  auto_preview         = true
-  auto_deploy          = true
-  cpu                  = 500
-  memory               = 512
+  auto_preview = true
+  auto_deploy  = true
+  cpu          = 500
+  memory       = 512
+  # Ephemeral storage in GiB. When unset, the platform default is used.
+  ephemeral_storage    = 4
   max_duration_seconds = 300
   max_nb_restart       = 1
   port                 = 5432
@@ -183,6 +185,7 @@ You can find complete examples within these repositories:
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this job. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this job. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this job. (see [below for nested schema](#nestedatt--environment_variables))
+- `ephemeral_storage` (Number) Ephemeral storage of the job in GiB. When unset, the platform default is used.
 - `external_secret_files` (Attributes Set) List of external secret files linked to this job. External secret files reference upstream secrets (e.g. from AWS Secrets Manager) and are mounted as files at a given path inside the container. (see [below for nested schema](#nestedatt--external_secret_files))
 - `external_secrets` (Attributes Set) List of external secrets linked to this job. External secrets reference upstream secrets (e.g. from AWS Secrets Manager) via a secret manager access configuration. (see [below for nested schema](#nestedatt--external_secrets))
 - `icon_uri` (String) Icon URI representing the job.

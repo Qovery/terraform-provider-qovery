@@ -62,6 +62,7 @@ data "qovery_job" "my_job" {
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this job. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this job. (see [below for nested schema](#nestedatt--environment_variable_files))
+- `ephemeral_storage` (Number) Ephemeral storage of the job in GiB. When unset, the platform default is used.
 - `external_host` (String) The job external FQDN host [NOTE: only if your job is using a publicly accessible port].
 - `external_secret_files` (Attributes Set) List of external secret files linked to this job. (see [below for nested schema](#nestedatt--external_secret_files))
 - `external_secrets` (Attributes Set) List of external secrets linked to this job. (see [below for nested schema](#nestedatt--external_secrets))

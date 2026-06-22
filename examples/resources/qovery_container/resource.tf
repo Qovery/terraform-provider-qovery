@@ -12,6 +12,8 @@ resource "qovery_container" "my_container" {
   auto_deploy  = true
   cpu          = 500
   memory       = 512
+  # Ephemeral storage in GiB. When unset, the platform default is used.
+  ephemeral_storage = 4
   # min_running_instances = 0 enables scale-to-zero. Only allowed when an
   # `autoscaling` (KEDA) block is set below, otherwise the minimum is 1.
   min_running_instances = 0

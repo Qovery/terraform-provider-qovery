@@ -5,10 +5,12 @@ resource "qovery_job" "my_cron_job" {
   name           = "my-cron-job"
 
   # Optional
-  auto_preview         = true
-  auto_deploy          = true
-  cpu                  = 500
-  memory               = 512
+  auto_preview = true
+  auto_deploy  = true
+  cpu          = 500
+  memory       = 512
+  # Ephemeral storage in GiB. When unset, the platform default is used.
+  ephemeral_storage    = 4
   max_duration_seconds = 300
   max_nb_restart       = 1
   port                 = 5432

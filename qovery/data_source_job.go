@@ -103,6 +103,11 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 				),
 				Optional: true,
 			},
+			"ephemeral_storage": schema.Int64Attribute{
+				Description:         "Ephemeral storage of the job in GiB. When unset, the platform default is used.",
+				MarkdownDescription: "Ephemeral storage of the job in GiB. When unset, the platform default is used.",
+				Computed:            true,
+			},
 			"max_duration_seconds": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Job's max duration in seconds.",

@@ -35,6 +35,7 @@ type UpsertRepositoryRequest struct {
 	Entrypoint           *string
 	CPU                  *int32
 	Memory               *int32
+	EphemeralStorage     *int32
 	MinRunningInstances  *int32
 	MaxRunningInstances  *int32
 	Arguments            []string

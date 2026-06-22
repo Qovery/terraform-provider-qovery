@@ -137,6 +137,12 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 					validators.Int64MinValidator{Min: job.MinMemory},
 				},
 			},
+			"ephemeral_storage": schema.Int64Attribute{
+				Description:         "Ephemeral storage of the job in GiB. When unset, the platform default is used.",
+				MarkdownDescription: "Ephemeral storage of the job in GiB. When unset, the platform default is used.",
+				Optional:            true,
+				Computed:            true,
+			},
 			"max_duration_seconds": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Job's max duration in seconds.",

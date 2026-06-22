@@ -31,6 +31,8 @@ resource "qovery_application" "my_application" {
   auto_deploy  = true
   cpu          = 500
   memory       = 512
+  # Ephemeral storage in GiB. When unset, the platform default is used.
+  ephemeral_storage = 4
   # min_running_instances = 0 enables scale-to-zero. Only allowed when an
   # `autoscaling` (KEDA) block is set below, otherwise the minimum is 1.
   min_running_instances = 0
@@ -250,6 +252,7 @@ Default: `DOCKER`.
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this application. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this application. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
+- `ephemeral_storage` (Number) Ephemeral storage of the application in GiB. When unset, the platform default is used.
 - `external_secret_files` (Attributes Set) List of external secret files linked to this application. External secret files reference upstream secrets (e.g. from AWS Secrets Manager) and are mounted as files at a given path inside the container. (see [below for nested schema](#nestedatt--external_secret_files))
 - `external_secrets` (Attributes Set) List of external secrets linked to this application. External secrets reference upstream secrets (e.g. from AWS Secrets Manager) via a secret manager access configuration. (see [below for nested schema](#nestedatt--external_secrets))
 - `icon_uri` (String) Icon URI representing the application. Used in the Qovery console UI.
