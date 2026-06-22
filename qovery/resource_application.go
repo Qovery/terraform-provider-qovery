@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -234,6 +235,12 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				MarkdownDescription: "Ephemeral storage of the application in GiB. When unset, the platform default is used.",
 				Optional:            true,
 				Computed:            true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.Int64{
+					validators.Int64MinValidator{Min: 0},
+				},
 			},
 			"min_running_instances": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
