@@ -446,6 +446,7 @@ func TestAcc_JobWithEphemeralStorage(t *testing.T) {
 	jobModel := func(ephemeralStorage int32) qovery.Job {
 		return qovery.Job{
 			Name:               qovery.FromString(generateTestName(testName)),
+			IconUri:            qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName))),
 			AutoPreview:        qovery.FromBool(false),
 			CPU:                qovery.FromInt32(500),
 			Memory:             qovery.FromInt32(512),
