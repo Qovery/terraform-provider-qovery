@@ -133,55 +133,70 @@ func (s JobSchedule) toUpsertRequest() job.JobSchedule {
 	}
 }
 
-func JobScheduleFromDomainJobSchedule(s job.JobSchedule) JobSchedule {
+// argumentsFromDomain converts domain arguments to their terraform representation
+// while preserving the prior plan/state null-vs-empty shape when the domain returns
+// no arguments. An empty (non-nil) slice maps to an empty list and a nil slice maps to
+// null. Without this, an empty list declared in the config flips to null after apply
+// (and an omitted/null list would flip to an empty list), breaking Terraform's
+// post-apply consistency check.
+func argumentsFromDomain(domainArgs []string, priorArgs []types.String) []types.String {
+	if len(domainArgs) > 0 {
+		args := make([]types.String, len(domainArgs))
+		for i, arg := range domainArgs {
+			args[i] = FromString(arg)
+		}
+		return args
+	}
+	if priorArgs == nil {
+		return nil
+	}
+	return []types.String{}
+}
+
+func JobScheduleFromDomainJobSchedule(s job.JobSchedule, state *JobSchedule) JobSchedule {
 	var onStart *ExecutionCommand = nil
 	if s.OnStart != nil {
-		var args []types.String
-		if len(s.OnStart.Arguments) > 0 {
-			args = make([]types.String, len(s.OnStart.Arguments))
-			for i, arg := range s.OnStart.Arguments {
-				args[i] = FromString(arg)
-			}
+		var priorArgs []types.String
+		if state != nil && state.OnStart != nil {
+			priorArgs = state.OnStart.Arguments
 		}
 		onStart = &ExecutionCommand{
 			Entrypoint: FromStringPointer(s.OnStart.Entrypoint),
-			Arguments:  args,
+			Arguments:  argumentsFromDomain(s.OnStart.Arguments, priorArgs),
 		}
 	}
 
 	var onStop *ExecutionCommand = nil
 	if s.OnStop != nil {
-		var args []types.String
-		if len(s.OnStop.Arguments) > 0 {
-			args = make([]types.String, len(s.OnStop.Arguments))
-			for i, arg := range s.OnStop.Arguments {
-				args[i] = FromString(arg)
-			}
+		var priorArgs []types.String
+		if state != nil && state.OnStop != nil {
+			priorArgs = state.OnStop.Arguments
 		}
 		onStop = &ExecutionCommand{
 			Entrypoint: FromStringPointer(s.OnStop.Entrypoint),
-			Arguments:  args,
+			Arguments:  argumentsFromDomain(s.OnStop.Arguments, priorArgs),
 		}
 	}
 
 	var onDelete *ExecutionCommand = nil
 	if s.OnDelete != nil {
-		var args []types.String
-		if len(s.OnDelete.Arguments) > 0 {
-			args = make([]types.String, len(s.OnDelete.Arguments))
-			for i, arg := range s.OnDelete.Arguments {
-				args[i] = FromString(arg)
-			}
+		var priorArgs []types.String
+		if state != nil && state.OnDelete != nil {
+			priorArgs = state.OnDelete.Arguments
 		}
 		onDelete = &ExecutionCommand{
 			Entrypoint: FromStringPointer(s.OnDelete.Entrypoint),
-			Arguments:  args,
+			Arguments:  argumentsFromDomain(s.OnDelete.Arguments, priorArgs),
 		}
 	}
 
 	var cronJob *JobScheduleCron = nil
 	if s.CronJob != nil {
-		c := JobScheduleCronFromDomainJobScheduleCron(*s.CronJob)
+		var priorCron *JobScheduleCron
+		if state != nil {
+			priorCron = state.CronJob
+		}
+		c := JobScheduleCronFromDomainJobScheduleCron(*s.CronJob, priorCron)
 		cronJob = &c
 	}
 
@@ -220,20 +235,17 @@ func (s JobScheduleCron) toUpsertRequest() job.JobScheduleCron {
 	}
 }
 
-func JobScheduleCronFromDomainJobScheduleCron(s job.JobScheduleCron) JobScheduleCron {
-	var args []types.String
-	if len(s.Command.Arguments) > 0 {
-		args = make([]types.String, len(s.Command.Arguments))
-		for i, arg := range s.Command.Arguments {
-			args[i] = FromString(arg)
-		}
+func JobScheduleCronFromDomainJobScheduleCron(s job.JobScheduleCron, state *JobScheduleCron) JobScheduleCron {
+	var priorArgs []types.String
+	if state != nil {
+		priorArgs = state.Command.Arguments
 	}
 
 	return JobScheduleCron{
 		Schedule: FromString(s.Schedule),
 		Command: ExecutionCommand{
 			Entrypoint: FromStringPointer(s.Command.Entrypoint),
-			Arguments:  args,
+			Arguments:  argumentsFromDomain(s.Command.Arguments, priorArgs),
 		},
 	}
 }
@@ -411,7 +423,7 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 	}
 
 	source := JobSourceFromDomainJobSource(job.Source)
-	schedule := JobScheduleFromDomainJobSchedule(job.Schedule)
+	schedule := JobScheduleFromDomainJobSchedule(job.Schedule, state.Schedule)
 
 	healthchecks := convertHealthchecksResponseToDomain(job.HealthChecks)
 	return Job{

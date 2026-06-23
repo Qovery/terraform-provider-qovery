@@ -465,9 +465,17 @@ func HelmSourceFromDomainHelmSource(source helm.Source) HelmSource {
 	}
 }
 
-func HelmPortsFromDomainHelmPorts(ports []helm.Port) *map[string]HelmPort {
+func HelmPortsFromDomainHelmPorts(ports []helm.Port, state *map[string]HelmPort) *map[string]HelmPort {
 	if len(ports) == 0 {
-		return nil
+		// Preserve the prior plan/state shape so an explicitly empty map declared in
+		// the config stays an empty map (and a never-configured/null block stays null).
+		// Returning nil unconditionally flips a config-declared empty map to null and
+		// breaks Terraform's post-apply consistency check.
+		if state == nil {
+			return nil
+		}
+		empty := make(map[string]HelmPort)
+		return &empty
 	}
 
 	portsAsMap := make(map[string]HelmPort, len(ports))
@@ -488,7 +496,7 @@ func HelmPortsFromDomainHelmPorts(ports []helm.Port) *map[string]HelmPort {
 func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) Helm {
 	source := HelmSourceFromDomainHelmSource(helm.Source)
 	valuesOverride := HelmValuesOverrideFromDomainHelmValuesOverride(ctx, helm.ValuesOverride, state.ValuesOverride)
-	ports := HelmPortsFromDomainHelmPorts(helm.Ports)
+	ports := HelmPortsFromDomainHelmPorts(helm.Ports, state.Ports)
 
 	return Helm{
 		ID:                           FromString(helm.ID.String()),

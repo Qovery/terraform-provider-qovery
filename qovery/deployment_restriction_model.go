@@ -43,17 +43,23 @@ func FromDeploymentRestrictionList(initialState types.Set, deploymentRestriction
 		})
 	}
 
-	if len(list) == 0 && initialState.IsNull() {
-		return types.SetNull(deploymentRestrictionObjectType)
-	}
-
-	if len(initialState.Elements()) == 0 {
-		return types.SetValueMust(deploymentRestrictionObjectType, []attr.Value{})
-	}
-
 	elements := make([]attr.Value, 0, len(list))
 	for _, v := range list {
 		elements = append(elements, v.toTerraformObject())
+	}
+
+	// When the API returns restrictions, always reflect them (with their IDs) in
+	// state. This is required for imported resources: their initial state has no
+	// restrictions, so we must reconcile from the API by ID instead of trying to
+	// recreate restrictions that already exist (which causes a 409 Conflict on the
+	// next apply).
+	if len(elements) == 0 {
+		// No restrictions on the API side: preserve the prior null-vs-empty shape so
+		// a never-configured block stays null while an explicitly empty set stays empty.
+		if initialState.IsNull() {
+			return types.SetNull(deploymentRestrictionObjectType)
+		}
+		return types.SetValueMust(deploymentRestrictionObjectType, []attr.Value{})
 	}
 
 	return types.SetValueMust(deploymentRestrictionObjectType, elements)
