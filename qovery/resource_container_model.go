@@ -24,6 +24,7 @@ type Container struct {
 	Entrypoint                   types.String  `tfsdk:"entrypoint"`
 	CPU                          types.Int64   `tfsdk:"cpu"`
 	Memory                       types.Int64   `tfsdk:"memory"`
+	EphemeralStorage             types.Int64   `tfsdk:"ephemeral_storage"`
 	MinRunningInstances          types.Int64   `tfsdk:"min_running_instances"`
 	MaxRunningInstances          types.Int64   `tfsdk:"max_running_instances"`
 	AutoPreview                  types.Bool    `tfsdk:"auto_preview"`
@@ -191,6 +192,7 @@ func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomD
 		Entrypoint:           ToStringPointer(cont.Entrypoint),
 		CPU:                  ToInt32Pointer(cont.CPU),
 		Memory:               ToInt32Pointer(cont.Memory),
+		EphemeralStorage:     ToInt32Pointer(cont.EphemeralStorage),
 		MinRunningInstances:  ToInt32Pointer(cont.MinRunningInstances),
 		MaxRunningInstances:  ToInt32Pointer(cont.MaxRunningInstances),
 		Arguments:            cont.ArgumentList(),
@@ -220,6 +222,7 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		Tag:                          FromString(container.Tag),
 		CPU:                          FromInt32(container.CPU),
 		Memory:                       FromInt32(container.Memory),
+		EphemeralStorage:             FromInt32Pointer(container.EphemeralStorage),
 		MinRunningInstances:          FromInt32(container.MinRunningInstances),
 		MaxRunningInstances:          FromInt32(container.MaxRunningInstances),
 		AutoPreview:                  FromBool(container.AutoPreview),

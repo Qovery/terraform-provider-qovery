@@ -29,6 +29,7 @@ type UpsertRepositoryRequest struct {
 	Entrypoint           *string
 	CPU                  *int32
 	Memory               *int32
+	EphemeralStorage     *int32
 	MaxNbRestart         *int32
 	MaxDurationSeconds   *int32
 	Healthchecks         qovery2.Healthcheck

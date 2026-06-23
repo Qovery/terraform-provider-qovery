@@ -48,18 +48,19 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 				Arguments: []string{
 					gofakeit.Word(),
 				},
-				Name:                gofakeit.Name(),
-				IconUri:             fmt.Sprintf("app://qovery-console/%v", gofakeit.Name()),
-				ImageName:           gofakeit.Name(),
-				Tag:                 gofakeit.Word(),
-				Entrypoint:          new(gofakeit.Word()),
-				AutoPreview:         gofakeit.Bool(),
-				Cpu:                 int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
-				Memory:              int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
-				MaximumCpu:          int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
-				MaximumMemory:       int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
-				MinRunningInstances: int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
-				MaxRunningInstances: int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
+				Name:                  gofakeit.Name(),
+				IconUri:               fmt.Sprintf("app://qovery-console/%v", gofakeit.Name()),
+				ImageName:             gofakeit.Name(),
+				Tag:                   gofakeit.Word(),
+				Entrypoint:            new(gofakeit.Word()),
+				AutoPreview:           gofakeit.Bool(),
+				Cpu:                   int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
+				Memory:                int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
+				EphemeralStorageInGib: new(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
+				MaximumCpu:            int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
+				MaximumMemory:         int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
+				MinRunningInstances:   int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
+				MaxRunningInstances:   int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range)),
 				Healthchecks: qovery.Healthcheck{
 					ReadinessProbe: *qovery.NewNullableProbe(nil),
 					LivenessProbe:  *qovery.NewNullableProbe(nil),
@@ -91,6 +92,7 @@ func TestNewDomainContainerFromQovery(t *testing.T) {
 			assert.Equal(t, tc.Container.Tag, cont.Tag)
 			assert.Equal(t, tc.Container.Cpu, cont.CPU)
 			assert.Equal(t, tc.Container.Memory, cont.Memory)
+			assert.Equal(t, tc.Container.EphemeralStorageInGib, cont.EphemeralStorage)
 			assert.Equal(t, tc.Container.MinRunningInstances, cont.MinRunningInstances)
 			assert.Equal(t, tc.Container.MaxRunningInstances, cont.MaxRunningInstances)
 			assert.Equal(t, tc.Container.AutoPreview, cont.AutoPreview)
@@ -148,6 +150,7 @@ func TestNewQoveryContainerRequestFromDomain(t *testing.T) {
 				Entrypoint:          new(gofakeit.Word()),
 				CPU:                 new(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
 				Memory:              new(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
+				EphemeralStorage:    new(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
 				MinRunningInstances: new(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
 				MaxRunningInstances: new(int32(gofakeit.IntRange(minContainerInt32Range, maxContainerInt32Range))),
 				AutoPreview:         new(gofakeit.Bool()),
@@ -179,6 +182,7 @@ func TestNewQoveryContainerRequestFromDomain(t *testing.T) {
 			assert.Equal(t, tc.Request.Entrypoint, req.Entrypoint)
 			assert.Equal(t, tc.Request.CPU, req.Cpu)
 			assert.Equal(t, tc.Request.Memory, req.Memory)
+			assert.Equal(t, tc.Request.EphemeralStorage, req.EphemeralStorageInGib)
 			assert.Equal(t, tc.Request.MinRunningInstances, req.MinRunningInstances)
 			assert.Equal(t, tc.Request.MaxRunningInstances, req.MaxRunningInstances)
 

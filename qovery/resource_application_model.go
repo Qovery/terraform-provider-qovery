@@ -24,6 +24,7 @@ type Application struct {
 	DockerfilePath               types.String              `tfsdk:"dockerfile_path"`
 	CPU                          types.Int64               `tfsdk:"cpu"`
 	Memory                       types.Int64               `tfsdk:"memory"`
+	EphemeralStorage             types.Int64               `tfsdk:"ephemeral_storage"`
 	MinRunningInstances          types.Int64               `tfsdk:"min_running_instances"`
 	MaxRunningInstances          types.Int64               `tfsdk:"max_running_instances"`
 	AutoPreview                  types.Bool                `tfsdk:"auto_preview"`
@@ -182,6 +183,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			DockerfilePath:         ToNullableString(app.DockerfilePath),
 			Cpu:                    ToInt32Pointer(app.CPU),
 			Memory:                 ToInt32Pointer(app.Memory),
+			EphemeralStorageInGib:  ToInt32Pointer(app.EphemeralStorage),
 			MinRunningInstances:    ToInt32Pointer(app.MinRunningInstances),
 			MaxRunningInstances:    ToInt32Pointer(app.MaxRunningInstances),
 			AutoPreview:            ToBoolPointer(app.AutoPreview),
@@ -303,6 +305,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		DockerfilePath:         ToNullableString(app.DockerfilePath),
 		Cpu:                    ToInt32Pointer(app.CPU),
 		Memory:                 ToInt32Pointer(app.Memory),
+		EphemeralStorageInGib:  ToInt32Pointer(app.EphemeralStorage),
 		MinRunningInstances:    ToInt32Pointer(app.MinRunningInstances),
 		MaxRunningInstances:    ToInt32Pointer(app.MaxRunningInstances),
 		AutoPreview:            ToBoolPointer(app.AutoPreview),
@@ -349,6 +352,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		DockerfilePath:               FromNullableString(app.ApplicationResponse.DockerfilePath),
 		CPU:                          FromInt32Pointer(app.ApplicationResponse.Cpu),
 		Memory:                       FromInt32Pointer(app.ApplicationResponse.Memory),
+		EphemeralStorage:             FromInt32Pointer(app.ApplicationResponse.EphemeralStorageInGib),
 		MinRunningInstances:          FromInt32Pointer(app.ApplicationResponse.MinRunningInstances),
 		MaxRunningInstances:          FromInt32Pointer(app.ApplicationResponse.MaxRunningInstances),
 		AutoPreview:                  FromBoolPointer(app.ApplicationResponse.AutoPreview),

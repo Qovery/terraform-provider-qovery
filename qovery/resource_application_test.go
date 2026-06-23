@@ -254,6 +254,49 @@ func TestAcc_Application(t *testing.T) {
 	})
 }
 
+func TestAcc_ApplicationWithEphemeralStorage(t *testing.T) {
+	t.Parallel()
+	testName := "application-ephemeral-storage"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
+		Steps: []resource.TestStep{
+			// Create with ephemeral_storage
+			{
+				Config: testAccApplicationDefaultConfigWithEphemeralStorage(
+					testName,
+					"4",
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_application.test", "ephemeral_storage", "4"),
+				),
+			},
+			// Update ephemeral_storage
+			{
+				Config: testAccApplicationDefaultConfigWithEphemeralStorage(
+					testName,
+					"8",
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "ephemeral_storage", "8"),
+				),
+			},
+			// Check Import
+			{
+				ResourceName:      "qovery_application.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAcc_ApplicationWithAutoPreview(t *testing.T) {
 	t.Parallel()
 	testName := "application-with-auto-preview"
@@ -1467,6 +1510,26 @@ resource "qovery_application" "test" {
  healthchecks = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), cpu, memory, minRunningInstances, maxRunningInstances, applicationRepositoryURL, getTestQoverySandboxGitTokenID(),
+	)
+}
+
+func testAccApplicationDefaultConfigWithEphemeralStorage(testName string, ephemeralStorage string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_application" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  build_mode = "DOCKER"
+  dockerfile_path = "Dockerfile"
+  ephemeral_storage = "%s"
+  git_repository = {
+    url = "%s"
+    git_token_id = "%s"
+  }
+  healthchecks = {}
+}
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), ephemeralStorage, applicationRepositoryURL, getTestQoverySandboxGitTokenID(),
 	)
 }
 

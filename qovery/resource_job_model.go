@@ -257,6 +257,7 @@ type Job struct {
 	IconUri                      types.String  `tfsdk:"icon_uri"`
 	CPU                          types.Int64   `tfsdk:"cpu"`
 	Memory                       types.Int64   `tfsdk:"memory"`
+	EphemeralStorage             types.Int64   `tfsdk:"ephemeral_storage"`
 	MaxDurationSeconds           types.Int64   `tfsdk:"max_duration_seconds"`
 	MaxNbRestart                 types.Int64   `tfsdk:"max_nb_restart"`
 	AutoPreview                  types.Bool    `tfsdk:"auto_preview"`
@@ -401,6 +402,7 @@ func (j Job) toUpsertRepositoryRequest() job.UpsertRepositoryRequest {
 		AutoPreview:          ToBoolPointer(j.AutoPreview),
 		CPU:                  ToInt32Pointer(j.CPU),
 		Memory:               ToInt32Pointer(j.Memory),
+		EphemeralStorage:     ToInt32Pointer(j.EphemeralStorage),
 		MaxNbRestart:         ToInt32Pointer(j.MaxNbRestart),
 		MaxDurationSeconds:   ToInt32Pointer(j.MaxDurationSeconds),
 		DeploymentStageID:    ToString(j.DeploymentStageId),
@@ -433,6 +435,7 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		IconUri:                      FromString(job.IconUri),
 		CPU:                          FromInt32(job.CPU),
 		Memory:                       FromInt32(job.Memory),
+		EphemeralStorage:             FromInt32Pointer(job.EphemeralStorage),
 		MaxNbRestart:                 FromInt32(job.MaxNbRestart),
 		MaxDurationSeconds:           FromInt32(job.MaxDurationSeconds),
 		AutoPreview:                  FromBool(job.AutoPreview),

@@ -293,6 +293,50 @@ func TestAcc_ContainerWithAutoPreview(t *testing.T) {
 	})
 }
 
+func TestAcc_ContainerWithEphemeralStorage(t *testing.T) {
+	t.Parallel()
+	testName := "container-ephemeral-storage"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryContainerDestroy("qovery_container.test"),
+		Steps: []resource.TestStep{
+			// Create with ephemeral_storage
+			{
+				Config: testAccContainerDefaultConfigWithEphemeralStorage(
+					testName,
+					"4",
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_container.test", "ephemeral_storage", "4"),
+				),
+			},
+			// Update ephemeral_storage
+			{
+				Config: testAccContainerDefaultConfigWithEphemeralStorage(
+					testName,
+					"8",
+				),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "ephemeral_storage", "8"),
+				),
+			},
+			// Check Import
+			{
+				ResourceName:      "qovery_container.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func TestAcc_ContainerWithResources(t *testing.T) {
 	t.Parallel()
 	testName := "container-with-resources"
@@ -1705,6 +1749,25 @@ resource "qovery_container" "test" {
   healthchecks = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, cpu, memory, minRunningInstances, maxRunningInstances,
+	)
+}
+
+func testAccContainerDefaultConfigWithEphemeralStorage(testName string, ephemeralStorage string) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_container" "test" {
+  environment_id = qovery_environment.test.id
+  registry_id = qovery_container_registry.test.id
+  name = "%s"
+  image_name = "%s"
+  tag = "%s"
+  ephemeral_storage = "%s"
+  healthchecks = {}
+}
+`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, ephemeralStorage,
 	)
 }
 

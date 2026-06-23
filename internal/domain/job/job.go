@@ -66,6 +66,7 @@ type Job struct {
 	IconUri                      string
 	CPU                          int32
 	Memory                       int32
+	EphemeralStorage             *int32
 	MaxNbRestart                 int32
 	MaxDurationSeconds           int32
 	AutoPreview                  bool
@@ -154,6 +155,7 @@ type NewJobParams struct {
 	CPU                  int32
 	IconUri              string
 	Memory               int32
+	EphemeralStorage     *int32
 	MaxNbRestart         *int32
 	MaxDurationSeconds   *int32
 	AutoPreview          bool
@@ -220,6 +222,7 @@ func NewJob(params NewJobParams) (*Job, error) {
 		AutoPreview:          params.AutoPreview,
 		CPU:                  params.CPU,
 		Memory:               params.Memory,
+		EphemeralStorage:     params.EphemeralStorage,
 		MaxNbRestart:         int32(maxNbRestart),
 		MaxDurationSeconds:   int32(maxDurationSeconds),
 		Schedule:             *jobSchedule,

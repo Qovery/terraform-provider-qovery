@@ -118,6 +118,11 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				Optional: true,
 				Computed: true,
 			},
+			"ephemeral_storage": schema.Int64Attribute{
+				Description:         "Ephemeral storage of the container in GiB. When unset, the platform default is used.",
+				MarkdownDescription: "Ephemeral storage of the container in GiB. When unset, the platform default is used.",
+				Computed:            true,
+			},
 			"min_running_instances": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
 					"Minimum number of instances running for the container.",

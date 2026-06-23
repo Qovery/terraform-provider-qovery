@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -135,6 +136,18 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				Default:  int64default.StaticInt64(job.DefaultMemory),
 				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: job.MinMemory},
+				},
+			},
+			"ephemeral_storage": schema.Int64Attribute{
+				Description:         "Ephemeral storage of the job in GiB. When unset, the platform default is used.",
+				MarkdownDescription: "Ephemeral storage of the job in GiB. When unset, the platform default is used.",
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers: []planmodifier.Int64{
+					int64planmodifier.UseStateForUnknown(),
+				},
+				Validators: []validator.Int64{
+					validators.Int64MinValidator{Min: 0},
 				},
 			},
 			"max_duration_seconds": schema.Int64Attribute{

@@ -31,6 +31,7 @@ type AggregateJobResponse struct {
 	IconUri             string
 	Cpu                 int32
 	Memory              int32
+	EphemeralStorage    *int32
 	MaxNbRestart        *int32
 	MaxDurationSeconds  *int32
 	AutoPreview         bool
@@ -76,6 +77,7 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 			IconUri:             jobResponse.CronJobResponse.IconUri,
 			Cpu:                 jobResponse.CronJobResponse.Cpu,
 			Memory:              jobResponse.CronJobResponse.Memory,
+			EphemeralStorage:    jobResponse.CronJobResponse.EphemeralStorageInGib,
 			MaxNbRestart:        jobResponse.CronJobResponse.MaxNbRestart,
 			MaxDurationSeconds:  jobResponse.CronJobResponse.MaxDurationSeconds,
 			AutoPreview:         jobResponse.CronJobResponse.AutoPreview,
@@ -117,6 +119,7 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 			IconUri:             jobResponse.LifecycleJobResponse.IconUri,
 			Cpu:                 jobResponse.LifecycleJobResponse.Cpu,
 			Memory:              jobResponse.LifecycleJobResponse.Memory,
+			EphemeralStorage:    jobResponse.LifecycleJobResponse.EphemeralStorageInGib,
 			MaxNbRestart:        jobResponse.LifecycleJobResponse.MaxNbRestart,
 			MaxDurationSeconds:  jobResponse.LifecycleJobResponse.MaxDurationSeconds,
 			AutoPreview:         jobResponse.LifecycleJobResponse.AutoPreview,
@@ -251,6 +254,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 		AutoPreview:          j.AutoPreview,
 		CPU:                  j.Cpu,
 		Memory:               j.Memory,
+		EphemeralStorage:     j.EphemeralStorage,
 		MaxNbRestart:         &paramsMaxNbRestart,
 		MaxDurationSeconds:   &paramsMaxDurationSeconds,
 		Port:                 prt,
@@ -343,14 +347,15 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 	}
 
 	return &qovery.JobRequest{
-		Name:               request.Name,
-		IconUri:            request.IconUri,
-		AutoPreview:        request.AutoPreview,
-		Cpu:                request.CPU,
-		Memory:             request.Memory,
-		MaxNbRestart:       request.MaxNbRestart,
-		MaxDurationSeconds: request.MaxDurationSeconds,
-		Port:               *qovery.NewNullableInt32(request.Port),
+		Name:                  request.Name,
+		IconUri:               request.IconUri,
+		AutoPreview:           request.AutoPreview,
+		Cpu:                   request.CPU,
+		Memory:                request.Memory,
+		EphemeralStorageInGib: request.EphemeralStorage,
+		MaxNbRestart:          request.MaxNbRestart,
+		MaxDurationSeconds:    request.MaxDurationSeconds,
+		Port:                  *qovery.NewNullableInt32(request.Port),
 		Source: &qovery.JobRequestAllOfSource{
 			Docker: *qovery.NewNullableJobRequestAllOfSourceDocker(docker),
 			Image:  *qovery.NewNullableJobRequestAllOfSourceImage(image),
