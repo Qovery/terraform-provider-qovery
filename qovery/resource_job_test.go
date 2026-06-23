@@ -439,6 +439,73 @@ func TestAcc_Job(t *testing.T) {
 	})
 }
 
+func TestAcc_JobWithEphemeralStorage(t *testing.T) {
+	t.Parallel()
+	testName := "job-ephemeral-storage"
+
+	jobModel := func(ephemeralStorage int32) qovery.Job {
+		return qovery.Job{
+			Name:               qovery.FromString(generateTestName(testName)),
+			AutoPreview:        qovery.FromBool(false),
+			CPU:                qovery.FromInt32(500),
+			Memory:             qovery.FromInt32(512),
+			EphemeralStorage:   qovery.FromInt32(ephemeralStorage),
+			MaxDurationSeconds: qovery.FromUInt32(300),
+			MaxNbRestart:       qovery.FromUInt32(0),
+			Port:               qovery.FromInt32Pointer(nil),
+			Source: &qovery.JobSource{
+				Image: &qovery.Image{
+					Name: qovery.FromString(jobImageName),
+					Tag:  qovery.FromString(jobImageTag),
+				},
+			},
+			Schedule: &qovery.JobSchedule{
+				CronJob: &qovery.JobScheduleCron{
+					Schedule: qovery.FromString(jobScheduleCronString),
+					Command: qovery.ExecutionCommand{
+						Entrypoint: qovery.FromString("test.sh"),
+						Arguments:  []types.String{qovery.FromString("arg1")},
+					},
+				},
+			},
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryJobDestroy("qovery_job.test"),
+		Steps: []resource.TestStep{
+			// Create with ephemeral_storage
+			{
+				Config: getJobConfigFromModel(testName, jobModel(4)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryProjectExists("qovery_project.test"),
+					testAccQoveryEnvironmentExists("qovery_environment.test"),
+					testAccQoveryContainerRegistryExists("qovery_container_registry.test"),
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckResourceAttr("qovery_job.test", "name", generateTestName(testName)),
+					resource.TestCheckResourceAttr("qovery_job.test", "ephemeral_storage", "4"),
+				),
+			},
+			// Update ephemeral_storage
+			{
+				Config: getJobConfigFromModel(testName, jobModel(8)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryJobExists("qovery_job.test"),
+					resource.TestCheckResourceAttr("qovery_job.test", "ephemeral_storage", "8"),
+				),
+			},
+			// Check Import
+			{
+				ResourceName:      "qovery_job.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
 func getJobConfigFromModel(testName string, job qovery.Job) string {
 	tmpl_model := struct {
 		EnvironmentStr       string
@@ -462,6 +529,9 @@ resource "qovery_job" "test" {
 
   cpu = {{ .Job.CPU.ValueInt64 }}
   memory = {{ .Job.Memory.ValueInt64 }}
+  {{ if not .Job.EphemeralStorage.IsNull }}
+  ephemeral_storage = {{ .Job.EphemeralStorage.ValueInt64 }}
+  {{ end }}
   max_duration_seconds = {{ .Job.MaxDurationSeconds.ValueInt64 }}
   max_nb_restart = {{ .Job.MaxNbRestart.ValueInt64 }}
   auto_preview = {{ .Job.AutoPreview }}
