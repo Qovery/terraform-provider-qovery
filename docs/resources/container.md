@@ -21,12 +21,11 @@ resource "qovery_container" "my_container" {
   tag            = "1.25-alpine"
 
   # Optional
-  entrypoint   = "/docker-entrypoint.sh"
-  auto_preview = true
-  auto_deploy  = true
-  cpu          = 500
-  memory       = 512
-  # Ephemeral storage in GiB. When unset, the platform default is used.
+  entrypoint        = "/docker-entrypoint.sh"
+  auto_preview      = true
+  auto_deploy       = true
+  cpu               = 500
+  memory            = 512
   ephemeral_storage = 4
   # min_running_instances = 0 enables scale-to-zero. Only allowed when an
   # `autoscaling` (KEDA) block is set below, otherwise the minimum is 1.

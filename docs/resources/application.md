@@ -27,11 +27,10 @@ resource "qovery_application" "my_application" {
   dockerfile_path = "Dockerfile" # Required when build_mode = "DOCKER"
 
   # Optional
-  auto_preview = false
-  auto_deploy  = true
-  cpu          = 500
-  memory       = 512
-  # Ephemeral storage in GiB. When unset, the platform default is used.
+  auto_preview      = false
+  auto_deploy       = true
+  cpu               = 500
+  memory            = 512
   ephemeral_storage = 4
   # min_running_instances = 0 enables scale-to-zero. Only allowed when an
   # `autoscaling` (KEDA) block is set below, otherwise the minimum is 1.
