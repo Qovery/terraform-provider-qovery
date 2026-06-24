@@ -402,6 +402,7 @@ func buildGcpExistingVpcFeatureObject(
 			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
 			featureKeyGcpExistingVpc: gcpVpcObj,
 			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+			featureKeyGkeKmsKey:      types.StringNull(),
 		},
 	)
 }
@@ -608,6 +609,7 @@ func TestToQoveryClusterFeatures_GcpIgnoresDefaultVpcSubnet(t *testing.T) {
 			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
 			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
 			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+			featureKeyGkeKmsKey:      types.StringNull(),
 		},
 	)
 
@@ -631,6 +633,7 @@ func TestToQoveryClusterFeatures_GcpRejectsCustomVpcSubnet(t *testing.T) {
 			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
 			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
 			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+			featureKeyGkeKmsKey:      types.StringNull(),
 		},
 	)
 
@@ -650,6 +653,7 @@ func TestToQoveryClusterFeatures_NonGcpAllowsCustomVpcSubnet(t *testing.T) {
 			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
 			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
 			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+			featureKeyGkeKmsKey:      types.StringNull(),
 		},
 	)
 
@@ -683,6 +687,7 @@ func TestToQoveryClusterFeatures_GcpNatGateways(t *testing.T) {
 			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
 			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
 			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+			featureKeyGkeKmsKey:      types.StringNull(),
 		},
 	)
 
@@ -750,6 +755,7 @@ func TestToQoveryClusterFeatures_NatGatewaysRequiresGCP(t *testing.T) {
 			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
 			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
 			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+			featureKeyGkeKmsKey:      types.StringNull(),
 		},
 	)
 
@@ -781,6 +787,7 @@ func TestToQoveryClusterFeatures_GcpStaticIPWithDefaultBlock_EmitsDisabledShape(
 			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
 			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
 			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+			featureKeyGkeKmsKey:      types.StringNull(),
 		},
 	)
 
@@ -854,6 +861,7 @@ func TestToQoveryClusterFeatures_NonGcpIgnoresDefaultNatGateways(t *testing.T) {
 					featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
 					featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
 					featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+					featureKeyGkeKmsKey:      types.StringNull(),
 				},
 			)
 
@@ -1081,6 +1089,7 @@ func TestToQoveryClusterFeatures_GcpEnabledFalse_StillEmitsDisabledShape(t *test
 			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
 			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
 			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+			featureKeyGkeKmsKey:      types.StringNull(),
 		},
 	)
 
@@ -2046,6 +2055,7 @@ func TestCluster_hasFeaturesDiff(t *testing.T) {
 			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
 			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
 			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+			featureKeyGkeKmsKey:      types.StringNull(),
 		})
 	}
 	mk := func(f types.Object) Cluster {
@@ -2087,6 +2097,7 @@ func TestCluster_hasFeaturesDiff(t *testing.T) {
 			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
 			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
 			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+			featureKeyGkeKmsKey:      types.StringNull(),
 		})
 
 		plan := mk(features(true)) // vpc_subnet = "10.0.0.0/16" (schema default)
@@ -2199,4 +2210,117 @@ func TestClusterKeda_RoundTrip(t *testing.T) {
 		require.NotNil(t, got)
 		assert.Equal(t, enabled, got.GetEnabled())
 	}
+}
+
+// TestToQoveryClusterFeatures_GkeKmsKey_GcpEmitsFeature asserts that a non-empty
+// gke_kms_key on a GCP cluster produces a GKE_KMS_KEY feature with the correct value.
+func TestToQoveryClusterFeatures_GkeKmsKey_GcpEmitsFeature(t *testing.T) {
+	t.Parallel()
+
+	kmsKey := "projects/my-project/locations/global/keyRings/ring/cryptoKeys/key"
+	featuresObj := types.ObjectValueMust(
+		createFeaturesAttrTypes(),
+		map[string]attr.Value{
+			featureKeyVpcSubnet:      types.StringValue(clusterFeatureVpcSubnetDefault),
+			featureKeyStaticIP:       types.BoolValue(false),
+			featureKeyNatGateways:    types.ObjectNull(createNatGatewaysFeatureAttrTypes()),
+			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
+			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
+			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+			featureKeyGkeKmsKey:      types.StringValue(kmsKey),
+		},
+	)
+
+	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
+	require.NoError(t, err)
+
+	var found *string
+	for _, f := range features {
+		if f.GetId() == featureIdGkeKmsKey {
+			v := f.GetValue()
+			found = v.String
+			break
+		}
+	}
+	require.NotNil(t, found, "GKE_KMS_KEY feature must be present in the request")
+	assert.Equal(t, kmsKey, *found)
+}
+
+// TestToQoveryClusterFeatures_GkeKmsKey_NullSkipsFeature asserts that a null
+// gke_kms_key does not produce a GKE_KMS_KEY feature in the request.
+func TestToQoveryClusterFeatures_GkeKmsKey_NullSkipsFeature(t *testing.T) {
+	t.Parallel()
+
+	featuresObj := types.ObjectValueMust(
+		createFeaturesAttrTypes(),
+		map[string]attr.Value{
+			featureKeyVpcSubnet:      types.StringValue(clusterFeatureVpcSubnetDefault),
+			featureKeyStaticIP:       types.BoolValue(false),
+			featureKeyNatGateways:    types.ObjectNull(createNatGatewaysFeatureAttrTypes()),
+			featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
+			featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
+			featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+			featureKeyGkeKmsKey:      types.StringNull(),
+		},
+	)
+
+	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
+	require.NoError(t, err)
+
+	for _, f := range features {
+		assert.NotEqual(t, featureIdGkeKmsKey, f.GetId(), "null gke_kms_key must not emit a GKE_KMS_KEY feature")
+	}
+}
+
+// TestFromQoveryClusterFeatures_GkeKmsKey_PopulatesAttribute asserts that a
+// GKE_KMS_KEY feature in the API response is mapped to the gke_kms_key attribute.
+func TestFromQoveryClusterFeatures_GkeKmsKey_PopulatesAttribute(t *testing.T) {
+	t.Parallel()
+
+	kmsKey := "projects/my-project/locations/global/keyRings/ring/cryptoKeys/key"
+	featureID := featureIdGkeKmsKey
+	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+		{
+			Id: &featureID,
+			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
+				&qovery.ClusterFeatureResponseValueObject{
+					ClusterFeatureStringResponse: qovery.NewClusterFeatureStringResponse(
+						qovery.CLUSTERFEATURERESPONSETYPEENUM_STRING,
+						kmsKey,
+					),
+				},
+			),
+		},
+	})
+
+	require.False(t, result.IsNull())
+	gkeKmsKeyAttr, ok := result.Attributes()[featureKeyGkeKmsKey]
+	require.True(t, ok, "gke_kms_key attribute must be present")
+	assert.Equal(t, kmsKey, gkeKmsKeyAttr.(types.String).ValueString())
+}
+
+// TestFromQoveryClusterFeatures_GkeKmsKey_AbsentDefaultsToNull asserts that when
+// the API returns no GKE_KMS_KEY feature, gke_kms_key is a null string in state.
+func TestFromQoveryClusterFeatures_GkeKmsKey_AbsentDefaultsToNull(t *testing.T) {
+	t.Parallel()
+
+	staticIPFeatureID := featureIdStaticIP
+	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+		{
+			Id: &staticIPFeatureID,
+			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
+				&qovery.ClusterFeatureResponseValueObject{
+					ClusterFeatureBooleanResponse: qovery.NewClusterFeatureBooleanResponse(
+						qovery.CLUSTERFEATURERESPONSETYPEENUM_BOOLEAN,
+						false,
+					),
+				},
+			),
+		},
+	})
+
+	require.False(t, result.IsNull())
+	gkeKmsKeyAttr, ok := result.Attributes()[featureKeyGkeKmsKey]
+	require.True(t, ok, "gke_kms_key attribute must always be present in the features object")
+	assert.True(t, gkeKmsKeyAttr.(types.String).IsNull(), "gke_kms_key must be null when the API returns no GKE_KMS_KEY feature")
 }

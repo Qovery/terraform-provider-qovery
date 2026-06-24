@@ -29,6 +29,8 @@ const (
 	featureIdKarpenter       = "KARPENTER"
 	featureKeyKarpenter      = "karpenter"
 	featureKeyGcpExistingVpc = "gcp_existing_vpc"
+	featureKeyGkeKmsKey      = "gke_kms_key"
+	featureIdGkeKmsKey       = "GKE_KMS_KEY"
 
 	instanceTypeAutoPilot = "AUTO_PILOT"
 
@@ -274,9 +276,14 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 					}
 				}
 			}
+			if gkeKmsKey, ok := featuresAttrs[featureKeyGkeKmsKey]; ok {
+				if !gkeKmsKey.IsNull() && !gkeKmsKey.IsUnknown() && gkeKmsKey.(types.String).ValueString() != "" {
+					hasNonDefaultFeatures = true
+				}
+			}
 
 			if hasNonDefaultFeatures {
-				return nil, errors.New("features (vpc_subnet, static_ip, existing_vpc, karpenter) are not supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
+				return nil, errors.New("features (vpc_subnet, static_ip, existing_vpc, karpenter, gke_kms_key) are not supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
 			}
 		}
 	} else if infraChartsParams != nil {
@@ -639,6 +646,13 @@ func fromQoveryClusterFeatures(
 				attributes[featureKeyVpcSubnet] = basetypes.NewStringNull()
 			}
 			attributeTypes[featureKeyVpcSubnet] = types.StringType
+		case featureIdGkeKmsKey:
+			if f.GetValueObject().ClusterFeatureStringResponse != nil {
+				attributes[featureKeyGkeKmsKey] = FromString(f.GetValueObject().ClusterFeatureStringResponse.Value)
+			} else {
+				attributes[featureKeyGkeKmsKey] = basetypes.NewStringNull()
+			}
+			attributeTypes[featureKeyGkeKmsKey] = types.StringType
 		case featureIdNatGateway:
 			if f.GetValueObject().ClusterFeatureNatGatewayParametersResponse != nil {
 				natGateways := f.GetValueObject().ClusterFeatureNatGatewayParametersResponse.GetValue()
@@ -845,6 +859,11 @@ func fromQoveryClusterFeatures(
 		attributeTypes[featureKeyKarpenter] = terraformObjectValue.Type(context.Background())
 	}
 
+	if attributes[featureKeyGkeKmsKey] == nil {
+		attributes[featureKeyGkeKmsKey] = basetypes.NewStringNull()
+		attributeTypes[featureKeyGkeKmsKey] = types.StringType
+	}
+
 	terraformObjectValue, diagnostics := types.ObjectValue(attributeTypes, attributes)
 	if diagnostics.HasError() {
 		panic(fmt.Errorf("bad cluster feature: %s", diagnostics.Errors()))
@@ -876,6 +895,19 @@ func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string) 
 			})
 		} else if !vpcSubnet.IsNull() && !vpcSubnet.IsUnknown() && vpcSubnet.ValueString() != "" && vpcSubnet.ValueString() != clusterFeatureVpcSubnetDefault {
 			return nil, errors.New("features.vpc_subnet is not supported for GCP clusters")
+		}
+	}
+
+	if gkeKmsKeyAttr, ok := f.Attributes()[featureKeyGkeKmsKey]; ok {
+		gkeKmsKey := gkeKmsKeyAttr.(types.String)
+		if !gkeKmsKey.IsNull() && !gkeKmsKey.IsUnknown() && gkeKmsKey.ValueString() != "" {
+			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
+				String: ToStringPointer(gkeKmsKey),
+			})
+			features = append(features, qovery.ClusterRequestFeaturesInner{
+				Id:    new(featureIdGkeKmsKey),
+				Value: *value,
+			})
 		}
 	}
 
@@ -1396,6 +1428,7 @@ func createFeaturesAttrTypes() map[string]attr.Type {
 		featureKeyExistingVpc:    types.ObjectType{AttrTypes: createExistingVpcFeatureAttrTypes()},
 		featureKeyGcpExistingVpc: types.ObjectType{AttrTypes: createGcpExistingVpcFeatureAttrTypes()},
 		featureKeyKarpenter:      types.ObjectType{AttrTypes: createKarpenterFeatureAttrTypes()},
+		featureKeyGkeKmsKey:      types.StringType,
 	}
 }
 

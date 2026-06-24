@@ -58,6 +58,10 @@ Optional:
 - `static_ip` (Boolean) Whether static IPs are enabled. Immutable once the cluster has been deployed.
 - `vpc_subnet` (String) Custom VPC CIDR block (not supported for GCP). Immutable after creation.
 
+Read-Only:
+
+- `gke_kms_key` (String) GCP KMS key resource name used to encrypt the GKE cluster's boot disks / etcd / storage buckets / volumes. Only supported on GCP clusters.
+
 <a id="nestedatt--features--existing_vpc"></a>
 ### Nested Schema for `features.existing_vpc`
 
