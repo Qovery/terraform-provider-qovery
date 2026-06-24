@@ -336,6 +336,9 @@ Optional:
 - `gcp_existing_vpc` (Attributes) GCP existing VPC configuration. Use this block to deploy the Qovery GKE cluster into an existing Google Cloud VPC network instead of creating a new one.
 
 ~> **Warning:** This configuration cannot be changed after cluster creation. (see [below for nested schema](#nestedatt--features--gcp_existing_vpc))
+- `gke_kms_key` (String) GCP KMS key resource name used to encrypt the GKE cluster's boot disks / etcd / storage buckets / volumes. Only supported on GCP clusters.
+
+~> **Warning:** This value cannot be changed after cluster creation. You'll need to create another cluster.
 - `karpenter` (Attributes) Karpenter configuration for AWS EKS clusters. [Karpenter](https://karpenter.sh/) is a Kubernetes node autoscaler that automatically provisions right-sized compute resources. When Karpenter is enabled, do not set `instance_type`, `min_running_nodes`, or `max_running_nodes` — Karpenter manages node scaling automatically. (see [below for nested schema](#nestedatt--features--karpenter))
 - `nat_gateways` (Attributes) GCP NAT Gateway static egress IP configuration. Reserved static egress IPs are an explicit opt-in via `static_ips_enabled = true` (requires `static_ip = true`).
 

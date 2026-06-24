@@ -666,6 +666,17 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 							},
 						},
 					},
+					"gke_kms_key": schema.StringAttribute{
+						Description: "GCP KMS key resource name for GKE cluster disk encryption (GCP only) [NOTE: can't be updated after creation].",
+						MarkdownDescription: "GCP KMS key resource name used to encrypt the GKE cluster's boot disks / etcd / storage buckets / volumes. Only supported on GCP clusters.\n\n" +
+							"~> **Warning:** This value cannot be changed after cluster creation. You'll need to create another cluster.",
+						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+							RequiresReplaceIfKnownChange(),
+						},
+					},
 				},
 			},
 			"keda": schema.SingleNestedAttribute{
@@ -1221,6 +1232,39 @@ func (r clusterResource) ValidateConfig(ctx context.Context, req resource.Valida
 	}
 
 	resp.Diagnostics.Append(validateNatGatewaysConfig(config.CloudProvider, config.Features)...)
+	resp.Diagnostics.Append(validateGkeKmsKeyConfig(config.CloudProvider, config.Features)...)
+}
+
+// validateGkeKmsKeyConfig validates that gke_kms_key is only set on GCP clusters.
+func validateGkeKmsKeyConfig(cloudProvider types.String, features types.Object) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if features.IsNull() || features.IsUnknown() {
+		return diags
+	}
+
+	gkeKmsKeyAttr, ok := features.Attributes()[featureKeyGkeKmsKey]
+	if !ok || gkeKmsKeyAttr.IsNull() || gkeKmsKeyAttr.IsUnknown() {
+		return diags
+	}
+
+	if gkeKmsKeyAttr.(types.String).ValueString() == "" {
+		return diags
+	}
+
+	if cloudProvider.IsNull() || cloudProvider.IsUnknown() {
+		return diags
+	}
+
+	if cloudProvider.ValueString() != "GCP" {
+		diags.AddAttributeError(
+			path.Root("features").AtName(featureKeyGkeKmsKey),
+			"Invalid gke_kms_key",
+			"features.gke_kms_key is only supported for GCP clusters.",
+		)
+	}
+
+	return diags
 }
 
 // validateNatGatewaysConfig encapsulates the cross-attribute nat_gateways validation

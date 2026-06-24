@@ -528,6 +528,11 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 							},
 						},
 					},
+					"gke_kms_key": schema.StringAttribute{
+						Description:         "GCP KMS key resource name for GKE cluster disk encryption (GCP only).",
+						MarkdownDescription: "GCP KMS key resource name used to encrypt the GKE cluster's boot disks / etcd / storage buckets / volumes. Only supported on GCP clusters.",
+						Computed:            true,
+					},
 				},
 			},
 			"keda": schema.SingleNestedAttribute{

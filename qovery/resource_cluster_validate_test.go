@@ -200,3 +200,95 @@ func TestValidateNatGatewaysConfig(t *testing.T) {
 		})
 	}
 }
+
+// makeGkeKmsKeyFeatures builds a minimal features object containing only gke_kms_key.
+func makeGkeKmsKeyFeatures(gkeKmsKey types.String) types.Object {
+	attrs := map[string]attr.Value{featureKeyGkeKmsKey: gkeKmsKey}
+	attrTypes := map[string]attr.Type{featureKeyGkeKmsKey: types.StringType}
+	return types.ObjectValueMust(attrTypes, attrs)
+}
+
+func TestValidateGkeKmsKeyConfig(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name          string
+		cloudProvider types.String
+		gkeKmsKey     types.String
+		featuresNull  bool
+		wantErrors    int
+	}{
+		{
+			name:          "GCP + non-empty key → no error",
+			cloudProvider: types.StringValue("GCP"),
+			gkeKmsKey:     types.StringValue("projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-key"),
+			wantErrors:    0,
+		},
+		{
+			name:          "AWS + non-empty key → error",
+			cloudProvider: types.StringValue("AWS"),
+			gkeKmsKey:     types.StringValue("projects/my-project/locations/global/keyRings/my-ring/cryptoKeys/my-key"),
+			wantErrors:    1,
+		},
+		{
+			name:          "SCW + non-empty key → error",
+			cloudProvider: types.StringValue("SCW"),
+			gkeKmsKey:     types.StringValue("projects/p/locations/l/keyRings/r/cryptoKeys/k"),
+			wantErrors:    1,
+		},
+		{
+			name:          "AWS + empty key → no error",
+			cloudProvider: types.StringValue("AWS"),
+			gkeKmsKey:     types.StringValue(""),
+			wantErrors:    0,
+		},
+		{
+			name:          "AWS + null key → no error",
+			cloudProvider: types.StringValue("AWS"),
+			gkeKmsKey:     types.StringNull(),
+			wantErrors:    0,
+		},
+		{
+			name:          "GCP + null key → no error",
+			cloudProvider: types.StringValue("GCP"),
+			gkeKmsKey:     types.StringNull(),
+			wantErrors:    0,
+		},
+		{
+			name:          "cloud_provider unknown + non-empty key → no error (benefit of the doubt)",
+			cloudProvider: types.StringUnknown(),
+			gkeKmsKey:     types.StringValue("projects/p/locations/l/keyRings/r/cryptoKeys/k"),
+			wantErrors:    0,
+		},
+		{
+			name:          "features null → no error",
+			cloudProvider: types.StringValue("AWS"),
+			featuresNull:  true,
+			wantErrors:    0,
+		},
+	}
+
+	for _, tc := range tests {
+		tc := tc
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			var features types.Object
+			if tc.featuresNull {
+				features = types.ObjectNull(map[string]attr.Type{})
+			} else {
+				features = makeGkeKmsKeyFeatures(tc.gkeKmsKey)
+			}
+
+			diags := validateGkeKmsKeyConfig(tc.cloudProvider, features)
+
+			errCount := 0
+			for _, d := range diags {
+				if d.Severity() == diag.SeverityError {
+					errCount++
+				}
+			}
+			assert.Equal(t, tc.wantErrors, errCount, "error count mismatch")
+		})
+	}
+}
