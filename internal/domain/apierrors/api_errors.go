@@ -81,7 +81,7 @@ func (e APIError) Detail() string {
 // errorPayload tries to read the response body to extract the error payload sent by the api client.
 // It returns nil if the body is empty.
 func (e APIError) errorPayload() *apiErrorPayload {
-	if e.err == nil || e.Resp == nil {
+	if e.err == nil || e.Resp == nil || e.Resp.Body == nil {
 		return nil
 	}
 

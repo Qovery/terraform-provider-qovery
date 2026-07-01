@@ -760,8 +760,7 @@ func (r helmResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 
 	// Get helm from the API
 	newHelm, err := r.helmService.Get(ctx, state.ID.ValueString(), state.AdvancedSettingsJson.ValueString(), isTriggeredFromImport)
-	if err != nil {
-		resp.Diagnostics.AddError("Error on helm read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on helm read") {
 		return
 	}
 

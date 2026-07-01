@@ -162,8 +162,7 @@ func (r gitTokenResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	// Get git token from the API
 	response, err := r.service.Get(ctx, state.OrganizationId.ValueString(), state.ID.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error on git token read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on git token read") {
 		return
 	}
 

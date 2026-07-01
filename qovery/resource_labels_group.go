@@ -143,8 +143,7 @@ func (r labelsGroupResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	// Get from the API
 	labelsGroup, apiErr := r.labelsGroupService.Get(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
-	if apiErr != nil {
-		resp.Diagnostics.AddError("Error on labels group read", apiErr.Error())
+	if handleDomainReadNotFound(ctx, resp, apiErr, "Error on labels group read") {
 		return
 	}
 

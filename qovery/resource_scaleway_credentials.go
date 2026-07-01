@@ -142,8 +142,7 @@ func (r scalewayCredentialsResource) Read(ctx context.Context, req resource.Read
 
 	// Get credentials from API
 	creds, err := r.scalewayCredentialsService.Get(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error on scaleway credentials read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on scaleway credentials read", credentials.ErrScalewayCredentialsNotFound) {
 		return
 	}
 

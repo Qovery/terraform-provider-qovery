@@ -460,8 +460,7 @@ func (r terraformServiceResource) Read(ctx context.Context, req resource.ReadReq
 		ToString(state.AdvancedSettingsJson),
 		isTriggeredFromImport,
 	)
-	if err != nil {
-		resp.Diagnostics.AddError("Error on terraform service read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on terraform service read") {
 		return
 	}
 

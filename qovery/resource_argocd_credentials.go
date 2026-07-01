@@ -106,8 +106,7 @@ func (r argoCdCredentialsResource) Read(ctx context.Context, req resource.ReadRe
 	}
 
 	creds, err := r.argoCdCredentialsService.Get(ctx, state.ClusterId.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error on argocd credentials read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on argocd credentials read") {
 		return
 	}
 

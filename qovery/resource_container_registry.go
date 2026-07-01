@@ -216,8 +216,7 @@ func (r containerRegistryResource) Read(ctx context.Context, req resource.ReadRe
 
 	// Get container registry from the API
 	reg, err := r.containerRegistryService.Get(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error on container registry read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on container registry read") {
 		return
 	}
 
