@@ -20,11 +20,12 @@ type apiErrorPayload struct {
 // APIError represents an error that comes from Qovery's API client.
 // It contains all the information needed to understand an api error.
 type APIError struct {
-	err        error          // err is the actual error returned by the api client.
-	action     APIAction      // action that produced the api client error.
-	resource   APIResource    // resource that produced the api client error.
-	resourceID string         // resourceID that produced the api client error. [NOTE: it is replaced by the resource name in some cases (for failed create requests)]
-	Resp       *http.Response // Resp is the response returned by the api client.
+	err          error          // err is the actual error returned by the api client.
+	action       APIAction      // action that produced the api client error.
+	resource     APIResource    // resource that produced the api client error.
+	resourceID   string         // resourceID that produced the api client error. [NOTE: it is replaced by the resource name in some cases (for failed create requests)]
+	Resp         *http.Response // Resp is the response returned by the api client.
+	bufferedBody []byte         // bufferedBody is the response body, read once at construction so the error can be inspected multiple times.
 }
 
 // IsNotFound returns weather the error is a 404 or not.
@@ -78,39 +79,33 @@ func (e APIError) Detail() string {
 	return fmt.Sprintf("Could not %s %s '%s', %s", e.action, e.resource, e.resourceID, extra)
 }
 
-// errorPayload tries to read the response body to extract the error payload sent by the api client.
-// It returns nil if the body is empty.
+// errorPayload parses the error payload sent by the api client from the body buffered at construction.
+// It returns nil if there is no payload.
 func (e APIError) errorPayload() *apiErrorPayload {
-	if e.err == nil || e.Resp == nil {
-		return nil
-	}
-
-	body, err := io.ReadAll(e.Resp.Body)
-	if err != nil {
+	if e.err == nil || len(e.bufferedBody) == 0 {
 		return nil
 	}
 
 	var payload apiErrorPayload
-	if err := json.Unmarshal(body, &payload); err != nil {
+	if err := json.Unmarshal(e.bufferedBody, &payload); err != nil {
 		return nil
 	}
 
 	return &payload
 }
 
-// NewAPIErrorFromError tries to cast an error into an APIError.
-// This is useful when working with APIError passed as an `error` type to get the actual APIError type.
+// NewAPIErrorFromError finds an APIError in err's wrap chain.
+// This is useful when working with an APIError passed around as an `error`, possibly wrapped by service layers.
+// It returns nil when the chain contains no APIError.
 func NewAPIErrorFromError(err error) *APIError {
-	switch err := err.(type) {
-	case *APIError:
-		return err
-	default:
-		return nil
+	var apiErr *APIError
+	if errors.As(err, &apiErr) {
+		return apiErr
 	}
+	return nil
 }
 
-// IsErrNotFound takes an error type and tries to cast it into a APIError to check weather the error is an 404 or not.
-// It returns false if the casting fails.
+// IsErrNotFound reports whether err's wrap chain contains an APIError that is a 404 (per IsNotFound).
 func IsErrNotFound(err error) bool {
 	apiErr := NewAPIErrorFromError(err)
 	if apiErr == nil {
@@ -119,8 +114,7 @@ func IsErrNotFound(err error) bool {
 	return apiErr.IsNotFound()
 }
 
-// IsErrBadRequest takes an error type and tries to cast it into a APIError to check weather the error is an 400 or not.
-// It returns false if the casting fails.
+// IsErrBadRequest reports whether err's wrap chain contains an APIError that is a 400 (per IsBadRequest).
 func IsErrBadRequest(err error) bool {
 	apiErr := NewAPIErrorFromError(err)
 	if apiErr == nil {
@@ -130,13 +124,24 @@ func IsErrBadRequest(err error) bool {
 }
 
 // NewAPIError returns a new instance of APIError with the given parameters.
+// The response body, when present, is buffered here so the error can be inspected multiple
+// times (e.g. IsNotFound then Error) without draining the stream.
 func NewAPIError(action APIAction, resource APIResource, resourceID string, resp *http.Response, err error) *APIError {
+	var bufferedBody []byte
+	if resp != nil && resp.Body != nil {
+		if body, readErr := io.ReadAll(resp.Body); readErr == nil {
+			bufferedBody = body
+		}
+		resp.Body.Close()
+	}
+
 	return &APIError{
-		err:        err,
-		action:     action,
-		resource:   resource,
-		resourceID: resourceID,
-		Resp:       resp,
+		err:          err,
+		action:       action,
+		resource:     resource,
+		resourceID:   resourceID,
+		Resp:         resp,
+		bufferedBody: bufferedBody,
 	}
 }
 

@@ -204,8 +204,7 @@ func (r helmRepositoryResource) Read(ctx context.Context, req resource.ReadReque
 
 	// Get helm repository from the API
 	reg, err := r.helmRepositoryService.Get(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error on helm repository read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on helm repository read") {
 		return
 	}
 

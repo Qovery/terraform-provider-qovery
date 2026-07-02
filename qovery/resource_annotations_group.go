@@ -137,8 +137,7 @@ func (r annotationsGroupResource) Read(ctx context.Context, req resource.ReadReq
 
 	// Get from the API
 	annotationsGroup, apiErr := r.annotationsGroupService.Get(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
-	if apiErr != nil {
-		resp.Diagnostics.AddError("Error on annotations group read", apiErr.Error())
+	if handleDomainReadNotFound(ctx, resp, apiErr, "Error on annotations group read") {
 		return
 	}
 

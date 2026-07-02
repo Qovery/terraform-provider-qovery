@@ -136,8 +136,7 @@ func (r awsCredentialsResource) Read(ctx context.Context, req resource.ReadReque
 
 	// Get credentials from API
 	creds, err := r.awsCredentialsService.Get(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error on aws credentials read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on aws credentials read") {
 		return
 	}
 

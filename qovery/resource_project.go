@@ -279,8 +279,7 @@ func (r projectResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	// Get project from the API
 	proj, err := r.projectService.Get(ctx, state.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error on project read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on project read") {
 		return
 	}
 
