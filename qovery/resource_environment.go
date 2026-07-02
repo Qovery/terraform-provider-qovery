@@ -364,8 +364,7 @@ func (r environmentResource) Read(ctx context.Context, req resource.ReadRequest,
 
 	// Get environment from the API
 	env, err := r.environmentService.Get(ctx, state.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error on environment read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on environment read") {
 		return
 	}
 

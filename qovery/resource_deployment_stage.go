@@ -135,8 +135,7 @@ func (r deploymentStageResource) Read(ctx context.Context, req resource.ReadRequ
 
 	// Get deployment stage from the API
 	deploymentStage, err := r.deploymentStageService.Get(ctx, state.EnvironmentId.ValueString(), state.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error on deployment stage read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on deployment stage read") {
 		return
 	}
 

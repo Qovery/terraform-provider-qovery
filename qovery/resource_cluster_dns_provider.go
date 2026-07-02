@@ -243,8 +243,7 @@ func (r clusterDNSProviderResource) Read(ctx context.Context, req resource.ReadR
 	}
 
 	response, apiErr := r.client.GetClusterDNSProvider(ctx, state.ClusterID.ValueString())
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	if handleReadNotFound(ctx, resp, apiErr) {
 		return
 	}
 

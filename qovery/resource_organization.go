@@ -122,8 +122,7 @@ func (r organizationResource) Read(ctx context.Context, req resource.ReadRequest
 
 	// Get organization from API
 	orga, err := r.organizationService.Get(ctx, state.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error on organization read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on organization read") {
 		return
 	}
 

@@ -321,8 +321,7 @@ func (r databaseResource) Read(ctx context.Context, req resource.ReadRequest, re
 
 	// Get database from the API
 	database, apiErr := r.client.GetDatabase(ctx, state.Id.ValueString())
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	if handleReadNotFound(ctx, resp, apiErr) {
 		return
 	}
 

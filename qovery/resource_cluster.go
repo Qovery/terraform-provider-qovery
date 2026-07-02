@@ -1108,8 +1108,7 @@ func (r clusterResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	// Get cluster from the API
 	cluster, apiErr := r.client.GetCluster(ctx, state.OrganizationId.ValueString(), state.Id.ValueString(), state.AdvancedSettingsJson.ValueString(), isTriggeredFromImport)
-	if apiErr != nil {
-		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+	if handleReadNotFound(ctx, resp, apiErr) {
 		return
 	}
 

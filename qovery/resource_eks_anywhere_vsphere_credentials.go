@@ -143,8 +143,7 @@ func (r eksAnywhereVsphereCredentialsResource) Read(ctx context.Context, req res
 	}
 
 	creds, err := r.eksAnywhereVsphereCredentialsService.Get(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError("Error on eks anywhere vsphere credentials read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on eks anywhere vsphere credentials read") {
 		return
 	}
 
