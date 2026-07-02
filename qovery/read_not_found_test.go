@@ -50,32 +50,27 @@ func TestHandleReadNotFound(t *testing.T) {
 	testCases := []struct {
 		TestName      string
 		APIErr        *apierrors.APIError
-		WantHandled   bool
 		WantStateNull bool
 		WantDiag      bool
 	}{
 		{
-			TestName:    "nil error is not handled, Read continues",
-			APIErr:      nil,
-			WantHandled: false,
+			TestName: "nil error is not handled, Read continues",
+			APIErr:   nil,
 		},
 		{
 			TestName:      "404 removes the resource from state",
 			APIErr:        readErrorWithStatus(http.StatusNotFound),
-			WantHandled:   true,
 			WantStateNull: true,
 		},
 		{
 			TestName:      "403 is treated as not-found and removes from state",
 			APIErr:        readErrorWithStatus(http.StatusForbidden),
-			WantHandled:   true,
 			WantStateNull: true,
 		},
 		{
-			TestName:    "500 surfaces a diagnostic without removing from state",
-			APIErr:      readErrorWithStatus(http.StatusInternalServerError),
-			WantHandled: true,
-			WantDiag:    true,
+			TestName: "500 surfaces a diagnostic without removing from state",
+			APIErr:   readErrorWithStatus(http.StatusInternalServerError),
+			WantDiag: true,
 		},
 	}
 
@@ -87,7 +82,7 @@ func TestHandleReadNotFound(t *testing.T) {
 
 			handled := handleReadNotFound(context.Background(), resp, tc.APIErr)
 
-			assert.Equal(t, tc.WantHandled, handled)
+			assert.Equal(t, tc.APIErr != nil, handled)
 			assert.Equal(t, tc.WantStateNull, resp.State.Raw.IsNull())
 			assert.Equal(t, tc.WantDiag, resp.Diagnostics.HasError())
 		})

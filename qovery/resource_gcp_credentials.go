@@ -157,7 +157,7 @@ func (r gcpCredentialsResource) Read(ctx context.Context, req resource.ReadReque
 
 	// Get credentials from API
 	creds, err := r.gcpCredentialsService.Get(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
-	if handleDomainReadNotFound(ctx, resp, err, "Error on gcp credentials read", credentials.ErrGcpCredentialsNotFound) {
+	if handleDomainReadNotFound(ctx, resp, err, "Error on gcp credentials read") {
 		return
 	}
 

@@ -49,9 +49,9 @@ func TestAcc_ProjectRemovedOutOfBand(t *testing.T) {
 							_, err := qoveryAPIClient.ProjectMainCallsAPI.DeleteProject(context.TODO(), id).Execute()
 							return err
 						},
-						func(id string) (int, error) {
+						func(id string) int {
 							_, res, _ := qoveryAPIClient.ProjectMainCallsAPI.GetProject(context.TODO(), id).Execute()
-							return rawStatusCode(res), nil
+							return rawStatusCode(res)
 						},
 					),
 				),
@@ -83,9 +83,9 @@ func TestAcc_EnvironmentRemovedOutOfBand(t *testing.T) {
 							_, err := qoveryAPIClient.EnvironmentMainCallsAPI.DeleteEnvironment(context.TODO(), id).Execute()
 							return err
 						},
-						func(id string) (int, error) {
+						func(id string) int {
 							_, res, _ := qoveryAPIClient.EnvironmentMainCallsAPI.GetEnvironment(context.TODO(), id).Execute()
-							return rawStatusCode(res), nil
+							return rawStatusCode(res)
 						},
 					),
 				),
@@ -110,7 +110,7 @@ func rawStatusCode(res *http.Response) int {
 // client, then polls the raw GET until the API reports it gone (404/403), so the post-apply
 // refresh deterministically sees the deleted state even when the API deletes asynchronously
 // (e.g. environments go through a deletion pipeline).
-func testAccDisappearsViaRawAPI(resourceName string, del func(id string) error, getStatus func(id string) (int, error)) resource.TestCheckFunc {
+func testAccDisappearsViaRawAPI(resourceName string, del func(id string) error, getStatus func(id string) int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]
 		if !ok || rs.Primary.ID == "" {
@@ -121,10 +121,7 @@ func testAccDisappearsViaRawAPI(resourceName string, del func(id string) error, 
 		}
 		// Wait until the API reports the resource gone (bounded).
 		for attempt := 0; attempt < 60; attempt++ {
-			status, err := getStatus(rs.Primary.ID)
-			if err != nil {
-				return fmt.Errorf("%s: failed to check deletion: %s", resourceName, err)
-			}
+			status := getStatus(rs.Primary.ID)
 			if status == http.StatusNotFound || status == http.StatusForbidden {
 				return nil
 			}
