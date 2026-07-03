@@ -304,6 +304,54 @@ func requiresReplaceIfKnownChangeFunc(_ context.Context, req planmodifier.String
 	resp.RequiresReplace = true
 }
 
+const rejectKnownListChangeDescription = "Rejects known list value changes after creation."
+
+// rejectKnownListChangeModifier rejects immutable list changes once a prior
+// value exists in state. Unknown planned values are ignored so deferred data
+// sources can resolve before a concrete comparison is possible.
+type rejectKnownListChangeModifier struct{}
+
+func (m rejectKnownListChangeModifier) Description(_ context.Context) string {
+	return rejectKnownListChangeDescription
+}
+
+func (m rejectKnownListChangeModifier) MarkdownDescription(_ context.Context) string {
+	return "Rejects known list value changes after creation."
+}
+
+func (m rejectKnownListChangeModifier) PlanModifyList(_ context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
+	if req.StateValue.IsNull() || req.StateValue.IsUnknown() || req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
+		return
+	}
+
+	for _, element := range req.StateValue.Elements() {
+		if element.IsUnknown() {
+			return
+		}
+	}
+	for _, element := range req.PlanValue.Elements() {
+		if element.IsUnknown() {
+			return
+		}
+	}
+
+	if req.PlanValue.Equal(req.StateValue) {
+		return
+	}
+
+	resp.Diagnostics.AddAttributeError(
+		req.Path,
+		"Cannot update existing VPC subnets",
+		"Existing VPC subnet lists are immutable after cluster creation. Create a new cluster with the desired subnet configuration instead of updating this value.",
+	)
+}
+
+// RejectKnownListChange rejects known updates to immutable list attributes after
+// creation without forcing resource replacement.
+func RejectKnownListChange() planmodifier.List {
+	return rejectKnownListChangeModifier{}
+}
+
 // RequiresReplaceIfKnownChangeTreatingEmptyAs behaves like RequiresReplaceIfKnownChange
 // but treats an empty-string value as equal to defaultValue when comparing state and
 // plan. Use it on an Optional+Computed string attribute whose schema Default is

@@ -338,6 +338,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Required:            true,
 								Computed:            false,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"eks_subnets_zone_b_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for EKS zone b. Must have map_public_ip_on_launch set to true",
@@ -345,6 +348,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Required:            true,
 								Computed:            false,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"eks_subnets_zone_c_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for EKS zone c. Must have map_public_ip_on_launch set to true",
@@ -352,6 +358,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Required:            true,
 								Computed:            false,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"rds_subnets_zone_a_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for RDS",
@@ -359,6 +368,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"rds_subnets_zone_b_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for RDS",
@@ -366,6 +378,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"rds_subnets_zone_c_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for RDS",
@@ -373,6 +388,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"documentdb_subnets_zone_a_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for document db",
@@ -380,6 +398,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"documentdb_subnets_zone_b_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for document db",
@@ -387,6 +408,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"documentdb_subnets_zone_c_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for document db",
@@ -394,6 +418,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"elasticache_subnets_zone_a_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for elasticache",
@@ -401,6 +428,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"elasticache_subnets_zone_b_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for elasticache",
@@ -408,6 +438,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"elasticache_subnets_zone_c_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for elasticache",
@@ -415,6 +448,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"eks_karpenter_fargate_subnets_zone_a_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for EKS fargate zone a. Must have to be private and connected to internet through a NAT Gateway",
@@ -422,6 +458,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            false,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"eks_karpenter_fargate_subnets_zone_b_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for EKS fargate zone b. Must have to be private and connected to internet through a NAT Gateway",
@@ -429,6 +468,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            false,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"eks_karpenter_fargate_subnets_zone_c_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for EKS fargate zone c. Must have to be private and connected to internet through a NAT Gateway",
@@ -436,6 +478,9 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            false,
+								PlanModifiers: []planmodifier.List{
+									RejectKnownListChange(),
+								},
 							},
 							"eks_create_nodes_in_private_subnet": schema.BoolAttribute{
 								Description:         "Whether to create EKS nodes in private subnet",

@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/defaults"
@@ -275,6 +276,104 @@ func TestClusterVpcSubnet_RealChange_ForcesReplacement(t *testing.T) {
 
 	assert.True(t, runVpcSubnetModifiers(t, oldCidr, newCidr),
 		"a genuine vpc_subnet change must force cluster replacement")
+}
+
+// clusterExistingVpcAttribute returns nested features.existing_vpc attribute
+// from cluster resource schema.
+func clusterExistingVpcAttribute(t *testing.T) schema.SingleNestedAttribute {
+	t.Helper()
+
+	var resp resource.SchemaResponse
+	clusterResource{}.Schema(context.Background(), resource.SchemaRequest{}, &resp)
+
+	features, ok := resp.Schema.Attributes["features"].(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("features not SingleNestedAttribute")
+	}
+	existingVpc, ok := features.Attributes["existing_vpc"].(schema.SingleNestedAttribute)
+	if !ok {
+		t.Fatalf("features.existing_vpc not SingleNestedAttribute")
+	}
+	return existingVpc
+}
+
+func hasRejectKnownListChange(mods []planmodifier.List) bool {
+	ctx := context.Background()
+	for _, m := range mods {
+		if m.Description(ctx) == rejectKnownListChangeDescription {
+			return true
+		}
+	}
+	return false
+}
+
+func runListModifiers(t *testing.T, mods []planmodifier.List, state, plan types.List) (bool, bool) {
+	t.Helper()
+
+	requiresReplace := false
+	hasError := false
+	raw := types.StringValue("non-empty-resource")
+	for _, mod := range mods {
+		resp := &planmodifier.ListResponse{PlanValue: plan}
+		mod.PlanModifyList(context.Background(), planmodifier.ListRequest{
+			State:      buildState(&raw),
+			StateValue: state,
+			Plan:       buildPlan(&raw),
+			PlanValue:  plan,
+		}, resp)
+		requiresReplace = requiresReplace || resp.RequiresReplace
+		hasError = hasError || resp.Diagnostics.HasError()
+	}
+
+	return requiresReplace, hasError
+}
+
+// TestClusterExistingVpcSubnetLists_RejectUpdates guards immutable subnet
+// configuration: API preserves existing_vpc subnets on cluster update, so
+// Terraform must reject the change instead of replacing the cluster.
+func TestClusterExistingVpcSubnetLists_RejectUpdates(t *testing.T) {
+	t.Parallel()
+
+	subnetAttributes := []string{
+		"eks_subnets_zone_a_ids",
+		"eks_subnets_zone_b_ids",
+		"eks_subnets_zone_c_ids",
+		"rds_subnets_zone_a_ids",
+		"rds_subnets_zone_b_ids",
+		"rds_subnets_zone_c_ids",
+		"documentdb_subnets_zone_a_ids",
+		"documentdb_subnets_zone_b_ids",
+		"documentdb_subnets_zone_c_ids",
+		"elasticache_subnets_zone_a_ids",
+		"elasticache_subnets_zone_b_ids",
+		"elasticache_subnets_zone_c_ids",
+		"eks_karpenter_fargate_subnets_zone_a_ids",
+		"eks_karpenter_fargate_subnets_zone_b_ids",
+		"eks_karpenter_fargate_subnets_zone_c_ids",
+	}
+
+	existingVpc := clusterExistingVpcAttribute(t)
+	for _, attrName := range subnetAttributes {
+		attrName := attrName
+		t.Run(attrName, func(t *testing.T) {
+			t.Parallel()
+
+			schemaAttr, ok := existingVpc.Attributes[attrName]
+			require.True(t, ok, "features.existing_vpc.%s missing", attrName)
+
+			listAttr, ok := schemaAttr.(schema.ListAttribute)
+			require.True(t, ok, "features.existing_vpc.%s must ListAttribute", attrName)
+			assert.True(t, hasRejectKnownListChange(listAttr.PlanModifiers),
+				"features.existing_vpc.%s immutable changes must be rejected", attrName)
+
+			stateValue := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("subnet-existing")})
+			planValue := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("subnet-existing"), types.StringValue("subnet-new")})
+			requiresReplace, hasError := runListModifiers(t, listAttr.PlanModifiers, stateValue, planValue)
+
+			assert.False(t, requiresReplace, "features.existing_vpc.%s must not force cluster replacement", attrName)
+			assert.True(t, hasError, "features.existing_vpc.%s immutable changes must produce a plan error", attrName)
+		})
+	}
 }
 
 // ----------------------------------------------------------------------------
