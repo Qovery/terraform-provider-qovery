@@ -2,8 +2,10 @@ package qovery
 
 import (
 	"context"
+	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
@@ -304,52 +306,198 @@ func requiresReplaceIfKnownChangeFunc(_ context.Context, req planmodifier.String
 	resp.RequiresReplace = true
 }
 
-const rejectKnownListChangeDescription = "Rejects known list value changes after creation."
+const rejectExistingVpcChangeDescription = "Rejects any change to the existing VPC configuration after creation: adding or removing the block, or changing any of its attributes."
 
-// rejectKnownListChangeModifier rejects immutable list changes once a prior
-// value exists in state. Unknown planned values are ignored so deferred data
-// sources can resolve before a concrete comparison is possible.
-type rejectKnownListChangeModifier struct{}
+// rejectExistingVpcChangeModifier rejects changes to an immutable existing-VPC
+// block once the cluster exists, without forcing replacement. It guards the
+// whole block at the object level:
+//
+//   - presence: adding or removing the block after creation is rejected. This
+//     must be caught on the object because the framework skips the children's
+//     plan modifiers entirely when the planned block is null (fwserver "null
+//     and unknown values should not have nested schema to modify").
+//   - content: any known child value change is rejected, so attributes added
+//     to the block later are immutable by default with no per-attribute
+//     wiring. Unknown children (deferred data sources, unresolved Computed
+//     values) are skipped. Null is normalized per child type — null≡empty for
+//     lists and strings, null≡false for bools — because the API does not
+//     distinguish those pairs.
+type rejectExistingVpcChangeModifier struct{}
 
-func (m rejectKnownListChangeModifier) Description(_ context.Context) string {
-	return rejectKnownListChangeDescription
+func (m rejectExistingVpcChangeModifier) Description(_ context.Context) string {
+	return rejectExistingVpcChangeDescription
 }
 
-func (m rejectKnownListChangeModifier) MarkdownDescription(_ context.Context) string {
-	return "Rejects known list value changes after creation."
+func (m rejectExistingVpcChangeModifier) MarkdownDescription(_ context.Context) string {
+	return rejectExistingVpcChangeDescription
 }
 
-func (m rejectKnownListChangeModifier) PlanModifyList(_ context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
-	if req.StateValue.IsNull() || req.StateValue.IsUnknown() || req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
+func (m rejectExistingVpcChangeModifier) PlanModifyObject(_ context.Context, req planmodifier.ObjectRequest, resp *planmodifier.ObjectResponse) {
+	// Resource creation: no prior value exists, nothing is immutable yet.
+	if req.State.Raw.IsNull() {
 		return
 	}
 
-	for _, element := range req.StateValue.Elements() {
-		if element.IsUnknown() {
-			return
-		}
+	// Resource destroy: values are planned to null, which must not be mistaken
+	// for a removal. Unreachable on framework v1.19.0 (destroy plans skip plan
+	// modification entirely) but guarded per the framework's own
+	// RequiresReplaceIf convention in case that changes.
+	if req.Plan.Raw.IsNull() {
+		return
 	}
-	for _, element := range req.PlanValue.Elements() {
-		if element.IsUnknown() {
-			return
-		}
-	}
-
-	if req.PlanValue.Equal(req.StateValue) {
+	if req.PlanValue.IsUnknown() {
 		return
 	}
 
-	resp.Diagnostics.AddAttributeError(
-		req.Path,
-		"Cannot update existing VPC subnets",
-		"Existing VPC subnet lists are immutable after cluster creation. Create a new cluster with the desired subnet configuration instead of updating this value.",
+	if req.StateValue.IsNull() != req.PlanValue.IsNull() {
+		addExistingVpcImmutableError(req.Path, &resp.Diagnostics)
+		return
+	}
+	if req.StateValue.IsNull() {
+		return
+	}
+
+	stateAttrs := req.StateValue.Attributes()
+	planAttrs := req.PlanValue.Attributes()
+	names := make([]string, 0, len(planAttrs))
+	for name := range planAttrs {
+		names = append(names, name)
+	}
+	sort.Strings(names) // deterministic diagnostic order
+
+	for _, name := range names {
+		planValue := planAttrs[name]
+		stateValue, ok := stateAttrs[name]
+		// Unknown children are not user-driven changes: a deferred data source
+		// or a sibling Computed modifier (e.g. UseStateForUnknown) resolves
+		// them before the plan is finalized.
+		if !ok || planValue.IsUnknown() {
+			continue
+		}
+
+		changed, reorderOnly := existingVpcAttributeChanged(stateValue, planValue)
+		if !changed {
+			continue
+		}
+		if reorderOnly {
+			// An order-only difference cannot be let through: the planned value
+			// cannot be normalized to the state order (Terraform core rejects
+			// planned values that differ from config on non-Computed attributes),
+			// and applying would produce an inconsistent result because the API
+			// ignores the reorder. It gets a dedicated message so the remediation
+			// is obvious.
+			resp.Diagnostics.AddAttributeError(
+				req.Path.AtName(name),
+				"Existing VPC list order changed",
+				"This list contains the same elements as the Terraform state but in a different order. "+
+					"The Qovery API ignores ordering changes, so applying would produce an inconsistent result. "+
+					"Reorder the values in your configuration to match the Terraform state.",
+			)
+			continue
+		}
+		addExistingVpcImmutableError(req.Path.AtName(name), &resp.Diagnostics)
+	}
+}
+
+// existingVpcAttributeChanged reports whether a child attribute of an
+// existing-VPC block has a user-visible change between state and plan.
+// reorderOnly is true when a list holds the same elements in a different
+// order. Lists with unknown elements are never a change — deferred data
+// sources must resolve before a concrete comparison is possible.
+func existingVpcAttributeChanged(stateValue, planValue attr.Value) (changed bool, reorderOnly bool) {
+	switch plan := planValue.(type) {
+	case types.List:
+		state, ok := stateValue.(types.List)
+		if !ok {
+			break
+		}
+		if plan.Equal(state) {
+			return false, false
+		}
+		for _, element := range plan.Elements() {
+			if element.IsUnknown() {
+				return false, false
+			}
+		}
+		if listIsNullOrEmpty(state) && listIsNullOrEmpty(plan) {
+			return false, false
+		}
+		return true, listsEqualIgnoringOrder(state, plan)
+	case types.String:
+		state, ok := stateValue.(types.String)
+		if ok && stringIsNullOrEmpty(state) && stringIsNullOrEmpty(plan) {
+			return false, false
+		}
+	case types.Bool:
+		state, ok := stateValue.(types.Bool)
+		if ok && boolIsNullOrFalse(state) && boolIsNullOrFalse(plan) {
+			return false, false
+		}
+	}
+	return !planValue.Equal(stateValue), false
+}
+
+// addExistingVpcImmutableError emits the shared diagnostic for immutable
+// existing-VPC attributes (AWS and GCP): the API ignores these changes, so the
+// plan is rejected instead of forcing a cluster replacement.
+func addExistingVpcImmutableError(p path.Path, diags *diag.Diagnostics) {
+	diags.AddAttributeError(
+		p,
+		"Cannot change existing VPC configuration",
+		"The existing VPC configuration is immutable after cluster creation: the Qovery API ignores these changes. "+
+			"To keep this cluster, revert this attribute to match the Terraform state. "+
+			"To use a different VPC configuration, recreate the cluster explicitly, e.g. `terraform destroy -target=<cluster resource>` followed by `terraform apply`. "+
+			"Note that `terraform apply -replace=...` cannot be used here because the plan is rejected before the replacement is applied.",
 	)
 }
 
-// RejectKnownListChange rejects known updates to immutable list attributes after
-// creation without forcing resource replacement.
-func RejectKnownListChange() planmodifier.List {
-	return rejectKnownListChangeModifier{}
+// listIsNullOrEmpty reports whether the list is null or has no elements.
+func listIsNullOrEmpty(v types.List) bool {
+	return v.IsNull() || len(v.Elements()) == 0
+}
+
+// listsEqualIgnoringOrder reports whether two known lists hold the same elements
+// with the same multiplicity, regardless of order.
+func listsEqualIgnoringOrder(a, b types.List) bool {
+	aElements := a.Elements()
+	bElements := b.Elements()
+	if len(aElements) != len(bElements) {
+		return false
+	}
+
+	matched := make([]bool, len(bElements))
+	for _, aElement := range aElements {
+		found := false
+		for i, bElement := range bElements {
+			if !matched[i] && aElement.Equal(bElement) {
+				matched[i] = true
+				found = true
+				break
+			}
+		}
+		if !found {
+			return false
+		}
+	}
+	return true
+}
+
+// RejectExistingVpcChange rejects any change to an immutable existing-VPC
+// block after cluster creation — presence and content — without forcing
+// replacement. Attach it to the block's object attribute; children need no
+// per-attribute modifiers and new attributes are immutable by default.
+func RejectExistingVpcChange() planmodifier.Object {
+	return rejectExistingVpcChangeModifier{}
+}
+
+// stringIsNullOrEmpty reports whether the string is null or empty.
+func stringIsNullOrEmpty(v types.String) bool {
+	return v.IsNull() || v.ValueString() == ""
+}
+
+// boolIsNullOrFalse reports whether the bool is null or false.
+func boolIsNullOrFalse(v types.Bool) bool {
+	return v.IsNull() || !v.ValueBool()
 }
 
 // RequiresReplaceIfKnownChangeTreatingEmptyAs behaves like RequiresReplaceIfKnownChange

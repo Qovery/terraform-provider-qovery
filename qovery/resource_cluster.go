@@ -319,8 +319,11 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						},
 					},
 					"existing_vpc": schema.SingleNestedAttribute{
-						Optional:    true,
-						Computed:    false,
+						Optional: true,
+						Computed: false,
+						PlanModifiers: []planmodifier.Object{
+							RejectExistingVpcChange(),
+						},
 						Description: "Network configuration if you want to install qovery on an existing VPC",
 						MarkdownDescription: "AWS existing VPC configuration. Use this block to deploy the Qovery cluster into an existing AWS VPC instead of creating a new one. " +
 							"All EKS subnets are required, while database and cache subnets are optional.\n\n" +
@@ -338,9 +341,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Required:            true,
 								Computed:            false,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"eks_subnets_zone_b_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for EKS zone b. Must have map_public_ip_on_launch set to true",
@@ -348,9 +348,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Required:            true,
 								Computed:            false,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"eks_subnets_zone_c_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for EKS zone c. Must have map_public_ip_on_launch set to true",
@@ -358,9 +355,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Required:            true,
 								Computed:            false,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"rds_subnets_zone_a_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for RDS",
@@ -368,9 +362,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"rds_subnets_zone_b_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for RDS",
@@ -378,9 +369,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"rds_subnets_zone_c_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for RDS",
@@ -388,9 +376,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"documentdb_subnets_zone_a_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for document db",
@@ -398,9 +383,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"documentdb_subnets_zone_b_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for document db",
@@ -408,9 +390,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"documentdb_subnets_zone_c_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for document db",
@@ -418,9 +397,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"elasticache_subnets_zone_a_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for elasticache",
@@ -428,9 +404,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"elasticache_subnets_zone_b_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for elasticache",
@@ -438,9 +411,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"elasticache_subnets_zone_c_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for elasticache",
@@ -448,9 +418,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            true,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"eks_karpenter_fargate_subnets_zone_a_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for EKS fargate zone a. Must have to be private and connected to internet through a NAT Gateway",
@@ -458,9 +425,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            false,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"eks_karpenter_fargate_subnets_zone_b_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for EKS fargate zone b. Must have to be private and connected to internet through a NAT Gateway",
@@ -468,9 +432,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            false,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"eks_karpenter_fargate_subnets_zone_c_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for EKS fargate zone c. Must have to be private and connected to internet through a NAT Gateway",
@@ -478,9 +439,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            false,
-								PlanModifiers: []planmodifier.List{
-									RejectKnownListChange(),
-								},
 							},
 							"eks_create_nodes_in_private_subnet": schema.BoolAttribute{
 								Description:         "Whether to create EKS nodes in private subnet",
@@ -491,8 +449,11 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						},
 					},
 					"gcp_existing_vpc": schema.SingleNestedAttribute{
-						Optional:    true,
-						Computed:    false,
+						Optional: true,
+						Computed: false,
+						PlanModifiers: []planmodifier.Object{
+							RejectExistingVpcChange(),
+						},
 						Description: "Network configuration if you want to install qovery on an existing GCP VPC",
 						MarkdownDescription: "GCP existing VPC configuration. Use this block to deploy the Qovery GKE cluster into an existing Google Cloud VPC network instead of creating a new one.\n\n" +
 							"~> **Warning:** This configuration cannot be changed after cluster creation.",

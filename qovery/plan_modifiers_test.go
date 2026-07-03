@@ -7,6 +7,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -14,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // --- SmartAllowApiOverride tests ---
@@ -558,4 +561,152 @@ func TestUseStateUnlessPortsChange_Description(t *testing.T) {
 
 	assert.NotEmpty(t, modifier.Description(context.Background()))
 	assert.NotEmpty(t, modifier.MarkdownDescription(context.Background()))
+}
+
+// --- RejectExistingVpcChange tests ---
+
+// existingVpcTestAttrTypes mixes the three child types found in the real
+// existing-VPC blocks so one object exercises every comparison branch.
+var existingVpcTestAttrTypes = map[string]attr.Type{
+	"vpc_id":  types.StringType,
+	"subnets": types.ListType{ElemType: types.StringType},
+	"private": types.BoolType,
+}
+
+func existingVpcObject(vpcID types.String, subnets types.List, private types.Bool) types.Object {
+	return types.ObjectValueMust(existingVpcTestAttrTypes, map[string]attr.Value{
+		"vpc_id":  vpcID,
+		"subnets": subnets,
+		"private": private,
+	})
+}
+
+// TestRejectExistingVpcChange_Behavior exercises the block-level modifier
+// semantics: presence changes and known child value changes after creation are
+// rejected without forcing replacement, while creation, no-ops, per-type null
+// equivalences (null≡empty list/string, null≡false), and unknown (deferred)
+// values are allowed.
+func TestRejectExistingVpcChange_Behavior(t *testing.T) {
+	t.Parallel()
+
+	subnetA := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("subnet-a")})
+	subnetAB := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("subnet-a"), types.StringValue("subnet-b")})
+	subnetBA := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("subnet-b"), types.StringValue("subnet-a")})
+	subnetAA := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("subnet-a"), types.StringValue("subnet-a")})
+	emptyList := types.ListValueMust(types.StringType, []attr.Value{})
+	nullList := types.ListNull(types.StringType)
+	withUnknownElement := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("subnet-a"), types.StringUnknown()})
+
+	vpcA := types.StringValue("vpc-a")
+	base := existingVpcObject(vpcA, subnetA, types.BoolValue(true))
+	nullObject := types.ObjectNull(existingVpcTestAttrTypes)
+
+	raw := types.StringValue("non-empty-resource")
+	existingState := buildState(&raw)
+	updatePlan := buildPlan(&raw)
+
+	testCases := []struct {
+		TestName    string
+		State       tfsdk.State
+		Plan        tfsdk.Plan
+		StateValue  types.Object
+		PlanValue   types.Object
+		ExpectError bool
+	}{
+		{"create_allows_initial_block", buildState(nil), updatePlan, nullObject, base, false},
+		{"destroy_plan_skipped", existingState, buildPlan(nil), base, nullObject, false},
+		{"unchanged_allowed", existingState, updatePlan, base, base, false},
+		{"both_null_allowed", existingState, updatePlan, nullObject, nullObject, false},
+		{"unknown_plan_skipped", existingState, updatePlan, base, types.ObjectUnknown(existingVpcTestAttrTypes), false},
+		{"removal_rejected", existingState, updatePlan, base, nullObject, true},
+		{"addition_after_creation_rejected", existingState, updatePlan, nullObject, base, true},
+		{"unknown_child_skipped", existingState, updatePlan, base,
+			existingVpcObject(types.StringUnknown(), subnetA, types.BoolValue(true)), false},
+		{"string_change_rejected", existingState, updatePlan, base,
+			existingVpcObject(types.StringValue("vpc-b"), subnetA, types.BoolValue(true)), true},
+		{"string_cleared_after_creation_rejected", existingState, updatePlan, base,
+			existingVpcObject(types.StringNull(), subnetA, types.BoolValue(true)), true},
+		{"string_null_and_empty_equivalent", existingState, updatePlan,
+			existingVpcObject(types.StringNull(), subnetA, types.BoolValue(true)),
+			existingVpcObject(types.StringValue(""), subnetA, types.BoolValue(true)), false},
+		{"bool_change_rejected", existingState, updatePlan, base,
+			existingVpcObject(vpcA, subnetA, types.BoolValue(false)), true},
+		{"bool_set_true_after_creation_rejected", existingState, updatePlan,
+			existingVpcObject(vpcA, subnetA, types.BoolNull()),
+			existingVpcObject(vpcA, subnetA, types.BoolValue(true)), true},
+		{"bool_null_and_false_equivalent", existingState, updatePlan,
+			existingVpcObject(vpcA, subnetA, types.BoolNull()),
+			existingVpcObject(vpcA, subnetA, types.BoolValue(false)), false},
+		{"list_element_added_rejected", existingState, updatePlan, base,
+			existingVpcObject(vpcA, subnetAB, types.BoolValue(true)), true},
+		{"list_multiplicity_change_rejected", existingState, updatePlan,
+			existingVpcObject(vpcA, subnetAB, types.BoolValue(true)),
+			existingVpcObject(vpcA, subnetAA, types.BoolValue(true)), true},
+		{"list_removed_after_creation_rejected", existingState, updatePlan, base,
+			existingVpcObject(vpcA, nullList, types.BoolValue(true)), true},
+		{"list_reorder_rejected", existingState, updatePlan,
+			existingVpcObject(vpcA, subnetAB, types.BoolValue(true)),
+			existingVpcObject(vpcA, subnetBA, types.BoolValue(true)), true},
+		{"list_null_and_empty_equivalent", existingState, updatePlan,
+			existingVpcObject(vpcA, nullList, types.BoolValue(true)),
+			existingVpcObject(vpcA, emptyList, types.BoolValue(true)), false},
+		{"list_unknown_element_skipped", existingState, updatePlan, base,
+			existingVpcObject(vpcA, withUnknownElement, types.BoolValue(true)), false},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+
+			resp := &planmodifier.ObjectResponse{PlanValue: tc.PlanValue}
+			RejectExistingVpcChange().PlanModifyObject(context.Background(), planmodifier.ObjectRequest{
+				Path:       path.Root("features").AtName("existing_vpc"),
+				State:      tc.State,
+				StateValue: tc.StateValue,
+				Plan:       tc.Plan,
+				PlanValue:  tc.PlanValue,
+			}, resp)
+
+			assert.False(t, resp.RequiresReplace, "modifier must never force replacement")
+			assert.Equal(t, tc.ExpectError, resp.Diagnostics.HasError(),
+				"unexpected diagnostics outcome: %v", resp.Diagnostics)
+		})
+	}
+}
+
+// TestRejectExistingVpcChange_DiagnosticDetails asserts that a child change is
+// reported on the changed child's path, and that an order-only list difference
+// gets the reorder-specific diagnostic (which tells the user to match the
+// state order) rather than the generic immutability error.
+func TestRejectExistingVpcChange_DiagnosticDetails(t *testing.T) {
+	t.Parallel()
+
+	subnetAB := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("subnet-a"), types.StringValue("subnet-b")})
+	subnetBA := types.ListValueMust(types.StringType, []attr.Value{types.StringValue("subnet-b"), types.StringValue("subnet-a")})
+	vpcA := types.StringValue("vpc-a")
+	raw := types.StringValue("non-empty-resource")
+	blockPath := path.Root("features").AtName("existing_vpc")
+
+	stateValue := existingVpcObject(vpcA, subnetAB, types.BoolValue(true))
+	planValue := existingVpcObject(vpcA, subnetBA, types.BoolValue(true))
+
+	resp := &planmodifier.ObjectResponse{PlanValue: planValue}
+	RejectExistingVpcChange().PlanModifyObject(context.Background(), planmodifier.ObjectRequest{
+		Path:       blockPath,
+		State:      buildState(&raw),
+		StateValue: stateValue,
+		Plan:       buildPlan(&raw),
+		PlanValue:  planValue,
+	}, resp)
+
+	require.Len(t, resp.Diagnostics.Errors(), 1, "exactly the changed child must be reported")
+	diagErr := resp.Diagnostics.Errors()[0]
+	assert.Equal(t, "Existing VPC list order changed", diagErr.Summary(),
+		"reorder must get the order-specific diagnostic, not the generic immutability error")
+
+	withPath, ok := diagErr.(diag.DiagnosticWithPath)
+	require.True(t, ok, "diagnostic must carry an attribute path")
+	assert.True(t, blockPath.AtName("subnets").Equal(withPath.Path()),
+		"diagnostic must point at the changed child attribute, got %s", withPath.Path())
 }
