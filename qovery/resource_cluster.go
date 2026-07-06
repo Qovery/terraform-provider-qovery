@@ -319,8 +319,11 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						},
 					},
 					"existing_vpc": schema.SingleNestedAttribute{
-						Optional:    true,
-						Computed:    false,
+						Optional: true,
+						Computed: false,
+						PlanModifiers: []planmodifier.Object{
+							RejectExistingVpcChange(),
+						},
 						Description: "Network configuration if you want to install qovery on an existing VPC",
 						MarkdownDescription: "AWS existing VPC configuration. Use this block to deploy the Qovery cluster into an existing AWS VPC instead of creating a new one. " +
 							"All EKS subnets are required, while database and cache subnets are optional.\n\n" +
@@ -446,8 +449,11 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						},
 					},
 					"gcp_existing_vpc": schema.SingleNestedAttribute{
-						Optional:    true,
-						Computed:    false,
+						Optional: true,
+						Computed: false,
+						PlanModifiers: []planmodifier.Object{
+							RejectExistingVpcChange(),
+						},
 						Description: "Network configuration if you want to install qovery on an existing GCP VPC",
 						MarkdownDescription: "GCP existing VPC configuration. Use this block to deploy the Qovery GKE cluster into an existing Google Cloud VPC network instead of creating a new one.\n\n" +
 							"~> **Warning:** This configuration cannot be changed after cluster creation.",
