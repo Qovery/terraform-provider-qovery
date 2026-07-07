@@ -1429,6 +1429,78 @@ func TestCluster_convertResponseToCluster_KarpenterNodeCounts(t *testing.T) {
 	})
 }
 
+func TestCluster_convertResponseToCluster_KarpenterInstanceType(t *testing.T) {
+	ctx := context.Background()
+
+	karpenterID := featureIdKarpenter
+	apiEcho := "KARPENTER" // literal returned by the API when Karpenter is enabled
+	planned := "t3a.medium"
+
+	newRes := func(instanceType string, features []qovery.ClusterFeatureResponse) *client.ClusterResponse {
+		return &client.ClusterResponse{
+			OrganizationID: "org-123",
+			ClusterResponse: &qovery.Cluster{
+				Id:            "cluster-123",
+				Name:          "c",
+				CloudProvider: qovery.CLOUDVENDORENUM_AWS,
+				Region:        "us-east-1",
+				InstanceType:  &instanceType,
+				Features:      features,
+			},
+			ClusterInfo:         makeTestClusterInfo("cred-123"),
+			ClusterRoutingTable: &client.ClusterRoutingTable{},
+		}
+	}
+
+	t.Run("karpenter preserves plan instance_type over API echo", func(t *testing.T) {
+		t.Parallel()
+		res := newRes(apiEcho, []qovery.ClusterFeatureResponse{{Id: &karpenterID}})
+		initialPlan := Cluster{
+			InstanceType: types.StringValue(planned),
+		}
+
+		out := convertResponseToCluster(ctx, res, initialPlan)
+
+		assert.Equal(t, planned, out.InstanceType.ValueString())
+	})
+
+	t.Run("karpenter with null plan instance_type uses API echo", func(t *testing.T) {
+		t.Parallel()
+		res := newRes(apiEcho, []qovery.ClusterFeatureResponse{{Id: &karpenterID}})
+		initialPlan := Cluster{
+			InstanceType: types.StringNull(),
+		}
+
+		out := convertResponseToCluster(ctx, res, initialPlan)
+
+		assert.Equal(t, apiEcho, out.InstanceType.ValueString())
+	})
+
+	t.Run("karpenter with unknown plan instance_type uses API echo", func(t *testing.T) {
+		t.Parallel()
+		res := newRes(apiEcho, []qovery.ClusterFeatureResponse{{Id: &karpenterID}})
+		initialPlan := Cluster{
+			InstanceType: types.StringUnknown(),
+		}
+
+		out := convertResponseToCluster(ctx, res, initialPlan)
+
+		assert.Equal(t, apiEcho, out.InstanceType.ValueString())
+	})
+
+	t.Run("non-karpenter uses API instance_type", func(t *testing.T) {
+		t.Parallel()
+		res := newRes("m5.large", nil)
+		initialPlan := Cluster{
+			InstanceType: types.StringValue(planned),
+		}
+
+		out := convertResponseToCluster(ctx, res, initialPlan)
+
+		assert.Equal(t, "m5.large", out.InstanceType.ValueString())
+	})
+}
+
 func TestResponseHasKarpenter(t *testing.T) {
 	t.Parallel()
 

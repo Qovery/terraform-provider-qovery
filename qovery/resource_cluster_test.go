@@ -130,6 +130,41 @@ func TestAcc_ClusterWithStaticIP(t *testing.T) {
 	})
 }
 
+// TestAcc_ClusterKarpenterWithExplicitInstanceType reproduces QOV-2073: when Karpenter
+// is enabled the API rewrites instance_type to the literal "KARPENTER" in its response.
+// Without preserving the configured value, the create apply fails with "Provider produced
+// inconsistent result after apply" (.instance_type: was "t3a.medium", now "KARPENTER"),
+// the resource is tainted, and every subsequent plan shows a perpetual diff.
+// Uses READY state so no cloud infra is provisioned.
+func TestAcc_ClusterKarpenterWithExplicitInstanceType(t *testing.T) {
+	t.Parallel()
+	testName := "cluster-karpenter-instance-type"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
+		Steps: []resource.TestStep{
+			// Create with an explicit instance_type alongside Karpenter: apply must
+			// succeed and the configured value must be kept in state.
+			{
+				Config: testAccClusterKarpenterConfigWithInstanceType(testName, "t3a.medium"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryClusterExists("qovery_cluster.test"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "t3a.medium"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
+				),
+			},
+			// Re-plan the same config after refresh: must be empty (no perpetual
+			// "KARPENTER" -> "t3a.medium" diff).
+			{
+				Config:             testAccClusterKarpenterConfigWithInstanceType(testName, "t3a.medium"),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: false,
+			},
+		},
+	})
+}
+
 // TestAcc_ClusterAdvancedSettingsStringScalar reproduces QOV-2027: advanced
 // settings declared with string scalar values in jsonencode() (e.g. "2" instead
 // of 2) must not produce a perpetual diff. The API returns the value as a native
@@ -666,6 +701,40 @@ resource "qovery_cluster" "test" {
   })
 }
 `, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName))
+}
+
+// testAccClusterKarpenterConfigWithInstanceType builds an AWS EKS+Karpenter cluster in
+// READY state with an explicit instance_type (QOV-2073: the API echoes "KARPENTER" back,
+// the provider must preserve the configured value).
+func testAccClusterKarpenterConfigWithInstanceType(testName string, instanceType string) string {
+	return fmt.Sprintf(`
+resource "qovery_cluster" "test" {
+  credentials_id  = "%s"
+  organization_id = "%s"
+  name            = "%s"
+  cloud_provider  = "AWS"
+  region          = "eu-west-3"
+  kubernetes_mode = "MANAGED"
+  instance_type   = "%s"
+  state           = "READY"
+
+  features = {
+    vpc_subnet = "10.0.0.0/16"
+    karpenter = {
+      spot_enabled                 = true
+      disk_size_in_gib             = 50
+      default_service_architecture = "AMD64"
+      qovery_node_pools = {
+        requirements = [
+          { key = "InstanceSize",   operator = "In", values = ["small", "medium", "large"] },
+          { key = "InstanceFamily", operator = "In", values = ["t3", "t3a"] },
+          { key = "Arch",           operator = "In", values = ["AMD64"] },
+        ]
+      }
+    }
+  }
+}
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), instanceType)
 }
 
 func testAccClusterConfigWithKeda(testName string, kedaEnabled bool) string {
