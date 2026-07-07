@@ -66,3 +66,23 @@ resource "qovery_container_registry" "gcp_artifact_registry" {
     qovery_organization.my_organization
   ]
 }
+
+# GCP Artifact Registry using Workload Identity Federation (keyless)
+resource "qovery_container_registry" "gcp_artifact_registry_wif" {
+  organization_id = qovery_organization.my_organization.id
+  name            = "My GCP Artifact Registry (WIF)"
+  kind            = "GCP_ARTIFACT_REGISTRY"
+  url             = "https://<region>-docker.pkg.dev"
+  config = {
+    region                              = "<region>"
+    gcp_credentials_type                = "workload_identity_federation"
+    project_id                          = "<gcp_project_id>"
+    service_account_email               = "<service_account>@<gcp_project_id>.iam.gserviceaccount.com"
+    workload_identity_provider_resource = "projects/<project_number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>"
+  }
+  description = "GCP Artifact Registry (Workload Identity Federation)"
+
+  depends_on = [
+    qovery_organization.my_organization
+  ]
+}

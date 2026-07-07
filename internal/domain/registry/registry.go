@@ -120,8 +120,16 @@ type UpsertRequestConfig struct {
 	ScalewaySecretKey *string
 	ScalewayProjectId *string
 	JsonCredentials   *string
-	Username          *string
-	Password          *string
+
+	// GCP Artifact Registry Workload Identity Federation (keyless auth), alternative to JsonCredentials.
+	GcpCredentialsType               *string
+	ProjectId                        *string
+	ServiceAccountEmail              *string
+	WorkloadIdentityProviderResource *string
+	TokenLifetimeSeconds             *int32
+
+	Username *string
+	Password *string
 }
 
 // Validate returns an error to tell whether the UpsertRequest is valid or not.

@@ -24,8 +24,15 @@ type ContainerRegistryConfig struct {
 	ScalewaySecretKey types.String `tfsdk:"scaleway_secret_key"`
 	ScalewayProjectId types.String `tfsdk:"scaleway_project_id"`
 	JsonCredentials   types.String `tfsdk:"json_credentials"`
-	Username          types.String `tfsdk:"username"`
-	Password          types.String `tfsdk:"password"`
+
+	GcpCredentialsType               types.String `tfsdk:"gcp_credentials_type"`
+	ProjectId                        types.String `tfsdk:"project_id"`
+	ServiceAccountEmail              types.String `tfsdk:"service_account_email"`
+	WorkloadIdentityProviderResource types.String `tfsdk:"workload_identity_provider_resource"`
+	TokenLifetimeSeconds             types.Int64  `tfsdk:"token_lifetime_seconds"`
+
+	Username types.String `tfsdk:"username"`
+	Password types.String `tfsdk:"password"`
 }
 
 type ContainerRegistryDataSource struct {
@@ -50,8 +57,15 @@ func (p ContainerRegistry) toUpsertRequest() registry.UpsertRequest {
 			ScalewaySecretKey: ToStringPointer(p.Config.ScalewaySecretKey),
 			ScalewayProjectId: ToStringPointer(p.Config.ScalewayProjectId),
 			JsonCredentials:   ToStringPointer(p.Config.JsonCredentials),
-			Username:          ToStringPointer(p.Config.Username),
-			Password:          ToStringPointer(p.Config.Password),
+
+			GcpCredentialsType:               ToStringPointer(p.Config.GcpCredentialsType),
+			ProjectId:                        ToStringPointer(p.Config.ProjectId),
+			ServiceAccountEmail:              ToStringPointer(p.Config.ServiceAccountEmail),
+			WorkloadIdentityProviderResource: ToStringPointer(p.Config.WorkloadIdentityProviderResource),
+			TokenLifetimeSeconds:             ToInt32Pointer(p.Config.TokenLifetimeSeconds),
+
+			Username: ToStringPointer(p.Config.Username),
+			Password: ToStringPointer(p.Config.Password),
 		}
 	}
 	return registry.UpsertRequest{
