@@ -160,10 +160,38 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 						Optional:            true,
 					},
 					"json_credentials": schema.StringAttribute{
-						Description:         "Required if kind is `GCP_ARTIFACT_REGISTRY`.",
-						MarkdownDescription: "GCP service account JSON key used to authenticate with the registry. Required if `kind` is `GCP_ARTIFACT_REGISTRY`.",
+						Description:         "Required if kind is `GCP_ARTIFACT_REGISTRY` and gcp_credentials_type is not set.",
+						MarkdownDescription: "GCP service account JSON key used to authenticate with the registry. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is not set. Mutually exclusive with the Workload Identity Federation fields (`gcp_credentials_type`, `service_account_email`, `workload_identity_provider_resource`).",
 						Optional:            true,
 						Sensitive:           true,
+					},
+					"gcp_credentials_type": schema.StringAttribute{
+						Description:         "For GCP Artifact Registry, set to `workload_identity_federation` to use keyless authentication instead of json_credentials.",
+						MarkdownDescription: "For `GCP_ARTIFACT_REGISTRY`, set to `workload_identity_federation` to authenticate via Workload Identity Federation instead of `json_credentials`. Requires `project_id`, `service_account_email`, and `workload_identity_provider_resource`.",
+						Optional:            true,
+						Validators: []validator.String{
+							validators.NewStringEnumValidator([]string{"workload_identity_federation"}),
+						},
+					},
+					"project_id": schema.StringAttribute{
+						Description:         "Required if kind is `GCP_ARTIFACT_REGISTRY` and gcp_credentials_type is `workload_identity_federation`.",
+						MarkdownDescription: "GCP project ID. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is `workload_identity_federation`.",
+						Optional:            true,
+					},
+					"service_account_email": schema.StringAttribute{
+						Description:         "Required if kind is `GCP_ARTIFACT_REGISTRY` and gcp_credentials_type is `workload_identity_federation`.",
+						MarkdownDescription: "GCP service account email to impersonate via Workload Identity Federation. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is `workload_identity_federation`.",
+						Optional:            true,
+					},
+					"workload_identity_provider_resource": schema.StringAttribute{
+						Description:         "Required if kind is `GCP_ARTIFACT_REGISTRY` and gcp_credentials_type is `workload_identity_federation`.",
+						MarkdownDescription: "Full Workload Identity Provider resource path (e.g. `projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider`). Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is `workload_identity_federation`.",
+						Optional:            true,
+					},
+					"token_lifetime_seconds": schema.Int64Attribute{
+						Description:         "Optional if kind is GCP_ARTIFACT_REGISTRY and gcp_credentials_type is workload_identity_federation.",
+						MarkdownDescription: "Lifetime in seconds of the token generated via Workload Identity Federation (e.g. `14400`). Optional if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is `workload_identity_federation`.",
+						Optional:            true,
 					},
 					"username": schema.StringAttribute{
 						Description:         "Required if kind is `DOCKER_HUB`, `GITHUB_CR`, `GITLAB_CR`, or `GENERIC_CR`.",

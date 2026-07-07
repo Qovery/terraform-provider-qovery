@@ -118,3 +118,37 @@ func TestNewQoveryRegistryRequestFromDomain_Config(t *testing.T) {
 	assert.Equal(t, &region, req.Config.Region)
 	assert.Equal(t, &jsonCredentials, req.Config.JsonCredentials)
 }
+
+func TestNewQoveryRegistryRequestFromDomain_Config_GcpWorkloadIdentityFederation(t *testing.T) {
+	t.Parallel()
+
+	region := gofakeit.Word()
+	gcpCredentialsType := "workload_identity_federation"
+	projectID := gofakeit.UUID()
+	serviceAccountEmail := gofakeit.Email()
+	workloadIdentityProviderResource := gofakeit.Word()
+	tokenLifetimeSeconds := int32(14400)
+
+	req, err := newQoveryContainerRegistryRequestFromDomain(registry.UpsertRequest{
+		Name: gofakeit.Name(),
+		Kind: registry.KindGcpArtifactRegistry.String(),
+		URL:  gofakeit.URL(),
+		Config: registry.UpsertRequestConfig{
+			Region:                           &region,
+			GcpCredentialsType:               &gcpCredentialsType,
+			ProjectId:                        &projectID,
+			ServiceAccountEmail:              &serviceAccountEmail,
+			WorkloadIdentityProviderResource: &workloadIdentityProviderResource,
+			TokenLifetimeSeconds:             &tokenLifetimeSeconds,
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, &region, req.Config.Region)
+	assert.Equal(t, &gcpCredentialsType, req.Config.GcpCredentialsType)
+	assert.Equal(t, &projectID, req.Config.ProjectId)
+	assert.Equal(t, &serviceAccountEmail, req.Config.ServiceAccountEmail)
+	assert.Equal(t, &workloadIdentityProviderResource, req.Config.WorkloadIdentityProviderResource)
+	assert.Equal(t, &tokenLifetimeSeconds, req.Config.TokenLifetimeSeconds)
+	assert.Nil(t, req.Config.JsonCredentials)
+}
