@@ -114,6 +114,10 @@ type qProvider struct {
 	// It holds a per-service-type cache, so it is constructed once and shared across resources.
 	advancedSettingsService *advanced_settings.ServiceAdvancedSettingsService
 
+	// clusterAdvancedSettingsService validates cluster advanced_settings_json keys at plan time.
+	// It caches the default cluster key set, so it is constructed once and shared.
+	clusterAdvancedSettingsService *advanced_settings.ClusterAdvancedSettingsService
+
 	// argoCdCredentialsService is an instance of an argoCdCredentials.Service that handles the domain logic.
 	argoCdCredentialsService argoCdCredentials.Service
 
@@ -188,6 +192,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.configured = true
 	p.client = client.New(token, p.version, host)
 	p.advancedSettingsService = advanced_settings.NewServiceAdvancedSettingsService(p.client.GetConfig())
+	p.clusterAdvancedSettingsService = advanced_settings.NewClusterAdvancedSettingsService(p.client.GetConfig())
 	p.organizationService = domainServices.Organization
 	p.awsCredentialsService = domainServices.CredentialsAws
 	p.scalewayCredentialsService = domainServices.CredentialsScaleway
