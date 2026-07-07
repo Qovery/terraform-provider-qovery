@@ -28,6 +28,7 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
@@ -37,6 +38,7 @@ var (
 	_ resource.ResourceWithConfigure      = &clusterResource{}
 	_ resource.ResourceWithImportState    = clusterResource{}
 	_ resource.ResourceWithValidateConfig = clusterResource{}
+	_ resource.ResourceWithModifyPlan     = clusterResource{}
 )
 
 var (
@@ -78,7 +80,8 @@ var (
 )
 
 type clusterResource struct {
-	client *client.Client
+	client                         *client.Client
+	clusterAdvancedSettingsService *advanced_settings.ClusterAdvancedSettingsService
 }
 
 func newClusterResource() resource.Resource {
@@ -105,6 +108,13 @@ func (r *clusterResource) Configure(_ context.Context, req resource.ConfigureReq
 	}
 
 	r.client = provider.client
+	r.clusterAdvancedSettingsService = provider.clusterAdvancedSettingsService
+}
+
+// ModifyPlan warns at plan time about advanced_settings_json keys that are not recognized
+// cluster advanced settings, instead of letting them silently no-op.
+func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
+	warnUnknownClusterAdvancedSettings(ctx, r.clusterAdvancedSettingsService, req.Config, &resp.Diagnostics)
 }
 
 func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {

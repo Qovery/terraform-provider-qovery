@@ -465,7 +465,17 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		// Preserve kubeconfig from initialPlan - it's fetched separately via API in Read operation
 		cluster.Kubeconfig = initialPlan.Kubeconfig
 	} else {
-		cluster.InstanceType = FromStringPointer(res.ClusterResponse.InstanceType)
+		hasKarpenter := responseHasKarpenter(res.ClusterResponse.Features)
+
+		// When Karpenter is enabled the API rewrites instance_type to the literal
+		// "KARPENTER" in the response. Preserve the plan value to avoid an
+		// "inconsistent result after apply" on create and a spurious diff on every
+		// subsequent plan.
+		if hasKarpenter && !initialPlan.InstanceType.IsNull() && !initialPlan.InstanceType.IsUnknown() {
+			cluster.InstanceType = initialPlan.InstanceType
+		} else {
+			cluster.InstanceType = FromStringPointer(res.ClusterResponse.InstanceType)
+		}
 		cluster.DiskSize = FromInt32Pointer(res.ClusterResponse.DiskSize)
 
 		// GCP Autopilot and Karpenter manage node scaling themselves, so min/max_running_nodes
@@ -473,7 +483,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 		// after create, a real number on later reads). Preserve the plan values to avoid a spurious
 		// "inconsistent result after apply" on update.
 		isAutoPilot := res.ClusterResponse.InstanceType != nil && *res.ClusterResponse.InstanceType == instanceTypeAutoPilot
-		nodeCountsManaged := isAutoPilot || responseHasKarpenter(res.ClusterResponse.Features)
+		nodeCountsManaged := isAutoPilot || hasKarpenter
 		if nodeCountsManaged && !initialPlan.MinRunningNodes.IsNull() && !initialPlan.MinRunningNodes.IsUnknown() {
 			cluster.MinRunningNodes = initialPlan.MinRunningNodes
 		} else {
