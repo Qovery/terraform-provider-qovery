@@ -3,6 +3,7 @@
 package qovery_test
 
 import (
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -27,8 +28,8 @@ data "qovery_custom_role" "test" {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.qovery_custom_role.test", "name", roleName),
 					// The data source returns the FULL matrix (every project of the org),
-					// so at minimum the declared project must be present.
-					resource.TestCheckResourceAttrSet("data.qovery_custom_role.test", "project_permissions.#"),
+					// so the returned project_permissions set must be non-empty (not "0").
+					resource.TestMatchResourceAttr("data.qovery_custom_role.test", "project_permissions.#", regexp.MustCompile(`^[1-9][0-9]*$`)),
 				),
 			},
 		},

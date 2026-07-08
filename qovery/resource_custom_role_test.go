@@ -48,7 +48,20 @@ func TestAcc_CustomRole(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_custom_role.test", "project_permissions.0.permissions.#", "4"),
 				),
 			},
-			// Step 4: adding an unrelated project must NOT produce a diff on the role
+			// Step 4: dropping the `description` attribute from config must apply cleanly.
+			// The server persists an omitted description as "" (not null), so a plain
+			// Optional attribute failed with "Provider produced inconsistent result after
+			// apply" (null in config vs "" from the API). description is Optional+Computed
+			// with UseStateForUnknown, so removing it keeps the prior value; a clean apply
+			// plus the framework's empty post-apply plan is the regression guard.
+			{
+				Config: testAccCustomRoleConfigNoDescription(roleName, "MANAGER"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryCustomRoleExists("qovery_custom_role.test"),
+					resource.TestCheckResourceAttr("qovery_custom_role.test", "description", "acceptance test role"),
+				),
+			},
+			// Step 5: adding an unrelated project must NOT produce a diff on the role
 			// (THE perpetual-diff regression test: the server matrix now includes the new
 			// project with default perms, which the Read must filter out).
 			{
@@ -56,7 +69,7 @@ func TestAcc_CustomRole(t *testing.T) {
 				Check:              testAccQoveryCustomRoleExists("qovery_custom_role.test"),
 				ExpectNonEmptyPlan: false,
 			},
-			// Step 5: import keeps non-default entries (id format: "org_id,role_id")
+			// Step 6: import keeps non-default entries (id format: "org_id,role_id")
 			{
 				ResourceName:      "qovery_custom_role.test",
 				ImportState:       true,
@@ -73,6 +86,27 @@ resource "qovery_custom_role" "test" {
   organization_id = "%s"
   name            = "%s"
   description     = "acceptance test role"
+
+  project_permissions = [
+    {
+      project_id = "%s"
+      permissions = [
+        { environment_type = "DEVELOPMENT", permission = "MANAGER" },
+        { environment_type = "PREVIEW", permission = "MANAGER" },
+        { environment_type = "STAGING", permission = "DEPLOYER" },
+        { environment_type = "PRODUCTION", permission = "%s" },
+      ]
+    }
+  ]
+}
+`, getTestOrganizationID(), roleName, getTestProjectID(), prodPermission)
+}
+
+func testAccCustomRoleConfigNoDescription(roleName string, prodPermission string) string {
+	return fmt.Sprintf(`
+resource "qovery_custom_role" "test" {
+  organization_id = "%s"
+  name            = "%s"
 
   project_permissions = [
     {

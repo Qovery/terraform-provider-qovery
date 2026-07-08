@@ -428,6 +428,7 @@ func collectVulnerableAttributes(t *testing.T) []vulnerableAttribute {
 		{"qovery_container_registry", "organization_id", schemaOf(containerRegistryResource{})},
 		{"qovery_helm_repository", "organization_id", schemaOf(helmRepositoryResource{})},
 		{"qovery_git_token", "organization_id", schemaOf(gitTokenResource{})},
+		{"qovery_custom_role", "organization_id", schemaOf(customRoleResource{})},
 		{"qovery_aws_credentials", "organization_id", schemaOf(awsCredentialsResource{})},
 		{"qovery_gcp_credentials", "organization_id", schemaOf(gcpCredentialsResource{})},
 		{"qovery_scaleway_credentials", "organization_id", schemaOf(scalewayCredentialsResource{})},

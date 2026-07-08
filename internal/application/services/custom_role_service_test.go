@@ -4,6 +4,7 @@ package services_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/google/uuid"
@@ -47,6 +48,15 @@ func TestCustomRoleServiceCreate(t *testing.T) {
 		assert.ErrorContains(t, err, customrole.ErrReservedName.Error())
 	})
 
+	t.Run("repository error", func(t *testing.T) {
+		repo := mocks_test.NewCustomRoleRepository(t)
+		repo.EXPECT().Create(context.Background(), orgID, validReq).Return(nil, errors.New("boom"))
+		svc, _ := services.NewCustomRoleService(repo)
+		role, err := svc.Create(context.Background(), orgID, validReq)
+		assert.Nil(t, role)
+		assert.ErrorContains(t, err, customrole.ErrFailedToCreateCustomRole.Error())
+	})
+
 	t.Run("repository success", func(t *testing.T) {
 		repo := mocks_test.NewCustomRoleRepository(t)
 		expected := &customrole.CustomRole{ID: uuid.New(), OrganizationID: uuid.MustParse(orgID), Name: "my-role"}
@@ -66,6 +76,15 @@ func TestCustomRoleServiceGet(t *testing.T) {
 		repo := mocks_test.NewCustomRoleRepository(t)
 		svc, _ := services.NewCustomRoleService(repo)
 		role, err := svc.Get(context.Background(), orgID, "nope")
+		assert.Nil(t, role)
+		assert.ErrorContains(t, err, customrole.ErrFailedToGetCustomRole.Error())
+	})
+
+	t.Run("repository error", func(t *testing.T) {
+		repo := mocks_test.NewCustomRoleRepository(t)
+		repo.EXPECT().Get(context.Background(), orgID, roleID).Return(nil, errors.New("boom"))
+		svc, _ := services.NewCustomRoleService(repo)
+		role, err := svc.Get(context.Background(), orgID, roleID)
 		assert.Nil(t, role)
 		assert.ErrorContains(t, err, customrole.ErrFailedToGetCustomRole.Error())
 	})
@@ -110,6 +129,15 @@ func TestCustomRoleServiceUpdate(t *testing.T) {
 		assert.ErrorContains(t, err, customrole.ErrReservedName.Error())
 	})
 
+	t.Run("repository error", func(t *testing.T) {
+		repo := mocks_test.NewCustomRoleRepository(t)
+		repo.EXPECT().Update(context.Background(), orgID, roleID, validReq).Return(nil, errors.New("boom"))
+		svc, _ := services.NewCustomRoleService(repo)
+		role, err := svc.Update(context.Background(), orgID, roleID, validReq)
+		assert.Nil(t, role)
+		assert.ErrorContains(t, err, customrole.ErrFailedToUpdateCustomRole.Error())
+	})
+
 	t.Run("repository success", func(t *testing.T) {
 		repo := mocks_test.NewCustomRoleRepository(t)
 		expected := &customrole.CustomRole{ID: uuid.MustParse(roleID), OrganizationID: uuid.MustParse(orgID), Name: "my-role"}
@@ -124,6 +152,14 @@ func TestCustomRoleServiceUpdate(t *testing.T) {
 func TestCustomRoleServiceDelete(t *testing.T) {
 	t.Parallel()
 	orgID, roleID := uuid.NewString(), uuid.NewString()
+
+	t.Run("repository error", func(t *testing.T) {
+		repo := mocks_test.NewCustomRoleRepository(t)
+		repo.EXPECT().Delete(context.Background(), orgID, roleID).Return(errors.New("boom"))
+		svc, _ := services.NewCustomRoleService(repo)
+		err := svc.Delete(context.Background(), orgID, roleID)
+		assert.ErrorContains(t, err, customrole.ErrFailedToDeleteCustomRole.Error())
+	})
 
 	t.Run("repository success", func(t *testing.T) {
 		repo := mocks_test.NewCustomRoleRepository(t)
