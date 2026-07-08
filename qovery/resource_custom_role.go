@@ -78,7 +78,8 @@ func (r customRoleResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery organization custom role resource. Declare only the clusters and projects this role should have non-default access to: " +
 			"any cluster not listed keeps the VIEWER permission and any project not listed keeps NO_ACCESS. " +
-			"Permissions granted outside Terraform on undeclared clusters/projects are reset to those defaults on the next apply.",
+			"Permissions granted outside Terraform on undeclared clusters/projects are reset to those defaults on the next apply. " +
+			"Declaring an entry equal to the defaults (cluster VIEWER / project all-NO_ACCESS) is a no-op and will not survive an import round-trip.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the custom role.",
@@ -99,8 +100,17 @@ func (r customRoleResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Required:    true,
 			},
 			"description": schema.StringAttribute{
+				// Optional+Computed: the server stores an omitted description as an empty
+				// string rather than keeping it null, so a plain Optional attribute would
+				// fail with "inconsistent result after apply" (null in config, "" from API).
+				// UseStateForUnknown keeps the prior value when the practitioner drops the
+				// attribute from config, matching the standard provider pattern.
 				Description: "Description of the custom role.",
 				Optional:    true,
+				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"cluster_permissions": schema.SetNestedAttribute{
 				Description: "Cluster permissions of the custom role. Clusters not listed default to VIEWER.",

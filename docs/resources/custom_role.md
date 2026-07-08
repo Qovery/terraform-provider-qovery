@@ -1,6 +1,6 @@
 # qovery_custom_role (Resource)
 
-Provides a Qovery organization custom role resource. Declare only the clusters and projects this role should have non-default access to: any cluster not listed keeps the VIEWER permission and any project not listed keeps NO_ACCESS. Permissions granted outside Terraform on undeclared clusters/projects are reset to those defaults on the next apply.
+Provides a Qovery organization custom role resource. Declare only the clusters and projects this role should have non-default access to: any cluster not listed keeps the VIEWER permission and any project not listed keeps NO_ACCESS. Permissions granted outside Terraform on undeclared clusters/projects are reset to those defaults on the next apply. Declaring an entry equal to the defaults (cluster VIEWER / project all-NO_ACCESS) is a no-op and will not survive an import round-trip.
 
 
 ## Example
