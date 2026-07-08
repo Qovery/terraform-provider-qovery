@@ -12,6 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/customrole"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
@@ -141,7 +142,7 @@ func (r customRoleResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 							Required:    true,
 						},
 						"is_admin": schema.BoolAttribute{
-							Description: "Give full admin rights on the project (MANAGER on every environment type + manage deployment rules + delete project). Mutually exclusive with `permissions`. Defaults to `false`.",
+							Description: "Give full admin rights on the project (MANAGER on every environment type + manage deployment rules + delete project). When true, `permissions` must not be set, not even as an empty set. Defaults to `false`.",
 							Optional:    true,
 							Computed:    true,
 							Default:     booldefault.StaticBool(false),
@@ -186,6 +187,34 @@ func (r customRoleResource) ValidateConfig(ctx context.Context, req resource.Val
 	if config.Name.IsUnknown() || config.ClusterPermissions.IsUnknown() || config.ProjectPermissions.IsUnknown() {
 		return
 	}
+
+	// An admin project must not carry a `permissions` set at all. The null-vs-empty
+	// distinction is lost once toUpsertRequest folds an empty set into a nil slice (so the
+	// domain's non-empty guard never fires), and convertDomainCustomRoleToCustomRole always
+	// writes null for admin projects — yielding "inconsistent result after apply". Only the
+	// raw config seen here can tell an explicit `permissions = []` from an omitted attribute.
+	if !config.ProjectPermissions.IsNull() {
+		for _, elem := range config.ProjectPermissions.Elements() {
+			obj, ok := elem.(types.Object)
+			if !ok {
+				continue
+			}
+			attrs := obj.Attributes()
+			isAdmin, _ := attrs["is_admin"].(types.Bool)
+			permissions, _ := attrs["permissions"].(types.Set)
+			if isAdmin.IsNull() || isAdmin.IsUnknown() || !isAdmin.ValueBool() {
+				continue
+			}
+			if !permissions.IsNull() {
+				resp.Diagnostics.AddAttributeError(
+					path.Root("project_permissions"),
+					"Invalid custom role configuration",
+					"permissions must not be set when is_admin is true, not even as an empty set",
+				)
+			}
+		}
+	}
+
 	request := config.toUpsertRequest()
 	if err := request.Validate(); err != nil {
 		// ids may be unknown (references to not-yet-created resources) at plan time; only
@@ -223,8 +252,7 @@ func (r customRoleResource) Read(ctx context.Context, req resource.ReadRequest, 
 	}
 
 	role, err := r.service.Get(ctx, ToString(state.OrganizationId), ToString(state.Id))
-	if err != nil {
-		resp.Diagnostics.AddError("Error on custom role read", err.Error())
+	if handleDomainReadNotFound(ctx, resp, err, "Error on custom role read") {
 		return
 	}
 

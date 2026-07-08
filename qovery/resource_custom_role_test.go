@@ -29,6 +29,12 @@ func TestAcc_CustomRole(t *testing.T) {
 				Config:      testAccCustomRoleConfigNamed("admin", "MANAGER"),
 				ExpectError: regexp.MustCompile(`reserved`),
 			},
+			// Step 1b: is_admin=true with an explicit (even empty) permissions set is rejected
+			// at plan time (placed before any state-creating step so nothing dangles).
+			{
+				Config:      testAccCustomRoleConfigAdminWithEmptyPermissions(roleName),
+				ExpectError: regexp.MustCompile(`is_admin`),
+			},
 			// Step 2: create with a declared project permission (4 env types)
 			{
 				Config: testAccCustomRoleConfigNamed(roleName, "DEPLOYER"),
@@ -100,6 +106,24 @@ resource "qovery_custom_role" "test" {
   ]
 }
 `, getTestOrganizationID(), roleName, getTestProjectID(), prodPermission)
+}
+
+func testAccCustomRoleConfigAdminWithEmptyPermissions(roleName string) string {
+	return fmt.Sprintf(`
+resource "qovery_custom_role" "test" {
+  organization_id = "%s"
+  name            = "%s"
+  description     = "acceptance test role"
+
+  project_permissions = [
+    {
+      project_id  = "%s"
+      is_admin    = true
+      permissions = []
+    }
+  ]
+}
+`, getTestOrganizationID(), roleName, getTestProjectID())
 }
 
 func testAccCustomRoleConfigNoDescription(roleName string, prodPermission string) string {
