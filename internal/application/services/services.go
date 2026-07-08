@@ -5,6 +5,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/apitoken"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdCredentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdDestinationClusterMapping"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
@@ -63,6 +64,7 @@ type Services struct {
 	TerraformService                terraformservice.Service
 	ArgoCdCredentials               argoCdCredentials.Service
 	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Service
+	ApiToken                        apitoken.Service
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -264,6 +266,11 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
+	apiTokenService, err := NewApiTokenService(services.repos.ApiToken)
+	if err != nil {
+		return nil, err
+	}
+
 	services.CredentialsAws = credentialsAwsService
 	services.CredentialsScaleway = credentialsScalewayService
 	services.CredentialsGcp = credentialsGcpService
@@ -286,6 +293,7 @@ func New(configs ...Configuration) (*Services, error) {
 	services.TerraformService = terraformServiceService
 	services.ArgoCdCredentials = argoCdCredentialsService
 	services.ArgoCdDestinationClusterMapping = argoCdDestinationClusterMappingService
+	services.ApiToken = apiTokenService
 
 	return services, nil
 }

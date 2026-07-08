@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/apitoken"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdCredentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdDestinationClusterMapping"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
@@ -76,6 +77,7 @@ type Repositories struct {
 	TerraformService                terraformservice.Repository
 	ArgoCdCredentials               argoCdCredentials.Repository
 	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Repository
+	ApiToken                        apitoken.Repository
 
 	ApplicationExternalSecret      variable.ExternalSecretRepository
 	ContainerExternalSecret        variable.ExternalSecretRepository
@@ -156,6 +158,7 @@ func WithQoveryAPI(apiToken string, providerVersion string, host string) Configu
 		repos.TerraformService = qoveryAPI.TerraformService
 		repos.ArgoCdCredentials = qoveryAPI.ArgoCdCredentials
 		repos.ArgoCdDestinationClusterMapping = qoveryAPI.ArgoCdDestinationClusterMapping
+		repos.ApiToken = qoveryAPI.ApiToken
 
 		repos.ApplicationExternalSecret = qoveryAPI.ApplicationExternalSecret
 		repos.ContainerExternalSecret = qoveryAPI.ContainerExternalSecret

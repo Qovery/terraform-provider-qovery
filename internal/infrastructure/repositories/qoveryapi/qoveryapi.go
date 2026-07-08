@@ -16,6 +16,7 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/apitoken"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
@@ -83,6 +84,7 @@ type QoveryAPI struct {
 	TerraformService                terraformservice.Repository
 	ArgoCdCredentials               argoCdCredentials.Repository
 	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Repository
+	ApiToken                        apitoken.Repository
 
 	ApplicationExternalSecret      variable.ExternalSecretRepository
 	ContainerExternalSecret        variable.ExternalSecretRepository
@@ -341,6 +343,11 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	apiTokenAPI, err := newApiTokenQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create a new QoveryAPI instance.
 	qoveryAPI := &QoveryAPI{
 		Client:                          apiClient,
@@ -379,6 +386,7 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		TerraformService:                terraformServiceAPI,
 		ArgoCdCredentials:               argoCdCredentialsAPI,
 		ArgoCdDestinationClusterMapping: argoCdDestinationClusterMappingAPI,
+		ApiToken:                        apiTokenAPI,
 
 		ApplicationExternalSecret:      applicationExternalSecretAPI,
 		ContainerExternalSecret:        containerExternalSecretAPI,
