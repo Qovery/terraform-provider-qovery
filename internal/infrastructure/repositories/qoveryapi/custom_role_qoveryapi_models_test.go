@@ -111,6 +111,65 @@ func TestNewQoveryCustomRoleEditRequestFrom(t *testing.T) {
 		}
 	})
 
+	t.Run("declared non-admin project with full env-type set overlaid verbatim", func(t *testing.T) {
+		req, err := newQoveryCustomRoleEditRequestFrom(customRoleServerRole(), customrole.UpsertRequest{
+			Name: "my-role",
+			ProjectPermissions: []customrole.ProjectRolePermission{
+				{ProjectID: testCustomRoleProjectA, IsAdmin: false, Permissions: []customrole.EnvironmentPermission{
+					{EnvironmentType: customrole.EnvironmentTypeDevelopment, Permission: customrole.ProjectPermissionManager},
+					{EnvironmentType: customrole.EnvironmentTypePreview, Permission: customrole.ProjectPermissionManager},
+					{EnvironmentType: customrole.EnvironmentTypeStaging, Permission: customrole.ProjectPermissionDeployer},
+					{EnvironmentType: customrole.EnvironmentTypeProduction, Permission: customrole.ProjectPermissionViewer},
+				}},
+			},
+		})
+		require.NoError(t, err)
+		require.Len(t, req.ProjectPermissions, 2)
+		byID := map[string]qovery.OrganizationCustomRoleUpdateRequestProjectPermissionsInner{}
+		for _, pp := range req.ProjectPermissions {
+			byID[*pp.ProjectId] = pp
+		}
+		projA := byID[testCustomRoleProjectA]
+		assert.False(t, *projA.IsAdmin)
+		require.Len(t, projA.Permissions, 4)
+		byEnvType := map[qovery.EnvironmentModeEnum]qovery.OrganizationCustomRoleProjectPermission{}
+		for _, p := range projA.Permissions {
+			byEnvType[*p.EnvironmentType] = *p.Permission
+		}
+		assert.Equal(t, qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_MANAGER, byEnvType[qovery.ENVIRONMENTMODEENUM_DEVELOPMENT])
+		assert.Equal(t, qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_MANAGER, byEnvType[qovery.ENVIRONMENTMODEENUM_PREVIEW])
+		assert.Equal(t, qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_DEPLOYER, byEnvType[qovery.ENVIRONMENTMODEENUM_STAGING])
+		assert.Equal(t, qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_VIEWER, byEnvType[qovery.ENVIRONMENTMODEENUM_PRODUCTION])
+	})
+
+	t.Run("declared non-admin project with partial env-type set default-fills remaining with NO_ACCESS", func(t *testing.T) {
+		req, err := newQoveryCustomRoleEditRequestFrom(customRoleServerRole(), customrole.UpsertRequest{
+			Name: "my-role",
+			ProjectPermissions: []customrole.ProjectRolePermission{
+				{ProjectID: testCustomRoleProjectA, IsAdmin: false, Permissions: []customrole.EnvironmentPermission{
+					{EnvironmentType: customrole.EnvironmentTypeProduction, Permission: customrole.ProjectPermissionManager},
+				}},
+			},
+		})
+		require.NoError(t, err)
+		require.Len(t, req.ProjectPermissions, 2)
+		byID := map[string]qovery.OrganizationCustomRoleUpdateRequestProjectPermissionsInner{}
+		for _, pp := range req.ProjectPermissions {
+			byID[*pp.ProjectId] = pp
+		}
+		projA := byID[testCustomRoleProjectA]
+		assert.False(t, *projA.IsAdmin)
+		require.Len(t, projA.Permissions, 4)
+		byEnvType := map[qovery.EnvironmentModeEnum]qovery.OrganizationCustomRoleProjectPermission{}
+		for _, p := range projA.Permissions {
+			byEnvType[*p.EnvironmentType] = *p.Permission
+		}
+		assert.Equal(t, qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_MANAGER, byEnvType[qovery.ENVIRONMENTMODEENUM_PRODUCTION])
+		assert.Equal(t, qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_NO_ACCESS, byEnvType[qovery.ENVIRONMENTMODEENUM_DEVELOPMENT])
+		assert.Equal(t, qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_NO_ACCESS, byEnvType[qovery.ENVIRONMENTMODEENUM_PREVIEW])
+		assert.Equal(t, qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_NO_ACCESS, byEnvType[qovery.ENVIRONMENTMODEENUM_STAGING])
+	})
+
 	t.Run("nothing declared produces pure default matrix", func(t *testing.T) {
 		req, err := newQoveryCustomRoleEditRequestFrom(customRoleServerRole(), customrole.UpsertRequest{Name: "my-role"})
 		require.NoError(t, err)
