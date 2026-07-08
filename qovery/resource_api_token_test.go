@@ -5,6 +5,7 @@ package qovery_test
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
@@ -75,8 +76,9 @@ resource "qovery_api_token" "test" {
 	)
 }
 
-// getTestAdminRoleID fetches the built-in Admin role of the test organization.
+// getTestAdminRoleID fetches the built-in admin role of the test organization.
 // API tokens require a role_id and the built-in role ids differ per organization.
+// The built-in role names are lowercase (e.g. "admin"), so the match is case-insensitive.
 func getTestAdminRoleID(t *testing.T) string {
 	roles, _, err := qoveryAPIClient.OrganizationMainCallsAPI.
 		ListOrganizationAvailableRoles(context.TODO(), getTestOrganizationID()).
@@ -85,11 +87,11 @@ func getTestAdminRoleID(t *testing.T) string {
 		t.Fatalf("failed to list organization available roles: %s", err)
 	}
 	for _, role := range roles.GetResults() {
-		if role.Name == "Admin" {
+		if strings.EqualFold(role.Name, "admin") {
 			return role.Id
 		}
 	}
-	t.Fatal("no Admin role found in test organization")
+	t.Fatal("no admin role found in test organization")
 	return ""
 }
 
