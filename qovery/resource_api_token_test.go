@@ -79,7 +79,11 @@ resource "qovery_api_token" "test" {
 // getTestAdminRoleID fetches the built-in admin role of the test organization.
 // API tokens require a role_id and the built-in role ids differ per organization.
 // The built-in role names are lowercase (e.g. "admin"), so the match is case-insensitive.
+// It runs before resource.Test executes PreCheck (step configs are built eagerly),
+// so the env precheck is repeated here to fail with the standard message when the
+// environment is incomplete instead of an obscure API error.
 func getTestAdminRoleID(t *testing.T) string {
+	testAccPreCheck(t)
 	roles, _, err := qoveryAPIClient.OrganizationMainCallsAPI.
 		ListOrganizationAvailableRoles(context.TODO(), getTestOrganizationID()).
 		Execute()
