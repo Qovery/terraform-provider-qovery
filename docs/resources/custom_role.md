@@ -76,7 +76,7 @@ Required:
 
 Optional:
 
-- `is_admin` (Boolean) Give full admin rights on the project (MANAGER on every environment type + manage deployment rules + delete project). Mutually exclusive with `permissions`.
+- `is_admin` (Boolean) Give full admin rights on the project (MANAGER on every environment type + manage deployment rules + delete project). Mutually exclusive with `permissions`. Defaults to `false`.
 - `permissions` (Attributes Set) Per-environment-type permissions. Required when `is_admin` is not true; must contain exactly one entry for each environment type (DEVELOPMENT, PREVIEW, STAGING, PRODUCTION). (see [below for nested schema](#nestedatt--project_permissions--permissions))
 
 <a id="nestedatt--project_permissions--permissions"></a>
