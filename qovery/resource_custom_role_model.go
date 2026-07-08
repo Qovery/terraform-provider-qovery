@@ -1,8 +1,6 @@
 package qovery
 
 import (
-	"context"
-
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -46,7 +44,7 @@ const (
 )
 
 // toUpsertRequest converts the Terraform plan/config into the domain request (declared entries only).
-func (r CustomRole) toUpsertRequest() (*customrole.UpsertRequest, error) {
+func (r CustomRole) toUpsertRequest() *customrole.UpsertRequest {
 	clusterPermissions := make([]customrole.ClusterRolePermission, 0, len(r.ClusterPermissions.Elements()))
 	if !r.ClusterPermissions.IsNull() && !r.ClusterPermissions.IsUnknown() {
 		for _, elem := range r.ClusterPermissions.Elements() {
@@ -90,7 +88,7 @@ func (r CustomRole) toUpsertRequest() (*customrole.UpsertRequest, error) {
 		Description:        ToStringPointer(r.Description),
 		ClusterPermissions: clusterPermissions,
 		ProjectPermissions: projectPermissions,
-	}, nil
+	}
 }
 
 func isDefaultClusterPermission(p customrole.ClusterRolePermission) bool {
@@ -124,7 +122,7 @@ func declaredIDSet(set types.Set, idAttr string) map[string]bool {
 // convertDomainCustomRoleToCustomRole converts the full server matrix into Terraform state.
 // The server returns an entry for EVERY cluster and project of the org; storing that raw would
 // produce perpetual diffs, so entries are filtered according to mode.
-func convertDomainCustomRoleToCustomRole(ctx context.Context, role *customrole.CustomRole, declared *CustomRole, mode customRoleReadMode) CustomRole {
+func convertDomainCustomRoleToCustomRole(role *customrole.CustomRole, declared *CustomRole, mode customRoleReadMode) CustomRole {
 	declaredClusters := map[string]bool{}
 	declaredProjects := map[string]bool{}
 	declaredClustersNull, declaredProjectsNull := true, true
