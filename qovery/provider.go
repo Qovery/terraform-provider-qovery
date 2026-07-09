@@ -27,6 +27,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/labels_group"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/member"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
@@ -131,6 +132,9 @@ type qProvider struct {
 
 	// customRoleService is an instance of a customrole.Service that handles the domain logic.
 	customRoleService customrole.Service
+
+	// organizationMemberService is an instance of a member.Service that handles the domain logic.
+	organizationMemberService member.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -224,6 +228,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.argoCdDestinationClusterMappingService = domainServices.ArgoCdDestinationClusterMapping
 	p.apiTokenService = domainServices.ApiToken
 	p.customRoleService = domainServices.CustomRole
+	p.organizationMemberService = domainServices.OrganizationMember
 
 	resp.DataSourceData = p
 	resp.ResourceData = p
@@ -257,6 +262,7 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newArgoCdDestinationClusterMappingResource,
 		newApiTokenResource,
 		newCustomRoleResource,
+		newOrganizationMemberResource,
 	}
 }
 
