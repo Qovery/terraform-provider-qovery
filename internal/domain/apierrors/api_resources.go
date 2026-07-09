@@ -35,6 +35,7 @@ const (
 	APIResourceOrganization                       APIResource = "organization"
 	APIResourceOrganizationApiToken               APIResource = "organization api token"
 	APIResourceOrganizationCustomRole             APIResource = "organization custom role"
+	APIResourceOrganizationMember                 APIResource = "organization member"
 	APIResourceProject                            APIResource = "project"
 	APIResourceProjectEnvironmentVariable         APIResource = "project environment variable"
 	APIResourceProjectSecret                      APIResource = "project secret"

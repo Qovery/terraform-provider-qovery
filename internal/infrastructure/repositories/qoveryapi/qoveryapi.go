@@ -23,6 +23,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/member"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
@@ -87,6 +88,7 @@ type QoveryAPI struct {
 	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Repository
 	ApiToken                        apitoken.Repository
 	CustomRole                      customrole.Repository
+	OrganizationMember              member.Repository
 
 	ApplicationExternalSecret      variable.ExternalSecretRepository
 	ContainerExternalSecret        variable.ExternalSecretRepository
@@ -355,6 +357,11 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	organizationMemberAPI, err := newOrganizationMemberQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
 	// Create a new QoveryAPI instance.
 	qoveryAPI := &QoveryAPI{
 		Client:                          apiClient,
@@ -395,6 +402,7 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		ArgoCdDestinationClusterMapping: argoCdDestinationClusterMappingAPI,
 		ApiToken:                        apiTokenAPI,
 		CustomRole:                      customRoleAPI,
+		OrganizationMember:              organizationMemberAPI,
 
 		ApplicationExternalSecret:      applicationExternalSecretAPI,
 		ContainerExternalSecret:        containerExternalSecretAPI,

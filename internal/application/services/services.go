@@ -21,6 +21,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/customrole"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/member"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
@@ -67,6 +68,7 @@ type Services struct {
 	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Service
 	ApiToken                        apitoken.Service
 	CustomRole                      customrole.Service
+	OrganizationMember              member.Service
 }
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -278,6 +280,11 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
+	organizationMemberService, err := NewOrganizationMemberService(services.repos.OrganizationMember)
+	if err != nil {
+		return nil, err
+	}
+
 	services.CredentialsAws = credentialsAwsService
 	services.CredentialsScaleway = credentialsScalewayService
 	services.CredentialsGcp = credentialsGcpService
@@ -302,6 +309,7 @@ func New(configs ...Configuration) (*Services, error) {
 	services.ArgoCdDestinationClusterMapping = argoCdDestinationClusterMappingService
 	services.ApiToken = apiTokenService
 	services.CustomRole = customRoleService
+	services.OrganizationMember = organizationMemberService
 
 	return services, nil
 }

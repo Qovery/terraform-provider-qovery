@@ -24,6 +24,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/member"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/project"
@@ -80,6 +81,7 @@ type Repositories struct {
 	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Repository
 	ApiToken                        apitoken.Repository
 	CustomRole                      customrole.Repository
+	OrganizationMember              member.Repository
 
 	ApplicationExternalSecret      variable.ExternalSecretRepository
 	ContainerExternalSecret        variable.ExternalSecretRepository
@@ -162,6 +164,7 @@ func WithQoveryAPI(apiToken string, providerVersion string, host string) Configu
 		repos.ArgoCdDestinationClusterMapping = qoveryAPI.ArgoCdDestinationClusterMapping
 		repos.ApiToken = qoveryAPI.ApiToken
 		repos.CustomRole = qoveryAPI.CustomRole
+		repos.OrganizationMember = qoveryAPI.OrganizationMember
 
 		repos.ApplicationExternalSecret = qoveryAPI.ApplicationExternalSecret
 		repos.ContainerExternalSecret = qoveryAPI.ContainerExternalSecret
