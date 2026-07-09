@@ -180,6 +180,14 @@ var flickerAllowlist = map[string]string{
 	"qovery_terraform_service.updated_at":                                     "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
 	"qovery_terraform_service.external_secrets.id":                            "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_terraform_service.external_secret_files.id":                       "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+
+	// Organization member lifecycle attributes are legitimately volatile: they track
+	// invitation state that transitions out-of-band (the invitee accepts or the invite
+	// expires outside Terraform), so Read must surface the new values and they cannot
+	// be pinned to state with UseStateForUnknown.
+	"qovery_organization_member.id":                "member id changes across the lifecycle: it is the invitation id while pending, becomes the user id on acceptance, and changes again when a pending invitation's role is updated (delete+re-invite); pinning it would cause 'inconsistent result after apply'",
+	"qovery_organization_member.invitation_status": "invitation status transitions out-of-band (PENDING -> ACCEPTED/EXPIRED when the invitee acts); Read must reflect the new value",
+	"qovery_organization_member.user_id":           "user id is null while the invitation is pending and is populated out-of-band on acceptance; Read must reflect it",
 }
 
 type attributeStatus struct {
