@@ -95,6 +95,43 @@ func TestAcc_EnvironmentRemovedOutOfBand(t *testing.T) {
 	})
 }
 
+// Deliberately NOT t.Parallel(): see TestAcc_CustomRole — role churn races q-core's
+// project_role_permission matrix maintenance (unlocked cross-entity inserts), causing flaky
+// FK-violation 500s in every concurrently-running project-creating test.
+func TestAcc_CustomRoleRemovedOutOfBand(t *testing.T) {
+	orgID := getTestOrganizationID()
+	roleName := generateTestName("custom-role-out-of-band")
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccCustomRoleConfigNamed(roleName, "DEPLOYER"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryCustomRoleExists("qovery_custom_role.test"),
+				),
+			},
+			{
+				Config: testAccCustomRoleConfigNamed(roleName, "DEPLOYER"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccDisappearsViaRawAPI("qovery_custom_role.test",
+						func(id string) error {
+							_, err := qoveryAPIClient.OrganizationCustomRoleAPI.DeleteOrganizationCustomRole(context.TODO(), orgID, id).Execute()
+							return err
+						},
+						func(id string) int {
+							_, res, _ := qoveryAPIClient.OrganizationCustomRoleAPI.GetOrganizationCustomRole(context.TODO(), orgID, id).Execute()
+							return rawStatusCode(res)
+						},
+					),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+		},
+	})
+}
+
 // rawStatusCode extracts an HTTP status code from a raw generated-client response.
 // The generated client returns an error alongside the response for non-2xx statuses,
 // so callers intentionally ignore that error and rely on the status code alone.

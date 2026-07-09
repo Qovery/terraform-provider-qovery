@@ -715,8 +715,11 @@ func TestAcc_HelmWithEnvironmentVariableFiles(t *testing.T) {
 	})
 }
 
+// Deliberately NOT t.Parallel(): this test's project creation participates in q-core's
+// unlocked project_role_permission matrix maintenance (project create inserts permission rows
+// for every existing custom role), which 500s on FK violation when a custom role is deleted
+// concurrently. See TestAcc_CustomRole for the full race description.
 func TestAcc_HelmWithSecretFiles(t *testing.T) {
-	t.Parallel()
 	testName := "helm-with-secret-files"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },

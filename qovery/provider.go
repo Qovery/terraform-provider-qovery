@@ -19,6 +19,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdDestinationClusterMapping"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/customrole"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentstage"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
@@ -127,6 +128,9 @@ type qProvider struct {
 
 	// apiTokenService is an instance of an apitoken.Service that handles the domain logic.
 	apiTokenService apitoken.Service
+
+	// customRoleService is an instance of a customrole.Service that handles the domain logic.
+	customRoleService customrole.Service
 }
 
 // providerData can be used to store data from the Terraform configuration.
@@ -219,6 +223,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 	p.argoCdCredentialsService = domainServices.ArgoCdCredentials
 	p.argoCdDestinationClusterMappingService = domainServices.ArgoCdDestinationClusterMapping
 	p.apiTokenService = domainServices.ApiToken
+	p.customRoleService = domainServices.CustomRole
 
 	resp.DataSourceData = p
 	resp.ResourceData = p
@@ -251,6 +256,7 @@ func (p *qProvider) Resources(_ context.Context) []func() resource.Resource {
 		newArgoCdCredentialsResource,
 		newArgoCdDestinationClusterMappingResource,
 		newApiTokenResource,
+		newCustomRoleResource,
 	}
 }
 
@@ -279,6 +285,7 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 		newLabelsGroupDataSource,
 		newEksAnywhereVsphereCredentialsDataSource,
 		newApiTokenDataSource,
+		newCustomRoleDataSource,
 	}
 }
 
