@@ -9,8 +9,10 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
 )
 
+// Deliberately NOT t.Parallel(): see TestAcc_CustomRole — this test also creates/deletes a
+// custom role, which races q-core's unlocked project_role_permission matrix maintenance and
+// 500s concurrently-running project-creating tests.
 func TestAcc_CustomRoleDataSource(t *testing.T) {
-	t.Parallel()
 	roleName := generateTestName("custom-role-ds")
 
 	resource.Test(t, resource.TestCase{

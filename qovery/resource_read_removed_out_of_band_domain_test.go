@@ -95,8 +95,10 @@ func TestAcc_EnvironmentRemovedOutOfBand(t *testing.T) {
 	})
 }
 
+// Deliberately NOT t.Parallel(): see TestAcc_CustomRole — role churn races q-core's
+// project_role_permission matrix maintenance (unlocked cross-entity inserts), causing flaky
+// FK-violation 500s in every concurrently-running project-creating test.
 func TestAcc_CustomRoleRemovedOutOfBand(t *testing.T) {
-	t.Parallel()
 	orgID := getTestOrganizationID()
 	roleName := generateTestName("custom-role-out-of-band")
 

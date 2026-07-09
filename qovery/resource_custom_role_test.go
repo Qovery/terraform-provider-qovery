@@ -15,8 +15,12 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 )
 
+// Deliberately NOT t.Parallel(): custom role create/update/delete races q-core's
+// project_role_permission matrix maintenance. Project creation inserts permission rows for
+// every existing custom role (and role creation for every existing project) without locking,
+// so running this alongside any project-creating test yields flaky FK-violation 500s.
+// Serial tests run while all parallel tests are paused, which removes the overlap entirely.
 func TestAcc_CustomRole(t *testing.T) {
-	t.Parallel()
 	roleName := generateTestName("custom-role")
 
 	resource.Test(t, resource.TestCase{
