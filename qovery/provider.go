@@ -292,6 +292,7 @@ func (p *qProvider) DataSources(_ context.Context) []func() datasource.DataSourc
 		newEksAnywhereVsphereCredentialsDataSource,
 		newApiTokenDataSource,
 		newCustomRoleDataSource,
+		newOrganizationMemberDataSource,
 	}
 }
 
