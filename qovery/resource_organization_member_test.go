@@ -16,11 +16,13 @@ import (
 )
 
 func TestAcc_OrganizationMember(t *testing.T) {
-	t.Parallel()
+	// Deliberately not parallel: this test creates a custom role, and concurrent custom role
+	// writes trigger a q-core race in the role/permission matrix (sporadic 500s in CI).
 	testName := "organization-member"
 	adminRoleID := getTestAdminRoleID(t)
 	devopsRoleID := getTestOrganizationRoleID(t, "devops")
 	email := fmt.Sprintf("%s@qovery-tf-acc-test.example.com", generateRandomName(testName))
+	customRoleName := generateRandomName("member-custom-role")
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -50,6 +52,15 @@ func TestAcc_OrganizationMember(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_organization_member.test", "invitation_status", "PENDING"),
 				),
 			},
+			// Update role to a custom role (headline use case: role_id = qovery_custom_role.x.id)
+			{
+				Config: testAccOrganizationMemberConfigWithCustomRole(email, customRoleName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryOrganizationMemberExists("qovery_organization_member.test", email),
+					resource.TestCheckResourceAttrPair("qovery_organization_member.test", "role_id", "qovery_custom_role.test_member", "id"),
+					resource.TestCheckResourceAttr("qovery_organization_member.test", "invitation_status", "PENDING"),
+				),
+			},
 			// Import testing by organization_id,email
 			{
 				ResourceName:      "qovery_organization_member.test",
@@ -69,6 +80,23 @@ resource "qovery_organization_member" "test" {
   role_id         = "%s"
 }
 `, getTestOrganizationID(), email, roleID,
+	)
+}
+
+func testAccOrganizationMemberConfigWithCustomRole(email string, customRoleName string) string {
+	return fmt.Sprintf(`
+resource "qovery_custom_role" "test_member" {
+  organization_id = "%s"
+  name            = "%s"
+  description     = "custom role for organization member acceptance test"
+}
+
+resource "qovery_organization_member" "test" {
+  organization_id = "%s"
+  email           = "%s"
+  role_id         = qovery_custom_role.test_member.id
+}
+`, getTestOrganizationID(), customRoleName, getTestOrganizationID(), email,
 	)
 }
 
