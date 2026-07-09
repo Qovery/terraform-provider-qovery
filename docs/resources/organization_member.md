@@ -1,6 +1,6 @@
 # qovery_organization_member (Resource)
 
-Provides a Qovery organization member resource. This can be used to invite members to a Qovery organization and manage their role. Creating the resource sends an invitation; the invitee becomes an active member once they accept it (out-of-band). An expired invitation stays in the state with `invitation_status = "EXPIRED"`: re-send it with `terraform apply -replace=qovery_organization_member.<name>`.
+Provides a Qovery organization member resource. This can be used to invite members to a Qovery organization and manage their role. Creating the resource sends an invitation; the invitee becomes an active member once they accept it (out-of-band). An expired invitation stays in the state with `invitation_status = "EXPIRED"`: re-send it with `terraform apply -replace=qovery_organization_member.<name>`. The invitee must accept with the invited email address, otherwise Terraform loses track of the membership.
 
 
 ## Example

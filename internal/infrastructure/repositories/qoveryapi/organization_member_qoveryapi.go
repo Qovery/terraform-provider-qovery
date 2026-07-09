@@ -102,7 +102,16 @@ func (a organizationMemberQoveryAPI) Update(ctx context.Context, organizationID 
 		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceOrganizationMember, email, resp, err)
 	}
 
-	return a.Get(ctx, organizationID, email)
+	// The member list is served from Auth0, so this read-after-write may lag and return the old
+	// role. The edit above succeeded, so the requested role is authoritative: force it to avoid a
+	// "provider produced inconsistent result after apply" error on the (Required, known) role_id.
+	updated, err := a.Get(ctx, organizationID, email)
+	if err != nil {
+		return nil, err
+	}
+	roleID := request.RoleID
+	updated.RoleID = &roleID
+	return updated, nil
 }
 
 // Delete removes a member from the organization: a pending invitation is cancelled, an

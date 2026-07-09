@@ -54,10 +54,12 @@ func (r organizationMemberResource) Schema(_ context.Context, _ resource.SchemaR
 	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery organization member resource. This can be used to invite members to a Qovery organization and manage their role." +
 			" Creating the resource sends an invitation; the invitee becomes an active member once they accept it (out-of-band)." +
-			" An expired invitation stays in the state with invitation_status EXPIRED: re-send it with terraform apply -replace.",
+			" An expired invitation stays in the state with invitation_status EXPIRED: re-send it with terraform apply -replace." +
+			" The invitee must accept with the invited email address, otherwise Terraform loses track of the membership.",
 		MarkdownDescription: "Provides a Qovery organization member resource. This can be used to invite members to a Qovery organization and manage their role." +
 			" Creating the resource sends an invitation; the invitee becomes an active member once they accept it (out-of-band)." +
-			" An expired invitation stays in the state with `invitation_status = \"EXPIRED\"`: re-send it with `terraform apply -replace=qovery_organization_member.<name>`.",
+			" An expired invitation stays in the state with `invitation_status = \"EXPIRED\"`: re-send it with `terraform apply -replace=qovery_organization_member.<name>`." +
+			" The invitee must accept with the invited email address, otherwise Terraform loses track of the membership.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description:         "Id of the member. While the invitation is pending this is the invitation id; once accepted it becomes the user id. It also changes when the role of a pending invitation is updated (the invitation is re-sent).",
@@ -116,7 +118,7 @@ func (r organizationMemberResource) Create(ctx context.Context, req resource.Cre
 	}
 
 	// Initialize state values
-	state := convertDomainMemberToOrganizationMember(*domainMember)
+	state := convertDomainMemberToOrganizationMember(*domainMember, plan.Email)
 	tflog.Trace(ctx, "created organization member", map[string]any{"organization_member_id": state.ID.ValueString()})
 
 	// Set state
@@ -138,7 +140,7 @@ func (r organizationMemberResource) Read(ctx context.Context, req resource.ReadR
 		return
 	}
 
-	state = convertDomainMemberToOrganizationMember(*domainMember)
+	state = convertDomainMemberToOrganizationMember(*domainMember, state.Email)
 	tflog.Trace(ctx, "read organization member", map[string]any{"organization_member_id": state.ID.ValueString()})
 
 	// Set state
@@ -162,7 +164,7 @@ func (r organizationMemberResource) Update(ctx context.Context, req resource.Upd
 		return
 	}
 
-	state = convertDomainMemberToOrganizationMember(*domainMember)
+	state = convertDomainMemberToOrganizationMember(*domainMember, plan.Email)
 	tflog.Trace(ctx, "updated organization member", map[string]any{"organization_member_id": state.ID.ValueString()})
 
 	// Set state

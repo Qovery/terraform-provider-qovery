@@ -28,11 +28,16 @@ func (m OrganizationMember) toUpdateRoleRequest() member.UpdateRoleRequest {
 	}
 }
 
-func convertDomainMemberToOrganizationMember(m member.Member) OrganizationMember {
+// convertDomainMemberToOrganizationMember converts a domain member into its terraform model.
+// email is the config-owned lookup key, so configEmail (always known at every call site) is
+// preserved instead of the API-returned value: once an invitation is accepted the email comes
+// from Auth0, which normalizes its casing, and letting that diverge from config would trigger a
+// perpetual (destructive) replace via the RequiresReplaceIfKnownChange plan modifier.
+func convertDomainMemberToOrganizationMember(m member.Member, configEmail types.String) OrganizationMember {
 	return OrganizationMember{
 		ID:               FromString(m.ID),
 		OrganizationId:   FromString(m.OrganizationID.String()),
-		Email:            FromString(m.Email),
+		Email:            configEmail,
 		RoleId:           FromStringPointer(m.RoleID),
 		UserId:           FromStringPointer(m.UserID),
 		InvitationStatus: FromString(m.InvitationStatus),
