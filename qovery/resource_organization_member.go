@@ -118,7 +118,7 @@ func (r organizationMemberResource) Create(ctx context.Context, req resource.Cre
 	}
 
 	// Initialize state values
-	state := convertDomainMemberToOrganizationMember(*domainMember, plan.Email)
+	state := convertDomainMemberToOrganizationMember(*domainMember, plan.Email, plan.RoleId)
 	tflog.Trace(ctx, "created organization member", map[string]any{"organization_member_id": state.ID.ValueString()})
 
 	// Set state
@@ -140,7 +140,7 @@ func (r organizationMemberResource) Read(ctx context.Context, req resource.ReadR
 		return
 	}
 
-	state = convertDomainMemberToOrganizationMember(*domainMember, state.Email)
+	state = convertDomainMemberToOrganizationMember(*domainMember, state.Email, state.RoleId)
 	tflog.Trace(ctx, "read organization member", map[string]any{"organization_member_id": state.ID.ValueString()})
 
 	// Set state
@@ -164,7 +164,7 @@ func (r organizationMemberResource) Update(ctx context.Context, req resource.Upd
 		return
 	}
 
-	state = convertDomainMemberToOrganizationMember(*domainMember, plan.Email)
+	state = convertDomainMemberToOrganizationMember(*domainMember, plan.Email, plan.RoleId)
 	tflog.Trace(ctx, "updated organization member", map[string]any{"organization_member_id": state.ID.ValueString()})
 
 	// Set state
