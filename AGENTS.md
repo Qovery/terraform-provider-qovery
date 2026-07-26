@@ -94,72 +94,11 @@ client/                  → Qovery API client and error handling
 - `resource_{entity}_test.go` - Integration tests with `//go:build integration && !unit`
 - `data_source_{entity}.go` - Data source implementation
 
-### Dependencies & Key Libraries
-
-- **Terraform Plugin**: `github.com/hashicorp/terraform-plugin-framework`
-- **Qovery API Client**: `github.com/qovery/qovery-client-go`
-- **UUID**: `github.com/google/uuid`
-- **Validation**: `github.com/go-playground/validator/v10`
-- **Error wrapping**: `github.com/pkg/errors`
-- **Testing**: `github.com/stretchr/testify`
-
 ## Development Workflow
 
 ### Adding a New Resource
 
-1. Define domain entity in `internal/domain/{entity}/`
-2. Create repository interface in domain layer
-3. Implement repository in `internal/infrastructure/repositories/`
-4. Create application service in `internal/application/services/`
-5. Implement Terraform resource in `qovery/resource_{entity}.go`
-6. Create model in `qovery/resource_{entity}_model.go`
-7. Mirror the schema in `data_source_{entity}.go` — the resource and data source **share the same model struct**, so every model field needs a matching data source attribute (usually `Computed: true`). A missing attribute is a **runtime** error (`mismatch between struct and object: Struct defines fields not found in object`), not a compile error, so it slips past `go build`.
-8. Write tests with proper build tags
-9. Add examples in `examples/resources/qovery_{entity}/`
-
-### Qovery Service Resource Patterns
-
-When creating or modifying a **service resource** (application, container, job, helm, terraform_service), ensure these common attributes are present:
-
-**Required Service Attributes:**
-| Attribute | Type | Notes |
-|-----------|------|-------|
-| `environment_id` | Required | With `RequiresReplace()` plan modifier |
-| `deployment_stage_id` | Optional + Computed | Separate API call pattern (see below) |
-| `name` | Required | Service name |
-| `description` | Optional | Service description |
-| `icon_uri` | Optional + Computed | Default icon URI |
-| `auto_deploy` | Required/Optional | Auto-deploy on commit |
-| `advanced_settings_json` | Optional + Computed | JSON advanced settings |
-
-**Deployment Stage Pattern (IMPORTANT):**
-
-The `deployment_stage_id` is **NOT** included in the service create/update API request. It requires separate API calls:
-
-```go
-// To SET deployment stage (in Create/Update):
-if len(request.DeploymentStageID) > 0 {
-    c.client.DeploymentStageMainCallsAPI.AttachServiceToDeploymentStage(ctx, request.DeploymentStageID, serviceID).Execute()
-}
-
-// To GET deployment stage (in Create/Update/Get):
-deploymentStage, _, _ := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, serviceID).Execute()
-```
-
-**Reference Implementation:** `internal/infrastructure/repositories/qoveryapi/{container,job,helm}_qoveryapi.go` — all three follow the same deployment stage pattern.
-
-**Checklist for New Service Resources:**
-
-- [ ] Domain entity has `DeploymentStageID string` field
-- [ ] `UpsertRepositoryRequest` has `DeploymentStageID string` field
-- [ ] Repository Create/Update calls `AttachServiceToDeploymentStage()` if provided
-- [ ] Repository Create/Update/Get calls `GetServiceDeploymentStage()` to retrieve
-- [ ] Model conversion function accepts and uses `deploymentStageID` parameter
-- [ ] Terraform schema has `deployment_stage_id` as Optional + Computed
-- [ ] Terraform model struct has `DeploymentStageId types.String` field
-- [ ] Mirror every new attribute in `data_source_{entity}.go` schema (the data source shares the model struct — a missing attribute fails at **runtime** with `mismatch between struct and object: Struct defines fields not found in object`, not at `go build`)
-- [ ] Run `task docs` to regenerate documentation
-- [ ] Add acceptance tests for the new resource/attribute
+The step-by-step guide, required service-resource attributes, the deployment-stage API pattern, and the completion checklist live in [`.claude/rules/new-resource.md`](.claude/rules/new-resource.md). **Read that file before adding or modifying any resource.** (Claude Code loads it automatically when editing resource/domain/repository files; other agents must open it explicitly.)
 
 ## Testing Architecture
 
@@ -172,30 +111,7 @@ deploymentStage, _, _ := c.client.DeploymentStageMainCallsAPI.GetServiceDeployme
 
 **Rule**: Write unit tests first. Whenever feasible, add an acceptance test alongside — especially for Terraform-visible behavior (plan/apply errors, replacement triggers, state consistency). Unit-only is fine for purely internal logic; acceptance-only is reserved for paths that can't be unit-tested.
 
-### Directory Structure
-
-```
-internal/
-├── application/services/*_test.go   → Service orchestration tests
-├── domain/{entity}/*_test.go        → Business logic tests
-└── infrastructure/repositories/
-    ├── mocks_test/                  → Generated mocks (mockery)
-    └── qoveryapi/*_test.go          → API model conversion tests
-
-qovery/
-├── resource_{entity}_test.go        → Acceptance tests
-└── data_source_{entity}_test.go     → Acceptance tests
-```
-
-### Commands
-
-```bash
-task test                                    # All unit tests (~10s)
-task testacc                                 # All acceptance (~2h)
-task testacc -- -run 'TestAcc_Container'     # Specific test
-```
-
-Detailed test patterns (build tags, table-driven scaffold, mock generation, coverage priority, naming) live in [`.claude/rules/testing.md`](.claude/rules/testing.md) and load automatically when editing test files.
+Detailed test patterns (build tags, table-driven scaffold, mock generation, coverage priority, naming) live in [`.claude/rules/testing.md`](.claude/rules/testing.md) — read it when writing or editing tests. (Claude Code loads it automatically when editing test files; other agents must open it explicitly.)
 
 ## Code Standards
 
@@ -215,20 +131,3 @@ Use singular nouns for packages (`project`, not `projects`). File-name patterns 
 - API errors handled through `client/apierrors/`
 - Use `errors.Wrap()` to add context to errors
 - Terraform diagnostics for user-facing errors
-
-### Import Organization
-
-```go
-import (
-    // Standard library
-    "context"
-    "fmt"
-
-    // Third-party packages
-    "github.com/hashicorp/terraform-plugin-framework/resource"
-
-    // Internal - domain first, then infrastructure
-    "github.com/qovery/terraform-provider-qovery/internal/domain/{entity}"
-    "github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories"
-)
-```
