@@ -117,6 +117,16 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 	warnUnknownClusterAdvancedSettings(ctx, r.clusterAdvancedSettingsService, req.Config, &resp.Diagnostics)
 }
 
+// karpenterNodePoolSpotEnabledMarkdownDescription builds the documentation of a per node pool
+// `spot_enabled` flag. Leaving the flag unset is meaningful: the pool then falls back to the
+// deprecated global `features.karpenter.spot_enabled`, which is how configurations written
+// before per node pool support keep behaving.
+func karpenterNodePoolSpotEnabledMarkdownDescription(pool string) string {
+	return "Whether to enable EC2 Spot instances on the **" + pool + "** node pool. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.\n\n" +
+		"When set, this value wins for this node pool and the deprecated global `features.karpenter.spot_enabled` is ignored for it. " +
+		"When left unset, this node pool falls back to the global value."
+}
+
 func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	// TODO (framework-migration): test if Default is OK when modifying the attribute, otherwise we'll need to use a modifier
 	resp.Schema = schema.Schema{
@@ -518,10 +528,18 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 							"When Karpenter is enabled, do not set `instance_type`, `min_running_nodes`, or `max_running_nodes` — Karpenter manages node scaling automatically.",
 						Attributes: map[string]schema.Attribute{
 							"spot_enabled": schema.BoolAttribute{
-								Description:         "Enable spot instances",
-								MarkdownDescription: "Whether to enable EC2 Spot instances for cost savings. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.",
-								Required:            true,
-								Computed:            false,
+								Description: "Enable spot instances (deprecated, use the per node pool `spot_enabled` instead)",
+								MarkdownDescription: "Whether to enable EC2 Spot instances for cost savings. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.\n\n" +
+									"~> **Deprecated:** spot instances are now configured per node pool. Set `spot_enabled` on `qovery_node_pools.stable_override`, `qovery_node_pools.default_override` and `qovery_node_pools.cronjob_override` instead.\n\n" +
+									"This field is now a derived value: the API recomputes it on every write as the logical OR of the per node pool values (the cronjob pool counts only while its `cronjob_override` block exists). " +
+									"On write, a node pool that carries its own `spot_enabled` ignores this field; a node pool that carries none falls back to this value — which is how configurations written before per node pool support keep behaving.\n\n" +
+									"~> **Warning:** setting this field and the per node pool values to contradictory states causes permanent plan drift, because the API echoes back the derived OR rather than the value you sent.",
+								Optional:           true,
+								Computed:           true,
+								DeprecationMessage: "Configure spot_enabled per node pool on qovery_node_pools.{stable_override,default_override,cronjob_override} instead. When per-pool values are present the API ignores this field on write and recomputes it as the OR of the per-pool values. When no per-pool value is set, this value still applies to ALL pools including stable (legacy behavior).",
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
 							},
 							"disk_size_in_gib": schema.Int64Attribute{
 								Description:         "Disk size in GiB for Karpenter-provisioned nodes.",
@@ -581,10 +599,19 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 									},
 									"stable_override": schema.SingleNestedAttribute{
 										Description:         "Defines some overridden options for Qovery stable node pool",
-										MarkdownDescription: "Override options for the Qovery **stable** node pool. The stable node pool runs services that require consistent availability (e.g., Qovery agents). Use this to configure consolidation windows and resource limits.",
+										MarkdownDescription: "Override options for the Qovery **stable** node pool. The stable node pool runs services that require consistent availability (e.g., Qovery agents). Use this to configure spot instances, consolidation windows and resource limits.",
 										Optional:            true,
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{
+											"spot_enabled": schema.BoolAttribute{
+												Description:         "Enable spot instances on the stable node pool",
+												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("stable"),
+												Optional:            true,
+												Computed:            true,
+												PlanModifiers: []planmodifier.Bool{
+													boolplanmodifier.UseStateForUnknown(),
+												},
+											},
 											"consolidation": schema.SingleNestedAttribute{
 												Description:         "Specifies the period to consolidate nodes (by default, no consolidation happens)",
 												MarkdownDescription: "Node consolidation schedule for the stable node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on stable nodes.",
@@ -647,10 +674,19 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 									},
 									"default_override": schema.SingleNestedAttribute{
 										Description:         "Defines some overridden options for Qovery default node pool",
-										MarkdownDescription: "Override options for the Qovery **default** node pool. The default node pool runs user application workloads. Use this to set resource limits.",
+										MarkdownDescription: "Override options for the Qovery **default** node pool. The default node pool runs user application workloads. Use this to configure spot instances and resource limits.",
 										Optional:            true,
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{
+											"spot_enabled": schema.BoolAttribute{
+												Description:         "Enable spot instances on the default node pool",
+												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("default"),
+												Optional:            true,
+												Computed:            true,
+												PlanModifiers: []planmodifier.Bool{
+													boolplanmodifier.UseStateForUnknown(),
+												},
+											},
 											"limits": schema.SingleNestedAttribute{
 												Description:         "Specifies the limits to apply on the default node pool",
 												MarkdownDescription: "Resource limits for the default node pool. Use this to cap the total resources Karpenter can provision for application workloads.",
@@ -674,6 +710,25 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 														Required:            true,
 														Computed:            false,
 													},
+												},
+											},
+										},
+									},
+									"cronjob_override": schema.SingleNestedAttribute{
+										Description: "Defines some overridden options for the Qovery cronjob node pool. Declaring this block enables the dedicated cronjob node pool.",
+										MarkdownDescription: "Override options for the Qovery **cronjob** node pool.\n\n" +
+											"~> **Important:** the mere presence of this block enables the dedicated cronjob node pool across the Qovery stack — the engine creates the pool and pins cron jobs and lifecycle jobs to it. " +
+											"Removing the block disables the dedicated pool again, and the `spot_enabled` value below only has meaning while the block exists.",
+										Optional: true,
+										Computed: false,
+										Attributes: map[string]schema.Attribute{
+											"spot_enabled": schema.BoolAttribute{
+												Description:         "Enable spot instances on the cronjob node pool",
+												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("cronjob"),
+												Optional:            true,
+												Computed:            true,
+												PlanModifiers: []planmodifier.Bool{
+													boolplanmodifier.UseStateForUnknown(),
 												},
 											},
 										},

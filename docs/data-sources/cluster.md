@@ -114,7 +114,10 @@ Required:
 - `default_service_architecture` (String) Default CPU architecture for services (`AMD64` or `ARM64`).
 - `disk_size_in_gib` (Number) Root disk size in GiB for Karpenter-provisioned nodes.
 - `qovery_node_pools` (Attributes) Karpenter node pool configuration with requirements and resource limits. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools))
-- `spot_enabled` (Boolean) Whether EC2 Spot instances are enabled.
+
+Read-Only:
+
+- `spot_enabled` (Boolean) Whether EC2 Spot instances are enabled. Deprecated: this is a derived value, recomputed by the API as the logical OR of the per node pool `spot_enabled` values.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools`
@@ -125,8 +128,9 @@ Required:
 
 Optional:
 
-- `default_override` (Attributes) Override options for the default node pool (resource limits). (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override))
-- `stable_override` (Attributes) Override options for the stable node pool (consolidation and resource limits). (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override))
+- `cronjob_override` (Attributes) Override options for the cronjob node pool. Its presence means the dedicated cronjob node pool is enabled: the engine creates the pool and pins cron jobs and lifecycle jobs to it. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override))
+- `default_override` (Attributes) Override options for the default node pool (spot instances and resource limits). (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override))
+- `stable_override` (Attributes) Override options for the stable node pool (spot instances, consolidation and resource limits). (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override))
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--requirements"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.requirements`
@@ -138,12 +142,24 @@ Required:
 - `values` (List of String) Allowed values for the requirement.
 
 
+<a id="nestedatt--features--karpenter--qovery_node_pools--cronjob_override"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.cronjob_override`
+
+Read-Only:
+
+- `spot_enabled` (Boolean) Whether EC2 Spot instances are enabled on the cronjob node pool.
+
+
 <a id="nestedatt--features--karpenter--qovery_node_pools--default_override"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.default_override`
 
 Optional:
 
 - `limits` (Attributes) Resource limits for the default node pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override--limits))
+
+Read-Only:
+
+- `spot_enabled` (Boolean) Whether EC2 Spot instances are enabled on the default node pool.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--default_override--limits"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.default_override.limits`
@@ -163,6 +179,10 @@ Optional:
 
 - `consolidation` (Attributes) Node consolidation schedule for the stable node pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation))
 - `limits` (Attributes) Resource limits for the stable node pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--limits))
+
+Read-Only:
+
+- `spot_enabled` (Boolean) Whether EC2 Spot instances are enabled on the stable node pool.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.stable_override.consolidation`

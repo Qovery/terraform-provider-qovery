@@ -17,6 +17,12 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client"
 )
 
+// fromQoveryClusterFeaturesNoPlan converts an API features payload without any plan to stay
+// consistent with, i.e. the way a data source read converts it.
+func fromQoveryClusterFeaturesNoPlan(clusterFeatures []qovery.ClusterFeatureResponse) types.Object {
+	return fromQoveryClusterFeatures(clusterFeatures, types.ObjectNull(createFeaturesAttrTypes()))
+}
+
 func makeTestClusterInfo(credID string) *qovery.ClusterCloudProviderInfo {
 	id := credID
 	return &qovery.ClusterCloudProviderInfo{
@@ -569,7 +575,7 @@ func TestFromQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := fromQoveryClusterFeatures(tt.buildResponse())
+			result := fromQoveryClusterFeaturesNoPlan(tt.buildResponse())
 			require.False(t, result.IsNull(), "features object should not be null")
 
 			gcpVpcAttr, ok := result.Attributes()[featureKeyGcpExistingVpc]
@@ -886,7 +892,7 @@ func TestFromQoveryClusterFeatures_GcpNatGateways(t *testing.T) {
 	natGatewayParameters := qovery.ClusterFeatureNatGatewayParameters{}
 	natGatewayParameters.SetNatGatewayType(natGatewayType)
 
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &featureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -926,7 +932,7 @@ func TestFromQoveryClusterFeatures_NoVpcSubnetFeature_DefaultsToDefaultCidr(t *t
 	t.Parallel()
 
 	staticIPFeatureID := featureIdStaticIP
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &staticIPFeatureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -955,7 +961,7 @@ func TestFromQoveryClusterFeatures_NoNatGatewayFeature_DefaultsToDisabled(t *tes
 	t.Parallel()
 
 	staticIPFeatureID := featureIdStaticIP
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &staticIPFeatureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -991,7 +997,7 @@ func TestFromQoveryClusterFeatures_GcpNatGatewaysDisabled(t *testing.T) {
 	natGatewayParameters := qovery.ClusterFeatureNatGatewayParameters{}
 	natGatewayParameters.SetNatGatewayType(natGatewayType)
 
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &featureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -1029,7 +1035,7 @@ func TestFromQoveryClusterFeatures_StaticIPFeatureOverridesNatGatewayEnabledFlag
 	natGatewayParameters := qovery.ClusterFeatureNatGatewayParameters{}
 	natGatewayParameters.SetNatGatewayType(natGatewayType)
 
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &staticIPFeatureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -1145,7 +1151,7 @@ func TestNatGateways_RoundTrip_VerbatimWhenStaticIPEnabled(t *testing.T) {
 	natGatewayParameters := qovery.ClusterFeatureNatGatewayParameters{}
 	natGatewayParameters.SetNatGatewayType(natGatewayType)
 
-	readResult := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	readResult := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &featureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -2351,7 +2357,7 @@ func TestFromQoveryClusterFeatures_GkeKmsKey_PopulatesAttribute(t *testing.T) {
 
 	kmsKey := "projects/my-project/locations/global/keyRings/ring/cryptoKeys/key"
 	featureID := featureIdGkeKmsKey
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &featureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -2377,7 +2383,7 @@ func TestFromQoveryClusterFeatures_GkeKmsKey_AbsentDefaultsToNull(t *testing.T) 
 	t.Parallel()
 
 	staticIPFeatureID := featureIdStaticIP
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &staticIPFeatureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
