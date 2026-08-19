@@ -309,20 +309,29 @@ func TestAcc_ClusterKarpenterSpotMigration(t *testing.T) {
 	})
 }
 
-// TestAcc_ClusterKarpenterDivergedImport pins import behaviour for a cluster whose node pools
-// diverge from each other, covering both branches of the documented trade-off.
+// TestAcc_ClusterKarpenterDivergedImport pins what an import of a diverged cluster can actually
+// recover from an API response, which is less than it looks and is bounded by an invariant of the
+// wire format rather than by anything the provider chooses.
 //
-// Case A (spot-only overrides) is the branch that costs something: import takes the no-plan path,
-// where an override carrying nothing but spot_enabled is dropped on purpose, so the imported state
-// lacks blocks the applied state has. That asymmetry is deliberate — injecting such blocks on the
-// no-plan path would put a permanent block-removal diff in front of every legacy user, and it is
-// what broke ImportStateVerify on the generic cluster tests before (see the unit tests
-// TestCreateKarpenterFeatureAttrValue_WithoutPlanSpotOnlyOverrideIsDropped and
-// ..._ImportAgreesWithApply). The ignores below are that accepted cost, scoped to the two blocks.
+// The invariant: the global spot_enabled is derived as the OR over the per node pool values, and
+// the API's response view omits any per node pool value equal to that derived global (q-core
+// MR 3829). A per node pool value is therefore observable only when it DEVIATES from the OR, which
+// requires it to be `false` while some other pool is `true`. Two consequences worth internalising
+// before touching this test:
+//   - a per node pool `true` is never recoverable from a response — if a pool is true the OR is
+//     true, so the value equals the global and is omitted;
+//   - when every pool is `false` the OR is `false` and all of them are omitted too.
 //
-// Case B (overrides carrying limits) is the stronger half and takes no ignores: it proves the
-// divergence itself survives import whenever the block holds anything besides spot_enabled, so
-// the trade-off costs users only the spot-only shape.
+// None of that is a loss of behaviour: an absent per node pool value means "inherit the global",
+// the global is always present in the response, so the effective spot state is identical. The loss
+// is representational, and it only bites a reader with no plan and no prior state — import.
+//
+// The two cases below therefore fail ImportStateVerify for two DIFFERENT reasons, and the ignores
+// are not interchangeable:
+//   - Case A: the provider's own no-plan rule drops an override that carries nothing but
+//     spot_enabled, so the whole block is missing from the imported state.
+//   - Case B: the block survives (it carries limits), but the non-deviating value inside it was
+//     never in the response to begin with.
 func TestAcc_ClusterKarpenterDivergedImport(t *testing.T) {
 	t.Parallel()
 
@@ -346,14 +355,20 @@ func TestAcc_ClusterKarpenterDivergedImport(t *testing.T) {
 				ImportState:         true,
 				ImportStateVerify:   true,
 				ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
-				// ImportStateVerifyIgnore entries are prefix matches, so naming each block covers
-				// every attribute under it — the object's own "%" count marker included.
+				// ImportStateVerifyIgnore entries are prefix matches, so naming a block covers every
+				// attribute under it — the object's own "%" count marker included.
 				//
-				// The two node pool entries are this feature's accepted trade-off. min/max_running_nodes
-				// are unrelated: Karpenter manages node scaling and the API returns sentinel values that
-				// the resource preserves from plan while import reads them back raw, so every Karpenter
-				// import step in this package ignores them (see TestAcc_ClusterWithKeda). Nothing here
-				// asserts node counts.
+				// Whole blocks are ignored here because the PROVIDER drops them: on the no-plan path an
+				// override carrying nothing but spot_enabled is not injected at all, deliberately, since
+				// injecting it would put a permanent block-removal diff in front of every configuration
+				// that never declared one (unit tests
+				// TestCreateKarpenterFeatureAttrValue_WithoutPlanSpotOnlyOverrideIsDropped and
+				// ..._ImportAgreesWithApply). That is a different mechanism from case B below.
+				//
+				// min/max_running_nodes are unrelated to this feature: Karpenter manages node scaling and
+				// the API returns sentinel values that the resource preserves from plan while import reads
+				// them back raw, so every Karpenter import step in this package ignores them (see
+				// TestAcc_ClusterWithKeda). Nothing here asserts node counts.
 				ImportStateVerifyIgnore: []string{
 					"advanced_settings_json",
 					"min_running_nodes",
@@ -362,26 +377,43 @@ func TestAcc_ClusterKarpenterDivergedImport(t *testing.T) {
 					"features.karpenter.qovery_node_pools.default_override",
 				},
 			},
-			// Case B — the same divergence, in blocks that also carry limits.
+			// Case B — the same divergence, in blocks that also carry limits. stable deviates from the
+			// derived global (false while default is true), so it is the one value the response carries.
 			{
 				Config: testAccClusterKarpenterDivergedImportConfigWithLimits(testName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.karpenter.qovery_node_pools.stable_override.spot_enabled", "false"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.karpenter.qovery_node_pools.stable_override.limits.max_cpu_in_vcpu", "10"),
+					// Applied state keeps the configured value: the read path falls back to the plan when
+					// the response omits it. Only import, which has no plan, cannot.
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.karpenter.qovery_node_pools.default_override.spot_enabled", "true"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.karpenter.qovery_node_pools.default_override.limits.max_cpu_in_vcpu", "20"),
 				),
 			},
 			{
-				// No node pool ignores — that is the point of this case: the blocks carry limits, so
-				// import keeps them and their diverging spot values must round-trip. The entries below
-				// are the same unrelated Karpenter/import quirks as in case A.
-				ResourceName:            "qovery_cluster.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
-				ImportStateVerifyIgnore: []string{"advanced_settings_json", "min_running_nodes", "max_running_nodes"},
+				// This is the guarantee worth pinning: with the blocks carrying limits, import keeps them
+				// AND recovers the deviating value — stable_override.spot_enabled=false and the limits on
+				// both blocks all round-trip with no ignore of their own.
+				//
+				// The single exception is default_override.spot_enabled. It is `true`, so it equals the
+				// derived global and the API omits it from the response (q-core MR 3829); import has no
+				// plan or state to fall back on and stores null. CI run 32264283673 failed this step with
+				// exactly that one line:
+				//   - "features.karpenter.qovery_node_pools.default_override.spot_enabled": "true"
+				// null means "inherit the global", and the global is in the response and equals true, so
+				// the effective state is identical — this is representational loss only, and by the
+				// invariant above no configuration can avoid it for a non-deviating pool.
+				ResourceName:        "qovery_cluster.test",
+				ImportState:         true,
+				ImportStateVerify:   true,
+				ImportStateIdPrefix: fmt.Sprintf("%s,", getTestOrganizationID()),
+				ImportStateVerifyIgnore: []string{
+					"advanced_settings_json",
+					"min_running_nodes",
+					"max_running_nodes",
+					"features.karpenter.qovery_node_pools.default_override.spot_enabled",
+				},
 			},
 		},
 	})
