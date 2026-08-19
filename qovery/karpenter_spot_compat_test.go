@@ -127,3 +127,43 @@ func TestKarpenterSpotCompat_SettersDoNotDropExistingProperties(t *testing.T) {
 	require.NoError(t, json.Unmarshal(raw, &decoded))
 	assert.Equal(t, map[string]any{"spot_enabled": true, "some_future_field": "kept"}, decoded)
 }
+
+func TestKarpenterSpotCompat_UnsetSpotEnabledIsOmittedFromTheRequest(t *testing.T) {
+	t.Parallel()
+
+	// The load-bearing invariant of the whole per-pool design: absence is meaningful. Not calling
+	// a setter must leave spot_enabled out of the request body entirely, because the API reads an
+	// absent field as "this pool inherits the deprecated global flag". The generated field is a
+	// nullable bool whose serialization is guarded by IsSet(), so an unset field is omitted while
+	// an explicit false is still sent — this test pins both halves.
+	nodePool := qovery.KarpenterNodePool{
+		Requirements: []qovery.KarpenterNodePoolRequirement{{
+			Key:      qovery.KARPENTERNODEPOOLREQUIREMENTKEY_ARCH,
+			Operator: qovery.KARPENTERNODEPOOLREQUIREMENTOPERATOR_IN,
+			Values:   []string{"AMD64"},
+		}},
+		StableOverride:  &qovery.KarpenterStableNodePoolOverride{Limits: qovery.NewKarpenterNodePoolLimits(true, 10, 20, 0)},
+		CronjobOverride: &qovery.KarpenterCronjobNodePoolOverride{},
+	}
+
+	raw, err := json.Marshal(nodePool)
+	require.NoError(t, err)
+
+	var decoded map[string]any
+	require.NoError(t, json.Unmarshal(raw, &decoded))
+
+	stableOverride, ok := decoded["stable_override"].(map[string]any)
+	require.True(t, ok, "stable_override must be serialized as an object")
+	assert.NotContains(t, stableOverride, "spot_enabled",
+		"an override that was never given a spot value must not send the key")
+	assert.Contains(t, stableOverride, "limits")
+	assert.Equal(t, map[string]any{}, decoded["cronjob_override"],
+		"an empty cronjob_override must serialize as {}: its presence alone enables the pool")
+
+	// An explicit false is a value, not an absence, and must be sent.
+	explicit := qovery.KarpenterStableNodePoolOverride{}
+	SetStableNodePoolSpotEnabled(&explicit, false)
+	rawExplicit, err := json.Marshal(explicit)
+	require.NoError(t, err)
+	assert.JSONEq(t, `{"spot_enabled": false}`, string(rawExplicit))
+}

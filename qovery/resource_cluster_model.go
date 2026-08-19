@@ -1729,6 +1729,12 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 	// response therefore stops matching what Terraform planned, which would fail the apply with
 	// "provider produced inconsistent result after apply" — keep the planned value in that case.
 	// Without per node pool values the API value is authoritative and drift is reported as before.
+	//
+	// Reading the deprecated field is deliberate and cannot be avoided: features.karpenter
+	// .spot_enabled is still a supported (deprecated) attribute, so its value has to come from
+	// somewhere, and the generated getter carries the same deprecation marker. Drop the
+	// suppression when the attribute itself is removed from the schema.
+	//nolint:staticcheck // SA1019: the deprecated global flag is still surfaced for legacy configurations
 	attrVals["spot_enabled"] = types.BoolValue(karpenterParameters.SpotEnabled)
 	if plannedGlobalSpot := plan.globalSpotEnabled(); !plannedGlobalSpot.IsNull() && plan.hasAnyNodePoolSpotEnabled() {
 		attrVals["spot_enabled"] = plannedGlobalSpot
