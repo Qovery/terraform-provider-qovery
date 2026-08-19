@@ -584,12 +584,15 @@ func TestCreateKarpenterFeatureAttrValue_GlobalSpotEnabled(t *testing.T) {
 	}
 }
 
-func TestCreateKarpenterFeatureAttrValue_WithoutPlanEverythingIsInjected(t *testing.T) {
+func TestCreateKarpenterFeatureAttrValue_WithoutPlanOnlyOverridesWithContentAreInjected(t *testing.T) {
 	t.Parallel()
 
-	// The data source has no plan to stay consistent with, so it reports what the API returns,
-	// cronjob_override included.
-	stable := qovery.KarpenterStableNodePoolOverride{}
+	// Import and the data source have no plan to stay consistent with, so they report what the
+	// API returned — but the content rule still decides whether stable_override and
+	// default_override make it into state, because the apply path applies the same rule.
+	// cronjob_override is the exception: its presence is itself the signal that the dedicated
+	// node pool is enabled, so presence alone injects it.
+	stable := qovery.KarpenterStableNodePoolOverride{Limits: testApiLimits()}
 	SetStableNodePoolSpotEnabled(&stable, false)
 	cronjob := qovery.KarpenterCronjobNodePoolOverride{}
 	SetCronjobNodePoolSpotEnabled(&cronjob, true)
@@ -602,9 +605,104 @@ func TestCreateKarpenterFeatureAttrValue_WithoutPlanEverythingIsInjected(t *test
 	attrVals := createKarpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()))
 	require.NotNil(t, attrVals)
 
-	assert.Equal(t, types.BoolValue(false), stateOverride(t, attrVals, "stable_override").Attributes()["spot_enabled"])
+	stableState := stateOverride(t, attrVals, "stable_override")
+	require.False(t, stableState.IsNull(), "an override with limits must be reported")
+	assert.Equal(t, types.BoolValue(false), stableState.Attributes()["spot_enabled"])
+	assert.False(t, stableState.Attributes()["limits"].IsNull())
+
 	assert.Equal(t, types.BoolValue(true), stateOverride(t, attrVals, "cronjob_override").Attributes()["spot_enabled"])
 	assert.True(t, stateOverride(t, attrVals, "default_override").IsNull())
+}
+
+func TestCreateKarpenterFeatureAttrValue_WithoutPlanEmptyOverrideIsDropped(t *testing.T) {
+	t.Parallel()
+
+	// Regression: q-core returns a present-but-EMPTY stable_override ({}, every field null) for
+	// Karpenter clusters. Injecting it on presence alone made import store a 3-attribute object
+	// where the apply path stores null, so TestAcc_ClusterWithStaticIP, TestAcc_ClusterWithKeda
+	// and TestAcc_ClusterWithReadyState/aws_eks all failed ImportStateVerify with
+	// `+ "features.karpenter.qovery_node_pools.stable_override.%": "3"`.
+	parameters := testApiKarpenterParameters(true, qovery.KarpenterNodePool{
+		StableOverride: &qovery.KarpenterStableNodePoolOverride{},
+	})
+
+	attrVals := createKarpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()))
+	require.NotNil(t, attrVals)
+
+	assert.True(t, stateOverride(t, attrVals, "stable_override").IsNull(),
+		"an empty stable_override must not reach state: the apply path stores null for it")
+	assert.True(t, stateOverride(t, attrVals, "default_override").IsNull())
+	assert.True(t, stateOverride(t, attrVals, "cronjob_override").IsNull())
+}
+
+func TestCreateKarpenterFeatureAttrValue_WithoutPlanSpotOnlyOverrideIsDropped(t *testing.T) {
+	t.Parallel()
+
+	// Once the backfill (QOV-2155) ships, every cluster's overrides carry spot_enabled. Treating
+	// that as content would re-break the import acceptance tests above and give every legacy
+	// importer a block-removal diff on its first plan, so a spot-only override is dropped on the
+	// no-plan path. The configuration's first apply re-establishes the value.
+	stable := qovery.KarpenterStableNodePoolOverride{}
+	SetStableNodePoolSpotEnabled(&stable, true)
+	defaultOverride := qovery.KarpenterDefaultNodePoolOverride{}
+	SetDefaultNodePoolSpotEnabled(&defaultOverride, true)
+
+	parameters := testApiKarpenterParameters(true, qovery.KarpenterNodePool{
+		StableOverride:  &stable,
+		DefaultOverride: &defaultOverride,
+	})
+
+	attrVals := createKarpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()))
+	require.NotNil(t, attrVals)
+
+	assert.True(t, stateOverride(t, attrVals, "stable_override").IsNull())
+	assert.True(t, stateOverride(t, attrVals, "default_override").IsNull())
+}
+
+// TestCreateKarpenterFeatureAttrValue_ImportAgreesWithApply pins the invariant
+// ImportStateVerify actually checks: for one API response, the state produced with a plan
+// (apply/refresh) and the state produced without one (import) must be identical for a
+// configuration that declares no node pool override. Asserting the two paths agree catches a
+// divergence in either of them, which asserting each one against a literal does not.
+func TestCreateKarpenterFeatureAttrValue_ImportAgreesWithApply(t *testing.T) {
+	t.Parallel()
+
+	apiResponses := map[string]qovery.KarpenterNodePool{
+		// What q-core returns today for a Karpenter cluster: a present-but-empty override.
+		"empty_stable_override": {StableOverride: &qovery.KarpenterStableNodePoolOverride{}},
+		// What it will return once the spot backfill ships.
+		"spot_only_overrides": func() qovery.KarpenterNodePool {
+			stable := qovery.KarpenterStableNodePoolOverride{}
+			SetStableNodePoolSpotEnabled(&stable, true)
+			defaultOverride := qovery.KarpenterDefaultNodePoolOverride{}
+			SetDefaultNodePoolSpotEnabled(&defaultOverride, true)
+			return qovery.KarpenterNodePool{StableOverride: &stable, DefaultOverride: &defaultOverride}
+		}(),
+		// An override with real content must survive both paths identically too.
+		"stable_override_with_limits": {StableOverride: &qovery.KarpenterStableNodePoolOverride{Limits: testApiLimits()}},
+	}
+
+	for name, nodePools := range apiResponses {
+		name, nodePools := name, nodePools
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+
+			parameters := testApiKarpenterParameters(true, nodePools)
+
+			// Apply/refresh: a plan exists and declares no override block.
+			applyState := createKarpenterFeatureAttrValue(parameters, testKarpenterObject(types.BoolValue(true), nil))
+			// Import: no plan at all.
+			importState := createKarpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()))
+			require.NotNil(t, applyState)
+			require.NotNil(t, importState)
+
+			for _, override := range []string{"stable_override", "default_override", "cronjob_override"} {
+				assert.True(t,
+					stateOverride(t, applyState, override).Equal(stateOverride(t, importState, override)),
+					"%s differs between the apply and import paths: ImportStateVerify would fail", override)
+			}
+		})
+	}
 }
 
 // --- schema wiring -------------------------------------------------------------------------

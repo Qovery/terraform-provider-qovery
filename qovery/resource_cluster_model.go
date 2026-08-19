@@ -1596,9 +1596,9 @@ func createGcpExistingVpcFeatureAttrTypes() map[string]attr.Type {
 }
 
 // karpenterPlanView exposes the parts of the plan — or, on a refresh, of the prior state —
-// that the API -> Terraform conversion needs to stay plan-consistent. It is unavailable when
-// the karpenter object itself is null or unknown, which is the case on a data source read:
-// there is then no plan to be consistent with, so everything the API returns is injected.
+// that the API -> Terraform conversion needs to stay plan-consistent. It is unavailable on an
+// import or a data source read, where there is no plan to be consistent with; the conversion
+// then falls back to what the API response actually contains.
 type karpenterPlanView struct {
 	available bool
 	karpenter basetypes.ObjectValue
@@ -1774,9 +1774,19 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 	// the API returns only because every Karpenter cluster got its per node pool spot_enabled
 	// backfilled is dropped on purpose: injecting it would add a block to the state of every
 	// configuration that never declared one, i.e. permanent plan noise.
+	//
+	// The content rule holds on the no-plan path (import, data source) too, and deliberately so.
+	// The API returns a present-but-empty stable_override for Karpenter clusters, so injecting on
+	// presence alone made import store a 3-attribute object where the apply path stores null, and
+	// ImportStateVerify failed with `+ "…stable_override.%": "3"`. Once the spot backfill ships
+	// every cluster's overrides carry spot_enabled, so keying off presence — or off spot_enabled
+	// alone — would break the same way again and hand every legacy importer a spurious
+	// block-removal diff on their first plan. The trade-off is accepted: importing a cluster whose
+	// only divergence is a spot-only override loses that value in state until the configuration's
+	// first apply re-establishes it.
 	stableOverride := nodePools.StableOverride
 	if plan.declaresOverride("stable_override") ||
-		(stableOverride != nil && (stableOverride.Consolidation != nil || stableOverride.Limits != nil || !plan.available)) {
+		(stableOverride != nil && (stableOverride.Consolidation != nil || stableOverride.Limits != nil)) {
 		var spotEnabled *bool
 		var consolidation *qovery.KarpenterNodePoolConsolidation
 		var limits *qovery.KarpenterNodePoolLimits
@@ -1795,10 +1805,10 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 		qoveryNodePoolsAttrVals["stable_override"] = types.ObjectNull(karpenterStableOverrideAttrTypes())
 	}
 
-	// Inject default_override
+	// Inject default_override — same content rule as stable_override above.
 	defaultOverride := nodePools.DefaultOverride
 	if plan.declaresOverride("default_override") ||
-		(defaultOverride != nil && (defaultOverride.Limits != nil || !plan.available)) {
+		(defaultOverride != nil && defaultOverride.Limits != nil) {
 		var spotEnabled *bool
 		var limits *qovery.KarpenterNodePoolLimits
 		if defaultOverride != nil {
