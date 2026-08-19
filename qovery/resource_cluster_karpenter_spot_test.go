@@ -102,6 +102,19 @@ func testKarpenterObject(spotEnabled types.Bool, overrides map[string]attr.Value
 	})
 }
 
+// testFeaturesObject wraps a karpenter object in a complete cluster features object.
+func testFeaturesObject(karpenter types.Object) types.Object {
+	return types.ObjectValueMust(createFeaturesAttrTypes(), map[string]attr.Value{
+		featureKeyVpcSubnet:      types.StringNull(),
+		featureKeyStaticIP:       types.BoolNull(),
+		featureKeyNatGateways:    types.ObjectNull(createNatGatewaysFeatureAttrTypes()),
+		featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
+		featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
+		featureKeyKarpenter:      karpenter,
+		featureKeyGkeKmsKey:      types.StringNull(),
+	})
+}
+
 func testApiLimits() *qovery.KarpenterNodePoolLimits {
 	return qovery.NewKarpenterNodePoolLimits(true, 10, 20, 0)
 }
@@ -710,6 +723,193 @@ func TestCreateKarpenterFeatureAttrValue_ImportAgreesWithApply(t *testing.T) {
 	}
 }
 
+// --- deprecated global spot_enabled on the write path -----------------------------------------
+
+// karpenterRequestGlobalSpotEnabled builds the API request for a features object and returns the
+// global spot_enabled it would send.
+func karpenterRequestGlobalSpotEnabled(t *testing.T, features types.Object, stateFeatures types.Object) bool {
+	t.Helper()
+
+	requestFeatures, err := toQoveryClusterFeatures(features, "MANAGED", "AWS", stateFeatures)
+	require.NoError(t, err)
+
+	for _, f := range requestFeatures {
+		value := f.GetValue()
+		if parameters := value.ClusterFeatureKarpenterParameters; parameters != nil {
+			return parameters.SpotEnabled
+		}
+	}
+
+	t.Fatal("the request carries no karpenter feature")
+	return false
+}
+
+func TestToQoveryClusterFeatures_DeprecatedGlobalSpotEnabledFallsBackToState(t *testing.T) {
+	t.Parallel()
+
+	// The plan modifier leaves the deprecated global unknown whenever per node pool values are
+	// configured. Sending false for unknown would switch any pool without a per-pool value off
+	// spot, so the request falls back to the value the API last derived, which is in state.
+	perPool := map[string]attr.Value{
+		"stable_override": testStableOverrideObject(types.BoolValue(false), types.ObjectNull(karpenterConsolidationAttrTypes()), types.ObjectNull(karpenterLimitsAttrTypes())),
+	}
+
+	testCases := []struct {
+		TestName      string
+		PlanGlobal    types.Bool
+		StateFeatures types.Object
+		Expected      bool
+	}{
+		{
+			// Configured value: sent as-is, unchanged behaviour.
+			TestName:      "known_plan_value_is_sent",
+			PlanGlobal:    types.BoolValue(true),
+			StateFeatures: testFeaturesObject(testKarpenterObject(types.BoolValue(false), nil)),
+			Expected:      true,
+		},
+		{
+			TestName:      "known_plan_false_is_sent",
+			PlanGlobal:    types.BoolValue(false),
+			StateFeatures: testFeaturesObject(testKarpenterObject(types.BoolValue(true), nil)),
+			Expected:      false,
+		},
+		{
+			// The update path this fix is about: the pool without a per-pool value keeps spot.
+			TestName:      "unknown_plan_falls_back_to_state_true",
+			PlanGlobal:    types.BoolUnknown(),
+			StateFeatures: testFeaturesObject(testKarpenterObject(types.BoolValue(true), nil)),
+			Expected:      true,
+		},
+		{
+			TestName:      "unknown_plan_falls_back_to_state_false",
+			PlanGlobal:    types.BoolUnknown(),
+			StateFeatures: testFeaturesObject(testKarpenterObject(types.BoolValue(false), nil)),
+			Expected:      false,
+		},
+		{
+			// Create: no prior state and every node pool is new, so false is the safe default.
+			TestName:      "unknown_plan_without_state_sends_false",
+			PlanGlobal:    types.BoolUnknown(),
+			StateFeatures: types.ObjectNull(createFeaturesAttrTypes()),
+			Expected:      false,
+		},
+		{
+			// A prior state that never had the karpenter feature is the same situation.
+			TestName:      "unknown_plan_with_state_lacking_karpenter_sends_false",
+			PlanGlobal:    types.BoolUnknown(),
+			StateFeatures: testFeaturesObject(types.ObjectNull(createKarpenterFeatureAttrTypes())),
+			Expected:      false,
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+
+			features := testFeaturesObject(testKarpenterObject(tc.PlanGlobal, perPool))
+			assert.Equal(t, tc.Expected, karpenterRequestGlobalSpotEnabled(t, features, tc.StateFeatures))
+		})
+	}
+}
+
+func TestCluster_toUpsertClusterRequest_DeprecatedGlobalSpotEnabledFallsBackToState(t *testing.T) {
+	t.Parallel()
+
+	perPool := map[string]attr.Value{
+		"stable_override": testStableOverrideObject(types.BoolValue(false), types.ObjectNull(karpenterConsolidationAttrTypes()), types.ObjectNull(karpenterLimitsAttrTypes())),
+	}
+	newCluster := func(global types.Bool, overrides map[string]attr.Value) Cluster {
+		return Cluster{
+			Id:              types.StringValue("cluster-123"),
+			OrganizationId:  types.StringValue("org-123"),
+			CredentialsId:   types.StringValue("cred-123"),
+			Name:            types.StringValue("test-cluster"),
+			CloudProvider:   types.StringValue("AWS"),
+			Region:          types.StringValue("us-east-1"),
+			KubernetesMode:  types.StringValue("MANAGED"),
+			State:           types.StringValue("DEPLOYED"),
+			InstanceType:    types.StringUnknown(),
+			MinRunningNodes: types.Int64Unknown(),
+			MaxRunningNodes: types.Int64Unknown(),
+			DiskSize:        types.Int64Unknown(),
+			Features:        testFeaturesObject(testKarpenterObject(global, overrides)),
+		}
+	}
+
+	requestGlobal := func(t *testing.T, plan Cluster, state *Cluster) bool {
+		t.Helper()
+		request, err := plan.toUpsertClusterRequest(state)
+		require.NoError(t, err)
+		for _, f := range request.ClusterRequest.Features {
+			value := f.GetValue()
+			if parameters := value.ClusterFeatureKarpenterParameters; parameters != nil {
+				return parameters.SpotEnabled
+			}
+		}
+		t.Fatal("the request carries no karpenter feature")
+		return false
+	}
+
+	t.Run("update_falls_back_to_state", func(t *testing.T) {
+		t.Parallel()
+
+		// The documented migration: the legacy global was true, the user adds per node pool values
+		// and drops the global. The request must carry the state value so the node pools the
+		// configuration says nothing about keep running on spot.
+		state := newCluster(types.BoolValue(true), nil)
+		plan := newCluster(types.BoolUnknown(), perPool)
+
+		assert.True(t, requestGlobal(t, plan, &state))
+	})
+
+	t.Run("create_sends_false", func(t *testing.T) {
+		t.Parallel()
+
+		// No prior state: every node pool is created here, so false is the safe default.
+		plan := newCluster(types.BoolUnknown(), perPool)
+
+		assert.False(t, requestGlobal(t, plan, nil))
+	})
+}
+
+func TestCluster_hasFeaturesDiff_UnknownGlobalSpotEnabledDoesNotForceUpdate(t *testing.T) {
+	t.Parallel()
+
+	// hasFeaturesDiff drives ForceUpdate, i.e. whether the cluster gets redeployed. It converts the
+	// plan and the state through the same builder, so the plan side is given the state features for
+	// the same reason the request is: an unknown deprecated global resolves to the state value
+	// rather than to false. Without that, a plan that changed nothing but left the derived global
+	// unknown would compare false against the state's true and force a redeploy for nothing.
+	perPool := map[string]attr.Value{
+		"stable_override": testStableOverrideObject(types.BoolValue(true), types.ObjectNull(karpenterConsolidationAttrTypes()), types.ObjectNull(karpenterLimitsAttrTypes())),
+	}
+	newCluster := func(global types.Bool) Cluster {
+		return Cluster{
+			CloudProvider:  types.StringValue("AWS"),
+			KubernetesMode: types.StringValue("MANAGED"),
+			Features:       testFeaturesObject(testKarpenterObject(global, perPool)),
+		}
+	}
+
+	state := newCluster(types.BoolValue(true))
+
+	// Same configuration, global left unknown by the plan modifier: nothing actually changed.
+	assert.False(t, newCluster(types.BoolUnknown()).hasFeaturesDiff(&state),
+		"an unknown derived global must not force a redeploy on its own")
+
+	// A real per node pool change is still detected.
+	changed := Cluster{
+		CloudProvider:  types.StringValue("AWS"),
+		KubernetesMode: types.StringValue("MANAGED"),
+		Features: testFeaturesObject(testKarpenterObject(types.BoolUnknown(), map[string]attr.Value{
+			"stable_override": testStableOverrideObject(types.BoolValue(false), types.ObjectNull(karpenterConsolidationAttrTypes()), types.ObjectNull(karpenterLimitsAttrTypes())),
+		})),
+	}
+	assert.True(t, changed.hasFeaturesDiff(&state),
+		"flipping a per node pool spot_enabled must still force a redeploy")
+}
+
 // --- data source mode -------------------------------------------------------------------------
 
 func TestKarpenterFeatureAttrValue_DataSourceReportsSpotOnlyOverrides(t *testing.T) {
@@ -799,15 +999,7 @@ func testKarpenterConfig(t *testing.T, karpenter types.Object) tfsdk.Config {
 	clusterResource{}.Schema(context.Background(), resource.SchemaRequest{}, &schemaResp)
 	require.False(t, schemaResp.Diagnostics.HasError())
 
-	features := types.ObjectValueMust(createFeaturesAttrTypes(), map[string]attr.Value{
-		featureKeyVpcSubnet:      types.StringNull(),
-		featureKeyStaticIP:       types.BoolNull(),
-		featureKeyNatGateways:    types.ObjectNull(createNatGatewaysFeatureAttrTypes()),
-		featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
-		featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
-		featureKeyKarpenter:      karpenter,
-		featureKeyGkeKmsKey:      types.StringNull(),
-	})
+	features := testFeaturesObject(karpenter)
 
 	raw, err := features.ToTerraformValue(context.Background())
 	require.NoError(t, err)

@@ -68,13 +68,22 @@ type Cluster struct {
 	SecretManagerAccesses          types.Set    `tfsdk:"secret_manager_accesses"`
 }
 
+// stateClusterFeatures returns the features object of the prior state, or a null object when
+// there is no prior state (create).
+func stateClusterFeatures(state *Cluster) types.Object {
+	if state == nil {
+		return types.ObjectNull(createFeaturesAttrTypes())
+	}
+	return state.Features
+}
+
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
-	clusterFeatures, _ := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider))
+	clusterFeatures, _ := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider), stateClusterFeatures(state))
 	if state == nil {
 		return len(clusterFeatures) > 0
 	}
 
-	stateFeature, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider))
+	stateFeature, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider), state.Features)
 	if len(clusterFeatures) != len(stateFeature) {
 		return true
 	}
@@ -294,7 +303,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		return nil, errors.New("infrastructure_charts_parameters is only supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
 	}
 
-	features, err := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider))
+	features, err := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider), stateClusterFeatures(state))
 	if err != nil {
 		return nil, err
 	}
@@ -404,7 +413,7 @@ func IsKarpenterAlreadyInstalled(state *Cluster) bool {
 		return false
 	}
 
-	oldFeatures, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider))
+	oldFeatures, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider), state.Features)
 	for _, f := range oldFeatures {
 		if f.Id != nil && *f.Id == featureIdKarpenter {
 			return true
@@ -928,7 +937,11 @@ func clusterFeaturesFromResponse(
 	return terraformObjectValue
 }
 
-func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string) ([]qovery.ClusterRequestFeaturesInner, error) {
+// toQoveryClusterFeatures converts the Terraform features object into the API request. Passing
+// stateFeatures alongside it — the features of the prior state, or a null object on create — lets
+// the deprecated global Karpenter spot_enabled fall back to the value the API last derived when
+// the plan leaves it unknown; see the karpenter branch below.
+func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string, stateFeatures types.Object) ([]qovery.ClusterRequestFeaturesInner, error) {
 	if f.IsNull() || f.IsUnknown() || mode == "K3S" {
 		return nil, nil
 	}
@@ -1037,10 +1050,10 @@ func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string) 
 		// Non-GCP: never emit NAT_GATEWAY.
 	}
 
-	return appendRemainingQoveryClusterFeatures(features, f)
+	return appendRemainingQoveryClusterFeatures(features, f, stateFeatures)
 }
 
-func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeaturesInner, f types.Object) ([]qovery.ClusterRequestFeaturesInner, error) {
+func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeaturesInner, f types.Object, stateFeatures types.Object) ([]qovery.ClusterRequestFeaturesInner, error) {
 	if _, ok := f.Attributes()[featureKeyExistingVpc]; ok {
 		v := f.Attributes()[featureKeyExistingVpc].(types.Object)
 		if !v.IsNull() {
@@ -1112,8 +1125,21 @@ func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeatur
 				return nil, err
 			}
 
+			// The deprecated global flag is planned as unknown whenever the configuration carries
+			// per node pool values, because the API derives it from them (see
+			// DeprecatedGlobalSpotEnabled). Unknown must not be sent as false: a node pool the
+			// configuration gives no per-pool value falls back to whatever global the request
+			// carries, so false would silently switch such a pool off spot midway through the
+			// documented migration. Send the value the API last derived instead, which leaves those
+			// pools exactly where they are. On create there is no prior state and every pool is
+			// new, so false is the safe default.
+			globalSpotEnabled := v.Attributes()["spot_enabled"].(types.Bool)
+			if globalSpotEnabled.IsUnknown() {
+				globalSpotEnabled = knownBool(planKarpenterObject(stateFeatures).Attributes()["spot_enabled"])
+			}
+
 			feature := qovery.ClusterFeatureKarpenterParameters{
-				SpotEnabled:                ToBool(v.Attributes()["spot_enabled"].(types.Bool)),
+				SpotEnabled:                ToBool(globalSpotEnabled),
 				DiskSizeInGib:              ToInt32(v.Attributes()["disk_size_in_gib"].(types.Int64)),
 				DefaultServiceArchitecture: arch,
 				QoveryNodePools:            *qoveryNodePools,
