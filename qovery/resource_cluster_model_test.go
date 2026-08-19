@@ -20,7 +20,7 @@ import (
 // fromQoveryClusterFeaturesNoPlan converts an API features payload without any plan to stay
 // consistent with, i.e. the way a data source read converts it.
 func fromQoveryClusterFeaturesNoPlan(clusterFeatures []qovery.ClusterFeatureResponse) types.Object {
-	return fromQoveryClusterFeatures(clusterFeatures, types.ObjectNull(createFeaturesAttrTypes()))
+	return clusterFeaturesFromResponse(clusterFeatures, types.ObjectNull(createFeaturesAttrTypes()), clusterReadModeResource)
 }
 
 func makeTestClusterInfo(credID string) *qovery.ClusterCloudProviderInfo {

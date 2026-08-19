@@ -423,7 +423,31 @@ func responseHasKarpenter(features []qovery.ClusterFeatureResponse) bool {
 	return false
 }
 
+// clusterReadMode distinguishes the two callers of the API -> Terraform conversion, which need
+// different amounts of the API response.
+//
+// The resource must stay symmetric between apply and import: ImportStateVerify compares the two
+// states attribute by attribute, so import may only store node pool overrides that an apply would
+// also store. The data source is read-only — no plan to be consistent with and no diff to keep
+// quiet — so hiding a real divergence there would be a bug, and it reports whatever the API holds.
+type clusterReadMode int
+
+const (
+	clusterReadModeResource clusterReadMode = iota
+	clusterReadModeDataSource
+)
+
 func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, initialPlan Cluster) Cluster {
+	return convertResponseToClusterWithMode(ctx, res, initialPlan, clusterReadModeResource)
+}
+
+// convertResponseToClusterForDataSource converts an API response for the read-only cluster data
+// source, which reports the full API truth rather than mirroring what an apply would store.
+func convertResponseToClusterForDataSource(ctx context.Context, res *client.ClusterResponse, config Cluster) Cluster {
+	return convertResponseToClusterWithMode(ctx, res, config, clusterReadModeDataSource)
+}
+
+func convertResponseToClusterWithMode(ctx context.Context, res *client.ClusterResponse, initialPlan Cluster, mode clusterReadMode) Cluster {
 	routingTable := fromClusterRoutingTable(res.ClusterRoutingTable)
 
 	// Check if cluster is PARTIALLY_MANAGED (EKS Anywhere)
@@ -498,7 +522,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 			cluster.MaxRunningNodes = FromInt32Pointer(res.ClusterResponse.MaxRunningNodes)
 		}
 
-		cluster.Features = fromQoveryClusterFeatures(res.ClusterResponse.Features, initialPlan.Features)
+		cluster.Features = clusterFeaturesFromResponse(res.ClusterResponse.Features, initialPlan.Features, mode)
 		cluster.Keda = fromQoveryClusterKeda(res.ClusterResponse.Keda)
 		cluster.RoutingTables = routingTable.toTerraformSet(ctx, initialPlan.RoutingTables)
 		cluster.InfrastructureOutputs = fromQoveryClusterOutput(res.ClusterResponse.InfrastructureOutputs, initialPlan.InfrastructureOutputs)
@@ -651,9 +675,10 @@ func planKarpenterObject(planFeatures types.Object) types.Object {
 // Karpenter values are only stored in state when the configuration asked for them, so that a
 // value the API returns on its own does not become permanent plan noise. Pass a null object
 // when no plan is available, e.g. from the data source.
-func fromQoveryClusterFeatures(
+func clusterFeaturesFromResponse(
 	clusterFeatures []qovery.ClusterFeatureResponse,
 	planFeatures types.Object,
+	mode clusterReadMode,
 ) types.Object {
 	if clusterFeatures == nil {
 		// Early return object null without attribute types
@@ -792,7 +817,7 @@ func fromQoveryClusterFeatures(
 				continue
 			}
 
-			attrVals := createKarpenterFeatureAttrValue(karpenterParameters, planKarpenterObject(planFeatures))
+			attrVals := karpenterFeatureAttrValue(karpenterParameters, planKarpenterObject(planFeatures), mode)
 
 			terraformObjectValue, diagnostics := types.ObjectValue(attrTypes, attrVals)
 			if diagnostics.HasError() {
@@ -1753,7 +1778,7 @@ func karpenterLimitsAttrValue(limits *qovery.KarpenterNodePoolLimits) basetypes.
 	})
 }
 
-func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpenterParameters, planKarpenter types.Object) map[string]attr.Value {
+func karpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpenterParameters, planKarpenter types.Object, mode clusterReadMode) map[string]attr.Value {
 	attrVals := make(map[string]attr.Value)
 	var diags diag.Diagnostics
 
@@ -1829,9 +1854,15 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 	// block-removal diff on their first plan. The trade-off is accepted: importing a cluster whose
 	// only divergence is a spot-only override loses that value in state until the configuration's
 	// first apply re-establishes it.
+	// The data source has no apply to stay symmetric with, so a spot-only override is real
+	// information there and is reported rather than dropped. A fully empty block still carries
+	// nothing and is dropped in both modes.
 	stableOverride := nodePools.StableOverride
-	if plan.declaresOverride("stable_override") ||
-		(stableOverride != nil && (stableOverride.Consolidation != nil || stableOverride.Limits != nil)) {
+	stableHasContent := stableOverride != nil && (stableOverride.Consolidation != nil || stableOverride.Limits != nil)
+	if mode == clusterReadModeDataSource {
+		stableHasContent = stableHasContent || GetStableNodePoolSpotEnabled(stableOverride) != nil
+	}
+	if plan.declaresOverride("stable_override") || stableHasContent {
 		var spotEnabled *bool
 		var consolidation *qovery.KarpenterNodePoolConsolidation
 		var limits *qovery.KarpenterNodePoolLimits
@@ -1852,8 +1883,11 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 
 	// Inject default_override — same content rule as stable_override above.
 	defaultOverride := nodePools.DefaultOverride
-	if plan.declaresOverride("default_override") ||
-		(defaultOverride != nil && defaultOverride.Limits != nil) {
+	defaultHasContent := defaultOverride != nil && defaultOverride.Limits != nil
+	if mode == clusterReadModeDataSource {
+		defaultHasContent = defaultHasContent || GetDefaultNodePoolSpotEnabled(defaultOverride) != nil
+	}
+	if plan.declaresOverride("default_override") || defaultHasContent {
 		var spotEnabled *bool
 		var limits *qovery.KarpenterNodePoolLimits
 		if defaultOverride != nil {

@@ -404,7 +404,7 @@ func TestCreateKarpenterFeatureAttrValue_BackfilledOverridesDoNotPolluteState(t 
 
 	plan := testKarpenterObject(types.BoolValue(true), nil)
 
-	attrVals := createKarpenterFeatureAttrValue(parameters, plan)
+	attrVals := karpenterFeatureAttrValue(parameters, plan, clusterReadModeResource)
 	require.NotNil(t, attrVals)
 
 	assert.True(t, stateOverride(t, attrVals, "stable_override").IsNull())
@@ -434,7 +434,7 @@ func TestCreateKarpenterFeatureAttrValue_InjectsDeclaredOverrides(t *testing.T) 
 		"cronjob_override": testCronjobOverrideObject(types.BoolValue(true)),
 	})
 
-	attrVals := createKarpenterFeatureAttrValue(parameters, plan)
+	attrVals := karpenterFeatureAttrValue(parameters, plan, clusterReadModeResource)
 	require.NotNil(t, attrVals)
 
 	stableState := stateOverride(t, attrVals, "stable_override")
@@ -463,7 +463,7 @@ func TestCreateKarpenterFeatureAttrValue_LimitsOnlyOverrideKeepsBeingInjected(t 
 		DefaultOverride: &qovery.KarpenterDefaultNodePoolOverride{Limits: testApiLimits()},
 	})
 
-	attrVals := createKarpenterFeatureAttrValue(parameters, testKarpenterObject(types.BoolValue(true), nil))
+	attrVals := karpenterFeatureAttrValue(parameters, testKarpenterObject(types.BoolValue(true), nil), clusterReadModeResource)
 	require.NotNil(t, attrVals)
 
 	stableState := stateOverride(t, attrVals, "stable_override")
@@ -491,7 +491,7 @@ func TestCreateKarpenterFeatureAttrValue_KeepsPlannedSpotWhileApiDoesNotEchoIt(t
 		"cronjob_override": testCronjobOverrideObject(types.BoolValue(true)),
 	})
 
-	attrVals := createKarpenterFeatureAttrValue(parameters, plan)
+	attrVals := karpenterFeatureAttrValue(parameters, plan, clusterReadModeResource)
 	require.NotNil(t, attrVals)
 
 	assert.Equal(t, types.BoolValue(false), stateOverride(t, attrVals, "stable_override").Attributes()["spot_enabled"])
@@ -512,7 +512,7 @@ func TestCreateKarpenterFeatureAttrValue_EmptyDeclaredBlockStaysUnset(t *testing
 		"cronjob_override": testCronjobOverrideObject(types.BoolUnknown()),
 	})
 
-	attrVals := createKarpenterFeatureAttrValue(parameters, plan)
+	attrVals := karpenterFeatureAttrValue(parameters, plan, clusterReadModeResource)
 	require.NotNil(t, attrVals)
 
 	cronjobState := stateOverride(t, attrVals, "cronjob_override")
@@ -582,7 +582,7 @@ func TestCreateKarpenterFeatureAttrValue_GlobalSpotEnabled(t *testing.T) {
 		t.Run(tc.TestName, func(t *testing.T) {
 			t.Parallel()
 
-			attrVals := createKarpenterFeatureAttrValue(testApiKarpenterParameters(tc.ApiGlobal, tc.NodePools), tc.Plan)
+			attrVals := karpenterFeatureAttrValue(testApiKarpenterParameters(tc.ApiGlobal, tc.NodePools), tc.Plan, clusterReadModeResource)
 			require.NotNil(t, attrVals)
 			assert.Equal(t, tc.ExpectGlobal, attrVals["spot_enabled"])
 		})
@@ -607,7 +607,7 @@ func TestCreateKarpenterFeatureAttrValue_WithoutPlanOnlyOverridesWithContentAreI
 		CronjobOverride: &cronjob,
 	})
 
-	attrVals := createKarpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()))
+	attrVals := karpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()), clusterReadModeResource)
 	require.NotNil(t, attrVals)
 
 	stableState := stateOverride(t, attrVals, "stable_override")
@@ -631,7 +631,7 @@ func TestCreateKarpenterFeatureAttrValue_WithoutPlanEmptyOverrideIsDropped(t *te
 		StableOverride: &qovery.KarpenterStableNodePoolOverride{},
 	})
 
-	attrVals := createKarpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()))
+	attrVals := karpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()), clusterReadModeResource)
 	require.NotNil(t, attrVals)
 
 	assert.True(t, stateOverride(t, attrVals, "stable_override").IsNull(),
@@ -657,7 +657,7 @@ func TestCreateKarpenterFeatureAttrValue_WithoutPlanSpotOnlyOverrideIsDropped(t 
 		DefaultOverride: &defaultOverride,
 	})
 
-	attrVals := createKarpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()))
+	attrVals := karpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()), clusterReadModeResource)
 	require.NotNil(t, attrVals)
 
 	assert.True(t, stateOverride(t, attrVals, "stable_override").IsNull())
@@ -695,9 +695,9 @@ func TestCreateKarpenterFeatureAttrValue_ImportAgreesWithApply(t *testing.T) {
 			parameters := testApiKarpenterParameters(true, nodePools)
 
 			// Apply/refresh: a plan exists and declares no override block.
-			applyState := createKarpenterFeatureAttrValue(parameters, testKarpenterObject(types.BoolValue(true), nil))
+			applyState := karpenterFeatureAttrValue(parameters, testKarpenterObject(types.BoolValue(true), nil), clusterReadModeResource)
 			// Import: no plan at all.
-			importState := createKarpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()))
+			importState := karpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()), clusterReadModeResource)
 			require.NotNil(t, applyState)
 			require.NotNil(t, importState)
 
@@ -708,6 +708,83 @@ func TestCreateKarpenterFeatureAttrValue_ImportAgreesWithApply(t *testing.T) {
 			}
 		})
 	}
+}
+
+// --- data source mode -------------------------------------------------------------------------
+
+func TestKarpenterFeatureAttrValue_DataSourceReportsSpotOnlyOverrides(t *testing.T) {
+	t.Parallel()
+
+	// The data source is read-only: it has no apply to stay symmetric with and no diff to keep
+	// quiet, so a node pool whose only divergence is spot_enabled must be reported. Dropping it —
+	// which is correct for import — would hide real divergence from a read.
+	stable := qovery.KarpenterStableNodePoolOverride{}
+	SetStableNodePoolSpotEnabled(&stable, true)
+	defaultOverride := qovery.KarpenterDefaultNodePoolOverride{}
+	SetDefaultNodePoolSpotEnabled(&defaultOverride, false)
+	cronjob := qovery.KarpenterCronjobNodePoolOverride{}
+	SetCronjobNodePoolSpotEnabled(&cronjob, true)
+
+	parameters := testApiKarpenterParameters(true, qovery.KarpenterNodePool{
+		StableOverride:  &stable,
+		DefaultOverride: &defaultOverride,
+		CronjobOverride: &cronjob,
+	})
+	noPlan := types.ObjectNull(createKarpenterFeatureAttrTypes())
+
+	dataSourceState := karpenterFeatureAttrValue(parameters, noPlan, clusterReadModeDataSource)
+	require.NotNil(t, dataSourceState)
+
+	stableState := stateOverride(t, dataSourceState, "stable_override")
+	require.False(t, stableState.IsNull(), "data source must report a spot-only stable_override")
+	assert.Equal(t, types.BoolValue(true), stableState.Attributes()["spot_enabled"])
+
+	defaultState := stateOverride(t, dataSourceState, "default_override")
+	require.False(t, defaultState.IsNull(), "data source must report a spot-only default_override")
+	assert.Equal(t, types.BoolValue(false), defaultState.Attributes()["spot_enabled"])
+
+	assert.Equal(t, types.BoolValue(true), stateOverride(t, dataSourceState, "cronjob_override").Attributes()["spot_enabled"])
+
+	// The very same response in resource/import mode still drops them: that contract is what keeps
+	// ImportStateVerify passing, and the two modes must not drift into each other.
+	importState := karpenterFeatureAttrValue(parameters, noPlan, clusterReadModeResource)
+	require.NotNil(t, importState)
+	assert.True(t, stateOverride(t, importState, "stable_override").IsNull())
+	assert.True(t, stateOverride(t, importState, "default_override").IsNull())
+}
+
+func TestKarpenterFeatureAttrValue_DataSourceStillDropsEmptyOverrides(t *testing.T) {
+	t.Parallel()
+
+	// A present-but-empty override carries no information in either mode, so neither reports it.
+	parameters := testApiKarpenterParameters(true, qovery.KarpenterNodePool{
+		StableOverride:  &qovery.KarpenterStableNodePoolOverride{},
+		DefaultOverride: &qovery.KarpenterDefaultNodePoolOverride{},
+	})
+
+	dataSourceState := karpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()), clusterReadModeDataSource)
+	require.NotNil(t, dataSourceState)
+
+	assert.True(t, stateOverride(t, dataSourceState, "stable_override").IsNull())
+	assert.True(t, stateOverride(t, dataSourceState, "default_override").IsNull())
+	assert.True(t, stateOverride(t, dataSourceState, "cronjob_override").IsNull())
+}
+
+func TestKarpenterFeatureAttrValue_DataSourceKeepsContentOverrides(t *testing.T) {
+	t.Parallel()
+
+	// Overrides with consolidation or limits are reported in data source mode exactly as before.
+	stable := qovery.KarpenterStableNodePoolOverride{Limits: testApiLimits()}
+	parameters := testApiKarpenterParameters(false, qovery.KarpenterNodePool{
+		StableOverride:  &stable,
+		DefaultOverride: &qovery.KarpenterDefaultNodePoolOverride{Limits: testApiLimits()},
+	})
+
+	dataSourceState := karpenterFeatureAttrValue(parameters, types.ObjectNull(createKarpenterFeatureAttrTypes()), clusterReadModeDataSource)
+	require.NotNil(t, dataSourceState)
+
+	assert.False(t, stateOverride(t, dataSourceState, "stable_override").Attributes()["limits"].IsNull())
+	assert.False(t, stateOverride(t, dataSourceState, "default_override").Attributes()["limits"].IsNull())
 }
 
 // --- deprecated global spot_enabled plan modifier ---------------------------------------------
@@ -850,7 +927,7 @@ func TestCreateKarpenterFeatureAttrValue_GhostGlobalIsNotPreserved(t *testing.T)
 		"default_override": testDefaultOverrideObject(types.BoolValue(false), types.ObjectNull(karpenterLimitsAttrTypes())),
 	})
 
-	attrVals := createKarpenterFeatureAttrValue(parameters, plan)
+	attrVals := karpenterFeatureAttrValue(parameters, plan, clusterReadModeResource)
 	require.NotNil(t, attrVals)
 
 	assert.Equal(t, types.BoolValue(false), attrVals["spot_enabled"],
