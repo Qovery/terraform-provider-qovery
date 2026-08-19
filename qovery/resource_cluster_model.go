@@ -1703,26 +1703,53 @@ func (p karpenterPlanView) globalSpotEnabled() types.Bool {
 	return knownBool(p.karpenter.Attributes()["spot_enabled"])
 }
 
-// declaresAnyNodePoolSpotEnabled reports whether at least one node pool override carries a
-// spot_enabled that is not null. Unlike hasAnyNodePoolSpotEnabled it counts unknown values: a
-// value that comes from an unresolved expression is still configured, and the caller — the plan
-// modifier of the deprecated global flag — must treat it as such. Where a value cannot be seen
-// because the enclosing object is itself unknown, it assumes there is one: over-reporting only
-// costs a "known after apply" in the plan, while under-reporting resurrects the stale global.
-func (p karpenterPlanView) declaresAnyNodePoolSpotEnabled() bool {
+// karpenterNodePoolOverrideNames lists the node pool overrides that feed the derived global
+// spot flag, in a fixed order. GPU is deliberately absent: it is out of scope for per-pool spot.
+var karpenterNodePoolOverrideNames = []string{"stable_override", "default_override", "cronjob_override"}
+
+// nodePoolSpotEnabled captures what one node pool override contributes to the derived global spot
+// flag: whether the block exists at all — the cronjob pool only joins the OR while its block does
+// — and the value it carries, if any.
+type nodePoolSpotEnabled struct {
+	blockPresent bool
+	spotEnabled  types.Bool
+}
+
+func (n nodePoolSpotEnabled) equal(other nodePoolSpotEnabled) bool {
+	return n.blockPresent == other.blockPresent && n.spotEnabled.Equal(other.spotEnabled)
+}
+
+// karpenterNodePoolSpotSnapshot is the per node pool spot configuration of one karpenter object,
+// in karpenterNodePoolOverrideNames order so two objects can be compared.
+type karpenterNodePoolSpotSnapshot [3]nodePoolSpotEnabled
+
+func (s karpenterNodePoolSpotSnapshot) equal(other karpenterNodePoolSpotSnapshot) bool {
+	for i := range s {
+		if !s[i].equal(other[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// nodePoolSpotEnabledSnapshot summarises what every node pool override contributes to the derived
+// global spot flag. It reports comparable=false when something it needs is unknown — an unresolved
+// expression in the configuration — because the derived value may then move and the caller must
+// assume it does.
+func (p karpenterPlanView) nodePoolSpotEnabledSnapshot() (snapshot karpenterNodePoolSpotSnapshot, comparable bool) {
 	if !p.available {
-		return false
+		return snapshot, true
 	}
 
 	nodePools, ok := p.karpenter.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
 	if !ok || nodePools.IsNull() {
-		return false
+		return snapshot, true
 	}
 	if nodePools.IsUnknown() {
-		return true
+		return snapshot, false
 	}
 
-	for _, name := range []string{"stable_override", "default_override", "cronjob_override"} {
+	for i, name := range karpenterNodePoolOverrideNames {
 		overrideAttr, exists := nodePools.Attributes()[name]
 		if !exists || overrideAttr == nil || overrideAttr.IsNull() {
 			continue
@@ -1732,20 +1759,28 @@ func (p karpenterPlanView) declaresAnyNodePoolSpotEnabled() bool {
 			continue
 		}
 		if override.IsUnknown() {
-			return true
+			return snapshot, false
 		}
-		if spotEnabled, exists := override.Attributes()["spot_enabled"]; exists && spotEnabled != nil && !spotEnabled.IsNull() {
-			return true
+
+		snapshot[i].blockPresent = true
+
+		spotEnabled, exists := override.Attributes()["spot_enabled"]
+		if !exists || spotEnabled == nil {
+			continue
 		}
+		if spotEnabled.IsUnknown() {
+			return snapshot, false
+		}
+		snapshot[i].spotEnabled = knownBool(spotEnabled)
 	}
 
-	return false
+	return snapshot, true
 }
 
 // hasAnyNodePoolSpotEnabled reports whether the plan carries at least one per node pool
 // spot_enabled, i.e. whether the API is going to derive the global flag rather than echo it.
 func (p karpenterPlanView) hasAnyNodePoolSpotEnabled() bool {
-	for _, name := range []string{"stable_override", "default_override", "cronjob_override"} {
+	for _, name := range karpenterNodePoolOverrideNames {
 		if !p.overrideSpotEnabled(name).IsNull() {
 			return true
 		}

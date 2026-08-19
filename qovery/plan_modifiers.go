@@ -556,12 +556,17 @@ func requiresReplaceIfKnownChangeTreatingEmptyAsFunc(defaultValue string) string
 // override it, which re-enables spot on EVERY node pool while the plan only showed block
 // removals.
 //
-// Planning the flag as unknown whenever the configuration carries per node pool values lets the
-// API's derived value land in state on every apply, so the ghost never forms.
+// So the flag is planned as unknown whenever the per node pool values change, which lets the API's
+// recomputed value land in state and stops the ghost forming.
+//
+// It must be *whenever they change*, not whenever they exist. Planning unknown on the mere presence
+// of per node pool values made every plan of such a configuration non-empty — CI run 32261700642
+// failed three acceptance tests with a one-line diff,
+// `~ spot_enabled = true -> (known after apply)`, on a configuration where nothing had changed.
 type deprecatedGlobalSpotEnabledModifier struct{}
 
 func (m deprecatedGlobalSpotEnabledModifier) Description(_ context.Context) string {
-	return "Keeps the state value while no per node pool spot_enabled is configured, and plans the API-derived value otherwise."
+	return "Keeps the state value unless the configured per node pool spot_enabled values changed, in which case the API-derived value is planned."
 }
 
 func (m deprecatedGlobalSpotEnabledModifier) MarkdownDescription(ctx context.Context) string {
@@ -574,28 +579,39 @@ func (m deprecatedGlobalSpotEnabledModifier) PlanModifyBool(ctx context.Context,
 		return
 	}
 
-	// Read the per node pool values from the CONFIGURATION rather than the plan or the state:
-	// the attribute is Optional+Computed, so plan and state carry values propagated from earlier
-	// applies, and those cannot distinguish "the user configured this" from "we stored it once".
-	var karpenter types.Object
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("features").AtName("karpenter"), &karpenter)...)
+	// Create: nothing to keep, so leave the plan unknown and let the API decide.
+	if req.StateValue.IsNull() {
+		return
+	}
+
+	// Not configured, and there is a prior value. The API recomputes this flag from the per node
+	// pool values, so it can only move if those move — compare them between the CONFIGURATION and
+	// the state. Reading the configuration rather than the plan matters: the attribute is
+	// Optional+Computed, so the plan already carries values propagated from earlier applies.
+	//
+	// Planning unknown unconditionally here is what made every plan of a per-pool configuration
+	// non-empty; only a real change may do it.
+	karpenterPath := path.Root("features").AtName("karpenter")
+
+	var configKarpenter types.Object
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, karpenterPath, &configKarpenter)...)
+	var stateKarpenter types.Object
+	resp.Diagnostics.Append(req.State.GetAttribute(ctx, karpenterPath, &stateKarpenter)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	if newKarpenterPlanView(karpenter).declaresAnyNodePoolSpotEnabled() {
-		// The API is going to derive this flag from the per node pool values, so let it: an
-		// unknown plan value accepts whatever the response carries.
+	configSnapshot, configComparable := newKarpenterPlanView(configKarpenter).nodePoolSpotEnabledSnapshot()
+	stateSnapshot, stateComparable := newKarpenterPlanView(stateKarpenter).nodePoolSpotEnabledSnapshot()
+
+	if !configComparable || !stateComparable || !configSnapshot.equal(stateSnapshot) {
+		// The derived value may move, so let the API's recomputed one land in state.
 		resp.PlanValue = types.BoolUnknown()
 		return
 	}
 
-	// No per node pool value anywhere in the configuration, so the API echoes this flag back
-	// unchanged. Keep the state value, which is what a configuration written before per node pool
-	// support expects and what keeps its plans empty.
-	if req.StateValue.IsNull() {
-		return
-	}
+	// Nothing that feeds the derived value changed, so the API will echo the current one back.
+	// Keeping it is what makes the plan empty.
 	resp.PlanValue = req.StateValue
 }
 

@@ -992,7 +992,7 @@ func TestKarpenterFeatureAttrValue_DataSourceKeepsContentOverrides(t *testing.T)
 // testKarpenterConfig builds a tfsdk.Config holding a cluster features object whose karpenter
 // block is the one given, so the plan modifier can read per node pool values out of it the way it
 // does at plan time.
-func testKarpenterConfig(t *testing.T, karpenter types.Object) tfsdk.Config {
+func testKarpenterRawFeatures(t *testing.T, karpenter types.Object) (tftypes.Value, schema.Schema) {
 	t.Helper()
 
 	var schemaResp resource.SchemaResponse
@@ -1009,67 +1009,119 @@ func testKarpenterConfig(t *testing.T, karpenter types.Object) tfsdk.Config {
 		map[string]tftypes.Value{"features": raw},
 	)
 
-	return tfsdk.Config{
-		Raw: object,
-		Schema: schema.Schema{Attributes: map[string]schema.Attribute{
-			"features": schemaResp.Schema.Attributes["features"],
-		}},
-	}
+	return object, schema.Schema{Attributes: map[string]schema.Attribute{
+		"features": schemaResp.Schema.Attributes["features"],
+	}}
+}
+
+func testKarpenterConfig(t *testing.T, karpenter types.Object) tfsdk.Config {
+	t.Helper()
+
+	raw, sch := testKarpenterRawFeatures(t, karpenter)
+	return tfsdk.Config{Raw: raw, Schema: sch}
+}
+
+func testKarpenterState(t *testing.T, karpenter types.Object) tfsdk.State {
+	t.Helper()
+
+	raw, sch := testKarpenterRawFeatures(t, karpenter)
+	return tfsdk.State{Raw: raw, Schema: sch}
 }
 
 func TestDeprecatedGlobalSpotEnabledModifier(t *testing.T) {
 	t.Parallel()
 
-	perPoolConfigured := testKarpenterObject(types.BoolNull(), map[string]attr.Value{
+	stableFalse := map[string]attr.Value{
 		"stable_override": testStableOverrideObject(types.BoolValue(false), types.ObjectNull(karpenterConsolidationAttrTypes()), types.ObjectNull(karpenterLimitsAttrTypes())),
-	})
-	noPerPool := testKarpenterObject(types.BoolNull(), nil)
+	}
+	stableTrue := map[string]attr.Value{
+		"stable_override": testStableOverrideObject(types.BoolValue(true), types.ObjectNull(karpenterConsolidationAttrTypes()), types.ObjectNull(karpenterLimitsAttrTypes())),
+	}
+	stableFalsePlusCronjob := map[string]attr.Value{
+		"stable_override":  testStableOverrideObject(types.BoolValue(false), types.ObjectNull(karpenterConsolidationAttrTypes()), types.ObjectNull(karpenterLimitsAttrTypes())),
+		"cronjob_override": testCronjobOverrideObject(types.BoolNull()),
+	}
+	stableUnknown := map[string]attr.Value{
+		"stable_override": testStableOverrideObject(types.BoolUnknown(), types.ObjectNull(karpenterConsolidationAttrTypes()), types.ObjectNull(karpenterLimitsAttrTypes())),
+	}
 
 	testCases := []struct {
-		TestName    string
-		Karpenter   types.Object
-		ConfigValue types.Bool
-		StateValue  types.Bool
-		PlanValue   types.Bool
-		Expected    types.Bool
+		TestName        string
+		ConfigOverrides map[string]attr.Value
+		StateOverrides  map[string]attr.Value
+		ConfigValue     types.Bool
+		StateValue      types.Bool
+		PlanValue       types.Bool
+		Expected        types.Bool
 	}{
 		{
 			// An explicitly configured value is never second-guessed, deprecated or not.
-			TestName:    "configured_value_is_left_alone",
-			Karpenter:   perPoolConfigured,
-			ConfigValue: types.BoolValue(true),
-			StateValue:  types.BoolValue(false),
-			PlanValue:   types.BoolValue(true),
-			Expected:    types.BoolValue(true),
+			TestName:        "configured_value_is_left_alone",
+			ConfigOverrides: stableFalse,
+			StateOverrides:  stableTrue,
+			ConfigValue:     types.BoolValue(true),
+			StateValue:      types.BoolValue(false),
+			PlanValue:       types.BoolValue(true),
+			Expected:        types.BoolValue(true),
 		},
 		{
-			// Legacy configuration: no per node pool value, so the API echoes the flag and the
-			// state value keeps the plan empty.
+			// Legacy configuration: no per node pool value on either side, so the API echoes the
+			// flag and the state value keeps the plan empty.
 			TestName:    "legacy_config_copies_state",
-			Karpenter:   noPerPool,
 			ConfigValue: types.BoolNull(),
 			StateValue:  types.BoolValue(true),
 			PlanValue:   types.BoolValue(true),
 			Expected:    types.BoolValue(true),
 		},
 		{
-			// The ghost-global fix: the configuration opts into per node pool values, so the flag
-			// becomes a derived value and must be re-read from the API instead of frozen.
-			TestName:    "per_pool_configured_plans_unknown",
-			Karpenter:   perPoolConfigured,
-			ConfigValue: types.BoolNull(),
-			StateValue:  types.BoolValue(true),
-			PlanValue:   types.BoolValue(true),
-			Expected:    types.BoolUnknown(),
+			// A real change to a per node pool value moves the derived flag, so it must be re-read.
+			TestName:        "changed_per_pool_value_plans_unknown",
+			ConfigOverrides: stableFalse,
+			StateOverrides:  stableTrue,
+			ConfigValue:     types.BoolNull(),
+			StateValue:      types.BoolValue(true),
+			PlanValue:       types.BoolValue(true),
+			Expected:        types.BoolUnknown(),
+		},
+		{
+			// Adding a block changes which node pools feed the OR even when it carries no value of
+			// its own — the cronjob pool only joins while its block exists.
+			TestName:        "added_override_block_plans_unknown",
+			ConfigOverrides: stableFalsePlusCronjob,
+			StateOverrides:  stableFalse,
+			ConfigValue:     types.BoolNull(),
+			StateValue:      types.BoolValue(false),
+			PlanValue:       types.BoolValue(false),
+			Expected:        types.BoolUnknown(),
+		},
+		{
+			// ... and so does removing one.
+			TestName:        "removed_override_block_plans_unknown",
+			ConfigOverrides: stableFalse,
+			StateOverrides:  stableFalsePlusCronjob,
+			ConfigValue:     types.BoolNull(),
+			StateValue:      types.BoolValue(false),
+			PlanValue:       types.BoolValue(false),
+			Expected:        types.BoolUnknown(),
+		},
+		{
+			// An unresolved expression cannot be compared, so assume the derived value moves.
+			TestName:        "unknown_config_value_plans_unknown",
+			ConfigOverrides: stableUnknown,
+			StateOverrides:  stableFalse,
+			ConfigValue:     types.BoolNull(),
+			StateValue:      types.BoolValue(false),
+			PlanValue:       types.BoolValue(false),
+			Expected:        types.BoolUnknown(),
 		},
 		{
 			// Create with the flag omitted: nothing in state to keep, the API decides.
-			TestName:    "create_without_state_stays_unknown",
-			Karpenter:   noPerPool,
-			ConfigValue: types.BoolNull(),
-			StateValue:  types.BoolNull(),
-			PlanValue:   types.BoolUnknown(),
-			Expected:    types.BoolUnknown(),
+			TestName:        "create_without_state_stays_unknown",
+			ConfigOverrides: stableFalse,
+			ConfigValue:     types.BoolNull(),
+			StateValue:      types.BoolNull(),
+			PlanValue:       types.BoolUnknown(),
+			Expected:        types.BoolUnknown(),
 		},
 	}
 
@@ -1081,8 +1133,9 @@ func TestDeprecatedGlobalSpotEnabledModifier(t *testing.T) {
 			resp := &planmodifier.BoolResponse{PlanValue: tc.PlanValue}
 			DeprecatedGlobalSpotEnabled().PlanModifyBool(context.Background(), planmodifier.BoolRequest{
 				Path:        path.Root("features").AtName("karpenter").AtName("spot_enabled"),
-				Config:      testKarpenterConfig(t, tc.Karpenter),
+				Config:      testKarpenterConfig(t, testKarpenterObject(tc.ConfigValue, tc.ConfigOverrides)),
 				ConfigValue: tc.ConfigValue,
+				State:       testKarpenterState(t, testKarpenterObject(tc.StateValue, tc.StateOverrides)),
 				StateValue:  tc.StateValue,
 				PlanValue:   tc.PlanValue,
 			}, resp)
@@ -1091,6 +1144,41 @@ func TestDeprecatedGlobalSpotEnabledModifier(t *testing.T) {
 			assert.Equal(t, tc.Expected, resp.PlanValue)
 		})
 	}
+}
+
+func TestDeprecatedGlobalSpotEnabledModifier_IdenticalPerPoolValuesDoNotCauseAPerpetualDiff(t *testing.T) {
+	t.Parallel()
+
+	// Regression for the perpetual diff. Planning the deprecated global as unknown on the mere
+	// presence of per node pool values made EVERY plan of such a configuration non-empty: CI run
+	// 32261700642 failed TestAcc_ClusterKarpenterNodePoolSpot, TestAcc_ClusterKarpenterDivergedImport
+	// and TestAcc_ClusterKarpenterSpotMigration with "After applying this test step, the plan was
+	// not empty" and a single diff line, `~ spot_enabled = true -> (known after apply)`, while every
+	// per node pool value showed as unchanged.
+	//
+	// Unknown is only correct when the values feeding the derived flag actually changed. Identical
+	// values must copy state, which is what makes the plan empty.
+	perPool := map[string]attr.Value{
+		"stable_override":  testStableOverrideObject(types.BoolValue(false), types.ObjectNull(karpenterConsolidationAttrTypes()), types.ObjectNull(karpenterLimitsAttrTypes())),
+		"default_override": testDefaultOverrideObject(types.BoolValue(true), types.ObjectNull(karpenterLimitsAttrTypes())),
+	}
+
+	// The configuration omits the deprecated global; state holds the value the API derived from
+	// exactly these per node pool values.
+	resp := &planmodifier.BoolResponse{PlanValue: types.BoolValue(true)}
+	DeprecatedGlobalSpotEnabled().PlanModifyBool(context.Background(), planmodifier.BoolRequest{
+		Path:        path.Root("features").AtName("karpenter").AtName("spot_enabled"),
+		Config:      testKarpenterConfig(t, testKarpenterObject(types.BoolNull(), perPool)),
+		ConfigValue: types.BoolNull(),
+		State:       testKarpenterState(t, testKarpenterObject(types.BoolValue(true), perPool)),
+		StateValue:  types.BoolValue(true),
+		PlanValue:   types.BoolValue(true),
+	}, resp)
+
+	require.False(t, resp.Diagnostics.HasError(), "%v", resp.Diagnostics)
+	assert.False(t, resp.PlanValue.IsUnknown(),
+		"planning unknown when nothing changed is the perpetual diff: every plan would show `~ spot_enabled = true -> (known after apply)`")
+	assert.Equal(t, types.BoolValue(true), resp.PlanValue)
 }
 
 func TestCreateKarpenterFeatureAttrValue_GhostGlobalIsNotPreserved(t *testing.T) {
