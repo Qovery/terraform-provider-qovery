@@ -19,7 +19,6 @@ import (
 // global spot_enabled as the OR of the per node pool values, so both are prime candidates for
 // a perpetual diff.
 func TestAcc_ClusterKarpenterNodePoolSpot(t *testing.T) {
-	t.Skip("QOV-2155: per node pool spot_enabled is not deployed on the API yet — unskip once it ships")
 	t.Parallel()
 
 	testName := "cluster-karpenter-node-pool-spot"
@@ -79,7 +78,6 @@ func TestAcc_ClusterKarpenterNodePoolSpot(t *testing.T) {
 // backend backfill makes the API return per node pool values anyway, which must not show up in
 // state as a diff.
 func TestAcc_ClusterKarpenterLegacyGlobalSpot(t *testing.T) {
-	t.Skip("QOV-2155: per node pool spot_enabled is not deployed on the API yet — unskip once it ships")
 	t.Parallel()
 
 	testName := "cluster-karpenter-legacy-spot"
@@ -230,7 +228,6 @@ resource "qovery_cluster" "test" {
 //     once the override blocks are removed.
 //   - step 8: the end state is quiet too.
 func TestAcc_ClusterKarpenterSpotMigration(t *testing.T) {
-	t.Skip("QOV-2155: per node pool spot_enabled is not deployed on the API yet — unskip once it ships")
 	t.Parallel()
 
 	testName := "cluster-karpenter-spot-migration"
@@ -327,7 +324,6 @@ func TestAcc_ClusterKarpenterSpotMigration(t *testing.T) {
 // divergence itself survives import whenever the block holds anything besides spot_enabled, so
 // the trade-off costs users only the spot-only shape.
 func TestAcc_ClusterKarpenterDivergedImport(t *testing.T) {
-	t.Skip("QOV-2155: per node pool spot_enabled is not deployed on the API yet — unskip once it ships")
 	t.Parallel()
 
 	testName := "cluster-karpenter-diverged-import"
