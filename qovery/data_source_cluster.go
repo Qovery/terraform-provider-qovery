@@ -369,7 +369,11 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 							"spot_enabled": schema.BoolAttribute{
 								Description:         "Enable spot instances (deprecated, use the per node pool `spot_enabled` instead)",
 								MarkdownDescription: "Whether EC2 Spot instances are enabled. Deprecated: this is a derived value, recomputed by the API as the logical OR of the per node pool `spot_enabled` values.",
-								Computed:            true,
+								// Optional is kept so configurations written when this attribute was Required
+								// (they had to set it to declare the karpenter block) stay schema-valid.
+								Optional:           true,
+								Computed:           true,
+								DeprecationMessage: "This is a derived value; read the per node pool spot_enabled on qovery_node_pools.{stable_override,default_override,cronjob_override} instead.",
 							},
 							"disk_size_in_gib": schema.Int64Attribute{
 								Description:         "Disk size in GiB for Karpenter-provisioned nodes.",

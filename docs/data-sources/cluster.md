@@ -115,9 +115,9 @@ Required:
 - `disk_size_in_gib` (Number) Root disk size in GiB for Karpenter-provisioned nodes.
 - `qovery_node_pools` (Attributes) Karpenter node pool configuration with requirements and resource limits. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools))
 
-Read-Only:
+Optional:
 
-- `spot_enabled` (Boolean) Whether EC2 Spot instances are enabled. Deprecated: this is a derived value, recomputed by the API as the logical OR of the per node pool `spot_enabled` values.
+- `spot_enabled` (Boolean, Deprecated) Whether EC2 Spot instances are enabled. Deprecated: this is a derived value, recomputed by the API as the logical OR of the per node pool `spot_enabled` values.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools`
