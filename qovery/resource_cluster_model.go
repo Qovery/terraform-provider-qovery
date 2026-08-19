@@ -1652,6 +1652,45 @@ func (p karpenterPlanView) globalSpotEnabled() types.Bool {
 	return knownBool(p.karpenter.Attributes()["spot_enabled"])
 }
 
+// declaresAnyNodePoolSpotEnabled reports whether at least one node pool override carries a
+// spot_enabled that is not null. Unlike hasAnyNodePoolSpotEnabled it counts unknown values: a
+// value that comes from an unresolved expression is still configured, and the caller — the plan
+// modifier of the deprecated global flag — must treat it as such. Where a value cannot be seen
+// because the enclosing object is itself unknown, it assumes there is one: over-reporting only
+// costs a "known after apply" in the plan, while under-reporting resurrects the stale global.
+func (p karpenterPlanView) declaresAnyNodePoolSpotEnabled() bool {
+	if !p.available {
+		return false
+	}
+
+	nodePools, ok := p.karpenter.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
+	if !ok || nodePools.IsNull() {
+		return false
+	}
+	if nodePools.IsUnknown() {
+		return true
+	}
+
+	for _, name := range []string{"stable_override", "default_override", "cronjob_override"} {
+		overrideAttr, exists := nodePools.Attributes()[name]
+		if !exists || overrideAttr == nil || overrideAttr.IsNull() {
+			continue
+		}
+		override, ok := overrideAttr.(basetypes.ObjectValue)
+		if !ok {
+			continue
+		}
+		if override.IsUnknown() {
+			return true
+		}
+		if spotEnabled, exists := override.Attributes()["spot_enabled"]; exists && spotEnabled != nil && !spotEnabled.IsNull() {
+			return true
+		}
+	}
+
+	return false
+}
+
 // hasAnyNodePoolSpotEnabled reports whether the plan carries at least one per node pool
 // spot_enabled, i.e. whether the API is going to derive the global flag rather than echo it.
 func (p karpenterPlanView) hasAnyNodePoolSpotEnabled() bool {

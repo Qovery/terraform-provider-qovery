@@ -538,7 +538,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								Computed:           true,
 								DeprecationMessage: "Configure spot_enabled per node pool on qovery_node_pools.{stable_override,default_override,cronjob_override} instead. When per-pool values are present the API ignores this field on write and recomputes it as the OR of the per-pool values. When no per-pool value is set, this value still applies to ALL pools including stable (legacy behavior).",
 								PlanModifiers: []planmodifier.Bool{
-									boolplanmodifier.UseStateForUnknown(),
+									DeprecatedGlobalSpotEnabled(),
 								},
 							},
 							"disk_size_in_gib": schema.Int64Attribute{

@@ -9,9 +9,14 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -703,6 +708,155 @@ func TestCreateKarpenterFeatureAttrValue_ImportAgreesWithApply(t *testing.T) {
 			}
 		})
 	}
+}
+
+// --- deprecated global spot_enabled plan modifier ---------------------------------------------
+
+// testKarpenterConfig builds a tfsdk.Config holding a cluster features object whose karpenter
+// block is the one given, so the plan modifier can read per node pool values out of it the way it
+// does at plan time.
+func testKarpenterConfig(t *testing.T, karpenter types.Object) tfsdk.Config {
+	t.Helper()
+
+	var schemaResp resource.SchemaResponse
+	clusterResource{}.Schema(context.Background(), resource.SchemaRequest{}, &schemaResp)
+	require.False(t, schemaResp.Diagnostics.HasError())
+
+	features := types.ObjectValueMust(createFeaturesAttrTypes(), map[string]attr.Value{
+		featureKeyVpcSubnet:      types.StringNull(),
+		featureKeyStaticIP:       types.BoolNull(),
+		featureKeyNatGateways:    types.ObjectNull(createNatGatewaysFeatureAttrTypes()),
+		featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
+		featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
+		featureKeyKarpenter:      karpenter,
+		featureKeyGkeKmsKey:      types.StringNull(),
+	})
+
+	raw, err := features.ToTerraformValue(context.Background())
+	require.NoError(t, err)
+
+	object := tftypes.NewValue(
+		tftypes.Object{AttributeTypes: map[string]tftypes.Type{"features": features.Type(context.Background()).TerraformType(context.Background())}},
+		map[string]tftypes.Value{"features": raw},
+	)
+
+	return tfsdk.Config{
+		Raw: object,
+		Schema: schema.Schema{Attributes: map[string]schema.Attribute{
+			"features": schemaResp.Schema.Attributes["features"],
+		}},
+	}
+}
+
+func TestDeprecatedGlobalSpotEnabledModifier(t *testing.T) {
+	t.Parallel()
+
+	perPoolConfigured := testKarpenterObject(types.BoolNull(), map[string]attr.Value{
+		"stable_override": testStableOverrideObject(types.BoolValue(false), types.ObjectNull(karpenterConsolidationAttrTypes()), types.ObjectNull(karpenterLimitsAttrTypes())),
+	})
+	noPerPool := testKarpenterObject(types.BoolNull(), nil)
+
+	testCases := []struct {
+		TestName    string
+		Karpenter   types.Object
+		ConfigValue types.Bool
+		StateValue  types.Bool
+		PlanValue   types.Bool
+		Expected    types.Bool
+	}{
+		{
+			// An explicitly configured value is never second-guessed, deprecated or not.
+			TestName:    "configured_value_is_left_alone",
+			Karpenter:   perPoolConfigured,
+			ConfigValue: types.BoolValue(true),
+			StateValue:  types.BoolValue(false),
+			PlanValue:   types.BoolValue(true),
+			Expected:    types.BoolValue(true),
+		},
+		{
+			// Legacy configuration: no per node pool value, so the API echoes the flag and the
+			// state value keeps the plan empty.
+			TestName:    "legacy_config_copies_state",
+			Karpenter:   noPerPool,
+			ConfigValue: types.BoolNull(),
+			StateValue:  types.BoolValue(true),
+			PlanValue:   types.BoolValue(true),
+			Expected:    types.BoolValue(true),
+		},
+		{
+			// The ghost-global fix: the configuration opts into per node pool values, so the flag
+			// becomes a derived value and must be re-read from the API instead of frozen.
+			TestName:    "per_pool_configured_plans_unknown",
+			Karpenter:   perPoolConfigured,
+			ConfigValue: types.BoolNull(),
+			StateValue:  types.BoolValue(true),
+			PlanValue:   types.BoolValue(true),
+			Expected:    types.BoolUnknown(),
+		},
+		{
+			// Create with the flag omitted: nothing in state to keep, the API decides.
+			TestName:    "create_without_state_stays_unknown",
+			Karpenter:   noPerPool,
+			ConfigValue: types.BoolNull(),
+			StateValue:  types.BoolNull(),
+			PlanValue:   types.BoolUnknown(),
+			Expected:    types.BoolUnknown(),
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+
+			resp := &planmodifier.BoolResponse{PlanValue: tc.PlanValue}
+			DeprecatedGlobalSpotEnabled().PlanModifyBool(context.Background(), planmodifier.BoolRequest{
+				Path:        path.Root("features").AtName("karpenter").AtName("spot_enabled"),
+				Config:      testKarpenterConfig(t, tc.Karpenter),
+				ConfigValue: tc.ConfigValue,
+				StateValue:  tc.StateValue,
+				PlanValue:   tc.PlanValue,
+			}, resp)
+
+			require.False(t, resp.Diagnostics.HasError(), "%v", resp.Diagnostics)
+			assert.Equal(t, tc.Expected, resp.PlanValue)
+		})
+	}
+}
+
+func TestCreateKarpenterFeatureAttrValue_GhostGlobalIsNotPreserved(t *testing.T) {
+	t.Parallel()
+
+	// End-to-end regression for the ghost-global path. A legacy cluster had the global flag true;
+	// the user migrates the documented way, adding per node pool spot_enabled=false and dropping
+	// the global from the configuration. The plan modifier plans the global as unknown, so the
+	// conversion must store the API's derived false — not the stale true from state. Freezing the
+	// stale value is what later re-enabled spot on every pool once the override blocks were
+	// removed, with nothing in the plan to show it.
+	stable := qovery.KarpenterStableNodePoolOverride{}
+	SetStableNodePoolSpotEnabled(&stable, false)
+	defaultOverride := qovery.KarpenterDefaultNodePoolOverride{}
+	SetDefaultNodePoolSpotEnabled(&defaultOverride, false)
+
+	// The API derived the global as the OR of the per node pool values: false.
+	parameters := testApiKarpenterParameters(false, qovery.KarpenterNodePool{
+		StableOverride:  &stable,
+		DefaultOverride: &defaultOverride,
+	})
+
+	// The plan as the modifier leaves it: global unknown, per node pool values configured.
+	plan := testKarpenterObject(types.BoolUnknown(), map[string]attr.Value{
+		"stable_override":  testStableOverrideObject(types.BoolValue(false), types.ObjectNull(karpenterConsolidationAttrTypes()), types.ObjectNull(karpenterLimitsAttrTypes())),
+		"default_override": testDefaultOverrideObject(types.BoolValue(false), types.ObjectNull(karpenterLimitsAttrTypes())),
+	})
+
+	attrVals := createKarpenterFeatureAttrValue(parameters, plan)
+	require.NotNil(t, attrVals)
+
+	assert.Equal(t, types.BoolValue(false), attrVals["spot_enabled"],
+		"the API-derived global must land in state; a stale true here is the ghost that later re-enables spot everywhere")
+	assert.Equal(t, types.BoolValue(false), stateOverride(t, attrVals, "stable_override").Attributes()["spot_enabled"])
+	assert.Equal(t, types.BoolValue(false), stateOverride(t, attrVals, "default_override").Attributes()["spot_enabled"])
 }
 
 // --- schema wiring -------------------------------------------------------------------------

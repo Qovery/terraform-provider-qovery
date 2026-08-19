@@ -543,3 +543,64 @@ func requiresReplaceIfKnownChangeTreatingEmptyAsFunc(defaultValue string) string
 		resp.RequiresReplace = true
 	}
 }
+
+// deprecatedGlobalSpotEnabledModifier plans features.karpenter.spot_enabled, the deprecated
+// global spot flag, which the API turned into a derived value: it recomputes it on every write as
+// the logical OR of the per node pool spot_enabled fields.
+//
+// The plain UseStateForUnknown behaviour is unsafe for a derived value. A configuration that
+// migrates the documented way — add per node pool spot_enabled, drop the global — keeps the
+// stale global from state in the plan, and the conversion layer then preserves that stale value
+// against the API's recomputed one, so state stays wrong forever. The damage lands later: remove
+// the per node pool blocks and the request carries the ghost `true` with no per-pool field to
+// override it, which re-enables spot on EVERY node pool while the plan only showed block
+// removals.
+//
+// Planning the flag as unknown whenever the configuration carries per node pool values lets the
+// API's derived value land in state on every apply, so the ghost never forms.
+type deprecatedGlobalSpotEnabledModifier struct{}
+
+func (m deprecatedGlobalSpotEnabledModifier) Description(_ context.Context) string {
+	return "Keeps the state value while no per node pool spot_enabled is configured, and plans the API-derived value otherwise."
+}
+
+func (m deprecatedGlobalSpotEnabledModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m deprecatedGlobalSpotEnabledModifier) PlanModifyBool(ctx context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
+	// Explicitly configured: the configuration always wins, deprecated or not.
+	if !req.ConfigValue.IsNull() {
+		return
+	}
+
+	// Read the per node pool values from the CONFIGURATION rather than the plan or the state:
+	// the attribute is Optional+Computed, so plan and state carry values propagated from earlier
+	// applies, and those cannot distinguish "the user configured this" from "we stored it once".
+	var karpenter types.Object
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("features").AtName("karpenter"), &karpenter)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if newKarpenterPlanView(karpenter).declaresAnyNodePoolSpotEnabled() {
+		// The API is going to derive this flag from the per node pool values, so let it: an
+		// unknown plan value accepts whatever the response carries.
+		resp.PlanValue = types.BoolUnknown()
+		return
+	}
+
+	// No per node pool value anywhere in the configuration, so the API echoes this flag back
+	// unchanged. Keep the state value, which is what a configuration written before per node pool
+	// support expects and what keeps its plans empty.
+	if req.StateValue.IsNull() {
+		return
+	}
+	resp.PlanValue = req.StateValue
+}
+
+// DeprecatedGlobalSpotEnabled returns the plan modifier for the deprecated global Karpenter spot
+// flag.
+func DeprecatedGlobalSpotEnabled() planmodifier.Bool {
+	return deprecatedGlobalSpotEnabledModifier{}
+}
