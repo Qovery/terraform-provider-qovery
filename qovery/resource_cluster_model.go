@@ -68,13 +68,22 @@ type Cluster struct {
 	SecretManagerAccesses          types.Set    `tfsdk:"secret_manager_accesses"`
 }
 
+// stateClusterFeatures returns the features object of the prior state, or a null object when
+// there is no prior state (create).
+func stateClusterFeatures(state *Cluster) types.Object {
+	if state == nil {
+		return types.ObjectNull(createFeaturesAttrTypes())
+	}
+	return state.Features
+}
+
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
-	clusterFeatures, _ := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider))
+	clusterFeatures, _ := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider), stateClusterFeatures(state))
 	if state == nil {
 		return len(clusterFeatures) > 0
 	}
 
-	stateFeature, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider))
+	stateFeature, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider), state.Features)
 	if len(clusterFeatures) != len(stateFeature) {
 		return true
 	}
@@ -265,12 +274,15 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			}
 			if karpenter, ok := featuresAttrs[featureKeyKarpenter]; ok {
 				if !karpenter.IsNull() && !karpenter.IsUnknown() {
-					// Check if karpenter has actual content (spot_enabled is required)
+					// Check if karpenter has actual content. Every attribute is checked rather
+					// than a single required one: spot_enabled is deprecated and now optional,
+					// so a karpenter block can legitimately leave it unset.
 					karpenterObj := karpenter.(types.Object)
-					if !karpenterObj.IsNull() && len(karpenterObj.Attributes()) > 0 {
-						if spotEnabled, hasSpot := karpenterObj.Attributes()["spot_enabled"]; hasSpot {
-							if !spotEnabled.IsNull() && !spotEnabled.IsUnknown() {
+					if !karpenterObj.IsNull() {
+						for _, attribute := range karpenterObj.Attributes() {
+							if !attribute.IsNull() && !attribute.IsUnknown() {
 								hasNonDefaultFeatures = true
+								break
 							}
 						}
 					}
@@ -291,7 +303,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		return nil, errors.New("infrastructure_charts_parameters is only supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
 	}
 
-	features, err := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider))
+	features, err := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider), stateClusterFeatures(state))
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +413,7 @@ func IsKarpenterAlreadyInstalled(state *Cluster) bool {
 		return false
 	}
 
-	oldFeatures, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider))
+	oldFeatures, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider), state.Features)
 	for _, f := range oldFeatures {
 		if f.Id != nil && *f.Id == featureIdKarpenter {
 			return true
@@ -420,7 +432,31 @@ func responseHasKarpenter(features []qovery.ClusterFeatureResponse) bool {
 	return false
 }
 
+// clusterReadMode distinguishes the two callers of the API -> Terraform conversion, which need
+// different amounts of the API response.
+//
+// The resource must stay symmetric between apply and import: ImportStateVerify compares the two
+// states attribute by attribute, so import may only store node pool overrides that an apply would
+// also store. The data source is read-only — no plan to be consistent with and no diff to keep
+// quiet — so hiding a real divergence there would be a bug, and it reports whatever the API holds.
+type clusterReadMode int
+
+const (
+	clusterReadModeResource clusterReadMode = iota
+	clusterReadModeDataSource
+)
+
 func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, initialPlan Cluster) Cluster {
+	return convertResponseToClusterWithMode(ctx, res, initialPlan, clusterReadModeResource)
+}
+
+// convertResponseToClusterForDataSource converts an API response for the read-only cluster data
+// source, which reports the full API truth rather than mirroring what an apply would store.
+func convertResponseToClusterForDataSource(ctx context.Context, res *client.ClusterResponse, config Cluster) Cluster {
+	return convertResponseToClusterWithMode(ctx, res, config, clusterReadModeDataSource)
+}
+
+func convertResponseToClusterWithMode(ctx context.Context, res *client.ClusterResponse, initialPlan Cluster, mode clusterReadMode) Cluster {
 	routingTable := fromClusterRoutingTable(res.ClusterRoutingTable)
 
 	// Check if cluster is PARTIALLY_MANAGED (EKS Anywhere)
@@ -495,7 +531,7 @@ func convertResponseToCluster(ctx context.Context, res *client.ClusterResponse, 
 			cluster.MaxRunningNodes = FromInt32Pointer(res.ClusterResponse.MaxRunningNodes)
 		}
 
-		cluster.Features = fromQoveryClusterFeatures(res.ClusterResponse.Features)
+		cluster.Features = clusterFeaturesFromResponse(res.ClusterResponse.Features, initialPlan.Features, mode)
 		cluster.Keda = fromQoveryClusterKeda(res.ClusterResponse.Keda)
 		cluster.RoutingTables = routingTable.toTerraformSet(ctx, initialPlan.RoutingTables)
 		cluster.InfrastructureOutputs = fromQoveryClusterOutput(res.ClusterResponse.InfrastructureOutputs, initialPlan.InfrastructureOutputs)
@@ -630,8 +666,28 @@ func clusterOutputHasAnyKnownValue(o types.Object) bool {
 	return false
 }
 
-func fromQoveryClusterFeatures(
+// planKarpenterObject digs the karpenter feature out of a planned features object. It returns
+// a null object when there is no plan to compare the API response against.
+func planKarpenterObject(planFeatures types.Object) types.Object {
+	if planFeatures.IsNull() || planFeatures.IsUnknown() {
+		return types.ObjectNull(createKarpenterFeatureAttrTypes())
+	}
+	karpenter, ok := planFeatures.Attributes()[featureKeyKarpenter].(basetypes.ObjectValue)
+	if !ok {
+		return types.ObjectNull(createKarpenterFeatureAttrTypes())
+	}
+	return karpenter
+}
+
+// fromQoveryClusterFeatures converts the API features to their Terraform representation.
+// planFeatures is the planned (or, on a refresh, the prior state) features object: some
+// Karpenter values are only stored in state when the configuration asked for them, so that a
+// value the API returns on its own does not become permanent plan noise. Pass a null object
+// when no plan is available, e.g. from the data source.
+func clusterFeaturesFromResponse(
 	clusterFeatures []qovery.ClusterFeatureResponse,
+	planFeatures types.Object,
+	mode clusterReadMode,
 ) types.Object {
 	if clusterFeatures == nil {
 		// Early return object null without attribute types
@@ -770,7 +826,7 @@ func fromQoveryClusterFeatures(
 				continue
 			}
 
-			attrVals := createKarpenterFeatureAttrValue(karpenterParameters)
+			attrVals := karpenterFeatureAttrValue(karpenterParameters, planKarpenterObject(planFeatures), mode)
 
 			terraformObjectValue, diagnostics := types.ObjectValue(attrTypes, attrVals)
 			if diagnostics.HasError() {
@@ -881,7 +937,11 @@ func fromQoveryClusterFeatures(
 	return terraformObjectValue
 }
 
-func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string) ([]qovery.ClusterRequestFeaturesInner, error) {
+// toQoveryClusterFeatures converts the Terraform features object into the API request. Passing
+// stateFeatures alongside it — the features of the prior state, or a null object on create — lets
+// the deprecated global Karpenter spot_enabled fall back to the value the API last derived when
+// the plan leaves it unknown; see the karpenter branch below.
+func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string, stateFeatures types.Object) ([]qovery.ClusterRequestFeaturesInner, error) {
 	if f.IsNull() || f.IsUnknown() || mode == "K3S" {
 		return nil, nil
 	}
@@ -990,10 +1050,10 @@ func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string) 
 		// Non-GCP: never emit NAT_GATEWAY.
 	}
 
-	return appendRemainingQoveryClusterFeatures(features, f)
+	return appendRemainingQoveryClusterFeatures(features, f, stateFeatures)
 }
 
-func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeaturesInner, f types.Object) ([]qovery.ClusterRequestFeaturesInner, error) {
+func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeaturesInner, f types.Object, stateFeatures types.Object) ([]qovery.ClusterRequestFeaturesInner, error) {
 	if _, ok := f.Attributes()[featureKeyExistingVpc]; ok {
 		v := f.Attributes()[featureKeyExistingVpc].(types.Object)
 		if !v.IsNull() {
@@ -1065,8 +1125,21 @@ func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeatur
 				return nil, err
 			}
 
+			// The deprecated global flag is planned as unknown whenever the configuration carries
+			// per node pool values, because the API derives it from them (see
+			// DeprecatedGlobalSpotEnabled). Unknown must not be sent as false: a node pool the
+			// configuration gives no per-pool value falls back to whatever global the request
+			// carries, so false would silently switch such a pool off spot midway through the
+			// documented migration. Send the value the API last derived instead, which leaves those
+			// pools exactly where they are. On create there is no prior state and every pool is
+			// new, so false is the safe default.
+			globalSpotEnabled := v.Attributes()["spot_enabled"].(types.Bool)
+			if globalSpotEnabled.IsUnknown() {
+				globalSpotEnabled = knownBool(planKarpenterObject(stateFeatures).Attributes()["spot_enabled"])
+			}
+
 			feature := qovery.ClusterFeatureKarpenterParameters{
-				SpotEnabled:                ToBool(v.Attributes()["spot_enabled"].(types.Bool)),
+				SpotEnabled:                ToBool(globalSpotEnabled),
 				DiskSizeInGib:              ToInt32(v.Attributes()["disk_size_in_gib"].(types.Int64)),
 				DefaultServiceArchitecture: arch,
 				QoveryNodePools:            *qoveryNodePools,
@@ -1175,7 +1248,54 @@ func toQoveryNodePools(obj types.Object) (*qovery.KarpenterNodePool, error) {
 	}
 	karpenterNodePool.DefaultOverride = defaultOverride
 
+	// Set cronjob node pool override
+	cronjobOverride, err := extractCronjobNodePoolOverrideFromTypesObject(obj)
+	if err != nil {
+		return nil, err
+	}
+	karpenterNodePool.CronjobOverride = cronjobOverride
+
 	return &karpenterNodePool, nil
+}
+
+// extractNodePoolOverride returns the named node pool override object when the configuration
+// declares it. A null or unknown block means the block is absent, which is meaningful for the
+// API: an absent block leaves the corresponding node pool on its legacy behavior.
+func extractNodePoolOverride(obj types.Object, name string) (basetypes.ObjectValue, bool, error) {
+	qoveryNodePools, exists := obj.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
+	if !exists {
+		return basetypes.ObjectValue{}, false, fmt.Errorf("qovery_node_pools field not found")
+	}
+
+	overrideAttr, exists := qoveryNodePools.Attributes()[name]
+	if !exists || overrideAttr == nil || overrideAttr.IsNull() || overrideAttr.IsUnknown() {
+		return basetypes.ObjectValue{}, false, nil
+	}
+
+	override, ok := overrideAttr.(basetypes.ObjectValue)
+	if !ok {
+		return basetypes.ObjectValue{}, false, fmt.Errorf("%s field cannot be parsed to Object", name)
+	}
+
+	return override, true, nil
+}
+
+// extractNodePoolSpotEnabled returns the configured per node pool spot_enabled, or nil when it
+// is null or unknown. Nil must be sent as an absent field: the API then applies the deprecated
+// global spot_enabled to that node pool, which is the behavior of every configuration written
+// before per node pool support.
+func extractNodePoolSpotEnabled(override basetypes.ObjectValue) (*bool, error) {
+	spotEnabledAttr, exists := override.Attributes()["spot_enabled"]
+	if !exists || spotEnabledAttr == nil || spotEnabledAttr.IsNull() || spotEnabledAttr.IsUnknown() {
+		return nil, nil
+	}
+
+	spotEnabled, ok := spotEnabledAttr.(basetypes.BoolValue)
+	if !ok {
+		return nil, fmt.Errorf("spot_enabled field cannot be parsed to Bool")
+	}
+
+	return spotEnabled.ValueBoolPointer(), nil
 }
 
 func extractRequirementsFromTypesObject(obj types.Object) ([]map[string]any, error) {
@@ -1207,34 +1327,33 @@ func extractRequirementsFromTypesObject(obj types.Object) ([]map[string]any, err
 }
 
 func extractStableNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.KarpenterStableNodePoolOverride, error) {
-	qoveryNodePools, exists := obj.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
-	if !exists {
-		return nil, fmt.Errorf("qovery_node_pools field not found")
+	stableOverride, declared, err := extractNodePoolOverride(obj, "stable_override")
+	if err != nil {
+		return nil, err
 	}
-
-	stableOverrideAttr, exists := qoveryNodePools.Attributes()["stable_override"]
-	if !exists {
-		return nil, nil
-	}
-
-	if stableOverrideAttr.IsNull() {
+	if !declared {
 		// It means stable_override is not defined
 		// No issue as this field is optional
 		return nil, nil
 	}
 
-	stableOverride, ok := stableOverrideAttr.(basetypes.ObjectValue)
-	if !ok {
-		return nil, fmt.Errorf("stable_override field cannot be parsed to Object")
-	}
-
 	qoveryStableOverride := qovery.KarpenterStableNodePoolOverride{}
 
+	// Set spot_enabled
+	spotEnabled, err := extractNodePoolSpotEnabled(stableOverride)
+	if err != nil {
+		return nil, err
+	}
+	if spotEnabled != nil {
+		SetStableNodePoolSpotEnabled(&qoveryStableOverride, *spotEnabled)
+	}
+
 	// Set consolidation
-	consolidationAttr, exists := stableOverride.Attributes()["consolidation"]
+	consolidationAttr, hasConsolidation := stableOverride.Attributes()["consolidation"]
+	hasConsolidation = hasConsolidation && consolidationAttr != nil && !consolidationAttr.IsNull()
 
 	// The consolidation is allowed to be null
-	if exists && !consolidationAttr.IsNull() {
+	if hasConsolidation {
 		consolidation, ok := consolidationAttr.(basetypes.ObjectValue)
 		if !ok {
 			return nil, fmt.Errorf("consolidation field cannot be parsed to Object")
@@ -1266,10 +1385,11 @@ func extractStableNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Kar
 	}
 
 	// Set limits
-	limitsAttr, exists := stableOverride.Attributes()["limits"]
+	limitsAttr, hasLimits := stableOverride.Attributes()["limits"]
+	hasLimits = hasLimits && limitsAttr != nil && !limitsAttr.IsNull()
 
 	// The limits are allowed to be null
-	if exists && !limitsAttr.IsNull() {
+	if hasLimits {
 		limits, ok := limitsAttr.(basetypes.ObjectValue)
 		if !ok {
 			return nil, fmt.Errorf("limits field cannot be parsed to Object")
@@ -1283,44 +1403,46 @@ func extractStableNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Kar
 		qoveryStableOverride.Limits = qoveryLimits
 	}
 
-	// To avoid over-checking conditions when converting the API response to Terraform object, forbid the stable_override block if both consolidation and limits are undefined
-	if consolidationAttr.IsNull() && limitsAttr.IsNull() {
-		return nil, fmt.Errorf("if `qovery_node_pools.stable_override` is defined, you must define at least its `consolidation` or its `limits`")
+	// To avoid over-checking conditions when converting the API response to Terraform object, forbid an empty stable_override block
+	if !hasConsolidation && !hasLimits && spotEnabled == nil {
+		return nil, fmt.Errorf("if `qovery_node_pools.stable_override` is defined, you must define at least its `spot_enabled`, its `consolidation` or its `limits`")
 	}
 
 	return &qoveryStableOverride, nil
 }
 
 func extractDefaultNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.KarpenterDefaultNodePoolOverride, error) {
-	qoveryNodePools, exists := obj.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
-	if !exists {
-		return nil, fmt.Errorf("qovery_node_pools field not found")
+	defaultOverride, declared, err := extractNodePoolOverride(obj, "default_override")
+	if err != nil {
+		return nil, err
 	}
-
-	defaultOverrideAttr, exists := qoveryNodePools.Attributes()["default_override"]
-	if !exists {
-		return nil, nil
-	}
-
-	if defaultOverrideAttr.IsNull() {
-		// It means stable_override is not defined
+	if !declared {
+		// It means default_override is not defined
 		// No issue as this field is optional
 		return nil, nil
 	}
 
-	defaultOverride, ok := defaultOverrideAttr.(basetypes.ObjectValue)
-	if !ok {
-		return nil, fmt.Errorf("default_override field cannot be parsed to Object")
-	}
-
 	qoveryDefaultOverride := qovery.KarpenterDefaultNodePoolOverride{}
 
-	// Set limits
-	limitsAttr, exists := defaultOverride.Attributes()["limits"]
+	// Set spot_enabled
+	spotEnabled, err := extractNodePoolSpotEnabled(defaultOverride)
+	if err != nil {
+		return nil, err
+	}
+	if spotEnabled != nil {
+		SetDefaultNodePoolSpotEnabled(&qoveryDefaultOverride, *spotEnabled)
+	}
 
-	// To avoid over-checking conditions when converting the API response to Terraform object, forbid the default_override block if limits are not defined
-	if !exists || limitsAttr.IsNull() {
-		return nil, fmt.Errorf("if `qovery_node_pools.default_override` is defined, you must define its `limits`")
+	// Set limits
+	limitsAttr, hasLimits := defaultOverride.Attributes()["limits"]
+	hasLimits = hasLimits && limitsAttr != nil && !limitsAttr.IsNull()
+
+	// To avoid over-checking conditions when converting the API response to Terraform object, forbid an empty default_override block
+	if !hasLimits {
+		if spotEnabled == nil {
+			return nil, fmt.Errorf("if `qovery_node_pools.default_override` is defined, you must define at least its `spot_enabled` or its `limits`")
+		}
+		return &qoveryDefaultOverride, nil
 	}
 
 	limits, ok := limitsAttr.(basetypes.ObjectValue)
@@ -1336,6 +1458,31 @@ func extractDefaultNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Ka
 	qoveryDefaultOverride.Limits = qoveryLimits
 
 	return &qoveryDefaultOverride, nil
+}
+
+// extractCronjobNodePoolOverrideFromTypesObject converts the cronjob_override block. The block
+// is never synthesized: its mere presence enables the dedicated cronjob node pool across the
+// Qovery stack, so it is sent only when the configuration declares it.
+func extractCronjobNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.KarpenterCronjobNodePoolOverride, error) {
+	cronjobOverride, declared, err := extractNodePoolOverride(obj, "cronjob_override")
+	if err != nil {
+		return nil, err
+	}
+	if !declared {
+		return nil, nil
+	}
+
+	qoveryCronjobOverride := qovery.KarpenterCronjobNodePoolOverride{}
+
+	spotEnabled, err := extractNodePoolSpotEnabled(cronjobOverride)
+	if err != nil {
+		return nil, err
+	}
+	if spotEnabled != nil {
+		SetCronjobNodePoolSpotEnabled(&qoveryCronjobOverride, *spotEnabled)
+	}
+
+	return &qoveryCronjobOverride, nil
 }
 
 func convertObjectToMap(obj attr.Value) (map[string]any, error) {
@@ -1375,58 +1522,72 @@ func toCpuArchitectureEnum(arch string) (qovery.CpuArchitectureEnum, error) {
 	}
 }
 
-func createKarpenterFeatureAttrTypes() map[string]attr.Type {
-	attrTypes := make(map[string]attr.Type)
-	attrTypes["spot_enabled"] = types.BoolType
-	attrTypes["disk_size_in_gib"] = types.Int64Type
-	attrTypes["default_service_architecture"] = types.StringType
-	attrTypes["qovery_node_pools"] = types.ObjectType{
-		AttrTypes: map[string]attr.Type{
-			"requirements": types.ListType{
-				ElemType: types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"key":      types.StringType,
-						"operator": types.StringType,
-						"values":   types.ListType{ElemType: types.StringType},
-					},
-				},
-			},
-			"stable_override": types.ObjectType{
-				AttrTypes: map[string]attr.Type{
-					"consolidation": types.ObjectType{
-						AttrTypes: map[string]attr.Type{
-							"enabled": types.BoolType,
-							"days": types.ListType{
-								ElemType: types.StringType,
-							},
-							"start_time": types.StringType,
-							"duration":   types.StringType,
-						},
-					},
-					"limits": types.ObjectType{
-						AttrTypes: map[string]attr.Type{
-							"enabled":                 types.BoolType,
-							"max_cpu_in_vcpu":         types.Int64Type,
-							"max_memory_in_gibibytes": types.Int64Type,
-						},
-					},
-				},
-			},
-			"default_override": types.ObjectType{
-				AttrTypes: map[string]attr.Type{
-					"limits": types.ObjectType{
-						AttrTypes: map[string]attr.Type{
-							"enabled":                 types.BoolType,
-							"max_cpu_in_vcpu":         types.Int64Type,
-							"max_memory_in_gibibytes": types.Int64Type,
-						},
-					},
-				},
-			},
-		},
-	}
+// The Karpenter node pool object shapes are used by the schema conversion, by the
+// TF -> API extraction and by the API -> TF injection. They live in one place each so
+// the three stay in sync.
 
-	return attrTypes
+func karpenterRequirementAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"key":      types.StringType,
+		"operator": types.StringType,
+		"values":   types.ListType{ElemType: types.StringType},
+	}
+}
+
+func karpenterConsolidationAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"enabled":    types.BoolType,
+		"days":       types.ListType{ElemType: types.StringType},
+		"start_time": types.StringType,
+		"duration":   types.StringType,
+	}
+}
+
+func karpenterLimitsAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"enabled":                 types.BoolType,
+		"max_cpu_in_vcpu":         types.Int64Type,
+		"max_memory_in_gibibytes": types.Int64Type,
+	}
+}
+
+func karpenterStableOverrideAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"spot_enabled":  types.BoolType,
+		"consolidation": types.ObjectType{AttrTypes: karpenterConsolidationAttrTypes()},
+		"limits":        types.ObjectType{AttrTypes: karpenterLimitsAttrTypes()},
+	}
+}
+
+func karpenterDefaultOverrideAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"spot_enabled": types.BoolType,
+		"limits":       types.ObjectType{AttrTypes: karpenterLimitsAttrTypes()},
+	}
+}
+
+func karpenterCronjobOverrideAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"spot_enabled": types.BoolType,
+	}
+}
+
+func karpenterNodePoolsAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"requirements":     types.ListType{ElemType: types.ObjectType{AttrTypes: karpenterRequirementAttrTypes()}},
+		"stable_override":  types.ObjectType{AttrTypes: karpenterStableOverrideAttrTypes()},
+		"default_override": types.ObjectType{AttrTypes: karpenterDefaultOverrideAttrTypes()},
+		"cronjob_override": types.ObjectType{AttrTypes: karpenterCronjobOverrideAttrTypes()},
+	}
+}
+
+func createKarpenterFeatureAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"spot_enabled":                 types.BoolType,
+		"disk_size_in_gib":             types.Int64Type,
+		"default_service_architecture": types.StringType,
+		"qovery_node_pools":            types.ObjectType{AttrTypes: karpenterNodePoolsAttrTypes()},
+	}
 }
 
 // createFeaturesAttrTypes returns the attribute types for the features object
@@ -1485,7 +1646,200 @@ func createGcpExistingVpcFeatureAttrTypes() map[string]attr.Type {
 	}
 }
 
-func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpenterParameters) map[string]attr.Value {
+// karpenterPlanView exposes the parts of the plan — or, on a refresh, of the prior state —
+// that the API -> Terraform conversion needs to stay plan-consistent. It is unavailable on an
+// import or a data source read, where there is no plan to be consistent with; the conversion
+// then falls back to what the API response actually contains.
+type karpenterPlanView struct {
+	available bool
+	karpenter basetypes.ObjectValue
+}
+
+func newKarpenterPlanView(planKarpenter types.Object) karpenterPlanView {
+	if planKarpenter.IsNull() || planKarpenter.IsUnknown() {
+		return karpenterPlanView{}
+	}
+	return karpenterPlanView{available: true, karpenter: planKarpenter}
+}
+
+// override returns the planned node pool override block and whether the plan declares it.
+func (p karpenterPlanView) override(name string) (basetypes.ObjectValue, bool) {
+	if !p.available {
+		return basetypes.ObjectValue{}, false
+	}
+	nodePools, ok := p.karpenter.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
+	if !ok || nodePools.IsNull() || nodePools.IsUnknown() {
+		return basetypes.ObjectValue{}, false
+	}
+	override, ok := nodePools.Attributes()[name].(basetypes.ObjectValue)
+	if !ok || override.IsNull() || override.IsUnknown() {
+		return basetypes.ObjectValue{}, false
+	}
+	return override, true
+}
+
+// declaresOverride reports whether the plan contains the named node pool override block.
+func (p karpenterPlanView) declaresOverride(name string) bool {
+	_, ok := p.override(name)
+	return ok
+}
+
+// overrideSpotEnabled returns the planned spot_enabled of a node pool override, or a null
+// bool when the plan does not know it.
+func (p karpenterPlanView) overrideSpotEnabled(name string) types.Bool {
+	override, ok := p.override(name)
+	if !ok {
+		return types.BoolNull()
+	}
+	return knownBool(override.Attributes()["spot_enabled"])
+}
+
+// globalSpotEnabled returns the planned deprecated global spot_enabled, or a null bool when
+// the plan does not know it.
+func (p karpenterPlanView) globalSpotEnabled() types.Bool {
+	if !p.available {
+		return types.BoolNull()
+	}
+	return knownBool(p.karpenter.Attributes()["spot_enabled"])
+}
+
+// karpenterNodePoolOverrideNames lists the node pool overrides that feed the derived global
+// spot flag, in a fixed order. GPU is deliberately absent: it is out of scope for per-pool spot.
+var karpenterNodePoolOverrideNames = []string{"stable_override", "default_override", "cronjob_override"}
+
+// nodePoolSpotEnabled captures what one node pool override contributes to the derived global spot
+// flag: whether the block exists at all — the cronjob pool only joins the OR while its block does
+// — and the value it carries, if any.
+type nodePoolSpotEnabled struct {
+	blockPresent bool
+	spotEnabled  types.Bool
+}
+
+func (n nodePoolSpotEnabled) equal(other nodePoolSpotEnabled) bool {
+	return n.blockPresent == other.blockPresent && n.spotEnabled.Equal(other.spotEnabled)
+}
+
+// karpenterNodePoolSpotSnapshot is the per node pool spot configuration of one karpenter object,
+// in karpenterNodePoolOverrideNames order so two objects can be compared.
+type karpenterNodePoolSpotSnapshot [3]nodePoolSpotEnabled
+
+func (s karpenterNodePoolSpotSnapshot) equal(other karpenterNodePoolSpotSnapshot) bool {
+	for i := range s {
+		if !s[i].equal(other[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+// nodePoolSpotEnabledSnapshot summarises what every node pool override contributes to the derived
+// global spot flag. It reports comparable=false when something it needs is unknown — an unresolved
+// expression in the configuration — because the derived value may then move and the caller must
+// assume it does.
+func (p karpenterPlanView) nodePoolSpotEnabledSnapshot() (snapshot karpenterNodePoolSpotSnapshot, comparable bool) {
+	if !p.available {
+		return snapshot, true
+	}
+
+	nodePools, ok := p.karpenter.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
+	if !ok || nodePools.IsNull() {
+		return snapshot, true
+	}
+	if nodePools.IsUnknown() {
+		return snapshot, false
+	}
+
+	for i, name := range karpenterNodePoolOverrideNames {
+		overrideAttr, exists := nodePools.Attributes()[name]
+		if !exists || overrideAttr == nil || overrideAttr.IsNull() {
+			continue
+		}
+		override, ok := overrideAttr.(basetypes.ObjectValue)
+		if !ok {
+			continue
+		}
+		if override.IsUnknown() {
+			return snapshot, false
+		}
+
+		snapshot[i].blockPresent = true
+
+		spotEnabled, exists := override.Attributes()["spot_enabled"]
+		if !exists || spotEnabled == nil {
+			continue
+		}
+		if spotEnabled.IsUnknown() {
+			return snapshot, false
+		}
+		snapshot[i].spotEnabled = knownBool(spotEnabled)
+	}
+
+	return snapshot, true
+}
+
+// hasAnyNodePoolSpotEnabled reports whether the plan carries at least one per node pool
+// spot_enabled, i.e. whether the API is going to derive the global flag rather than echo it.
+func (p karpenterPlanView) hasAnyNodePoolSpotEnabled() bool {
+	for _, name := range karpenterNodePoolOverrideNames {
+		if !p.overrideSpotEnabled(name).IsNull() {
+			return true
+		}
+	}
+	return false
+}
+
+// knownBool narrows an attribute to a bool value, returning a null bool for anything that is
+// not a known, non-null bool.
+func knownBool(v attr.Value) types.Bool {
+	b, ok := v.(basetypes.BoolValue)
+	if !ok || b.IsNull() || b.IsUnknown() {
+		return types.BoolNull()
+	}
+	return b
+}
+
+// resolveNodePoolSpotEnabled picks the value to store in state for a per node pool
+// spot_enabled. The API value wins; the planned value is the fallback for as long as the API
+// does not echo the flag back (QOV-2155), so that a configured value does not read back as
+// null and fail the apply.
+func resolveNodePoolSpotEnabled(apiValue *bool, planned types.Bool) types.Bool {
+	if apiValue != nil {
+		return types.BoolValue(*apiValue)
+	}
+	return planned
+}
+
+func karpenterConsolidationAttrValue(consolidation *qovery.KarpenterNodePoolConsolidation) basetypes.ObjectValue {
+	if consolidation == nil {
+		return types.ObjectNull(karpenterConsolidationAttrTypes())
+	}
+
+	days := make([]attr.Value, len(consolidation.Days))
+	for i, day := range consolidation.Days {
+		days[i] = types.StringValue(string(day))
+	}
+
+	return types.ObjectValueMust(karpenterConsolidationAttrTypes(), map[string]attr.Value{
+		"enabled":    types.BoolValue(consolidation.Enabled),
+		"days":       types.ListValueMust(types.StringType, days),
+		"start_time": types.StringValue(consolidation.StartTime),
+		"duration":   types.StringValue(consolidation.Duration),
+	})
+}
+
+func karpenterLimitsAttrValue(limits *qovery.KarpenterNodePoolLimits) basetypes.ObjectValue {
+	if limits == nil {
+		return types.ObjectNull(karpenterLimitsAttrTypes())
+	}
+
+	return types.ObjectValueMust(karpenterLimitsAttrTypes(), map[string]attr.Value{
+		"enabled":                 types.BoolValue(limits.Enabled),
+		"max_cpu_in_vcpu":         types.Int64Value(int64(limits.MaxCpuInVcpu)),
+		"max_memory_in_gibibytes": types.Int64Value(int64(limits.MaxMemoryInGibibytes)),
+	})
+}
+
+func karpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpenterParameters, planKarpenter types.Object, mode clusterReadMode) map[string]attr.Value {
 	attrVals := make(map[string]attr.Value)
 	var diags diag.Diagnostics
 
@@ -1493,35 +1847,46 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 		return attrVals
 	}
 
-	attrVals["spot_enabled"] = FromBoolPointer(&karpenterParameters.SpotEnabled)
+	plan := newKarpenterPlanView(planKarpenter)
+
+	// The global spot_enabled is derived by the API: it is recomputed on every write as the OR
+	// of the per node pool values. As soon as the configuration carries per node pool values the
+	// response therefore stops matching what Terraform planned, which would fail the apply with
+	// "provider produced inconsistent result after apply" — keep the planned value in that case.
+	// Without per node pool values the API value is authoritative and drift is reported as before.
+	//
+	// Reading the deprecated field is deliberate and cannot be avoided: features.karpenter
+	// .spot_enabled is still a supported (deprecated) attribute, so its value has to come from
+	// somewhere, and the generated getter carries the same deprecation marker. Drop the
+	// suppression when the attribute itself is removed from the schema.
+	//nolint:staticcheck // SA1019: the deprecated global flag is still surfaced for legacy configurations
+	attrVals["spot_enabled"] = types.BoolValue(karpenterParameters.SpotEnabled)
+	if plannedGlobalSpot := plan.globalSpotEnabled(); !plannedGlobalSpot.IsNull() && plan.hasAnyNodePoolSpotEnabled() {
+		attrVals["spot_enabled"] = plannedGlobalSpot
+	}
 	attrVals["disk_size_in_gib"] = FromInt32(karpenterParameters.DiskSizeInGib)
 	attrVals["default_service_architecture"] = FromString(string(karpenterParameters.DefaultServiceArchitecture))
 
 	// Inject requirements
-	requirementsAttrList := make([]attr.Value, len(karpenterParameters.QoveryNodePools.Requirements))
+	nodePools := karpenterParameters.QoveryNodePools
+	requirementsAttrList := make([]attr.Value, len(nodePools.Requirements))
 
-	for i, req := range karpenterParameters.QoveryNodePools.Requirements {
-		reqAttrVals := make(map[string]attr.Value)
-
-		reqAttrVals["key"] = types.StringValue(string(req.Key))
-		reqAttrVals["operator"] = types.StringValue(string(req.Operator))
-
+	for i, req := range nodePools.Requirements {
 		valuesAttrList := make([]attr.Value, len(req.Values))
 		for j, val := range req.Values {
 			valuesAttrList[j] = types.StringValue(val)
 		}
-		reqAttrVals["values"], diags = types.ListValue(types.StringType, valuesAttrList)
+		values, diags := types.ListValue(types.StringType, valuesAttrList)
 		if diags.HasError() {
 			return nil
 		}
 
-		reqObjectValue, diag := types.ObjectValue(map[string]attr.Type{
-			"key":      types.StringType,
-			"operator": types.StringType,
-			"values":   types.ListType{ElemType: types.StringType},
-		}, reqAttrVals)
-
-		if diag.HasError() {
+		reqObjectValue, diags := types.ObjectValue(karpenterRequirementAttrTypes(), map[string]attr.Value{
+			"key":      types.StringValue(string(req.Key)),
+			"operator": types.StringValue(string(req.Operator)),
+			"values":   values,
+		})
+		if diags.HasError() {
 			return nil
 		}
 
@@ -1529,221 +1894,90 @@ func createKarpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureK
 	}
 
 	qoveryNodePoolsAttrVals := make(map[string]attr.Value)
-	qoveryNodePoolsAttrVals["requirements"], diags = types.ListValue(types.ObjectType{
-		AttrTypes: map[string]attr.Type{
-			"key":      types.StringType,
-			"operator": types.StringType,
-			"values":   types.ListType{ElemType: types.StringType},
-		},
-	}, requirementsAttrList)
-
+	qoveryNodePoolsAttrVals["requirements"], diags = types.ListValue(types.ObjectType{AttrTypes: karpenterRequirementAttrTypes()}, requirementsAttrList)
 	if diags.HasError() {
 		return nil
 	}
 
-	// Inject stable_override
-	// Set non null stable_override only if the api returns a non null consolidation or a non null limits
-	if karpenterParameters.QoveryNodePools.StableOverride != nil &&
-		(karpenterParameters.QoveryNodePools.StableOverride.Consolidation != nil || karpenterParameters.QoveryNodePools.StableOverride.Limits != nil) {
-		var stableOverrideConsolidationAttr basetypes.ObjectValue
-		var stableOverrideLimitsAttr basetypes.ObjectValue
-		consolidation := karpenterParameters.QoveryNodePools.StableOverride.Consolidation
-		limits := karpenterParameters.QoveryNodePools.StableOverride.Limits
-
-		if consolidation != nil {
-			daysAttr := make([]attr.Value, len(consolidation.Days))
-			for i, day := range consolidation.Days {
-				daysAttr[i] = types.StringValue(string(day))
-			}
-			stableOverrideConsolidationAttr = types.ObjectValueMust(
-				map[string]attr.Type{
-					"enabled": types.BoolType,
-					"days": types.ListType{
-						ElemType: types.StringType,
-					},
-					"start_time": types.StringType,
-					"duration":   types.StringType,
-				},
-				map[string]attr.Value{
-					"enabled":    types.BoolValue(consolidation.Enabled),
-					"days":       types.ListValueMust(types.StringType, daysAttr),
-					"start_time": types.StringValue(consolidation.StartTime),
-					"duration":   types.StringValue(consolidation.Duration),
-				},
-			)
-		} else {
-			stableOverrideConsolidationAttr = types.ObjectNull(map[string]attr.Type{
-				"enabled": types.BoolType,
-				"days": types.ListType{
-					ElemType: types.StringType,
-				},
-				"start_time": types.StringType,
-				"duration":   types.StringType,
-			})
+	// Inject stable_override.
+	// A node pool override block is stored in state when the API returns actual content for it
+	// (consolidation or limits) or when the configuration declares the block. An override that
+	// the API returns only because every Karpenter cluster got its per node pool spot_enabled
+	// backfilled is dropped on purpose: injecting it would add a block to the state of every
+	// configuration that never declared one, i.e. permanent plan noise.
+	//
+	// The content rule holds on the no-plan path (import, data source) too, and deliberately so.
+	// The API returns a present-but-empty stable_override for Karpenter clusters, so injecting on
+	// presence alone made import store a 3-attribute object where the apply path stores null, and
+	// ImportStateVerify failed with `+ "…stable_override.%": "3"`. Once the spot backfill ships
+	// every cluster's overrides carry spot_enabled, so keying off presence — or off spot_enabled
+	// alone — would break the same way again and hand every legacy importer a spurious
+	// block-removal diff on their first plan. The trade-off is accepted: importing a cluster whose
+	// only divergence is a spot-only override loses that value in state until the configuration's
+	// first apply re-establishes it.
+	// The data source has no apply to stay symmetric with, so a spot-only override is real
+	// information there and is reported rather than dropped. A fully empty block still carries
+	// nothing and is dropped in both modes.
+	stableOverride := nodePools.StableOverride
+	stableHasContent := stableOverride != nil && (stableOverride.Consolidation != nil || stableOverride.Limits != nil)
+	if mode == clusterReadModeDataSource {
+		stableHasContent = stableHasContent || GetStableNodePoolSpotEnabled(stableOverride) != nil
+	}
+	if plan.declaresOverride("stable_override") || stableHasContent {
+		var spotEnabled *bool
+		var consolidation *qovery.KarpenterNodePoolConsolidation
+		var limits *qovery.KarpenterNodePoolLimits
+		if stableOverride != nil {
+			spotEnabled = GetStableNodePoolSpotEnabled(stableOverride)
+			consolidation = stableOverride.Consolidation
+			limits = stableOverride.Limits
 		}
 
-		if limits != nil {
-			stableOverrideLimitsAttr = types.ObjectValueMust(
-				map[string]attr.Type{
-					"enabled":                 types.BoolType,
-					"max_cpu_in_vcpu":         types.Int64Type,
-					"max_memory_in_gibibytes": types.Int64Type,
-				},
-				map[string]attr.Value{
-					"enabled":                 types.BoolValue(limits.Enabled),
-					"max_cpu_in_vcpu":         types.Int64Value(int64(limits.MaxCpuInVcpu)),
-					"max_memory_in_gibibytes": types.Int64Value(int64(limits.MaxMemoryInGibibytes)),
-				},
-			)
-		} else {
-			stableOverrideLimitsAttr = types.ObjectNull(map[string]attr.Type{
-				"enabled":                 types.BoolType,
-				"max_cpu_in_vcpu":         types.Int64Type,
-				"max_memory_in_gibibytes": types.Int64Type,
-			})
-		}
-
-		stableOverrideAttr := types.ObjectValueMust(
-			map[string]attr.Type{
-				"consolidation": types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"enabled": types.BoolType,
-						"days": types.ListType{
-							ElemType: types.StringType,
-						},
-						"start_time": types.StringType,
-						"duration":   types.StringType,
-					},
-				},
-				"limits": types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"enabled":                 types.BoolType,
-						"max_cpu_in_vcpu":         types.Int64Type,
-						"max_memory_in_gibibytes": types.Int64Type,
-					},
-				},
-			},
-			map[string]attr.Value{
-				"consolidation": stableOverrideConsolidationAttr,
-				"limits":        stableOverrideLimitsAttr,
-			},
-		)
-
-		qoveryNodePoolsAttrVals["stable_override"] = stableOverrideAttr
+		qoveryNodePoolsAttrVals["stable_override"] = types.ObjectValueMust(karpenterStableOverrideAttrTypes(), map[string]attr.Value{
+			"spot_enabled":  resolveNodePoolSpotEnabled(spotEnabled, plan.overrideSpotEnabled("stable_override")),
+			"consolidation": karpenterConsolidationAttrValue(consolidation),
+			"limits":        karpenterLimitsAttrValue(limits),
+		})
 	} else {
-		qoveryNodePoolsAttrVals["stable_override"] = types.ObjectNull(
-			map[string]attr.Type{
-				"consolidation": types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"enabled": types.BoolType,
-						"days": types.ListType{
-							ElemType: types.StringType,
-						},
-						"start_time": types.StringType,
-						"duration":   types.StringType,
-					},
-				},
-				"limits": types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"enabled":                 types.BoolType,
-						"max_cpu_in_vcpu":         types.Int64Type,
-						"max_memory_in_gibibytes": types.Int64Type,
-					},
-				},
-			},
-		)
+		qoveryNodePoolsAttrVals["stable_override"] = types.ObjectNull(karpenterStableOverrideAttrTypes())
 	}
 
-	// Inject default override
-	var defaultOverrideLimitsAttr basetypes.ObjectValue
+	// Inject default_override — same content rule as stable_override above.
+	defaultOverride := nodePools.DefaultOverride
+	defaultHasContent := defaultOverride != nil && defaultOverride.Limits != nil
+	if mode == clusterReadModeDataSource {
+		defaultHasContent = defaultHasContent || GetDefaultNodePoolSpotEnabled(defaultOverride) != nil
+	}
+	if plan.declaresOverride("default_override") || defaultHasContent {
+		var spotEnabled *bool
+		var limits *qovery.KarpenterNodePoolLimits
+		if defaultOverride != nil {
+			spotEnabled = GetDefaultNodePoolSpotEnabled(defaultOverride)
+			limits = defaultOverride.Limits
+		}
 
-	if karpenterParameters.QoveryNodePools.DefaultOverride != nil {
-		limits := karpenterParameters.QoveryNodePools.DefaultOverride.Limits
-		defaultOverrideLimitsAttr = types.ObjectValueMust(
-			map[string]attr.Type{
-				"enabled":                 types.BoolType,
-				"max_cpu_in_vcpu":         types.Int64Type,
-				"max_memory_in_gibibytes": types.Int64Type,
-			},
-			map[string]attr.Value{
-				"enabled":                 types.BoolValue(limits.Enabled),
-				"max_cpu_in_vcpu":         types.Int64Value(int64(limits.MaxCpuInVcpu)),
-				"max_memory_in_gibibytes": types.Int64Value(int64(limits.MaxMemoryInGibibytes)),
-			},
-		)
-
-		defaultOverrideAttr := types.ObjectValueMust(
-			map[string]attr.Type{
-				"limits": types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"enabled":                 types.BoolType,
-						"max_cpu_in_vcpu":         types.Int64Type,
-						"max_memory_in_gibibytes": types.Int64Type,
-					},
-				},
-			},
-			map[string]attr.Value{
-				"limits": defaultOverrideLimitsAttr,
-			},
-		)
-		qoveryNodePoolsAttrVals["default_override"] = defaultOverrideAttr
+		qoveryNodePoolsAttrVals["default_override"] = types.ObjectValueMust(karpenterDefaultOverrideAttrTypes(), map[string]attr.Value{
+			"spot_enabled": resolveNodePoolSpotEnabled(spotEnabled, plan.overrideSpotEnabled("default_override")),
+			"limits":       karpenterLimitsAttrValue(limits),
+		})
 	} else {
-		qoveryNodePoolsAttrVals["default_override"] = types.ObjectNull(
-			map[string]attr.Type{
-				"limits": types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"enabled":                 types.BoolType,
-						"max_cpu_in_vcpu":         types.Int64Type,
-						"max_memory_in_gibibytes": types.Int64Type,
-					},
-				},
-			},
-		)
+		qoveryNodePoolsAttrVals["default_override"] = types.ObjectNull(karpenterDefaultOverrideAttrTypes())
+	}
+
+	// Inject cronjob_override.
+	// The presence of this block is what enables the dedicated cronjob node pool, so it is
+	// injected only when the configuration declares it — never on the API response alone.
+	cronjobOverride := nodePools.CronjobOverride
+	if plan.declaresOverride("cronjob_override") || (!plan.available && cronjobOverride != nil) {
+		qoveryNodePoolsAttrVals["cronjob_override"] = types.ObjectValueMust(karpenterCronjobOverrideAttrTypes(), map[string]attr.Value{
+			"spot_enabled": resolveNodePoolSpotEnabled(GetCronjobNodePoolSpotEnabled(cronjobOverride), plan.overrideSpotEnabled("cronjob_override")),
+		})
+	} else {
+		qoveryNodePoolsAttrVals["cronjob_override"] = types.ObjectNull(karpenterCronjobOverrideAttrTypes())
 	}
 
 	// Inject qovery_node_pools
-	attrVals["qovery_node_pools"], diags = types.ObjectValue(map[string]attr.Type{
-		"requirements": types.ListType{ElemType: types.ObjectType{
-			AttrTypes: map[string]attr.Type{
-				"key":      types.StringType,
-				"operator": types.StringType,
-				"values":   types.ListType{ElemType: types.StringType},
-			},
-		}},
-		"stable_override": types.ObjectType{
-			AttrTypes: map[string]attr.Type{
-				"consolidation": types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"enabled": types.BoolType,
-						"days": types.ListType{
-							ElemType: types.StringType,
-						},
-						"start_time": types.StringType,
-						"duration":   types.StringType,
-					},
-				},
-				"limits": types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"enabled":                 types.BoolType,
-						"max_cpu_in_vcpu":         types.Int64Type,
-						"max_memory_in_gibibytes": types.Int64Type,
-					},
-				},
-			},
-		},
-		"default_override": types.ObjectType{
-			AttrTypes: map[string]attr.Type{
-				"limits": types.ObjectType{
-					AttrTypes: map[string]attr.Type{
-						"enabled":                 types.BoolType,
-						"max_cpu_in_vcpu":         types.Int64Type,
-						"max_memory_in_gibibytes": types.Int64Type,
-					},
-				},
-			},
-		},
-	}, qoveryNodePoolsAttrVals)
-
+	attrVals["qovery_node_pools"], diags = types.ObjectValue(karpenterNodePoolsAttrTypes(), qoveryNodePoolsAttrVals)
 	if diags.HasError() {
 		return nil
 	}

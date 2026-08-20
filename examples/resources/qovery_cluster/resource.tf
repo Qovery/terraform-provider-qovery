@@ -44,7 +44,9 @@ resource "qovery_cluster" "cluster" {
     vpc_subnet = "10.0.0.0/16"
     static_ip  = "true"
     karpenter = {
-      spot_enabled                 = true
+      # Deprecated: configure spot instances per node pool instead (see below).
+      # A node pool that sets its own spot_enabled ignores this value; a node pool
+      # that doesn't falls back to it.
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       # set the maximum instance size and familly you can to reduce allocation issue
@@ -66,6 +68,25 @@ resource "qovery_cluster" "cluster" {
             values   = ["ARM64", "AMD64"]
           }
         ]
+
+        # Spot instances are configured per node pool. Keep the stable node pool on
+        # on-demand instances, it runs the workloads that must not be interrupted.
+        stable_override = {
+          spot_enabled = false
+        }
+
+        # The default node pool runs your applications: spot instances save cost on
+        # fault-tolerant workloads.
+        default_override = {
+          spot_enabled = true
+        }
+
+        # Declaring this block enables the dedicated cronjob node pool: the engine
+        # creates the pool and pins cron jobs and lifecycle jobs to it. Remove the
+        # block to go back to running them on the default node pool.
+        cronjob_override = {
+          spot_enabled = true
+        }
       }
     }
   }

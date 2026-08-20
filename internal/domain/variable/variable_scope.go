@@ -10,14 +10,15 @@ import (
 type Scope string
 
 const (
-	ScopeApplication Scope = "APPLICATION"
-	ScopeBuiltIn     Scope = "BUILT_IN"
-	ScopeContainer   Scope = "CONTAINER"
-	ScopeEnvironment Scope = "ENVIRONMENT"
-	ScopeProject     Scope = "PROJECT"
-	ScopeJob         Scope = "JOB"
-	ScopeHelm        Scope = "HELM"
-	ScopeTerraform   Scope = "TERRAFORM"
+	ScopeApplication     Scope = "APPLICATION"
+	ScopeBuiltIn         Scope = "BUILT_IN"
+	ScopeContainer       Scope = "CONTAINER"
+	ScopeEnvironment     Scope = "ENVIRONMENT"
+	ScopeProject         Scope = "PROJECT"
+	ScopeJob             Scope = "JOB"
+	ScopeHelm            Scope = "HELM"
+	ScopeTerraform       Scope = "TERRAFORM"
+	ScopeAgenticWorkflow Scope = "AGENTIC_WORKFLOW"
 )
 
 // AllowedScopeValues contains all the valid values of a Scope.
@@ -30,6 +31,7 @@ var AllowedScopeValues = []Scope{
 	ScopeJob,
 	ScopeHelm,
 	ScopeTerraform,
+	ScopeAgenticWorkflow,
 }
 
 // String returns the string value of a Scope.

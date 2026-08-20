@@ -367,10 +367,13 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 						MarkdownDescription: "Karpenter configuration for AWS EKS clusters.",
 						Attributes: map[string]schema.Attribute{
 							"spot_enabled": schema.BoolAttribute{
-								Description:         "Enable spot instances",
-								MarkdownDescription: "Whether EC2 Spot instances are enabled.",
-								Required:            true,
-								Computed:            false,
+								Description:         "Enable spot instances (deprecated, use the per node pool `spot_enabled` instead)",
+								MarkdownDescription: "Whether EC2 Spot instances are enabled. Deprecated: this is a derived value, recomputed by the API as the logical OR of the per node pool `spot_enabled` values.",
+								// Optional is kept so configurations written when this attribute was Required
+								// (they had to set it to declare the karpenter block) stay schema-valid.
+								Optional:           true,
+								Computed:           true,
+								DeprecationMessage: "This is a derived value; read the per node pool spot_enabled on qovery_node_pools.{stable_override,default_override,cronjob_override} instead.",
 							},
 							"disk_size_in_gib": schema.Int64Attribute{
 								Description:         "Disk size in GiB for Karpenter-provisioned nodes.",
@@ -427,10 +430,15 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 									},
 									"stable_override": schema.SingleNestedAttribute{
 										Description:         "Defines some overridden options for Qovery stable node pool",
-										MarkdownDescription: "Override options for the stable node pool (consolidation and resource limits).",
+										MarkdownDescription: "Override options for the stable node pool (spot instances, consolidation and resource limits).",
 										Optional:            true,
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{
+											"spot_enabled": schema.BoolAttribute{
+												Description:         "Enable spot instances on the stable node pool",
+												MarkdownDescription: "Whether EC2 Spot instances are enabled on the stable node pool.",
+												Computed:            true,
+											},
 											"consolidation": schema.SingleNestedAttribute{
 												Description:         "Specifies the period to consolidate nodes (by default, no consolidation happens)",
 												MarkdownDescription: "Node consolidation schedule for the stable node pool.",
@@ -493,10 +501,15 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 									},
 									"default_override": schema.SingleNestedAttribute{
 										Description:         "Defines some overridden options for Qovery default node pool",
-										MarkdownDescription: "Override options for the default node pool (resource limits).",
+										MarkdownDescription: "Override options for the default node pool (spot instances and resource limits).",
 										Optional:            true,
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{
+											"spot_enabled": schema.BoolAttribute{
+												Description:         "Enable spot instances on the default node pool",
+												MarkdownDescription: "Whether EC2 Spot instances are enabled on the default node pool.",
+												Computed:            true,
+											},
 											"limits": schema.SingleNestedAttribute{
 												Description:         "Specifies the limits to apply on the default node pool",
 												MarkdownDescription: "Resource limits for the default node pool.",
@@ -521,6 +534,19 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 														Computed:            false,
 													},
 												},
+											},
+										},
+									},
+									"cronjob_override": schema.SingleNestedAttribute{
+										Description:         "Defines some overridden options for the Qovery cronjob node pool. Its presence means the dedicated cronjob node pool is enabled.",
+										MarkdownDescription: "Override options for the cronjob node pool. Its presence means the dedicated cronjob node pool is enabled: the engine creates the pool and pins cron jobs and lifecycle jobs to it.",
+										Optional:            true,
+										Computed:            false,
+										Attributes: map[string]schema.Attribute{
+											"spot_enabled": schema.BoolAttribute{
+												Description:         "Enable spot instances on the cronjob node pool",
+												MarkdownDescription: "Whether EC2 Spot instances are enabled on the cronjob node pool.",
+												Computed:            true,
 											},
 										},
 									},
@@ -873,7 +899,7 @@ func (d clusterDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 		return
 	}
 
-	state := convertResponseToCluster(ctx, cluster, data)
+	state := convertResponseToClusterForDataSource(ctx, cluster, data)
 	tflog.Trace(ctx, "read cluster", map[string]any{"cluster_id": state.Id.ValueString()})
 
 	// Set state

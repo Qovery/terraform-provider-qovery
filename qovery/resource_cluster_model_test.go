@@ -17,6 +17,18 @@ import (
 	"github.com/qovery/terraform-provider-qovery/client"
 )
 
+// noStateFeatures stands in for "no prior state" at the toQoveryClusterFeatures call sites that
+// do not exercise the state fallback of the deprecated global karpenter spot_enabled.
+func noStateFeatures() types.Object {
+	return types.ObjectNull(createFeaturesAttrTypes())
+}
+
+// fromQoveryClusterFeaturesNoPlan converts an API features payload without any plan to stay
+// consistent with, i.e. the way a data source read converts it.
+func fromQoveryClusterFeaturesNoPlan(clusterFeatures []qovery.ClusterFeatureResponse) types.Object {
+	return clusterFeaturesFromResponse(clusterFeatures, types.ObjectNull(createFeaturesAttrTypes()), clusterReadModeResource)
+}
+
 func makeTestClusterInfo(credID string) *qovery.ClusterCloudProviderInfo {
 	id := credID
 	return &qovery.ClusterCloudProviderInfo{
@@ -461,7 +473,7 @@ func TestToQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 				tt.ipRangeServicesName, tt.ipRangePodsName, tt.additionalIpRangePodsNames, tt.privateNodes,
 			)
 
-			features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
+			features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP", noStateFeatures())
 			require.NoError(t, err)
 
 			// Find the EXISTING_VPC feature (GCP VPC uses the shared ID)
@@ -569,7 +581,7 @@ func TestFromQoveryClusterFeatures_GcpExistingVpc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			result := fromQoveryClusterFeatures(tt.buildResponse())
+			result := fromQoveryClusterFeaturesNoPlan(tt.buildResponse())
 			require.False(t, result.IsNull(), "features object should not be null")
 
 			gcpVpcAttr, ok := result.Attributes()[featureKeyGcpExistingVpc]
@@ -613,7 +625,7 @@ func TestToQoveryClusterFeatures_GcpIgnoresDefaultVpcSubnet(t *testing.T) {
 		},
 	)
 
-	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
+	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP", noStateFeatures())
 	require.NoError(t, err)
 
 	for _, feature := range features {
@@ -637,7 +649,7 @@ func TestToQoveryClusterFeatures_GcpRejectsCustomVpcSubnet(t *testing.T) {
 		},
 	)
 
-	_, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
+	_, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP", noStateFeatures())
 	require.ErrorContains(t, err, "features.vpc_subnet is not supported for GCP clusters")
 }
 
@@ -657,7 +669,7 @@ func TestToQoveryClusterFeatures_NonGcpAllowsCustomVpcSubnet(t *testing.T) {
 		},
 	)
 
-	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "SCW")
+	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "SCW", noStateFeatures())
 	require.NoError(t, err)
 
 	found := false
@@ -691,7 +703,7 @@ func TestToQoveryClusterFeatures_GcpNatGateways(t *testing.T) {
 		},
 	)
 
-	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
+	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP", noStateFeatures())
 	require.NoError(t, err)
 
 	var staticIPFeature *qovery.ClusterRequestFeaturesInner
@@ -759,7 +771,7 @@ func TestToQoveryClusterFeatures_NatGatewaysRequiresGCP(t *testing.T) {
 		},
 	)
 
-	_, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "AWS")
+	_, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "AWS", noStateFeatures())
 	require.ErrorContains(t, err, "features.nat_gateways with static_ips_enabled or static_ips_count > 1 requires a GCP cluster with features.static_ip enabled")
 }
 
@@ -791,7 +803,7 @@ func TestToQoveryClusterFeatures_GcpStaticIPWithDefaultBlock_EmitsDisabledShape(
 		},
 	)
 
-	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
+	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP", noStateFeatures())
 	require.NoError(t, err)
 
 	var natGatewayFeature *qovery.ClusterRequestFeaturesInner
@@ -865,7 +877,7 @@ func TestToQoveryClusterFeatures_NonGcpIgnoresDefaultNatGateways(t *testing.T) {
 				},
 			)
 
-			features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", tt.provider)
+			features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", tt.provider, noStateFeatures())
 			require.NoError(t, err, "default nat_gateways block with count=1 must not error on %s", tt.provider)
 
 			for _, f := range features {
@@ -886,7 +898,7 @@ func TestFromQoveryClusterFeatures_GcpNatGateways(t *testing.T) {
 	natGatewayParameters := qovery.ClusterFeatureNatGatewayParameters{}
 	natGatewayParameters.SetNatGatewayType(natGatewayType)
 
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &featureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -926,7 +938,7 @@ func TestFromQoveryClusterFeatures_NoVpcSubnetFeature_DefaultsToDefaultCidr(t *t
 	t.Parallel()
 
 	staticIPFeatureID := featureIdStaticIP
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &staticIPFeatureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -955,7 +967,7 @@ func TestFromQoveryClusterFeatures_NoNatGatewayFeature_DefaultsToDisabled(t *tes
 	t.Parallel()
 
 	staticIPFeatureID := featureIdStaticIP
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &staticIPFeatureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -991,7 +1003,7 @@ func TestFromQoveryClusterFeatures_GcpNatGatewaysDisabled(t *testing.T) {
 	natGatewayParameters := qovery.ClusterFeatureNatGatewayParameters{}
 	natGatewayParameters.SetNatGatewayType(natGatewayType)
 
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &featureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -1029,7 +1041,7 @@ func TestFromQoveryClusterFeatures_StaticIPFeatureOverridesNatGatewayEnabledFlag
 	natGatewayParameters := qovery.ClusterFeatureNatGatewayParameters{}
 	natGatewayParameters.SetNatGatewayType(natGatewayType)
 
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &staticIPFeatureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -1093,7 +1105,7 @@ func TestToQoveryClusterFeatures_GcpEnabledFalse_StillEmitsDisabledShape(t *test
 		},
 	)
 
-	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
+	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP", noStateFeatures())
 	require.NoError(t, err)
 
 	var natGatewayFeature *qovery.ClusterRequestFeaturesInner
@@ -1145,7 +1157,7 @@ func TestNatGateways_RoundTrip_VerbatimWhenStaticIPEnabled(t *testing.T) {
 	natGatewayParameters := qovery.ClusterFeatureNatGatewayParameters{}
 	natGatewayParameters.SetNatGatewayType(natGatewayType)
 
-	readResult := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	readResult := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &featureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -1169,7 +1181,7 @@ func TestNatGateways_RoundTrip_VerbatimWhenStaticIPEnabled(t *testing.T) {
 	assert.Equal(t, int64(3), natGatewaysAttr.Attributes()["static_ips_count"].(types.Int64).ValueInt64())
 
 	// Feed the Read result back into toQoveryClusterFeatures — round-trip.
-	features, err := toQoveryClusterFeatures(readResult, "MANAGED", "GCP")
+	features, err := toQoveryClusterFeatures(readResult, "MANAGED", "GCP", noStateFeatures())
 	require.NoError(t, err)
 
 	var staticIPFeature *qovery.ClusterRequestFeaturesInner
@@ -2303,7 +2315,7 @@ func TestToQoveryClusterFeatures_GkeKmsKey_GcpEmitsFeature(t *testing.T) {
 		},
 	)
 
-	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
+	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP", noStateFeatures())
 	require.NoError(t, err)
 
 	var found *string
@@ -2336,7 +2348,7 @@ func TestToQoveryClusterFeatures_GkeKmsKey_NullSkipsFeature(t *testing.T) {
 		},
 	)
 
-	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP")
+	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "GCP", noStateFeatures())
 	require.NoError(t, err)
 
 	for _, f := range features {
@@ -2351,7 +2363,7 @@ func TestFromQoveryClusterFeatures_GkeKmsKey_PopulatesAttribute(t *testing.T) {
 
 	kmsKey := "projects/my-project/locations/global/keyRings/ring/cryptoKeys/key"
 	featureID := featureIdGkeKmsKey
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &featureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(
@@ -2377,7 +2389,7 @@ func TestFromQoveryClusterFeatures_GkeKmsKey_AbsentDefaultsToNull(t *testing.T) 
 	t.Parallel()
 
 	staticIPFeatureID := featureIdStaticIP
-	result := fromQoveryClusterFeatures([]qovery.ClusterFeatureResponse{
+	result := fromQoveryClusterFeaturesNoPlan([]qovery.ClusterFeatureResponse{
 		{
 			Id: &staticIPFeatureID,
 			ValueObject: *qovery.NewNullableClusterFeatureResponseValueObject(

@@ -28,7 +28,12 @@ func preservesState(m planmodifier.Describer) bool {
 	switch m.(type) {
 	case useStateUnlessNameChangesModifier,
 		useStateUnlessPortsChangeModifier,
-		smartAllowApiOverrideModifier:
+		smartAllowApiOverrideModifier,
+		// Preserves state for every configuration that does not opt into per node pool
+		// spot_enabled — i.e. exactly the ones this test protects from flicker. It plans unknown
+		// only when the configuration carries per node pool values, where the attribute is a value
+		// the API derives and re-reading it is the point (see the modifier's own comment).
+		deprecatedGlobalSpotEnabledModifier:
 		return true
 	}
 	return m.Description(context.Background()) == useStateForUnknownDescription
