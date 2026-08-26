@@ -73,10 +73,14 @@ func wait(ctx context.Context, f waitFunc, timeout *time.Duration) error {
 	}
 
 	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
 	timeoutTicker := time.NewTicker(*timeout)
+	defer timeoutTicker.Stop()
 
 	for {
 		select {
+		case <-ctx.Done():
+			return ctx.Err()
 		case <-timeoutTicker.C:
 			return nil
 		case <-ticker.C:
