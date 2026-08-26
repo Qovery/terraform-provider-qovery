@@ -42,6 +42,12 @@ func (e APIError) Error() string {
 	return e.Detail()
 }
 
+// Unwrap exposes the underlying error so errors.Is/errors.As see through APIError
+// (e.g. errors.Is(err, context.Canceled) after an interrupted wait).
+func (e APIError) Unwrap() error {
+	return e.err
+}
+
 func (e APIError) Summary() string {
 	return fmt.Sprintf("Error on %s %s", e.resource, e.action)
 }

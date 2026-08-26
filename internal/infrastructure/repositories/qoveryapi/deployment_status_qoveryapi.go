@@ -38,7 +38,12 @@ func (d deploymentStatusQoveryAPI) WaitForTerminatedState(ctx context.Context, e
 
 func (d deploymentStatusQoveryAPI) WaitForExpectedDesiredState(ctx context.Context, newDeployment newdeployment.Deployment) error {
 	checkEnvironmentStatus := d.newEnvironmentWaitForExpectedDesiredState(*newDeployment.EnvironmentID, newDeployment.DesiredState)
-	time.Sleep(5 * time.Second) // wait for the deployment request to be processed (prevent from race condition)
+	// wait for the deployment request to be processed (prevent from race condition)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(5 * time.Second):
+	}
 	err := waitWithDefaultTimeout(ctx, checkEnvironmentStatus)
 	if err != nil {
 		return err
@@ -49,6 +54,10 @@ func (d deploymentStatusQoveryAPI) WaitForExpectedDesiredState(ctx context.Conte
 
 func (d deploymentStatusQoveryAPI) CheckEnvironmentExists(ctx context.Context, environmentID uuid.UUID) (error, int) {
 	_, response, err := d.client.EnvironmentMainCallsAPI.GetEnvironment(ctx, environmentID.String()).Execute()
+	// The generated client returns a nil response on transport errors (context canceled, network failure)
+	if response == nil {
+		return err, 0
+	}
 	if err != nil || response.StatusCode >= 400 {
 		return err, response.StatusCode
 	}
@@ -123,7 +132,8 @@ func (d deploymentStatusQoveryAPI) newEnvironmentWaitForExpectedDesiredState(env
 	return func(ctx context.Context) (bool, error) {
 		status, response, err := d.client.EnvironmentMainCallsAPI.GetEnvironmentStatus(ctx, environmentID.String()).Execute()
 		if err != nil {
-			if response.StatusCode == 404 && desiredState == newdeployment.DELETED {
+			// response is nil on transport errors (context canceled, network failure)
+			if response != nil && response.StatusCode == 404 && desiredState == newdeployment.DELETED {
 				return true, nil
 			}
 			return false, err

@@ -49,10 +49,14 @@ func wait(ctx context.Context, f waitFunc) *apierrors.APIError {
 	}
 
 	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
 	timeoutTicker := time.NewTicker(defaultWaitTimeout)
+	defer timeoutTicker.Stop()
 
 	for {
 		select {
+		case <-ctx.Done():
+			return apierrors.NewContextError(ctx.Err())
 		case <-timeoutTicker.C:
 			return apierrors.NewTimeoutError(defaultWaitTimeout)
 		case <-ticker.C:

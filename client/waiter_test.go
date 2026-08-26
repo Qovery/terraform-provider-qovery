@@ -411,3 +411,46 @@ func TestApplyJitter_SmallBackoff(t *testing.T) {
 	assert.GreaterOrEqual(t, jittered, backoff/2)
 	assert.LessOrEqual(t, jittered, backoff)
 }
+
+func TestWait_ReturnsImmediatelyWhenOk(t *testing.T) {
+	t.Parallel()
+	apiErr := wait(context.Background(), func(ctx context.Context) (bool, *apierrors.APIError) {
+		return true, nil
+	})
+	assert.Nil(t, apiErr)
+}
+
+func TestWait_ReturnsPromptlyOnContextCancellation(t *testing.T) {
+	t.Parallel()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	firstCallDone := make(chan struct{})
+	done := make(chan *apierrors.APIError, 1)
+	go func() {
+		first := true
+		done <- wait(ctx, func(ctx context.Context) (bool, *apierrors.APIError) {
+			if first {
+				first = false
+				close(firstCallDone)
+			}
+			return false, nil // never satisfied: forces the loop to rely on the ticker
+		})
+	}()
+
+	// wait() always calls f synchronously once before entering the poll loop;
+	// cancel right after that so we're exercising ctx.Done() in the select, not
+	// racing the goroutine's startup.
+	<-firstCallDone
+	cancel()
+
+	select {
+	case apiErr := <-done:
+		if assert.NotNil(t, apiErr, "wait() should return an error on cancellation, not nil") {
+			assert.ErrorIs(t, apiErr, context.Canceled, "cancellation identity must survive APIError wrapping")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("wait() did not return after context cancellation; it is blocking on the poll ticker instead " +
+			"of observing ctx.Done(), which leaves terraform apply hanging (and the state lock held) " +
+			"when an application/cluster/database wait is interrupted")
+	}
+}

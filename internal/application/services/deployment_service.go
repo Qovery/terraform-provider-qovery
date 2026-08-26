@@ -181,7 +181,11 @@ func (c deploymentService) waitDesiredStateFunc(resourceID string, desiredState 
 
 			isExpectedState := currentStatus.State == desiredState
 			if !isExpectedState && currentStatus.IsFinalState() {
-				time.Sleep(5 * time.Second)
+				select {
+				case <-ctx.Done():
+					return false, ctx.Err()
+				case <-time.After(5 * time.Second):
+				}
 				continue
 			}
 
@@ -233,10 +237,14 @@ func wait(ctx context.Context, f waitFunc) error {
 	}
 
 	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
 	timeoutTicker := time.NewTicker(*timeout)
+	defer timeoutTicker.Stop()
 
 	for {
 		select {
+		case <-ctx.Done():
+			return ctx.Err()
 		case <-timeoutTicker.C:
 			return nil
 		case <-ticker.C:
