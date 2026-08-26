@@ -49,6 +49,10 @@ func (e APIError) Unwrap() error {
 }
 
 func (e APIError) Summary() string {
+	// Errors without a resource (timeout, context cancellation) read better without the placeholder
+	if e.resource == "" {
+		return fmt.Sprintf("Error on %s", e.action)
+	}
 	return fmt.Sprintf("Error on %s %s", e.resource, e.action)
 }
 
@@ -63,6 +67,9 @@ func (e APIError) Detail() string {
 		}
 	} else {
 		extra = fmt.Sprintf("unexpected status code: %d", e.res.StatusCode)
+	}
+	if e.resource == "" {
+		return fmt.Sprintf("Could not %s, %s", e.action, extra)
 	}
 	return fmt.Sprintf("Could not %s %s '%s', %s", e.action, e.resource, e.resourceID, extra)
 }

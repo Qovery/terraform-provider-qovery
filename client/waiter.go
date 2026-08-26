@@ -98,7 +98,7 @@ func retryOnTransientError(ctx context.Context, f waitFunc) (bool, *apierrors.AP
 
 			select {
 			case <-ctx.Done():
-				return false, lastErr
+				return false, apierrors.NewContextError(ctx.Err())
 			case <-time.After(backoffWithJitter):
 				// Calculate next backoff with exponential growth
 				backoff = min(backoff*backoffMultiplier, maxBackoff)

@@ -145,6 +145,8 @@ func TestRetryOnTransientError_ContextCancellation(t *testing.T) {
 	assert.NotNil(t, err)
 	// Should stop retrying when context is cancelled
 	assert.LessOrEqual(t, callCount, maxRetryAttempts)
+	// Cancellation identity must be reported, not the transient error being retried
+	assert.ErrorIs(t, err, context.Canceled)
 }
 
 // TestRetryOnTransientError_ExponentialBackoff verifies exponential backoff timing
