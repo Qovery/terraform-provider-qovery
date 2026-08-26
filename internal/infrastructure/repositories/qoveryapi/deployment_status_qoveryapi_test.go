@@ -27,17 +27,23 @@ func TestWait(t *testing.T) {
 		timeout := time.Hour // deliberately long, to prove cancellation isn't waiting for this
 		ctx, cancel := context.WithCancel(context.Background())
 
-		calls := 0
+		firstCallDone := make(chan struct{})
 		done := make(chan error, 1)
 		go func() {
+			first := true
 			done <- wait(ctx, func(ctx context.Context) (bool, error) {
-				calls++
+				if first {
+					first = false
+					close(firstCallDone)
+				}
 				return false, nil // never satisfied: forces the loop to rely on the ticker
 			}, &timeout)
 		}()
 
-		// Let the first synchronous call happen, then cancel.
-		time.Sleep(50 * time.Millisecond)
+		// wait() always calls f synchronously once before entering the poll loop;
+		// cancel right after that so we're exercising ctx.Done() in the select, not
+		// racing the goroutine's startup.
+		<-firstCallDone
 		cancel()
 
 		select {
