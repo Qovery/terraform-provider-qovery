@@ -82,6 +82,16 @@ func NewUnexpectedClusterStateError(orgID, clusterID string, expected, actual an
 	}
 }
 
+// NewContextError creates an error for when the operation's context is canceled or its deadline is exceeded
+func NewContextError(ctxErr error) *APIError {
+	return &APIError{
+		err:      ctxErr,
+		action:   APIActionRead,
+		resource: "",
+		res:      nil,
+	}
+}
+
 // NewTimeoutError creates an error for when an operation times out
 func NewTimeoutError(timeout time.Duration) *APIError {
 	err := fmt.Errorf("operation did not complete within %s", timeout)

@@ -49,10 +49,14 @@ func wait(ctx context.Context, f waitFunc) *apierrors.APIError {
 	}
 
 	ticker := time.NewTicker(10 * time.Second)
+	defer ticker.Stop()
 	timeoutTicker := time.NewTicker(defaultWaitTimeout)
+	defer timeoutTicker.Stop()
 
 	for {
 		select {
+		case <-ctx.Done():
+			return apierrors.NewContextError(ctx.Err())
 		case <-timeoutTicker.C:
 			return apierrors.NewTimeoutError(defaultWaitTimeout)
 		case <-ticker.C:
@@ -94,7 +98,7 @@ func retryOnTransientError(ctx context.Context, f waitFunc) (bool, *apierrors.AP
 
 			select {
 			case <-ctx.Done():
-				return false, lastErr
+				return false, apierrors.NewContextError(ctx.Err())
 			case <-time.After(backoffWithJitter):
 				// Calculate next backoff with exponential growth
 				backoff = min(backoff*backoffMultiplier, maxBackoff)

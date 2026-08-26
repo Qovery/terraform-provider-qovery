@@ -4,6 +4,7 @@ package apierrors
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
@@ -12,6 +13,15 @@ import (
 
 	"github.com/stretchr/testify/assert"
 )
+
+func TestNewContextError(t *testing.T) {
+	t.Parallel()
+
+	apiErr := NewContextError(context.Canceled)
+	assert.ErrorIs(t, apiErr, context.Canceled)
+	assert.Equal(t, "Could not read, unexpected error: context canceled", apiErr.Error())
+	assert.Equal(t, "Error on read", apiErr.Summary())
+}
 
 // TestAPIError_BufferedBody verifies that response body is buffered and can be read multiple times
 func TestAPIError_BufferedBody(t *testing.T) {
