@@ -556,3 +556,201 @@ func TestUpsertRepositoryRequest_Validate(t *testing.T) {
 func stringPtr(s string) *string {
 	return &s
 }
+
+func TestVariable_Validate(t *testing.T) {
+	t.Parallel()
+
+	tests := []struct {
+		name        string
+		variable    terraformservice.Variable
+		expectedErr string
+	}{
+		{
+			name:     "valid variable",
+			variable: terraformservice.Variable{Key: "record_name", Value: "example.com"},
+		},
+		{
+			name:        "missing key",
+			variable:    terraformservice.Variable{Key: "", Value: "example.com"},
+			expectedErr: "variable key is required",
+		},
+		{
+			name:        "missing value names the offending key",
+			variable:    terraformservice.Variable{Key: "record_name", Value: ""},
+			expectedErr: `variable "record_name": value is required`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := tt.variable.Validate()
+			if tt.expectedErr == "" {
+				assert.NoError(t, err)
+				return
+			}
+			assert.EqualError(t, err, tt.expectedErr)
+		})
+	}
+}
+
+func TestTerraformService_Validate_VariableErrorsIdentifyTheVariable(t *testing.T) {
+	t.Parallel()
+
+	newService := func(variables []terraformservice.Variable) terraformservice.TerraformService {
+		return terraformservice.TerraformService{
+			ID:            uuid.New(),
+			EnvironmentID: uuid.New(),
+			Name:          "test-service",
+			GitRepository: terraformservice.GitRepository{
+				URL:      "https://github.com/org/repo",
+				Branch:   "main",
+				RootPath: "/",
+			},
+			Variables:     variables,
+			Backend:       terraformservice.Backend{Kubernetes: &terraformservice.KubernetesBackend{}},
+			Engine:        terraformservice.EngineTerraform,
+			EngineVersion: terraformservice.EngineVersion{ExplicitVersion: "1.5.7"},
+			JobResources: terraformservice.JobResources{
+				CPUMilli:   1000,
+				RAMMiB:     1024,
+				GPU:        0,
+				StorageGiB: 20,
+			},
+		}
+	}
+
+	tests := []struct {
+		name        string
+		variables   []terraformservice.Variable
+		expectedErr string
+	}{
+		{
+			name: "empty value reports the key, not just the position",
+			variables: []terraformservice.Variable{
+				{Key: "domain", Value: "example.com"},
+				{Key: "record_name", Value: ""},
+			},
+			expectedErr: `invalid variable param: variable "record_name": value is required`,
+		},
+		{
+			name: "empty key falls back to the index",
+			variables: []terraformservice.Variable{
+				{Key: "domain", Value: "example.com"},
+				{Key: "", Value: "some-value"},
+			},
+			expectedErr: "invalid variable param: variable at index 1: variable key is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.EqualError(t, newService(tt.variables).Validate(), tt.expectedErr)
+		})
+	}
+}
+
+func TestUpsertRepositoryRequest_Validate_VariableErrorsIdentifyTheVariable(t *testing.T) {
+	t.Parallel()
+
+	newRequest := func(variables []terraformservice.Variable) terraformservice.UpsertRepositoryRequest {
+		return terraformservice.UpsertRepositoryRequest{
+			Name: "test-service",
+			GitRepository: terraformservice.GitRepository{
+				URL:      "https://github.com/org/repo",
+				Branch:   "main",
+				RootPath: "/",
+			},
+			Variables:     variables,
+			Backend:       terraformservice.Backend{Kubernetes: &terraformservice.KubernetesBackend{}},
+			Engine:        terraformservice.EngineTerraform,
+			EngineVersion: terraformservice.EngineVersion{ExplicitVersion: "1.5.7"},
+			JobResources: terraformservice.JobResources{
+				CPUMilli:   1000,
+				RAMMiB:     1024,
+				GPU:        0,
+				StorageGiB: 20,
+			},
+		}
+	}
+
+	tests := []struct {
+		name        string
+		variables   []terraformservice.Variable
+		expectedErr string
+	}{
+		{
+			name: "empty value reports the key",
+			variables: []terraformservice.Variable{
+				{Key: "domain", Value: "example.com"},
+				{Key: "record_name", Value: ""},
+			},
+			expectedErr: `invalid terraform service upsert request: variable "record_name": value is required`,
+		},
+		{
+			name: "empty key falls back to the index",
+			variables: []terraformservice.Variable{
+				{Key: "", Value: "some-value"},
+			},
+			expectedErr: "invalid terraform service upsert request: variable at index 0: variable key is required",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.EqualError(t, newRequest(tt.variables).Validate(), tt.expectedErr)
+		})
+	}
+}
+
+func TestTerraformService_Validate_TfVarPathErrorsIdentifyThePath(t *testing.T) {
+	t.Parallel()
+
+	newService := func(rootPath string, tfVarFiles []string) terraformservice.TerraformService {
+		return terraformservice.TerraformService{
+			ID:            uuid.New(),
+			EnvironmentID: uuid.New(),
+			Name:          "test-service",
+			GitRepository: terraformservice.GitRepository{
+				URL:      "https://github.com/org/repo",
+				Branch:   "main",
+				RootPath: rootPath,
+			},
+			TfVarFiles:    tfVarFiles,
+			Backend:       terraformservice.Backend{Kubernetes: &terraformservice.KubernetesBackend{}},
+			Engine:        terraformservice.EngineTerraform,
+			EngineVersion: terraformservice.EngineVersion{ExplicitVersion: "1.5.7"},
+			JobResources: terraformservice.JobResources{
+				CPUMilli:   1000,
+				RAMMiB:     1024,
+				GPU:        0,
+				StorageGiB: 20,
+			},
+		}
+	}
+
+	tests := []struct {
+		name        string
+		rootPath    string
+		tfVarFiles  []string
+		expectedErr string
+	}{
+		{
+			name:        "path outside root_path",
+			rootPath:    "/terraform",
+			tfVarFiles:  []string{"/terraform/prod.tfvars", "/invalid/prod.tfvars"},
+			expectedErr: `invalid tfvar path: must start with root_path: tfvar path "/invalid/prod.tfvars" must start with root_path "/terraform"`,
+		},
+		{
+			name:        "directory traversal reports the offending path",
+			rootPath:    "/",
+			tfVarFiles:  []string{"/prod.tfvars", "/../secrets.tfvars"},
+			expectedErr: `invalid tfvar path: must start with root_path: tfvar path "/../secrets.tfvars" cannot contain directory traversal sequences (.., ~)`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.EqualError(t, newService(tt.rootPath, tt.tfVarFiles).Validate(), tt.expectedErr)
+		})
+	}
+}

@@ -200,8 +200,23 @@ func (v Variable) Validate() error {
 		return errors.New("variable key is required")
 	}
 	if v.Value == "" {
-		return errors.New("variable value is required")
+		return fmt.Errorf("variable %q: value is required", v.Key)
 	}
+	return nil
+}
+
+// validateVariables validates every variable, identifying the offending one in the error.
+// The index is a fallback for the one case Variable.Validate cannot name: an empty key.
+func validateVariables(variables []Variable) error {
+	for i, v := range variables {
+		if err := v.Validate(); err != nil {
+			if v.Key == "" {
+				return errors.Wrapf(err, "variable at index %d", i)
+			}
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -334,17 +349,15 @@ func (t TerraformService) Validate() error {
 		// Check for directory traversal
 		if strings.Contains(tfVarPath, "..") || strings.Contains(tfVarPath, "~") {
 			return errors.Wrap(
-				errors.New("tfvar path cannot contain directory traversal sequences (.., ~)"),
+				fmt.Errorf("tfvar path %q cannot contain directory traversal sequences (.., ~)", tfVarPath),
 				ErrInvalidTerraformServiceTfVarPathParam.Error(),
 			)
 		}
 	}
 
 	// Validate variables
-	for _, variable := range t.Variables {
-		if err := variable.Validate(); err != nil {
-			return errors.Wrap(err, ErrInvalidTerraformServiceVariableParam.Error())
-		}
+	if err := validateVariables(t.Variables); err != nil {
+		return errors.Wrap(err, ErrInvalidTerraformServiceVariableParam.Error())
 	}
 
 	// Validate backend

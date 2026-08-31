@@ -81,10 +81,8 @@ func (r UpsertRepositoryRequest) Validate() error {
 	}
 
 	// Validate variables
-	for _, variable := range r.Variables {
-		if err := variable.Validate(); err != nil {
-			return errors.Wrap(err, ErrInvalidTerraformServiceUpsertRequest.Error())
-		}
+	if err := validateVariables(r.Variables); err != nil {
+		return errors.Wrap(err, ErrInvalidTerraformServiceUpsertRequest.Error())
 	}
 
 	// Validate timeout
