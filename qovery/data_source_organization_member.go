@@ -99,7 +99,7 @@ func (d organizationMemberDataSource) Read(ctx context.Context, req datasource.R
 		return
 	}
 
-	state := convertDomainMemberToOrganizationMember(*domainMember, data.Email)
+	state := convertDomainMemberToOrganizationMember(*domainMember, data.Email, data.RoleId)
 	tflog.Trace(ctx, "read organization member", map[string]any{"organization_member_id": state.ID.ValueString()})
 
 	// Set state
