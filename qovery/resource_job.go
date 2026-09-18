@@ -741,6 +741,13 @@ func (r jobResource) Create(ctx context.Context, req resource.CreateRequest, res
 	cont, err := r.jobService.Create(ctx, plan.EnvironmentID.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on job create", err.Error())
+		if cont == nil {
+			return
+		}
+		// The job was created in Qovery and only a follow-up call failed. Save it so
+		// Terraform tracks it and taints it for replacement, instead of leaving an orphan
+		// that makes every later apply fail with "a job named X already exists".
+		resp.Diagnostics.Append(resp.State.Set(ctx, convertDomainJobToJob(ctx, plan, cont))...)
 		return
 	}
 

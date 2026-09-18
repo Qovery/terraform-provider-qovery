@@ -56,23 +56,28 @@ func (s terraformServiceService) Create(ctx context.Context, environmentID strin
 		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
 	}
 
+	// The terraform service now exists in Qovery, but the create is not over: external
+	// secrets are pushed onto it by separate API calls. Every failure below must return it
+	// so the resource layer can persist its ID. Returning nil leaves the terraform service
+	// out of the Terraform state while it exists in Qovery, and the next apply fails with
+	// "a terraform named X already exists".
 	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, newTerraformService.ID.String(), request.ExternalSecrets); err != nil {
-		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
+		return newTerraformService, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
 	}
 
 	if err := applyExternalSecretFilesDiff(ctx, s.externalSecretFileRepository, newTerraformService.ID.String(), request.ExternalSecretFiles); err != nil {
-		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
+		return newTerraformService, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
 	}
 
 	externalSecrets, err := s.externalSecretRepository.List(ctx, newTerraformService.ID.String())
 	if err != nil {
-		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
+		return newTerraformService, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
 	}
 	newTerraformService.SetExternalSecrets(externalSecrets)
 
 	externalSecretFiles, err := s.externalSecretFileRepository.List(ctx, newTerraformService.ID.String())
 	if err != nil {
-		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
+		return newTerraformService, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
 	}
 	newTerraformService.SetExternalSecretFiles(externalSecretFiles)
 

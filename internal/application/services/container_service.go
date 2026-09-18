@@ -76,33 +76,38 @@ func (s containerService) Create(ctx context.Context, environmentID string, requ
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
+	// The container now exists in Qovery, but the create is not over: variables, secrets
+	// and external secrets are pushed onto it by separate API calls. Every failure below
+	// must return the container so the resource layer can persist its ID. Returning nil
+	// leaves the container out of the Terraform state while it exists in Qovery, and the
+	// next apply fails with "a container named X already exists".
 	overridesAuthorizedScopes := make(map[variable.Scope]struct{})
 	overridesAuthorizedScopes[variable.ScopeProject] = struct{}{}
 	overridesAuthorizedScopes[variable.ScopeEnvironment] = struct{}{}
 	_, err = s.variableService.Update(ctx, cont.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, request.EnvironmentVariableFiles, overridesAuthorizedScopes)
 	if err != nil {
-		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
+		return cont, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
 	_, err = s.secretService.Update(ctx, cont.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, request.SecretFiles, overridesAuthorizedScopes)
 	if err != nil {
-		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
+		return cont, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
 	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, cont.ID.String(), request.ExternalSecrets); err != nil {
-		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
+		return cont, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
 	if err := applyExternalSecretFilesDiff(ctx, s.externalSecretFileRepository, cont.ID.String(), request.ExternalSecretFiles); err != nil {
-		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
+		return cont, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
-	cont, err = s.refreshContainer(ctx, *cont)
+	refreshedCont, err := s.refreshContainer(ctx, *cont)
 	if err != nil {
-		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
+		return cont, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
-	return cont, nil
+	return refreshedCont, nil
 }
 
 // Get handles the domain logic to retrieve a container.

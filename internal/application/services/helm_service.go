@@ -91,36 +91,41 @@ func (s helmService) Create(ctx context.Context, environmentID string, request h
 	overridesAuthorizedScopes := make(map[variable.Scope]struct{})
 	overridesAuthorizedScopes[variable.ScopeProject] = struct{}{}
 	overridesAuthorizedScopes[variable.ScopeEnvironment] = struct{}{}
+	// The helm service now exists in Qovery, but the create is not over: variables,
+	// secrets and external secrets are pushed onto it by separate API calls. Every failure
+	// below must return it so the resource layer can persist its ID. Returning nil leaves
+	// the helm service out of the Terraform state while it exists in Qovery, and the next
+	// apply fails with "a helm named X already exists".
 	_, err = s.variableService.Update(ctx, newHelm.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, request.EnvironmentVariableFiles, overridesAuthorizedScopes)
 	if err != nil {
-		return nil, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
+		return newHelm, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
 	}
 
 	_, err = s.secretService.Update(ctx, newHelm.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, request.SecretFiles, overridesAuthorizedScopes)
 	if err != nil {
-		return nil, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
+		return newHelm, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
 	}
 
 	if request.DeploymentRestrictionsDiff.IsNotEmpty() {
 		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, newHelm.ID.String(), domain.HELM, request.DeploymentRestrictionsDiff); apiErr != nil {
-			return nil, apiErr
+			return newHelm, apiErr
 		}
 	}
 
 	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, newHelm.ID.String(), request.ExternalSecrets); err != nil {
-		return nil, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
+		return newHelm, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
 	}
 
 	if err := applyExternalSecretFilesDiff(ctx, s.externalSecretFileRepository, newHelm.ID.String(), request.ExternalSecretFiles); err != nil {
-		return nil, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
+		return newHelm, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
 	}
 
-	newHelm, err = s.refreshHelm(ctx, *newHelm)
+	refreshedHelm, err := s.refreshHelm(ctx, *newHelm)
 	if err != nil {
-		return nil, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
+		return newHelm, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
 	}
 
-	return newHelm, nil
+	return refreshedHelm, nil
 }
 
 // Get handles the domain logic to retrieve a helm.

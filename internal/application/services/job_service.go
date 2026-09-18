@@ -91,36 +91,41 @@ func (s jobService) Create(ctx context.Context, environmentID string, request jo
 	overridesAuthorizedScopes := make(map[variable.Scope]struct{})
 	overridesAuthorizedScopes[variable.ScopeProject] = struct{}{}
 	overridesAuthorizedScopes[variable.ScopeEnvironment] = struct{}{}
+	// The job now exists in Qovery, but the create is not over: variables, secrets and
+	// external secrets are pushed onto it by separate API calls. Every failure below must
+	// return the job so the resource layer can persist its ID. Returning nil leaves the
+	// job out of the Terraform state while it exists in Qovery, and the next apply fails
+	// with "a job named X already exists".
 	_, err = s.variableService.Update(ctx, newJob.ID.String(), request.EnvironmentVariables, request.EnvironmentVariableAliases, request.EnvironmentVariableOverrides, request.EnvironmentVariableFiles, overridesAuthorizedScopes)
 	if err != nil {
-		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
+		return newJob, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
 
 	_, err = s.secretService.Update(ctx, newJob.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, request.SecretFiles, overridesAuthorizedScopes)
 	if err != nil {
-		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
+		return newJob, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
 
 	if request.DeploymentRestrictionsDiff.IsNotEmpty() {
 		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, newJob.ID.String(), domain.JOB, request.DeploymentRestrictionsDiff); apiErr != nil {
-			return nil, apiErr
+			return newJob, apiErr
 		}
 	}
 
 	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, newJob.ID.String(), request.ExternalSecrets); err != nil {
-		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
+		return newJob, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
 
 	if err := applyExternalSecretFilesDiff(ctx, s.externalSecretFileRepository, newJob.ID.String(), request.ExternalSecretFiles); err != nil {
-		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
+		return newJob, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
 
-	newJob, err = s.refreshJob(ctx, *newJob)
+	refreshedJob, err := s.refreshJob(ctx, *newJob)
 	if err != nil {
-		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
+		return newJob, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
 
-	return newJob, nil
+	return refreshedJob, nil
 }
 
 // Get handles the domain logic to retrieve a job.

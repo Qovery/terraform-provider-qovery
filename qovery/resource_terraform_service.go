@@ -432,6 +432,13 @@ func (r terraformServiceResource) Create(ctx context.Context, req resource.Creat
 	terraformSvc, err := r.terraformServiceService.Create(ctx, ToString(plan.EnvironmentID), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on terraform service create", err.Error())
+		if terraformSvc == nil {
+			return
+		}
+		// The terraform service was created in Qovery and only a follow-up call failed. Save
+		// it so Terraform tracks it and taints it for replacement, instead of leaving an
+		// orphan that makes every later apply fail with "a terraform named X already exists".
+		resp.Diagnostics.Append(resp.State.Set(ctx, convertDomainTerraformServiceToTerraformService(ctx, plan, terraformSvc))...)
 		return
 	}
 

@@ -731,6 +731,13 @@ func (r helmResource) Create(ctx context.Context, req resource.CreateRequest, re
 	newHelm, err := r.helmService.Create(ctx, plan.EnvironmentID.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on helm create", err.Error())
+		if newHelm == nil {
+			return
+		}
+		// The helm service was created in Qovery and only a follow-up call failed. Save it
+		// so Terraform tracks it and taints it for replacement, instead of leaving an orphan
+		// that makes every later apply fail with "a helm named X already exists".
+		resp.Diagnostics.Append(resp.State.Set(ctx, convertDomainHelmToHelm(ctx, plan, newHelm))...)
 		return
 	}
 
