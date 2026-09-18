@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -194,8 +195,8 @@ func testSchema() schema.Schema {
 
 var testObjectType = tftypes.Object{
 	AttributeTypes: map[string]tftypes.Type{
-		"name":                          tftypes.String,
-		"ports":                         tftypes.List{ElementType: tftypes.String},
+		"name":                           tftypes.String,
+		"ports":                          tftypes.List{ElementType: tftypes.String},
 		"built_in_environment_variables": tftypes.List{ElementType: tftypes.String},
 	},
 }
@@ -207,8 +208,8 @@ func buildTestState(name string, ports []string) tfsdk.State {
 	}
 	return tfsdk.State{
 		Raw: tftypes.NewValue(testObjectType, map[string]tftypes.Value{
-			"name":                          tftypes.NewValue(tftypes.String, name),
-			"ports":                         tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, portValues),
+			"name":                           tftypes.NewValue(tftypes.String, name),
+			"ports":                          tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, portValues),
 			"built_in_environment_variables": tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, []tftypes.Value{}),
 		}),
 		Schema: testSchema(),
@@ -222,8 +223,8 @@ func buildTestPlan(name string, ports []string) tfsdk.Plan {
 	}
 	return tfsdk.Plan{
 		Raw: tftypes.NewValue(testObjectType, map[string]tftypes.Value{
-			"name":                          tftypes.NewValue(tftypes.String, name),
-			"ports":                         tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, portValues),
+			"name":                           tftypes.NewValue(tftypes.String, name),
+			"ports":                          tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, portValues),
 			"built_in_environment_variables": tftypes.NewValue(tftypes.List{ElementType: tftypes.String}, []tftypes.Value{}),
 		}),
 		Schema: testSchema(),
@@ -709,4 +710,127 @@ func TestRejectExistingVpcChange_DiagnosticDetails(t *testing.T) {
 	require.True(t, ok, "diagnostic must carry an attribute path")
 	assert.True(t, blockPath.AtName("subnets").Equal(withPath.Path()),
 		"diagnostic must point at the changed child attribute, got %s", withPath.Path())
+}
+
+// --- NormalizeGitRootPath tests ---
+
+func TestNormalizeGitRootPath_PlanValue(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		description string
+		planValue   types.String
+		expected    types.String
+	}{
+		{
+			description: "trailing slash is dropped, as the API drops it",
+			planValue:   types.StringValue("/AWS/postgres/17/"),
+			expected:    types.StringValue("/AWS/postgres/17"),
+		},
+		{
+			description: "already normalized path is untouched",
+			planValue:   types.StringValue("/AWS/postgres/17"),
+			expected:    types.StringValue("/AWS/postgres/17"),
+		},
+		{
+			description: "root stays root",
+			planValue:   types.StringValue("/"),
+			expected:    types.StringValue("/"),
+		},
+		{
+			description: "duplicate separators are collapsed",
+			planValue:   types.StringValue("//AWS//postgres//17//"),
+			expected:    types.StringValue("/AWS/postgres/17"),
+		},
+		{
+			description: "relative segments are resolved",
+			planValue:   types.StringValue("/AWS/mysql/../postgres/17/./"),
+			expected:    types.StringValue("/AWS/postgres/17"),
+		},
+		{
+			description: "path without a leading slash keeps its shape",
+			planValue:   types.StringValue("AWS/postgres/17/"),
+			expected:    types.StringValue("AWS/postgres/17"),
+		},
+		{
+			description: "empty path plans the default, as the API reads an empty root path back as one",
+			planValue:   types.StringValue(""),
+			expected:    types.StringValue("/"),
+		},
+		{
+			description: "current directory plans the default: Java empties it, Clean alone would keep .",
+			planValue:   types.StringValue("."),
+			expected:    types.StringValue("/"),
+		},
+		{
+			description: "path cancelling out to nothing plans the default",
+			planValue:   types.StringValue("foo/.."),
+			expected:    types.StringValue("/"),
+		},
+		{
+			description: "parent of root stays root, as Java resolves it",
+			planValue:   types.StringValue("/.."),
+			expected:    types.StringValue("/"),
+		},
+		{
+			description: "leading parent segments are kept, as Java keeps them",
+			planValue:   types.StringValue("../a"),
+			expected:    types.StringValue("../a"),
+		},
+		{
+			description: "unknown is left for the API to fill",
+			planValue:   types.StringUnknown(),
+			expected:    types.StringUnknown(),
+		},
+		{
+			description: "null is left null",
+			planValue:   types.StringNull(),
+			expected:    types.StringNull(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.description, func(t *testing.T) {
+			t.Parallel()
+
+			resp := &planmodifier.StringResponse{PlanValue: tc.planValue}
+			NormalizeGitRootPath("/").PlanModifyString(context.Background(), planmodifier.StringRequest{
+				ConfigValue: tc.planValue,
+				PlanValue:   tc.planValue,
+				StateValue:  types.StringNull(),
+			}, resp)
+
+			assert.Equal(t, tc.expected, resp.PlanValue, tc.description)
+		})
+	}
+}
+
+// TestTerraformServiceRootPathIsNormalized runs the modifiers ACTUALLY wired on
+// git_repository.root_path in the terraform service schema, so it fails if the wiring is
+// dropped — the shape that produced "Provider produced inconsistent result after apply:
+// .git_repository" on a catalog path like "/AWS/postgres/17/".
+func TestTerraformServiceRootPathIsNormalized(t *testing.T) {
+	t.Parallel()
+
+	var resp resource.SchemaResponse
+	terraformServiceResource{}.Schema(context.Background(), resource.SchemaRequest{}, &resp)
+
+	gitRepository, ok := resp.Schema.Attributes["git_repository"].(schema.SingleNestedAttribute)
+	require.True(t, ok, "git_repository is not a SingleNestedAttribute")
+	rootPath, ok := gitRepository.Attributes["root_path"].(schema.StringAttribute)
+	require.True(t, ok, "git_repository.root_path is not a StringAttribute")
+	require.NotEmpty(t, rootPath.PlanModifiers, "git_repository.root_path has no plan modifier")
+
+	configured := types.StringValue("/AWS/postgres/17/")
+	modifierResp := &planmodifier.StringResponse{PlanValue: configured}
+	for _, modifier := range rootPath.PlanModifiers {
+		modifier.PlanModifyString(context.Background(), planmodifier.StringRequest{
+			ConfigValue: configured,
+			PlanValue:   modifierResp.PlanValue,
+			StateValue:  types.StringNull(),
+		}, modifierResp)
+	}
+
+	assert.Equal(t, types.StringValue("/AWS/postgres/17"), modifierResp.PlanValue,
+		"the planned root path must match the normalized one the API returns")
 }
