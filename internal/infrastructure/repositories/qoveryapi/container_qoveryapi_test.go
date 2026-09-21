@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -75,9 +76,24 @@ func (rt alwaysOKRoundTripper) RoundTrip(req *http.Request) (*http.Response, err
 	}, nil
 }
 
-func newAPIClientWithTransport(rt http.RoundTripper) *qovery.APIClient {
+// newAPIClientWithTransport routes the generated client through rt. It also points the
+// configured server URL at a local server that fails every request: the advanced settings
+// service (internal/domain/advanced_settings) ignores cfg.HTTPClient and issues its calls
+// with a bare http.Client against that URL, so without this a test whose first failing
+// follow-up call is the advanced settings update would reach the real Qovery API.
+func newAPIClientWithTransport(t *testing.T, rt http.RoundTripper) *qovery.APIClient {
+	t.Helper()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		_, _ = w.Write([]byte(`{"message":"boom"}`))
+	}))
+	t.Cleanup(server.Close)
+
 	cfg := qovery.NewConfiguration()
 	cfg.HTTPClient = &http.Client{Transport: rt}
+	cfg.Servers = qovery.ServerConfigurations{{URL: server.URL}}
 	return qovery.NewAPIClient(cfg)
 }
 
@@ -121,7 +137,7 @@ func TestContainerQoveryAPI_Create_ReturnsCreatedContainerWhenFollowUpCallFails(
 	environmentID := uuid.New().String()
 	registryID := uuid.New().String()
 
-	client := newAPIClientWithTransport(createThenFailRoundTripper{
+	client := newAPIClientWithTransport(t, createThenFailRoundTripper{
 		createPathFragment: "/container",
 		createdPayload:     newQoveryContainerResponse(containerID, environmentID, registryID),
 	})
@@ -150,7 +166,7 @@ func TestContainerQoveryAPI_Create_ReturnsNilWhenCreationCallFails(t *testing.T)
 
 	environmentID := uuid.New().String()
 
-	client := newAPIClientWithTransport(createThenFailRoundTripper{
+	client := newAPIClientWithTransport(t, createThenFailRoundTripper{
 		createPathFragment: "/never-matches",
 	})
 
@@ -184,7 +200,7 @@ func TestContainerQoveryAPI_Create_ReturnsIdentityOnlyContainerWhenConversionFai
 	payload := newQoveryContainerResponse(containerID, environmentID, registryID)
 	payload.MaxRunningInstances = 0
 
-	client := newAPIClientWithTransport(createThenFailRoundTripper{
+	client := newAPIClientWithTransport(t, createThenFailRoundTripper{
 		createPathFragment: "/container",
 		createdPayload:     payload,
 	})
@@ -222,7 +238,7 @@ func TestContainerQoveryAPI_Create_UsesRegularConversionWhenResponseIsValid(t *t
 	environmentID := uuid.New().String()
 	registryID := uuid.New().String()
 
-	client := newAPIClientWithTransport(createThenFailRoundTripper{
+	client := newAPIClientWithTransport(t, createThenFailRoundTripper{
 		createPathFragment: "/container",
 		createdPayload:     newQoveryContainerResponse(containerID, environmentID, registryID),
 	})
@@ -261,7 +277,7 @@ func TestContainerQoveryAPI_Create_FallsBackToRequestedEnvironmentWhenResponseRe
 	payload.MaxRunningInstances = 0
 	payload.Environment = qovery.ReferenceObject{Id: "not-a-uuid"}
 
-	client := newAPIClientWithTransport(createThenFailRoundTripper{
+	client := newAPIClientWithTransport(t, createThenFailRoundTripper{
 		createPathFragment: "/container",
 		createdPayload:     payload,
 	})

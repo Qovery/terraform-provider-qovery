@@ -34,7 +34,7 @@ func TestDeploymentStageQoveryAPI_Create_ReturnsCreatedStageWhenMoveFails(t *tes
 	environmentID := uuid.New().String()
 	isAfter := uuid.New().String()
 
-	client := newAPIClientWithTransport(createThenFailRoundTripper{
+	client := newAPIClientWithTransport(t, createThenFailRoundTripper{
 		createPathFragment: "/deploymentStage",
 		createdPayload:     newQoveryDeploymentStageResponse(stageID, environmentID),
 	})
@@ -61,7 +61,7 @@ func TestDeploymentStageQoveryAPI_Create_ReturnsCreatedStageWhenOrderingReferenc
 	environmentID := uuid.New().String()
 	malformed := "not-a-uuid"
 
-	client := newAPIClientWithTransport(createThenFailRoundTripper{
+	client := newAPIClientWithTransport(t, createThenFailRoundTripper{
 		createPathFragment: "/deploymentStage",
 		createdPayload:     newQoveryDeploymentStageResponse(stageID, environmentID),
 	})
@@ -95,7 +95,7 @@ func TestDeploymentStageQoveryAPI_Create_FallsBackToRequestedEnvironmentWhenResp
 	// on it too if it trusted the response alone instead of the requested environment.
 	payload := newQoveryDeploymentStageResponse(stageID, "broken-env-ref")
 
-	client := newAPIClientWithTransport(createThenFailRoundTripper{
+	client := newAPIClientWithTransport(t, createThenFailRoundTripper{
 		createPathFragment: "/deploymentStage",
 		createdPayload:     payload,
 	})
@@ -126,7 +126,7 @@ func TestDeploymentStageQoveryAPI_Create_ReturnsFallbackWhenFinalConversionFails
 
 	// Nothing fails at the API level here; the broken environment reference is what makes
 	// both the first and the final NewDeploymentStage call fail.
-	client := newAPIClientWithTransport(alwaysOKRoundTripper{
+	client := newAPIClientWithTransport(t, alwaysOKRoundTripper{
 		payload: newQoveryDeploymentStageResponse(stageID, "broken-env-ref"),
 	})
 
