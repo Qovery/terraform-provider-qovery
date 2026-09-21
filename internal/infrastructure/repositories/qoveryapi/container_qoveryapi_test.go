@@ -184,4 +184,41 @@ func TestContainerQoveryAPI_Create_ReturnsIdentityOnlyContainerWhenConversionFai
 	assert.Error(t, err)
 	require.NotNil(t, cont, "the container exists even though its response could not be converted")
 	assert.Equal(t, containerID, cont.ID.String())
+	// Pin that this really came through identityOnlyContainer rather than the regular
+	// conversion: the fallback carries identifiers and the name only, so the registry the
+	// payload advertises must be absent.
+	assert.Equal(t, uuid.Nil, cont.RegistryID, "expected the identity-only fallback, not a converted container")
+	assert.Equal(t, environmentID, cont.EnvironmentID.String())
+}
+
+// A response that converts cleanly but whose follow-up calls all succeed still goes
+// through the regular conversion — the fallback must not hijack the happy path.
+func TestContainerQoveryAPI_Create_UsesRegularConversionWhenResponseIsValid(t *testing.T) {
+	t.Parallel()
+
+	containerID := uuid.New().String()
+	environmentID := uuid.New().String()
+	registryID := uuid.New().String()
+
+	client := newAPIClientWithTransport(createThenFailRoundTripper{
+		createPathFragment: "/container",
+		createdPayload:     newQoveryContainerResponse(containerID, environmentID, registryID),
+	})
+
+	repository, err := newContainerQoveryAPI(client)
+	require.NoError(t, err)
+
+	// No deployment stage and no custom domains, so the first failing call is the advanced
+	// settings update; the partial returned there is the converted container.
+	cont, err := repository.Create(context.Background(), environmentID, container.UpsertRepositoryRequest{
+		RegistryID:           registryID,
+		Name:                 "worker",
+		ImageName:            "xfunctional/imhotep/backend",
+		Tag:                  "latest",
+		AdvancedSettingsJson: "{}",
+	})
+
+	assert.Error(t, err)
+	require.NotNil(t, cont)
+	assert.Equal(t, registryID, cont.RegistryID.String(), "expected the converted container, not the identity-only fallback")
 }

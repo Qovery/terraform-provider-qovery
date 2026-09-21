@@ -63,7 +63,7 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 	if partialErr != nil {
 		// The response cannot be represented as a domain job, but the job does exist. Fall
 		// back to its identifiers: writing the ID is the whole point here.
-		partial = identityOnlyJob(newJob)
+		partial = identityOnlyJob(newJob, environmentID)
 	}
 
 	// Attach job to deployment stage
@@ -86,7 +86,14 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceJob, newJobId, resp, err)
 	}
 
-	return newDomainJobFromQovery(newJob, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newJobId), request.AdvancedSettingsJson)
+	newJobDomain, err := newDomainJobFromQovery(newJob, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newJobId), request.AdvancedSettingsJson)
+	if err != nil {
+		// Every call succeeded but the response still cannot be converted. The job exists,
+		// so hand back the fallback rather than losing it to the state.
+		return partial, err
+	}
+
+	return newJobDomain, nil
 }
 
 // Get calls Qovery's API to retrieve a job using the given jobID.
@@ -178,7 +185,7 @@ func (c jobQoveryAPI) Delete(ctx context.Context, jobID string) error {
 // can reject a response the server itself accepted. Only the identifiers matter: the
 // resource layer needs the ID in the Terraform state so the job gets tainted and replaced
 // rather than orphaned. Returns nil when even the identifiers make no sense.
-func identityOnlyJob(j *qovery.JobResponse) *job.Job {
+func identityOnlyJob(j *qovery.JobResponse, requestedEnvironmentID string) *job.Job {
 	if j == nil {
 		return nil
 	}
@@ -198,9 +205,15 @@ func identityOnlyJob(j *qovery.JobResponse) *job.Job {
 		return nil
 	}
 
+	// Prefer the environment the response reports, but fall back to the one the create was
+	// aimed at: a response missing or mangling its environment reference must not cost us
+	// the whole entity.
 	environmentID, err := uuid.Parse(environment)
 	if err != nil {
-		return nil
+		environmentID, err = uuid.Parse(requestedEnvironmentID)
+		if err != nil {
+			return nil
+		}
 	}
 
 	return &job.Job{

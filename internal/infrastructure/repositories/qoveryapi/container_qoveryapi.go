@@ -56,7 +56,7 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 	if partialErr != nil {
 		// The response cannot be represented as a domain container, but the container does
 		// exist. Fall back to its identifiers: writing the ID is the whole point here.
-		partial = identityOnlyContainer(newContainer)
+		partial = identityOnlyContainer(newContainer, environmentID)
 	}
 
 	// Create custom domains
@@ -103,7 +103,14 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceContainerCustomDomain, newContainer.Id, resp, err)
 	}
 
-	return newDomainContainerFromQovery(newContainer, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newContainer.Id), request.AdvancedSettingsJson, customDomains)
+	cont, err := newDomainContainerFromQovery(newContainer, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newContainer.Id), request.AdvancedSettingsJson, customDomains)
+	if err != nil {
+		// Every call succeeded but the response still cannot be converted. The container
+		// exists, so hand back the fallback rather than losing it to the state.
+		return partial, err
+	}
+
+	return cont, nil
 }
 
 // Get calls Qovery's API to retrieve a container using the given containerID.
@@ -246,7 +253,7 @@ func (c containerQoveryAPI) Delete(ctx context.Context, containerID string) erro
 // converted from its API response. Only the identifiers matter: the resource layer needs
 // the ID in the Terraform state so the container gets tainted and replaced rather than
 // orphaned. Returns nil when even the identifiers make no sense.
-func identityOnlyContainer(c *qovery.ContainerResponse) *container.Container {
+func identityOnlyContainer(c *qovery.ContainerResponse, requestedEnvironmentID string) *container.Container {
 	if c == nil {
 		return nil
 	}
@@ -256,9 +263,15 @@ func identityOnlyContainer(c *qovery.ContainerResponse) *container.Container {
 		return nil
 	}
 
+	// Prefer the environment the response reports, but fall back to the one the create was
+	// aimed at: a response missing or mangling its environment reference must not cost us
+	// the whole entity.
 	environmentID, err := uuid.Parse(c.Environment.Id)
 	if err != nil {
-		return nil
+		environmentID, err = uuid.Parse(requestedEnvironmentID)
+		if err != nil {
+			return nil
+		}
 	}
 
 	return &container.Container{

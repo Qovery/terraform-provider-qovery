@@ -57,7 +57,7 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 	if partialErr != nil {
 		// The response cannot be represented as a domain helm service, but it does exist.
 		// Fall back to its identifiers: writing the ID is the whole point here.
-		partial = identityOnlyHelm(newHelm)
+		partial = identityOnlyHelm(newHelm, environmentID)
 	}
 
 	// Create custom domains
@@ -104,7 +104,14 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceHelmCustomDomain, newHelm.Id, resp, err)
 	}
 
-	return newDomainHelmFromQovery(newHelm, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newHelm.Id), request.AdvancedSettingsJson, customDomains)
+	newHelmDomain, err := newDomainHelmFromQovery(newHelm, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newHelm.Id), request.AdvancedSettingsJson, customDomains)
+	if err != nil {
+		// Every call succeeded but the response still cannot be converted. The service
+		// exists, so hand back the fallback rather than losing it to the state.
+		return partial, err
+	}
+
+	return newHelmDomain, nil
 }
 
 // Get calls Qovery's API to retrieve a helm using the given helmID.
@@ -246,7 +253,7 @@ func (c helmQoveryAPI) Delete(ctx context.Context, helmID string) error {
 // converted from its API response. Only the identifiers matter: the resource layer needs
 // the ID in the Terraform state so the service gets tainted and replaced rather than
 // orphaned. Returns nil when even the identifiers make no sense.
-func identityOnlyHelm(h *qovery.HelmResponse) *helm.Helm {
+func identityOnlyHelm(h *qovery.HelmResponse, requestedEnvironmentID string) *helm.Helm {
 	if h == nil {
 		return nil
 	}
@@ -256,9 +263,15 @@ func identityOnlyHelm(h *qovery.HelmResponse) *helm.Helm {
 		return nil
 	}
 
+	// Prefer the environment the response reports, but fall back to the one the create was
+	// aimed at: a response missing or mangling its environment reference must not cost us
+	// the whole entity.
 	environmentID, err := uuid.Parse(h.Environment.Id)
 	if err != nil {
-		return nil
+		environmentID, err = uuid.Parse(requestedEnvironmentID)
+		if err != nil {
+			return nil
+		}
 	}
 
 	return &helm.Helm{
