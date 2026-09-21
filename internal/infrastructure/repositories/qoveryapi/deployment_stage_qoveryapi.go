@@ -50,7 +50,16 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentID stri
 		IsBefore:          request.IsBefore,
 	})
 	if partialErr != nil {
-		partial = nil
+		// The ordering references come from the user's configuration and are parsed as UUIDs
+		// here, so a malformed is_after/is_before fails the whole construction. Drop them and
+		// keep the stage: losing the ordering in the state is recoverable, losing the ID is
+		// not. Still nil if the identifiers themselves are unusable.
+		partial, _ = deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
+			DeploymentStageID: deploymentStageCreated.Id,
+			EnvironmentID:     deploymentStageCreated.Environment.Id,
+			Name:              *deploymentStageCreated.Name,
+			Description:       *deploymentStageCreated.Description,
+		})
 	}
 
 	if request.IsAfter != nil {
