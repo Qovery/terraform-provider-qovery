@@ -79,3 +79,37 @@ func TestDeploymentStageQoveryAPI_Create_ReturnsCreatedStageWhenOrderingReferenc
 	assert.Equal(t, stageID, stage.ID.String())
 	assert.Nil(t, stage.IsAfter, "the ordering is dropped, the identity is kept")
 }
+
+// The environment reference in the created-stage response is not always usable. When it is
+// broken the fallback leans on the environment the create was aimed at, rather than
+// dropping the stage and orphaning it.
+func TestDeploymentStageQoveryAPI_Create_FallsBackToRequestedEnvironmentWhenResponseReferenceIsBroken(t *testing.T) {
+	t.Parallel()
+
+	stageID := uuid.New().String()
+	environmentID := uuid.New().String()
+	malformed := "not-a-uuid"
+
+	// A mangled environment reference on top of a malformed ordering reference: the first
+	// construction fails on the ordering, the fallback would then fail on the environment
+	// if it trusted the response alone.
+	payload := newQoveryDeploymentStageResponse(stageID, "broken-env-ref")
+
+	client := newAPIClientWithTransport(createThenFailRoundTripper{
+		createPathFragment: "/deploymentStage",
+		createdPayload:     payload,
+	})
+
+	repository, err := newDeploymentStageQoveryAPI(client)
+	require.NoError(t, err)
+
+	stage, err := repository.Create(context.Background(), environmentID, deploymentstage.UpsertRepositoryRequest{
+		Name:    "TERRAFORM DEFAULT",
+		IsAfter: &malformed,
+	})
+
+	assert.Error(t, err)
+	require.NotNil(t, stage, "a broken environment reference must not cost us the created stage")
+	assert.Equal(t, stageID, stage.ID.String())
+	assert.Equal(t, environmentID, stage.EnvironmentID.String(), "expected the environment the create was aimed at")
+}

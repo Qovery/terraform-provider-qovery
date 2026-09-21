@@ -44,8 +44,8 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentID stri
 	partial, partialErr := deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
 		DeploymentStageID: deploymentStageCreated.Id,
 		EnvironmentID:     deploymentStageCreated.Environment.Id,
-		Name:              *deploymentStageCreated.Name,
-		Description:       *deploymentStageCreated.Description,
+		Name:              deploymentStageCreated.GetName(),
+		Description:       deploymentStageCreated.GetDescription(),
 		IsAfter:           request.IsAfter,
 		IsBefore:          request.IsBefore,
 	})
@@ -53,13 +53,8 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentID stri
 		// The ordering references come from the user's configuration and are parsed as UUIDs
 		// here, so a malformed is_after/is_before fails the whole construction. Drop them and
 		// keep the stage: losing the ordering in the state is recoverable, losing the ID is
-		// not. Still nil if the identifiers themselves are unusable.
-		partial, _ = deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
-			DeploymentStageID: deploymentStageCreated.Id,
-			EnvironmentID:     deploymentStageCreated.Environment.Id,
-			Name:              *deploymentStageCreated.Name,
-			Description:       *deploymentStageCreated.Description,
-		})
+		// not.
+		partial = identityOnlyDeploymentStage(deploymentStageCreated, environmentID, request.Name)
 	}
 
 	if request.IsAfter != nil {
@@ -83,8 +78,8 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentID stri
 	return deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
 		DeploymentStageID: deploymentStageCreated.Id,
 		EnvironmentID:     deploymentStageCreated.Environment.Id,
-		Name:              *deploymentStageCreated.Name,
-		Description:       *deploymentStageCreated.Description,
+		Name:              deploymentStageCreated.GetName(),
+		Description:       deploymentStageCreated.GetDescription(),
 		IsAfter:           request.IsAfter,
 		IsBefore:          request.IsBefore,
 	})
@@ -293,4 +288,37 @@ func (c deploymentStageQoveryAPI) waitForDeploymentStageDeletion(ctx context.Con
 			}
 		}
 	}
+}
+
+// identityOnlyDeploymentStage is the last resort when a freshly created stage cannot be
+// turned into a domain entity. It keeps what the resource layer actually needs — the ID —
+// and leans on the values the create was aimed at whenever the response's own are
+// unusable. Returns nil only when even that is not enough.
+func identityOnlyDeploymentStage(s *qovery.DeploymentStageResponse, requestedEnvironmentID string, requestedName string) *deploymentstage.DeploymentStage {
+	if s == nil {
+		return nil
+	}
+
+	params := deploymentstage.NewDeploymentStageParams{
+		DeploymentStageID: s.Id,
+		EnvironmentID:     s.Environment.Id,
+		Name:              s.GetName(),
+		Description:       s.GetDescription(),
+	}
+
+	if stage, err := deploymentstage.NewDeploymentStage(params); err == nil {
+		return stage
+	}
+
+	// A response whose environment reference or name is missing or mangled must not cost us
+	// the stage itself: retry with what the create asked for.
+	params.EnvironmentID = requestedEnvironmentID
+	params.Name = requestedName
+
+	stage, err := deploymentstage.NewDeploymentStage(params)
+	if err != nil {
+		return nil
+	}
+
+	return stage
 }
