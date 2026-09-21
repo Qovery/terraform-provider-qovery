@@ -51,9 +51,11 @@ func (s terraformServiceService) Create(ctx context.Context, environmentID strin
 		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
 	}
 
+	// The repository create is itself a create-then-configure sequence, so it can report
+	// an error with the terraform service already created. Pass whatever it returns through.
 	newTerraformService, err := s.terraformServiceRepository.Create(ctx, environmentID, request.TerraformServiceUpsertRequest)
 	if err != nil {
-		return nil, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
+		return newTerraformService, errors.Wrap(err, terraformservice.ErrFailedToCreateTerraformService.Error())
 	}
 
 	// The terraform service now exists in Qovery, but the create is not over: external

@@ -191,8 +191,10 @@ func TestContainerQoveryAPI_Create_ReturnsIdentityOnlyContainerWhenConversionFai
 	assert.Equal(t, environmentID, cont.EnvironmentID.String())
 }
 
-// A response that converts cleanly but whose follow-up calls all succeed still goes
-// through the regular conversion — the fallback must not hijack the happy path.
+// A response that converts cleanly and then hits a failing follow-up call must still come
+// back as the converted container: the identity-only fallback must not hijack the normal
+// path. (The harness fails every post-create call, so the failure here is the advanced
+// settings update.)
 func TestContainerQoveryAPI_Create_UsesRegularConversionWhenResponseIsValid(t *testing.T) {
 	t.Parallel()
 
@@ -209,7 +211,7 @@ func TestContainerQoveryAPI_Create_UsesRegularConversionWhenResponseIsValid(t *t
 	require.NoError(t, err)
 
 	// No deployment stage and no custom domains, so the first failing call is the advanced
-	// settings update; the partial returned there is the converted container.
+	// settings update; the partial returned there must be the converted container.
 	cont, err := repository.Create(context.Background(), environmentID, container.UpsertRepositoryRequest{
 		RegistryID:           registryID,
 		Name:                 "worker",
@@ -221,4 +223,43 @@ func TestContainerQoveryAPI_Create_UsesRegularConversionWhenResponseIsValid(t *t
 	assert.Error(t, err)
 	require.NotNil(t, cont)
 	assert.Equal(t, registryID, cont.RegistryID.String(), "expected the converted container, not the identity-only fallback")
+}
+
+// The environment reference in the response is not always usable. When it is broken the
+// fallback falls back again, onto the environment the create was aimed at, rather than
+// giving up on the entity entirely.
+func TestContainerQoveryAPI_Create_FallsBackToRequestedEnvironmentWhenResponseReferenceIsBroken(t *testing.T) {
+	t.Parallel()
+
+	containerID := uuid.New().String()
+	environmentID := uuid.New().String()
+	registryID := uuid.New().String()
+
+	// Zero MaxRunningInstances forces the identity-only path, and the mangled environment
+	// reference forces that path to lean on the requested environment ID.
+	payload := newQoveryContainerResponse(containerID, environmentID, registryID)
+	payload.MaxRunningInstances = 0
+	payload.Environment = qovery.ReferenceObject{Id: "not-a-uuid"}
+
+	client := newAPIClientWithTransport(createThenFailRoundTripper{
+		createPathFragment: "/container",
+		createdPayload:     payload,
+	})
+
+	repository, err := newContainerQoveryAPI(client)
+	require.NoError(t, err)
+
+	cont, err := repository.Create(context.Background(), environmentID, container.UpsertRepositoryRequest{
+		RegistryID:           registryID,
+		Name:                 "worker",
+		ImageName:            "xfunctional/imhotep/backend",
+		Tag:                  "latest",
+		DeploymentStageID:    uuid.New().String(),
+		AdvancedSettingsJson: "{}",
+	})
+
+	assert.Error(t, err)
+	require.NotNil(t, cont, "a broken environment reference must not cost us the whole entity")
+	assert.Equal(t, containerID, cont.ID.String())
+	assert.Equal(t, environmentID, cont.EnvironmentID.String(), "expected the environment the create was aimed at")
 }

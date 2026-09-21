@@ -91,3 +91,31 @@ func TestTerraformServiceService_Create_ReturnsNilWhenCreateFails(t *testing.T) 
 	assert.ErrorContains(t, err, createErr.Error())
 	assert.Nil(t, newService)
 }
+
+// The repository create is itself a create-then-configure sequence (deployment stage
+// attach, advanced settings), so the terraform service may already exist in Qovery when
+// the repository reports an error.
+func TestTerraformServiceService_Create_PropagatesPartialServiceFromRepository(t *testing.T) {
+	t.Parallel()
+
+	environmentID := uuid.New()
+	created := newCreatedTerraformService(environmentID)
+	repositoryErr := errors.New("500 Internal Server Error on deployment stage")
+
+	terraformServiceRepository := &repomocks.TerraformServiceRepository{}
+	terraformServiceRepository.On("Create", mock.Anything, environmentID.String(), mock.Anything).
+		Return(created, repositoryErr)
+
+	service, err := services.NewTerraformServiceService(
+		terraformServiceRepository,
+		stubExternalSecretRepository{},
+		stubExternalSecretFileRepository{},
+	)
+	require.NoError(t, err)
+
+	newService, err := service.Create(context.Background(), environmentID.String(), newValidTerraformServiceUpsertServiceRequest())
+
+	assert.ErrorContains(t, err, repositoryErr.Error())
+	require.NotNil(t, newService, "the repository reported the service as created, the service must pass it through")
+	assert.Equal(t, created.ID, newService.ID)
+}

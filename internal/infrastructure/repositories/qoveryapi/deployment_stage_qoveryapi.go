@@ -38,12 +38,27 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentID stri
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceDeploymentStage, request.Name, resp, err)
 	}
 
+	// The stage exists in Qovery from here on. partial carries what is already known about
+	// it, so a failure in the move calls below still reaches the Terraform state. Dropping
+	// it would orphan the stage and make the next apply collide on its name.
+	partial, partialErr := deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
+		DeploymentStageID: deploymentStageCreated.Id,
+		EnvironmentID:     deploymentStageCreated.Environment.Id,
+		Name:              *deploymentStageCreated.Name,
+		Description:       *deploymentStageCreated.Description,
+		IsAfter:           request.IsAfter,
+		IsBefore:          request.IsBefore,
+	})
+	if partialErr != nil {
+		partial = nil
+	}
+
 	if request.IsAfter != nil {
 		_, resp, err = c.client.DeploymentStageMainCallsAPI.
 			MoveAfterDeploymentStage(ctx, deploymentStageCreated.Id, *request.IsAfter).
 			Execute()
 		if err != nil || resp.StatusCode >= 400 {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceDeploymentStage, request.Name, resp, err)
+			return partial, apierrors.NewCreateAPIError(apierrors.APIResourceDeploymentStage, request.Name, resp, err)
 		}
 	}
 
@@ -52,7 +67,7 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentID stri
 			MoveBeforeDeploymentStage(ctx, deploymentStageCreated.Id, *request.IsBefore).
 			Execute()
 		if err != nil || resp.StatusCode >= 400 {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceDeploymentStage, request.Name, resp, err)
+			return partial, apierrors.NewCreateAPIError(apierrors.APIResourceDeploymentStage, request.Name, resp, err)
 		}
 	}
 
