@@ -38,12 +38,31 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentID stri
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceDeploymentStage, request.Name, resp, err)
 	}
 
+	// The stage exists in Qovery from here on. partial carries what is already known about
+	// it, so a failure in the move calls below still reaches the Terraform state. Dropping
+	// it would orphan the stage and make the next apply collide on its name.
+	partial, partialErr := deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
+		DeploymentStageID: deploymentStageCreated.Id,
+		EnvironmentID:     deploymentStageCreated.Environment.Id,
+		Name:              deploymentStageCreated.GetName(),
+		Description:       deploymentStageCreated.GetDescription(),
+		IsAfter:           request.IsAfter,
+		IsBefore:          request.IsBefore,
+	})
+	if partialErr != nil {
+		// The ordering references come from the user's configuration and are parsed as UUIDs
+		// here, so a malformed is_after/is_before fails the whole construction. Drop them and
+		// keep the stage: losing the ordering in the state is recoverable, losing the ID is
+		// not.
+		partial = identityOnlyDeploymentStage(deploymentStageCreated, environmentID, request.Name)
+	}
+
 	if request.IsAfter != nil {
 		_, resp, err = c.client.DeploymentStageMainCallsAPI.
 			MoveAfterDeploymentStage(ctx, deploymentStageCreated.Id, *request.IsAfter).
 			Execute()
 		if err != nil || resp.StatusCode >= 400 {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceDeploymentStage, request.Name, resp, err)
+			return partial, apierrors.NewCreateAPIError(apierrors.APIResourceDeploymentStage, request.Name, resp, err)
 		}
 	}
 
@@ -52,18 +71,25 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentID stri
 			MoveBeforeDeploymentStage(ctx, deploymentStageCreated.Id, *request.IsBefore).
 			Execute()
 		if err != nil || resp.StatusCode >= 400 {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceDeploymentStage, request.Name, resp, err)
+			return partial, apierrors.NewCreateAPIError(apierrors.APIResourceDeploymentStage, request.Name, resp, err)
 		}
 	}
 
-	return deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
+	stage, err := deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
 		DeploymentStageID: deploymentStageCreated.Id,
 		EnvironmentID:     deploymentStageCreated.Environment.Id,
-		Name:              *deploymentStageCreated.Name,
-		Description:       *deploymentStageCreated.Description,
+		Name:              deploymentStageCreated.GetName(),
+		Description:       deploymentStageCreated.GetDescription(),
 		IsAfter:           request.IsAfter,
 		IsBefore:          request.IsBefore,
 	})
+	if err != nil {
+		// Every call succeeded but the response still cannot be converted. The stage exists,
+		// so hand back the fallback rather than losing it to the state.
+		return partial, err
+	}
+
+	return stage, nil
 }
 
 func (c deploymentStageQoveryAPI) Get(ctx context.Context, environmentID string, deploymentStageID string) (*deploymentstage.DeploymentStage, error) {
@@ -269,4 +295,37 @@ func (c deploymentStageQoveryAPI) waitForDeploymentStageDeletion(ctx context.Con
 			}
 		}
 	}
+}
+
+// identityOnlyDeploymentStage is the last resort when a freshly created stage cannot be
+// turned into a domain entity. It keeps what the resource layer actually needs — the ID —
+// and leans on the values the create was aimed at whenever the response's own are
+// unusable. Returns nil only when even that is not enough.
+func identityOnlyDeploymentStage(s *qovery.DeploymentStageResponse, requestedEnvironmentID string, requestedName string) *deploymentstage.DeploymentStage {
+	if s == nil {
+		return nil
+	}
+
+	params := deploymentstage.NewDeploymentStageParams{
+		DeploymentStageID: s.Id,
+		EnvironmentID:     s.Environment.Id,
+		Name:              s.GetName(),
+		Description:       s.GetDescription(),
+	}
+
+	if stage, err := deploymentstage.NewDeploymentStage(params); err == nil {
+		return stage
+	}
+
+	// A response whose environment reference or name is missing or mangled must not cost us
+	// the stage itself: retry with what the create asked for.
+	params.EnvironmentID = requestedEnvironmentID
+	params.Name = requestedName
+
+	stage, err := deploymentstage.NewDeploymentStage(params)
+	if err != nil {
+		return nil
+	}
+
+	return stage
 }

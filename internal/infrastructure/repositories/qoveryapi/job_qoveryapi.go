@@ -3,6 +3,8 @@ package qoveryapi
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
@@ -53,27 +55,45 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 		newJobId = newJob.LifecycleJobResponse.Id
 	}
 
+	// The job exists in Qovery from here on. partial carries what is already known about
+	// it, so that a failure in any of the calls below still reaches the Terraform state.
+	// Dropping it would orphan the job and make every later apply fail with "a job named
+	// X already exists".
+	partial, partialErr := newDomainJobFromQovery(newJob, request.DeploymentStageID, request.IsSkipped, request.AdvancedSettingsJson)
+	if partialErr != nil {
+		// The response cannot be represented as a domain job, but the job does exist. Fall
+		// back to its identifiers: writing the ID is the whole point here.
+		partial = identityOnlyJob(newJob, environmentID)
+	}
+
 	// Attach job to deployment stage
 	if len(request.DeploymentStageID) > 0 {
 		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, newJobId, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, response, err)
+			return partial, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, response, err)
 		}
 	}
 
 	// Update advanced settings
 	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.JOB, newJobId, request.AdvancedSettingsJson)
 	if err != nil {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, nil, err)
+		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, nil, err)
 	}
 
 	// Get job deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, newJobId).Execute()
 	if err != nil || (resp != nil && resp.StatusCode >= 400) {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, newJobId, resp, err)
+		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceJob, newJobId, resp, err)
 	}
 
-	return newDomainJobFromQovery(newJob, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newJobId), request.AdvancedSettingsJson)
+	newJobDomain, err := newDomainJobFromQovery(newJob, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newJobId), request.AdvancedSettingsJson)
+	if err != nil {
+		// Every call succeeded but the response still cannot be converted. The job exists,
+		// so hand back the fallback rather than losing it to the state.
+		return partial, err
+	}
+
+	return newJobDomain, nil
 }
 
 // Get calls Qovery's API to retrieve a job using the given jobID.
@@ -158,4 +178,47 @@ func (c jobQoveryAPI) Delete(ctx context.Context, jobID string) error {
 	}
 
 	return nil
+}
+
+// identityOnlyJob is the last resort when a freshly created job cannot be converted from
+// its API response — job.NewJob validates the schedule and source the API returned, which
+// can reject a response the server itself accepted. Only the identifiers matter: the
+// resource layer needs the ID in the Terraform state so the job gets tainted and replaced
+// rather than orphaned. Returns nil when even the identifiers make no sense.
+func identityOnlyJob(j *qovery.JobResponse, requestedEnvironmentID string) *job.Job {
+	if j == nil {
+		return nil
+	}
+
+	var id, environment, name string
+	switch {
+	case j.CronJobResponse != nil:
+		id, environment, name = j.CronJobResponse.Id, j.CronJobResponse.Environment.Id, j.CronJobResponse.Name
+	case j.LifecycleJobResponse != nil:
+		id, environment, name = j.LifecycleJobResponse.Id, j.LifecycleJobResponse.Environment.Id, j.LifecycleJobResponse.Name
+	default:
+		return nil
+	}
+
+	jobID, err := uuid.Parse(id)
+	if err != nil {
+		return nil
+	}
+
+	// Prefer the environment the response reports, but fall back to the one the create was
+	// aimed at: a response missing or mangling its environment reference must not cost us
+	// the whole entity.
+	environmentID, err := uuid.Parse(environment)
+	if err != nil {
+		environmentID, err = uuid.Parse(requestedEnvironmentID)
+		if err != nil {
+			return nil
+		}
+	}
+
+	return &job.Job{
+		ID:            jobID,
+		EnvironmentID: environmentID,
+		Name:          name,
+	}
 }

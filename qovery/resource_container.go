@@ -695,6 +695,13 @@ func (r containerResource) Create(ctx context.Context, req resource.CreateReques
 	cont, err := r.containerService.Create(ctx, plan.EnvironmentID.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container create", err.Error())
+		if cont == nil {
+			return
+		}
+		// The container was created in Qovery and only a follow-up call failed. Save it so
+		// Terraform tracks it and taints it for replacement, instead of leaving an orphan
+		// that makes every later apply fail with "a container named X already exists".
+		resp.Diagnostics.Append(resp.State.Set(ctx, convertDomainContainerToContainer(ctx, plan, cont))...)
 		return
 	}
 

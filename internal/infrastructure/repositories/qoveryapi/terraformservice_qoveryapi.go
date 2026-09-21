@@ -3,6 +3,8 @@ package qoveryapi
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
@@ -46,27 +48,45 @@ func (c terraformServiceQoveryAPI) Create(ctx context.Context, environmentID str
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, request.Name, resp, err)
 	}
 
+	// The terraform service exists in Qovery from here on. partial carries what is already
+	// known about it, so that a failure in any of the calls below still reaches the
+	// Terraform state. Dropping it would orphan the service and make every later apply fail
+	// with "a terraform named X already exists".
+	partial, partialErr := newDomainTerraformServiceFromQovery(newTerraform, request.DeploymentStageID, request.IsSkipped, request.AdvancedSettingsJson)
+	if partialErr != nil {
+		// The response cannot be represented as a domain terraform service, but it does
+		// exist. Fall back to its identifiers: writing the ID is the whole point here.
+		partial = identityOnlyTerraformService(newTerraform, environmentID)
+	}
+
 	// Attach terraform service to deployment stage
 	if len(request.DeploymentStageID) > 0 {
 		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, newTerraform.Id, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, request.Name, response, err)
+			return partial, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, request.Name, response, err)
 		}
 	}
 
 	// Update advanced settings
 	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.TERRAFORM, newTerraform.Id, request.AdvancedSettingsJson)
 	if err != nil {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, request.Name, nil, err)
+		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, request.Name, nil, err)
 	}
 
 	// Get terraform service deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, newTerraform.Id).Execute()
 	if err != nil || (resp != nil && resp.StatusCode >= 400) {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, newTerraform.Id, resp, err)
+		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, newTerraform.Id, resp, err)
 	}
 
-	return newDomainTerraformServiceFromQovery(newTerraform, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newTerraform.Id), request.AdvancedSettingsJson)
+	terraformSvc, err := newDomainTerraformServiceFromQovery(newTerraform, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newTerraform.Id), request.AdvancedSettingsJson)
+	if err != nil {
+		// Every call succeeded but the response still cannot be converted. The service
+		// exists, so hand back the fallback rather than losing it to the state.
+		return partial, err
+	}
+
+	return terraformSvc, nil
 }
 
 // Get calls Qovery's API to retrieve a terraform service using the given terraformServiceID.
@@ -174,4 +194,36 @@ func (c terraformServiceQoveryAPI) List(ctx context.Context, environmentID strin
 	}
 
 	return services, nil
+}
+
+// identityOnlyTerraformService is the last resort when a freshly created terraform service
+// cannot be converted from its API response. Only the identifiers matter: the resource
+// layer needs the ID in the Terraform state so the service gets tainted and replaced
+// rather than orphaned. Returns nil when even the identifiers make no sense.
+func identityOnlyTerraformService(t *qovery.TerraformResponse, requestedEnvironmentID string) *terraformservice.TerraformService {
+	if t == nil {
+		return nil
+	}
+
+	terraformServiceID, err := uuid.Parse(t.Id)
+	if err != nil {
+		return nil
+	}
+
+	// Prefer the environment the response reports, but fall back to the one the create was
+	// aimed at: a response missing or mangling its environment reference must not cost us
+	// the whole entity.
+	environmentID, err := uuid.Parse(t.Environment.Id)
+	if err != nil {
+		environmentID, err = uuid.Parse(requestedEnvironmentID)
+		if err != nil {
+			return nil
+		}
+	}
+
+	return &terraformservice.TerraformService{
+		ID:            terraformServiceID,
+		EnvironmentID: environmentID,
+		Name:          t.Name,
+	}
 }

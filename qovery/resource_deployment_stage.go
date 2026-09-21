@@ -114,6 +114,13 @@ func (r deploymentStageResource) Create(ctx context.Context, req resource.Create
 	deploymentStage, err := r.deploymentStageService.Create(ctx, plan.EnvironmentId.ValueString(), plan.toCreateServiceRequest())
 	if err != nil {
 		resp.Diagnostics.AddError("Error on deployment stage create", err.Error())
+		if deploymentStage == nil {
+			return
+		}
+		// The stage was created in Qovery and only a follow-up move failed. Save it so
+		// Terraform tracks it and taints it for replacement, instead of leaving an orphan
+		// that makes the next apply collide on the stage name.
+		resp.Diagnostics.Append(resp.State.Set(ctx, convertDomainDeploymentStageToDeploymentStage(deploymentStage, plan.Description))...)
 		return
 	}
 

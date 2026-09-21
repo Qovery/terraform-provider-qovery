@@ -31,9 +31,11 @@ func (s deploymentStageService) Create(ctx context.Context, environmentID string
 		return nil, errors.Wrap(err, deploymentstage.ErrFailedToCreateDeploymentStage.Error())
 	}
 
+	// The repository create is itself a create-then-configure sequence (the move calls), so
+	// it can report an error with the stage already created. Pass it through.
 	deploymentStageCreated, err := s.deploymentStageRepository.Create(ctx, environmentID, request.DeploymentStageUpsertRequest)
 	if err != nil {
-		return nil, errors.Wrap(err, deploymentstage.ErrFailedToCreateDeploymentStage.Error())
+		return deploymentStageCreated, errors.Wrap(err, deploymentstage.ErrFailedToCreateDeploymentStage.Error())
 	}
 
 	return deploymentStageCreated, nil

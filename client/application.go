@@ -83,21 +83,39 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, params.ApplicationRequest.Name, res, err)
 	}
 
+	// The application now exists in Qovery, but the create is not over: the deployment
+	// stage, variables, secrets and custom domains are set by separate API calls. Every
+	// failure below returns partial so the resource layer can persist the application ID.
+	// Returning nil leaves the application out of the Terraform state while it exists in
+	// Qovery, and the next apply fails with "an application named X already exists".
+	// The stage fields come from params rather than being left empty: the attach call
+	// below may well have succeeded before a later one failed, in which case the
+	// application really is attached to that stage in Qovery. The success path overwrites
+	// them with the values the API resolved.
+	partial := &ApplicationResponse{
+		ApplicationResponse:          application,
+		AdvancedSettingsJson:         params.AdvancedSettingsJson,
+		ApplicationDeploymentStageID: params.ApplicationDeploymentStageID,
+		ApplicationIsSkipped:         params.ApplicationIsSkipped,
+	}
+
 	// Attach application to deployment stage
 	if len(params.ApplicationDeploymentStageID) > 0 {
 		resp, err := attachServiceToDeploymentStage(ctx, c.api, params.ApplicationDeploymentStageID, application.Id, params.ApplicationIsSkipped)
 		if err != nil || resp.StatusCode >= 400 {
-			return nil, apierrors.NewCreateError(apierrors.APIResourceUpdateDeploymentStage, params.ApplicationDeploymentStageID, resp, err)
+			return partial, apierrors.NewCreateError(apierrors.APIResourceUpdateDeploymentStage, params.ApplicationDeploymentStageID, resp, err)
 		}
 	}
 
 	// Get application deployment stage
 	applicationDeploymentStage, resp, err := c.api.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, application.Id).Execute()
 	if err != nil || resp.StatusCode >= 400 {
-		return nil, apierrors.NewCreateError(apierrors.APIResourceApplication, application.Id, resp, err)
+		return partial, apierrors.NewCreateError(apierrors.APIResourceApplication, application.Id, resp, err)
 	}
+	partial.ApplicationDeploymentStageID = applicationDeploymentStage.Id
+	partial.ApplicationIsSkipped = getServiceIsSkipped(applicationDeploymentStage, application.Id)
 
-	return c.updateApplication(
+	applicationResponse, apiErr := c.updateApplication(
 		ctx,
 		application,
 		params.EnvironmentVariablesDiff,
@@ -116,6 +134,11 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 		params.ExternalSecretsDiff,
 		params.ExternalSecretFilesDiff,
 	)
+	if apiErr != nil {
+		return partial, apiErr
+	}
+
+	return applicationResponse, nil
 }
 
 func (c *Client) GetApplication(ctx context.Context, applicationID string, advancedSettingsFromState string, isTriggeredFromImport bool) (*ApplicationResponse, *apierrors.APIError) {

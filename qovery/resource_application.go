@@ -811,6 +811,13 @@ func (r applicationResource) Create(ctx context.Context, req resource.CreateRequ
 	application, apiErr := r.client.CreateApplication(ctx, ToString(plan.EnvironmentId), request)
 	if apiErr != nil {
 		resp.Diagnostics.AddError(apiErr.Summary(), apiErr.Detail())
+		if application == nil {
+			return
+		}
+		// The application was created in Qovery and only a follow-up call failed. Save it so
+		// Terraform tracks it and taints it for replacement, instead of leaving an orphan
+		// that makes every later apply fail with "an application named X already exists".
+		resp.Diagnostics.Append(resp.State.Set(ctx, convertResponseToApplication(ctx, plan, application))...)
 		return
 	}
 
