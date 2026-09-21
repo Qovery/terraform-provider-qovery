@@ -47,6 +47,15 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, request.Name, resp, err)
 	}
 
+	// The helm service exists in Qovery from here on. partial carries what is already
+	// known about it, so that a failure in any of the calls below still reaches the
+	// Terraform state. Dropping it would orphan the service and make every later apply
+	// fail with "a helm named X already exists".
+	partial, partialErr := newDomainHelmFromQovery(newHelm, request.DeploymentStageID, request.IsSkipped, request.AdvancedSettingsJson, nil)
+	if partialErr != nil {
+		partial = nil
+	}
+
 	// Create custom domains
 	if !request.CustomDomains.IsEmpty() {
 		for _, customDomain := range request.CustomDomains.Create {
@@ -60,7 +69,7 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 					}).
 				Execute()
 			if err != nil || resp.StatusCode >= 400 {
-				return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelmCustomDomain, request.Name, resp, err)
+				return partial, apierrors.NewCreateAPIError(apierrors.APIResourceHelmCustomDomain, request.Name, resp, err)
 			}
 		}
 	}
@@ -69,26 +78,26 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 	if len(request.DeploymentStageID) > 0 {
 		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, newHelm.Id, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, request.Name, response, err)
+			return partial, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, request.Name, response, err)
 		}
 	}
 
 	// Update advanced settings
 	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.HELM, newHelm.Id, request.AdvancedSettingsJson)
 	if err != nil {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, request.Name, nil, err)
+		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, request.Name, nil, err)
 	}
 
 	// Get helm deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, newHelm.Id).Execute()
 	if err != nil || (resp != nil && resp.StatusCode >= 400) {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, newHelm.Id, resp, err)
+		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, newHelm.Id, resp, err)
 	}
 
 	// Get custom domains
 	customDomains, resp, err := c.client.HelmCustomDomainAPI.ListHelmCustomDomain(ctx, newHelm.Id).Execute()
 	if err != nil || (resp != nil && resp.StatusCode >= 400) {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelmCustomDomain, newHelm.Id, resp, err)
+		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceHelmCustomDomain, newHelm.Id, resp, err)
 	}
 
 	return newDomainHelmFromQovery(newHelm, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newHelm.Id), request.AdvancedSettingsJson, customDomains)

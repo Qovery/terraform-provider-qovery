@@ -83,9 +83,11 @@ func (s helmService) Create(ctx context.Context, environmentID string, request h
 		return nil, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
 	}
 
+	// The repository create is itself a create-then-configure sequence, so it can report
+	// an error with the helm service already created. Pass whatever it returns through.
 	newHelm, err := s.helmRepository.Create(ctx, environmentID, request.HelmUpsertRequest)
 	if err != nil {
-		return nil, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
+		return newHelm, errors.Wrap(err, helm.ErrFailedToCreateHelm.Error())
 	}
 
 	overridesAuthorizedScopes := make(map[variable.Scope]struct{})

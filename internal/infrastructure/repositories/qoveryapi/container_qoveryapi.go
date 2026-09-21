@@ -46,6 +46,15 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, request.Name, resp, err)
 	}
 
+	// The container exists in Qovery from here on. partial carries what is already known
+	// about it, so that a failure in any of the calls below still reaches the Terraform
+	// state. Dropping it would orphan the container and make every later apply fail with
+	// "a container named X already exists".
+	partial, partialErr := newDomainContainerFromQovery(newContainer, request.DeploymentStageID, request.IsSkipped, request.AdvancedSettingsJson, nil)
+	if partialErr != nil {
+		partial = nil
+	}
+
 	// Create custom domains
 	if !request.CustomDomains.IsEmpty() {
 		for _, customDomain := range request.CustomDomains.Create {
@@ -59,7 +68,7 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 					}).
 				Execute()
 			if err != nil || resp.StatusCode >= 400 {
-				return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainerCustomDomain, request.Name, resp, err)
+				return partial, apierrors.NewCreateAPIError(apierrors.APIResourceContainerCustomDomain, request.Name, resp, err)
 			}
 		}
 	}
@@ -68,26 +77,26 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 	if len(request.DeploymentStageID) > 0 {
 		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, newContainer.Id, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, request.Name, response, err)
+			return partial, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, request.Name, response, err)
 		}
 	}
 
 	// Update advanced settings
 	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.CONTAINER, newContainer.Id, request.AdvancedSettingsJson)
 	if err != nil {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, newContainer.Id, nil, err)
+		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, newContainer.Id, nil, err)
 	}
 
 	// Get container deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, newContainer.Id).Execute()
 	if err != nil || (resp != nil && resp.StatusCode >= 400) {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, newContainer.Id, resp, err)
+		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, newContainer.Id, resp, err)
 	}
 
 	// Get custom domains
 	customDomains, resp, err := c.client.ContainerCustomDomainAPI.ListContainerCustomDomain(ctx, newContainer.Id).Execute()
 	if err != nil || (resp != nil && resp.StatusCode >= 400) {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceContainerCustomDomain, newContainer.Id, resp, err)
+		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceContainerCustomDomain, newContainer.Id, resp, err)
 	}
 
 	return newDomainContainerFromQovery(newContainer, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newContainer.Id), request.AdvancedSettingsJson, customDomains)

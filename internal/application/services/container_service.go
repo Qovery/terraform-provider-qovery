@@ -71,9 +71,11 @@ func (s containerService) Create(ctx context.Context, environmentID string, requ
 		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
+	// The repository create is itself a create-then-configure sequence, so it can report
+	// an error with the container already created. Pass whatever it returns through.
 	cont, err := s.containerRepository.Create(ctx, environmentID, request.ContainerUpsertRequest)
 	if err != nil {
-		return nil, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
+		return cont, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
 	}
 
 	// The container now exists in Qovery, but the create is not over: variables, secrets

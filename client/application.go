@@ -88,9 +88,15 @@ func (c *Client) CreateApplication(ctx context.Context, environmentID string, pa
 	// failure below returns partial so the resource layer can persist the application ID.
 	// Returning nil leaves the application out of the Terraform state while it exists in
 	// Qovery, and the next apply fails with "an application named X already exists".
+	// The stage fields come from params rather than being left empty: the attach call
+	// below may well have succeeded before a later one failed, in which case the
+	// application really is attached to that stage in Qovery. The success path overwrites
+	// them with the values the API resolved.
 	partial := &ApplicationResponse{
-		ApplicationResponse:  application,
-		AdvancedSettingsJson: params.AdvancedSettingsJson,
+		ApplicationResponse:          application,
+		AdvancedSettingsJson:         params.AdvancedSettingsJson,
+		ApplicationDeploymentStageID: params.ApplicationDeploymentStageID,
+		ApplicationIsSkipped:         params.ApplicationIsSkipped,
 	}
 
 	// Attach application to deployment stage

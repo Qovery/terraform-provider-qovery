@@ -95,3 +95,73 @@ func TestHelmService_Create_ReturnsNilWhenCreateFails(t *testing.T) {
 	assert.ErrorContains(t, err, createErr.Error())
 	assert.Nil(t, newHelm)
 }
+
+// The repository create is itself a create-then-configure sequence, so the helm service
+// may already exist in Qovery when it reports an error.
+func TestHelmService_Create_PropagatesPartialHelmFromRepository(t *testing.T) {
+	t.Parallel()
+
+	environmentID := uuid.New()
+	created := newCreatedHelm(environmentID)
+	repositoryErr := errors.New("500 Internal Server Error on deployment stage")
+
+	helmRepository := &repomocks.HelmRepository{}
+	helmRepository.On("Create", mock.Anything, environmentID.String(), mock.Anything).
+		Return(created, repositoryErr)
+
+	service, err := services.NewHelmService(
+		helmRepository,
+		&servicemocks.DeploymentService{},
+		&servicemocks.VariableService{},
+		&servicemocks.SecretService{},
+		deploymentrestriction.DeploymentRestrictionService{},
+		stubExternalSecretRepository{},
+		stubExternalSecretFileRepository{},
+	)
+	require.NoError(t, err)
+
+	newHelm, err := service.Create(context.Background(), environmentID.String(), newValidHelmUpsertServiceRequest())
+
+	assert.ErrorContains(t, err, repositoryErr.Error())
+	require.NotNil(t, newHelm, "the repository reported the helm service as created, the service must pass it through")
+	assert.Equal(t, created.ID, newHelm.ID)
+}
+
+// The refresh is the last post-create step, after variables and secrets are written.
+func TestHelmService_Create_ReturnsCreatedHelmWhenRefreshFails(t *testing.T) {
+	t.Parallel()
+
+	environmentID := uuid.New()
+	created := newCreatedHelm(environmentID)
+	refreshErr := errors.New("503 Service Unavailable while listing variables")
+
+	helmRepository := &repomocks.HelmRepository{}
+	helmRepository.On("Create", mock.Anything, environmentID.String(), mock.Anything).
+		Return(created, nil)
+
+	variableService := &servicemocks.VariableService{}
+	variableService.On("Update", mock.Anything, created.ID.String(), mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, nil)
+	variableService.On("List", mock.Anything, created.ID.String()).Return(nil, refreshErr)
+
+	secretService := &servicemocks.SecretService{}
+	secretService.On("Update", mock.Anything, created.ID.String(), mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, nil)
+
+	service, err := services.NewHelmService(
+		helmRepository,
+		&servicemocks.DeploymentService{},
+		variableService,
+		secretService,
+		deploymentrestriction.DeploymentRestrictionService{},
+		stubExternalSecretRepository{},
+		stubExternalSecretFileRepository{},
+	)
+	require.NoError(t, err)
+
+	newHelm, err := service.Create(context.Background(), environmentID.String(), newValidHelmUpsertServiceRequest())
+
+	assert.ErrorContains(t, err, refreshErr.Error())
+	require.NotNil(t, newHelm, "variables and secrets were already written, the helm service must still reach the state")
+	assert.Equal(t, created.ID, newHelm.ID)
+}

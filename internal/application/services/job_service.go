@@ -83,9 +83,11 @@ func (s jobService) Create(ctx context.Context, environmentID string, request jo
 		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
 
+	// The repository create is itself a create-then-configure sequence, so it can report
+	// an error with the job already created. Pass whatever it returns through.
 	newJob, err := s.jobRepository.Create(ctx, environmentID, request.JobUpsertRequest)
 	if err != nil {
-		return nil, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
+		return newJob, errors.Wrap(err, job.ErrFailedToCreateJob.Error())
 	}
 
 	overridesAuthorizedScopes := make(map[variable.Scope]struct{})

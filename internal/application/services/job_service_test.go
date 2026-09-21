@@ -113,3 +113,73 @@ func TestJobService_Create_ReturnsNilWhenCreateFails(t *testing.T) {
 	assert.ErrorContains(t, err, createErr.Error())
 	assert.Nil(t, newJob)
 }
+
+// The repository create is itself a create-then-configure sequence, so the job may
+// already exist in Qovery when it reports an error.
+func TestJobService_Create_PropagatesPartialJobFromRepository(t *testing.T) {
+	t.Parallel()
+
+	environmentID := uuid.New()
+	created := newCreatedJob(environmentID)
+	repositoryErr := errors.New("500 Internal Server Error on deployment stage")
+
+	jobRepository := &repomocks.JobRepository{}
+	jobRepository.On("Create", mock.Anything, environmentID.String(), mock.Anything).
+		Return(created, repositoryErr)
+
+	service, err := services.NewJobService(
+		jobRepository,
+		&servicemocks.DeploymentService{},
+		&servicemocks.VariableService{},
+		&servicemocks.SecretService{},
+		deploymentrestriction.DeploymentRestrictionService{},
+		stubExternalSecretRepository{},
+		stubExternalSecretFileRepository{},
+	)
+	require.NoError(t, err)
+
+	newJob, err := service.Create(context.Background(), environmentID.String(), newValidJobUpsertServiceRequest())
+
+	assert.ErrorContains(t, err, repositoryErr.Error())
+	require.NotNil(t, newJob, "the repository reported the job as created, the service must pass it through")
+	assert.Equal(t, created.ID, newJob.ID)
+}
+
+// The refresh is the last post-create step, after variables and secrets are written.
+func TestJobService_Create_ReturnsCreatedJobWhenRefreshFails(t *testing.T) {
+	t.Parallel()
+
+	environmentID := uuid.New()
+	created := newCreatedJob(environmentID)
+	refreshErr := errors.New("503 Service Unavailable while listing variables")
+
+	jobRepository := &repomocks.JobRepository{}
+	jobRepository.On("Create", mock.Anything, environmentID.String(), mock.Anything).
+		Return(created, nil)
+
+	variableService := &servicemocks.VariableService{}
+	variableService.On("Update", mock.Anything, created.ID.String(), mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, nil)
+	variableService.On("List", mock.Anything, created.ID.String()).Return(nil, refreshErr)
+
+	secretService := &servicemocks.SecretService{}
+	secretService.On("Update", mock.Anything, created.ID.String(), mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, nil)
+
+	service, err := services.NewJobService(
+		jobRepository,
+		&servicemocks.DeploymentService{},
+		variableService,
+		secretService,
+		deploymentrestriction.DeploymentRestrictionService{},
+		stubExternalSecretRepository{},
+		stubExternalSecretFileRepository{},
+	)
+	require.NoError(t, err)
+
+	newJob, err := service.Create(context.Background(), environmentID.String(), newValidJobUpsertServiceRequest())
+
+	assert.ErrorContains(t, err, refreshErr.Error())
+	require.NotNil(t, newJob, "variables and secrets were already written, the job must still reach the state")
+	assert.Equal(t, created.ID, newJob.ID)
+}

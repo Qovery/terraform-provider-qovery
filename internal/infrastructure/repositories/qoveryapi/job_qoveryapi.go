@@ -53,24 +53,33 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 		newJobId = newJob.LifecycleJobResponse.Id
 	}
 
+	// The job exists in Qovery from here on. partial carries what is already known about
+	// it, so that a failure in any of the calls below still reaches the Terraform state.
+	// Dropping it would orphan the job and make every later apply fail with "a job named
+	// X already exists".
+	partial, partialErr := newDomainJobFromQovery(newJob, request.DeploymentStageID, request.IsSkipped, request.AdvancedSettingsJson)
+	if partialErr != nil {
+		partial = nil
+	}
+
 	// Attach job to deployment stage
 	if len(request.DeploymentStageID) > 0 {
 		response, err := attachServiceToDeploymentStage(ctx, c.client, request.DeploymentStageID, newJobId, request.IsSkipped)
 		if err != nil || (response != nil && response.StatusCode >= 400) {
-			return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, response, err)
+			return partial, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, response, err)
 		}
 	}
 
 	// Update advanced settings
 	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.JOB, newJobId, request.AdvancedSettingsJson)
 	if err != nil {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, nil, err)
+		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, nil, err)
 	}
 
 	// Get job deployment stage
 	deploymentStage, resp, err := c.client.DeploymentStageMainCallsAPI.GetServiceDeploymentStage(ctx, newJobId).Execute()
 	if err != nil || (resp != nil && resp.StatusCode >= 400) {
-		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, newJobId, resp, err)
+		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceJob, newJobId, resp, err)
 	}
 
 	return newDomainJobFromQovery(newJob, deploymentStage.Id, getServiceIsSkipped(deploymentStage, newJobId), request.AdvancedSettingsJson)

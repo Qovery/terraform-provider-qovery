@@ -109,3 +109,74 @@ func TestContainerService_Create_ReturnsNilWhenCreateFails(t *testing.T) {
 	assert.ErrorContains(t, err, createErr.Error())
 	assert.Nil(t, cont)
 }
+
+// The repository create is itself a create-then-configure sequence: the container may
+// already exist in Qovery when the repository returns an error. The service must pass
+// that container through rather than flattening it to nil.
+func TestContainerService_Create_PropagatesPartialContainerFromRepository(t *testing.T) {
+	t.Parallel()
+
+	environmentID := uuid.New()
+	created := newCreatedContainer(environmentID)
+	repositoryErr := errors.New("500 Internal Server Error on deployment stage")
+
+	containerRepository := &repomocks.ContainerRepository{}
+	containerRepository.On("Create", mock.Anything, environmentID.String(), mock.Anything).
+		Return(created, repositoryErr)
+
+	service, err := services.NewContainerService(
+		containerRepository,
+		&servicemocks.DeploymentService{},
+		&servicemocks.VariableService{},
+		&servicemocks.SecretService{},
+		stubExternalSecretRepository{},
+		stubExternalSecretFileRepository{},
+	)
+	require.NoError(t, err)
+
+	cont, err := service.Create(context.Background(), environmentID.String(), newValidContainerUpsertServiceRequest())
+
+	assert.ErrorContains(t, err, repositoryErr.Error())
+	require.NotNil(t, cont, "the repository reported the container as created, the service must pass it through")
+	assert.Equal(t, created.ID, cont.ID)
+}
+
+// The refresh is the last post-create step. It runs after variables and secrets have
+// been written, so a failure there must not drop the container either.
+func TestContainerService_Create_ReturnsCreatedContainerWhenRefreshFails(t *testing.T) {
+	t.Parallel()
+
+	environmentID := uuid.New()
+	created := newCreatedContainer(environmentID)
+	refreshErr := errors.New("503 Service Unavailable while listing variables")
+
+	containerRepository := &repomocks.ContainerRepository{}
+	containerRepository.On("Create", mock.Anything, environmentID.String(), mock.Anything).
+		Return(created, nil)
+
+	variableService := &servicemocks.VariableService{}
+	variableService.On("Update", mock.Anything, created.ID.String(), mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, nil)
+	variableService.On("List", mock.Anything, created.ID.String()).
+		Return(nil, refreshErr)
+
+	secretService := &servicemocks.SecretService{}
+	secretService.On("Update", mock.Anything, created.ID.String(), mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).
+		Return(nil, nil)
+
+	service, err := services.NewContainerService(
+		containerRepository,
+		&servicemocks.DeploymentService{},
+		variableService,
+		secretService,
+		stubExternalSecretRepository{},
+		stubExternalSecretFileRepository{},
+	)
+	require.NoError(t, err)
+
+	cont, err := service.Create(context.Background(), environmentID.String(), newValidContainerUpsertServiceRequest())
+
+	assert.ErrorContains(t, err, refreshErr.Error())
+	require.NotNil(t, cont, "variables and secrets were already written, the container must still reach the state")
+	assert.Equal(t, created.ID, cont.ID)
+}
