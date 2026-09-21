@@ -90,9 +90,9 @@ func TestDeploymentStageQoveryAPI_Create_FallsBackToRequestedEnvironmentWhenResp
 	environmentID := uuid.New().String()
 	malformed := "not-a-uuid"
 
-	// A mangled environment reference on top of a malformed ordering reference: the first
-	// construction fails on the ordering, the fallback would then fail on the environment
-	// if it trusted the response alone.
+	// NewDeploymentStage parses the environment before the ordering, so this mangled
+	// environment reference is what fails the first construction. The fallback would fail
+	// on it too if it trusted the response alone instead of the requested environment.
 	payload := newQoveryDeploymentStageResponse(stageID, "broken-env-ref")
 
 	client := newAPIClientWithTransport(createThenFailRoundTripper{
@@ -112,4 +112,34 @@ func TestDeploymentStageQoveryAPI_Create_FallsBackToRequestedEnvironmentWhenResp
 	require.NotNil(t, stage, "a broken environment reference must not cost us the created stage")
 	assert.Equal(t, stageID, stage.ID.String())
 	assert.Equal(t, environmentID, stage.EnvironmentID.String(), "expected the environment the create was aimed at")
+}
+
+// Every call can succeed and the final conversion still fail, because it reads the same
+// unusable response the first construction choked on. That is the one path where the
+// fallback is the only thing standing between a created stage and an orphan.
+func TestDeploymentStageQoveryAPI_Create_ReturnsFallbackWhenFinalConversionFails(t *testing.T) {
+	t.Parallel()
+
+	stageID := uuid.New().String()
+	environmentID := uuid.New().String()
+	isAfter := uuid.New().String()
+
+	// Nothing fails at the API level here; the broken environment reference is what makes
+	// both the first and the final NewDeploymentStage call fail.
+	client := newAPIClientWithTransport(alwaysOKRoundTripper{
+		payload: newQoveryDeploymentStageResponse(stageID, "broken-env-ref"),
+	})
+
+	repository, err := newDeploymentStageQoveryAPI(client)
+	require.NoError(t, err)
+
+	stage, err := repository.Create(context.Background(), environmentID, deploymentstage.UpsertRepositoryRequest{
+		Name:    "TERRAFORM DEFAULT",
+		IsAfter: &isAfter,
+	})
+
+	assert.Error(t, err)
+	require.NotNil(t, stage, "the stage was created and moved, it must not be lost on the final conversion")
+	assert.Equal(t, stageID, stage.ID.String())
+	assert.Equal(t, environmentID, stage.EnvironmentID.String())
 }

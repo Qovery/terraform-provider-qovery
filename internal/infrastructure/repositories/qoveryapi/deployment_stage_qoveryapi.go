@@ -75,7 +75,7 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentID stri
 		}
 	}
 
-	return deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
+	stage, err := deploymentstage.NewDeploymentStage(deploymentstage.NewDeploymentStageParams{
 		DeploymentStageID: deploymentStageCreated.Id,
 		EnvironmentID:     deploymentStageCreated.Environment.Id,
 		Name:              deploymentStageCreated.GetName(),
@@ -83,6 +83,13 @@ func (c deploymentStageQoveryAPI) Create(ctx context.Context, environmentID stri
 		IsAfter:           request.IsAfter,
 		IsBefore:          request.IsBefore,
 	})
+	if err != nil {
+		// Every call succeeded but the response still cannot be converted. The stage exists,
+		// so hand back the fallback rather than losing it to the state.
+		return partial, err
+	}
+
+	return stage, nil
 }
 
 func (c deploymentStageQoveryAPI) Get(ctx context.Context, environmentID string, deploymentStageID string) (*deploymentstage.DeploymentStage, error) {

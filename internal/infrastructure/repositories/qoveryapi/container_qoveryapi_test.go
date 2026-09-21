@@ -55,6 +55,26 @@ func (rt createThenFailRoundTripper) RoundTrip(req *http.Request) (*http.Respons
 	}, nil
 }
 
+// alwaysOKRoundTripper answers every call with the same payload, so a repository Create
+// can run all the way to its final conversion without any API failure.
+type alwaysOKRoundTripper struct {
+	payload any
+}
+
+func (rt alwaysOKRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	body, err := json.Marshal(rt.payload)
+	if err != nil {
+		return nil, err
+	}
+
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body:       io.NopCloser(bytes.NewReader(body)),
+		Request:    req,
+	}, nil
+}
+
 func newAPIClientWithTransport(rt http.RoundTripper) *qovery.APIClient {
 	cfg := qovery.NewConfiguration()
 	cfg.HTTPClient = &http.Client{Transport: rt}
