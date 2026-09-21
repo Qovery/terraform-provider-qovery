@@ -395,8 +395,12 @@ func HelmValuesOverrideFromDomainHelmValuesOverride(ctx context.Context, h helm.
 		helmValuesOverrideSetJson = convertSetToHelmValuesOverrideSet(ctx, h.SetJson, &state.HelmValuesOverrideSetJson)
 	}
 
+	// File is nil on the identity-only helm the repository returns when a freshly created
+	// helm service cannot be converted from its API response. That entity is still
+	// written to state so Terraform taints the service, so the conversion must not
+	// dereference it.
 	var gitRepository *HelmValuesGitRepository
-	if h.File.GitRepository != nil {
+	if h.File != nil && h.File.GitRepository != nil {
 		gitToken := ""
 		if h.File.GitRepository.GitToken != nil {
 			gitToken = *h.File.GitRepository.GitToken
@@ -411,7 +415,7 @@ func HelmValuesOverrideFromDomainHelmValuesOverride(ctx context.Context, h helm.
 	}
 
 	var raw *map[string]HelmValuesRaw
-	if h.File.Raw != nil {
+	if h.File != nil && h.File.Raw != nil {
 		if (state != nil && state.HelmValuesOverrideFile != nil) || len(h.File.Raw.Values) != 0 {
 			helmValuesRaw := make(map[string]HelmValuesRaw, len(h.File.Raw.Values))
 
