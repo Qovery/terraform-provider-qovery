@@ -30,7 +30,11 @@ type createThenFailRoundTripper struct {
 }
 
 func (rt createThenFailRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
-	if req.Method == http.MethodPost && strings.Contains(req.URL.Path, rt.createPathFragment) {
+	// Match the creation endpoint exactly. A "contains" check would also catch the
+	// follow-up calls the repository makes on the new service (POST
+	// /container/{id}/customDomain, /container/{id}/advancedSettings) and answer them with
+	// a 200, which would quietly defeat the point of this harness.
+	if req.Method == http.MethodPost && strings.HasSuffix(req.URL.Path, rt.createPathFragment) {
 		body, err := json.Marshal(rt.createdPayload)
 		if err != nil {
 			return nil, err
@@ -142,4 +146,42 @@ func TestContainerQoveryAPI_Create_ReturnsNilWhenCreationCallFails(t *testing.T)
 
 	assert.Error(t, err)
 	assert.Nil(t, cont)
+}
+
+// A response the API accepted can still be impossible to convert into a domain container
+// (unknown enum, a field the provider cannot parse, a validation the domain applies but
+// the API does not). The container exists all the same, so the repository must fall back
+// to its identifiers rather than return nil and orphan it.
+func TestContainerQoveryAPI_Create_ReturnsIdentityOnlyContainerWhenConversionFails(t *testing.T) {
+	t.Parallel()
+
+	containerID := uuid.New().String()
+	environmentID := uuid.New().String()
+	registryID := uuid.New().String()
+
+	// MaxRunningInstances is `validate:"required"` on the domain entity, so zero makes the
+	// conversion fail while the generated client still accepts the payload.
+	payload := newQoveryContainerResponse(containerID, environmentID, registryID)
+	payload.MaxRunningInstances = 0
+
+	client := newAPIClientWithTransport(createThenFailRoundTripper{
+		createPathFragment: "/container",
+		createdPayload:     payload,
+	})
+
+	repository, err := newContainerQoveryAPI(client)
+	require.NoError(t, err)
+
+	cont, err := repository.Create(context.Background(), environmentID, container.UpsertRepositoryRequest{
+		RegistryID:           registryID,
+		Name:                 "worker",
+		ImageName:            "xfunctional/imhotep/backend",
+		Tag:                  "latest",
+		DeploymentStageID:    uuid.New().String(),
+		AdvancedSettingsJson: "{}",
+	})
+
+	assert.Error(t, err)
+	require.NotNil(t, cont, "the container exists even though its response could not be converted")
+	assert.Equal(t, containerID, cont.ID.String())
 }

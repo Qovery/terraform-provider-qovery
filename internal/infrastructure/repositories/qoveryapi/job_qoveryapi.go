@@ -3,6 +3,8 @@ package qoveryapi
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
@@ -59,7 +61,9 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 	// X already exists".
 	partial, partialErr := newDomainJobFromQovery(newJob, request.DeploymentStageID, request.IsSkipped, request.AdvancedSettingsJson)
 	if partialErr != nil {
-		partial = nil
+		// The response cannot be represented as a domain job, but the job does exist. Fall
+		// back to its identifiers: writing the ID is the whole point here.
+		partial = identityOnlyJob(newJob)
 	}
 
 	// Attach job to deployment stage
@@ -167,4 +171,41 @@ func (c jobQoveryAPI) Delete(ctx context.Context, jobID string) error {
 	}
 
 	return nil
+}
+
+// identityOnlyJob is the last resort when a freshly created job cannot be converted from
+// its API response — job.NewJob validates the schedule and source the API returned, which
+// can reject a response the server itself accepted. Only the identifiers matter: the
+// resource layer needs the ID in the Terraform state so the job gets tainted and replaced
+// rather than orphaned. Returns nil when even the identifiers make no sense.
+func identityOnlyJob(j *qovery.JobResponse) *job.Job {
+	if j == nil {
+		return nil
+	}
+
+	var id, environment, name string
+	switch {
+	case j.CronJobResponse != nil:
+		id, environment, name = j.CronJobResponse.Id, j.CronJobResponse.Environment.Id, j.CronJobResponse.Name
+	case j.LifecycleJobResponse != nil:
+		id, environment, name = j.LifecycleJobResponse.Id, j.LifecycleJobResponse.Environment.Id, j.LifecycleJobResponse.Name
+	default:
+		return nil
+	}
+
+	jobID, err := uuid.Parse(id)
+	if err != nil {
+		return nil
+	}
+
+	environmentID, err := uuid.Parse(environment)
+	if err != nil {
+		return nil
+	}
+
+	return &job.Job{
+		ID:            jobID,
+		EnvironmentID: environmentID,
+		Name:          name,
+	}
 }

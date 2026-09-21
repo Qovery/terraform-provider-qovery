@@ -3,6 +3,8 @@ package qoveryapi
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
@@ -52,7 +54,9 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 	// "a container named X already exists".
 	partial, partialErr := newDomainContainerFromQovery(newContainer, request.DeploymentStageID, request.IsSkipped, request.AdvancedSettingsJson, nil)
 	if partialErr != nil {
-		partial = nil
+		// The response cannot be represented as a domain container, but the container does
+		// exist. Fall back to its identifiers: writing the ID is the whole point here.
+		partial = identityOnlyContainer(newContainer)
 	}
 
 	// Create custom domains
@@ -236,4 +240,30 @@ func (c containerQoveryAPI) Delete(ctx context.Context, containerID string) erro
 	}
 
 	return nil
+}
+
+// identityOnlyContainer is the last resort when a freshly created container cannot be
+// converted from its API response. Only the identifiers matter: the resource layer needs
+// the ID in the Terraform state so the container gets tainted and replaced rather than
+// orphaned. Returns nil when even the identifiers make no sense.
+func identityOnlyContainer(c *qovery.ContainerResponse) *container.Container {
+	if c == nil {
+		return nil
+	}
+
+	containerID, err := uuid.Parse(c.Id)
+	if err != nil {
+		return nil
+	}
+
+	environmentID, err := uuid.Parse(c.Environment.Id)
+	if err != nil {
+		return nil
+	}
+
+	return &container.Container{
+		ID:            containerID,
+		EnvironmentID: environmentID,
+		Name:          c.Name,
+	}
 }

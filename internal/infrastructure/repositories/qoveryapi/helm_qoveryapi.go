@@ -3,6 +3,8 @@ package qoveryapi
 import (
 	"context"
 
+	"github.com/google/uuid"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 
@@ -53,7 +55,9 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 	// fail with "a helm named X already exists".
 	partial, partialErr := newDomainHelmFromQovery(newHelm, request.DeploymentStageID, request.IsSkipped, request.AdvancedSettingsJson, nil)
 	if partialErr != nil {
-		partial = nil
+		// The response cannot be represented as a domain helm service, but it does exist.
+		// Fall back to its identifiers: writing the ID is the whole point here.
+		partial = identityOnlyHelm(newHelm)
 	}
 
 	// Create custom domains
@@ -236,4 +240,30 @@ func (c helmQoveryAPI) Delete(ctx context.Context, helmID string) error {
 	}
 
 	return nil
+}
+
+// identityOnlyHelm is the last resort when a freshly created helm service cannot be
+// converted from its API response. Only the identifiers matter: the resource layer needs
+// the ID in the Terraform state so the service gets tainted and replaced rather than
+// orphaned. Returns nil when even the identifiers make no sense.
+func identityOnlyHelm(h *qovery.HelmResponse) *helm.Helm {
+	if h == nil {
+		return nil
+	}
+
+	helmID, err := uuid.Parse(h.Id)
+	if err != nil {
+		return nil
+	}
+
+	environmentID, err := uuid.Parse(h.Environment.Id)
+	if err != nil {
+		return nil
+	}
+
+	return &helm.Helm{
+		ID:            helmID,
+		EnvironmentID: environmentID,
+		Name:          h.Name,
+	}
 }
