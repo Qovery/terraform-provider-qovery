@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -185,7 +186,7 @@ func (s environmentService) Delete(ctx context.Context, environmentID string) er
 		return nil
 	}
 
-	if err := wait(ctx, waitFinalStateFunc(s.environmentDeploymentService, environmentID)); err != nil {
+	if err := waitWithDefaultTimeout(ctx, waitFinalStateFunc(s.environmentDeploymentService, environmentID), fmt.Sprintf("environment %s to reach a final state", environmentID)); err != nil {
 		return errors.Wrap(err, environment.ErrFailedToDeleteEnvironment.Error())
 	}
 
@@ -193,7 +194,7 @@ func (s environmentService) Delete(ctx context.Context, environmentID string) er
 		return errors.Wrap(err, environment.ErrFailedToDeleteEnvironment.Error())
 	}
 
-	if err := wait(ctx, waitNotFoundFunc(s.environmentDeploymentService, environmentID)); err != nil {
+	if err := waitWithDefaultTimeout(ctx, waitNotFoundFunc(s.environmentDeploymentService, environmentID), fmt.Sprintf("environment %s to be deleted", environmentID)); err != nil {
 		return errors.Wrap(err, environment.ErrFailedToDeleteEnvironment.Error())
 	}
 

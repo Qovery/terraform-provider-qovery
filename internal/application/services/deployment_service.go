@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,8 +14,9 @@ import (
 )
 
 const (
-	defaultWaitTimeout    = 1 * time.Hour
-	defaultWaitMaxRetries = 5
+	defaultWaitTimeout      = 1 * time.Hour
+	defaultWaitPollInterval = 10 * time.Second
+	defaultWaitMaxRetries   = 5
 )
 
 type waitFunc func(ctx context.Context) (bool, error)
@@ -87,7 +89,7 @@ func (c deploymentService) Deploy(ctx context.Context, resourceID string, versio
 		}
 	}
 
-	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateDeployed)); err != nil {
+	if err := c.waitDesiredState(ctx, resourceID, status.StateDeployed); err != nil {
 		return nil, errors.Wrap(err, deployment.ErrFailedToDeploy.Error())
 	}
 
@@ -100,7 +102,7 @@ func (c deploymentService) Redeploy(ctx context.Context, resourceID string) (*st
 		return nil, errors.Wrap(err, deployment.ErrFailedToRedeploy.Error())
 	}
 
-	if err := c.wait(ctx, c.waitFinalStateFunc(resourceID)); err != nil {
+	if err := c.waitFinalState(ctx, resourceID); err != nil {
 		return nil, errors.Wrap(err, deployment.ErrFailedToRedeploy.Error())
 	}
 
@@ -119,7 +121,7 @@ func (c deploymentService) Redeploy(ctx context.Context, resourceID string) (*st
 		}
 	}
 
-	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateDeployed)); err != nil {
+	if err := c.waitDesiredState(ctx, resourceID, status.StateDeployed); err != nil {
 		return nil, errors.Wrap(err, deployment.ErrFailedToRedeploy.Error())
 	}
 
@@ -147,7 +149,7 @@ func (c deploymentService) Stop(ctx context.Context, resourceID string) (*status
 		}
 	}
 
-	if err := c.wait(ctx, c.waitDesiredStateFunc(resourceID, status.StateStopped)); err != nil {
+	if err := c.waitDesiredState(ctx, resourceID, status.StateStopped); err != nil {
 		return nil, errors.Wrap(err, deployment.ErrFailedToStop.Error())
 	}
 
@@ -167,8 +169,14 @@ func (c deploymentService) checkResourceID(resourceID string) error {
 	return nil
 }
 
-func (c deploymentService) wait(ctx context.Context, f waitFunc) error {
-	return wait(ctx, f)
+func (c deploymentService) waitDesiredState(ctx context.Context, resourceID string, desiredState status.State) error {
+	subject := fmt.Sprintf("resource %s to reach state %s", resourceID, desiredState)
+	return waitWithDefaultTimeout(ctx, c.waitDesiredStateFunc(resourceID, desiredState), subject)
+}
+
+func (c deploymentService) waitFinalState(ctx context.Context, resourceID string) error {
+	subject := fmt.Sprintf("resource %s to reach a final state", resourceID)
+	return waitWithDefaultTimeout(ctx, c.waitFinalStateFunc(resourceID), subject)
 }
 
 func (c deploymentService) waitDesiredStateFunc(resourceID string, desiredState status.State) waitFunc {
@@ -224,9 +232,15 @@ func waitNotFoundFunc(deploymentRepository deployment.Repository, resourceID str
 	}
 }
 
-func wait(ctx context.Context, f waitFunc) error {
-	timeout := new(defaultWaitTimeout)
+func waitWithDefaultTimeout(ctx context.Context, f waitFunc, subject string) error {
+	return wait(ctx, f, subject, defaultWaitTimeout, defaultWaitPollInterval)
+}
 
+// wait polls f every pollInterval until it reports ok, returns an error, the context is done,
+// or timeout elapses. Running out of time is a failure: returning nil here would let callers
+// record a resource that never converged as successfully deployed. subject describes what is
+// awaited (e.g. "resource <id> to reach state DEPLOYED") and is embedded in the timeout error.
+func wait(ctx context.Context, f waitFunc, subject string, timeout, pollInterval time.Duration) error {
 	// Run the function once before waiting
 	ok, err := f(ctx)
 	if err != nil {
@@ -236,17 +250,17 @@ func wait(ctx context.Context, f waitFunc) error {
 		return nil
 	}
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
-	timeoutTicker := time.NewTicker(*timeout)
-	defer timeoutTicker.Stop()
+	timeoutTimer := time.NewTimer(timeout)
+	defer timeoutTimer.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-timeoutTicker.C:
-			return nil
+		case <-timeoutTimer.C:
+			return fmt.Errorf("%w: waited %s for %s", deployment.ErrWaitTimeout, timeout, subject)
 		case <-ticker.C:
 			ok, err := f(ctx)
 			if err != nil {

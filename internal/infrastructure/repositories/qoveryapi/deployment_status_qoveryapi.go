@@ -28,12 +28,8 @@ func newDeploymentStatusQoveryAPI(client *qovery.APIClient) (newdeployment.Deplo
 
 func (d deploymentStatusQoveryAPI) WaitForTerminatedState(ctx context.Context, environmentID uuid.UUID) error {
 	checkEnvironmentStatus := d.newEnvironmentWaitForTerminalStateBeforeDeploying(environmentID)
-	err := waitWithDefaultTimeout(ctx, checkEnvironmentStatus)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	subject := fmt.Sprintf("environment %s to reach a terminal state", environmentID)
+	return waitWithDefaultTimeout(ctx, checkEnvironmentStatus, subject)
 }
 
 func (d deploymentStatusQoveryAPI) WaitForExpectedDesiredState(ctx context.Context, newDeployment newdeployment.Deployment) error {
@@ -44,12 +40,8 @@ func (d deploymentStatusQoveryAPI) WaitForExpectedDesiredState(ctx context.Conte
 		return ctx.Err()
 	case <-time.After(5 * time.Second):
 	}
-	err := waitWithDefaultTimeout(ctx, checkEnvironmentStatus)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	subject := fmt.Sprintf("environment %s to reach state %s", *newDeployment.EnvironmentID, newDeployment.DesiredState)
+	return waitWithDefaultTimeout(ctx, checkEnvironmentStatus, subject)
 }
 
 func (d deploymentStatusQoveryAPI) CheckEnvironmentExists(ctx context.Context, environmentID uuid.UUID) (error, int) {
@@ -64,14 +56,22 @@ func (d deploymentStatusQoveryAPI) CheckEnvironmentExists(ctx context.Context, e
 	return nil, response.StatusCode
 }
 
+const (
+	defaultWaitTimeout      = 4 * time.Hour
+	defaultWaitPollInterval = 10 * time.Second
+)
+
 type waitFunc func(ctx context.Context) (bool, error)
 
-func waitWithDefaultTimeout(ctx context.Context, f waitFunc) error {
-	defaultWaitTimeout := 4 * time.Hour
-	return wait(ctx, f, &defaultWaitTimeout)
+func waitWithDefaultTimeout(ctx context.Context, f waitFunc, subject string) error {
+	return wait(ctx, f, subject, defaultWaitTimeout, defaultWaitPollInterval)
 }
 
-func wait(ctx context.Context, f waitFunc, timeout *time.Duration) error {
+// wait polls f every pollInterval until it reports ok, returns an error, the context is done,
+// or timeout elapses. Running out of time is a failure: returning nil here would let callers
+// record a deployment that never converged as successfully deployed. subject describes what is
+// awaited (e.g. "environment <id> to reach state RUNNING") and is embedded in the timeout error.
+func wait(ctx context.Context, f waitFunc, subject string, timeout, pollInterval time.Duration) error {
 	// Run the function once before waiting
 	ok, err := f(ctx)
 	if err != nil {
@@ -81,17 +81,17 @@ func wait(ctx context.Context, f waitFunc, timeout *time.Duration) error {
 		return nil
 	}
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
-	timeoutTicker := time.NewTicker(*timeout)
-	defer timeoutTicker.Stop()
+	timeoutTimer := time.NewTimer(timeout)
+	defer timeoutTimer.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
-		case <-timeoutTicker.C:
-			return nil
+		case <-timeoutTimer.C:
+			return fmt.Errorf("%w: waited %s for %s", newdeployment.ErrWaitTimeout, timeout, subject)
 		case <-ticker.C:
 			ok, apiErr := f(ctx)
 			if apiErr != nil {

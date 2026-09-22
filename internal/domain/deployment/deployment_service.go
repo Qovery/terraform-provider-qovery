@@ -17,6 +17,8 @@ var (
 	ErrFailedToDeploy         = errors.New("failed to deploy")
 	ErrFailedToRedeploy       = errors.New("failed to redeploy")
 	ErrFailedToStop           = errors.New("failed to stop")
+	// ErrWaitTimeout is returned when a resource does not reach the awaited state before the wait timeout elapses.
+	ErrWaitTimeout = errors.New("deployment wait timed out")
 )
 
 // Service represents the interface to implement to handle the domain logic of a deployment.

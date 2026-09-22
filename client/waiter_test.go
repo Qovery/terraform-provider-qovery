@@ -456,3 +456,30 @@ func TestWait_ReturnsPromptlyOnContextCancellation(t *testing.T) {
 			"when an application/cluster/database wait is interrupted")
 	}
 }
+
+func TestWait_ReturnsNilOnceCheckEventuallySucceeds(t *testing.T) {
+	t.Parallel()
+	calls := 0
+	apiErr := waitWithTimeout(context.Background(), func(ctx context.Context) (bool, *apierrors.APIError) {
+		calls++
+		return calls >= 3, nil // in progress twice, then converged
+	}, 10*time.Second, 10*time.Millisecond)
+	assert.Nil(t, apiErr)
+	assert.Equal(t, 3, calls, "wait() must keep polling until the check reports ok")
+}
+
+func TestWait_ReturnsTimeoutErrorWhenCheckNeverSucceeds(t *testing.T) {
+	t.Parallel()
+	calls := 0
+	apiErr := waitWithTimeout(context.Background(), func(ctx context.Context) (bool, *apierrors.APIError) {
+		calls++
+		return false, nil // never converges
+	}, 200*time.Millisecond, 10*time.Millisecond)
+
+	// Guards the same invariant as QOV-2299 in the DDD wait loops: an exhausted timeout is an
+	// error, never a silent success that lets apply report a non-converged resource as done.
+	if assert.NotNil(t, apiErr, "wait() must fail when the timeout elapses before the check succeeds") {
+		assert.ErrorContains(t, apiErr, "operation did not complete within 200ms")
+	}
+	assert.Greater(t, calls, 1, "wait() should have polled before giving up")
+}

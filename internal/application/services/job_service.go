@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -209,7 +210,7 @@ func (s jobService) Delete(ctx context.Context, jobID string) error {
 		return errors.Wrap(err, job.ErrFailedToDeleteJob.Error())
 	}
 
-	if err := wait(ctx, waitNotFoundFunc(s.jobDeploymentService, jobID)); err != nil {
+	if err := waitWithDefaultTimeout(ctx, waitNotFoundFunc(s.jobDeploymentService, jobID), fmt.Sprintf("job %s to be deleted", jobID)); err != nil {
 		return errors.Wrap(err, job.ErrFailedToDeleteJob.Error())
 	}
 

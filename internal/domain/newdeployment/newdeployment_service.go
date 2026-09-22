@@ -12,6 +12,8 @@ var (
 	ErrFailedToDeleteDeployment        = errors.New("failed to delete deployment")
 	ErrDesiredStateForbiddenAtCreation = errors.New("Cannot create a deployment having state 'DELETED' or 'RESTARTED'")
 	ErrFailedToCheckDeploymentStatus   = errors.New("failed to retrieve deployment status")
+	// ErrWaitTimeout is returned when the environment does not reach the awaited state before the wait timeout elapses.
+	ErrWaitTimeout = errors.New("deployment wait timed out")
 )
 
 type Service interface {

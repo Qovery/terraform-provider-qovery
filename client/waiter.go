@@ -12,11 +12,12 @@ import (
 )
 
 const (
-	defaultWaitTimeout = 4 * time.Hour
-	maxRetryAttempts   = 3
-	initialBackoff     = 2 * time.Second
-	maxBackoff         = 30 * time.Second
-	backoffMultiplier  = 2
+	defaultWaitTimeout      = 4 * time.Hour
+	defaultWaitPollInterval = 10 * time.Second
+	maxRetryAttempts        = 3
+	initialBackoff          = 2 * time.Second
+	maxBackoff              = 30 * time.Second
+	backoffMultiplier       = 2
 )
 
 type waitFunc func(ctx context.Context) (bool, *apierrors.APIError)
@@ -39,6 +40,12 @@ func applyJitter(backoff time.Duration) time.Duration {
 }
 
 func wait(ctx context.Context, f waitFunc) *apierrors.APIError {
+	return waitWithTimeout(ctx, f, defaultWaitTimeout, defaultWaitPollInterval)
+}
+
+// waitWithTimeout polls f every pollInterval until it reports ok, returns an error, the context
+// is done, or timeout elapses. Running out of time is a failure, never a silent success.
+func waitWithTimeout(ctx context.Context, f waitFunc, timeout, pollInterval time.Duration) *apierrors.APIError {
 	// Run the function once before waiting, with retry logic for transient errors
 	ok, apiErr := retryOnTransientError(ctx, f)
 	if apiErr != nil {
@@ -48,17 +55,17 @@ func wait(ctx context.Context, f waitFunc) *apierrors.APIError {
 		return nil
 	}
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(pollInterval)
 	defer ticker.Stop()
-	timeoutTicker := time.NewTicker(defaultWaitTimeout)
-	defer timeoutTicker.Stop()
+	timeoutTimer := time.NewTimer(timeout)
+	defer timeoutTimer.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
 			return apierrors.NewContextError(ctx.Err())
-		case <-timeoutTicker.C:
-			return apierrors.NewTimeoutError(defaultWaitTimeout)
+		case <-timeoutTimer.C:
+			return apierrors.NewTimeoutError(timeout)
 		case <-ticker.C:
 			ok, apiErr := retryOnTransientError(ctx, f)
 			if apiErr != nil {
