@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -209,7 +210,7 @@ func (s helmService) Delete(ctx context.Context, helmID string) error {
 		return errors.Wrap(err, helm.ErrFailedToDeleteHelm.Error())
 	}
 
-	if err := wait(ctx, waitNotFoundFunc(s.helmDeploymentService, helmID)); err != nil {
+	if err := waitWithDefaultTimeout(ctx, waitNotFoundFunc(s.helmDeploymentService, helmID), fmt.Sprintf("helm %s to be deleted", helmID)); err != nil {
 		return errors.Wrap(err, helm.ErrFailedToDeleteHelm.Error())
 	}
 

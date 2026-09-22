@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -185,7 +186,7 @@ func (s containerService) Delete(ctx context.Context, containerID string) error 
 		return errors.Wrap(err, container.ErrFailedToDeleteContainer.Error())
 	}
 
-	if err := wait(ctx, waitNotFoundFunc(s.containerDeploymentService, containerID)); err != nil {
+	if err := waitWithDefaultTimeout(ctx, waitNotFoundFunc(s.containerDeploymentService, containerID), fmt.Sprintf("container %s to be deleted", containerID)); err != nil {
 		return errors.Wrap(err, container.ErrFailedToDeleteContainer.Error())
 	}
 
