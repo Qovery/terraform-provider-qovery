@@ -16,6 +16,25 @@ import (
 // advancedSettingsJSONAttr is the attribute name shared by all service resources.
 const advancedSettingsJSONAttr = "advanced_settings_json"
 
+// advancedSettingsRefreshSemantics is appended to the MarkdownDescription of
+// advanced_settings_json on every resource that exposes advanced settings. It
+// documents the refresh behaviour implemented by computeOverriddenSettings: the
+// attribute is a partial override map, the API has no ownership flag, so only
+// keys already tracked in state are reconciled (QOV-2028).
+const advancedSettingsRefreshSemantics = "\n\n" +
+	"  Refresh semantics — this attribute is desired state, not a mirror of the remote configuration:\n\n" +
+	"  - Refresh only reconciles keys already tracked in the Terraform state. A setting overridden only in the Qovery Console is not pulled into state, so declaring it afterwards plans as an addition even if the remote value already matches.\n" +
+	"  - Changes made in the Console to a tracked key, including a reset to its default value, are reflected on refresh and planned back to the configured value.\n" +
+	"  - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.\n" +
+	"  - `terraform import` records every setting whose value differs from the default."
+
+// advancedSettingsRefreshSemanticsPlain is the plain-text counterpart used for
+// the schema Description.
+const advancedSettingsRefreshSemanticsPlain = " Refresh only reconciles keys already tracked in state: " +
+	"settings overridden only in the Qovery Console are not pulled into state, while Console changes to tracked keys " +
+	"(including a reset to the default) are. Removing a key does not reset it remotely; set it to its default value " +
+	"explicitly. Import records every non-default setting."
+
 // warnUnknownAdvancedSettings adds a plan-time warning for each key in advanced_settings_json
 // that is not valid for the given service type.
 func warnUnknownAdvancedSettings(

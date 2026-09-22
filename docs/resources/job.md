@@ -171,7 +171,14 @@ You can find complete examples within these repositories:
 
 ### Optional
 
-- `advanced_settings_json` (String) Advanced settings in JSON format. See the Qovery API documentation for the full list of available settings: https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings
+- `advanced_settings_json` (String) Advanced settings in JSON format. Use `jsonencode()` to set values. Only include settings you want to override. See the [Qovery API documentation](https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings) for the full list of available settings.
+
+  Refresh semantics — this attribute is desired state, not a mirror of the remote configuration:
+
+  - Refresh only reconciles keys already tracked in the Terraform state. A setting overridden only in the Qovery Console is not pulled into state, so declaring it afterwards plans as an addition even if the remote value already matches.
+  - Changes made in the Console to a tracked key, including a reset to its default value, are reflected on refresh and planned back to the configured value.
+  - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.
+  - `terraform import` records every setting whose value differs from the default.
 - `annotations_group_ids` (Set of String) List of annotations group IDs to associate with this job. Annotations groups are defined using the `qovery_annotations_group` resource.
 - `auto_deploy` (Boolean) Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this job.

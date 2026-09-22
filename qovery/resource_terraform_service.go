@@ -391,8 +391,8 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			"external_secrets":      externalSecretsSchemaAttribute("terraform service"),
 			"external_secret_files": externalSecretFilesSchemaAttribute("terraform service"),
 			"advanced_settings_json": schema.StringAttribute{
-				Description:         "Advanced settings in JSON format. See the Qovery API documentation for available settings.",
-				MarkdownDescription: "Advanced settings in JSON format. See the Qovery API documentation for available settings.",
+				Description:         "Advanced settings in JSON format. Only include settings you want to override. See the Qovery API documentation for available settings." + advancedSettingsRefreshSemanticsPlain,
+				MarkdownDescription: "Advanced settings in JSON format. Use `jsonencode()` to set values. Only include settings you want to override. See the Qovery API documentation for available settings." + advancedSettingsRefreshSemantics,
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{

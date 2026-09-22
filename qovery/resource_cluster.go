@@ -815,8 +815,8 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"advanced_settings_json": schema.StringAttribute{
-				Description:         "Advanced settings of the cluster.",
-				MarkdownDescription: "Advanced settings of the cluster as a JSON string. Use `jsonencode()` to set values. The complete list of available settings is in the [Qovery API documentation](https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings). Only include settings you want to override.",
+				Description:         "Advanced settings of the cluster as a JSON string. Only include settings you want to override." + advancedSettingsRefreshSemanticsPlain,
+				MarkdownDescription: "Advanced settings of the cluster as a JSON string. Use `jsonencode()` to set values. The complete list of available settings is in the [Qovery API documentation](https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings). Only include settings you want to override." + advancedSettingsRefreshSemantics,
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
