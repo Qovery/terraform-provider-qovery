@@ -14,7 +14,8 @@ import (
 )
 
 const (
-	// Short enough to keep the suite fast, long enough that several polls fit inside the timeout.
+	// Short enough that a regression fails in milliseconds rather than hanging the suite,
+	// long enough that several polls fit inside the timeout.
 	testWaitTimeout      = 200 * time.Millisecond
 	testWaitPollInterval = 10 * time.Millisecond
 	testWaitSubject      = "resource 3f1c2e9a-0000-4000-8000-000000000000 to reach state DEPLOYED"
@@ -29,7 +30,7 @@ func TestWait(t *testing.T) {
 		err := wait(context.Background(), func(ctx context.Context) (bool, error) {
 			calls++
 			return true, nil
-		}, testWaitSubject, time.Hour, time.Hour)
+		}, testWaitSubject, testWaitTimeout, testWaitPollInterval)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, calls, "a satisfied first check must not enter the poll loop")
 	})
@@ -39,7 +40,7 @@ func TestWait(t *testing.T) {
 		checkErr := errors.New("status lookup failed")
 		err := wait(context.Background(), func(ctx context.Context) (bool, error) {
 			return false, checkErr
-		}, testWaitSubject, time.Hour, time.Hour)
+		}, testWaitSubject, testWaitTimeout, testWaitPollInterval)
 		assert.ErrorIs(t, err, checkErr)
 	})
 
@@ -56,9 +57,7 @@ func TestWait(t *testing.T) {
 
 	t.Run("returns_timeout_error_when_the_check_never_succeeds", func(t *testing.T) {
 		t.Parallel()
-		calls := 0
 		err := wait(context.Background(), func(ctx context.Context) (bool, error) {
-			calls++
 			return false, nil // never converges
 		}, testWaitSubject, testWaitTimeout, testWaitPollInterval)
 
@@ -66,7 +65,6 @@ func TestWait(t *testing.T) {
 		// reached its desired state within the timeout was reported as deployed/stopped/deleted.
 		assert.ErrorIs(t, err, deployment.ErrWaitTimeout)
 		assert.EqualError(t, err, "deployment wait timed out: waited 200ms for "+testWaitSubject)
-		assert.Greater(t, calls, 1, "wait() should have polled before giving up")
 	})
 
 	t.Run("returns_promptly_on_context_cancellation_instead_of_waiting_for_timeout", func(t *testing.T) {

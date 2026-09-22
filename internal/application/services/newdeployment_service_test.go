@@ -69,13 +69,13 @@ func TestNewDeploymentService_WaitTimeoutFailsTheOperation(t *testing.T) {
 	testCases := []struct {
 		TestName   string
 		StatusRepo stubDeploymentStatusRepository
-		Run        func(context.Context, newdeployment.Service, newdeployment.NewDeploymentParams) error
+		Run        func(*testing.T, newdeployment.Service, newdeployment.NewDeploymentParams) error
 	}{
 		{
 			TestName:   "create_fails_when_desired_state_wait_times_out",
 			StatusRepo: stubDeploymentStatusRepository{waitForExpectedDesiredStateErr: timeoutErr},
-			Run: func(ctx context.Context, svc newdeployment.Service, params newdeployment.NewDeploymentParams) error {
-				deployment, err := svc.Create(ctx, params)
+			Run: func(t *testing.T, svc newdeployment.Service, params newdeployment.NewDeploymentParams) error {
+				deployment, err := svc.Create(t.Context(), params)
 				assert.Nil(t, deployment, "a timed-out create must not hand back a deployment to record in state")
 				return err
 			},
@@ -83,8 +83,8 @@ func TestNewDeploymentService_WaitTimeoutFailsTheOperation(t *testing.T) {
 		{
 			TestName:   "update_fails_when_terminal_state_wait_times_out",
 			StatusRepo: stubDeploymentStatusRepository{waitForTerminatedStateErr: timeoutErr},
-			Run: func(ctx context.Context, svc newdeployment.Service, params newdeployment.NewDeploymentParams) error {
-				deployment, err := svc.Update(ctx, params)
+			Run: func(t *testing.T, svc newdeployment.Service, params newdeployment.NewDeploymentParams) error {
+				deployment, err := svc.Update(t.Context(), params)
 				assert.Nil(t, deployment)
 				return err
 			},
@@ -92,8 +92,8 @@ func TestNewDeploymentService_WaitTimeoutFailsTheOperation(t *testing.T) {
 		{
 			TestName:   "update_fails_when_desired_state_wait_times_out",
 			StatusRepo: stubDeploymentStatusRepository{waitForExpectedDesiredStateErr: timeoutErr},
-			Run: func(ctx context.Context, svc newdeployment.Service, params newdeployment.NewDeploymentParams) error {
-				deployment, err := svc.Update(ctx, params)
+			Run: func(t *testing.T, svc newdeployment.Service, params newdeployment.NewDeploymentParams) error {
+				deployment, err := svc.Update(t.Context(), params)
 				assert.Nil(t, deployment)
 				return err
 			},
@@ -101,8 +101,8 @@ func TestNewDeploymentService_WaitTimeoutFailsTheOperation(t *testing.T) {
 		{
 			TestName:   "delete_fails_when_desired_state_wait_times_out",
 			StatusRepo: stubDeploymentStatusRepository{waitForExpectedDesiredStateErr: timeoutErr},
-			Run: func(ctx context.Context, svc newdeployment.Service, params newdeployment.NewDeploymentParams) error {
-				return svc.Delete(ctx, params)
+			Run: func(t *testing.T, svc newdeployment.Service, params newdeployment.NewDeploymentParams) error {
+				return svc.Delete(t.Context(), params)
 			},
 		},
 	}
@@ -114,7 +114,7 @@ func TestNewDeploymentService_WaitTimeoutFailsTheOperation(t *testing.T) {
 			svc, err := services.NewNewDeploymentService(stubNewDeploymentEnvironmentRepository{}, tc.StatusRepo)
 			require.NoError(t, err)
 
-			err = tc.Run(context.Background(), svc, newdeployment.NewDeploymentParams{
+			err = tc.Run(t, svc, newdeployment.NewDeploymentParams{
 				EnvironmentID: environmentID.String(),
 				DesiredState:  string(newdeployment.RUNNING),
 			})
