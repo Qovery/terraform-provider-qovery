@@ -6,6 +6,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
@@ -56,9 +57,9 @@ func (r gitTokenDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization.",
-				MarkdownDescription: "Id of the organization.",
-				Computed:            true,
+				Description:         "Id of the organization the git token belongs to.",
+				MarkdownDescription: "Id of the organization the git token belongs to.",
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
 				Description:         "Name of the git token.",
@@ -91,8 +92,8 @@ func (r gitTokenDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 				Computed:            true,
 			},
 			"token": schema.StringAttribute{
-				Description:         "Value of the git token.",
-				MarkdownDescription: "Value of the git token.",
+				Description:         "Value of the git token. The Qovery API never returns it, so this attribute is always null when read through the data source.",
+				MarkdownDescription: "Value of the git token. The Qovery API never returns it, so this attribute is always `null` when read through the data source.",
 				Computed:            true,
 				Sensitive:           true,
 			},
@@ -116,7 +117,9 @@ func (d gitTokenDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	state := toTerraformObject(data.OrganizationId.ValueString(), data.Token.ValueString(), *response)
+	state := toTerraformObject(data.OrganizationId.ValueString(), "", *response)
+	// The API never returns the token value: expose it as null rather than an empty string.
+	state.Token = types.StringNull()
 	tflog.Trace(ctx, "read git token", map[string]any{"git_token_id": state.ID.ValueString()})
 
 	// Set state
