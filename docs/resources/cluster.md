@@ -309,6 +309,13 @@ You can find complete examples within these repositories:
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings of the cluster as a JSON string. Use `jsonencode()` to set values. The complete list of available settings is in the [Qovery API documentation](https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings). Only include settings you want to override.
+
+  Refresh semantics — this attribute is desired state, not a mirror of the remote configuration:
+
+  - Refresh only reconciles keys already tracked in the Terraform state. A setting overridden only in the Qovery Console is not pulled into state, so declaring it afterwards plans as an addition even if the remote value already matches.
+  - Changes made in the Console to a tracked key, including a reset to its default value, are reflected on refresh and planned back to the configured value.
+  - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.
+  - `terraform import` records every setting whose value differs from the default.
 - `description` (String) Description of the cluster. Default: `""`.
 - `disk_size` (Number) Disk size of the cluster nodes in GB. The default value depends on the cloud provider and instance type.
 - `features` (Attributes) Optional cluster features configuration. Use this block to customize VPC settings, enable static IPs, deploy on an existing VPC (AWS or GCP), or enable Karpenter for AWS clusters. (see [below for nested schema](#nestedatt--features))

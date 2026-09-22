@@ -231,6 +231,13 @@ resource "qovery_container" "my_container" {
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings as JSON. Use `jsonencode()` to set values. Only include settings you want to override. Full list available in [Qovery API documentation](https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings).
+
+  Refresh semantics — this attribute is desired state, not a mirror of the remote configuration:
+
+  - Refresh only reconciles keys already tracked in the Terraform state. A setting overridden only in the Qovery Console is not pulled into state, so declaring it afterwards plans as an addition even if the remote value already matches.
+  - Changes made in the Console to a tracked key, including a reset to its default value, are reflected on refresh and planned back to the configured value.
+  - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.
+  - `terraform import` records every setting whose value differs from the default.
 - `annotations_group_ids` (Set of String) List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the container's pods.
 - `arguments` (List of String) List of arguments of this container. Overrides the Docker image's default `CMD`.
 - `auto_deploy` (Boolean) Specify if the container will be automatically redeployed after receiving a new image tag from the container registry.

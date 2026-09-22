@@ -110,7 +110,14 @@ resource "qovery_terraform_service" "my_terraform_service" {
 ### Optional
 
 - `action_extra_arguments` (Map of List of String) Extra CLI arguments for specific Terraform actions (plan, apply, destroy).
-- `advanced_settings_json` (String) Advanced settings in JSON format. See the Qovery API documentation for available settings.
+- `advanced_settings_json` (String) Advanced settings in JSON format. Use `jsonencode()` to set values. Only include settings you want to override. See the Qovery API documentation for available settings.
+
+  Refresh semantics — this attribute is desired state, not a mirror of the remote configuration:
+
+  - Refresh only reconciles keys already tracked in the Terraform state. A setting overridden only in the Qovery Console is not pulled into state, so declaring it afterwards plans as an addition even if the remote value already matches.
+  - Changes made in the Console to a tracked key, including a reset to its default value, are reflected on refresh and planned back to the configured value.
+  - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.
+  - `terraform import` records every setting whose value differs from the default.
 - `blueprint_id` (String) The blueprint ID the terraform service has been created from.
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `description` (String) Description of the terraform service.
