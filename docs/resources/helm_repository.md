@@ -56,12 +56,12 @@ resource "qovery_helm_repository" "my_helm_repository" {
 Optional:
 
 - `access_key_id` (String) AWS access key ID. Required if kind is `OCI_ECR` or `OCI_PUBLIC_ECR`.
-- `password` (String) Password or access token for authentication. Required if kind is `OCI_DOCKER_HUB`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR`, or `OCI_GENERIC_CR`.
+- `password` (String, Sensitive) Password or access token for authentication. Required if kind is `OCI_DOCKER_HUB`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR`, or `OCI_GENERIC_CR`. This is a sensitive value and will not be displayed in plan output.
 - `region` (String) AWS or Scaleway region. Required if kind is `OCI_ECR` or `OCI_SCALEWAY_CR`.
 - `scaleway_access_key` (String) Scaleway access key. Required if kind is `OCI_SCALEWAY_CR`.
 - `scaleway_project_id` (String) Scaleway project ID. Required if kind is `OCI_SCALEWAY_CR`.
-- `scaleway_secret_key` (String) Scaleway secret key. Required if kind is `OCI_SCALEWAY_CR`.
-- `secret_access_key` (String) AWS secret access key. Required if kind is `OCI_ECR` or `OCI_PUBLIC_ECR`.
+- `scaleway_secret_key` (String, Sensitive) Scaleway secret key. Required if kind is `OCI_SCALEWAY_CR`. This is a sensitive value and will not be displayed in plan output.
+- `secret_access_key` (String, Sensitive) AWS secret access key. Required if kind is `OCI_ECR` or `OCI_PUBLIC_ECR`. This is a sensitive value and will not be displayed in plan output.
 - `username` (String) Username for authentication. Required if kind is `OCI_DOCKER_HUB`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR`, or `OCI_GENERIC_CR`.
 ## Import
 ```shell

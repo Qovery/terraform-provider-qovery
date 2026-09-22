@@ -196,8 +196,9 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 			},
 			"password": schema.StringAttribute{
 				Description:         "The password to connect to your database.",
-				MarkdownDescription: "The password to connect to your database.",
+				MarkdownDescription: "The password to connect to your database. This is a sensitive value and will not be displayed in plan output.",
 				Computed:            true,
+				Sensitive:           true,
 			},
 			"annotations_group_ids": schema.SetAttribute{
 				Description:         "List of annotations group ids.",
