@@ -2,12 +2,12 @@ package qovery
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/qovery/terraform-provider-qovery/client"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
+	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
 
@@ -369,7 +369,16 @@ func convertSetToHelmValuesOverrideSet(ctx context.Context, set [][]string, stat
 		if len(kv) == 2 {
 			elements[kv[0]] = kv[1]
 		} else {
-			fmt.Println("Invalid key-value pair:", kv)
+			key := ""
+			if len(kv) >= 1 {
+				key = kv[0]
+			}
+			// Only the key and the number of parts are logged: the remaining
+			// elements may hold secret values.
+			tflog.Warn(ctx, "invalid helm values override set entry, expected exactly 2 parts", map[string]any{
+				"key":   key,
+				"parts": len(kv),
+			})
 		}
 	}
 

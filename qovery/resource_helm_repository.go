@@ -130,8 +130,9 @@ func (r helmRepositoryResource) Schema(_ context.Context, _ resource.SchemaReque
 					},
 					"secret_access_key": schema.StringAttribute{
 						Description:         "AWS secret access key. Required if kind is OCI_ECR or OCI_PUBLIC_ECR.",
-						MarkdownDescription: "AWS secret access key. Required if kind is `OCI_ECR` or `OCI_PUBLIC_ECR`.",
+						MarkdownDescription: "AWS secret access key. Required if kind is `OCI_ECR` or `OCI_PUBLIC_ECR`. This is a sensitive value and will not be displayed in plan output.",
 						Optional:            true,
+						Sensitive:           true,
 					},
 					"region": schema.StringAttribute{
 						Description:         "AWS or Scaleway region. Required if kind is OCI_ECR or OCI_SCALEWAY_CR.",
@@ -145,8 +146,9 @@ func (r helmRepositoryResource) Schema(_ context.Context, _ resource.SchemaReque
 					},
 					"scaleway_secret_key": schema.StringAttribute{
 						Description:         "Scaleway secret key. Required if kind is OCI_SCALEWAY_CR.",
-						MarkdownDescription: "Scaleway secret key. Required if kind is `OCI_SCALEWAY_CR`.",
+						MarkdownDescription: "Scaleway secret key. Required if kind is `OCI_SCALEWAY_CR`. This is a sensitive value and will not be displayed in plan output.",
 						Optional:            true,
+						Sensitive:           true,
 					},
 					"scaleway_project_id": schema.StringAttribute{
 						Description:         "Scaleway project ID. Required if kind is OCI_SCALEWAY_CR.",
@@ -160,8 +162,9 @@ func (r helmRepositoryResource) Schema(_ context.Context, _ resource.SchemaReque
 					},
 					"password": schema.StringAttribute{
 						Description:         "Password or access token for authentication. Required if kind is OCI_DOCKER_HUB, OCI_GITHUB_CR, OCI_GITLAB_CR, or OCI_GENERIC_CR.",
-						MarkdownDescription: "Password or access token for authentication. Required if kind is `OCI_DOCKER_HUB`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR`, or `OCI_GENERIC_CR`.",
+						MarkdownDescription: "Password or access token for authentication. Required if kind is `OCI_DOCKER_HUB`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR`, or `OCI_GENERIC_CR`. This is a sensitive value and will not be displayed in plan output.",
 						Optional:            true,
+						Sensitive:           true,
 					},
 				},
 			},

@@ -136,8 +136,9 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 					},
 					"secret_access_key": schema.StringAttribute{
 						Description:         "Required if kind is `ECR` or `PUBLIC_ECR`.",
-						MarkdownDescription: "AWS Secret Access Key. Required if `kind` is `ECR` or `PUBLIC_ECR`.",
+						MarkdownDescription: "AWS Secret Access Key. Required if `kind` is `ECR` or `PUBLIC_ECR`. This is a sensitive value and will not be displayed in plan output.",
 						Optional:            true,
+						Sensitive:           true,
 					},
 					"region": schema.StringAttribute{
 						Description:         "Required if kind is `ECR`, `SCALEWAY_CR` or `GCP_ARTIFACT_REGISTRY`.",
@@ -151,8 +152,9 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 					},
 					"scaleway_secret_key": schema.StringAttribute{
 						Description:         "Required if kind is `SCALEWAY_CR`.",
-						MarkdownDescription: "Scaleway Secret Key. Required if `kind` is `SCALEWAY_CR`.",
+						MarkdownDescription: "Scaleway Secret Key. Required if `kind` is `SCALEWAY_CR`. This is a sensitive value and will not be displayed in plan output.",
 						Optional:            true,
+						Sensitive:           true,
 					},
 					"scaleway_project_id": schema.StringAttribute{
 						Description:         "Required if kind is `SCALEWAY_CR`.",
@@ -200,8 +202,9 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 					},
 					"password": schema.StringAttribute{
 						Description:         "Required if kind is `DOCKER_HUB`, `GITHUB_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
-						MarkdownDescription: "Password or access token for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
+						MarkdownDescription: "Password or access token for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`. This is a sensitive value and will not be displayed in plan output.",
 						Optional:            true,
+						Sensitive:           true,
 					},
 				},
 			},
