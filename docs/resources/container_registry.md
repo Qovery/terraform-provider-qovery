@@ -139,7 +139,7 @@ Optional:
 
 - `access_key_id` (String) AWS Access Key ID. Required if `kind` is `ECR` or `PUBLIC_ECR`.
 - `gcp_credentials_type` (String) For `GCP_ARTIFACT_REGISTRY`, set to `workload_identity_federation` to authenticate via Workload Identity Federation instead of `json_credentials`. Requires `project_id`, `service_account_email`, and `workload_identity_provider_resource`.
-- `json_credentials` (String, Sensitive) GCP service account JSON key used to authenticate with the registry. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is not set. Mutually exclusive with the Workload Identity Federation fields (`gcp_credentials_type`, `service_account_email`, `workload_identity_provider_resource`).
+- `json_credentials` (String, Sensitive) GCP service account JSON key used to authenticate with the registry. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is not set. Mutually exclusive with the Workload Identity Federation fields (`gcp_credentials_type`, `service_account_email`, `workload_identity_provider_resource`). This is a sensitive value and will not be displayed in plan output.
 - `password` (String, Sensitive) Password or access token for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`. This is a sensitive value and will not be displayed in plan output.
 - `project_id` (String) GCP project ID. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is `workload_identity_federation`.
 - `region` (String) Region of the registry. Required if `kind` is `ECR`, `SCALEWAY_CR` or `GCP_ARTIFACT_REGISTRY` (e.g. `us-east-1`, `fr-par`).

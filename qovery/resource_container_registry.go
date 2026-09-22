@@ -163,7 +163,7 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 					},
 					"json_credentials": schema.StringAttribute{
 						Description:         "Required if kind is `GCP_ARTIFACT_REGISTRY` and gcp_credentials_type is not set.",
-						MarkdownDescription: "GCP service account JSON key used to authenticate with the registry. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is not set. Mutually exclusive with the Workload Identity Federation fields (`gcp_credentials_type`, `service_account_email`, `workload_identity_provider_resource`).",
+						MarkdownDescription: "GCP service account JSON key used to authenticate with the registry. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is not set. Mutually exclusive with the Workload Identity Federation fields (`gcp_credentials_type`, `service_account_email`, `workload_identity_provider_resource`). This is a sensitive value and will not be displayed in plan output.",
 						Optional:            true,
 						Sensitive:           true,
 					},
