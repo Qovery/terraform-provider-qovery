@@ -3,6 +3,12 @@
 The [Qovery](https://www.qovery.com/) provider is used to interact with the resources supported by Qovery.
 The provider needs to be configured with the proper credentials before it can be used.
 
+## Requirements
+
+The provider is tested against Terraform 1.15. Earlier versions are expected to work but are not tested.
+
+Upgrading from a 0.x release? Read the [1.0 upgrade guide](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/upgrade-to-1.0) first.
+
 ## Authentication
 
 The Qovery provider offers the following methods for providing credentials:
@@ -24,12 +30,11 @@ export QOVERY_API_TOKEN="your-api-token"
 ## Example Usage
 
 ```terraform
-# Terraform 1.0.3+ uses the Terraform Registry:
-
 terraform {
   required_providers {
     qovery = {
-      source = "qovery/qovery"
+      source  = "qovery/qovery"
+      version = "~> 1.0"
     }
   }
 }
@@ -42,15 +47,32 @@ provider "qovery" {
 
 ## Resource Categories
 
-### Infrastructure
+### Organization & Access
 
 | Resource | Description |
 |----------|-------------|
 | `qovery_organization` | Manages a Qovery organization |
-| `qovery_cluster` | Manages Kubernetes clusters (AWS EKS, GCP GKE, Scaleway Kapsule) |
+| `qovery_organization_member` | Invites members to an organization and manages their role |
+| `qovery_custom_role` | Manages custom organization roles and their cluster and project permissions |
+| `qovery_api_token` | Manages organization API tokens |
+
+### Infrastructure
+
+| Resource | Description |
+|----------|-------------|
+| `qovery_cluster` | Manages Kubernetes clusters (AWS EKS, GCP GKE, Scaleway Kapsule, Azure AKS, on-premise) |
+| `qovery_cluster_dns_provider` | Manages the DNS provider of a cluster |
 | `qovery_aws_credentials` | Manages AWS credentials for cluster provisioning |
 | `qovery_gcp_credentials` | Manages GCP credentials for cluster provisioning |
 | `qovery_scaleway_credentials` | Manages Scaleway credentials for cluster provisioning |
+| `qovery_eks_anywhere_vsphere_credentials` | Manages EKS Anywhere vSphere credentials for on-premise clusters |
+
+### GitOps
+
+| Resource | Description |
+|----------|-------------|
+| `qovery_argocd_credentials` | Configures the ArgoCD integration of a cluster |
+| `qovery_argocd_destination_cluster_mapping` | Maps an ArgoCD destination cluster URL to a Qovery cluster |
 
 ### Projects & Environments
 

@@ -39,12 +39,15 @@ go mod tidy
 task docs
 ```
 
+For every user-visible change, add an entry under `## [Unreleased]` in `CHANGELOG.md` (breaking changes go under **Breaking changes**).
+
 ### Commit Message Format
 
 - **One-liner only** - No multi-line commit messages
 - **No author** - Don't add author information
 - **Format**: `type(TICKET): description`
 - **Ticket required** - If no `QOV-XXXX` ticket is provided, ask the user for it before proposing a commit message
+- **Breaking change** - Add `!` after the ticket (`feat(QOV-1234)!: remove ...`); goreleaser lists these first in the release notes
 
 Examples:
 

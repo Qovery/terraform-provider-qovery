@@ -59,5 +59,31 @@ release:
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
   # If you want to manually examine the release before its live, uncomment this line:
   # draft: true
+  header: |
+    The curated list of changes is in [CHANGELOG.md](https://github.com/qovery/terraform-provider-qovery/blob/{{ .Tag }}/CHANGELOG.md).
+    Upgrading from a 0.x release? Follow the [1.0 upgrade guide](https://registry.terraform.io/providers/qovery/qovery/{{ .Version }}/docs/guides/upgrade-to-1.0) first.
+  footer: |
+    Documentation: https://registry.terraform.io/providers/qovery/qovery/{{ .Version }}/docs
+# Release notes are generated from the commit titles since the previous tag.
+# Titles follow `type(QOV-XXXX): description`; a breaking change adds `!` after the
+# ticket (`feat(QOV-XXXX)!: ...`) and is listed first. Groups are matched in order,
+# the first match wins.
 changelog:
-  disable: true
+  use: git
+  abbrev: 7
+  filters:
+    exclude:
+      - '^Merge '
+      - '^(chore|ci|docs|test|refactor|style)(\(.*\))?:'
+  groups:
+    - title: Breaking changes
+      regexp: '^[a-z]+(\(.*\))?!:'
+      order: 0
+    - title: Features
+      regexp: '^feat(\(.*\))?:'
+      order: 1
+    - title: Bug fixes
+      regexp: '^fix(\(.*\))?:'
+      order: 2
+    - title: Other changes
+      order: 999
