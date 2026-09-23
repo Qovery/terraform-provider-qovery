@@ -9,8 +9,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
@@ -34,6 +34,7 @@ func TestAcc_Container(t *testing.T) {
 				Config: testAccContainerDefaultConfig(
 					testName,
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
@@ -72,6 +73,7 @@ func TestAcc_Container(t *testing.T) {
 					testName,
 					fmt.Sprintf("%s-updated", testName),
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),

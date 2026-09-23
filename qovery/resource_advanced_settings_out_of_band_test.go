@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
@@ -60,8 +60,8 @@ func TestAcc_ApplicationAdvancedSettingsResetOutOfBand(t *testing.T) {
 					testAccCaptureResourceID(resourceName, &applicationID),
 				),
 			},
-			// 2. Reset the key to its default out of band. The SDK refreshes and
-			// plans after this step: the plan must be non-empty (default -> 1700).
+			// 2. Reset the key to its default out of band. The harness plans (with refresh)
+			// after this step: the plan must be non-empty (default -> 1700).
 			{
 				Config: testAccApplicationDefaultConfig(testName),
 				Check: func(_ *terraform.State) error {

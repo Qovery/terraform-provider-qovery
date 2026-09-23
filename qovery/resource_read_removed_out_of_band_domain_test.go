@@ -10,15 +10,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 )
 
 // Out-of-band removal tests for domain-service resources (QOV-2030 Track B).
 //
 // Same "disappears" shape as resource_read_removed_out_of_band_test.go, but for resources
 // whose Read goes through a domain service returning a plain error: the resource is deleted
-// out-of-band via the raw generated API client, then the post-apply refresh must drop it
+// out-of-band via the raw generated API client, then the post-apply plan must drop it
 // from state (handleDomainReadNotFound → RemoveResource) instead of erroring, and
 // ExpectNonEmptyPlan captures the resulting re-create plan.
 //
@@ -57,6 +57,14 @@ func TestAcc_ProjectRemovedOutOfBand(t *testing.T) {
 				),
 				ExpectNonEmptyPlan: true,
 			},
+			// Persisted refresh: Read sees the not-found and drops the resource from state. The
+			// harness runs the post-test destroy with -refresh=false, so without this step it would
+			// call Delete on a resource that is already gone.
+			{
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check:              testAccCheckAbsentFromState("qovery_project.test"),
+			},
 		},
 	})
 }
@@ -90,6 +98,14 @@ func TestAcc_EnvironmentRemovedOutOfBand(t *testing.T) {
 					),
 				),
 				ExpectNonEmptyPlan: true,
+			},
+			// Persisted refresh: Read sees the not-found and drops the resource from state. The
+			// harness runs the post-test destroy with -refresh=false, so without this step it would
+			// call Delete on a resource that is already gone.
+			{
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check:              testAccCheckAbsentFromState("qovery_environment.test"),
 			},
 		},
 	})
@@ -128,6 +144,14 @@ func TestAcc_CustomRoleRemovedOutOfBand(t *testing.T) {
 				),
 				ExpectNonEmptyPlan: true,
 			},
+			// Persisted refresh: Read sees the not-found and drops the resource from state. The
+			// harness runs the post-test destroy with -refresh=false, so without this step it would
+			// call Delete on a resource that is already gone.
+			{
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check:              testAccCheckAbsentFromState("qovery_custom_role.test"),
+			},
 		},
 	})
 }
@@ -145,8 +169,8 @@ func rawStatusCode(res *http.Response) int {
 
 // testAccDisappearsViaRawAPI deletes the resource out-of-band using the raw generated API
 // client, then polls the raw GET until the API reports it gone (404/403), so the post-apply
-// refresh deterministically sees the deleted state even when the API deletes asynchronously
-// (e.g. environments go through a deletion pipeline).
+// plan (with refresh) deterministically sees the deleted state even when the API deletes
+// asynchronously (e.g. environments go through a deletion pipeline).
 func testAccDisappearsViaRawAPI(resourceName string, del func(id string) error, getStatus func(id string) int) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]

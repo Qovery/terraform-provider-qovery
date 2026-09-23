@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
@@ -28,6 +28,7 @@ func TestAcc_Project(t *testing.T) {
 				Config: testAccProjectDefaultConfig(
 					testName,
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					resource.TestCheckResourceAttr("qovery_project.test", "organization_id", getTestOrganizationID()),
@@ -47,6 +48,7 @@ func TestAcc_Project(t *testing.T) {
 					testName,
 					"this is a description",
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					resource.TestCheckResourceAttr("qovery_project.test", "organization_id", getTestOrganizationID()),

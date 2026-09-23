@@ -13,8 +13,8 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
@@ -90,6 +90,7 @@ func TestAcc_Job(t *testing.T) {
 						AdvancedSettingsJson: qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
@@ -165,6 +166,7 @@ func TestAcc_Job(t *testing.T) {
 						AdvancedSettingsJson:         qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
@@ -256,6 +258,7 @@ func TestAcc_Job(t *testing.T) {
 						AdvancedSettingsJson:         qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
@@ -347,6 +350,7 @@ func TestAcc_Job(t *testing.T) {
 						AdvancedSettingsJson:         qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_job.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
@@ -410,6 +414,7 @@ func TestAcc_Job(t *testing.T) {
 						AdvancedSettingsJson: qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestMatchTypeSetElemNestedAttrs("qovery_job.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),

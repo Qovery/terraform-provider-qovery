@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
@@ -72,10 +72,12 @@ func TestAcc_TerraformService(t *testing.T) {
 			},
 			// ImportState testing
 			{
-				ResourceName:            "qovery_terraform_service.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"variables"},
+				ResourceName:      "qovery_terraform_service.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				// updated_at is bumped by the API after create and the state is not refreshed
+				// before import.
+				ImportStateVerifyIgnore: []string{"variables", "updated_at"},
 			},
 		},
 	})
@@ -214,6 +216,9 @@ func TestAcc_TerraformServiceWithDeploymentStage(t *testing.T) {
 				ResourceName:      "qovery_terraform_service.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				// updated_at is bumped by the API after create and the state is not refreshed
+				// before import.
+				ImportStateVerifyIgnore: []string{"updated_at"},
 			},
 		},
 	})
@@ -250,6 +255,9 @@ func TestAcc_TerraformServiceTerraformAction(t *testing.T) {
 				ResourceName:      "qovery_terraform_service.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				// updated_at is bumped by the API after create and the state is not refreshed
+				// before import.
+				ImportStateVerifyIgnore: []string{"updated_at"},
 			},
 		},
 	})
