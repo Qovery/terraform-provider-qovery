@@ -366,15 +366,6 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 						Description:         "Karpenter parameters if you want to use Karpenter on an EKS cluster",
 						MarkdownDescription: "Karpenter configuration for AWS EKS clusters.",
 						Attributes: map[string]schema.Attribute{
-							"spot_enabled": schema.BoolAttribute{
-								Description:         "Enable spot instances (deprecated, use the per node pool `spot_enabled` instead)",
-								MarkdownDescription: "Whether EC2 Spot instances are enabled. Deprecated: this is a derived value, recomputed by the API as the logical OR of the per node pool `spot_enabled` values.",
-								// Optional is kept so configurations written when this attribute was Required
-								// (they had to set it to declare the karpenter block) stay schema-valid.
-								Optional:           true,
-								Computed:           true,
-								DeprecationMessage: "This is a derived value; read the per node pool spot_enabled on qovery_node_pools.{stable_override,default_override,cronjob_override} instead.",
-							},
 							"disk_size_in_gib": schema.Int64Attribute{
 								Description:         "Disk size in GiB for Karpenter-provisioned nodes.",
 								MarkdownDescription: "Root disk size in GiB for Karpenter-provisioned nodes.",
@@ -435,8 +426,8 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{
 											"spot_enabled": schema.BoolAttribute{
-												Description:         "Enable spot instances on the stable node pool",
-												MarkdownDescription: "Whether EC2 Spot instances are enabled on the stable node pool.",
+												Description:         "Whether the stable node pool runs on spot instances",
+												MarkdownDescription: "Whether the stable node pool runs on EC2 Spot instances. Always reported for Karpenter clusters.",
 												Computed:            true,
 											},
 											"consolidation": schema.SingleNestedAttribute{
@@ -506,8 +497,8 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{
 											"spot_enabled": schema.BoolAttribute{
-												Description:         "Enable spot instances on the default node pool",
-												MarkdownDescription: "Whether EC2 Spot instances are enabled on the default node pool.",
+												Description:         "Whether the default node pool runs on spot instances",
+												MarkdownDescription: "Whether the default node pool runs on EC2 Spot instances. Always reported for Karpenter clusters.",
 												Computed:            true,
 											},
 											"limits": schema.SingleNestedAttribute{
@@ -544,8 +535,8 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{
 											"spot_enabled": schema.BoolAttribute{
-												Description:         "Enable spot instances on the cronjob node pool",
-												MarkdownDescription: "Whether EC2 Spot instances are enabled on the cronjob node pool.",
+												Description:         "Whether the cronjob node pool runs on spot instances",
+												MarkdownDescription: "Whether the cronjob node pool runs on EC2 Spot instances.",
 												Computed:            true,
 											},
 										},

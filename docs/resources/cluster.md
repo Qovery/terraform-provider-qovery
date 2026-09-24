@@ -58,9 +58,6 @@ resource "qovery_cluster" "cluster" {
     vpc_subnet = "10.0.0.0/16"
     static_ip  = "true"
     karpenter = {
-      # Deprecated: configure spot instances per node pool instead (see below).
-      # A node pool that sets its own spot_enabled ignores this value; a node pool
-      # that doesn't falls back to it.
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       # set the maximum instance size and familly you can to reduce allocation issue
@@ -83,7 +80,8 @@ resource "qovery_cluster" "cluster" {
           }
         ]
 
-        # Spot instances are configured per node pool. Keep the stable node pool on
+        # Spot instances are configured per node pool, and a node pool without
+        # spot_enabled runs on on-demand instances. Keep the stable node pool on
         # on-demand instances, it runs the workloads that must not be interrupted.
         stable_override = {
           spot_enabled = false
@@ -437,16 +435,6 @@ Required:
 - `disk_size_in_gib` (Number) Root disk size in GiB for nodes provisioned by Karpenter (e.g., `50`).
 - `qovery_node_pools` (Attributes) Karpenter node pool configuration. Defines the requirements (instance families, sizes, architectures) and optional resource limits for Qovery-managed node pools. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools))
 
-Optional:
-
-- `spot_enabled` (Boolean, Deprecated) Whether to enable EC2 Spot instances for cost savings. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
-
-~> **Deprecated:** spot instances are now configured per node pool. Set `spot_enabled` on `qovery_node_pools.stable_override`, `qovery_node_pools.default_override` and `qovery_node_pools.cronjob_override` instead.
-
-This field is now a derived value: the API recomputes it on every write as the logical OR of the per node pool values (the cronjob pool counts only while its `cronjob_override` block exists). On write, a node pool that carries its own `spot_enabled` ignores this field; a node pool that carries none falls back to this value — which is how configurations written before per node pool support keep behaving.
-
-~> **Warning:** setting this field and the per node pool values to contradictory states causes permanent plan drift, because the API echoes back the derived OR rather than the value you sent.
-
 <a id="nestedatt--features--karpenter--qovery_node_pools"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools`
 
@@ -458,7 +446,7 @@ Optional:
 
 - `cronjob_override` (Attributes) Override options for the Qovery **cronjob** node pool.
 
-~> **Important:** the mere presence of this block enables the dedicated cronjob node pool across the Qovery stack — the engine creates the pool and pins cron jobs and lifecycle jobs to it. Removing the block disables the dedicated pool again, and the `spot_enabled` value below only has meaning while the block exists. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override))
+~> **Important:** the mere presence of this block enables the dedicated cronjob node pool across the Qovery stack — the engine creates the pool and pins cron jobs and lifecycle jobs to it. Removing the block disables the dedicated pool again, and the `spot_enabled` value below only has meaning while the block exists. A cronjob node pool enabled outside Terraform, for example from the Qovery Console, shows up in the plan as this block being removed, and applying that plan disables the pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override))
 - `default_override` (Attributes) Override options for the Qovery **default** node pool. The default node pool runs user application workloads. Use this to configure spot instances and resource limits. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override))
 - `stable_override` (Attributes) Override options for the Qovery **stable** node pool. The stable node pool runs services that require consistent availability (e.g., Qovery agents). Use this to configure spot instances, consolidation windows and resource limits. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override))
 
@@ -481,9 +469,9 @@ Required:
 
 Optional:
 
-- `spot_enabled` (Boolean) Whether to enable EC2 Spot instances on the **cronjob** node pool. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
+- `spot_enabled` (Boolean) Whether to run the **cronjob** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
 
-When set, this value wins for this node pool and the deprecated global `features.karpenter.spot_enabled` is ignored for it. When left unset, this node pool falls back to the global value.
+Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances.
 
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--default_override"></a>
@@ -492,9 +480,9 @@ When set, this value wins for this node pool and the deprecated global `features
 Optional:
 
 - `limits` (Attributes) Resource limits for the default node pool. Use this to cap the total resources Karpenter can provision for application workloads. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override--limits))
-- `spot_enabled` (Boolean) Whether to enable EC2 Spot instances on the **default** node pool. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
+- `spot_enabled` (Boolean) Whether to run the **default** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
 
-When set, this value wins for this node pool and the deprecated global `features.karpenter.spot_enabled` is ignored for it. When left unset, this node pool falls back to the global value.
+Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances, and so does removing the whole `default_override` block. A default node pool that runs on spot instances while the configuration does not declare it shows up as a change in the plan.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--default_override--limits"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.default_override.limits`
@@ -514,9 +502,9 @@ Optional:
 
 - `consolidation` (Attributes) Node consolidation schedule for the stable node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on stable nodes. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation))
 - `limits` (Attributes) Resource limits for the stable node pool. Use this to cap the total resources Karpenter can provision for stable workloads. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--limits))
-- `spot_enabled` (Boolean) Whether to enable EC2 Spot instances on the **stable** node pool. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
+- `spot_enabled` (Boolean) Whether to run the **stable** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
 
-When set, this value wins for this node pool and the deprecated global `features.karpenter.spot_enabled` is ignored for it. When left unset, this node pool falls back to the global value.
+Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances, and so does removing the whole `stable_override` block. A stable node pool that runs on spot instances while the configuration does not declare it shows up as a change in the plan.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.stable_override.consolidation`

@@ -40,9 +40,13 @@ Run `terraform init -upgrade` only after completing the migration steps below.
 
 Since 0.87.0, spot instances are configured per Karpenter node pool with `spot_enabled` on `features.karpenter.qovery_node_pools.stable_override`, `default_override` and `cronjob_override`. The global `features.karpenter.spot_enabled` was deprecated at the same time and is removed in 1.0, from both the resource and the data source.
 
-The removal needs a two-step migration because of how the Qovery API applies the flag: the global value is still an input on the API side, and a node pool that carries no per-pool value inherits it. If you remove the global argument without first pinning every pool, an unrelated cluster update could move pools between spot and on-demand instances.
+In 1.0, the configuration decides where every node pool runs:
 
-**Step 1: on the last 0.x release, set every active pool explicitly.** For each node pool, write the value it effectively has today: its own `spot_enabled` if it has one, otherwise the global value. If the global argument is not in your configuration, read its computed value with `terraform state show qovery_cluster.<name>`. Only declare `cronjob_override` if the block already exists in your configuration: declaring it enables a dedicated cronjob node pool.
+- A node pool without `spot_enabled` runs on **on-demand** instances. The per node pool `spot_enabled` defaults to `false`, and an override block left out of the configuration means `false` for that pool. In 0.x such a pool inherited the global flag.
+- The provider sends an explicit value for the stable and default node pools on every apply, and for the cronjob node pool while `cronjob_override` exists.
+- A node pool that runs on spot instances without `spot_enabled = true` in the configuration shows up in `terraform plan`, for example because it inherited the global flag or was changed from the Console. An override block the configuration does not declare is shown being removed; a declared block without `spot_enabled` shows `spot_enabled` changing from `true` to `false`. Applying that plan moves the pool to on-demand instances, and the plan prints a warning naming each such node pool.
+
+**Recommended: pin every node pool on the last 0.x release first.** For each node pool, write the value it effectively has today: its own `spot_enabled` if it has one, otherwise the global value. If the global argument is not in your configuration, read its computed value with `terraform state show qovery_cluster.<name>`. Only declare `cronjob_override` if the block already exists in your configuration: declaring it enables a dedicated cronjob node pool.
 
 Before:
 
@@ -85,7 +89,7 @@ features = {
 
 Run `terraform apply`, then `terraform plan`: it must report no changes.
 
-**Step 2: remove the global argument and upgrade.** Delete `spot_enabled` from `features.karpenter`, set the provider version to `~> 1.0`, run `terraform init -upgrade`, then `terraform plan`. The plan must report no changes. The removed attribute is dropped from the state automatically; no `terraform state` command is needed. If the plan shows a `spot_enabled` change on a node pool, do not apply it: compare the value written in step 1 with the cluster settings in the Console.
+**Then remove the global argument and upgrade.** Delete `spot_enabled` from `features.karpenter`, set the provider version to `~> 1.0`, run `terraform init -upgrade`, then `terraform plan`. The plan must report no changes. The removed attribute is dropped from the state automatically; no `terraform state` command is needed.
 
 ```terraform
 features = {
@@ -105,7 +109,15 @@ features = {
 }
 ```
 
-The `qovery_cluster` data source no longer exposes `features.karpenter.spot_enabled`. Read `features.karpenter.qovery_node_pools.<pool>_override.spot_enabled` instead.
+**If you upgrade without pinning first,** the first 1.0 `terraform plan` lists every node pool that runs on spot instances without `spot_enabled = true` in the configuration, as described above. Do not apply that plan unless you want those node pools on on-demand instances. Add `spot_enabled = true` to them, then plan again: it must report no changes. A pipeline that applies without a human reviewing the plan moves those node pools to on-demand instances.
+
+Things to check while migrating:
+
+- A `stable_override` or `default_override` block declared only for `limits` or `consolidation`, without `spot_enabled`, now runs its node pool on on-demand instances. If the pool inherited spot instances from the global flag, add `spot_enabled = true` to the block.
+- `terraform plan -refresh=false` compares against the previous state only, so it does not show node pools that run on spot instances without being declared.
+- `terraform import` cannot tell whether an override block holding only `spot_enabled = false` was declared, because that is the default. The first plan after an import proposes adding the block back; applying it changes nothing on the cluster.
+
+The `qovery_cluster` data source no longer exposes `features.karpenter.spot_enabled`. It now always reports `stable_override` and `default_override` with the `spot_enabled` value each node pool runs with, plus `cronjob_override` while the cronjob node pool is enabled. Read `features.karpenter.qovery_node_pools.<pool>_override.spot_enabled` instead.
 
 ### `qovery_git_token` data source: `organization_id` is required
 
@@ -152,6 +164,12 @@ In 0.x, `routing_table` and `labels_group_ids` only refreshed from the API when 
 In 1.0 the refresh is authoritative. A route or labels group added, changed or removed from the Console appears as a difference in `terraform plan`, and `terraform apply` reverts it to the configured value. To keep a Console-made change, add it to the configuration before applying. Corrective changes on these attributes redeploy the cluster, like any other change to them.
 
 Two related fixes: `routing_table = []` now deletes the remaining remote routes (0.x skipped the API call when the list was empty), and an omitted `labels_group_ids` no longer hides labels groups attached from the Console. Declare `labels_group_ids` explicitly, with the ids you want or `[]`, to make Terraform authoritative.
+
+### `qovery_cluster`: refresh reflects the dedicated cronjob node pool
+
+In 0.x, the refresh only kept `features.karpenter.qovery_node_pools.cronjob_override` when the configuration declared it. A cronjob node pool enabled from the Qovery Console stayed invisible to Terraform, and the next `terraform apply` disabled it without the plan showing it. A pool disabled from the Console while the block was declared was re-enabled the same way.
+
+In 1.0 the refresh stores `cronjob_override` exactly when the pool is enabled on the cluster. A pool enabled from the Console shows in `terraform plan` as the block being removed, and applying that plan disables the pool: declare `cronjob_override` to keep it. A pool disabled from the Console shows as the block being added back.
 
 ### `advanced_settings_json`: Console resets of tracked keys are reflected
 

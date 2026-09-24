@@ -115,10 +115,6 @@ Required:
 - `disk_size_in_gib` (Number) Root disk size in GiB for Karpenter-provisioned nodes.
 - `qovery_node_pools` (Attributes) Karpenter node pool configuration with requirements and resource limits. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools))
 
-Optional:
-
-- `spot_enabled` (Boolean, Deprecated) Whether EC2 Spot instances are enabled. Deprecated: this is a derived value, recomputed by the API as the logical OR of the per node pool `spot_enabled` values.
-
 <a id="nestedatt--features--karpenter--qovery_node_pools"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools`
 
@@ -147,7 +143,7 @@ Required:
 
 Read-Only:
 
-- `spot_enabled` (Boolean) Whether EC2 Spot instances are enabled on the cronjob node pool.
+- `spot_enabled` (Boolean) Whether the cronjob node pool runs on EC2 Spot instances.
 
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--default_override"></a>
@@ -159,7 +155,7 @@ Optional:
 
 Read-Only:
 
-- `spot_enabled` (Boolean) Whether EC2 Spot instances are enabled on the default node pool.
+- `spot_enabled` (Boolean) Whether the default node pool runs on EC2 Spot instances. Always reported for Karpenter clusters.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--default_override--limits"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.default_override.limits`
@@ -182,7 +178,7 @@ Optional:
 
 Read-Only:
 
-- `spot_enabled` (Boolean) Whether EC2 Spot instances are enabled on the stable node pool.
+- `spot_enabled` (Boolean) Whether the stable node pool runs on EC2 Spot instances. Always reported for Karpenter clusters.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.stable_override.consolidation`

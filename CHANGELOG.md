@@ -19,6 +19,14 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 
 ### Breaking changes
 
+- **`qovery_cluster`**: the global `features.karpenter.spot_enabled` is removed from the
+  resource and the data source. A Karpenter node pool without `spot_enabled` now runs on
+  on-demand instances: the per-node-pool `spot_enabled` defaults to `false`, and the provider
+  sends an explicit value for every node pool instead of letting the API apply the global
+  flag. A node pool that runs on spot instances without being declared shows up in
+  `terraform plan`, with a warning, instead of being moved by the next apply without notice.
+  The data source always reports the stable and default node pools. Pin your node pools as
+  described in the upgrade guide before upgrading. (QOV-2301)
 - **`qovery_git_token` data source**: `organization_id` is now a required argument. It used
   to be a computed attribute that the lookup could never populate, so the data source could
   not resolve a token. The `token` attribute is now `null` instead of an empty string,
@@ -40,6 +48,16 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   when the operation does not complete in time. Previously the wait returned success and
   `terraform apply` reported a resource as ready although it had not converged.
   (QOV-2299, #626)
+
+### Fixed
+
+- `qovery_cluster`: a configuration that sets `spot_enabled` on only some Karpenter node pools
+  no longer moves the other node pools to spot instances on the next unrelated apply. A spot
+  change made from the Console on a declared node pool now shows in `terraform plan`.
+  (QOV-2301)
+- `qovery_cluster`: a dedicated cronjob node pool enabled or disabled from the Console now shows
+  in `terraform plan`. The refresh used to ignore it, so the next apply reverted the change
+  without the plan showing it. (QOV-2301)
 
 ### Security
 

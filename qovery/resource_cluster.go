@@ -24,6 +24,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
@@ -115,16 +116,64 @@ func (r *clusterResource) Configure(_ context.Context, req resource.ConfigureReq
 // cluster advanced settings, instead of letting them silently no-op.
 func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	warnUnknownClusterAdvancedSettings(ctx, r.clusterAdvancedSettingsService, req.Config, &resp.Diagnostics)
+	warnKarpenterSpotToOnDemand(ctx, req.State, req.Plan, &resp.Diagnostics)
+}
+
+// warnKarpenterSpotToOnDemand warns when the plan moves a Karpenter node pool from spot to
+// on-demand instances. A configuration upgraded from 0.x without pinning its spot pools applies
+// exactly that change, and the plan only shows it as an override block being removed, which is
+// easy to read past.
+func warnKarpenterSpotToOnDemand(ctx context.Context, state tfsdk.State, plan tfsdk.Plan, diags *diag.Diagnostics) {
+	if state.Raw.IsNull() || plan.Raw.IsNull() {
+		return
+	}
+
+	karpenterPath := path.Root("features").AtName("karpenter")
+	var stateKarpenter, planKarpenter types.Object
+	if state.GetAttribute(ctx, karpenterPath, &stateKarpenter).HasError() || plan.GetAttribute(ctx, karpenterPath, &planKarpenter).HasError() {
+		return
+	}
+
+	stateView := newKarpenterPlanView(stateKarpenter)
+	planView := newKarpenterPlanView(planKarpenter)
+	if !stateView.available || !planView.available {
+		return
+	}
+
+	for _, name := range karpenterNodePoolOverrideNames {
+		// Removing cronjob_override removes the dedicated node pool altogether: that is not a
+		// move to on-demand instances.
+		if name == "cronjob_override" && !planView.declaresOverride(name) {
+			continue
+		}
+
+		wasSpot, stateKnown := stateView.spotEnabled(name)
+		isSpot, planKnown := planView.spotEnabled(name)
+		if !stateKnown || !planKnown || !wasSpot || isSpot {
+			continue
+		}
+
+		diags.AddAttributeWarning(
+			karpenterPath.AtName("qovery_node_pools").AtName(name),
+			"Karpenter node pool moves to on-demand instances",
+			fmt.Sprintf("The %s node pool runs on EC2 Spot instances, and this plan moves it to on-demand instances because the configuration does not set `%s.spot_enabled = true`. "+
+				"A node pool without spot_enabled runs on on-demand instances. Set `spot_enabled = true` in `%s` to keep spot instances.",
+				strings.TrimSuffix(name, "_override"), name, name),
+		)
+	}
 }
 
 // karpenterNodePoolSpotEnabledMarkdownDescription builds the documentation of a per node pool
-// `spot_enabled` flag. Leaving the flag unset is meaningful: the pool then falls back to the
-// deprecated global `features.karpenter.spot_enabled`, which is how configurations written
-// before per node pool support keep behaving.
+// `spot_enabled` flag. The flag defaults to false and the provider sends it for every node pool,
+// so an unset value always means on-demand instances.
 func karpenterNodePoolSpotEnabledMarkdownDescription(pool string) string {
-	return "Whether to enable EC2 Spot instances on the **" + pool + "** node pool. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.\n\n" +
-		"When set, this value wins for this node pool and the deprecated global `features.karpenter.spot_enabled` is ignored for it. " +
-		"When left unset, this node pool falls back to the global value."
+	description := "Whether to run the **" + pool + "** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.\n\n" +
+		"Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances"
+	if pool == "cronjob" {
+		return description + "."
+	}
+	return description + ", and so does removing the whole `" + pool + "_override` block. " +
+		"A " + pool + " node pool that runs on spot instances while the configuration does not declare it shows up as a change in the plan."
 }
 
 func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
@@ -527,20 +576,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						MarkdownDescription: "Karpenter configuration for AWS EKS clusters. [Karpenter](https://karpenter.sh/) is a Kubernetes node autoscaler that automatically provisions right-sized compute resources. " +
 							"When Karpenter is enabled, do not set `instance_type`, `min_running_nodes`, or `max_running_nodes` — Karpenter manages node scaling automatically.",
 						Attributes: map[string]schema.Attribute{
-							"spot_enabled": schema.BoolAttribute{
-								Description: "Enable spot instances (deprecated, use the per node pool `spot_enabled` instead)",
-								MarkdownDescription: "Whether to enable EC2 Spot instances for cost savings. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.\n\n" +
-									"~> **Deprecated:** spot instances are now configured per node pool. Set `spot_enabled` on `qovery_node_pools.stable_override`, `qovery_node_pools.default_override` and `qovery_node_pools.cronjob_override` instead.\n\n" +
-									"This field is now a derived value: the API recomputes it on every write as the logical OR of the per node pool values (the cronjob pool counts only while its `cronjob_override` block exists). " +
-									"On write, a node pool that carries its own `spot_enabled` ignores this field; a node pool that carries none falls back to this value — which is how configurations written before per node pool support keep behaving.\n\n" +
-									"~> **Warning:** setting this field and the per node pool values to contradictory states causes permanent plan drift, because the API echoes back the derived OR rather than the value you sent.",
-								Optional:           true,
-								Computed:           true,
-								DeprecationMessage: "Configure spot_enabled per node pool on qovery_node_pools.{stable_override,default_override,cronjob_override} instead. When per-pool values are present the API ignores this field on write and recomputes it as the OR of the per-pool values. When no per-pool value is set, this value still applies to ALL pools including stable (legacy behavior).",
-								PlanModifiers: []planmodifier.Bool{
-									DeprecatedGlobalSpotEnabled(),
-								},
-							},
 							"disk_size_in_gib": schema.Int64Attribute{
 								Description:         "Disk size in GiB for Karpenter-provisioned nodes.",
 								MarkdownDescription: "Root disk size in GiB for nodes provisioned by Karpenter (e.g., `50`).",
@@ -604,13 +639,11 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{
 											"spot_enabled": schema.BoolAttribute{
-												Description:         "Enable spot instances on the stable node pool",
+												Description:         "Run the stable node pool on spot instances. Defaults to false (on-demand instances).",
 												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("stable"),
 												Optional:            true,
 												Computed:            true,
-												PlanModifiers: []planmodifier.Bool{
-													boolplanmodifier.UseStateForUnknown(),
-												},
+												Default:             booldefault.StaticBool(false),
 											},
 											"consolidation": schema.SingleNestedAttribute{
 												Description:         "Specifies the period to consolidate nodes (by default, no consolidation happens)",
@@ -679,13 +712,11 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{
 											"spot_enabled": schema.BoolAttribute{
-												Description:         "Enable spot instances on the default node pool",
+												Description:         "Run the default node pool on spot instances. Defaults to false (on-demand instances).",
 												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("default"),
 												Optional:            true,
 												Computed:            true,
-												PlanModifiers: []planmodifier.Bool{
-													boolplanmodifier.UseStateForUnknown(),
-												},
+												Default:             booldefault.StaticBool(false),
 											},
 											"limits": schema.SingleNestedAttribute{
 												Description:         "Specifies the limits to apply on the default node pool",
@@ -718,18 +749,17 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 										Description: "Defines some overridden options for the Qovery cronjob node pool. Declaring this block enables the dedicated cronjob node pool.",
 										MarkdownDescription: "Override options for the Qovery **cronjob** node pool.\n\n" +
 											"~> **Important:** the mere presence of this block enables the dedicated cronjob node pool across the Qovery stack — the engine creates the pool and pins cron jobs and lifecycle jobs to it. " +
-											"Removing the block disables the dedicated pool again, and the `spot_enabled` value below only has meaning while the block exists.",
+											"Removing the block disables the dedicated pool again, and the `spot_enabled` value below only has meaning while the block exists. " +
+											"A cronjob node pool enabled outside Terraform, for example from the Qovery Console, shows up in the plan as this block being removed, and applying that plan disables the pool.",
 										Optional: true,
 										Computed: false,
 										Attributes: map[string]schema.Attribute{
 											"spot_enabled": schema.BoolAttribute{
-												Description:         "Enable spot instances on the cronjob node pool",
+												Description:         "Run the cronjob node pool on spot instances. Defaults to false (on-demand instances).",
 												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("cronjob"),
 												Optional:            true,
 												Computed:            true,
-												PlanModifiers: []planmodifier.Bool{
-													boolplanmodifier.UseStateForUnknown(),
-												},
+												Default:             booldefault.StaticBool(false),
 											},
 										},
 									},

@@ -597,7 +597,6 @@ resource "qovery_cluster" "test" {
   features = {
     vpc_subnet = "10.0.0.0/16"
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {
@@ -633,7 +632,6 @@ resource "qovery_cluster" "test" {
   features = {
     vpc_subnet = "10.0.0.0/16"
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {
@@ -668,7 +666,6 @@ resource "qovery_cluster" "test" {
     vpc_subnet = "10.0.0.0/16"
     static_ip  = true
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {
@@ -698,7 +695,6 @@ resource "qovery_cluster" "test" {
   features = {
     vpc_subnet = "10.0.0.0/16"
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {
@@ -738,7 +734,6 @@ resource "qovery_cluster" "test" {
   features = {
     vpc_subnet = "10.0.0.0/16"
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {
@@ -772,7 +767,6 @@ resource "qovery_cluster" "test" {
   features = {
     vpc_subnet = "10.0.0.0/16"
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {
@@ -802,7 +796,6 @@ resource "qovery_cluster" "test" {
   features = {
     vpc_subnet = "10.0.0.0/16"
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {

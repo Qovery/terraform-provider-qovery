@@ -68,22 +68,13 @@ type Cluster struct {
 	SecretManagerAccesses          types.Set    `tfsdk:"secret_manager_accesses"`
 }
 
-// stateClusterFeatures returns the features object of the prior state, or a null object when
-// there is no prior state (create).
-func stateClusterFeatures(state *Cluster) types.Object {
-	if state == nil {
-		return types.ObjectNull(createFeaturesAttrTypes())
-	}
-	return state.Features
-}
-
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
-	clusterFeatures, _ := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider), stateClusterFeatures(state))
+	clusterFeatures, _ := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider))
 	if state == nil {
 		return len(clusterFeatures) > 0
 	}
 
-	stateFeature, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider), state.Features)
+	stateFeature, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider))
 	if len(clusterFeatures) != len(stateFeature) {
 		return true
 	}
@@ -275,8 +266,8 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			if karpenter, ok := featuresAttrs[featureKeyKarpenter]; ok {
 				if !karpenter.IsNull() && !karpenter.IsUnknown() {
 					// Check if karpenter has actual content. Every attribute is checked rather
-					// than a single required one: spot_enabled is deprecated and now optional,
-					// so a karpenter block can legitimately leave it unset.
+					// than a single required one, so the check does not depend on which
+					// attributes the karpenter block happens to require.
 					karpenterObj := karpenter.(types.Object)
 					if !karpenterObj.IsNull() {
 						for _, attribute := range karpenterObj.Attributes() {
@@ -303,7 +294,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		return nil, errors.New("infrastructure_charts_parameters is only supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
 	}
 
-	features, err := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider), stateClusterFeatures(state))
+	features, err := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider))
 	if err != nil {
 		return nil, err
 	}
@@ -413,7 +404,7 @@ func IsKarpenterAlreadyInstalled(state *Cluster) bool {
 		return false
 	}
 
-	oldFeatures, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider), state.Features)
+	oldFeatures, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider))
 	for _, f := range oldFeatures {
 		if f.Id != nil && *f.Id == featureIdKarpenter {
 			return true
@@ -438,7 +429,7 @@ func responseHasKarpenter(features []qovery.ClusterFeatureResponse) bool {
 // The resource must stay symmetric between apply and import: ImportStateVerify compares the two
 // states attribute by attribute, so import may only store node pool overrides that an apply would
 // also store. The data source is read-only — no plan to be consistent with and no diff to keep
-// quiet — so hiding a real divergence there would be a bug, and it reports whatever the API holds.
+// quiet — so it reports every Karpenter node pool with where it runs.
 type clusterReadMode int
 
 const (
@@ -679,11 +670,12 @@ func planKarpenterObject(planFeatures types.Object) types.Object {
 	return karpenter
 }
 
-// fromQoveryClusterFeatures converts the API features to their Terraform representation.
-// planFeatures is the planned (or, on a refresh, the prior state) features object: some
-// Karpenter values are only stored in state when the configuration asked for them, so that a
-// value the API returns on its own does not become permanent plan noise. Pass a null object
-// when no plan is available, e.g. from the data source.
+// clusterFeaturesFromResponse converts the API features to their Terraform representation.
+// planFeatures is the planned (or, on a refresh, the prior state) features object: Karpenter node
+// pool overrides are only stored when the configuration declares them or when they say something
+// the schema defaults would not (see storeNodePoolOverride), so that a block the API returns on
+// its own does not become permanent plan noise. Pass a null object when no plan is available,
+// e.g. from the data source.
 func clusterFeaturesFromResponse(
 	clusterFeatures []qovery.ClusterFeatureResponse,
 	planFeatures types.Object,
@@ -937,11 +929,10 @@ func clusterFeaturesFromResponse(
 	return terraformObjectValue
 }
 
-// toQoveryClusterFeatures converts the Terraform features object into the API request. Passing
-// stateFeatures alongside it — the features of the prior state, or a null object on create — lets
-// the deprecated global Karpenter spot_enabled fall back to the value the API last derived when
-// the plan leaves it unknown; see the karpenter branch below.
-func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string, stateFeatures types.Object) ([]qovery.ClusterRequestFeaturesInner, error) {
+// toQoveryClusterFeatures converts the Terraform features object into the API request. The
+// result depends on the configuration alone, which is what lets hasFeaturesDiff compare the plan
+// and the prior state through it.
+func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string) ([]qovery.ClusterRequestFeaturesInner, error) {
 	if f.IsNull() || f.IsUnknown() || mode == "K3S" {
 		return nil, nil
 	}
@@ -1050,10 +1041,10 @@ func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string, 
 		// Non-GCP: never emit NAT_GATEWAY.
 	}
 
-	return appendRemainingQoveryClusterFeatures(features, f, stateFeatures)
+	return appendRemainingQoveryClusterFeatures(features, f)
 }
 
-func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeaturesInner, f types.Object, stateFeatures types.Object) ([]qovery.ClusterRequestFeaturesInner, error) {
+func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeaturesInner, f types.Object) ([]qovery.ClusterRequestFeaturesInner, error) {
 	if _, ok := f.Attributes()[featureKeyExistingVpc]; ok {
 		v := f.Attributes()[featureKeyExistingVpc].(types.Object)
 		if !v.IsNull() {
@@ -1125,21 +1116,13 @@ func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeatur
 				return nil, err
 			}
 
-			// The deprecated global flag is planned as unknown whenever the configuration carries
-			// per node pool values, because the API derives it from them (see
-			// DeprecatedGlobalSpotEnabled). Unknown must not be sent as false: a node pool the
-			// configuration gives no per-pool value falls back to whatever global the request
-			// carries, so false would silently switch such a pool off spot midway through the
-			// documented migration. Send the value the API last derived instead, which leaves those
-			// pools exactly where they are. On create there is no prior state and every pool is
-			// new, so false is the safe default.
-			globalSpotEnabled := v.Attributes()["spot_enabled"].(types.Bool)
-			if globalSpotEnabled.IsUnknown() {
-				globalSpotEnabled = knownBool(planKarpenterObject(stateFeatures).Attributes()["spot_enabled"])
-			}
-
+			// The API still requires the global spot flag, and it hands it to every node pool that
+			// carries no spot_enabled of its own. toQoveryNodePools gives every pool an explicit
+			// value, so the global decides nothing; it is sent as the OR of those values because
+			// that is exactly what the API recomputes and stores, which keeps request and stored
+			// state coherent.
 			feature := qovery.ClusterFeatureKarpenterParameters{
-				SpotEnabled:                ToBool(globalSpotEnabled),
+				SpotEnabled:                karpenterGlobalSpotEnabled(qoveryNodePools),
 				DiskSizeInGib:              ToInt32(v.Attributes()["disk_size_in_gib"].(types.Int64)),
 				DefaultServiceArchitecture: arch,
 				QoveryNodePools:            *qoveryNodePools,
@@ -1234,6 +1217,11 @@ func toQoveryNodePools(obj types.Object) (*qovery.KarpenterNodePool, error) {
 		karpenterNodePool.Requirements = append(karpenterNodePool.Requirements, requirement)
 	}
 
+	// Every node pool that exists gets an explicit spot_enabled: the stable and default pools
+	// always exist, the cronjob pool only while its override is declared. The API hands its
+	// global flag to any pool left without one, so leaving a pool out would let that flag,
+	// rather than the configuration, decide where the pool runs.
+
 	// Set stable node pool override
 	stableOverride, err := extractStableNodePoolOverrideFromTypesObject(obj)
 	if err != nil {
@@ -1258,9 +1246,24 @@ func toQoveryNodePools(obj types.Object) (*qovery.KarpenterNodePool, error) {
 	return &karpenterNodePool, nil
 }
 
+// karpenterGlobalSpotEnabled returns the global spot flag to send alongside the node pools: the
+// OR of their spot_enabled values, the cronjob pool counting only while its override is sent.
+// This is the value the API recomputes and stores on every write.
+func karpenterGlobalSpotEnabled(nodePools *qovery.KarpenterNodePool) bool {
+	for _, spotEnabled := range []*bool{
+		GetStableNodePoolSpotEnabled(nodePools.StableOverride),
+		GetDefaultNodePoolSpotEnabled(nodePools.DefaultOverride),
+		GetCronjobNodePoolSpotEnabled(nodePools.CronjobOverride),
+	} {
+		if spotEnabled != nil && *spotEnabled {
+			return true
+		}
+	}
+	return false
+}
+
 // extractNodePoolOverride returns the named node pool override object when the configuration
-// declares it. A null or unknown block means the block is absent, which is meaningful for the
-// API: an absent block leaves the corresponding node pool on its legacy behavior.
+// declares it. A null or unknown block means the configuration does not declare it.
 func extractNodePoolOverride(obj types.Object, name string) (basetypes.ObjectValue, bool, error) {
 	qoveryNodePools, exists := obj.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
 	if !exists {
@@ -1280,22 +1283,22 @@ func extractNodePoolOverride(obj types.Object, name string) (basetypes.ObjectVal
 	return override, true, nil
 }
 
-// extractNodePoolSpotEnabled returns the configured per node pool spot_enabled, or nil when it
-// is null or unknown. Nil must be sent as an absent field: the API then applies the deprecated
-// global spot_enabled to that node pool, which is the behavior of every configuration written
-// before per node pool support.
-func extractNodePoolSpotEnabled(override basetypes.ObjectValue) (*bool, error) {
+// extractNodePoolSpotEnabled returns the spot_enabled to send for a declared node pool override.
+// The schema defaults the attribute to false, so an apply always sees a known value; null or
+// unknown can only come from a plan that is not final yet and resolve to the same on-demand
+// default.
+func extractNodePoolSpotEnabled(override basetypes.ObjectValue) (bool, error) {
 	spotEnabledAttr, exists := override.Attributes()["spot_enabled"]
 	if !exists || spotEnabledAttr == nil || spotEnabledAttr.IsNull() || spotEnabledAttr.IsUnknown() {
-		return nil, nil
+		return false, nil
 	}
 
 	spotEnabled, ok := spotEnabledAttr.(basetypes.BoolValue)
 	if !ok {
-		return nil, fmt.Errorf("spot_enabled field cannot be parsed to Bool")
+		return false, fmt.Errorf("spot_enabled field cannot be parsed to Bool")
 	}
 
-	return spotEnabled.ValueBoolPointer(), nil
+	return spotEnabled.ValueBool(), nil
 }
 
 func extractRequirementsFromTypesObject(obj types.Object) ([]map[string]any, error) {
@@ -1326,27 +1329,27 @@ func extractRequirementsFromTypesObject(obj types.Object) ([]map[string]any, err
 	return result, nil
 }
 
+// extractStableNodePoolOverrideFromTypesObject converts stable_override. The stable node pool
+// always exists, so an override is returned even when the block is absent: it carries
+// spot_enabled = false, the on-demand default.
 func extractStableNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.KarpenterStableNodePoolOverride, error) {
+	qoveryStableOverride := qovery.KarpenterStableNodePoolOverride{}
+
 	stableOverride, declared, err := extractNodePoolOverride(obj, "stable_override")
 	if err != nil {
 		return nil, err
 	}
 	if !declared {
-		// It means stable_override is not defined
-		// No issue as this field is optional
-		return nil, nil
+		SetStableNodePoolSpotEnabled(&qoveryStableOverride, false)
+		return &qoveryStableOverride, nil
 	}
-
-	qoveryStableOverride := qovery.KarpenterStableNodePoolOverride{}
 
 	// Set spot_enabled
 	spotEnabled, err := extractNodePoolSpotEnabled(stableOverride)
 	if err != nil {
 		return nil, err
 	}
-	if spotEnabled != nil {
-		SetStableNodePoolSpotEnabled(&qoveryStableOverride, *spotEnabled)
-	}
+	SetStableNodePoolSpotEnabled(&qoveryStableOverride, spotEnabled)
 
 	// Set consolidation
 	consolidationAttr, hasConsolidation := stableOverride.Attributes()["consolidation"]
@@ -1403,45 +1406,35 @@ func extractStableNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Kar
 		qoveryStableOverride.Limits = qoveryLimits
 	}
 
-	// To avoid over-checking conditions when converting the API response to Terraform object, forbid an empty stable_override block
-	if !hasConsolidation && !hasLimits && spotEnabled == nil {
-		return nil, fmt.Errorf("if `qovery_node_pools.stable_override` is defined, you must define at least its `spot_enabled`, its `consolidation` or its `limits`")
-	}
-
 	return &qoveryStableOverride, nil
 }
 
+// extractDefaultNodePoolOverrideFromTypesObject converts default_override. The default node pool
+// always exists, so an override is returned even when the block is absent: it carries
+// spot_enabled = false, the on-demand default.
 func extractDefaultNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.KarpenterDefaultNodePoolOverride, error) {
+	qoveryDefaultOverride := qovery.KarpenterDefaultNodePoolOverride{}
+
 	defaultOverride, declared, err := extractNodePoolOverride(obj, "default_override")
 	if err != nil {
 		return nil, err
 	}
 	if !declared {
-		// It means default_override is not defined
-		// No issue as this field is optional
-		return nil, nil
+		SetDefaultNodePoolSpotEnabled(&qoveryDefaultOverride, false)
+		return &qoveryDefaultOverride, nil
 	}
-
-	qoveryDefaultOverride := qovery.KarpenterDefaultNodePoolOverride{}
 
 	// Set spot_enabled
 	spotEnabled, err := extractNodePoolSpotEnabled(defaultOverride)
 	if err != nil {
 		return nil, err
 	}
-	if spotEnabled != nil {
-		SetDefaultNodePoolSpotEnabled(&qoveryDefaultOverride, *spotEnabled)
-	}
+	SetDefaultNodePoolSpotEnabled(&qoveryDefaultOverride, spotEnabled)
 
 	// Set limits
 	limitsAttr, hasLimits := defaultOverride.Attributes()["limits"]
 	hasLimits = hasLimits && limitsAttr != nil && !limitsAttr.IsNull()
-
-	// To avoid over-checking conditions when converting the API response to Terraform object, forbid an empty default_override block
 	if !hasLimits {
-		if spotEnabled == nil {
-			return nil, fmt.Errorf("if `qovery_node_pools.default_override` is defined, you must define at least its `spot_enabled` or its `limits`")
-		}
 		return &qoveryDefaultOverride, nil
 	}
 
@@ -1462,7 +1455,8 @@ func extractDefaultNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Ka
 
 // extractCronjobNodePoolOverrideFromTypesObject converts the cronjob_override block. The block
 // is never synthesized: its mere presence enables the dedicated cronjob node pool across the
-// Qovery stack, so it is sent only when the configuration declares it.
+// Qovery stack, so it is sent only when the configuration declares it, with an explicit
+// spot_enabled like every other pool.
 func extractCronjobNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.KarpenterCronjobNodePoolOverride, error) {
 	cronjobOverride, declared, err := extractNodePoolOverride(obj, "cronjob_override")
 	if err != nil {
@@ -1478,9 +1472,7 @@ func extractCronjobNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Ka
 	if err != nil {
 		return nil, err
 	}
-	if spotEnabled != nil {
-		SetCronjobNodePoolSpotEnabled(&qoveryCronjobOverride, *spotEnabled)
-	}
+	SetCronjobNodePoolSpotEnabled(&qoveryCronjobOverride, spotEnabled)
 
 	return &qoveryCronjobOverride, nil
 }
@@ -1583,7 +1575,6 @@ func karpenterNodePoolsAttrTypes() map[string]attr.Type {
 
 func createKarpenterFeatureAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"spot_enabled":                 types.BoolType,
 		"disk_size_in_gib":             types.Int64Type,
 		"default_service_architecture": types.StringType,
 		"qovery_node_pools":            types.ObjectType{AttrTypes: karpenterNodePoolsAttrTypes()},
@@ -1684,129 +1675,69 @@ func (p karpenterPlanView) declaresOverride(name string) bool {
 	return ok
 }
 
-// overrideSpotEnabled returns the planned spot_enabled of a node pool override, or a null
-// bool when the plan does not know it.
-func (p karpenterPlanView) overrideSpotEnabled(name string) types.Bool {
-	override, ok := p.override(name)
-	if !ok {
-		return types.BoolNull()
-	}
-	return knownBool(override.Attributes()["spot_enabled"])
-}
-
-// globalSpotEnabled returns the planned deprecated global spot_enabled, or a null bool when
-// the plan does not know it.
-func (p karpenterPlanView) globalSpotEnabled() types.Bool {
-	if !p.available {
-		return types.BoolNull()
-	}
-	return knownBool(p.karpenter.Attributes()["spot_enabled"])
-}
-
-// karpenterNodePoolOverrideNames lists the node pool overrides that feed the derived global
-// spot flag, in a fixed order. GPU is deliberately absent: it is out of scope for per-pool spot.
+// karpenterNodePoolOverrideNames lists the node pool overrides that carry a spot_enabled, in a
+// fixed order. GPU is deliberately absent: its spot flag is separate and out of scope here.
 var karpenterNodePoolOverrideNames = []string{"stable_override", "default_override", "cronjob_override"}
 
-// nodePoolSpotEnabled captures what one node pool override contributes to the derived global spot
-// flag: whether the block exists at all — the cronjob pool only joins the OR while its block does
-// — and the value it carries, if any.
-type nodePoolSpotEnabled struct {
-	blockPresent bool
-	spotEnabled  types.Bool
-}
-
-func (n nodePoolSpotEnabled) equal(other nodePoolSpotEnabled) bool {
-	return n.blockPresent == other.blockPresent && n.spotEnabled.Equal(other.spotEnabled)
-}
-
-// karpenterNodePoolSpotSnapshot is the per node pool spot configuration of one karpenter object,
-// in karpenterNodePoolOverrideNames order so two objects can be compared.
-type karpenterNodePoolSpotSnapshot [3]nodePoolSpotEnabled
-
-func (s karpenterNodePoolSpotSnapshot) equal(other karpenterNodePoolSpotSnapshot) bool {
-	for i := range s {
-		if !s[i].equal(other[i]) {
-			return false
-		}
-	}
-	return true
-}
-
-// nodePoolSpotEnabledSnapshot summarises what every node pool override contributes to the derived
-// global spot flag. It reports comparable=false when something it needs is unknown — an unresolved
-// expression in the configuration — because the derived value may then move and the caller must
-// assume it does.
-func (p karpenterPlanView) nodePoolSpotEnabledSnapshot() (snapshot karpenterNodePoolSpotSnapshot, comparable bool) {
+// spotEnabled reports whether the named node pool runs on spot instances according to this
+// karpenter object, and whether that is known. A known-absent override means on-demand: the
+// schema defaults spot_enabled to false, and the read path stores every undeclared stable or
+// default pool that runs on spot. An override, or a qovery_node_pools object, that is still
+// unknown at plan time may resolve to anything, so it is reported as unknown rather than as
+// on-demand.
+func (p karpenterPlanView) spotEnabled(name string) (enabled bool, known bool) {
 	if !p.available {
-		return snapshot, true
+		return false, false
 	}
-
 	nodePools, ok := p.karpenter.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
 	if !ok || nodePools.IsNull() {
-		return snapshot, true
+		return false, true
 	}
 	if nodePools.IsUnknown() {
-		return snapshot, false
+		return false, false
 	}
-
-	for i, name := range karpenterNodePoolOverrideNames {
-		overrideAttr, exists := nodePools.Attributes()[name]
-		if !exists || overrideAttr == nil || overrideAttr.IsNull() {
-			continue
-		}
-		override, ok := overrideAttr.(basetypes.ObjectValue)
-		if !ok {
-			continue
-		}
-		if override.IsUnknown() {
-			return snapshot, false
-		}
-
-		snapshot[i].blockPresent = true
-
-		spotEnabled, exists := override.Attributes()["spot_enabled"]
-		if !exists || spotEnabled == nil {
-			continue
-		}
-		if spotEnabled.IsUnknown() {
-			return snapshot, false
-		}
-		snapshot[i].spotEnabled = knownBool(spotEnabled)
+	override, ok := nodePools.Attributes()[name].(basetypes.ObjectValue)
+	if !ok || override.IsNull() {
+		return false, true
 	}
-
-	return snapshot, true
+	if override.IsUnknown() {
+		return false, false
+	}
+	spotEnabled, ok := override.Attributes()["spot_enabled"].(basetypes.BoolValue)
+	if !ok || spotEnabled.IsUnknown() {
+		return false, false
+	}
+	return spotEnabled.ValueBool(), true
 }
 
-// hasAnyNodePoolSpotEnabled reports whether the plan carries at least one per node pool
-// spot_enabled, i.e. whether the API is going to derive the global flag rather than echo it.
-func (p karpenterPlanView) hasAnyNodePoolSpotEnabled() bool {
-	for _, name := range karpenterNodePoolOverrideNames {
-		if !p.overrideSpotEnabled(name).IsNull() {
-			return true
-		}
-	}
-	return false
-}
-
-// knownBool narrows an attribute to a bool value, returning a null bool for anything that is
-// not a known, non-null bool.
-func knownBool(v attr.Value) types.Bool {
-	b, ok := v.(basetypes.BoolValue)
-	if !ok || b.IsNull() || b.IsUnknown() {
-		return types.BoolNull()
-	}
-	return b
-}
-
-// resolveNodePoolSpotEnabled picks the value to store in state for a per node pool
-// spot_enabled. The API value wins; the planned value is the fallback for as long as the API
-// does not echo the flag back (QOV-2155), so that a configured value does not read back as
-// null and fail the apply.
-func resolveNodePoolSpotEnabled(apiValue *bool, planned types.Bool) types.Bool {
+// effectiveNodePoolSpotEnabled resolves where a node pool runs from an API response. The API
+// omits a per node pool spot_enabled equal to the global flag it derived, so an absent value
+// means the global one; the omission is lossless.
+func effectiveNodePoolSpotEnabled(apiValue *bool, globalSpotEnabled bool) bool {
 	if apiValue != nil {
-		return types.BoolValue(*apiValue)
+		return *apiValue
 	}
-	return planned
+	return globalSpotEnabled
+}
+
+// storeNodePoolOverride decides whether a stable or default override reaches the state. Both node
+// pools always exist, so the question is only whether the block says anything the schema default
+// would not:
+//   - a declared block is always stored, so the configuration and the state line up;
+//   - consolidation or limits are real content;
+//   - a pool running on spot differs from the on-demand default. Storing it makes the plan show
+//     the block's removal, i.e. the switch back to on-demand, instead of the next apply performing
+//     it silently. This is how a configuration upgraded from 0.x without pinning its spot pools
+//     gets to see them.
+//
+// An undeclared on-demand pool with nothing else carries no information and stays out of state,
+// so a configuration that never declares the blocks plans clean. The rule is the same with and
+// without a plan, which keeps import and apply in agreement for such configurations.
+//
+// The data source has no plan to line up with and no diff to keep quiet, so it reports both pools
+// unconditionally, with where they run.
+func storeNodePoolOverride(plan karpenterPlanView, name string, mode clusterReadMode, hasContent, spotEnabled bool) bool {
+	return mode == clusterReadModeDataSource || plan.declaresOverride(name) || hasContent || spotEnabled
 }
 
 func karpenterConsolidationAttrValue(consolidation *qovery.KarpenterNodePoolConsolidation) basetypes.ObjectValue {
@@ -1849,21 +1780,11 @@ func karpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpent
 
 	plan := newKarpenterPlanView(planKarpenter)
 
-	// The global spot_enabled is derived by the API: it is recomputed on every write as the OR
-	// of the per node pool values. As soon as the configuration carries per node pool values the
-	// response therefore stops matching what Terraform planned, which would fail the apply with
-	// "provider produced inconsistent result after apply" — keep the planned value in that case.
-	// Without per node pool values the API value is authoritative and drift is reported as before.
-	//
-	// Reading the deprecated field is deliberate and cannot be avoided: features.karpenter
-	// .spot_enabled is still a supported (deprecated) attribute, so its value has to come from
-	// somewhere, and the generated getter carries the same deprecation marker. Drop the
-	// suppression when the attribute itself is removed from the schema.
-	//nolint:staticcheck // SA1019: the deprecated global flag is still surfaced for legacy configurations
-	attrVals["spot_enabled"] = types.BoolValue(karpenterParameters.SpotEnabled)
-	if plannedGlobalSpot := plan.globalSpotEnabled(); !plannedGlobalSpot.IsNull() && plan.hasAnyNodePoolSpotEnabled() {
-		attrVals["spot_enabled"] = plannedGlobalSpot
-	}
+	// The global spot flag is gone from the schema, but the response still needs it: the API omits
+	// every per node pool spot_enabled equal to it, so it is what an omitted value resolves to.
+	//nolint:staticcheck // SA1019: the deprecated global flag is how omitted per node pool values resolve
+	globalSpotEnabled := karpenterParameters.SpotEnabled
+
 	attrVals["disk_size_in_gib"] = FromInt32(karpenterParameters.DiskSizeInGib)
 	attrVals["default_service_architecture"] = FromString(string(karpenterParameters.DefaultServiceArchitecture))
 
@@ -1899,78 +1820,53 @@ func karpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpent
 		return nil
 	}
 
-	// Inject stable_override.
-	// A node pool override block is stored in state when the API returns actual content for it
-	// (consolidation or limits) or when the configuration declares the block. An override that
-	// the API returns only because every Karpenter cluster got its per node pool spot_enabled
-	// backfilled is dropped on purpose: injecting it would add a block to the state of every
-	// configuration that never declared one, i.e. permanent plan noise.
-	//
-	// The content rule holds on the no-plan path (import, data source) too, and deliberately so.
-	// The API returns a present-but-empty stable_override for Karpenter clusters, so injecting on
-	// presence alone made import store a 3-attribute object where the apply path stores null, and
-	// ImportStateVerify failed with `+ "…stable_override.%": "3"`. Once the spot backfill ships
-	// every cluster's overrides carry spot_enabled, so keying off presence — or off spot_enabled
-	// alone — would break the same way again and hand every legacy importer a spurious
-	// block-removal diff on their first plan. The trade-off is accepted: importing a cluster whose
-	// only divergence is a spot-only override loses that value in state until the configuration's
-	// first apply re-establishes it.
-	// The data source has no apply to stay symmetric with, so a spot-only override is real
-	// information there and is reported rather than dropped. A fully empty block still carries
-	// nothing and is dropped in both modes.
+	// Inject stable_override — see storeNodePoolOverride for when it is stored.
 	stableOverride := nodePools.StableOverride
-	stableHasContent := stableOverride != nil && (stableOverride.Consolidation != nil || stableOverride.Limits != nil)
-	if mode == clusterReadModeDataSource {
-		stableHasContent = stableHasContent || GetStableNodePoolSpotEnabled(stableOverride) != nil
+	var stableConsolidation *qovery.KarpenterNodePoolConsolidation
+	var stableLimits *qovery.KarpenterNodePoolLimits
+	if stableOverride != nil {
+		stableConsolidation = stableOverride.Consolidation
+		stableLimits = stableOverride.Limits
 	}
-	if plan.declaresOverride("stable_override") || stableHasContent {
-		var spotEnabled *bool
-		var consolidation *qovery.KarpenterNodePoolConsolidation
-		var limits *qovery.KarpenterNodePoolLimits
-		if stableOverride != nil {
-			spotEnabled = GetStableNodePoolSpotEnabled(stableOverride)
-			consolidation = stableOverride.Consolidation
-			limits = stableOverride.Limits
-		}
-
+	stableSpotEnabled := effectiveNodePoolSpotEnabled(GetStableNodePoolSpotEnabled(stableOverride), globalSpotEnabled)
+	if storeNodePoolOverride(plan, "stable_override", mode, stableConsolidation != nil || stableLimits != nil, stableSpotEnabled) {
 		qoveryNodePoolsAttrVals["stable_override"] = types.ObjectValueMust(karpenterStableOverrideAttrTypes(), map[string]attr.Value{
-			"spot_enabled":  resolveNodePoolSpotEnabled(spotEnabled, plan.overrideSpotEnabled("stable_override")),
-			"consolidation": karpenterConsolidationAttrValue(consolidation),
-			"limits":        karpenterLimitsAttrValue(limits),
+			"spot_enabled":  types.BoolValue(stableSpotEnabled),
+			"consolidation": karpenterConsolidationAttrValue(stableConsolidation),
+			"limits":        karpenterLimitsAttrValue(stableLimits),
 		})
 	} else {
 		qoveryNodePoolsAttrVals["stable_override"] = types.ObjectNull(karpenterStableOverrideAttrTypes())
 	}
 
-	// Inject default_override — same content rule as stable_override above.
+	// Inject default_override — same rule as stable_override.
 	defaultOverride := nodePools.DefaultOverride
-	defaultHasContent := defaultOverride != nil && defaultOverride.Limits != nil
-	if mode == clusterReadModeDataSource {
-		defaultHasContent = defaultHasContent || GetDefaultNodePoolSpotEnabled(defaultOverride) != nil
+	var defaultLimits *qovery.KarpenterNodePoolLimits
+	if defaultOverride != nil {
+		defaultLimits = defaultOverride.Limits
 	}
-	if plan.declaresOverride("default_override") || defaultHasContent {
-		var spotEnabled *bool
-		var limits *qovery.KarpenterNodePoolLimits
-		if defaultOverride != nil {
-			spotEnabled = GetDefaultNodePoolSpotEnabled(defaultOverride)
-			limits = defaultOverride.Limits
-		}
-
+	defaultSpotEnabled := effectiveNodePoolSpotEnabled(GetDefaultNodePoolSpotEnabled(defaultOverride), globalSpotEnabled)
+	if storeNodePoolOverride(plan, "default_override", mode, defaultLimits != nil, defaultSpotEnabled) {
 		qoveryNodePoolsAttrVals["default_override"] = types.ObjectValueMust(karpenterDefaultOverrideAttrTypes(), map[string]attr.Value{
-			"spot_enabled": resolveNodePoolSpotEnabled(spotEnabled, plan.overrideSpotEnabled("default_override")),
-			"limits":       karpenterLimitsAttrValue(limits),
+			"spot_enabled": types.BoolValue(defaultSpotEnabled),
+			"limits":       karpenterLimitsAttrValue(defaultLimits),
 		})
 	} else {
 		qoveryNodePoolsAttrVals["default_override"] = types.ObjectNull(karpenterDefaultOverrideAttrTypes())
 	}
 
 	// Inject cronjob_override.
-	// The presence of this block is what enables the dedicated cronjob node pool, so it is
-	// injected only when the configuration declares it — never on the API response alone.
+	// The presence of this block is what enables the dedicated cronjob node pool, and q-core
+	// returns it only while the pool is enabled: neither its write path nor the per node pool
+	// backfill ever creates one. The block is therefore stored exactly when the API returns it,
+	// whatever the plan says. A pool enabled from the Console then shows in the plan as the block
+	// being removed, and a pool disabled from the Console as the block being added back, instead
+	// of the next apply reverting either change silently. After an apply the two agree anyway:
+	// the request carries the block exactly when the configuration declares it.
 	cronjobOverride := nodePools.CronjobOverride
-	if plan.declaresOverride("cronjob_override") || (!plan.available && cronjobOverride != nil) {
+	if cronjobOverride != nil {
 		qoveryNodePoolsAttrVals["cronjob_override"] = types.ObjectValueMust(karpenterCronjobOverrideAttrTypes(), map[string]attr.Value{
-			"spot_enabled": resolveNodePoolSpotEnabled(GetCronjobNodePoolSpotEnabled(cronjobOverride), plan.overrideSpotEnabled("cronjob_override")),
+			"spot_enabled": types.BoolValue(effectiveNodePoolSpotEnabled(GetCronjobNodePoolSpotEnabled(cronjobOverride), globalSpotEnabled)),
 		})
 	} else {
 		qoveryNodePoolsAttrVals["cronjob_override"] = types.ObjectNull(karpenterCronjobOverrideAttrTypes())
