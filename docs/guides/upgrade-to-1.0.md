@@ -7,13 +7,13 @@ description: |-
 
 # Upgrading to version 1.0
 
-Version 1.0 is the first stable release of the Qovery provider. It removes the last deprecated attribute, makes `terraform plan` reflect changes made from the Qovery Console on more attributes, and marks every secret-bearing attribute as sensitive.
+Version 1.0 is the first stable release of the Qovery provider. It removes the last deprecated attribute and makes `terraform plan` reflect changes made from the Qovery Console on more attributes. Three changes shipped ahead of it in 0.89.0: the `qovery_git_token` data source fix, sensitive secret-bearing attributes and deployment waits that fail on timeout. They are kept below, marked *since 0.89.0*, for upgrades from 0.88 or earlier.
 
 This guide lists every change that can affect an existing configuration and the steps to migrate. The complete list of changes is in the [CHANGELOG](https://github.com/qovery/terraform-provider-qovery/blob/main/CHANGELOG.md).
 
 ## Before you start
 
-1. Upgrade to the latest 0.x release (0.88 or later), run `terraform apply`, and make sure `terraform plan` reports no changes. The migration below relies on the state written by that release.
+1. Upgrade to 0.89.0, the last 0.x release, run `terraform apply`, and make sure `terraform plan` reports no changes. The migration below relies on the state written by that release.
 2. Back up your state: `terraform state pull > pre-1.0.tfstate`.
 3. Provider 1.0 is tested against Terraform 1.15. Earlier Terraform versions are expected to work but are not tested.
 
@@ -119,9 +119,9 @@ Things to check while migrating:
 
 The `qovery_cluster` data source no longer exposes `features.karpenter.spot_enabled`. It now always reports `stable_override` and `default_override` with the `spot_enabled` value each node pool runs with, plus `cronjob_override` while the cronjob node pool is enabled. Read `features.karpenter.qovery_node_pools.<pool>_override.spot_enabled` instead.
 
-### `qovery_git_token` data source: `organization_id` is required
+### `qovery_git_token` data source: `organization_id` is required (since 0.89.0)
 
-The data source now requires `organization_id`. In 0.x it was a computed attribute that the lookup could never populate, so the data source did not work. Add the argument:
+Since 0.89.0 the data source requires `organization_id`. Before that it was a computed attribute that the lookup could never populate, so the data source did not work. Add the argument:
 
 ```terraform
 data "qovery_git_token" "my_git_token" {
@@ -132,9 +132,9 @@ data "qovery_git_token" "my_git_token" {
 
 The `token` attribute is now `null` instead of an empty string: the Qovery API never returns the token value.
 
-### Secret-bearing attributes are now sensitive
+### Secret-bearing attributes are sensitive (since 0.89.0)
 
-The following attributes are marked sensitive in 1.0:
+The following attributes are marked sensitive since 0.89.0:
 
 | Resource or data source | Attributes |
 |---|---|
@@ -200,9 +200,9 @@ On `qovery_cluster`, `qovery_application`, `qovery_container`, `qovery_job`, `qo
 - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly.
 - `terraform import` records every setting whose value differs from the default.
 
-### Deployment waits fail on timeout
+### Deployment waits fail on timeout (since 0.89.0)
 
-When a deployment, a deletion or a cluster operation does not complete before the provider's wait timeout, `terraform apply` now fails with a timeout error. In 0.x the wait returned success and the resource was reported as ready although it had not converged. The timeout is one hour for environment, container, job and Helm deployments and four hours for the other operations. A failed wait leaves the resource in the state: fix the cause from the deployment logs, then apply again.
+When a deployment, a deletion or a cluster operation does not complete before the provider's wait timeout, `terraform apply` fails with a timeout error. Before 0.89.0 the wait returned success and the resource was reported as ready although it had not converged. The timeout is one hour for environment, container, job and Helm deployments and four hours for the other operations. A failed wait leaves the resource in the state: fix the cause from the deployment logs, then apply again.
 
 ## Getting help
 

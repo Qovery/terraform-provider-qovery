@@ -35,15 +35,6 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   deletes the remaining routes. Import and the data source report the routes and labels groups
   attached to the cluster. Add the routes and labels groups you manage from the Console to
   the configuration before upgrading. (QOV-2029)
-- **`qovery_git_token` data source**: `organization_id` is now a required argument. It used
-  to be a computed attribute that the lookup could never populate, so the data source could
-  not resolve a token. The `token` attribute is now `null` instead of an empty string,
-  because the Qovery API never returns it. (QOV-2031, #627)
-- **Secret-bearing attributes are now sensitive**: `qovery_database.password` (resource and
-  data source), `qovery_container_registry.config.{password,secret_access_key,scaleway_secret_key}`
-  and `qovery_helm_repository.config.{password,secret_access_key,scaleway_secret_key}`.
-  Terraform hides them in plan output and refuses an `output` that exposes one of them
-  unless the output is declared `sensitive = true`. (QOV-2298, #625)
 
 ### Changed
 
@@ -52,10 +43,6 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   change to a tracked key, including a reset to its default value, on refresh and plans it
   back to the configured value. The refresh semantics are documented on the attribute.
   (QOV-2028)
-- Waiting for a deployment, a deletion or a cluster operation now fails with a timeout error
-  when the operation does not complete in time. Previously the wait returned success and
-  `terraform apply` reported a resource as ready although it had not converged.
-  (QOV-2299, #626)
 
 ### Fixed
 
@@ -67,8 +54,26 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   in `terraform plan`. The refresh used to ignore it, so the next apply reverted the change
   without the plan showing it. (QOV-2301)
 
+## [0.89.0] - 2026-09-23
+
+### Fixed
+
+- `qovery_git_token` data source: `organization_id` is now a required argument. It used to be
+  a computed attribute that the lookup could never populate, so the data source could not
+  resolve a token. The `token` attribute is now `null` instead of an empty string, because the
+  Qovery API never returns it. (QOV-2031, #627)
+- Waiting for a deployment, a deletion or a cluster operation now fails with a timeout error
+  when the operation does not complete in time. Previously the wait returned success and
+  `terraform apply` reported a resource as ready although it had not converged.
+  (QOV-2299, #626)
+
 ### Security
 
+- Secret-bearing attributes are now sensitive: `qovery_database.password` (resource and data
+  source), `qovery_container_registry.config.{password,secret_access_key,scaleway_secret_key}`
+  and `qovery_helm_repository.config.{password,secret_access_key,scaleway_secret_key}`.
+  Terraform hides them in plan output and refuses an `output` that exposes one of them unless
+  the output is declared `sensitive = true`. (QOV-2298, #625)
 - The Helm values sent to the API are no longer written to the provider log. (QOV-2298, #625)
 
 ## [0.88.0] - 2026-09-21
@@ -128,7 +133,8 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v0.88.0...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v0.89.0...HEAD
+[0.89.0]: https://github.com/qovery/terraform-provider-qovery/compare/v0.88.0...v0.89.0
 [0.88.0]: https://github.com/qovery/terraform-provider-qovery/compare/v0.87.4...v0.88.0
 [0.87.4]: https://github.com/qovery/terraform-provider-qovery/compare/v0.87.2...v0.87.4
 [0.87.2]: https://github.com/qovery/terraform-provider-qovery/compare/v0.87.1...v0.87.2
