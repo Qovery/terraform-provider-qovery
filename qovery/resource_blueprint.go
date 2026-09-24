@@ -90,6 +90,9 @@ func (r blueprintResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"tag": schema.StringAttribute{
 				Description: "Catalog tag deployed, e.g. `AWS/postgres/17/4.1.0`. Always the latest release of `blueprint`: when the catalog publishes a new one, the next apply upgrades the service to it.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"icon_uri": schema.StringAttribute{
 				Description: "Icon URI of the blueprint service.",
@@ -158,10 +161,16 @@ func (r blueprintResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"service_type": schema.StringAttribute{
 				Description: "Type of the service the blueprint materialized: `TERRAFORM` or `HELM`.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"catalog_url": schema.StringAttribute{
 				Description: "URL of the blueprint catalog entry.",
 				Computed:    true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 		},
 	}
