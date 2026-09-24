@@ -191,6 +191,12 @@ In 0.x, the refresh only kept `features.karpenter.qovery_node_pools.cronjob_over
 
 In 1.0 the refresh stores `cronjob_override` exactly when the pool is enabled on the cluster. A pool enabled from the Console shows in `terraform plan` as the block being removed, and applying that plan disables the pool: declare `cronjob_override` to keep it. A pool disabled from the Console shows as the block being added back.
 
+### `qovery_cluster`: the GPU node pool is managed by `gpu_override`
+
+In 0.x, `qovery_cluster` had no attribute for the Karpenter GPU node pool. A GPU node pool created from the Qovery Console stayed invisible to Terraform, and the next `terraform apply`, even one that only changed the description, deleted it without the plan showing it.
+
+In 1.0 the pool is managed by `features.karpenter.qovery_node_pools.gpu_override`, and the refresh stores the block whenever the pool exists on the cluster. A GPU node pool created from the Console shows in `terraform plan` as the block being removed, with a warning, and applying that plan deletes the pool. To keep it, copy its settings into a `gpu_override` block: `terraform plan` shows them in the block being removed, and the plan is empty once the block matches.
+
 ### `advanced_settings_json`: Console resets of tracked keys are reflected
 
 On `qovery_cluster`, `qovery_application`, `qovery_container`, `qovery_job`, `qovery_helm` and `qovery_terraform_service`, `advanced_settings_json` is desired state, not a mirror of the remote configuration:

@@ -113,10 +113,31 @@ func (r *clusterResource) Configure(_ context.Context, req resource.ConfigureReq
 }
 
 // ModifyPlan warns at plan time about advanced_settings_json keys that are not recognized
-// cluster advanced settings, instead of letting them silently no-op.
+// cluster advanced settings, instead of letting them silently no-op, and about Karpenter node
+// pool changes that are easy to read past in a plan.
 func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	warnUnknownClusterAdvancedSettings(ctx, r.clusterAdvancedSettingsService, req.Config, &resp.Diagnostics)
 	warnKarpenterSpotToOnDemand(ctx, req.State, req.Plan, &resp.Diagnostics)
+	warnKarpenterGpuNodePoolRemoval(ctx, req.State, req.Plan, &resp.Diagnostics)
+}
+
+var karpenterPath = path.Root("features").AtName("karpenter")
+
+// karpenterStateAndPlanViews returns the Karpenter views of the prior state and of the plan of an
+// update. ok is false on a create or a destroy, or when either side has no Karpenter object.
+func karpenterStateAndPlanViews(ctx context.Context, state tfsdk.State, plan tfsdk.Plan) (stateView, planView karpenterPlanView, ok bool) {
+	if state.Raw.IsNull() || plan.Raw.IsNull() {
+		return karpenterPlanView{}, karpenterPlanView{}, false
+	}
+
+	var stateKarpenter, planKarpenter types.Object
+	if state.GetAttribute(ctx, karpenterPath, &stateKarpenter).HasError() || plan.GetAttribute(ctx, karpenterPath, &planKarpenter).HasError() {
+		return karpenterPlanView{}, karpenterPlanView{}, false
+	}
+
+	stateView = newKarpenterPlanView(stateKarpenter)
+	planView = newKarpenterPlanView(planKarpenter)
+	return stateView, planView, stateView.available && planView.available
 }
 
 // warnKarpenterSpotToOnDemand warns when the plan moves a Karpenter node pool from spot to
@@ -124,26 +145,15 @@ func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlan
 // exactly that change, and the plan only shows it as an override block being removed, which is
 // easy to read past.
 func warnKarpenterSpotToOnDemand(ctx context.Context, state tfsdk.State, plan tfsdk.Plan, diags *diag.Diagnostics) {
-	if state.Raw.IsNull() || plan.Raw.IsNull() {
-		return
-	}
-
-	karpenterPath := path.Root("features").AtName("karpenter")
-	var stateKarpenter, planKarpenter types.Object
-	if state.GetAttribute(ctx, karpenterPath, &stateKarpenter).HasError() || plan.GetAttribute(ctx, karpenterPath, &planKarpenter).HasError() {
-		return
-	}
-
-	stateView := newKarpenterPlanView(stateKarpenter)
-	planView := newKarpenterPlanView(planKarpenter)
-	if !stateView.available || !planView.available {
+	stateView, planView, ok := karpenterStateAndPlanViews(ctx, state, plan)
+	if !ok {
 		return
 	}
 
 	for _, name := range karpenterNodePoolOverrideNames {
-		// Removing cronjob_override removes the dedicated node pool altogether: that is not a
-		// move to on-demand instances.
-		if name == "cronjob_override" && !planView.declaresOverride(name) {
+		// Removing cronjob_override or gpu_override removes the node pool altogether: that is not
+		// a move to on-demand instances.
+		if (name == "cronjob_override" || name == "gpu_override") && !planView.declaresOverride(name) {
 			continue
 		}
 
@@ -163,13 +173,30 @@ func warnKarpenterSpotToOnDemand(ctx context.Context, state tfsdk.State, plan tf
 	}
 }
 
+// warnKarpenterGpuNodePoolRemoval warns when the plan removes gpu_override, which deletes the GPU
+// node pool and the nodes running on it. A GPU node pool created from the Console reaches the
+// state on refresh, so a configuration that never declared one sees exactly this change.
+func warnKarpenterGpuNodePoolRemoval(ctx context.Context, state tfsdk.State, plan tfsdk.Plan, diags *diag.Diagnostics) {
+	stateView, planView, ok := karpenterStateAndPlanViews(ctx, state, plan)
+	if !ok || !stateView.declaresOverride("gpu_override") || !planView.overrideKnownAbsent("gpu_override") {
+		return
+	}
+
+	diags.AddAttributeWarning(
+		karpenterPath.AtName("qovery_node_pools").AtName("gpu_override"),
+		"Karpenter GPU node pool will be deleted",
+		"This plan removes `gpu_override`, which deletes the GPU node pool and the nodes running on it. "+
+			"If the GPU node pool was created outside Terraform, for example from the Qovery Console, declare `gpu_override` in the configuration to keep it.",
+	)
+}
+
 // karpenterNodePoolSpotEnabledMarkdownDescription builds the documentation of a per node pool
 // `spot_enabled` flag. The flag defaults to false and the provider sends it for every node pool,
 // so an unset value always means on-demand instances.
 func karpenterNodePoolSpotEnabledMarkdownDescription(pool string) string {
 	description := "Whether to run the **" + pool + "** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.\n\n" +
 		"Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances"
-	if pool == "cronjob" {
+	if pool == "cronjob" || pool == "GPU" {
 		return description + "."
 	}
 	return description + ", and so does removing the whole `" + pool + "_override` block. " +
@@ -660,7 +687,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 													},
 													"days": schema.ListAttribute{
 														Description:         "Days of the week when consolidation runs.",
-														MarkdownDescription: "List of days of the week when consolidation should run (e.g., `[\"Monday\", \"Tuesday\", \"Wednesday\"]`).",
+														MarkdownDescription: "List of days of the week when consolidation should run (e.g., `[\"MONDAY\", \"TUESDAY\", \"WEDNESDAY\"]`).",
 														Required:            true,
 														Computed:            false,
 														ElementType:         types.StringType,
@@ -761,6 +788,141 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 												Optional:            true,
 												Computed:            true,
 												Default:             booldefault.StaticBool(false),
+											},
+										},
+									},
+									"gpu_override": schema.SingleNestedAttribute{
+										Description: "Defines the Qovery GPU node pool. Declaring this block creates the GPU node pool, removing it deletes the pool.",
+										MarkdownDescription: "The Qovery **GPU** node pool, which runs the workloads that request GPUs.\n\n" +
+											"~> **Important:** declaring this block creates the GPU node pool, and removing it deletes the pool together with the nodes running on it. " +
+											"A GPU node pool created outside Terraform, for example from the Qovery Console, shows up in the plan as this block being removed, and applying that plan deletes the pool: declare the block to keep it.",
+										Optional: true,
+										Computed: false,
+										Attributes: map[string]schema.Attribute{
+											"requirements": schema.ListNestedAttribute{
+												Description:         "List of requirements for the GPU node pool",
+												MarkdownDescription: "List of node selection requirements for the GPU node pool, with the same keys and operator as `qovery_node_pools.requirements`. Define `InstanceFamily` (GPU instance families, e.g., `g4dn`, `g5`), `InstanceSize` and `Arch` requirements.",
+												Required:            true,
+												Computed:            false,
+												NestedObject: schema.NestedAttributeObject{
+													Attributes: map[string]schema.Attribute{
+														"key": schema.StringAttribute{
+															Description:         "The key of the requirement (e.g., InstanceFamily, InstanceSize, Arch)",
+															MarkdownDescription: "The requirement key: `InstanceFamily`, `InstanceSize` or `Arch`.",
+															Required:            true,
+															Computed:            false,
+															Validators: []validator.String{
+																validators.NewStringEnumValidator([]string{"InstanceFamily", "InstanceSize", "Arch"}),
+															},
+														},
+														"operator": schema.StringAttribute{
+															Description:         "The operator for the requirement (e.g., In)",
+															MarkdownDescription: "The operator for the requirement. Currently only `In` is supported, meaning the node must match one of the specified values.",
+															Required:            true,
+															Computed:            false,
+															Validators: []validator.String{
+																validators.NewStringEnumValidator([]string{"In"}),
+															},
+														},
+														"values": schema.ListAttribute{
+															Description:         "List of values for the requirement",
+															MarkdownDescription: "List of allowed values for the requirement. For example, for `InstanceFamily`: `[\"g4dn\", \"g5\"]`, for `Arch`: `[\"AMD64\"]`.",
+															Required:            true,
+															Computed:            false,
+															ElementType:         types.StringType,
+														},
+													},
+												},
+											},
+											"disk_size_in_gib": schema.Int64Attribute{
+												Description:         "Root disk size in GiB for the GPU nodes.",
+												MarkdownDescription: "Root disk size in GiB for the nodes of the GPU node pool (e.g., `100`). Qovery rejects a value below its minimum node disk size.",
+												Required:            true,
+												Computed:            false,
+											},
+											"disk_iops": schema.Int64Attribute{
+												Description:         "Disk IOPS for the GPU nodes.",
+												MarkdownDescription: "Provisioned IOPS of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.",
+												Optional:            true,
+												Computed:            false,
+											},
+											"disk_throughput": schema.Int64Attribute{
+												Description:         "Disk throughput in MB/s for the GPU nodes.",
+												MarkdownDescription: "Provisioned throughput in MB/s of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.",
+												Optional:            true,
+												Computed:            false,
+											},
+											"spot_enabled": schema.BoolAttribute{
+												Description:         "Run the GPU node pool on spot instances. Defaults to false (on-demand instances).",
+												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("GPU"),
+												Optional:            true,
+												Computed:            true,
+												Default:             booldefault.StaticBool(false),
+											},
+											"consolidation": schema.SingleNestedAttribute{
+												Description:         "Specifies the period to consolidate nodes (by default, no consolidation happens)",
+												MarkdownDescription: "Node consolidation schedule for the GPU node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on GPU nodes.",
+												Optional:            true,
+												Computed:            false,
+												Attributes: map[string]schema.Attribute{
+													"enabled": schema.BoolAttribute{
+														Description:         "Whether the consolidation schedule is active.",
+														MarkdownDescription: "Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.",
+														Required:            true,
+														Computed:            false,
+													},
+													"days": schema.ListAttribute{
+														Description:         "Days of the week when consolidation runs.",
+														MarkdownDescription: "List of days of the week when consolidation should run (e.g., `[\"MONDAY\", \"TUESDAY\"]`).",
+														Required:            true,
+														Computed:            false,
+														ElementType:         types.StringType,
+													},
+													"start_time": schema.StringAttribute{
+														Description:         "Start time for the consolidation window in ISO-8601 time format.",
+														MarkdownDescription: "Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).",
+														Required:            true,
+														Computed:            false,
+													},
+													"duration": schema.StringAttribute{
+														Description:         "Duration of the consolidation window in ISO-8601 duration format.",
+														MarkdownDescription: "Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).",
+														Required:            true,
+														Computed:            false,
+													},
+												},
+											},
+											"limits": schema.SingleNestedAttribute{
+												Description:         "Specifies the limits to apply on the GPU node pool",
+												MarkdownDescription: "Resource limits for the GPU node pool. Use this to cap the total resources Karpenter can provision for GPU workloads.",
+												Optional:            true,
+												Attributes: map[string]schema.Attribute{
+													"enabled": schema.BoolAttribute{
+														Description:         "Enabled the limit",
+														MarkdownDescription: "Whether to enforce resource limits on the GPU node pool.",
+														Required:            true,
+														Computed:            false,
+													},
+													"max_cpu_in_vcpu": schema.Int64Attribute{
+														Description:         "Maximum number of vCPU cores for the GPU node pool.",
+														MarkdownDescription: "Maximum total vCPU cores that Karpenter can provision for the GPU node pool.",
+														Required:            true,
+														Computed:            false,
+													},
+													"max_memory_in_gibibytes": schema.Int64Attribute{
+														Description:         "Maximum memory in GiB for the GPU node pool.",
+														MarkdownDescription: "Maximum total memory in GiB that Karpenter can provision for the GPU node pool.",
+														Required:            true,
+														Computed:            false,
+													},
+													"max_gpu": schema.Int64Attribute{
+														Description:         "Maximum number of GPUs for the GPU node pool. Defaults to 0.",
+														MarkdownDescription: "Maximum total number of GPUs for the GPU node pool. Defaults to `0`.",
+														Optional:            true,
+														Computed:            true,
+														Default:             int64default.StaticInt64(0),
+													},
+												},
 											},
 										},
 									},

@@ -424,18 +424,17 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 	}, nil
 }
 
+// IsKarpenterAlreadyInstalled reports whether the prior state has Karpenter enabled. It reads the
+// karpenter object instead of converting the state into a request: the state holds what the API
+// returned, which the write validation may reject (q-core accepts GPU node pool requirements the
+// provider refuses to send), and a conversion error must not read as Karpenter being absent.
 func IsKarpenterAlreadyInstalled(state *Cluster) bool {
-	if state == nil {
+	if state == nil || state.Features.IsNull() || state.Features.IsUnknown() || ToString(state.KubernetesMode) == "K3S" {
 		return false
 	}
 
-	oldFeatures, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider))
-	for _, f := range oldFeatures {
-		if f.Id != nil && *f.Id == featureIdKarpenter {
-			return true
-		}
-	}
-	return false
+	karpenter, ok := state.Features.Attributes()[featureKeyKarpenter].(types.Object)
+	return ok && !karpenter.IsNull() && !karpenter.IsUnknown()
 }
 
 // responseHasKarpenter reports whether the API cluster response has the Karpenter feature enabled.
@@ -1178,79 +1177,18 @@ func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeatur
 
 func toQoveryNodePools(obj types.Object) (*qovery.KarpenterNodePool, error) {
 	karpenterNodePool := qovery.KarpenterNodePool{}
-	karpenterNodePool.Requirements = []qovery.KarpenterNodePoolRequirement{}
+
+	qoveryNodePools, exists := obj.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
+	if !exists {
+		return nil, fmt.Errorf("qovery_node_pools field not found")
+	}
 
 	// Set requirements
-	requirements, err := extractRequirementsFromTypesObject(obj)
+	requirements, err := toQoveryNodePoolRequirements(qoveryNodePools.Attributes()["requirements"])
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract requirements from types.Object: %v", err)
+		return nil, err
 	}
-
-	if len(requirements) == 0 {
-		return nil, fmt.Errorf("karpenter nodepool requirements are mandatory: they must be set among [InstanceFamily, InstanceSize, Arch]")
-	}
-
-	// Check that requirements are correctly set
-	distinctRequirementTypes := make(map[string]bool)
-	for _, requirement := range requirements {
-		key, ok := requirement["key"].(string)
-		if !ok {
-			return nil, fmt.Errorf("invalid key type for karpenter node pool requirement")
-		}
-		distinctRequirementTypes[key] = true
-	}
-	if len(distinctRequirementTypes) != 3 {
-		return nil, fmt.Errorf("missing some karpenter nodepool requirement among [InstanceFamily, InstanceSize, Arch]")
-	}
-
-	for _, req := range requirements {
-		key, ok := req["key"].(string)
-		if !ok {
-			return nil, fmt.Errorf("invalid key type")
-		}
-
-		var karpenterKey qovery.KarpenterNodePoolRequirementKey
-		switch key {
-		case "InstanceFamily":
-			karpenterKey = qovery.KARPENTERNODEPOOLREQUIREMENTKEY_INSTANCE_FAMILY
-		case "InstanceSize":
-			karpenterKey = qovery.KARPENTERNODEPOOLREQUIREMENTKEY_INSTANCE_SIZE
-		case "Arch":
-			karpenterKey = qovery.KARPENTERNODEPOOLREQUIREMENTKEY_ARCH
-		default:
-			return nil, fmt.Errorf("unsupported key: %s", key)
-		}
-
-		operator, ok := req["operator"].(string)
-		if !ok {
-			return nil, fmt.Errorf("invalid operator type")
-		}
-
-		var karpenterOperator qovery.KarpenterNodePoolRequirementOperator
-		switch operator {
-		case "In":
-			karpenterOperator = qovery.KARPENTERNODEPOOLREQUIREMENTOPERATOR_IN
-		default:
-			return nil, fmt.Errorf("unsupported operator: %s", operator)
-		}
-
-		values, ok := req["values"].([]string)
-		if !ok {
-			return nil, fmt.Errorf("invalid values type")
-		}
-
-		if len(values) == 0 {
-			return nil, fmt.Errorf("karpenter node pool values must not be empty")
-		}
-
-		requirement := qovery.KarpenterNodePoolRequirement{
-			Key:      karpenterKey,
-			Operator: karpenterOperator,
-			Values:   values,
-		}
-
-		karpenterNodePool.Requirements = append(karpenterNodePool.Requirements, requirement)
-	}
+	karpenterNodePool.Requirements = requirements
 
 	// Every node pool that exists gets an explicit spot_enabled: the stable and default pools
 	// always exist, the cronjob pool only while its override is declared. The API hands its
@@ -1277,6 +1215,14 @@ func toQoveryNodePools(obj types.Object) (*qovery.KarpenterNodePool, error) {
 		return nil, err
 	}
 	karpenterNodePool.CronjobOverride = cronjobOverride
+
+	// Set GPU node pool override. Its spot_enabled is its own: the API never resolved it against
+	// the global flag, and the global flag does not count it.
+	gpuOverride, err := extractGpuNodePoolOverrideFromTypesObject(obj)
+	if err != nil {
+		return nil, err
+	}
+	karpenterNodePool.GpuOverride = gpuOverride
 
 	return &karpenterNodePool, nil
 }
@@ -1336,32 +1282,90 @@ func extractNodePoolSpotEnabled(override basetypes.ObjectValue) (bool, error) {
 	return spotEnabled.ValueBool(), nil
 }
 
-func extractRequirementsFromTypesObject(obj types.Object) ([]map[string]any, error) {
-	qoveryNodePools, exists := obj.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
-	if !exists {
-		return nil, fmt.Errorf("qovery_node_pools field not found")
-	}
-
-	requirementsAttr, exists := qoveryNodePools.Attributes()["requirements"]
-	if !exists {
-		return nil, fmt.Errorf("requirements field not found")
-	}
-
+// toQoveryNodePoolRequirements converts a requirements list, the one of qovery_node_pools or the
+// one of gpu_override. Both must constrain the instance family, the instance size and the
+// architecture.
+func toQoveryNodePoolRequirements(requirementsAttr attr.Value) ([]qovery.KarpenterNodePoolRequirement, error) {
 	requirementsList, ok := requirementsAttr.(basetypes.ListValue)
 	if !ok {
 		return nil, fmt.Errorf("requirements field is not a list")
 	}
 
-	result := make([]map[string]any, 0, len(requirementsList.Elements()))
+	requirements := make([]map[string]any, 0, len(requirementsList.Elements()))
 	for _, reqAttr := range requirementsList.Elements() {
 		reqMap, err := convertObjectToMap(reqAttr)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to extract requirements from types.Object: %v", err)
 		}
-		result = append(result, reqMap)
+		requirements = append(requirements, reqMap)
 	}
 
-	return result, nil
+	if len(requirements) == 0 {
+		return nil, fmt.Errorf("karpenter nodepool requirements are mandatory: they must be set among [InstanceFamily, InstanceSize, Arch]")
+	}
+
+	// Check that requirements are correctly set
+	distinctRequirementTypes := make(map[string]bool)
+	for _, requirement := range requirements {
+		key, ok := requirement["key"].(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid key type for karpenter node pool requirement")
+		}
+		distinctRequirementTypes[key] = true
+	}
+	if len(distinctRequirementTypes) != 3 {
+		return nil, fmt.Errorf("missing some karpenter nodepool requirement among [InstanceFamily, InstanceSize, Arch]")
+	}
+
+	qoveryRequirements := make([]qovery.KarpenterNodePoolRequirement, 0, len(requirements))
+	for _, req := range requirements {
+		key, ok := req["key"].(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid key type")
+		}
+
+		var karpenterKey qovery.KarpenterNodePoolRequirementKey
+		switch key {
+		case "InstanceFamily":
+			karpenterKey = qovery.KARPENTERNODEPOOLREQUIREMENTKEY_INSTANCE_FAMILY
+		case "InstanceSize":
+			karpenterKey = qovery.KARPENTERNODEPOOLREQUIREMENTKEY_INSTANCE_SIZE
+		case "Arch":
+			karpenterKey = qovery.KARPENTERNODEPOOLREQUIREMENTKEY_ARCH
+		default:
+			return nil, fmt.Errorf("unsupported key: %s", key)
+		}
+
+		operator, ok := req["operator"].(string)
+		if !ok {
+			return nil, fmt.Errorf("invalid operator type")
+		}
+
+		var karpenterOperator qovery.KarpenterNodePoolRequirementOperator
+		switch operator {
+		case "In":
+			karpenterOperator = qovery.KARPENTERNODEPOOLREQUIREMENTOPERATOR_IN
+		default:
+			return nil, fmt.Errorf("unsupported operator: %s", operator)
+		}
+
+		values, ok := req["values"].([]string)
+		if !ok {
+			return nil, fmt.Errorf("invalid values type")
+		}
+
+		if len(values) == 0 {
+			return nil, fmt.Errorf("karpenter node pool values must not be empty")
+		}
+
+		qoveryRequirements = append(qoveryRequirements, qovery.KarpenterNodePoolRequirement{
+			Key:      karpenterKey,
+			Operator: karpenterOperator,
+			Values:   values,
+		})
+	}
+
+	return qoveryRequirements, nil
 }
 
 // extractStableNodePoolOverrideFromTypesObject converts stable_override. The stable node pool
@@ -1387,59 +1391,18 @@ func extractStableNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Kar
 	SetStableNodePoolSpotEnabled(&qoveryStableOverride, spotEnabled)
 
 	// Set consolidation
-	consolidationAttr, hasConsolidation := stableOverride.Attributes()["consolidation"]
-	hasConsolidation = hasConsolidation && consolidationAttr != nil && !consolidationAttr.IsNull()
-
-	// The consolidation is allowed to be null
-	if hasConsolidation {
-		consolidation, ok := consolidationAttr.(basetypes.ObjectValue)
-		if !ok {
-			return nil, fmt.Errorf("consolidation field cannot be parsed to Object")
-		}
-
-		consolidationEnabled := consolidation.Attributes()["enabled"].(basetypes.BoolValue)
-		consolidationDays := consolidation.Attributes()["days"].(basetypes.ListValue)
-		consolidationStartTime := consolidation.Attributes()["start_time"].(basetypes.StringValue)
-		consolidationDuration := consolidation.Attributes()["duration"].(basetypes.StringValue)
-
-		// Converts consolidation days (string) to expected enum type (WeekdayEnum)
-		consolidationWeekDayEnumList := make([]qovery.WeekdayEnum, 0)
-		for _, value := range consolidationDays.Elements() {
-			valueAsString := value.(basetypes.StringValue).ValueString()
-			fromValue, err := qovery.NewWeekdayEnumFromValue(valueAsString)
-			if err != nil {
-				return nil, fmt.Errorf("cannot convert '%s' to WeekdayEnum", valueAsString)
-			}
-			consolidationWeekDayEnumList = append(consolidationWeekDayEnumList, *fromValue)
-		}
-
-		qoveryConsolidation := qovery.NewKarpenterNodePoolConsolidation(
-			consolidationEnabled.ValueBool(),
-			consolidationWeekDayEnumList,
-			consolidationStartTime.ValueString(),
-			consolidationDuration.ValueString(),
-		)
-		qoveryStableOverride.Consolidation = qoveryConsolidation
+	consolidation, err := toQoveryNodePoolConsolidation(stableOverride)
+	if err != nil {
+		return nil, err
 	}
+	qoveryStableOverride.Consolidation = consolidation
 
 	// Set limits
-	limitsAttr, hasLimits := stableOverride.Attributes()["limits"]
-	hasLimits = hasLimits && limitsAttr != nil && !limitsAttr.IsNull()
-
-	// The limits are allowed to be null
-	if hasLimits {
-		limits, ok := limitsAttr.(basetypes.ObjectValue)
-		if !ok {
-			return nil, fmt.Errorf("limits field cannot be parsed to Object")
-		}
-
-		enabled := limits.Attributes()["enabled"].(basetypes.BoolValue)
-		limitsCpu := limits.Attributes()["max_cpu_in_vcpu"].(basetypes.Int64Value)
-		limitsRam := limits.Attributes()["max_memory_in_gibibytes"].(basetypes.Int64Value)
-
-		qoveryLimits := qovery.NewKarpenterNodePoolLimits(enabled.ValueBool(), int32(limitsCpu.ValueInt64()), int32(limitsRam.ValueInt64()), 0)
-		qoveryStableOverride.Limits = qoveryLimits
+	limits, err := toQoveryNodePoolLimits(stableOverride)
+	if err != nil {
+		return nil, err
 	}
+	qoveryStableOverride.Limits = limits
 
 	return &qoveryStableOverride, nil
 }
@@ -1467,23 +1430,11 @@ func extractDefaultNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Ka
 	SetDefaultNodePoolSpotEnabled(&qoveryDefaultOverride, spotEnabled)
 
 	// Set limits
-	limitsAttr, hasLimits := defaultOverride.Attributes()["limits"]
-	hasLimits = hasLimits && limitsAttr != nil && !limitsAttr.IsNull()
-	if !hasLimits {
-		return &qoveryDefaultOverride, nil
+	limits, err := toQoveryNodePoolLimits(defaultOverride)
+	if err != nil {
+		return nil, err
 	}
-
-	limits, ok := limitsAttr.(basetypes.ObjectValue)
-	if !ok {
-		return nil, fmt.Errorf("limits field cannot be parsed to Object")
-	}
-
-	enabled := limits.Attributes()["enabled"].(basetypes.BoolValue)
-	limitsCpu := limits.Attributes()["max_cpu_in_vcpu"].(basetypes.Int64Value)
-	limitsRam := limits.Attributes()["max_memory_in_gibibytes"].(basetypes.Int64Value)
-
-	qoveryLimits := qovery.NewKarpenterNodePoolLimits(enabled.ValueBool(), int32(limitsCpu.ValueInt64()), int32(limitsRam.ValueInt64()), 0)
-	qoveryDefaultOverride.Limits = qoveryLimits
+	qoveryDefaultOverride.Limits = limits
 
 	return &qoveryDefaultOverride, nil
 }
@@ -1510,6 +1461,111 @@ func extractCronjobNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Ka
 	SetCronjobNodePoolSpotEnabled(&qoveryCronjobOverride, spotEnabled)
 
 	return &qoveryCronjobOverride, nil
+}
+
+// extractGpuNodePoolOverrideFromTypesObject converts the gpu_override block. Like
+// cronjob_override, the block is never synthesized: q-core rebuilds the node pools from each
+// request, so a request without it deletes the GPU node pool and one with it creates the pool.
+// It is sent only when the configuration declares it, with every field explicit.
+func extractGpuNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.KarpenterGpuNodePoolOverride, error) {
+	gpuOverride, declared, err := extractNodePoolOverride(obj, "gpu_override")
+	if err != nil {
+		return nil, err
+	}
+	if !declared {
+		return nil, nil
+	}
+
+	requirements, err := toQoveryNodePoolRequirements(gpuOverride.Attributes()["requirements"])
+	if err != nil {
+		return nil, fmt.Errorf("gpu_override: %w", err)
+	}
+
+	spotEnabled, err := extractNodePoolSpotEnabled(gpuOverride)
+	if err != nil {
+		return nil, err
+	}
+
+	consolidation, err := toQoveryNodePoolConsolidation(gpuOverride)
+	if err != nil {
+		return nil, err
+	}
+
+	limits, err := toQoveryNodePoolLimits(gpuOverride)
+	if err != nil {
+		return nil, err
+	}
+
+	return &qovery.KarpenterGpuNodePoolOverride{
+		Requirements:   requirements,
+		DiskSizeInGib:  ToInt32Pointer(gpuOverride.Attributes()["disk_size_in_gib"].(basetypes.Int64Value)),
+		DiskIops:       ToInt32Pointer(gpuOverride.Attributes()["disk_iops"].(basetypes.Int64Value)),
+		DiskThroughput: ToInt32Pointer(gpuOverride.Attributes()["disk_throughput"].(basetypes.Int64Value)),
+		SpotEnabled:    &spotEnabled,
+		Consolidation:  consolidation,
+		Limits:         limits,
+	}, nil
+}
+
+// toQoveryNodePoolConsolidation converts the consolidation of a node pool override. It is nil when
+// the override does not set one: no consolidation happens then.
+func toQoveryNodePoolConsolidation(override basetypes.ObjectValue) (*qovery.KarpenterNodePoolConsolidation, error) {
+	consolidationAttr, hasConsolidation := override.Attributes()["consolidation"]
+	if !hasConsolidation || consolidationAttr == nil || consolidationAttr.IsNull() {
+		return nil, nil
+	}
+
+	consolidation, ok := consolidationAttr.(basetypes.ObjectValue)
+	if !ok {
+		return nil, fmt.Errorf("consolidation field cannot be parsed to Object")
+	}
+
+	consolidationEnabled := consolidation.Attributes()["enabled"].(basetypes.BoolValue)
+	consolidationDays := consolidation.Attributes()["days"].(basetypes.ListValue)
+	consolidationStartTime := consolidation.Attributes()["start_time"].(basetypes.StringValue)
+	consolidationDuration := consolidation.Attributes()["duration"].(basetypes.StringValue)
+
+	// Converts consolidation days (string) to expected enum type (WeekdayEnum)
+	consolidationWeekDayEnumList := make([]qovery.WeekdayEnum, 0)
+	for _, value := range consolidationDays.Elements() {
+		valueAsString := value.(basetypes.StringValue).ValueString()
+		fromValue, err := qovery.NewWeekdayEnumFromValue(valueAsString)
+		if err != nil {
+			return nil, fmt.Errorf("cannot convert '%s' to WeekdayEnum", valueAsString)
+		}
+		consolidationWeekDayEnumList = append(consolidationWeekDayEnumList, *fromValue)
+	}
+
+	return qovery.NewKarpenterNodePoolConsolidation(
+		consolidationEnabled.ValueBool(),
+		consolidationWeekDayEnumList,
+		consolidationStartTime.ValueString(),
+		consolidationDuration.ValueString(),
+	), nil
+}
+
+// toQoveryNodePoolLimits converts the limits of a node pool override. It is nil when the override
+// does not set any. Only the GPU node pool limits carry max_gpu; every other pool sends 0.
+func toQoveryNodePoolLimits(override basetypes.ObjectValue) (*qovery.KarpenterNodePoolLimits, error) {
+	limitsAttr, hasLimits := override.Attributes()["limits"]
+	if !hasLimits || limitsAttr == nil || limitsAttr.IsNull() {
+		return nil, nil
+	}
+
+	limits, ok := limitsAttr.(basetypes.ObjectValue)
+	if !ok {
+		return nil, fmt.Errorf("limits field cannot be parsed to Object")
+	}
+
+	enabled := limits.Attributes()["enabled"].(basetypes.BoolValue)
+	limitsCpu := limits.Attributes()["max_cpu_in_vcpu"].(basetypes.Int64Value)
+	limitsRam := limits.Attributes()["max_memory_in_gibibytes"].(basetypes.Int64Value)
+	var limitsGpu int32
+	if maxGpu, ok := limits.Attributes()["max_gpu"].(basetypes.Int64Value); ok {
+		limitsGpu = ToInt32(maxGpu)
+	}
+
+	return qovery.NewKarpenterNodePoolLimits(enabled.ValueBool(), ToInt32(limitsCpu), ToInt32(limitsRam), limitsGpu), nil
 }
 
 func convertObjectToMap(obj attr.Value) (map[string]any, error) {
@@ -1599,12 +1655,32 @@ func karpenterCronjobOverrideAttrTypes() map[string]attr.Type {
 	}
 }
 
+// karpenterGpuLimitsAttrTypes is the limits shape of the GPU node pool: the shared one plus max_gpu.
+func karpenterGpuLimitsAttrTypes() map[string]attr.Type {
+	attrTypes := karpenterLimitsAttrTypes()
+	attrTypes["max_gpu"] = types.Int64Type
+	return attrTypes
+}
+
+func karpenterGpuOverrideAttrTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"requirements":     types.ListType{ElemType: types.ObjectType{AttrTypes: karpenterRequirementAttrTypes()}},
+		"disk_size_in_gib": types.Int64Type,
+		"disk_iops":        types.Int64Type,
+		"disk_throughput":  types.Int64Type,
+		"spot_enabled":     types.BoolType,
+		"consolidation":    types.ObjectType{AttrTypes: karpenterConsolidationAttrTypes()},
+		"limits":           types.ObjectType{AttrTypes: karpenterGpuLimitsAttrTypes()},
+	}
+}
+
 func karpenterNodePoolsAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"requirements":     types.ListType{ElemType: types.ObjectType{AttrTypes: karpenterRequirementAttrTypes()}},
 		"stable_override":  types.ObjectType{AttrTypes: karpenterStableOverrideAttrTypes()},
 		"default_override": types.ObjectType{AttrTypes: karpenterDefaultOverrideAttrTypes()},
 		"cronjob_override": types.ObjectType{AttrTypes: karpenterCronjobOverrideAttrTypes()},
+		"gpu_override":     types.ObjectType{AttrTypes: karpenterGpuOverrideAttrTypes()},
 	}
 }
 
@@ -1710,9 +1786,27 @@ func (p karpenterPlanView) declaresOverride(name string) bool {
 	return ok
 }
 
+// overrideKnownAbsent reports whether the named node pool override block is known to be absent.
+// An override, or a qovery_node_pools object, that is still unknown at plan time may resolve to a
+// block, so it is not reported as absent.
+func (p karpenterPlanView) overrideKnownAbsent(name string) bool {
+	if !p.available {
+		return false
+	}
+	nodePools, ok := p.karpenter.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
+	if !ok || nodePools.IsUnknown() {
+		return false
+	}
+	if nodePools.IsNull() {
+		return true
+	}
+	override, ok := nodePools.Attributes()[name].(basetypes.ObjectValue)
+	return !ok || override.IsNull()
+}
+
 // karpenterNodePoolOverrideNames lists the node pool overrides that carry a spot_enabled, in a
-// fixed order. GPU is deliberately absent: its spot flag is separate and out of scope here.
-var karpenterNodePoolOverrideNames = []string{"stable_override", "default_override", "cronjob_override"}
+// fixed order.
+var karpenterNodePoolOverrideNames = []string{"stable_override", "default_override", "cronjob_override", "gpu_override"}
 
 // spotEnabled reports whether the named node pool runs on spot instances according to this
 // karpenter object, and whether that is known. A known-absent override means on-demand: the
@@ -1805,6 +1899,56 @@ func karpenterLimitsAttrValue(limits *qovery.KarpenterNodePoolLimits) basetypes.
 	})
 }
 
+func karpenterGpuLimitsAttrValue(limits *qovery.KarpenterNodePoolLimits) basetypes.ObjectValue {
+	if limits == nil {
+		return types.ObjectNull(karpenterGpuLimitsAttrTypes())
+	}
+
+	return types.ObjectValueMust(karpenterGpuLimitsAttrTypes(), map[string]attr.Value{
+		"enabled":                 types.BoolValue(limits.Enabled),
+		"max_cpu_in_vcpu":         types.Int64Value(int64(limits.MaxCpuInVcpu)),
+		"max_memory_in_gibibytes": types.Int64Value(int64(limits.MaxMemoryInGibibytes)),
+		"max_gpu":                 types.Int64Value(int64(limits.MaxGpu)),
+	})
+}
+
+func karpenterRequirementsAttrValue(requirements []qovery.KarpenterNodePoolRequirement) basetypes.ListValue {
+	requirementsAttrList := make([]attr.Value, len(requirements))
+	for i, req := range requirements {
+		valuesAttrList := make([]attr.Value, len(req.Values))
+		for j, val := range req.Values {
+			valuesAttrList[j] = types.StringValue(val)
+		}
+
+		requirementsAttrList[i] = types.ObjectValueMust(karpenterRequirementAttrTypes(), map[string]attr.Value{
+			"key":      types.StringValue(string(req.Key)),
+			"operator": types.StringValue(string(req.Operator)),
+			"values":   types.ListValueMust(types.StringType, valuesAttrList),
+		})
+	}
+
+	return types.ListValueMust(types.ObjectType{AttrTypes: karpenterRequirementAttrTypes()}, requirementsAttrList)
+}
+
+// karpenterGpuOverrideAttrValue converts the GPU node pool of an API response. The response
+// carries its spot_enabled explicitly: the API only omits the per node pool values that the
+// global flag stands for, and the global flag never covered the GPU node pool.
+func karpenterGpuOverrideAttrValue(gpuOverride *qovery.KarpenterGpuNodePoolOverride) basetypes.ObjectValue {
+	if gpuOverride == nil {
+		return types.ObjectNull(karpenterGpuOverrideAttrTypes())
+	}
+
+	return types.ObjectValueMust(karpenterGpuOverrideAttrTypes(), map[string]attr.Value{
+		"requirements":     karpenterRequirementsAttrValue(gpuOverride.Requirements),
+		"disk_size_in_gib": FromInt32Pointer(gpuOverride.DiskSizeInGib),
+		"disk_iops":        FromInt32Pointer(gpuOverride.DiskIops),
+		"disk_throughput":  FromInt32Pointer(gpuOverride.DiskThroughput),
+		"spot_enabled":     types.BoolValue(gpuOverride.GetSpotEnabled()),
+		"consolidation":    karpenterConsolidationAttrValue(gpuOverride.Consolidation),
+		"limits":           karpenterGpuLimitsAttrValue(gpuOverride.Limits),
+	})
+}
+
 func karpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpenterParameters, planKarpenter types.Object, mode clusterReadMode) map[string]attr.Value {
 	attrVals := make(map[string]attr.Value)
 	var diags diag.Diagnostics
@@ -1825,35 +1969,8 @@ func karpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpent
 
 	// Inject requirements
 	nodePools := karpenterParameters.QoveryNodePools
-	requirementsAttrList := make([]attr.Value, len(nodePools.Requirements))
-
-	for i, req := range nodePools.Requirements {
-		valuesAttrList := make([]attr.Value, len(req.Values))
-		for j, val := range req.Values {
-			valuesAttrList[j] = types.StringValue(val)
-		}
-		values, diags := types.ListValue(types.StringType, valuesAttrList)
-		if diags.HasError() {
-			return nil
-		}
-
-		reqObjectValue, diags := types.ObjectValue(karpenterRequirementAttrTypes(), map[string]attr.Value{
-			"key":      types.StringValue(string(req.Key)),
-			"operator": types.StringValue(string(req.Operator)),
-			"values":   values,
-		})
-		if diags.HasError() {
-			return nil
-		}
-
-		requirementsAttrList[i] = reqObjectValue
-	}
-
 	qoveryNodePoolsAttrVals := make(map[string]attr.Value)
-	qoveryNodePoolsAttrVals["requirements"], diags = types.ListValue(types.ObjectType{AttrTypes: karpenterRequirementAttrTypes()}, requirementsAttrList)
-	if diags.HasError() {
-		return nil
-	}
+	qoveryNodePoolsAttrVals["requirements"] = karpenterRequirementsAttrValue(nodePools.Requirements)
 
 	// Inject stable_override — see storeNodePoolOverride for when it is stored.
 	stableOverride := nodePools.StableOverride
@@ -1906,6 +2023,12 @@ func karpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpent
 	} else {
 		qoveryNodePoolsAttrVals["cronjob_override"] = types.ObjectNull(karpenterCronjobOverrideAttrTypes())
 	}
+
+	// Inject gpu_override — same rule as cronjob_override. q-core rebuilds the node pools from each
+	// request, so an apply whose request lacks the block deletes the GPU node pool. Storing the
+	// block whenever the API returns it makes a pool created from the Console show in the plan as
+	// the block being removed, instead of the next apply deleting it silently.
+	qoveryNodePoolsAttrVals["gpu_override"] = karpenterGpuOverrideAttrValue(nodePools.GpuOverride)
 
 	// Inject qovery_node_pools
 	attrVals["qovery_node_pools"], diags = types.ObjectValue(karpenterNodePoolsAttrTypes(), qoveryNodePoolsAttrVals)

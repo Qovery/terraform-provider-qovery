@@ -36,6 +36,12 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   attached to the cluster. Add the routes and labels groups you manage from the Console to
   the configuration before upgrading. (QOV-2029)
 
+### Added
+
+- `qovery_cluster`: `features.karpenter.qovery_node_pools.gpu_override` manages the Karpenter
+  GPU node pool, and the data source reports it. Declaring the block creates the pool and
+  removing it deletes the pool; the plan warns when it removes the block. (QOV-2318)
+
 ### Changed
 
 - `advanced_settings_json` on `qovery_cluster`, `qovery_application`, `qovery_container`,
@@ -53,6 +59,9 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_cluster`: a dedicated cronjob node pool enabled or disabled from the Console now shows
   in `terraform plan`. The refresh used to ignore it, so the next apply reverted the change
   without the plan showing it. (QOV-2301)
+- `qovery_cluster`: an apply no longer deletes a GPU node pool created from the Console while
+  the plan shows nothing. The pool now shows in `terraform plan` as `gpu_override` being
+  removed; declare the block to keep it. (QOV-2318)
 
 ## [0.89.0] - 2026-09-23
 

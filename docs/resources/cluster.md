@@ -99,6 +99,29 @@ resource "qovery_cluster" "cluster" {
         cronjob_override = {
           spot_enabled = true
         }
+
+        # Declaring this block creates the GPU node pool, for the workloads that
+        # request GPUs. Removing the block deletes the pool.
+        gpu_override = {
+          requirements = [
+            {
+              key      = "InstanceFamily"
+              operator = "In"
+              values   = ["g4dn", "g5"]
+            },
+            {
+              key      = "InstanceSize"
+              operator = "In"
+              values   = ["xlarge", "2xlarge"]
+            },
+            {
+              key      = "Arch"
+              operator = "In"
+              values   = ["AMD64"]
+            }
+          ]
+          disk_size_in_gib = 100
+        }
       }
     }
   }
@@ -448,6 +471,9 @@ Optional:
 
 ~> **Important:** the mere presence of this block enables the dedicated cronjob node pool across the Qovery stack — the engine creates the pool and pins cron jobs and lifecycle jobs to it. Removing the block disables the dedicated pool again, and the `spot_enabled` value below only has meaning while the block exists. A cronjob node pool enabled outside Terraform, for example from the Qovery Console, shows up in the plan as this block being removed, and applying that plan disables the pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override))
 - `default_override` (Attributes) Override options for the Qovery **default** node pool. The default node pool runs user application workloads. Use this to configure spot instances and resource limits. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override))
+- `gpu_override` (Attributes) The Qovery **GPU** node pool, which runs the workloads that request GPUs.
+
+~> **Important:** declaring this block creates the GPU node pool, and removing it deletes the pool together with the nodes running on it. A GPU node pool created outside Terraform, for example from the Qovery Console, shows up in the plan as this block being removed, and applying that plan deletes the pool: declare the block to keep it. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override))
 - `stable_override` (Attributes) Override options for the Qovery **stable** node pool. The stable node pool runs services that require consistent availability (e.g., Qovery agents). Use this to configure spot instances, consolidation windows and resource limits. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override))
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--requirements"></a>
@@ -495,6 +521,60 @@ Required:
 
 
 
+<a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.gpu_override`
+
+Required:
+
+- `disk_size_in_gib` (Number) Root disk size in GiB for the nodes of the GPU node pool (e.g., `100`). Qovery rejects a value below its minimum node disk size.
+- `requirements` (Attributes List) List of node selection requirements for the GPU node pool, with the same keys and operator as `qovery_node_pools.requirements`. Define `InstanceFamily` (GPU instance families, e.g., `g4dn`, `g5`), `InstanceSize` and `Arch` requirements. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--requirements))
+
+Optional:
+
+- `consolidation` (Attributes) Node consolidation schedule for the GPU node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on GPU nodes. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--consolidation))
+- `disk_iops` (Number) Provisioned IOPS of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.
+- `disk_throughput` (Number) Provisioned throughput in MB/s of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.
+- `limits` (Attributes) Resource limits for the GPU node pool. Use this to cap the total resources Karpenter can provision for GPU workloads. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--limits))
+- `spot_enabled` (Boolean) Whether to run the **GPU** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
+
+Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances.
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override--requirements"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.gpu_override.requirements`
+
+Required:
+
+- `key` (String) The requirement key: `InstanceFamily`, `InstanceSize` or `Arch`.
+- `operator` (String) The operator for the requirement. Currently only `In` is supported, meaning the node must match one of the specified values.
+- `values` (List of String) List of allowed values for the requirement. For example, for `InstanceFamily`: `["g4dn", "g5"]`, for `Arch`: `["AMD64"]`.
+
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override--consolidation"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.gpu_override.consolidation`
+
+Required:
+
+- `days` (List of String) List of days of the week when consolidation should run (e.g., `["MONDAY", "TUESDAY"]`).
+- `duration` (String) Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).
+- `enabled` (Boolean) Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.
+- `start_time` (String) Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).
+
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override--limits"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.gpu_override.limits`
+
+Required:
+
+- `enabled` (Boolean) Whether to enforce resource limits on the GPU node pool.
+- `max_cpu_in_vcpu` (Number) Maximum total vCPU cores that Karpenter can provision for the GPU node pool.
+- `max_memory_in_gibibytes` (Number) Maximum total memory in GiB that Karpenter can provision for the GPU node pool.
+
+Optional:
+
+- `max_gpu` (Number) Maximum total number of GPUs for the GPU node pool. Defaults to `0`.
+
+
+
 <a id="nestedatt--features--karpenter--qovery_node_pools--stable_override"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.stable_override`
 
@@ -511,7 +591,7 @@ Defaults to `false`, i.e. on-demand instances. The provider always sends an expl
 
 Required:
 
-- `days` (List of String) List of days of the week when consolidation should run (e.g., `["Monday", "Tuesday", "Wednesday"]`).
+- `days` (List of String) List of days of the week when consolidation should run (e.g., `["MONDAY", "TUESDAY", "WEDNESDAY"]`).
 - `duration` (String) Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).
 - `enabled` (Boolean) Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.
 - `start_time` (String) Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).

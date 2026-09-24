@@ -85,6 +85,29 @@ resource "qovery_cluster" "cluster" {
         cronjob_override = {
           spot_enabled = true
         }
+
+        # Declaring this block creates the GPU node pool, for the workloads that
+        # request GPUs. Removing the block deletes the pool.
+        gpu_override = {
+          requirements = [
+            {
+              key      = "InstanceFamily"
+              operator = "In"
+              values   = ["g4dn", "g5"]
+            },
+            {
+              key      = "InstanceSize"
+              operator = "In"
+              values   = ["xlarge", "2xlarge"]
+            },
+            {
+              key      = "Arch"
+              operator = "In"
+              values   = ["AMD64"]
+            }
+          ]
+          disk_size_in_gib = 100
+        }
       }
     }
   }

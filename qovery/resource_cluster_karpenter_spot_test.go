@@ -103,6 +103,7 @@ func testKarpenterObject(overrides map[string]attr.Value) types.Object {
 		"stable_override":  types.ObjectNull(karpenterStableOverrideAttrTypes()),
 		"default_override": types.ObjectNull(karpenterDefaultOverrideAttrTypes()),
 		"cronjob_override": types.ObjectNull(karpenterCronjobOverrideAttrTypes()),
+		"gpu_override":     types.ObjectNull(karpenterGpuOverrideAttrTypes()),
 	}
 	for name, value := range overrides {
 		nodePools[name] = value
@@ -445,7 +446,7 @@ func TestToQoveryNodePools_SendsEveryNodePool(t *testing.T) {
 		assert.Equal(t, boolPtr(false), GetStableNodePoolSpotEnabled(nodePools.StableOverride))
 		assert.Equal(t, boolPtr(true), GetDefaultNodePoolSpotEnabled(nodePools.DefaultOverride))
 		assert.Equal(t, boolPtr(true), GetCronjobNodePoolSpotEnabled(nodePools.CronjobOverride))
-		assert.Nil(t, nodePools.GpuOverride, "gpu_override is out of scope and must stay untouched")
+		assert.Nil(t, nodePools.GpuOverride, "an undeclared gpu_override would create the GPU node pool")
 	})
 
 	t.Run("no_override_declared", func(t *testing.T) {
@@ -457,7 +458,7 @@ func TestToQoveryNodePools_SendsEveryNodePool(t *testing.T) {
 		assert.Equal(t, boolPtr(false), GetStableNodePoolSpotEnabled(nodePools.StableOverride))
 		assert.Equal(t, boolPtr(false), GetDefaultNodePoolSpotEnabled(nodePools.DefaultOverride))
 		assert.Nil(t, nodePools.CronjobOverride, "an undeclared cronjob_override would enable the dedicated pool")
-		assert.Nil(t, nodePools.GpuOverride)
+		assert.Nil(t, nodePools.GpuOverride, "an undeclared gpu_override would create the GPU node pool")
 	})
 }
 
@@ -496,6 +497,14 @@ func TestToQoveryClusterFeatures_GlobalSpotEnabledIsTheOrOfTheNodePools(t *testi
 			TestName:     "cronjob_on_spot",
 			Overrides:    map[string]attr.Value{"cronjob_override": testCronjobOverrideObject(types.BoolValue(true))},
 			ExpectGlobal: true,
+		},
+		{
+			// q-core leaves the GPU node pool out of the global flag it recomputes.
+			TestName: "gpu_on_spot_is_not_counted",
+			Overrides: map[string]attr.Value{"gpu_override": testGpuOverrideObject(func(attrs map[string]attr.Value) {
+				attrs["spot_enabled"] = types.BoolValue(true)
+			})},
+			ExpectGlobal: false,
 		},
 	}
 
@@ -919,6 +928,8 @@ func TestKarpenterFeatureAttrValue_ImportAgreesWithApply(t *testing.T) {
 		"stable_override_with_limits": testApiKarpenterParameters(false, qovery.KarpenterNodePool{StableOverride: &qovery.KarpenterStableNodePoolOverride{Limits: testApiLimits()}}),
 		// A cronjob pool enabled outside Terraform.
 		"cronjob_pool_enabled": testApiKarpenterParameters(false, qovery.KarpenterNodePool{StableOverride: testApiStable(nil), CronjobOverride: testApiCronjob(nil)}),
+		// A GPU pool created outside Terraform.
+		"gpu_pool_created": testApiKarpenterParameters(false, qovery.KarpenterNodePool{StableOverride: testApiStable(nil), GpuOverride: testApiGpu()}),
 	}
 
 	for name, parameters := range apiResponses {
@@ -1042,6 +1053,10 @@ func TestWarnKarpenterSpotToOnDemand(t *testing.T) {
 	defaultOnDemand := map[string]attr.Value{"default_override": testDefaultOverrideObject(types.BoolValue(false), testNullLimits())}
 	cronjobSpot := map[string]attr.Value{"cronjob_override": testCronjobOverrideObject(types.BoolValue(true))}
 	cronjobOnDemand := map[string]attr.Value{"cronjob_override": testCronjobOverrideObject(types.BoolValue(false))}
+	gpuSpot := map[string]attr.Value{"gpu_override": testGpuOverrideObject(func(attrs map[string]attr.Value) {
+		attrs["spot_enabled"] = types.BoolValue(true)
+	})}
+	gpuOnDemand := map[string]attr.Value{"gpu_override": testGpuOverrideObject(nil)}
 
 	nodePoolsPath := path.Root("features").AtName("karpenter").AtName("qovery_node_pools")
 
@@ -1086,6 +1101,18 @@ func TestWarnKarpenterSpotToOnDemand(t *testing.T) {
 			// Removing cronjob_override removes the dedicated pool: nothing moves to on-demand.
 			TestName:       "removed_cronjob_block_is_quiet",
 			StateOverrides: cronjobSpot,
+		},
+		{
+			TestName:       "gpu_spot_to_on_demand_warns",
+			StateOverrides: gpuSpot,
+			PlanOverrides:  gpuOnDemand,
+			ExpectWarnings: []path.Path{nodePoolsPath.AtName("gpu_override")},
+		},
+		{
+			// Removing gpu_override deletes the GPU pool, which warnKarpenterGpuNodePoolRemoval
+			// reports: nothing moves to on-demand.
+			TestName:       "removed_gpu_block_is_quiet",
+			StateOverrides: gpuSpot,
 		},
 		{
 			TestName:       "unknown_planned_value_is_quiet",

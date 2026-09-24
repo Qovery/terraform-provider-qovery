@@ -126,6 +126,7 @@ Optional:
 
 - `cronjob_override` (Attributes) Override options for the cronjob node pool. Its presence means the dedicated cronjob node pool is enabled: the engine creates the pool and pins cron jobs and lifecycle jobs to it. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override))
 - `default_override` (Attributes) Override options for the default node pool (spot instances and resource limits). (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override))
+- `gpu_override` (Attributes) The GPU node pool, which runs the workloads that request GPUs. Its presence means the GPU node pool exists. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override))
 - `stable_override` (Attributes) Override options for the stable node pool (spot instances, consolidation and resource limits). (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override))
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--requirements"></a>
@@ -165,6 +166,61 @@ Required:
 - `enabled` (Boolean) Whether resource limits are enforced.
 - `max_cpu_in_vcpu` (Number) Maximum total vCPU cores for the default node pool.
 - `max_memory_in_gibibytes` (Number) Maximum total memory in GiB for the default node pool.
+
+
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.gpu_override`
+
+Required:
+
+- `requirements` (Attributes List) Node selection requirements for the GPU node pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--requirements))
+
+Optional:
+
+- `consolidation` (Attributes) Node consolidation schedule for the GPU node pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--consolidation))
+- `limits` (Attributes) Resource limits for the GPU node pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--limits))
+
+Read-Only:
+
+- `disk_iops` (Number) Provisioned IOPS of the root disk of the GPU nodes, when set.
+- `disk_size_in_gib` (Number) Root disk size in GiB for the GPU nodes.
+- `disk_throughput` (Number) Provisioned throughput in MB/s of the root disk of the GPU nodes, when set.
+- `spot_enabled` (Boolean) Whether the GPU node pool runs on EC2 Spot instances.
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override--requirements"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.gpu_override.requirements`
+
+Required:
+
+- `key` (String) Requirement key (`InstanceFamily`, `InstanceSize`, or `Arch`).
+- `operator` (String) Requirement operator. Currently only `In` is supported.
+- `values` (List of String) Allowed values for the requirement.
+
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override--consolidation"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.gpu_override.consolidation`
+
+Required:
+
+- `days` (List of String) Days of the week when consolidation runs.
+- `duration` (String) Duration in ISO-8601 format (`PThhHmmM`).
+- `enabled` (Boolean) Whether the consolidation schedule is active.
+- `start_time` (String) Start time in ISO-8601 format (`PThh:mm`).
+
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override--limits"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.gpu_override.limits`
+
+Required:
+
+- `enabled` (Boolean) Whether resource limits are enforced.
+- `max_cpu_in_vcpu` (Number) Maximum total vCPU cores for the GPU node pool.
+- `max_memory_in_gibibytes` (Number) Maximum total memory in GiB for the GPU node pool.
+
+Read-Only:
+
+- `max_gpu` (Number) Maximum total number of GPUs for the GPU node pool.
 
 
 
