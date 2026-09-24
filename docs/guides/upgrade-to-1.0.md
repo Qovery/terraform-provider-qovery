@@ -153,17 +153,37 @@ output "database_password" {
 
 This applies to module outputs too: a module that passes one of these values up must mark its own output sensitive. The values stored in the state file are unchanged; only their display changes.
 
+### `qovery_cluster`: `routing_table` and `labels_group_ids` are managed as a whole
+
+In 0.x, `routing_table` and `labels_group_ids` only refreshed from the API when the state already held a value. A route or a labels group added from the Qovery Console stayed invisible to Terraform while the attribute was omitted, and removing the attribute from the configuration left the remote routes and labels groups in place.
+
+In 1.0 the configuration is the source of truth for both attributes:
+
+- The refresh always reads the API. A route or labels group added, changed or removed from the Console shows up as a difference in `terraform plan`, and `terraform apply` reverts it to the configured value.
+- Omitting the attribute means no route and no labels group. Removing it from the configuration plans the removal, and the apply deletes the routes or detaches the labels groups.
+- `routing_table = []` now deletes the remaining remote routes. 0.x skipped the API call when the list was empty.
+- `terraform import` records the routes and labels groups attached to the cluster.
+- The `qovery_cluster` data source reports the routes and labels groups the API holds. In 0.x it reported none unless its configuration set them.
+
+Corrective changes on these attributes redeploy the cluster, like any other change to them.
+
+If you manage routes or labels groups from the Console, add them to the configuration before the first apply on 1.0, otherwise that apply removes them:
+
+```terraform
+resource "qovery_cluster" "my_cluster" {
+  # ...
+  routing_table = [
+    { description = "vpn", destination = "172.30.0.0/16", target = "vgw-0123456789abcdef0" },
+  ]
+  labels_group_ids = [qovery_labels_group.team.id]
+}
+```
+
+A cluster that declares neither attribute and has nothing attached from the Console plans no change after the upgrade. A configuration that declares `routing_table = []` shows it being added on the first plan; applying it does not change the cluster's configuration.
+
 ## Behaviour changes
 
 These changes need no configuration edit, but they can make `terraform plan` show differences that 0.x hid.
-
-### `qovery_cluster`: refresh reflects Console changes on `routing_table` and `labels_group_ids`
-
-In 0.x, `routing_table` and `labels_group_ids` only refreshed from the API when the state already held a value. A route or a labels group added from the Qovery Console stayed invisible to Terraform, so the plan did not reflect the real remote state.
-
-In 1.0 the refresh is authoritative. A route or labels group added, changed or removed from the Console appears as a difference in `terraform plan`, and `terraform apply` reverts it to the configured value. To keep a Console-made change, add it to the configuration before applying. Corrective changes on these attributes redeploy the cluster, like any other change to them.
-
-Two related fixes: `routing_table = []` now deletes the remaining remote routes (0.x skipped the API call when the list was empty), and an omitted `labels_group_ids` no longer hides labels groups attached from the Console. Declare `labels_group_ids` explicitly, with the ids you want or `[]`, to make Terraform authoritative.
 
 ### `qovery_cluster`: refresh reflects the dedicated cronjob node pool
 

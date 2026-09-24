@@ -1216,38 +1216,58 @@ func TestNatGateways_RoundTrip_VerbatimWhenStaticIPEnabled(t *testing.T) {
 }
 
 func TestCluster_toUpsertClusterRequest_LabelsGroupIds(t *testing.T) {
+	t.Parallel()
+
+	twoIds := types.SetValueMust(types.StringType, []attr.Value{
+		types.StringValue("11111111-1111-1111-1111-111111111111"),
+		types.StringValue("22222222-2222-2222-2222-222222222222"),
+	})
+
+	// expectedIds nil means the labels_groups field is omitted from the request (the API keeps
+	// the current labels groups); an empty slice means [] is sent (the API detaches them all).
 	tests := []struct {
 		name        string
+		update      bool
 		labelsSet   types.Set
 		expectedIds []string
 	}{
 		{
-			name:        "null labels_group_ids -> nil LabelsGroups",
+			name:        "create with null labels_group_ids omits the field",
 			labelsSet:   types.SetNull(types.StringType),
 			expectedIds: nil,
 		},
 		{
-			name: "two labels_group_ids -> two ClusterLabelsGroup entries",
-			labelsSet: types.SetValueMust(types.StringType, []attr.Value{
-				types.StringValue("11111111-1111-1111-1111-111111111111"),
-				types.StringValue("22222222-2222-2222-2222-222222222222"),
-			}),
-			expectedIds: []string{
-				"11111111-1111-1111-1111-111111111111",
-				"22222222-2222-2222-2222-222222222222",
-			},
+			// q-core rejects labels_groups, even [], on non-EKS clusters at create time.
+			name:        "create with empty labels_group_ids omits the field",
+			labelsSet:   types.SetValueMust(types.StringType, []attr.Value{}),
+			expectedIds: nil,
 		},
 		{
-			// Empty set (labels_group_ids = []) produces an empty slice, not nil.
-			// This differs from null: the API receives [] rather than omitting the field.
-			name:        "empty set labels_group_ids -> empty LabelsGroups slice",
+			name:        "create with two labels_group_ids sends both",
+			labelsSet:   twoIds,
+			expectedIds: []string{"11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222"},
+		},
+		{
+			name:        "update with null labels_group_ids sends [] to detach every labels group",
+			update:      true,
+			labelsSet:   types.SetNull(types.StringType),
+			expectedIds: []string{},
+		},
+		{
+			name:        "update with empty labels_group_ids sends []",
+			update:      true,
 			labelsSet:   types.SetValueMust(types.StringType, []attr.Value{}),
 			expectedIds: []string{},
 		},
 		{
-			// Unknown set (e.g. referencing a labels group not yet created) -> nil,
-			// so the field is omitted from the request during planning.
-			name:        "unknown labels_group_ids -> nil LabelsGroups",
+			name:        "update with two labels_group_ids sends both",
+			update:      true,
+			labelsSet:   twoIds,
+			expectedIds: []string{"11111111-1111-1111-1111-111111111111", "22222222-2222-2222-2222-222222222222"},
+		},
+		{
+			name:        "unknown labels_group_ids omits the field",
+			update:      true,
 			labelsSet:   types.SetUnknown(types.StringType),
 			expectedIds: nil,
 		},
@@ -1273,7 +1293,13 @@ func TestCluster_toUpsertClusterRequest_LabelsGroupIds(t *testing.T) {
 				LabelsGroupIds:  tc.labelsSet,
 			}
 
-			params, err := cluster.toUpsertClusterRequest(nil)
+			var state *Cluster
+			if tc.update {
+				prior := cluster
+				state = &prior
+			}
+
+			params, err := cluster.toUpsertClusterRequest(state)
 			require.NoError(t, err)
 			require.NotNil(t, params)
 
@@ -1282,6 +1308,7 @@ func TestCluster_toUpsertClusterRequest_LabelsGroupIds(t *testing.T) {
 				return
 			}
 
+			require.NotNil(t, params.ClusterRequest.LabelsGroups)
 			gotIds := make([]string, 0, len(params.ClusterRequest.LabelsGroups))
 			for _, lg := range params.ClusterRequest.LabelsGroups {
 				require.NotNil(t, lg.Id)
@@ -1332,7 +1359,7 @@ func TestCluster_convertResponseToCluster_LabelsGroupIds(t *testing.T) {
 		assert.ElementsMatch(t, []string{id1, id2}, gotIds)
 	})
 
-	t.Run("plan has null labels_group_ids -> null set even when response has labels", func(t *testing.T) {
+	t.Run("null prior with labels groups attached outside Terraform -> API labels groups", func(t *testing.T) {
 		t.Parallel()
 		initialPlan := Cluster{
 			LabelsGroupIds: types.SetNull(types.StringType),
@@ -1340,7 +1367,58 @@ func TestCluster_convertResponseToCluster_LabelsGroupIds(t *testing.T) {
 
 		out := convertResponseToCluster(ctx, res, initialPlan)
 
+		require.False(t, out.LabelsGroupIds.IsNull())
+		elems := out.LabelsGroupIds.Elements()
+		gotIds := make([]string, 0, len(elems))
+		for _, e := range elems {
+			gotIds = append(gotIds, e.(types.String).ValueString())
+		}
+		assert.ElementsMatch(t, []string{id1, id2}, gotIds)
+	})
+
+	noLabelsRes := &client.ClusterResponse{
+		OrganizationID:      "org-123",
+		ClusterResponse:     &qovery.Cluster{Id: "cluster-789", Name: "c", CloudProvider: qovery.CLOUDVENDORENUM_AWS, Region: "us-east-1"},
+		ClusterInfo:         makeTestClusterInfo("cred-123"),
+		ClusterRoutingTable: &client.ClusterRoutingTable{},
+	}
+
+	t.Run("no labels groups and null prior -> null", func(t *testing.T) {
+		t.Parallel()
+		out := convertResponseToCluster(ctx, noLabelsRes, Cluster{LabelsGroupIds: types.SetNull(types.StringType)})
+
 		assert.True(t, out.LabelsGroupIds.IsNull())
+	})
+
+	t.Run("no labels groups and empty prior -> empty set", func(t *testing.T) {
+		t.Parallel()
+		out := convertResponseToCluster(ctx, noLabelsRes, Cluster{LabelsGroupIds: types.SetValueMust(types.StringType, []attr.Value{})})
+
+		require.False(t, out.LabelsGroupIds.IsNull())
+		assert.Empty(t, out.LabelsGroupIds.Elements())
+	})
+
+	t.Run("labels groups detached outside Terraform -> empty set, so the plan re-attaches them", func(t *testing.T) {
+		t.Parallel()
+		out := convertResponseToCluster(ctx, noLabelsRes, Cluster{LabelsGroupIds: types.SetValueMust(types.StringType, []attr.Value{types.StringValue(id1)})})
+
+		require.False(t, out.LabelsGroupIds.IsNull())
+		assert.Empty(t, out.LabelsGroupIds.Elements())
+	})
+
+	t.Run("data source reports the API labels groups", func(t *testing.T) {
+		t.Parallel()
+		out := convertResponseToClusterForDataSource(ctx, res, Cluster{LabelsGroupIds: types.SetNull(types.StringType)})
+
+		assert.Len(t, out.LabelsGroupIds.Elements(), 2)
+	})
+
+	t.Run("data source reports no labels groups as an empty set", func(t *testing.T) {
+		t.Parallel()
+		out := convertResponseToClusterForDataSource(ctx, noLabelsRes, Cluster{LabelsGroupIds: types.SetNull(types.StringType)})
+
+		require.False(t, out.LabelsGroupIds.IsNull())
+		assert.Empty(t, out.LabelsGroupIds.Elements())
 	})
 
 	t.Run("response with nil Id in ClusterLabelsGroup -> entry is skipped", func(t *testing.T) {
@@ -1376,6 +1454,70 @@ func TestCluster_convertResponseToCluster_LabelsGroupIds(t *testing.T) {
 		}
 		assert.ElementsMatch(t, []string{id1}, gotIds)
 	})
+}
+
+func TestCluster_convertResponseToCluster_RoutingTable(t *testing.T) {
+	ctx := context.Background()
+	routeType := types.ObjectType{AttrTypes: clusterRouteAttrTypes}
+	apiRoute := client.ClusterRoute{Description: "vpn", Destination: "10.1.0.0/16", Target: "vgw-1"}
+
+	newRes := func(routes ...client.ClusterRoute) *client.ClusterResponse {
+		return &client.ClusterResponse{
+			OrganizationID:      "org-123",
+			ClusterResponse:     &qovery.Cluster{Id: "cluster-123", Name: "c", CloudProvider: qovery.CLOUDVENDORENUM_AWS, Region: "us-east-1"},
+			ClusterInfo:         makeTestClusterInfo("cred-123"),
+			ClusterRoutingTable: &client.ClusterRoutingTable{Routes: routes},
+		}
+	}
+	nullRoutes := types.SetNull(routeType)
+	emptyRoutes := types.SetValueMust(routeType, []attr.Value{})
+	declaredRoutes := types.SetValueMust(routeType, []attr.Value{fromClusterRoute(apiRoute).toTerraformObject()})
+
+	testCases := []struct {
+		TestName    string
+		DataSource  bool
+		Prior       types.Set
+		Res         *client.ClusterResponse
+		ExpectNull  bool
+		ExpectRoute bool
+	}{
+		{TestName: "route_added_outside_terraform_with_omitted_attribute_is_reported", Prior: nullRoutes, Res: newRes(apiRoute), ExpectRoute: true},
+		{TestName: "no_route_with_omitted_attribute_stays_null", Prior: nullRoutes, Res: newRes(), ExpectNull: true},
+		{TestName: "no_route_with_empty_attribute_stays_empty", Prior: emptyRoutes, Res: newRes()},
+		{TestName: "route_deleted_outside_terraform_is_reported_as_empty", Prior: declaredRoutes, Res: newRes()},
+		{TestName: "nil_routing_table_with_omitted_attribute_stays_null", Prior: nullRoutes, Res: &client.ClusterResponse{
+			OrganizationID:  "org-123",
+			ClusterResponse: &qovery.Cluster{Id: "cluster-123", Name: "c", CloudProvider: qovery.CLOUDVENDORENUM_AWS, Region: "us-east-1"},
+			ClusterInfo:     makeTestClusterInfo("cred-123"),
+		}, ExpectNull: true},
+		{TestName: "data_source_reports_api_routes", DataSource: true, Prior: nullRoutes, Res: newRes(apiRoute), ExpectRoute: true},
+		{TestName: "data_source_reports_no_route_as_empty", DataSource: true, Prior: nullRoutes, Res: newRes()},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+
+			var out Cluster
+			if tc.DataSource {
+				out = convertResponseToClusterForDataSource(ctx, tc.Res, Cluster{RoutingTables: tc.Prior})
+			} else {
+				out = convertResponseToCluster(ctx, tc.Res, Cluster{RoutingTables: tc.Prior})
+			}
+
+			if tc.ExpectNull {
+				assert.True(t, out.RoutingTables.IsNull())
+				return
+			}
+			require.False(t, out.RoutingTables.IsNull())
+			if !tc.ExpectRoute {
+				assert.Empty(t, out.RoutingTables.Elements())
+				return
+			}
+			routes := toClusterRouteList(out.RoutingTables).toUpsertRequest().Routes
+			assert.Equal(t, []client.ClusterRoute{apiRoute}, routes)
+		})
+	}
 }
 
 func TestCluster_convertResponseToCluster_KarpenterNodeCounts(t *testing.T) {
@@ -2047,6 +2189,10 @@ func TestCluster_hasClusterSpecDiff(t *testing.T) {
 		{"max_running_nodes", func(c *Cluster) { c.MaxRunningNodes = types.Int64Value(20) }, true},
 		{"kubernetes_mode", func(c *Cluster) { c.KubernetesMode = types.StringValue("SELF_MANAGED") }, true},
 		{"labels_group_ids", func(c *Cluster) { c.LabelsGroupIds = labels }, true},
+		// base state has null labels_group_ids: declaring [] detaches nothing, so no redeploy.
+		{"labels_group_ids null -> [] (no labels group either way)", func(c *Cluster) {
+			c.LabelsGroupIds = types.SetValueMust(types.StringType, []attr.Value{})
+		}, false},
 		{"name (metadata)", func(c *Cluster) { c.Name = types.StringValue("renamed") }, false},
 		{"description (metadata)", func(c *Cluster) { c.Description = types.StringValue("d") }, false},
 		{"production only (metadata)", func(c *Cluster) { c.Production = types.BoolValue(true) }, false},

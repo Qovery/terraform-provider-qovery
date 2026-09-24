@@ -80,3 +80,35 @@ func (c *Client) editClusterRoutingTable(ctx context.Context, organizationID str
 	resp := newClusterRoutingTableFromQoveryResponse(routingTable)
 	return &resp, nil
 }
+
+// syncClusterRoutingTable makes the remote routing table hold exactly the desired routes (an
+// empty list means no route) and returns the resulting table. The edit endpoint is only called
+// when the tables differ, so a cluster that never had routes never reaches it.
+func (c *Client) syncClusterRoutingTable(ctx context.Context, organizationID string, clusterID string, desired ClusterRoutingTable) (*ClusterRoutingTable, *apierrors.APIError) {
+	current, apiErr := c.getClusterRoutingTable(ctx, organizationID, clusterID)
+	if apiErr != nil {
+		return nil, apiErr
+	}
+	if current.hasSameRoutes(desired) {
+		return current, nil
+	}
+	return c.editClusterRoutingTable(ctx, organizationID, clusterID, desired)
+}
+
+// hasSameRoutes reports whether both tables hold the same routes, in any order.
+func (rt ClusterRoutingTable) hasSameRoutes(other ClusterRoutingTable) bool {
+	if len(rt.Routes) != len(other.Routes) {
+		return false
+	}
+	remaining := make(map[ClusterRoute]int, len(rt.Routes))
+	for _, route := range rt.Routes {
+		remaining[route]++
+	}
+	for _, route := range other.Routes {
+		if remaining[route] == 0 {
+			return false
+		}
+		remaining[route]--
+	}
+	return true
+}

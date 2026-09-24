@@ -176,7 +176,26 @@ func (c Cluster) hasClusterSpecDiff(state *Cluster) bool {
 		!c.MinRunningNodes.Equal(state.MinRunningNodes) ||
 		!c.MaxRunningNodes.Equal(state.MaxRunningNodes) ||
 		!c.KubernetesMode.Equal(state.KubernetesMode) ||
-		!c.LabelsGroupIds.Equal(state.LabelsGroupIds)
+		!sameStringSetElements(c.LabelsGroupIds, state.LabelsGroupIds)
+}
+
+// sameStringSetElements compares two string sets by content, so null and [] are equal: going
+// from an omitted labels_group_ids to [] changes nothing on the cluster and must not redeploy it.
+func sameStringSetElements(a, b types.Set) bool {
+	aValues, bValues := ToStringArrayFromSet(a), ToStringArrayFromSet(b)
+	if len(aValues) != len(bValues) {
+		return false
+	}
+	inA := make(map[string]struct{}, len(aValues))
+	for _, v := range aValues {
+		inA[v] = struct{}{}
+	}
+	for _, v := range bValues {
+		if _, ok := inA[v]; !ok {
+			return false
+		}
+	}
+	return true
 }
 
 func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertParams, error) {
@@ -363,12 +382,18 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		maxRunningNodes = ToInt32Pointer(c.MaxRunningNodes)
 	}
 
+	// Terraform owns the whole list: on update, a null or empty labels_group_ids sends [] so the
+	// API detaches every labels group (an omitted field keeps them). On create the field is only
+	// sent when non-empty: q-core rejects any labels_groups field, even [], on clusters other
+	// than AWS EKS, after the cluster is already saved.
 	var labelsGroups []qovery.ClusterLabelsGroup
-	if !c.LabelsGroupIds.IsNull() && !c.LabelsGroupIds.IsUnknown() {
-		labelsGroups = make([]qovery.ClusterLabelsGroup, 0, len(c.LabelsGroupIds.Elements()))
-		for _, id := range c.LabelsGroupIds.Elements() {
-			idStr := id.(types.String).ValueString()
-			labelsGroups = append(labelsGroups, qovery.ClusterLabelsGroup{Id: &idStr})
+	if !c.LabelsGroupIds.IsUnknown() {
+		ids := ToStringArrayFromSet(c.LabelsGroupIds)
+		if len(ids) > 0 || state != nil {
+			labelsGroups = make([]qovery.ClusterLabelsGroup, 0, len(ids))
+			for _, id := range ids {
+				labelsGroups = append(labelsGroups, qovery.ClusterLabelsGroup{Id: &id})
+			}
 		}
 	}
 
@@ -454,11 +479,21 @@ func convertResponseToClusterWithMode(ctx context.Context, res *client.ClusterRe
 	isPartiallyManaged := res.ClusterResponse.Kubernetes != nil &&
 		*res.ClusterResponse.Kubernetes == qovery.KUBERNETESENUM_PARTIALLY_MANAGED
 
-	labelsGroupIds := make([]string, 0, len(res.ClusterResponse.LabelsGroups))
+	labelsGroupIds := make([]attr.Value, 0, len(res.ClusterResponse.LabelsGroups))
 	for _, lg := range res.ClusterResponse.LabelsGroups {
 		if lg.Id != nil {
-			labelsGroupIds = append(labelsGroupIds, *lg.Id)
+			labelsGroupIds = append(labelsGroupIds, types.StringValue(*lg.Id))
 		}
+	}
+
+	// routing_table and labels_group_ids always report the API value. The prior value only
+	// decides whether "none" is stored as null or []; the data source has no plan to match and
+	// reports "none" as [].
+	routingTablePrior := initialPlan.RoutingTables
+	labelsGroupIdsPrior := initialPlan.LabelsGroupIds
+	if mode == clusterReadModeDataSource {
+		routingTablePrior = types.SetValueMust(types.ObjectType{AttrTypes: clusterRouteAttrTypes}, []attr.Value{})
+		labelsGroupIdsPrior = types.SetValueMust(types.StringType, []attr.Value{})
 	}
 
 	cluster := Cluster{
@@ -474,7 +509,7 @@ func convertResponseToClusterWithMode(ctx context.Context, res *client.ClusterRe
 		State:                          fromClientEnumPointer(res.ClusterResponse.Status),
 		AdvancedSettingsJson:           FromString(res.AdvancedSettingsJson),
 		InfrastructureChartsParameters: fromQoveryInfrastructureChartsParameters(res.ClusterResponse.InfrastructureChartsParameters),
-		LabelsGroupIds:                 fromLabelsGroupList(ctx, initialPlan.LabelsGroupIds, labelsGroupIds),
+		LabelsGroupIds:                 setFromAPIElements(types.StringType, labelsGroupIdsPrior, labelsGroupIds),
 		SecretManagerAccesses:          fromQoverySecretManagerAccesses(ctx, res.ClusterResponse.SecretManagerAccesses, initialPlan.SecretManagerAccesses),
 	}
 
@@ -524,7 +559,7 @@ func convertResponseToClusterWithMode(ctx context.Context, res *client.ClusterRe
 
 		cluster.Features = clusterFeaturesFromResponse(res.ClusterResponse.Features, initialPlan.Features, mode)
 		cluster.Keda = fromQoveryClusterKeda(res.ClusterResponse.Keda)
-		cluster.RoutingTables = routingTable.toTerraformSet(ctx, initialPlan.RoutingTables)
+		cluster.RoutingTables = routingTable.toTerraformSet(routingTablePrior)
 		cluster.InfrastructureOutputs = fromQoveryClusterOutput(res.ClusterResponse.InfrastructureOutputs, initialPlan.InfrastructureOutputs)
 		// Kubeconfig is not applicable for non-PARTIALLY_MANAGED clusters
 		cluster.Kubeconfig = types.StringNull()

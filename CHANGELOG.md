@@ -27,6 +27,14 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   `terraform plan`, with a warning, instead of being moved by the next apply without notice.
   The data source always reports the stable and default node pools. Pin your node pools as
   described in the upgrade guide before upgrading. (QOV-2301)
+- **`qovery_cluster`**: `routing_table` and `labels_group_ids` are managed as a whole. The
+  refresh always reads the API, so a route or labels group added, changed or removed from the
+  Console shows up in `terraform plan` even when the attribute is omitted, and the next apply
+  reverts it. Omitting the attribute now means no route and no labels group: removing it from
+  the configuration deletes the routes or detaches the labels groups, and `routing_table = []`
+  deletes the remaining routes. Import and the data source report the routes and labels groups
+  attached to the cluster. Add the routes and labels groups you manage from the Console to
+  the configuration before upgrading. (QOV-2029)
 - **`qovery_git_token` data source**: `organization_id` is now a required argument. It used
   to be a computed attribute that the lookup could never populate, so the data source could
   not resolve a token. The `token` attribute is now `null` instead of an empty string,

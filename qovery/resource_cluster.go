@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -40,6 +39,7 @@ var (
 	_ resource.ResourceWithImportState    = clusterResource{}
 	_ resource.ResourceWithValidateConfig = clusterResource{}
 	_ resource.ResourceWithModifyPlan     = clusterResource{}
+	_ resource.ResourceWithUpgradeState   = clusterResource{}
 )
 
 var (
@@ -179,6 +179,7 @@ func karpenterNodePoolSpotEnabledMarkdownDescription(pool string) string {
 func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	// TODO (framework-migration): test if Default is OK when modifying the attribute, otherwise we'll need to use a modifier
 	resp.Schema = schema.Schema{
+		Version:     1,
 		Description: "Provides a Qovery cluster resource. This can be used to create and manage Qovery cluster.",
 		MarkdownDescription: "Provides a Qovery cluster resource. This is used to create and manage Kubernetes clusters on your chosen cloud provider through Qovery.\n\n" +
 			"Qovery supports clusters on **AWS** (EKS), **GCP** (GKE), **Scaleway** (Kapsule), and **Azure** (AKS). " +
@@ -802,12 +803,8 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 			"routing_table": schema.SetNestedAttribute{
 				Description:         "List of routes of the cluster.",
-				MarkdownDescription: "Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections).",
+				MarkdownDescription: "Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections). Terraform manages the whole routing table: routes added outside Terraform show up in the plan and are removed on apply, and omitting the attribute removes every route.",
 				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.Set{
-					setplanmodifier.UseStateForUnknown(),
-				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"description": schema.StringAttribute{
@@ -855,7 +852,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 			"labels_group_ids": schema.SetAttribute{
 				Description:         "List of labels group ids (EKS clusters only).",
-				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).",
+				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group. See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
@@ -1321,6 +1318,39 @@ func (r clusterResource) ImportState(ctx context.Context, req resource.ImportSta
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idParts[1])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("organization_id"), idParts[0])...)
+}
+
+// UpgradeState migrates cluster states written by 0.x (schema version 0).
+func (r clusterResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	// Version 0 has the same attribute types as the current schema; attributes removed since
+	// then are skipped when the framework decodes the prior state.
+	var schemaResp resource.SchemaResponse
+	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	priorSchema := schemaResp.Schema
+
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema:   &priorSchema,
+			StateUpgrader: upgradeClusterStateV0ToV1,
+		},
+	}
+}
+
+// upgradeClusterStateV0ToV1 turns the empty routing_table that 0.x stored for every cluster
+// without routes into null. routing_table was Optional + Computed in 0.x and is Optional only
+// since 1.0, so keeping [] would plan a "[] -> null" change on every cluster that omits it.
+func upgradeClusterStateV0ToV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+	var cluster Cluster
+	resp.Diagnostics.Append(req.State.Get(ctx, &cluster)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if !cluster.RoutingTables.IsNull() && len(cluster.RoutingTables.Elements()) == 0 {
+		cluster.RoutingTables = types.SetNull(types.ObjectType{AttrTypes: clusterRouteAttrTypes})
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, cluster)...)
 }
 
 // ValidateConfig performs plan-time cross-attribute validation for the cluster resource.

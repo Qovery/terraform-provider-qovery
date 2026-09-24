@@ -331,7 +331,7 @@ You can find complete examples within these repositories:
   - `MANAGED` - Fully managed Kubernetes cluster provisioned and managed by Qovery (e.g., AWS EKS, GCP GKE, Azure AKS).
   - `SELF_MANAGED` - Bring your own Kubernetes cluster. Qovery deploys workloads but does not manage infrastructure.
   - `PARTIALLY_MANAGED` - EKS Anywhere / on-premise mode. Qovery manages workloads on a user-provided Kubernetes cluster via kubeconfig. Requires `kubeconfig` and `infrastructure_charts_parameters`.
-- `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).
+- `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group. See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).
 - `max_running_nodes` (Number) Maximum number of nodes the cluster autoscaler can scale up to. Must be `>= 1`. Default: `10`.
 
 ~> **Note:** Must be set to `1` for K3S clusters. Do not set this attribute when Karpenter is enabled (Karpenter manages scaling automatically).
@@ -339,7 +339,7 @@ You can find complete examples within these repositories:
 
 ~> **Note:** Must be set to `1` for K3S clusters. Do not set this attribute when Karpenter is enabled (Karpenter manages scaling automatically).
 - `production` (Boolean) Flag to mark this cluster as a production cluster. Production clusters may have different default settings and safeguards. Default: `false`.
-- `routing_table` (Attributes Set) Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections). (see [below for nested schema](#nestedatt--routing_table))
+- `routing_table` (Attributes Set) Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections). Terraform manages the whole routing table: routes added outside Terraform show up in the plan and are removed on apply, and omitting the attribute removes every route. (see [below for nested schema](#nestedatt--routing_table))
 - `secret_manager_accesses` (Attributes Set) List of external secret manager configurations for the cluster. Each entry grants the cluster access to a secret provider (AWS Parameter Store, AWS Secrets Manager, or GCP Secret Manager). (see [below for nested schema](#nestedatt--secret_manager_accesses))
 - `state` (String) Desired state of the cluster. Default: `DEPLOYED`.
 

@@ -606,6 +606,12 @@ func testAccCheckClusterKarpenterSpot(want map[string]bool) resource.TestCheckFu
 // the API, bypassing Terraform, the way the Qovery Console does. The request resends the settings
 // the provider manages for the configurations in this file.
 func testAccSetClusterKarpenterOutOfBand(clusterID string, mutate func(*qovery.ClusterFeatureKarpenterParameters)) error {
+	return testAccEditClusterOutOfBand(clusterID, mutate, nil)
+}
+
+// testAccEditClusterOutOfBand resends a cluster's current settings through the API, bypassing
+// Terraform, after applying the optional Karpenter and request mutations.
+func testAccEditClusterOutOfBand(clusterID string, mutateKarpenter func(*qovery.ClusterFeatureKarpenterParameters), mutateRequest func(*qovery.ClusterRequest)) error {
 	if clusterID == "" {
 		return fmt.Errorf("cluster id was not captured from state")
 	}
@@ -639,7 +645,9 @@ func testAccSetClusterKarpenterOutOfBand(clusterID string, mutate func(*qovery.C
 		switch {
 		case valueObject.ClusterFeatureKarpenterParametersResponse != nil:
 			parameters := valueObject.ClusterFeatureKarpenterParametersResponse.Value
-			mutate(&parameters)
+			if mutateKarpenter != nil {
+				mutateKarpenter(&parameters)
+			}
 			value.ClusterFeatureKarpenterParameters = &parameters
 		case valueObject.ClusterFeatureStringResponse != nil:
 			value.String = &valueObject.ClusterFeatureStringResponse.Value
@@ -652,6 +660,10 @@ func testAccSetClusterKarpenterOutOfBand(clusterID string, mutate func(*qovery.C
 			Id:    &id,
 			Value: *qovery.NewNullableClusterRequestFeaturesInnerValue(&value),
 		})
+	}
+
+	if mutateRequest != nil {
+		mutateRequest(&request)
 	}
 
 	_, httpRes, err := qoveryAPIClient.ClustersAPI.EditCluster(context.TODO(), getTestOrganizationID(), clusterID).ClusterRequest(request).Execute()
