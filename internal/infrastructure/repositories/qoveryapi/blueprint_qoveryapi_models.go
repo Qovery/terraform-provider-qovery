@@ -170,19 +170,19 @@ func newDomainCatalogEntriesFromQovery(catalog *qovery.BlueprintCatalogResponse)
 
 // findServiceStatus returns nil when the environment does not report the service.
 func findServiceStatus(statuses *qovery.EnvironmentStatuses, serviceType blueprint.ServiceType, serviceID string) (*blueprint.ServiceStatus, error) {
-	if statuses == nil {
-		return nil, nil
-	}
-	var candidates []qovery.Status
+	var candidates func() []qovery.Status
 	switch serviceType {
 	case blueprint.ServiceTypeTerraform:
-		candidates = statuses.GetTerraforms()
+		candidates = statuses.GetTerraforms
 	case blueprint.ServiceTypeHelm:
-		candidates = statuses.GetHelms()
+		candidates = statuses.GetHelms
 	default:
 		return nil, errors.Wrap(blueprint.ErrUnknownServiceType, string(serviceType))
 	}
-	for _, s := range candidates {
+	if statuses == nil {
+		return nil, nil
+	}
+	for _, s := range candidates() {
 		if s.GetId() == serviceID {
 			return &blueprint.ServiceStatus{
 				State:              string(s.GetState()),

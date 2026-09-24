@@ -24,7 +24,7 @@ func TestNewQoveryBlueprintCreateRequest(t *testing.T) {
 		Tag:             "aws/postgres/17/1.0.0",
 		IconURI:         "app://qovery-console/terraform",
 		Variables:       map[string]string{"instance_type": "db.t3.micro"},
-		SecretVariables: map[string]string{"password": "s3cret"},
+		SecretVariables: map[string]string{"api_key": "test-value-1"},
 		SpecOverrides:   &blueprint.SpecOverrides{CPU: blueprintPtr("500m"), Timeout: blueprintPtr(int32(600))},
 	}}
 
@@ -36,7 +36,7 @@ func TestNewQoveryBlueprintCreateRequest(t *testing.T) {
 		"icon": "app://qovery-console/terraform",
 		"variables": [
 			{"name": "instance_type", "value": "db.t3.micro", "is_secret": false},
-			{"name": "password", "value": "s3cret", "is_secret": true}
+			{"name": "api_key", "value": "test-value-1", "is_secret": true}
 		],
 		"spec_overrides": {"cpu": "500m", "timeout": 600}
 	}`, string(body))
@@ -57,10 +57,10 @@ func TestNewQoveryBlueprintUpdateRequest(t *testing.T) {
 					Tag:             "aws/postgres/17/1.0.1",
 					IconURI:         "app://qovery-console/terraform",
 					Variables:       map[string]string{"instance_type": "db.t3.small"},
-					SecretVariables: map[string]string{"password": "n3w"},
+					SecretVariables: map[string]string{"api_key": "test-value-2"},
 					SpecOverrides:   &blueprint.SpecOverrides{RAM: blueprintPtr("1Gi")},
 				},
-				PreviousVariableNames: []string{"instance_type", "storage_gb", "password"},
+				PreviousVariableNames: []string{"instance_type", "storage_gb", "api_key"},
 				PreviousSpecOverrides: &blueprint.SpecOverrides{CPU: blueprintPtr("500m"), Timeout: blueprintPtr(int32(600))},
 			},
 			expected: `{
@@ -70,7 +70,7 @@ func TestNewQoveryBlueprintUpdateRequest(t *testing.T) {
 				"variables": {
 					"instance_type": {"value": "db.t3.small", "is_secret": false},
 					"storage_gb": null,
-					"password": {"value": "n3w", "is_secret": true}
+					"api_key": {"value": "test-value-2", "is_secret": true}
 				},
 				"spec_overrides": {"ram": "1Gi", "cpu": null, "timeout": null}
 			}`,
@@ -120,7 +120,7 @@ func TestNewDomainBlueprintFromQovery(t *testing.T) {
 	}
 	variables := []qovery.BlueprintConfigurationVariable{
 		{Name: "instance_type", Value: blueprintPtr("db.t3.micro"), IsSecret: false},
-		{Name: "password", IsSecret: true},
+		{Name: "api_key", IsSecret: true},
 	}
 
 	bp, err := newDomainBlueprintFromQovery(&details, variables)
@@ -136,7 +136,7 @@ func TestNewDomainBlueprintFromQovery(t *testing.T) {
 		LatestDeployment: &blueprint.Dispatch{ID: "dispatch-1", Status: blueprint.DispatchStatusFailed, ErrorMessage: blueprintPtr("boom")},
 		Variables: []blueprint.Variable{
 			{Name: "instance_type", Value: blueprintPtr("db.t3.micro")},
-			{Name: "password", IsSecret: true},
+			{Name: "api_key", IsSecret: true},
 		},
 	}, bp)
 
@@ -170,6 +170,13 @@ func TestFindServiceStatus(t *testing.T) {
 
 	_, err = findServiceStatus(statuses, blueprint.ServiceType("JOB"), serviceID)
 	assert.ErrorIs(t, err, blueprint.ErrUnknownServiceType)
+
+	_, err = findServiceStatus(nil, blueprint.ServiceType("JOB"), serviceID)
+	assert.ErrorIs(t, err, blueprint.ErrUnknownServiceType)
+
+	found, err = findServiceStatus(nil, blueprint.ServiceTypeHelm, serviceID)
+	require.NoError(t, err)
+	assert.Nil(t, found)
 }
 
 func TestNewDomainCatalogEntriesFromQovery(t *testing.T) {

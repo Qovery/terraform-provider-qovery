@@ -168,6 +168,7 @@ func convertDomainBlueprintToBlueprint(ctx context.Context, bp *blueprint.Bluepr
 		state.Name = prior.Name
 		state.Tag = prior.Tag
 		state.Variables = prior.Variables
+		state.SecretVariables = prior.SecretVariables
 	}
 	return state, diags
 }

@@ -23,6 +23,7 @@ var (
 	ErrInvalidCatalogVersion       = errors.New("invalid blueprint catalog version: expected <provider>/<service_family>/<service_version>, e.g. AWS/postgres/17")
 	ErrInvalidTag                  = errors.New("invalid blueprint tag: expected <provider>/<service_family>/<service_version>/<release>")
 	ErrCatalogVersionNotFound      = errors.New("blueprint catalog version not found")
+	ErrWaitTimeout                 = errors.New("blueprint wait timed out")
 )
 
 // ServiceType is the kind of service a blueprint dispatch materializes.

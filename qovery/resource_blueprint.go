@@ -197,6 +197,7 @@ func (r blueprintResource) Create(ctx context.Context, req resource.CreateReques
 			return
 		}
 		// Blueprint exists, only dispatch or deploy failed: track it so it gets tainted, not orphaned
+		resp.Diagnostics.Append(resp.Private.SetKey(ctx, blueprintPendingApplyKey, []byte("true"))...)
 	}
 
 	state, diags := convertDomainBlueprintToBlueprint(ctx, bp, plan, false)

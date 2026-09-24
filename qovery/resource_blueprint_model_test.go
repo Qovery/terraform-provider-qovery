@@ -43,8 +43,8 @@ func TestConvertDomainBlueprintToBlueprint(t *testing.T) {
 			{Name: "instance_type", Value: value("db.t3.small")},
 			{Name: "storage_gb", Value: value("20")},
 			{Name: blueprintImportIdentifierVariable, Value: value("my-db-id")},
-			{Name: "password", IsSecret: true},
 			{Name: "api_key", IsSecret: true},
+			{Name: "db_token", IsSecret: true},
 		},
 	}
 	overrides := &BlueprintSpecOverrides{CPU: FromString("500m")}
@@ -53,7 +53,7 @@ func TestConvertDomainBlueprintToBlueprint(t *testing.T) {
 		prior := Blueprint{
 			IconURI:         FromString("https://cdn/icon.svg"),
 			Variables:       blueprintModelStringMap(t, map[string]string{"instance_type": "db.t3.micro", "removed": "x"}),
-			SecretVariables: blueprintModelStringMap(t, map[string]string{"password": "s3cret", "gone": "y"}),
+			SecretVariables: blueprintModelStringMap(t, map[string]string{"api_key": "test-value-1", "gone": "y"}),
 			SpecOverrides:   overrides,
 			Deploy:          types.BoolValue(false),
 		}
@@ -61,7 +61,7 @@ func TestConvertDomainBlueprintToBlueprint(t *testing.T) {
 		state, diags := convertDomainBlueprintToBlueprint(ctx, bp, prior, false)
 		require.False(t, diags.HasError())
 		assert.Equal(t, blueprintModelStringMap(t, map[string]string{"instance_type": "db.t3.small"}), state.Variables)
-		assert.Equal(t, blueprintModelStringMap(t, map[string]string{"password": "s3cret"}), state.SecretVariables)
+		assert.Equal(t, blueprintModelStringMap(t, map[string]string{"api_key": "test-value-1"}), state.SecretVariables)
 		assert.Equal(t, "https://cdn/icon.svg", state.IconURI.ValueString())
 		assert.Equal(t, overrides, state.SpecOverrides)
 		assert.False(t, state.Deploy.ValueBool())
@@ -79,7 +79,6 @@ func TestConvertDomainBlueprintToBlueprint(t *testing.T) {
 		assert.Equal(t, defaultBlueprintIconURI, state.IconURI.ValueString())
 		assert.True(t, state.Deploy.ValueBool())
 	})
-
 }
 
 func TestBlueprintSchemasAreValid(t *testing.T) {
@@ -142,7 +141,7 @@ func TestBlueprintToUpdateRequest(t *testing.T) {
 	}
 	state := Blueprint{
 		Variables:       blueprintModelStringMap(t, map[string]string{"instance_type": "db.t3.micro", "storage_gb": "20"}),
-		SecretVariables: blueprintModelStringMap(t, map[string]string{"password": "s3cret"}),
+		SecretVariables: blueprintModelStringMap(t, map[string]string{"api_key": "test-value-1"}),
 		SpecOverrides:   &BlueprintSpecOverrides{Timeout: types.Int64Value(600)},
 	}
 
@@ -151,7 +150,7 @@ func TestBlueprintToUpdateRequest(t *testing.T) {
 	assert.Equal(t, map[string]string{"instance_type": "db.t3.small"}, request.Variables)
 	assert.Empty(t, request.SecretVariables)
 	assert.Nil(t, request.SpecOverrides)
-	assert.Equal(t, []string{"instance_type", "storage_gb", "password"}, request.PreviousVariableNames)
+	assert.Equal(t, []string{"instance_type", "storage_gb", "api_key"}, request.PreviousVariableNames)
 	require.NotNil(t, request.PreviousSpecOverrides)
 	assert.Equal(t, int32(600), *request.PreviousSpecOverrides.Timeout)
 }
@@ -179,7 +178,7 @@ func TestConvertDomainBlueprintToBlueprintVersionAndFailures(t *testing.T) {
 		Name:            FromString("my-redis"),
 		Tag:             FromString("HELM/redis/8/1.0.2"),
 		Variables:       blueprintModelStringMap(t, map[string]string{"memory_limit": "256Mi"}),
-		SecretVariables: types.MapNull(types.StringType),
+		SecretVariables: blueprintModelStringMap(t, map[string]string{"api_key": "test-value-1"}),
 	}
 
 	t.Run("successful apply refreshes from the API", func(t *testing.T) {
@@ -194,6 +193,7 @@ func TestConvertDomainBlueprintToBlueprintVersionAndFailures(t *testing.T) {
 	t.Run("failed apply keeps the last applied values", func(t *testing.T) {
 		state, diags := convertDomainBlueprintToBlueprint(ctx, newBlueprint(blueprint.DispatchStatusFailed), prior, false)
 		require.False(t, diags.HasError())
+		assert.Equal(t, prior.SecretVariables, state.SecretVariables)
 		assert.Equal(t, "my-redis", state.Name.ValueString())
 		assert.Equal(t, "HELM/redis/8/1.0.2", state.Tag.ValueString())
 		assert.Equal(t, prior.Variables, state.Variables)
@@ -206,7 +206,6 @@ func TestConvertDomainBlueprintToBlueprintVersionAndFailures(t *testing.T) {
 		assert.Equal(t, "HELM/redis/8/1.0.2", state.Tag.ValueString())
 		assert.Equal(t, prior.Variables, state.Variables)
 	})
-
 }
 
 func TestRequiresReplaceIfOtherBlueprintService(t *testing.T) {

@@ -16,6 +16,7 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/blueprint"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
 	"github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories/mocks_test"
 )
 
@@ -158,6 +159,20 @@ func TestBlueprintServiceCreate(t *testing.T) {
 		bp, err := newTestBlueprintService(repo).Create(context.Background(), environmentID.String(), request)
 		assert.Equal(t, done, bp)
 		assert.ErrorIs(t, err, blueprint.ErrServiceDeploymentFailed)
+		assert.True(t, bp.LastApplyFailed(), "the returned blueprint must carry the failed service status")
+	})
+
+	t.Run("a dispatch that never ends times out with the blueprint sentinel", func(t *testing.T) {
+		repo := mocks_test.NewBlueprintRepository(t)
+		repo.EXPECT().Create(mock.Anything, environmentID.String(), validRequest).Return(created, nil)
+		pending := testBlueprint(environmentID, &blueprint.Dispatch{ID: "dispatch-2", Status: blueprint.DispatchStatusDeploying}, nil)
+		repo.EXPECT().Get(mock.Anything, blueprintID).Return(pending, nil)
+		svc := newTestBlueprintService(repo)
+		svc.waitTimeout = 20 * time.Millisecond
+
+		_, err := svc.Create(context.Background(), environmentID.String(), validRequest)
+		assert.ErrorIs(t, err, blueprint.ErrWaitTimeout)
+		assert.NotErrorIs(t, err, deployment.ErrWaitTimeout)
 	})
 }
 

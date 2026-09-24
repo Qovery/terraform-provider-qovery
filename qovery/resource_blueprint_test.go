@@ -40,6 +40,9 @@ func TestAcc_Blueprint(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_blueprint.test", "service_type", "HELM"),
 					resource.TestCheckResourceAttrSet("qovery_blueprint.test", "service_id"),
 					resource.TestCheckResourceAttrPair("data.qovery_blueprint.test", "service_id", "qovery_blueprint.test", "service_id"),
+					resource.TestCheckResourceAttrPair("data.qovery_blueprint.test", "tag", "qovery_blueprint.test", "tag"),
+					resource.TestCheckResourceAttrPair("data.qovery_blueprint.test", "blueprint", "qovery_blueprint.test", "blueprint"),
+					resource.TestCheckResourceAttrPair("data.qovery_blueprint.test", "service_type", "qovery_blueprint.test", "service_type"),
 					resource.TestCheckResourceAttr("data.qovery_blueprint.test", "variables.memory_limit", "256Mi"),
 					resource.TestCheckTypeSetElemAttr("data.qovery_blueprint.test", "secret_variable_names.*", "password"),
 				),
@@ -49,6 +52,8 @@ func TestAcc_Blueprint(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryBlueprintExists("qovery_blueprint.test"),
 					resource.TestCheckResourceAttr("qovery_blueprint.test", "variables.memory_limit", "512Mi"),
+					resource.TestMatchResourceAttr("qovery_blueprint.test", "tag", regexp.MustCompile(`^HELM/redis/8/.+`)),
+					resource.TestCheckResourceAttrPair("data.qovery_blueprint.test", "tag", "qovery_blueprint.test", "tag"),
 					resource.TestCheckResourceAttr("qovery_blueprint.test", "secret_variables.password", "second-password"),
 				),
 			},

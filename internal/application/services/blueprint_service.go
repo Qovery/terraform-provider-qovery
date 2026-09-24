@@ -12,6 +12,7 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/blueprint"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
 )
 
@@ -167,7 +168,7 @@ func (s blueprintService) Delete(ctx context.Context, blueprintID string) error 
 
 	// Qovery deletes the blueprint once the engine has deleted its service.
 	subject := fmt.Sprintf("blueprint %s to be deleted", blueprintID)
-	if err := wait(ctx, s.blueprintDeletedFunc(blueprintID), subject, s.waitTimeout, s.waitPollInterval); err != nil {
+	if err := s.wait(ctx, s.blueprintDeletedFunc(blueprintID), subject); err != nil {
 		return errors.Wrap(err, blueprint.ErrFailedToDeleteBlueprint.Error())
 	}
 	return nil
@@ -178,14 +179,14 @@ func (s blueprintService) Delete(ctx context.Context, blueprintID string) error 
 func (s blueprintService) converge(ctx context.Context, blueprintID string, dispatchID string, deploy bool) (*blueprint.Blueprint, error) {
 	var last *blueprint.Blueprint
 	dispatchSubject := fmt.Sprintf("blueprint %s dispatch %s to finish", blueprintID, dispatchID)
-	err := wait(ctx, func(ctx context.Context) (bool, error) {
+	err := s.wait(ctx, func(ctx context.Context) (bool, error) {
 		bp, err := s.blueprintRepository.Get(ctx, blueprintID)
 		if err != nil {
 			return false, err
 		}
 		last = bp
 		return dispatchFinished(bp, dispatchID)
-	}, dispatchSubject, s.waitTimeout, s.waitPollInterval)
+	}, dispatchSubject)
 	if err != nil {
 		return last, err
 	}
@@ -197,8 +198,17 @@ func (s blueprintService) converge(ctx context.Context, blueprintID string, disp
 	}
 
 	deploySubject := fmt.Sprintf("service %s of blueprint %s to be deployed", *last.ServiceID, blueprintID)
-	err = wait(ctx, s.serviceDeployedFunc(last), deploySubject, s.waitTimeout, s.waitPollInterval)
+	err = s.wait(ctx, s.serviceDeployedFunc(last), deploySubject)
 	return last, err
+}
+
+// wait reports a timeout as blueprint.ErrWaitTimeout, not the deployment one the shared helper uses
+func (s blueprintService) wait(ctx context.Context, f waitFunc, subject string) error {
+	err := wait(ctx, f, subject, s.waitTimeout, s.waitPollInterval)
+	if errors.Is(err, deployment.ErrWaitTimeout) {
+		return fmt.Errorf("%w: waited %s for %s", blueprint.ErrWaitTimeout, s.waitTimeout, subject)
+	}
+	return err
 }
 
 // dispatchFinished reports whether the dispatch dispatchID ended. latest_deployment can
@@ -231,6 +241,8 @@ func (s blueprintService) serviceDeployedFunc(bp *blueprint.Blueprint) waitFunc 
 		if err != nil {
 			return false, err
 		}
+		// Callers read LastApplyFailed off the returned blueprint, so it must see this status
+		bp.ServiceStatus = serviceStatus
 		if serviceStatus == nil || serviceStatus.LastDeploymentDate == nil || !serviceStatus.LastDeploymentDate.After(dispatchStartedAt) {
 			return false, nil
 		}
