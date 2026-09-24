@@ -118,6 +118,14 @@ Detailed test patterns (build tags, table-driven scaffold, mock generation, cove
 
 ## Code Standards
 
+### HCL Config Is the Source of Truth
+
+The config is the desired state, refresh records the real remote state, and `terraform plan` shows the gap between them.
+
+- **Refresh reads the API.** Read stores what the API returns, so a change made outside Terraform (Console, API) appears as a plan difference. Keep the plan or state value over the API value only when the API cannot return a usable one (redacted secret, write-only field, unstable sentinel), and comment why at that spot.
+- **Removing an attribute is a change.** Deleting a set attribute from the config plans its removal: null means none for lists and objects, a scalar the API always holds gets a schema `Default`, and the write path sends the empty value explicitly so the API clears it. Map an empty API value back to whichever of null or `[]` the plan held. Reserve `Optional + Computed` with `UseStateForUnknown` for values only the server sets.
+- **Data sources report the API value as-is**: they have no plan to stay consistent with.
+
 ### Package Naming
 
 Use singular nouns for packages (`project`, not `projects`). File-name patterns are listed under "Key Patterns" above.
