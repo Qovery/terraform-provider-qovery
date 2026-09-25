@@ -21,7 +21,8 @@ const testAccBlueprintVersion = "HELM/redis/8"
 func TestAcc_Blueprint(t *testing.T) {
 	t.Parallel()
 	testName := "blueprint"
-	blueprintName := generateTestName(testName)
+	// Chart suffixes k8s names off release name; full uuid overflows 63-char limit
+	blueprintName := fmt.Sprintf("%s-bp-%s", testNamePrefix, testNameSuffix[:8])
 	var createdServiceID string
 
 	resource.Test(t, resource.TestCase{
