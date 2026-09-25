@@ -26,7 +26,6 @@ data "qovery_application" "my_application" {
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
-- `annotations_group_ids` (Set of String) List of annotations group ids.
 - `arguments` (List of String) List of arguments of this application.
 - `auto_deploy` (Boolean) Specify if the application will be automatically updated after receiving a new image tag.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application.
@@ -47,7 +46,6 @@ data "qovery_application" "my_application" {
 - `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service. At least one of `readiness_probe` or `liveness_probe` should be configured for production workloads. (see [below for nested schema](#nestedatt--healthchecks))
 - `icon_uri` (String) Icon URI representing the application.
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
-- `labels_group_ids` (Set of String) List of labels group ids.
 - `max_running_instances` (Number) Maximum number of instances running for the application.
 	- Must be: `>= -1`.
 	- Default: `1`.
@@ -64,6 +62,7 @@ data "qovery_application" "my_application" {
 
 ### Read-Only
 
+- `annotations_group_ids` (Set of String) List of annotations group ids.
 - `autoscaling` (Attributes) Event-driven autoscaling (KEDA) configuration. KEDA is additive to the CPU/memory HPA (min/max_running_instances) and unlocks scale-to-zero (min_running_instances = 0). Requires KEDA to be enabled on the cluster. (see [below for nested schema](#nestedatt--autoscaling))
 - `build_mode` (String) Build Mode of the application.
 	- Can be: `DOCKER`.
@@ -77,6 +76,7 @@ data "qovery_application" "my_application" {
 - `external_secrets` (Attributes Set) List of external secrets linked to this application. (see [below for nested schema](#nestedatt--external_secrets))
 - `git_repository` (Attributes) Git repository of the application. (see [below for nested schema](#nestedatt--git_repository))
 - `internal_host` (String) The application internal host.
+- `labels_group_ids` (Set of String) List of labels group ids.
 - `name` (String) Name of the application.
 - `ports` (Attributes Set) List of ports linked to this application. (see [below for nested schema](#nestedatt--ports))
 - `secret_files` (Attributes Set) List of secret files linked to this application. (see [below for nested schema](#nestedatt--secret_files))

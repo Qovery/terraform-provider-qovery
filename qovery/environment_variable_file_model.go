@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
@@ -233,8 +232,10 @@ func convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState
 		if v.Scope != scope || v.Type != "FILE" {
 			continue
 		}
-		currentVariable := variableMapByKey[v.Key]
-		list = append(list, convertDomainVariableToEnvironmentVariableFile(v, &currentVariable))
+		// The API description always wins, so a description set in the Console shows in the plan.
+		// A key absent from the prior reads as a null description.
+		description := planAwareOptionalString(v.Description, variableMapByKey[v.Key].Description)
+		list = append(list, convertDomainVariableToEnvironmentVariableFile(v, description))
 	}
 
 	// Return nil only if list is empty and original state is nil
@@ -255,11 +256,7 @@ func buildVariableFileMap(ctx context.Context, initialState types.Set) map[strin
 	return variableMapByKey
 }
 
-func convertDomainVariableToEnvironmentVariableFile(v variable.Variable, variableInState *EnvironmentVariableFile) EnvironmentVariableFile {
-	description := FromString(v.Description)
-	if variableInState != nil && variableInState.Description.IsNull() {
-		description = basetypes.NewStringNull()
-	}
+func convertDomainVariableToEnvironmentVariableFile(v variable.Variable, description types.String) EnvironmentVariableFile {
 	return EnvironmentVariableFile{
 		Id:          FromString(v.ID.String()),
 		Key:         FromString(v.Key),
@@ -277,11 +274,9 @@ func fromEnvironmentVariableFileList(ctx context.Context, initialState types.Set
 		if v.Scope != scope || string(v.VariableType) != variableType {
 			continue
 		}
-		currentVariable := variableMap[v.Key]
-		description := FromNullableString(v.Description)
-		if currentVariable.Description.IsNull() && !initialState.IsNull() {
-			description = basetypes.NewStringNull()
-		}
+		// The API description always wins, so a description set in the Console shows in the plan.
+		// A key absent from the prior reads as a null description.
+		description := planAwareOptionalString(v.GetDescription(), variableMap[v.Key].Description)
 		mountPath := ""
 		if v.MountPath.IsSet() && v.MountPath.Get() != nil {
 			mountPath = *v.MountPath.Get()

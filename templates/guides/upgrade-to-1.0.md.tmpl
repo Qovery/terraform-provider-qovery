@@ -181,6 +181,55 @@ resource "qovery_cluster" "my_cluster" {
 
 A cluster that declares neither attribute and has nothing attached from the Console plans no change after the upgrade. A configuration that declares `routing_table = []` shows it being added on the first plan; applying it does not change the cluster's configuration.
 
+### Services: `labels_group_ids` and `annotations_group_ids` are managed as a whole
+
+This applies to `qovery_application`, `qovery_container`, `qovery_job` and `qovery_database`.
+
+In 0.x, `labels_group_ids` and `annotations_group_ids` only refreshed from the API when the state already held a value. A group attached from the Qovery Console to a service whose configuration omits the attribute never reached the state, and the next update of the service sent an empty list and detached it without showing anything in the plan.
+
+In 1.0 the configuration is the source of truth for both attributes:
+
+- The refresh always reads the API. A group attached or detached from the Console shows up as a difference in `terraform plan`, and `terraform apply` reverts it to the configured value.
+- Omitting the attribute means no group. Removing it from the configuration plans the detach.
+- `terraform import` records the groups attached to the service.
+- In the `qovery_application`, `qovery_container`, `qovery_job` and `qovery_database` data sources, both attributes are now read-only and report the groups attached to the service. In 0.x they reported nothing unless the data source configuration set them. Remove them from data source configurations, otherwise Terraform rejects the configuration.
+
+If you attach groups from the Console, add them to the configuration before the first apply on 1.0, otherwise that apply detaches them:
+
+```terraform
+resource "qovery_container" "my_container" {
+  # ...
+  labels_group_ids      = [qovery_labels_group.team.id]
+  annotations_group_ids = [qovery_annotations_group.team.id]
+}
+```
+
+A service with no group attached from the Console plans no change after the upgrade.
+
+### Variable, secret and file descriptions are read from the API
+
+This applies to the `description` of `environment_variables`, `environment_variable_aliases`, `environment_variable_overrides`, `environment_variable_files`, `secrets`, `secret_aliases`, `secret_overrides` and `secret_files` on `qovery_application`, `qovery_container`, `qovery_job`, `qovery_helm`, `qovery_environment` and `qovery_project`, wherever the resource has the attribute.
+
+In 0.x the refresh kept a variable's description out of the state whenever the state held none for that variable, so a description set from the Qovery Console never showed up in `terraform plan`. The data sources reported no description, except on application files.
+
+In 1.0 the refresh reads the description from the API:
+
+- A description set or changed from the Console shows up as a difference in `terraform plan`. When the configuration omits the description, `terraform apply` clears it.
+- `terraform import` and the data sources report the descriptions the API holds.
+
+The API never returns secret values and does not always return the mount path of secret files, so those are still taken from the state.
+
+If you set descriptions from the Console, add them to the configuration before the first apply on 1.0, otherwise that apply clears them:
+
+```terraform
+resource "qovery_application" "my_app" {
+  # ...
+  environment_variables = [
+    { key = "LOG_LEVEL", value = "info", description = "Set from the Console" },
+  ]
+}
+```
+
 ## Behaviour changes
 
 These changes need no configuration edit, but they can make `terraform plan` show differences that 0.x hid.

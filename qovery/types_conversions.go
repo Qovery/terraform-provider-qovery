@@ -245,6 +245,21 @@ func setFromAPIElements(elemType attr.Type, prior types.Set, elements []attr.Val
 	return types.SetValueMust(elemType, elements)
 }
 
+// emptyStringSet is the prior a data source passes to stringSetFromAPI. A data source has no
+// plan to match, so it reports an empty API value as [].
+func emptyStringSet() types.Set {
+	return types.SetValueMust(types.StringType, []attr.Value{})
+}
+
+// stringSetFromAPI is setFromAPIElements for a set of strings, such as labels_group_ids.
+func stringSetFromAPI(prior types.Set, values []string) types.Set {
+	elements := make([]attr.Value, 0, len(values))
+	for _, v := range values {
+		elements = append(elements, types.StringValue(v))
+	}
+	return setFromAPIElements(types.StringType, prior, elements)
+}
+
 func FromStringSet(array []string) types.Set {
 	if array == nil {
 		return basetypes.NewSetNull(types.StringType)

@@ -238,7 +238,7 @@ resource "qovery_container" "my_container" {
   - Changes made in the Console to a tracked key, including a reset to its default value, are reflected on refresh and planned back to the configured value.
   - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.
   - `terraform import` records every setting whose value differs from the default.
-- `annotations_group_ids` (Set of String) List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the container's pods.
+- `annotations_group_ids` (Set of String) List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the container's pods. Terraform manages the whole list: annotations groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every annotations group.
 - `arguments` (List of String) List of arguments of this container. Overrides the Docker image's default `CMD`.
 - `auto_deploy` (Boolean) Specify if the container will be automatically redeployed after receiving a new image tag from the container registry.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this container. When enabled, Qovery creates a preview environment for each pull request.
@@ -256,7 +256,7 @@ resource "qovery_container" "my_container" {
 - `external_secrets` (Attributes Set) List of external secrets linked to this container. External secrets reference upstream secrets (e.g. from AWS Secrets Manager) via a secret manager access configuration. (see [below for nested schema](#nestedatt--external_secrets))
 - `icon_uri` (String) Icon URI representing the container. Used in the Qovery console UI.
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
-- `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the container's pods.
+- `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the container's pods. Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group.
 - `max_running_instances` (Number) Maximum number of instances running for the container.
 - `memory` (Number) RAM of the container in MB [1024MB = 1GB].
 - `min_running_instances` (Number) Minimum number of instances running for the container.

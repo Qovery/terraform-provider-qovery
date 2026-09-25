@@ -127,13 +127,13 @@ resource "qovery_database" "my_mongodb" {
   - `PRIVATE`: Database is only accessible from services within the same environment.
 
 Default: `PUBLIC`.
-- `annotations_group_ids` (Set of String) List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the database pods (only for `CONTAINER` mode).
+- `annotations_group_ids` (Set of String) List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the database pods (only for `CONTAINER` mode). Terraform manages the whole list: annotations groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every annotations group.
 - `cpu` (Number) CPU of the database in millicores (m) [1000m = 1 CPU]. Only applicable when `mode = "CONTAINER"`. Ignored for `MANAGED` mode (use `instance_type` instead).
 - `deployment_stage_id` (String) Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.
 - `icon_uri` (String) Icon URI representing the database. Used in the Qovery console UI.
 - `instance_type` (String) Instance type of the database. Required when `mode = "MANAGED"`. Not applicable for `CONTAINER` mode. The available instance types depend on your cloud provider (e.g. `db.t3.micro` for AWS RDS).
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
-- `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the database pods (only for `CONTAINER` mode).
+- `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the database pods (only for `CONTAINER` mode). Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group.
 - `memory` (Number) RAM of the database in MB [1024MB = 1GB]. Only applicable when `mode = "CONTAINER"`. Ignored for `MANAGED` mode (use `instance_type` instead).
 - `storage` (Number) Storage of the database in GB [1024MB = 1GB]. Cannot be updated after creation.
 

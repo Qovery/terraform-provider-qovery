@@ -26,7 +26,6 @@ data "qovery_job" "my_job" {
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings in JSON format.
-- `annotations_group_ids` (Set of String) List of annotations group IDs.
 - `auto_deploy` (Boolean) Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this job.
 - `cpu` (Number) CPU of the job in millicores (m) [1000m = 1 CPU].
@@ -40,7 +39,6 @@ data "qovery_job" "my_job" {
 - `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service. At least one of `readiness_probe` or `liveness_probe` should be configured for production workloads. (see [below for nested schema](#nestedatt--healthchecks))
 - `icon_uri` (String) Icon URI representing the job.
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
-- `labels_group_ids` (Set of String) List of labels group IDs.
 - `max_duration_seconds` (Number) Job's max duration in seconds.
 	- Must be: `>= 0`.
 	- Default: `300`.
@@ -59,6 +57,7 @@ data "qovery_job" "my_job" {
 
 ### Read-Only
 
+- `annotations_group_ids` (Set of String) List of annotations group IDs.
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this job. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this job. (see [below for nested schema](#nestedatt--environment_variable_files))
@@ -67,6 +66,7 @@ data "qovery_job" "my_job" {
 - `external_secret_files` (Attributes Set) List of external secret files linked to this job. (see [below for nested schema](#nestedatt--external_secret_files))
 - `external_secrets` (Attributes Set) List of external secrets linked to this job. (see [below for nested schema](#nestedatt--external_secrets))
 - `internal_host` (String) The job internal host.
+- `labels_group_ids` (Set of String) List of labels group IDs.
 - `name` (String) Name of the job.
 - `schedule` (Attributes) Job's schedule configuration. Use `on_start`, `on_stop`, and `on_delete` for lifecycle jobs, or `cronjob` for cron jobs. (see [below for nested schema](#nestedatt--schedule))
 - `secret_files` (Attributes Set) List of secret files linked to this job. (see [below for nested schema](#nestedatt--secret_files))

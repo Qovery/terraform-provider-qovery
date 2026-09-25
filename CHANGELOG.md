@@ -35,6 +35,23 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   deletes the remaining routes. Import and the data source report the routes and labels groups
   attached to the cluster. Add the routes and labels groups you manage from the Console to
   the configuration before upgrading. (QOV-2029)
+- **`qovery_application`, `qovery_container`, `qovery_job`, `qovery_database`**:
+  `labels_group_ids` and `annotations_group_ids` are managed as a whole. The refresh always
+  reads the API, so a group attached or detached from the Console shows up in `terraform plan`
+  even when the attribute is omitted, and the next apply reverts it. 0.x ignored such a group
+  and detached it on the next update without showing it in the plan. Omitting the attribute
+  means no group: removing it from the configuration plans the detach. Import records the
+  attached groups. In the four data sources both attributes are now read-only and report the
+  groups attached to the service; remove them from data source configurations. Add the groups
+  you attach from the Console to the configuration before upgrading. (QOV-2326)
+- **`qovery_application`, `qovery_container`, `qovery_job`, `qovery_helm`,
+  `qovery_environment`, `qovery_project`**: the `description` of environment variables,
+  aliases, overrides, files, secrets and secret files is read from the API. A description set
+  from the Console now shows up in `terraform plan`, and the next apply clears it when the
+  configuration omits it. 0.x kept any description the state did not hold out of the state.
+  Import and the data sources report the descriptions. Secret values, and the mount path of
+  secret files where the API does not return it, are still taken from the state. Add the
+  descriptions you set from the Console to the configuration before upgrading. (QOV-2326)
 
 ### Added
 
@@ -62,6 +79,10 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_cluster`: an apply no longer deletes a GPU node pool created from the Console while
   the plan shows nothing. The pool now shows in `terraform plan` as `gpu_override` being
   removed; declare the block to keep it. (QOV-2318)
+- `qovery_application`: changing or removing the `description` of a secret, secret alias or
+  secret override now reaches the API. The update skipped a change that touched only the
+  description and otherwise resent the previous description, so the apply failed with an
+  inconsistent result. (QOV-2326)
 
 ## [0.89.0] - 2026-09-23
 

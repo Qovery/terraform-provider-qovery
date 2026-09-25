@@ -25,7 +25,6 @@ data "qovery_container" "my_container" {
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings.
-- `annotations_group_ids` (Set of String) List of annotations group ids.
 - `arguments` (List of String) List of arguments of this container.
 - `auto_deploy` (Boolean) Specify if the container will be automatically updated after receiving a new image tag.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this container.
@@ -41,7 +40,6 @@ data "qovery_container" "my_container" {
 - `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service. At least one of `readiness_probe` or `liveness_probe` should be configured for production workloads. (see [below for nested schema](#nestedatt--healthchecks))
 - `icon_uri` (String) Icon URI representing the container.
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
-- `labels_group_ids` (Set of String) List of labels group ids.
 - `max_running_instances` (Number) Maximum number of instances running for the container.
 	- Must be: `>= -1`.
 	- Default: `1`.
@@ -59,6 +57,7 @@ data "qovery_container" "my_container" {
 
 ### Read-Only
 
+- `annotations_group_ids` (Set of String) List of annotations group ids.
 - `autoscaling` (Attributes) Event-driven autoscaling (KEDA) configuration. KEDA is additive to the CPU/memory HPA (min/max_running_instances) and unlocks scale-to-zero (min_running_instances = 0). Requires KEDA to be enabled on the cluster. (see [below for nested schema](#nestedatt--autoscaling))
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this container. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
@@ -69,6 +68,7 @@ data "qovery_container" "my_container" {
 - `external_secrets` (Attributes Set) List of external secrets linked to this container. (see [below for nested schema](#nestedatt--external_secrets))
 - `image_name` (String) Name of the container image.
 - `internal_host` (String) The container internal host.
+- `labels_group_ids` (Set of String) List of labels group ids.
 - `name` (String) Name of the container.
 - `registry_id` (String) Id of the registry.
 - `secret_files` (Attributes Set) List of secret files linked to this container. (see [below for nested schema](#nestedatt--secret_files))

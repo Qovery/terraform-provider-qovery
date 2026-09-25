@@ -668,13 +668,13 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			},
 			"annotations_group_ids": schema.SetAttribute{
 				Description:         "List of annotations group ids",
-				MarkdownDescription: "List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the container's pods.",
+				MarkdownDescription: "List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the container's pods. Terraform manages the whole list: annotations groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every annotations group.",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
 			"labels_group_ids": schema.SetAttribute{
 				Description:         "List of labels group ids",
-				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the container's pods.",
+				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the container's pods. Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group.",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},

@@ -1,8 +1,6 @@
 package qovery
 
 import (
-	"context"
-
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
@@ -140,7 +138,7 @@ func (d Database) toUpdateDatabaseRequest() (*client.DatabaseUpdateParams, error
 	}, nil
 }
 
-func convertResponseToDatabase(ctx context.Context, state Database, res *client.DatabaseResponse) Database {
+func convertResponseToDatabase(state Database, res *client.DatabaseResponse) Database {
 	return Database{
 		Id:                  FromString(res.DatabaseResponse.Id),
 		EnvironmentId:       FromString(res.DatabaseResponse.Environment.Id),
@@ -161,7 +159,7 @@ func convertResponseToDatabase(ctx context.Context, state Database, res *client.
 		DeploymentStageId:   FromString(res.DeploymentStageID),
 		IsSkipped:           FromBool(res.IsSkipped),
 		InstanceType:        FromStringPointer(res.DatabaseResponse.InstanceType),
-		AnnotationsGroupIds: fromAnnotationsGroupResponseList(ctx, state.AnnotationsGroupIds, res.DatabaseResponse.AnnotationsGroups),
-		LabelsGroupIds:      fromLabelsGroupResponseList(ctx, state.LabelsGroupIds, res.DatabaseResponse.LabelsGroups),
+		AnnotationsGroupIds: fromAnnotationsGroupResponseList(state.AnnotationsGroupIds, res.DatabaseResponse.AnnotationsGroups),
+		LabelsGroupIds:      fromLabelsGroupResponseList(state.LabelsGroupIds, res.DatabaseResponse.LabelsGroups),
 	}
 }

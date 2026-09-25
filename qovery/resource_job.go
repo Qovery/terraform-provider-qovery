@@ -709,13 +709,13 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 			},
 			"annotations_group_ids": schema.SetAttribute{
 				Description:         "List of annotations group IDs to associate with this job. Annotations groups are defined using the qovery_annotations_group resource.",
-				MarkdownDescription: "List of annotations group IDs to associate with this job. Annotations groups are defined using the `qovery_annotations_group` resource.",
+				MarkdownDescription: "List of annotations group IDs to associate with this job. Annotations groups are defined using the `qovery_annotations_group` resource. Terraform manages the whole list: annotations groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every annotations group.",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
 			"labels_group_ids": schema.SetAttribute{
 				Description:         "List of labels group IDs to associate with this job. Labels groups are defined using the qovery_labels_group resource.",
-				MarkdownDescription: "List of labels group IDs to associate with this job. Labels groups are defined using the `qovery_labels_group` resource.",
+				MarkdownDescription: "List of labels group IDs to associate with this job. Labels groups are defined using the `qovery_labels_group` resource. Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group.",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},

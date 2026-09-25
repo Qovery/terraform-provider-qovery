@@ -268,13 +268,13 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			},
 			"annotations_group_ids": schema.SetAttribute{
 				Description:         "List of annotations group ids",
-				MarkdownDescription: "List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the database pods (only for `CONTAINER` mode).",
+				MarkdownDescription: "List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the database pods (only for `CONTAINER` mode). Terraform manages the whole list: annotations groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every annotations group.",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
 			"labels_group_ids": schema.SetAttribute{
 				Description:         "List of labels group ids",
-				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the database pods (only for `CONTAINER` mode).",
+				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the database pods (only for `CONTAINER` mode). Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group.",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
@@ -304,7 +304,7 @@ func (r databaseResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Initialize state values
-	state := convertResponseToDatabase(ctx, plan, database)
+	state := convertResponseToDatabase(plan, database)
 	tflog.Trace(ctx, "created database", map[string]any{"database_id": state.Id.ValueString()})
 
 	// Set state
@@ -327,7 +327,7 @@ func (r databaseResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	// Refresh state values
-	state = convertResponseToDatabase(ctx, state, database)
+	state = convertResponseToDatabase(state, database)
 	tflog.Trace(ctx, "read database", map[string]any{"database_id": state.Id.ValueString()})
 
 	// Set state
@@ -357,7 +357,7 @@ func (r databaseResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Update state values
-	state = convertResponseToDatabase(ctx, plan, database)
+	state = convertResponseToDatabase(plan, database)
 	tflog.Trace(ctx, "updated database", map[string]any{"database_id": state.Id.ValueString()})
 
 	// Set state
