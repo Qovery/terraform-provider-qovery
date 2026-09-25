@@ -8,11 +8,11 @@ import (
 // cronjob node pool overrides.
 //
 // The generated field is a `NullableBool`, which has three states where the provider only cares
-// about two: a concrete value, versus "no opinion". Absent and explicitly-null both mean the
-// node pool inherits the deprecated global `spot_enabled`, so both collapse to a nil *bool here
-// and every call site gets to reason about `*bool` alone. Not calling a setter leaves the field
-// unset, which is how the conversion layer expresses "send nothing for this pool" — the
-// generated ToMap only emits the key when the field is set.
+// about two: a concrete value, versus none. In a response, absent and explicitly-null both mean
+// the API omitted a value equal to the global flag it derived, so both collapse to a nil *bool
+// here and the read path resolves nil to that global. In a request, an unset field is left out of
+// the body — the generated ToMap only emits the key when the field is set — and the API would
+// then hand the pool its global flag. The conversion layer therefore always calls a setter.
 //
 // The three override types are distinct generated structs with identical accessors, so these
 // wrappers exist to keep the conversion layer uniform across them.

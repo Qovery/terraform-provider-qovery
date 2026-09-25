@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 	"github.com/qovery/terraform-provider-qovery/qovery"
@@ -18,13 +18,16 @@ import (
 // Out-of-band removal tests for client-layer resources.
 //
 // These "disappears" acceptance tests delete the resource out-of-band (directly via the
-// Qovery API, bypassing Terraform) and then assert that the next refresh/plan does NOT
-// error: the resource must be dropped from state (handleReadNotFound → RemoveResource) so
-// Terraform plans a re-create. `ExpectNonEmptyPlan: true` captures exactly that — the
-// post-apply refresh removes the resource and the plan becomes non-empty (a re-create).
+// Qovery API, bypassing Terraform) and then assert that the next plan does NOT error: Read
+// must report the resource as gone (handleReadNotFound → RemoveResource) so Terraform plans
+// a re-create. `ExpectNonEmptyPlan: true` captures exactly that — the post-apply plan
+// refreshes, sees the resource missing and becomes non-empty (a re-create). The harness does
+// not persist that plan's refresh and runs the post-test destroy with -refresh=false, so each
+// test ends with a RefreshState step that drops the resource from state and asserts it;
+// otherwise destroy would call Delete on a resource that is already gone.
 //
 // Before the fix, the out-of-band delete made Read return a hard diagnostic, so the
-// post-apply refresh errored and the step failed.
+// post-apply plan errored and the step failed.
 //
 // Coverage note: cluster_dns_provider is the fourth client-layer resource. It has no standalone
 // acceptance scaffolding and no independent delete (it lives inside a cluster), so it is not
@@ -74,6 +77,14 @@ func TestAcc_DatabaseRemovedOutOfBand(t *testing.T) {
 				),
 				ExpectNonEmptyPlan: true,
 			},
+			// Persisted refresh: Read sees the not-found and drops the resource from state. The
+			// harness runs the post-test destroy with -refresh=false, so without this step it would
+			// call Delete on a resource that is already gone.
+			{
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check:              testAccCheckAbsentFromState("qovery_database.test"),
+			},
 		},
 	})
 }
@@ -105,6 +116,14 @@ func TestAcc_ApplicationRemovedOutOfBand(t *testing.T) {
 					}),
 				),
 				ExpectNonEmptyPlan: true,
+			},
+			// Persisted refresh: Read sees the not-found and drops the resource from state. The
+			// harness runs the post-test destroy with -refresh=false, so without this step it would
+			// call Delete on a resource that is already gone.
+			{
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check:              testAccCheckAbsentFromState("qovery_application.test"),
 			},
 		},
 	})
@@ -139,6 +158,14 @@ func TestAcc_ClusterRemovedOutOfBand(t *testing.T) {
 				),
 				ExpectNonEmptyPlan: true,
 			},
+			// Persisted refresh: Read sees the not-found and drops the resource from state. The
+			// harness runs the post-test destroy with -refresh=false, so without this step it would
+			// call Delete on a resource that is already gone.
+			{
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check:              testAccCheckAbsentFromState("qovery_cluster.test"),
+			},
 		},
 	})
 }
@@ -158,10 +185,20 @@ func testAccQoveryDisappears(resourceName string, del func(id string) *apierrors
 	}
 }
 
-// testAccCheckRemovedOutOfBand is the CheckDestroy for the "disappears" tests. The resource
-// is deleted out-of-band mid-test and then dropped from Terraform state by handleReadNotFound,
-// so its absence from state is the expected clean end-state — not a dangling-resource failure.
-// When the resource is still tracked in state, it confirms the API reports it as deleted.
+// testAccCheckAbsentFromState asserts that resourceName is no longer tracked in state.
+func testAccCheckAbsentFromState(resourceName string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		if _, ok := s.RootModule().Resources[resourceName]; ok {
+			return fmt.Errorf("%s: still present in state after refresh", resourceName)
+		}
+		return nil
+	}
+}
+
+// testAccCheckRemovedOutOfBand is the CheckDestroy for the "disappears" tests. The trailing
+// RefreshState step drops the resource from state, so this normally finds no entry. When the
+// state ends up empty, the harness skips destroy and never calls it. It is a safety net: if an
+// entry is still tracked, it confirms the API reports the resource as deleted.
 func testAccCheckRemovedOutOfBand(resourceName string, get func(id string) *apierrors.APIError) resource.TestCheckFunc {
 	return func(s *terraform.State) error {
 		rs, ok := s.RootModule().Resources[resourceName]

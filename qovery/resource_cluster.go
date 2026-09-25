@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/setplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -24,6 +23,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 	"github.com/qovery/qovery-client-go"
 
@@ -39,6 +39,7 @@ var (
 	_ resource.ResourceWithImportState    = clusterResource{}
 	_ resource.ResourceWithValidateConfig = clusterResource{}
 	_ resource.ResourceWithModifyPlan     = clusterResource{}
+	_ resource.ResourceWithUpgradeState   = clusterResource{}
 )
 
 var (
@@ -112,24 +113,100 @@ func (r *clusterResource) Configure(_ context.Context, req resource.ConfigureReq
 }
 
 // ModifyPlan warns at plan time about advanced_settings_json keys that are not recognized
-// cluster advanced settings, instead of letting them silently no-op.
+// cluster advanced settings, instead of letting them silently no-op, and about Karpenter node
+// pool changes that are easy to read past in a plan.
 func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	warnUnknownClusterAdvancedSettings(ctx, r.clusterAdvancedSettingsService, req.Config, &resp.Diagnostics)
+	warnKarpenterSpotToOnDemand(ctx, req.State, req.Plan, &resp.Diagnostics)
+	warnKarpenterGpuNodePoolRemoval(ctx, req.State, req.Plan, &resp.Diagnostics)
+}
+
+var karpenterPath = path.Root("features").AtName("karpenter")
+
+// karpenterStateAndPlanViews returns the Karpenter views of the prior state and of the plan of an
+// update. ok is false on a create or a destroy, or when either side has no Karpenter object.
+func karpenterStateAndPlanViews(ctx context.Context, state tfsdk.State, plan tfsdk.Plan) (stateView, planView karpenterPlanView, ok bool) {
+	if state.Raw.IsNull() || plan.Raw.IsNull() {
+		return karpenterPlanView{}, karpenterPlanView{}, false
+	}
+
+	var stateKarpenter, planKarpenter types.Object
+	if state.GetAttribute(ctx, karpenterPath, &stateKarpenter).HasError() || plan.GetAttribute(ctx, karpenterPath, &planKarpenter).HasError() {
+		return karpenterPlanView{}, karpenterPlanView{}, false
+	}
+
+	stateView = newKarpenterPlanView(stateKarpenter)
+	planView = newKarpenterPlanView(planKarpenter)
+	return stateView, planView, stateView.available && planView.available
+}
+
+// warnKarpenterSpotToOnDemand warns when the plan moves a Karpenter node pool from spot to
+// on-demand instances. A configuration upgraded from 0.x without pinning its spot pools applies
+// exactly that change, and the plan only shows it as an override block being removed, which is
+// easy to read past.
+func warnKarpenterSpotToOnDemand(ctx context.Context, state tfsdk.State, plan tfsdk.Plan, diags *diag.Diagnostics) {
+	stateView, planView, ok := karpenterStateAndPlanViews(ctx, state, plan)
+	if !ok {
+		return
+	}
+
+	for _, name := range karpenterNodePoolOverrideNames {
+		// Removing cronjob_override or gpu_override removes the node pool altogether: that is not
+		// a move to on-demand instances.
+		if (name == "cronjob_override" || name == "gpu_override") && !planView.declaresOverride(name) {
+			continue
+		}
+
+		wasSpot, stateKnown := stateView.spotEnabled(name)
+		isSpot, planKnown := planView.spotEnabled(name)
+		if !stateKnown || !planKnown || !wasSpot || isSpot {
+			continue
+		}
+
+		diags.AddAttributeWarning(
+			karpenterPath.AtName("qovery_node_pools").AtName(name),
+			"Karpenter node pool moves to on-demand instances",
+			fmt.Sprintf("The %s node pool runs on EC2 Spot instances, and this plan moves it to on-demand instances because the configuration does not set `%s.spot_enabled = true`. "+
+				"A node pool without spot_enabled runs on on-demand instances. Set `spot_enabled = true` in `%s` to keep spot instances.",
+				strings.TrimSuffix(name, "_override"), name, name),
+		)
+	}
+}
+
+// warnKarpenterGpuNodePoolRemoval warns when the plan removes gpu_override, which deletes the GPU
+// node pool and the nodes running on it. A GPU node pool created from the Console reaches the
+// state on refresh, so a configuration that never declared one sees exactly this change.
+func warnKarpenterGpuNodePoolRemoval(ctx context.Context, state tfsdk.State, plan tfsdk.Plan, diags *diag.Diagnostics) {
+	stateView, planView, ok := karpenterStateAndPlanViews(ctx, state, plan)
+	if !ok || !stateView.declaresOverride("gpu_override") || !planView.overrideKnownAbsent("gpu_override") {
+		return
+	}
+
+	diags.AddAttributeWarning(
+		karpenterPath.AtName("qovery_node_pools").AtName("gpu_override"),
+		"Karpenter GPU node pool will be deleted",
+		"This plan removes `gpu_override`, which deletes the GPU node pool and the nodes running on it. "+
+			"If the GPU node pool was created outside Terraform, for example from the Qovery Console, declare `gpu_override` in the configuration to keep it.",
+	)
 }
 
 // karpenterNodePoolSpotEnabledMarkdownDescription builds the documentation of a per node pool
-// `spot_enabled` flag. Leaving the flag unset is meaningful: the pool then falls back to the
-// deprecated global `features.karpenter.spot_enabled`, which is how configurations written
-// before per node pool support keep behaving.
+// `spot_enabled` flag. The flag defaults to false and the provider sends it for every node pool,
+// so an unset value always means on-demand instances.
 func karpenterNodePoolSpotEnabledMarkdownDescription(pool string) string {
-	return "Whether to enable EC2 Spot instances on the **" + pool + "** node pool. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.\n\n" +
-		"When set, this value wins for this node pool and the deprecated global `features.karpenter.spot_enabled` is ignored for it. " +
-		"When left unset, this node pool falls back to the global value."
+	description := "Whether to run the **" + pool + "** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.\n\n" +
+		"Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances"
+	if pool == "cronjob" || pool == "GPU" {
+		return description + "."
+	}
+	return description + ", and so does removing the whole `" + pool + "_override` block. " +
+		"A " + pool + " node pool that runs on spot instances while the configuration does not declare it shows up as a change in the plan."
 }
 
 func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	// TODO (framework-migration): test if Default is OK when modifying the attribute, otherwise we'll need to use a modifier
 	resp.Schema = schema.Schema{
+		Version:     1,
 		Description: "Provides a Qovery cluster resource. This can be used to create and manage Qovery cluster.",
 		MarkdownDescription: "Provides a Qovery cluster resource. This is used to create and manage Kubernetes clusters on your chosen cloud provider through Qovery.\n\n" +
 			"Qovery supports clusters on **AWS** (EKS), **GCP** (GKE), **Scaleway** (Kapsule), and **Azure** (AKS). " +
@@ -527,20 +604,6 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						MarkdownDescription: "Karpenter configuration for AWS EKS clusters. [Karpenter](https://karpenter.sh/) is a Kubernetes node autoscaler that automatically provisions right-sized compute resources. " +
 							"When Karpenter is enabled, do not set `instance_type`, `min_running_nodes`, or `max_running_nodes` — Karpenter manages node scaling automatically.",
 						Attributes: map[string]schema.Attribute{
-							"spot_enabled": schema.BoolAttribute{
-								Description: "Enable spot instances (deprecated, use the per node pool `spot_enabled` instead)",
-								MarkdownDescription: "Whether to enable EC2 Spot instances for cost savings. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.\n\n" +
-									"~> **Deprecated:** spot instances are now configured per node pool. Set `spot_enabled` on `qovery_node_pools.stable_override`, `qovery_node_pools.default_override` and `qovery_node_pools.cronjob_override` instead.\n\n" +
-									"This field is now a derived value: the API recomputes it on every write as the logical OR of the per node pool values (the cronjob pool counts only while its `cronjob_override` block exists). " +
-									"On write, a node pool that carries its own `spot_enabled` ignores this field; a node pool that carries none falls back to this value — which is how configurations written before per node pool support keep behaving.\n\n" +
-									"~> **Warning:** setting this field and the per node pool values to contradictory states causes permanent plan drift, because the API echoes back the derived OR rather than the value you sent.",
-								Optional:           true,
-								Computed:           true,
-								DeprecationMessage: "Configure spot_enabled per node pool on qovery_node_pools.{stable_override,default_override,cronjob_override} instead. When per-pool values are present the API ignores this field on write and recomputes it as the OR of the per-pool values. When no per-pool value is set, this value still applies to ALL pools including stable (legacy behavior).",
-								PlanModifiers: []planmodifier.Bool{
-									DeprecatedGlobalSpotEnabled(),
-								},
-							},
 							"disk_size_in_gib": schema.Int64Attribute{
 								Description:         "Disk size in GiB for Karpenter-provisioned nodes.",
 								MarkdownDescription: "Root disk size in GiB for nodes provisioned by Karpenter (e.g., `50`).",
@@ -604,13 +667,11 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{
 											"spot_enabled": schema.BoolAttribute{
-												Description:         "Enable spot instances on the stable node pool",
+												Description:         "Run the stable node pool on spot instances. Defaults to false (on-demand instances).",
 												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("stable"),
 												Optional:            true,
 												Computed:            true,
-												PlanModifiers: []planmodifier.Bool{
-													boolplanmodifier.UseStateForUnknown(),
-												},
+												Default:             booldefault.StaticBool(false),
 											},
 											"consolidation": schema.SingleNestedAttribute{
 												Description:         "Specifies the period to consolidate nodes (by default, no consolidation happens)",
@@ -626,7 +687,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 													},
 													"days": schema.ListAttribute{
 														Description:         "Days of the week when consolidation runs.",
-														MarkdownDescription: "List of days of the week when consolidation should run (e.g., `[\"Monday\", \"Tuesday\", \"Wednesday\"]`).",
+														MarkdownDescription: "List of days of the week when consolidation should run (e.g., `[\"MONDAY\", \"TUESDAY\", \"WEDNESDAY\"]`).",
 														Required:            true,
 														Computed:            false,
 														ElementType:         types.StringType,
@@ -679,13 +740,11 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{
 											"spot_enabled": schema.BoolAttribute{
-												Description:         "Enable spot instances on the default node pool",
+												Description:         "Run the default node pool on spot instances. Defaults to false (on-demand instances).",
 												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("default"),
 												Optional:            true,
 												Computed:            true,
-												PlanModifiers: []planmodifier.Bool{
-													boolplanmodifier.UseStateForUnknown(),
-												},
+												Default:             booldefault.StaticBool(false),
 											},
 											"limits": schema.SingleNestedAttribute{
 												Description:         "Specifies the limits to apply on the default node pool",
@@ -718,17 +777,151 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 										Description: "Defines some overridden options for the Qovery cronjob node pool. Declaring this block enables the dedicated cronjob node pool.",
 										MarkdownDescription: "Override options for the Qovery **cronjob** node pool.\n\n" +
 											"~> **Important:** the mere presence of this block enables the dedicated cronjob node pool across the Qovery stack — the engine creates the pool and pins cron jobs and lifecycle jobs to it. " +
-											"Removing the block disables the dedicated pool again, and the `spot_enabled` value below only has meaning while the block exists.",
+											"Removing the block disables the dedicated pool again, and the `spot_enabled` value below only has meaning while the block exists. " +
+											"A cronjob node pool enabled outside Terraform, for example from the Qovery Console, shows up in the plan as this block being removed, and applying that plan disables the pool.",
 										Optional: true,
 										Computed: false,
 										Attributes: map[string]schema.Attribute{
 											"spot_enabled": schema.BoolAttribute{
-												Description:         "Enable spot instances on the cronjob node pool",
+												Description:         "Run the cronjob node pool on spot instances. Defaults to false (on-demand instances).",
 												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("cronjob"),
 												Optional:            true,
 												Computed:            true,
-												PlanModifiers: []planmodifier.Bool{
-													boolplanmodifier.UseStateForUnknown(),
+												Default:             booldefault.StaticBool(false),
+											},
+										},
+									},
+									"gpu_override": schema.SingleNestedAttribute{
+										Description: "Defines the Qovery GPU node pool. Declaring this block creates the GPU node pool, removing it deletes the pool.",
+										MarkdownDescription: "The Qovery **GPU** node pool, which runs the workloads that request GPUs.\n\n" +
+											"~> **Important:** declaring this block creates the GPU node pool, and removing it deletes the pool together with the nodes running on it. " +
+											"A GPU node pool created outside Terraform, for example from the Qovery Console, shows up in the plan as this block being removed, and applying that plan deletes the pool: declare the block to keep it.",
+										Optional: true,
+										Computed: false,
+										Attributes: map[string]schema.Attribute{
+											"requirements": schema.ListNestedAttribute{
+												Description:         "List of requirements for the GPU node pool",
+												MarkdownDescription: "List of node selection requirements for the GPU node pool, with the same keys and operator as `qovery_node_pools.requirements`. Define `InstanceFamily` (GPU instance families, e.g., `g4dn`, `g5`), `InstanceSize` and `Arch` requirements.",
+												Required:            true,
+												Computed:            false,
+												NestedObject: schema.NestedAttributeObject{
+													Attributes: map[string]schema.Attribute{
+														"key": schema.StringAttribute{
+															Description:         "The key of the requirement (e.g., InstanceFamily, InstanceSize, Arch)",
+															MarkdownDescription: "The requirement key: `InstanceFamily`, `InstanceSize` or `Arch`.",
+															Required:            true,
+															Computed:            false,
+															Validators: []validator.String{
+																validators.NewStringEnumValidator([]string{"InstanceFamily", "InstanceSize", "Arch"}),
+															},
+														},
+														"operator": schema.StringAttribute{
+															Description:         "The operator for the requirement (e.g., In)",
+															MarkdownDescription: "The operator for the requirement. Currently only `In` is supported, meaning the node must match one of the specified values.",
+															Required:            true,
+															Computed:            false,
+															Validators: []validator.String{
+																validators.NewStringEnumValidator([]string{"In"}),
+															},
+														},
+														"values": schema.ListAttribute{
+															Description:         "List of values for the requirement",
+															MarkdownDescription: "List of allowed values for the requirement. For example, for `InstanceFamily`: `[\"g4dn\", \"g5\"]`, for `Arch`: `[\"AMD64\"]`.",
+															Required:            true,
+															Computed:            false,
+															ElementType:         types.StringType,
+														},
+													},
+												},
+											},
+											"disk_size_in_gib": schema.Int64Attribute{
+												Description:         "Root disk size in GiB for the GPU nodes.",
+												MarkdownDescription: "Root disk size in GiB for the nodes of the GPU node pool (e.g., `100`). Qovery rejects a value below its minimum node disk size.",
+												Required:            true,
+												Computed:            false,
+											},
+											"disk_iops": schema.Int64Attribute{
+												Description:         "Disk IOPS for the GPU nodes.",
+												MarkdownDescription: "Provisioned IOPS of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.",
+												Optional:            true,
+												Computed:            false,
+											},
+											"disk_throughput": schema.Int64Attribute{
+												Description:         "Disk throughput in MB/s for the GPU nodes.",
+												MarkdownDescription: "Provisioned throughput in MB/s of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.",
+												Optional:            true,
+												Computed:            false,
+											},
+											"spot_enabled": schema.BoolAttribute{
+												Description:         "Run the GPU node pool on spot instances. Defaults to false (on-demand instances).",
+												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("GPU"),
+												Optional:            true,
+												Computed:            true,
+												Default:             booldefault.StaticBool(false),
+											},
+											"consolidation": schema.SingleNestedAttribute{
+												Description:         "Specifies the period to consolidate nodes (by default, no consolidation happens)",
+												MarkdownDescription: "Node consolidation schedule for the GPU node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on GPU nodes.",
+												Optional:            true,
+												Computed:            false,
+												Attributes: map[string]schema.Attribute{
+													"enabled": schema.BoolAttribute{
+														Description:         "Whether the consolidation schedule is active.",
+														MarkdownDescription: "Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.",
+														Required:            true,
+														Computed:            false,
+													},
+													"days": schema.ListAttribute{
+														Description:         "Days of the week when consolidation runs.",
+														MarkdownDescription: "List of days of the week when consolidation should run (e.g., `[\"MONDAY\", \"TUESDAY\"]`).",
+														Required:            true,
+														Computed:            false,
+														ElementType:         types.StringType,
+													},
+													"start_time": schema.StringAttribute{
+														Description:         "Start time for the consolidation window in ISO-8601 time format.",
+														MarkdownDescription: "Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).",
+														Required:            true,
+														Computed:            false,
+													},
+													"duration": schema.StringAttribute{
+														Description:         "Duration of the consolidation window in ISO-8601 duration format.",
+														MarkdownDescription: "Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).",
+														Required:            true,
+														Computed:            false,
+													},
+												},
+											},
+											"limits": schema.SingleNestedAttribute{
+												Description:         "Specifies the limits to apply on the GPU node pool",
+												MarkdownDescription: "Resource limits for the GPU node pool. Use this to cap the total resources Karpenter can provision for GPU workloads.",
+												Optional:            true,
+												Attributes: map[string]schema.Attribute{
+													"enabled": schema.BoolAttribute{
+														Description:         "Enabled the limit",
+														MarkdownDescription: "Whether to enforce resource limits on the GPU node pool.",
+														Required:            true,
+														Computed:            false,
+													},
+													"max_cpu_in_vcpu": schema.Int64Attribute{
+														Description:         "Maximum number of vCPU cores for the GPU node pool.",
+														MarkdownDescription: "Maximum total vCPU cores that Karpenter can provision for the GPU node pool.",
+														Required:            true,
+														Computed:            false,
+													},
+													"max_memory_in_gibibytes": schema.Int64Attribute{
+														Description:         "Maximum memory in GiB for the GPU node pool.",
+														MarkdownDescription: "Maximum total memory in GiB that Karpenter can provision for the GPU node pool.",
+														Required:            true,
+														Computed:            false,
+													},
+													"max_gpu": schema.Int64Attribute{
+														Description:         "Maximum number of GPUs for the GPU node pool. Defaults to 0.",
+														MarkdownDescription: "Maximum total number of GPUs for the GPU node pool. Defaults to `0`.",
+														Optional:            true,
+														Computed:            true,
+														Default:             int64default.StaticInt64(0),
+													},
 												},
 											},
 										},
@@ -772,12 +965,8 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 			"routing_table": schema.SetNestedAttribute{
 				Description:         "List of routes of the cluster.",
-				MarkdownDescription: "Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections).",
+				MarkdownDescription: "Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections). Terraform manages the whole routing table: routes added outside Terraform show up in the plan and are removed on apply, and omitting the attribute removes every route.",
 				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.Set{
-					setplanmodifier.UseStateForUnknown(),
-				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"description": schema.StringAttribute{
@@ -815,8 +1004,8 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"advanced_settings_json": schema.StringAttribute{
-				Description:         "Advanced settings of the cluster.",
-				MarkdownDescription: "Advanced settings of the cluster as a JSON string. Use `jsonencode()` to set values. The complete list of available settings is in the [Qovery API documentation](https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings). Only include settings you want to override.",
+				Description:         "Advanced settings of the cluster as a JSON string. Only include settings you want to override." + advancedSettingsRefreshSemanticsPlain,
+				MarkdownDescription: "Advanced settings of the cluster as a JSON string. Use `jsonencode()` to set values. The complete list of available settings is in the [Qovery API documentation](https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings). Only include settings you want to override." + advancedSettingsRefreshSemantics,
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -825,7 +1014,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			},
 			"labels_group_ids": schema.SetAttribute{
 				Description:         "List of labels group ids (EKS clusters only).",
-				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).",
+				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group. See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
@@ -1291,6 +1480,39 @@ func (r clusterResource) ImportState(ctx context.Context, req resource.ImportSta
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idParts[1])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("organization_id"), idParts[0])...)
+}
+
+// UpgradeState migrates cluster states written by 0.x (schema version 0).
+func (r clusterResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	// Version 0 has the same attribute types as the current schema; attributes removed since
+	// then are skipped when the framework decodes the prior state.
+	var schemaResp resource.SchemaResponse
+	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	priorSchema := schemaResp.Schema
+
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema:   &priorSchema,
+			StateUpgrader: upgradeClusterStateV0ToV1,
+		},
+	}
+}
+
+// upgradeClusterStateV0ToV1 turns the empty routing_table that 0.x stored for every cluster
+// without routes into null. routing_table was Optional + Computed in 0.x and is Optional only
+// since 1.0, so keeping [] would plan a "[] -> null" change on every cluster that omits it.
+func upgradeClusterStateV0ToV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+	var cluster Cluster
+	resp.Diagnostics.Append(req.State.Get(ctx, &cluster)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if !cluster.RoutingTables.IsNull() && len(cluster.RoutingTables.Elements()) == 0 {
+		cluster.RoutingTables = types.SetNull(types.ObjectType{AttrTypes: clusterRouteAttrTypes})
+	}
+
+	resp.Diagnostics.Append(resp.State.Set(ctx, cluster)...)
 }
 
 // ValidateConfig performs plan-time cross-attribute validation for the cluster resource.

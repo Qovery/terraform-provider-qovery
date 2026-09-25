@@ -35,12 +35,21 @@ func normalizeJSONValue(v any) any {
 }
 
 // computeOverriddenSettings compares current API settings against defaults and
-// state, returning only settings that differ from defaults or are present in
-// state. Values are normalized before comparison to handle type mismatches
-// (e.g., API returns "true" as string instead of boolean true).
+// state and returns the settings Terraform tracks:
 //
-// When isTriggeredFromImport is true, all non-default settings are included
-// regardless of whether they exist in state.
+//   - a key already present in state and reported by the API is kept, with the
+//     remote value: a change made outside Terraform to a tracked key — including
+//     a reset back to the API default — is reflected on refresh and re-planned
+//     (QOV-2028);
+//   - a key absent from state is skipped, so settings overridden only outside
+//     Terraform are not pulled into state (advanced_settings_json is a partial
+//     override map and the API has no ownership flag to tell user-set keys from
+//     Qovery-provisioned ones);
+//   - when isTriggeredFromImport is true, every non-default key is included
+//     regardless of state.
+//
+// Values are normalized before comparison to handle type mismatches (e.g., API
+// returns "true" as string instead of boolean true).
 func computeOverriddenSettings(
 	current map[string]any,
 	defaults map[string]any,
@@ -57,20 +66,23 @@ func computeOverriddenSettings(
 		normalizedCurrent := normalizeJSONValue(value)
 		normalizedDefault := normalizeJSONValue(defaultValue)
 		normalizedState := normalizeJSONValue(stateValue)
-		// When state already reflects the remote value (after normalization),
-		// emit the state's *raw* scalar form rather than the normalized one. The
-		// config drives advanced_settings_json as a JSON string, so a customer who
-		// wrote "true"/"60" (string) in jsonencode keeps those values in state;
-		// coercing them to true/60 (native) on refresh would produce a permanent
-		// diff (QOV-2027). Normalization is still used for the comparison so real
-		// drift is detected — it just no longer rewrites the stored encoding.
 		switch {
 		case inState && reflect.DeepEqual(normalizedState, normalizedCurrent):
+			// State already reflects the remote value (after normalization): emit
+			// the state's *raw* scalar form rather than the normalized one. The
+			// config drives advanced_settings_json as a JSON string, so a customer
+			// who wrote "true"/"60" (string) in jsonencode keeps those values in
+			// state; coercing them to true/60 (native) on refresh would produce a
+			// permanent diff (QOV-2027). Normalization is still used for the
+			// comparison so real drift is detected — it just no longer rewrites
+			// the stored encoding.
 			overridden[name] = stateValue
-		case !reflect.DeepEqual(normalizedDefault, normalizedCurrent):
+		case inState || !reflect.DeepEqual(normalizedDefault, normalizedCurrent):
+			// Real drift on a tracked key, or a non-default key on import: surface
+			// the remote value. A tracked key whose remote value went back to the
+			// default is kept with that default rather than dropped, so it stays
+			// tracked and later out-of-band changes remain visible (QOV-2028).
 			overridden[name] = normalizedCurrent
-		case inState:
-			overridden[name] = stateValue
 		}
 	}
 

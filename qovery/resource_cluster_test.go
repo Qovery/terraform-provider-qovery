@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
@@ -29,7 +29,8 @@ func TestAcc_Cluster(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create
 			{
-				Config: testAccClusterKarpenterConfig(testName, "", false),
+				Config:           testAccClusterKarpenterConfig(testName, "", false),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "credentials_id", getTestAWSCredentialsID()),
@@ -45,7 +46,8 @@ func TestAcc_Cluster(t *testing.T) {
 			},
 			// Add description
 			{
-				Config: testAccClusterKarpenterConfigWithDescription(testName, "my cluster"),
+				Config:           testAccClusterKarpenterConfigWithDescription(testName, "my cluster"),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", "my cluster"),
@@ -54,7 +56,8 @@ func TestAcc_Cluster(t *testing.T) {
 			},
 			// Remove description
 			{
-				Config: testAccClusterKarpenterConfig(testName, "", false),
+				Config:           testAccClusterKarpenterConfig(testName, "", false),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "description", ""),
@@ -62,7 +65,8 @@ func TestAcc_Cluster(t *testing.T) {
 			},
 			// Attach labels group
 			{
-				Config: testAccClusterKarpenterConfig(testName, "", true),
+				Config:           testAccClusterKarpenterConfig(testName, "", true),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "labels_group_ids.#", "1"),
@@ -74,7 +78,8 @@ func TestAcc_Cluster(t *testing.T) {
 			},
 			// Detach labels group
 			{
-				Config: testAccClusterKarpenterConfig(testName, "", false),
+				Config:           testAccClusterKarpenterConfig(testName, "", false),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckNoResourceAttr("qovery_cluster.test", "labels_group_ids"),
@@ -82,7 +87,8 @@ func TestAcc_Cluster(t *testing.T) {
 			},
 			// Set advanced_settings_json
 			{
-				Config: testAccClusterKarpenterConfigWithAdvancedSettings(testName),
+				Config:           testAccClusterKarpenterConfigWithAdvancedSettings(testName),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttrSet("qovery_cluster.test", "advanced_settings_json"),
@@ -111,7 +117,8 @@ func TestAcc_ClusterWithStaticIP(t *testing.T) {
 		CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccClusterKarpenterConfigWithStaticIP(testName),
+				Config:           testAccClusterKarpenterConfigWithStaticIP(testName),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
@@ -147,7 +154,8 @@ func TestAcc_ClusterKarpenterWithExplicitInstanceType(t *testing.T) {
 			// Create with an explicit instance_type alongside Karpenter: apply must
 			// succeed and the configured value must be kept in state.
 			{
-				Config: testAccClusterKarpenterConfigWithInstanceType(testName, "t3a.medium"),
+				Config:           testAccClusterKarpenterConfigWithInstanceType(testName, "t3a.medium"),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "instance_type", "t3a.medium"),
@@ -181,7 +189,8 @@ func TestAcc_ClusterAdvancedSettingsStringScalar(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Apply with a string-valued advanced setting.
 			{
-				Config: testAccClusterKarpenterConfigWithStringAdvancedSettings(testName),
+				Config:           testAccClusterKarpenterConfigWithStringAdvancedSettings(testName),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttrSet("qovery_cluster.test", "advanced_settings_json"),
@@ -207,7 +216,8 @@ func TestAcc_ClusterWithKeda(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create with KEDA enabled
 			{
-				Config: testAccClusterConfigWithKeda(testName, true),
+				Config:           testAccClusterConfigWithKeda(testName, true),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
@@ -222,7 +232,8 @@ func TestAcc_ClusterWithKeda(t *testing.T) {
 			},
 			// Update KEDA to disabled — exercises the toggle/redeploy path.
 			{
-				Config: testAccClusterConfigWithKeda(testName, false),
+				Config:           testAccClusterConfigWithKeda(testName, false),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "keda.enabled", "false"),
@@ -345,8 +356,9 @@ func TestAcc_ClusterWithReadyState(t *testing.T) {
 				CheckDestroy:             testAccQoveryClusterDestroy("qovery_cluster.test"),
 				Steps: []resource.TestStep{
 					{
-						Config: tc.config(testName),
-						Check:  resource.ComposeAggregateTestCheckFunc(checks...),
+						Config:           tc.config(testName),
+						ConfigPlanChecks: testAccEmptyPlanAfterApply,
+						Check:            resource.ComposeAggregateTestCheckFunc(checks...),
 					},
 					{
 						ResourceName:            "qovery_cluster.test",
@@ -386,7 +398,8 @@ func TestAcc_ClusterGcpNatGateways(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Step 1: create with static_ip=true and an explicit enabled=true, count=3.
 			{
-				Config: testAccClusterGCPNatGatewaysConfig(testName, true, "nat_gateways = { static_ips_enabled = true, static_ips_count = 3 }"),
+				Config:           testAccClusterGCPNatGatewaysConfig(testName, true, "nat_gateways = { static_ips_enabled = true, static_ips_count = 3 }"),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "GCP"),
@@ -398,7 +411,8 @@ func TestAcc_ClusterGcpNatGateways(t *testing.T) {
 			},
 			// Step 2: update static_ips_count in place (3 → 5) while enabled.
 			{
-				Config: testAccClusterGCPNatGatewaysConfig(testName, true, "nat_gateways = { static_ips_enabled = true, static_ips_count = 5 }"),
+				Config:           testAccClusterGCPNatGatewaysConfig(testName, true, "nat_gateways = { static_ips_enabled = true, static_ips_count = 5 }"),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "true"),
@@ -408,7 +422,8 @@ func TestAcc_ClusterGcpNatGateways(t *testing.T) {
 			},
 			// Step 3: remove the block — ObjectDefault resets to {false,1} (visible diff).
 			{
-				Config: testAccClusterGCPNatGatewaysConfig(testName, true, ""),
+				Config:           testAccClusterGCPNatGatewaysConfig(testName, true, ""),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "true"),
@@ -418,7 +433,8 @@ func TestAcc_ClusterGcpNatGateways(t *testing.T) {
 			},
 			// Step 4: re-add the block — re-enable on the existing cluster (false → true).
 			{
-				Config: testAccClusterGCPNatGatewaysConfig(testName, true, "nat_gateways = { static_ips_enabled = true, static_ips_count = 2 }"),
+				Config:           testAccClusterGCPNatGatewaysConfig(testName, true, "nat_gateways = { static_ips_enabled = true, static_ips_count = 2 }"),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "true"),
@@ -431,7 +447,8 @@ func TestAcc_ClusterGcpNatGateways(t *testing.T) {
 			// state (never deployed). q-core rejects enabling/disabling static_ip on an
 			// already DEPLOYED cluster (isStaticIpUpdateForbiddenOnDeployedCluster).
 			{
-				Config: testAccClusterGCPNatGatewaysConfig(testName, false, ""),
+				Config:           testAccClusterGCPNatGatewaysConfig(testName, false, ""),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "features.static_ip", "false"),
@@ -580,7 +597,6 @@ resource "qovery_cluster" "test" {
   features = {
     vpc_subnet = "10.0.0.0/16"
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {
@@ -616,7 +632,6 @@ resource "qovery_cluster" "test" {
   features = {
     vpc_subnet = "10.0.0.0/16"
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {
@@ -651,7 +666,6 @@ resource "qovery_cluster" "test" {
     vpc_subnet = "10.0.0.0/16"
     static_ip  = true
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {
@@ -681,7 +695,6 @@ resource "qovery_cluster" "test" {
   features = {
     vpc_subnet = "10.0.0.0/16"
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {
@@ -721,7 +734,6 @@ resource "qovery_cluster" "test" {
   features = {
     vpc_subnet = "10.0.0.0/16"
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {
@@ -755,7 +767,6 @@ resource "qovery_cluster" "test" {
   features = {
     vpc_subnet = "10.0.0.0/16"
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {
@@ -785,7 +796,6 @@ resource "qovery_cluster" "test" {
   features = {
     vpc_subnet = "10.0.0.0/16"
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {

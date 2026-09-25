@@ -170,7 +170,14 @@ resource "qovery_helm" "my_helm_from_git" {
 
 ### Optional
 
-- `advanced_settings_json` (String) Advanced settings in JSON format. See the Qovery API documentation for available settings: https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings
+- `advanced_settings_json` (String) Advanced settings in JSON format. Use `jsonencode()` to set values. Only include settings you want to override. See the [Qovery API documentation](https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings) for available settings.
+
+  Refresh semantics — this attribute is desired state, not a mirror of the remote configuration:
+
+  - Refresh only reconciles keys already tracked in the Terraform state. A setting overridden only in the Qovery Console is not pulled into state, so declaring it afterwards plans as an addition even if the remote value already matches.
+  - Changes made in the Console to a tracked key, including a reset to its default value, are reflected on refresh and planned back to the configured value.
+  - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.
+  - `terraform import` records every setting whose value differs from the default.
 - `arguments` (List of String) Helm CLI arguments passed to the helm command (e.g. `--wait`, `--atomic`, `--debug`).
 - `auto_deploy` (Boolean) Specify if the helm service will be automatically updated on every new commit on the branch.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this helm.

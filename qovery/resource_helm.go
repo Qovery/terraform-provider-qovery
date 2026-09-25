@@ -672,8 +672,8 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Default:             booldefault.StaticBool(false),
 			},
 			"advanced_settings_json": schema.StringAttribute{
-				Description:         "Advanced settings in JSON format. See the Qovery API documentation for available settings: https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings",
-				MarkdownDescription: "Advanced settings in JSON format. See the Qovery API documentation for available settings: https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings",
+				Description:         "Advanced settings in JSON format. Only include settings you want to override. See the Qovery API documentation for available settings: https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings" + advancedSettingsRefreshSemanticsPlain,
+				MarkdownDescription: "Advanced settings in JSON format. Use `jsonencode()` to set values. Only include settings you want to override. See the [Qovery API documentation](https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings) for available settings." + advancedSettingsRefreshSemantics,
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{

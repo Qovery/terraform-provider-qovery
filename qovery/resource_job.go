@@ -661,8 +661,8 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				Default:             booldefault.StaticBool(false),
 			},
 			"advanced_settings_json": schema.StringAttribute{
-				Description:         "Advanced settings in JSON format. See the Qovery API documentation for the full list of available settings: https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings",
-				MarkdownDescription: "Advanced settings in JSON format. See the Qovery API documentation for the full list of available settings: https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings",
+				Description:         "Advanced settings in JSON format. Only include settings you want to override. See the Qovery API documentation for the full list of available settings: https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings" + advancedSettingsRefreshSemanticsPlain,
+				MarkdownDescription: "Advanced settings in JSON format. Use `jsonencode()` to set values. Only include settings you want to override. See the [Qovery API documentation](https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings) for the full list of available settings." + advancedSettingsRefreshSemantics,
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{

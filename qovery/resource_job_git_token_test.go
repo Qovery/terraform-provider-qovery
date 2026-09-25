@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 
 	"github.com/qovery/terraform-provider-qovery/qovery"
 )

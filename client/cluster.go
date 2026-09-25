@@ -154,13 +154,9 @@ func (c *Client) updateCluster(ctx context.Context, organizationID string, clust
 		return nil, apierrors.NewReadError(apierrors.APIResourceClusterCloudProvider, cluster.Id, res, err)
 	}
 
-	var clusterRoutingTable *ClusterRoutingTable
-	if len(params.ClusterRoutingTable.Routes) > 0 {
-		var apiErr *apierrors.APIError
-		clusterRoutingTable, apiErr = c.editClusterRoutingTable(ctx, organizationID, cluster.Id, params.ClusterRoutingTable)
-		if apiErr != nil {
-			return nil, apiErr
-		}
+	clusterRoutingTable, apiErr := c.syncClusterRoutingTable(ctx, organizationID, cluster.Id, params.ClusterRoutingTable)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 
 	err = advanced_settings.NewClusterAdvancedSettingsService(c.api.GetConfig()).UpdateClusterAdvancedSettings(organizationID, cluster.Id, params.AdvancedSettingsJson)

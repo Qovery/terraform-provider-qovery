@@ -44,9 +44,6 @@ resource "qovery_cluster" "cluster" {
     vpc_subnet = "10.0.0.0/16"
     static_ip  = "true"
     karpenter = {
-      # Deprecated: configure spot instances per node pool instead (see below).
-      # A node pool that sets its own spot_enabled ignores this value; a node pool
-      # that doesn't falls back to it.
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       # set the maximum instance size and familly you can to reduce allocation issue
@@ -69,7 +66,8 @@ resource "qovery_cluster" "cluster" {
           }
         ]
 
-        # Spot instances are configured per node pool. Keep the stable node pool on
+        # Spot instances are configured per node pool, and a node pool without
+        # spot_enabled runs on on-demand instances. Keep the stable node pool on
         # on-demand instances, it runs the workloads that must not be interrupted.
         stable_override = {
           spot_enabled = false
@@ -86,6 +84,29 @@ resource "qovery_cluster" "cluster" {
         # block to go back to running them on the default node pool.
         cronjob_override = {
           spot_enabled = true
+        }
+
+        # Declaring this block creates the GPU node pool, for the workloads that
+        # request GPUs. Removing the block deletes the pool.
+        gpu_override = {
+          requirements = [
+            {
+              key      = "InstanceFamily"
+              operator = "In"
+              values   = ["g4dn", "g5"]
+            },
+            {
+              key      = "InstanceSize"
+              operator = "In"
+              values   = ["xlarge", "2xlarge"]
+            },
+            {
+              key      = "Arch"
+              operator = "In"
+              values   = ["AMD64"]
+            }
+          ]
+          disk_size_in_gib = 100
         }
       }
     }

@@ -233,6 +233,18 @@ func fromStringArrayNullIfEmpty(array []string) types.List {
 	return FromStringArray(array)
 }
 
+// setFromAPIElements builds the state value of an Optional (not Computed) set attribute from
+// what the API returns. The API elements always win, so a change made outside Terraform shows
+// up in the plan. An empty API value takes the shape of prior (the plan on apply, the state on
+// refresh): null stays null and [] stays [], because Terraform requires the value stored after
+// apply to match the planned one.
+func setFromAPIElements(elemType attr.Type, prior types.Set, elements []attr.Value) types.Set {
+	if len(elements) == 0 && prior.IsNull() {
+		return types.SetNull(elemType)
+	}
+	return types.SetValueMust(elemType, elements)
+}
+
 func FromStringSet(array []string) types.Set {
 	if array == nil {
 		return basetypes.NewSetNull(types.StringType)

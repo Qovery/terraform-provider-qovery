@@ -645,11 +645,12 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Default:             booldefault.StaticBool(false),
 			},
 			"advanced_settings_json": schema.StringAttribute{
-				Description: "Advanced settings.",
+				Description: "Advanced settings as JSON. Only include settings you want to override." + advancedSettingsRefreshSemanticsPlain,
 				MarkdownDescription: "Advanced settings as JSON. " +
 					"Use `jsonencode()` to set values. " +
 					"Only include settings you want to override. " +
-					"Full list available in [Qovery API documentation](https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings).",
+					"Full list available in [Qovery API documentation](https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings)." +
+					advancedSettingsRefreshSemantics,
 				Optional: true,
 				Computed: true,
 				PlanModifiers: []planmodifier.String{

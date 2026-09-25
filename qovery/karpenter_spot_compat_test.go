@@ -91,8 +91,8 @@ func TestKarpenterSpotCompat_ReadsSpotEnabledFromApiResponse(t *testing.T) {
 func TestKarpenterSpotCompat_AbsentSpotEnabledReadsAsNil(t *testing.T) {
 	t.Parallel()
 
-	// An override without spot_enabled is how every cluster looked before the migration, and
-	// the absence is meaningful: that node pool falls back to the global flag.
+	// An override without spot_enabled is what the API returns when the value equals the global
+	// flag it derived, and the absence is meaningful: the read path resolves it to that global.
 	const payload = `{
 		"requirements": [{"key": "Arch", "operator": "In", "values": ["AMD64"]}],
 		"stable_override": {"limits": {"enabled": true, "max_cpu_in_vcpu": 10, "max_memory_in_gibibytes": 20, "max_gpu": 0}},
@@ -131,11 +131,10 @@ func TestKarpenterSpotCompat_SettersDoNotDropExistingProperties(t *testing.T) {
 func TestKarpenterSpotCompat_UnsetSpotEnabledIsOmittedFromTheRequest(t *testing.T) {
 	t.Parallel()
 
-	// The load-bearing invariant of the whole per-pool design: absence is meaningful. Not calling
-	// a setter must leave spot_enabled out of the request body entirely, because the API reads an
-	// absent field as "this pool inherits the deprecated global flag". The generated field is a
+	// Absence is meaningful to the API: it hands its global flag to a pool sent without
+	// spot_enabled, which is why the write path always calls a setter. The generated field is a
 	// nullable bool whose serialization is guarded by IsSet(), so an unset field is omitted while
-	// an explicit false is still sent — this test pins both halves.
+	// an explicit false is still sent — this test pins both halves of what the write path relies on.
 	nodePool := qovery.KarpenterNodePool{
 		Requirements: []qovery.KarpenterNodePoolRequirement{{
 			Key:      qovery.KARPENTERNODEPOOLREQUIREMENTKEY_ARCH,

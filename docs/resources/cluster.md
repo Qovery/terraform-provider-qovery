@@ -58,9 +58,6 @@ resource "qovery_cluster" "cluster" {
     vpc_subnet = "10.0.0.0/16"
     static_ip  = "true"
     karpenter = {
-      # Deprecated: configure spot instances per node pool instead (see below).
-      # A node pool that sets its own spot_enabled ignores this value; a node pool
-      # that doesn't falls back to it.
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       # set the maximum instance size and familly you can to reduce allocation issue
@@ -83,7 +80,8 @@ resource "qovery_cluster" "cluster" {
           }
         ]
 
-        # Spot instances are configured per node pool. Keep the stable node pool on
+        # Spot instances are configured per node pool, and a node pool without
+        # spot_enabled runs on on-demand instances. Keep the stable node pool on
         # on-demand instances, it runs the workloads that must not be interrupted.
         stable_override = {
           spot_enabled = false
@@ -100,6 +98,29 @@ resource "qovery_cluster" "cluster" {
         # block to go back to running them on the default node pool.
         cronjob_override = {
           spot_enabled = true
+        }
+
+        # Declaring this block creates the GPU node pool, for the workloads that
+        # request GPUs. Removing the block deletes the pool.
+        gpu_override = {
+          requirements = [
+            {
+              key      = "InstanceFamily"
+              operator = "In"
+              values   = ["g4dn", "g5"]
+            },
+            {
+              key      = "InstanceSize"
+              operator = "In"
+              values   = ["xlarge", "2xlarge"]
+            },
+            {
+              key      = "Arch"
+              operator = "In"
+              values   = ["AMD64"]
+            }
+          ]
+          disk_size_in_gib = 100
         }
       }
     }
@@ -309,6 +330,13 @@ You can find complete examples within these repositories:
 ### Optional
 
 - `advanced_settings_json` (String) Advanced settings of the cluster as a JSON string. Use `jsonencode()` to set values. The complete list of available settings is in the [Qovery API documentation](https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings). Only include settings you want to override.
+
+  Refresh semantics — this attribute is desired state, not a mirror of the remote configuration:
+
+  - Refresh only reconciles keys already tracked in the Terraform state. A setting overridden only in the Qovery Console is not pulled into state, so declaring it afterwards plans as an addition even if the remote value already matches.
+  - Changes made in the Console to a tracked key, including a reset to its default value, are reflected on refresh and planned back to the configured value.
+  - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.
+  - `terraform import` records every setting whose value differs from the default.
 - `description` (String) Description of the cluster. Default: `""`.
 - `disk_size` (Number) Disk size of the cluster nodes in GB. The default value depends on the cloud provider and instance type.
 - `features` (Attributes) Optional cluster features configuration. Use this block to customize VPC settings, enable static IPs, deploy on an existing VPC (AWS or GCP), or enable Karpenter for AWS clusters. (see [below for nested schema](#nestedatt--features))
@@ -326,7 +354,7 @@ You can find complete examples within these repositories:
   - `MANAGED` - Fully managed Kubernetes cluster provisioned and managed by Qovery (e.g., AWS EKS, GCP GKE, Azure AKS).
   - `SELF_MANAGED` - Bring your own Kubernetes cluster. Qovery deploys workloads but does not manage infrastructure.
   - `PARTIALLY_MANAGED` - EKS Anywhere / on-premise mode. Qovery manages workloads on a user-provided Kubernetes cluster via kubeconfig. Requires `kubeconfig` and `infrastructure_charts_parameters`.
-- `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).
+- `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group. See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).
 - `max_running_nodes` (Number) Maximum number of nodes the cluster autoscaler can scale up to. Must be `>= 1`. Default: `10`.
 
 ~> **Note:** Must be set to `1` for K3S clusters. Do not set this attribute when Karpenter is enabled (Karpenter manages scaling automatically).
@@ -334,7 +362,7 @@ You can find complete examples within these repositories:
 
 ~> **Note:** Must be set to `1` for K3S clusters. Do not set this attribute when Karpenter is enabled (Karpenter manages scaling automatically).
 - `production` (Boolean) Flag to mark this cluster as a production cluster. Production clusters may have different default settings and safeguards. Default: `false`.
-- `routing_table` (Attributes Set) Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections). (see [below for nested schema](#nestedatt--routing_table))
+- `routing_table` (Attributes Set) Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections). Terraform manages the whole routing table: routes added outside Terraform show up in the plan and are removed on apply, and omitting the attribute removes every route. (see [below for nested schema](#nestedatt--routing_table))
 - `secret_manager_accesses` (Attributes Set) List of external secret manager configurations for the cluster. Each entry grants the cluster access to a secret provider (AWS Parameter Store, AWS Secrets Manager, or GCP Secret Manager). (see [below for nested schema](#nestedatt--secret_manager_accesses))
 - `state` (String) Desired state of the cluster. Default: `DEPLOYED`.
 
@@ -430,16 +458,6 @@ Required:
 - `disk_size_in_gib` (Number) Root disk size in GiB for nodes provisioned by Karpenter (e.g., `50`).
 - `qovery_node_pools` (Attributes) Karpenter node pool configuration. Defines the requirements (instance families, sizes, architectures) and optional resource limits for Qovery-managed node pools. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools))
 
-Optional:
-
-- `spot_enabled` (Boolean, Deprecated) Whether to enable EC2 Spot instances for cost savings. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
-
-~> **Deprecated:** spot instances are now configured per node pool. Set `spot_enabled` on `qovery_node_pools.stable_override`, `qovery_node_pools.default_override` and `qovery_node_pools.cronjob_override` instead.
-
-This field is now a derived value: the API recomputes it on every write as the logical OR of the per node pool values (the cronjob pool counts only while its `cronjob_override` block exists). On write, a node pool that carries its own `spot_enabled` ignores this field; a node pool that carries none falls back to this value — which is how configurations written before per node pool support keep behaving.
-
-~> **Warning:** setting this field and the per node pool values to contradictory states causes permanent plan drift, because the API echoes back the derived OR rather than the value you sent.
-
 <a id="nestedatt--features--karpenter--qovery_node_pools"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools`
 
@@ -451,8 +469,11 @@ Optional:
 
 - `cronjob_override` (Attributes) Override options for the Qovery **cronjob** node pool.
 
-~> **Important:** the mere presence of this block enables the dedicated cronjob node pool across the Qovery stack — the engine creates the pool and pins cron jobs and lifecycle jobs to it. Removing the block disables the dedicated pool again, and the `spot_enabled` value below only has meaning while the block exists. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override))
+~> **Important:** the mere presence of this block enables the dedicated cronjob node pool across the Qovery stack — the engine creates the pool and pins cron jobs and lifecycle jobs to it. Removing the block disables the dedicated pool again, and the `spot_enabled` value below only has meaning while the block exists. A cronjob node pool enabled outside Terraform, for example from the Qovery Console, shows up in the plan as this block being removed, and applying that plan disables the pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override))
 - `default_override` (Attributes) Override options for the Qovery **default** node pool. The default node pool runs user application workloads. Use this to configure spot instances and resource limits. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override))
+- `gpu_override` (Attributes) The Qovery **GPU** node pool, which runs the workloads that request GPUs.
+
+~> **Important:** declaring this block creates the GPU node pool, and removing it deletes the pool together with the nodes running on it. A GPU node pool created outside Terraform, for example from the Qovery Console, shows up in the plan as this block being removed, and applying that plan deletes the pool: declare the block to keep it. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override))
 - `stable_override` (Attributes) Override options for the Qovery **stable** node pool. The stable node pool runs services that require consistent availability (e.g., Qovery agents). Use this to configure spot instances, consolidation windows and resource limits. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override))
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--requirements"></a>
@@ -474,9 +495,9 @@ Required:
 
 Optional:
 
-- `spot_enabled` (Boolean) Whether to enable EC2 Spot instances on the **cronjob** node pool. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
+- `spot_enabled` (Boolean) Whether to run the **cronjob** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
 
-When set, this value wins for this node pool and the deprecated global `features.karpenter.spot_enabled` is ignored for it. When left unset, this node pool falls back to the global value.
+Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances.
 
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--default_override"></a>
@@ -485,9 +506,9 @@ When set, this value wins for this node pool and the deprecated global `features
 Optional:
 
 - `limits` (Attributes) Resource limits for the default node pool. Use this to cap the total resources Karpenter can provision for application workloads. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override--limits))
-- `spot_enabled` (Boolean) Whether to enable EC2 Spot instances on the **default** node pool. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
+- `spot_enabled` (Boolean) Whether to run the **default** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
 
-When set, this value wins for this node pool and the deprecated global `features.karpenter.spot_enabled` is ignored for it. When left unset, this node pool falls back to the global value.
+Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances, and so does removing the whole `default_override` block. A default node pool that runs on spot instances while the configuration does not declare it shows up as a change in the plan.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--default_override--limits"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.default_override.limits`
@@ -500,6 +521,60 @@ Required:
 
 
 
+<a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.gpu_override`
+
+Required:
+
+- `disk_size_in_gib` (Number) Root disk size in GiB for the nodes of the GPU node pool (e.g., `100`). Qovery rejects a value below its minimum node disk size.
+- `requirements` (Attributes List) List of node selection requirements for the GPU node pool, with the same keys and operator as `qovery_node_pools.requirements`. Define `InstanceFamily` (GPU instance families, e.g., `g4dn`, `g5`), `InstanceSize` and `Arch` requirements. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--requirements))
+
+Optional:
+
+- `consolidation` (Attributes) Node consolidation schedule for the GPU node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on GPU nodes. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--consolidation))
+- `disk_iops` (Number) Provisioned IOPS of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.
+- `disk_throughput` (Number) Provisioned throughput in MB/s of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.
+- `limits` (Attributes) Resource limits for the GPU node pool. Use this to cap the total resources Karpenter can provision for GPU workloads. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--limits))
+- `spot_enabled` (Boolean) Whether to run the **GPU** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
+
+Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances.
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override--requirements"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.gpu_override.requirements`
+
+Required:
+
+- `key` (String) The requirement key: `InstanceFamily`, `InstanceSize` or `Arch`.
+- `operator` (String) The operator for the requirement. Currently only `In` is supported, meaning the node must match one of the specified values.
+- `values` (List of String) List of allowed values for the requirement. For example, for `InstanceFamily`: `["g4dn", "g5"]`, for `Arch`: `["AMD64"]`.
+
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override--consolidation"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.gpu_override.consolidation`
+
+Required:
+
+- `days` (List of String) List of days of the week when consolidation should run (e.g., `["MONDAY", "TUESDAY"]`).
+- `duration` (String) Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).
+- `enabled` (Boolean) Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.
+- `start_time` (String) Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).
+
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override--limits"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.gpu_override.limits`
+
+Required:
+
+- `enabled` (Boolean) Whether to enforce resource limits on the GPU node pool.
+- `max_cpu_in_vcpu` (Number) Maximum total vCPU cores that Karpenter can provision for the GPU node pool.
+- `max_memory_in_gibibytes` (Number) Maximum total memory in GiB that Karpenter can provision for the GPU node pool.
+
+Optional:
+
+- `max_gpu` (Number) Maximum total number of GPUs for the GPU node pool. Defaults to `0`.
+
+
+
 <a id="nestedatt--features--karpenter--qovery_node_pools--stable_override"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.stable_override`
 
@@ -507,16 +582,16 @@ Optional:
 
 - `consolidation` (Attributes) Node consolidation schedule for the stable node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on stable nodes. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation))
 - `limits` (Attributes) Resource limits for the stable node pool. Use this to cap the total resources Karpenter can provision for stable workloads. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--limits))
-- `spot_enabled` (Boolean) Whether to enable EC2 Spot instances on the **stable** node pool. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
+- `spot_enabled` (Boolean) Whether to run the **stable** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
 
-When set, this value wins for this node pool and the deprecated global `features.karpenter.spot_enabled` is ignored for it. When left unset, this node pool falls back to the global value.
+Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances, and so does removing the whole `stable_override` block. A stable node pool that runs on spot instances while the configuration does not declare it shows up as a change in the plan.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.stable_override.consolidation`
 
 Required:
 
-- `days` (List of String) List of days of the week when consolidation should run (e.g., `["Monday", "Tuesday", "Wednesday"]`).
+- `days` (List of String) List of days of the week when consolidation should run (e.g., `["MONDAY", "TUESDAY", "WEDNESDAY"]`).
 - `duration` (String) Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).
 - `enabled` (Boolean) Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.
 - `start_time` (String) Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).

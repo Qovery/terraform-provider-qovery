@@ -61,5 +61,7 @@ deploymentStage, _, _ := c.client.DeploymentStageMainCallsAPI.GetServiceDeployme
 - [ ] Terraform model struct has `DeploymentStageId types.String` field
 - [ ] Mirror every new attribute in `data_source_{entity}.go` schema (see step 7 above — fails at runtime, not `go build`)
 - [ ] Update the matching `Terraform*Resource.kt` model in the q-core exporter (no automatic sync; audit helper-function schema attrs too, not just inline `schema.X`)
+- [ ] Add the resource to the table in `templates/index.md.tmpl` (`docs/index.md` is generated from it)
 - [ ] Run `task docs` to regenerate documentation
+- [ ] Add an entry under `## [Unreleased]` in `CHANGELOG.md`
 - [ ] Add acceptance tests for the new resource/attribute
