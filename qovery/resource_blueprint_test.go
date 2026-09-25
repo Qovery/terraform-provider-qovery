@@ -22,6 +22,7 @@ func TestAcc_Blueprint(t *testing.T) {
 	t.Parallel()
 	testName := "blueprint"
 	blueprintName := generateTestName(testName)
+	var createdServiceID string
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -39,6 +40,10 @@ func TestAcc_Blueprint(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_blueprint.test", "secret_variables.password", "first-password"),
 					resource.TestCheckResourceAttr("qovery_blueprint.test", "service_type", "HELM"),
 					resource.TestCheckResourceAttrSet("qovery_blueprint.test", "service_id"),
+					resource.TestCheckResourceAttrWith("qovery_blueprint.test", "service_id", func(value string) error {
+						createdServiceID = value
+						return nil
+					}),
 					resource.TestCheckResourceAttrPair("data.qovery_blueprint.test", "service_id", "qovery_blueprint.test", "service_id"),
 					resource.TestCheckResourceAttrPair("data.qovery_blueprint.test", "tag", "qovery_blueprint.test", "tag"),
 					resource.TestCheckResourceAttrPair("data.qovery_blueprint.test", "blueprint", "qovery_blueprint.test", "blueprint"),
@@ -53,8 +58,21 @@ func TestAcc_Blueprint(t *testing.T) {
 					testAccQoveryBlueprintExists("qovery_blueprint.test"),
 					resource.TestCheckResourceAttr("qovery_blueprint.test", "variables.memory_limit", "512Mi"),
 					resource.TestMatchResourceAttr("qovery_blueprint.test", "tag", regexp.MustCompile(`^HELM/redis/8/.+`)),
-					resource.TestCheckResourceAttrPair("data.qovery_blueprint.test", "tag", "qovery_blueprint.test", "tag"),
 					resource.TestCheckResourceAttr("qovery_blueprint.test", "secret_variables.password", "second-password"),
+					resource.TestCheckResourceAttr("qovery_blueprint.test", "service_type", "HELM"),
+					// Updates converge the service in place: a new service_id would mean it was recreated
+					resource.TestCheckResourceAttrWith("qovery_blueprint.test", "service_id", func(value string) error {
+						if value != createdServiceID {
+							return fmt.Errorf("service_id changed from %s to %s: the update recreated the service", createdServiceID, value)
+						}
+						return nil
+					}),
+					resource.TestCheckResourceAttrPair("data.qovery_blueprint.test", "service_id", "qovery_blueprint.test", "service_id"),
+					resource.TestCheckResourceAttrPair("data.qovery_blueprint.test", "tag", "qovery_blueprint.test", "tag"),
+					resource.TestCheckResourceAttrPair("data.qovery_blueprint.test", "blueprint", "qovery_blueprint.test", "blueprint"),
+					resource.TestCheckResourceAttrPair("data.qovery_blueprint.test", "service_type", "qovery_blueprint.test", "service_type"),
+					resource.TestCheckResourceAttr("data.qovery_blueprint.test", "variables.memory_limit", "512Mi"),
+					resource.TestCheckTypeSetElemAttr("data.qovery_blueprint.test", "secret_variable_names.*", "password"),
 				),
 			},
 		},

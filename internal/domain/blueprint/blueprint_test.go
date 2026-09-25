@@ -52,12 +52,12 @@ func TestUpsertRequestValidate(t *testing.T) {
 
 func TestDispatchStatus(t *testing.T) {
 	t.Parallel()
-	for _, s := range []blueprint.DispatchStatus{blueprint.DispatchStatusDeploying, blueprint.DispatchStatusWaitingRunning} {
+	for _, s := range []blueprint.DispatchStatus{blueprint.DispatchStatusDeploying, blueprint.DispatchStatusWaitingRunning, blueprint.DispatchStatusCanceling} {
 		assert.True(t, s.IsPending(), s)
 		assert.False(t, s.IsSuccess() || s.IsFailure(), s)
 	}
 	assert.True(t, blueprint.DispatchStatusRunning.IsSuccess())
-	for _, s := range []blueprint.DispatchStatus{blueprint.DispatchStatusFailed, blueprint.DispatchStatusInternalError, blueprint.DispatchStatusCanceling, blueprint.DispatchStatusCanceled} {
+	for _, s := range []blueprint.DispatchStatus{blueprint.DispatchStatusFailed, blueprint.DispatchStatusInternalError, blueprint.DispatchStatusCanceled} {
 		assert.True(t, s.IsFailure(), s)
 		assert.False(t, s.IsPending() || s.IsSuccess(), s)
 	}
@@ -67,6 +67,9 @@ func TestCatalogVersion(t *testing.T) {
 	t.Parallel()
 	version, err := blueprint.ParseCatalogVersion("AWS/postgres/17")
 	require.NoError(t, err)
+	padded, err := blueprint.ParseCatalogVersion(" AWS/postgres/17 ")
+	require.NoError(t, err)
+	assert.Equal(t, version, padded)
 	assert.Equal(t, blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "17"}, version)
 	assert.Equal(t, "AWS/postgres/17", version.String())
 
@@ -95,6 +98,8 @@ func TestBlueprintLastApplyFailed(t *testing.T) {
 		ServiceStatus:    &blueprint.ServiceStatus{State: "DEPLOYED"},
 	}.LastApplyFailed())
 	assert.True(t, blueprint.Blueprint{LatestDeployment: &blueprint.Dispatch{Status: blueprint.DispatchStatusFailed}}.LastApplyFailed())
+	assert.True(t, blueprint.Blueprint{LatestDeployment: &blueprint.Dispatch{Status: blueprint.DispatchStatusCanceling}}.LastApplyFailed())
+	assert.False(t, blueprint.Blueprint{LatestDeployment: &blueprint.Dispatch{Status: blueprint.DispatchStatusDeploying}}.LastApplyFailed())
 	assert.True(t, blueprint.Blueprint{
 		LatestDeployment: &blueprint.Dispatch{Status: blueprint.DispatchStatusRunning},
 		ServiceStatus:    &blueprint.ServiceStatus{State: "DEPLOYMENT_ERROR"},

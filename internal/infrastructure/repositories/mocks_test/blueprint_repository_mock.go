@@ -83,21 +83,31 @@ func (_c *BlueprintRepository_Create_Call) RunAndReturn(run func(context.Context
 }
 
 // DeleteService provides a mock function with given fields: ctx, serviceType, serviceID
-func (_m *BlueprintRepository) DeleteService(ctx context.Context, serviceType blueprint.ServiceType, serviceID string) error {
+func (_m *BlueprintRepository) DeleteService(ctx context.Context, serviceType blueprint.ServiceType, serviceID string) (bool, error) {
 	ret := _m.Called(ctx, serviceType, serviceID)
 
 	if len(ret) == 0 {
 		panic("no return value specified for DeleteService")
 	}
 
-	var r0 error
-	if rf, ok := ret.Get(0).(func(context.Context, blueprint.ServiceType, string) error); ok {
+	var r0 bool
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, blueprint.ServiceType, string) (bool, error)); ok {
+		return rf(ctx, serviceType, serviceID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, blueprint.ServiceType, string) bool); ok {
 		r0 = rf(ctx, serviceType, serviceID)
 	} else {
-		r0 = ret.Error(0)
+		r0 = ret.Get(0).(bool)
 	}
 
-	return r0
+	if rf, ok := ret.Get(1).(func(context.Context, blueprint.ServiceType, string) error); ok {
+		r1 = rf(ctx, serviceType, serviceID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
 }
 
 // BlueprintRepository_DeleteService_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'DeleteService'
@@ -120,12 +130,12 @@ func (_c *BlueprintRepository_DeleteService_Call) Run(run func(ctx context.Conte
 	return _c
 }
 
-func (_c *BlueprintRepository_DeleteService_Call) Return(_a0 error) *BlueprintRepository_DeleteService_Call {
-	_c.Call.Return(_a0)
+func (_c *BlueprintRepository_DeleteService_Call) Return(_a0 bool, _a1 error) *BlueprintRepository_DeleteService_Call {
+	_c.Call.Return(_a0, _a1)
 	return _c
 }
 
-func (_c *BlueprintRepository_DeleteService_Call) RunAndReturn(run func(context.Context, blueprint.ServiceType, string) error) *BlueprintRepository_DeleteService_Call {
+func (_c *BlueprintRepository_DeleteService_Call) RunAndReturn(run func(context.Context, blueprint.ServiceType, string) (bool, error)) *BlueprintRepository_DeleteService_Call {
 	_c.Call.Return(run)
 	return _c
 }

@@ -16,7 +16,8 @@ type Repository interface {
 	// GetServiceStatus returns nil when the environment does not report the service yet.
 	GetServiceStatus(ctx context.Context, environmentID string, serviceType ServiceType, serviceID string) (*ServiceStatus, error)
 	// DeleteService deletes the blueprint's service, which deletes the blueprint too.
-	DeleteService(ctx context.Context, serviceType ServiceType, serviceID string) error
+	// It reports false when the service was already gone.
+	DeleteService(ctx context.Context, serviceType ServiceType, serviceID string) (bool, error)
 	GetOrganizationID(ctx context.Context, environmentID string) (string, error)
 	ListCatalog(ctx context.Context, organizationID string) ([]CatalogEntry, error)
 }

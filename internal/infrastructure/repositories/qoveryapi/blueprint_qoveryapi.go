@@ -110,7 +110,7 @@ func (c blueprintQoveryAPI) ListCatalog(ctx context.Context, organizationID stri
 	return newDomainCatalogEntriesFromQovery(catalog), nil
 }
 
-func (c blueprintQoveryAPI) DeleteService(ctx context.Context, serviceType blueprint.ServiceType, serviceID string) error {
+func (c blueprintQoveryAPI) DeleteService(ctx context.Context, serviceType blueprint.ServiceType, serviceID string) (bool, error) {
 	var (
 		resp     *http.Response
 		err      error
@@ -124,13 +124,14 @@ func (c blueprintQoveryAPI) DeleteService(ctx context.Context, serviceType bluep
 		resource = apierrors.APIResourceHelm
 		resp, err = c.client.HelmMainCallsAPI.DeleteHelm(ctx, serviceID).Execute()
 	default:
-		return errors.Wrap(blueprint.ErrUnknownServiceType, string(serviceType))
+		return false, errors.Wrap(blueprint.ErrUnknownServiceType, string(serviceType))
 	}
+	// Only 404: a 403 can be a real permission error, and "gone" skips the deletion wait
 	if resp != nil && resp.StatusCode == http.StatusNotFound {
-		return nil
+		return false, nil
 	}
 	if err != nil || resp.StatusCode >= 300 {
-		return apierrors.NewDeleteAPIError(resource, serviceID, resp, err)
+		return false, apierrors.NewDeleteAPIError(resource, serviceID, resp, err)
 	}
-	return nil
+	return true, nil
 }

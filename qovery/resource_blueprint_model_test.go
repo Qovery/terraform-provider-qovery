@@ -170,6 +170,7 @@ func TestConvertDomainBlueprintToBlueprintVersionAndFailures(t *testing.T) {
 				{Name: "memory_limit", Value: value("1Gi")},
 				{Name: "region", Value: value("eu-west-3")},
 				{Name: "replicas", Value: value("3")},
+				{Name: "api_key", IsSecret: true},
 			},
 		}
 	}
@@ -187,6 +188,7 @@ func TestConvertDomainBlueprintToBlueprintVersionAndFailures(t *testing.T) {
 		assert.Equal(t, "renamed", state.Name.ValueString())
 		assert.Equal(t, "HELM/redis/8/1.0.3", state.Tag.ValueString())
 		assert.Equal(t, blueprintModelStringMap(t, map[string]string{"memory_limit": "1Gi"}), state.Variables)
+		assert.Equal(t, blueprintModelStringMap(t, map[string]string{"api_key": "test-value-1"}), state.SecretVariables)
 		assert.Equal(t, "HELM/redis/8", state.Blueprint.ValueString())
 	})
 
@@ -221,6 +223,8 @@ func TestRequiresReplaceIfOtherBlueprintService(t *testing.T) {
 		{name: "other family replaces", state: FromString("AWS/postgres/17"), plan: FromString("AWS/mysql/8"), want: true},
 		{name: "other provider replaces", state: FromString("AWS/redis/7"), plan: FromString("GCP/redis/7"), want: true},
 		{name: "unknown plan does not replace", state: FromString("AWS/postgres/17"), plan: types.StringUnknown(), want: false},
+		{name: "no prior state does not replace", state: types.StringNull(), plan: FromString("AWS/postgres/17"), want: false},
+		{name: "unparseable value replaces", state: FromString("AWS/postgres/17"), plan: FromString("postgres-17"), want: true},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {

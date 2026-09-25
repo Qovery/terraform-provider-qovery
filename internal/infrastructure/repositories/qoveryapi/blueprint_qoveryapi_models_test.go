@@ -23,7 +23,7 @@ func TestNewQoveryBlueprintCreateRequest(t *testing.T) {
 		Name:            "my-db",
 		Tag:             "aws/postgres/17/1.0.0",
 		IconURI:         "app://qovery-console/terraform",
-		Variables:       map[string]string{"instance_type": "db.t3.micro"},
+		Variables:       map[string]string{"instance_type": "db.t3.micro", "allocated_storage": "20"},
 		SecretVariables: map[string]string{"api_key": "test-value-1"},
 		SpecOverrides:   &blueprint.SpecOverrides{CPU: blueprintPtr("500m"), Timeout: blueprintPtr(int32(600))},
 	}}
@@ -35,6 +35,7 @@ func TestNewQoveryBlueprintCreateRequest(t *testing.T) {
 		"tag": "aws/postgres/17/1.0.0",
 		"icon": "app://qovery-console/terraform",
 		"variables": [
+			{"name": "allocated_storage", "value": "20", "is_secret": false},
 			{"name": "instance_type", "value": "db.t3.micro", "is_secret": false},
 			{"name": "api_key", "value": "test-value-1", "is_secret": true}
 		],

@@ -162,8 +162,14 @@ func (s blueprintService) Delete(ctx context.Context, blueprintID string) error 
 		return nil
 	}
 
-	if err := s.blueprintRepository.DeleteService(ctx, bp.ServiceType, *bp.ServiceID); err != nil {
+	existed, err := s.blueprintRepository.DeleteService(ctx, bp.ServiceType, *bp.ServiceID)
+	if err != nil {
 		return errors.Wrap(err, blueprint.ErrFailedToDeleteBlueprint.Error())
+	}
+	if !existed {
+		// Nothing left to delete the blueprint row as a side effect, so waiting would only time out
+		tflog.Warn(ctx, fmt.Sprintf("service %s of blueprint %s was already deleted, the blueprint is only removed from the Terraform state", *bp.ServiceID, blueprintID))
+		return nil
 	}
 
 	// Qovery deletes the blueprint once the engine has deleted its service.

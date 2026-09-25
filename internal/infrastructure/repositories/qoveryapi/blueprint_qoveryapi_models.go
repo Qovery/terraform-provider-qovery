@@ -1,6 +1,9 @@
 package qoveryapi
 
 import (
+	"maps"
+	"slices"
+
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/qovery/qovery-client-go"
@@ -10,11 +13,11 @@ import (
 
 func newQoveryBlueprintCreateRequest(request blueprint.CreateRequest) qovery.BlueprintCreateRequest {
 	variables := make([]qovery.BlueprintVariableRequest, 0, len(request.Variables)+len(request.SecretVariables))
-	for name, value := range request.Variables {
-		variables = append(variables, qovery.BlueprintVariableRequest{Name: name, Value: value, IsSecret: qovery.PtrBool(false)})
+	for _, name := range slices.Sorted(maps.Keys(request.Variables)) {
+		variables = append(variables, qovery.BlueprintVariableRequest{Name: name, Value: request.Variables[name], IsSecret: qovery.PtrBool(false)})
 	}
-	for name, value := range request.SecretVariables {
-		variables = append(variables, qovery.BlueprintVariableRequest{Name: name, Value: value, IsSecret: qovery.PtrBool(true)})
+	for _, name := range slices.Sorted(maps.Keys(request.SecretVariables)) {
+		variables = append(variables, qovery.BlueprintVariableRequest{Name: name, Value: request.SecretVariables[name], IsSecret: qovery.PtrBool(true)})
 	}
 
 	createRequest := qovery.BlueprintCreateRequest{

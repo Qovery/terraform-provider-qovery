@@ -45,8 +45,8 @@ resource "qovery_blueprint" "my_postgres" {
 
 ### Optional
 
-- `deploy` (Boolean) Whether to deploy the service on creation. Updates always deploy it.
-- `icon_uri` (String) Icon URI of the blueprint service.
+- `deploy` (Boolean) Whether to deploy the service on creation. Defaults to `true`. Later changes to any other attribute redeploy the service; changing `deploy` alone does not.
+- `icon_uri` (String) Icon URI of the blueprint service. Defaults to `app://qovery-console/terraform`.
 - `secret_variables` (Map of String, Sensitive) Secret blueprint variables, keyed by name. The API never returns their values.
 - `spec_overrides` (Attributes) Overrides of the engine settings of the blueprint manifest. (see [below for nested schema](#nestedatt--spec_overrides))
 - `variables` (Map of String) Blueprint variables, keyed by name. Variables left out keep their catalog default.

@@ -115,6 +115,20 @@ func TestBlueprintServiceCreate(t *testing.T) {
 		assert.ErrorContains(t, err, "terraform apply failed")
 	})
 
+	t.Run("a canceling dispatch is waited on until it settles", func(t *testing.T) {
+		repo := mocks_test.NewBlueprintRepository(t)
+		repo.EXPECT().Create(mock.Anything, environmentID.String(), validRequest).Return(created, nil)
+		canceling := testBlueprint(environmentID, &blueprint.Dispatch{ID: "dispatch-2", Status: blueprint.DispatchStatusCanceling}, nil)
+		canceled := testBlueprint(environmentID, &blueprint.Dispatch{ID: "dispatch-2", Status: blueprint.DispatchStatusCanceled}, nil)
+		repo.EXPECT().Get(mock.Anything, blueprintID).Return(canceling, nil).Once()
+		repo.EXPECT().Get(mock.Anything, blueprintID).Return(canceled, nil).Once()
+
+		bp, err := newTestBlueprintService(repo).Create(context.Background(), environmentID.String(), validRequest)
+		assert.Equal(t, canceled, bp)
+		assert.ErrorIs(t, err, blueprint.ErrDispatchFailed)
+		assert.ErrorContains(t, err, "CANCELED")
+	})
+
 	t.Run("successful dispatch without service is an error", func(t *testing.T) {
 		repo := mocks_test.NewBlueprintRepository(t)
 		repo.EXPECT().Create(mock.Anything, environmentID.String(), validRequest).Return(created, nil)
@@ -233,16 +247,23 @@ func TestBlueprintServiceDelete(t *testing.T) {
 		repo := mocks_test.NewBlueprintRepository(t)
 		bp := testBlueprint(environmentID, nil, &serviceID)
 		repo.EXPECT().Get(mock.Anything, blueprintID).Return(bp, nil).Once()
-		repo.EXPECT().DeleteService(mock.Anything, blueprint.ServiceTypeTerraform, serviceID).Return(nil)
+		repo.EXPECT().DeleteService(mock.Anything, blueprint.ServiceTypeTerraform, serviceID).Return(true, nil)
 		repo.EXPECT().Get(mock.Anything, blueprintID).Return(bp, nil).Once()
 		repo.EXPECT().Get(mock.Anything, blueprintID).Return(nil, notFound).Once()
+		require.NoError(t, newTestBlueprintService(repo).Delete(context.Background(), blueprintID))
+	})
+
+	t.Run("service already deleted out of band skips the wait", func(t *testing.T) {
+		repo := mocks_test.NewBlueprintRepository(t)
+		repo.EXPECT().Get(mock.Anything, blueprintID).Return(testBlueprint(environmentID, nil, &serviceID), nil).Once()
+		repo.EXPECT().DeleteService(mock.Anything, blueprint.ServiceTypeTerraform, serviceID).Return(false, nil)
 		require.NoError(t, newTestBlueprintService(repo).Delete(context.Background(), blueprintID))
 	})
 
 	t.Run("service delete error", func(t *testing.T) {
 		repo := mocks_test.NewBlueprintRepository(t)
 		repo.EXPECT().Get(mock.Anything, blueprintID).Return(testBlueprint(environmentID, nil, &serviceID), nil).Once()
-		repo.EXPECT().DeleteService(mock.Anything, blueprint.ServiceTypeTerraform, serviceID).Return(errors.New("boom"))
+		repo.EXPECT().DeleteService(mock.Anything, blueprint.ServiceTypeTerraform, serviceID).Return(false, errors.New("boom"))
 		err := newTestBlueprintService(repo).Delete(context.Background(), blueprintID)
 		assert.ErrorContains(t, err, blueprint.ErrFailedToDeleteBlueprint.Error())
 	})

@@ -47,8 +47,9 @@ const (
 	DispatchStatusCanceled       DispatchStatus = "CANCELED"
 )
 
+// IsPending includes CANCELING: the dispatch has not settled until it reaches CANCELED.
 func (s DispatchStatus) IsPending() bool {
-	return s == DispatchStatusDeploying || s == DispatchStatusWaitingRunning
+	return s == DispatchStatusDeploying || s == DispatchStatusWaitingRunning || s == DispatchStatusCanceling
 }
 
 func (s DispatchStatus) IsSuccess() bool {
@@ -57,9 +58,9 @@ func (s DispatchStatus) IsSuccess() bool {
 
 func (s DispatchStatus) IsFailure() bool {
 	switch s {
-	case DispatchStatusFailed, DispatchStatusInternalError, DispatchStatusCanceling, DispatchStatusCanceled:
+	case DispatchStatusFailed, DispatchStatusInternalError, DispatchStatusCanceled:
 		return true
-	case DispatchStatusDeploying, DispatchStatusWaitingRunning, DispatchStatusRunning:
+	case DispatchStatusDeploying, DispatchStatusWaitingRunning, DispatchStatusCanceling, DispatchStatusRunning:
 		return false
 	}
 	return false
@@ -80,7 +81,8 @@ type Blueprint struct {
 
 // LastApplyFailed reports whether the persisted settings may not be what runs.
 func (b Blueprint) LastApplyFailed() bool {
-	if b.LatestDeployment != nil && b.LatestDeployment.Status.IsFailure() {
+	// A dispatch being canceled will not apply the saved settings, even though it has not settled yet
+	if b.LatestDeployment != nil && (b.LatestDeployment.Status.IsFailure() || b.LatestDeployment.Status == DispatchStatusCanceling) {
 		return true
 	}
 	return b.ServiceStatus != nil && strings.HasSuffix(b.ServiceStatus.State, "_ERROR")
@@ -107,7 +109,7 @@ func (v CatalogVersion) Equal(other CatalogVersion) bool {
 }
 
 func ParseCatalogVersion(value string) (CatalogVersion, error) {
-	parts := strings.Split(value, "/")
+	parts := strings.Split(strings.TrimSpace(value), "/")
 	if len(parts) != 3 || parts[0] == "" || parts[1] == "" || parts[2] == "" {
 		return CatalogVersion{}, errors.Wrapf(ErrInvalidCatalogVersion, "%q", value)
 	}
@@ -116,7 +118,7 @@ func ParseCatalogVersion(value string) (CatalogVersion, error) {
 
 // CatalogVersionFromTag drops the release from a tag like AWS/postgres/17/4.1.0.
 func CatalogVersionFromTag(tag string) (CatalogVersion, error) {
-	parts := strings.Split(tag, "/")
+	parts := strings.Split(strings.TrimSpace(tag), "/")
 	if len(parts) != 4 || parts[3] == "" {
 		return CatalogVersion{}, errors.Wrapf(ErrInvalidTag, "%q", tag)
 	}

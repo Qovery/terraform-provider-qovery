@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -104,6 +105,52 @@ func TestBlueprintModifyPlanTag(t *testing.T) {
 			assert.Equal(t, tc.wantTag, tag)
 		})
 	}
+}
+
+func TestBlueprintModifyPlanPendingRetry(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	schemaResp := &resource.SchemaResponse{}
+	newBlueprintResource().Schema(ctx, resource.SchemaRequest{}, schemaResp)
+	schema := schemaResp.Schema
+	objectType, ok := schema.Type().TerraformType(ctx).(tftypes.Object)
+	require.True(t, ok)
+
+	values := map[string]tftypes.Value{
+		"environment_id": tftypes.NewValue(tftypes.String, "84c946f2-f0af-409f-b249-849b06cdb6d5"),
+		"blueprint":      tftypes.NewValue(tftypes.String, "HELM/redis/8"),
+		"tag":            tftypes.NewValue(tftypes.String, "HELM/redis/8/1.0.0"),
+		"catalog_url":    tftypes.NewValue(tftypes.String, "https://github.com/Qovery/service-catalog.git"),
+	}
+	state := blueprintObjectValue(t, objectType, values)
+
+	t.Run("retries against the latest tag and forces a non-empty plan", func(t *testing.T) {
+		t.Parallel()
+		r := blueprintResource{service: stubBlueprintService{latestTag: "HELM/redis/8/1.0.2"}}
+		req := resource.ModifyPlanRequest{State: tfsdk.State{Schema: schema, Raw: state}, Plan: tfsdk.Plan{Schema: schema, Raw: state}}
+		resp := &resource.ModifyPlanResponse{Plan: tfsdk.Plan{Schema: schema, Raw: state}}
+
+		r.modifyPlan(ctx, req, resp, true)
+
+		require.False(t, resp.Diagnostics.HasError(), resp.Diagnostics)
+		var tag string
+		var catalogURL types.String
+		resp.Diagnostics.Append(resp.Plan.GetAttribute(ctx, path.Root("tag"), &tag)...)
+		resp.Diagnostics.Append(resp.Plan.GetAttribute(ctx, path.Root("catalog_url"), &catalogURL)...)
+		assert.Equal(t, "HELM/redis/8/1.0.2", tag)
+		assert.True(t, catalogURL.IsUnknown())
+	})
+
+	t.Run("retry fails rather than redeploy the old tag when the catalog cannot answer", func(t *testing.T) {
+		t.Parallel()
+		r := blueprintResource{service: stubBlueprintService{err: errors.New("catalog down")}}
+		req := resource.ModifyPlanRequest{State: tfsdk.State{Schema: schema, Raw: state}, Plan: tfsdk.Plan{Schema: schema, Raw: state}}
+		resp := &resource.ModifyPlanResponse{Plan: tfsdk.Plan{Schema: schema, Raw: state}}
+
+		r.modifyPlan(ctx, req, resp, true)
+
+		assert.True(t, resp.Diagnostics.HasError())
+	})
 }
 
 func TestCanKeepDeployedTag(t *testing.T) {

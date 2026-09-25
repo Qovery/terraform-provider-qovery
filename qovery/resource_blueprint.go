@@ -3,8 +3,10 @@ package qovery
 import (
 	"context"
 	"fmt"
+	"math"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -14,6 +16,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -95,7 +98,7 @@ func (r blueprintResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"icon_uri": schema.StringAttribute{
-				Description: "Icon URI of the blueprint service.",
+				Description: "Icon URI of the blueprint service. Defaults to `" + defaultBlueprintIconURI + "`.",
 				Optional:    true,
 				Computed:    true,
 				Default:     stringdefault.StaticString(defaultBlueprintIconURI),
@@ -130,6 +133,9 @@ func (r blueprintResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					"timeout": schema.Int64Attribute{
 						Description: "Maximum duration in seconds of an apply job.",
 						Optional:    true,
+						Validators: []validator.Int64{
+							int64validator.Between(0, math.MaxInt32),
+						},
 					},
 					"cpu": schema.StringAttribute{
 						Description: "CPU of the apply job pod, e.g. `500m`.",
@@ -146,7 +152,7 @@ func (r blueprintResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"deploy": schema.BoolAttribute{
-				Description: "Whether to deploy the service on creation. Updates always deploy it.",
+				Description: "Whether to deploy the service on creation. Defaults to `true`. Later changes to any other attribute redeploy the service; changing `deploy` alone does not.",
 				Optional:    true,
 				Computed:    true,
 				Default:     booldefault.StaticBool(true),
@@ -282,6 +288,13 @@ func (r blueprintResource) ModifyPlan(ctx context.Context, req resource.ModifyPl
 	if req.Plan.Raw.IsNull() || r.service == nil {
 		return
 	}
+	pending, diags := isPendingApply(ctx, req.Private)
+	resp.Diagnostics.Append(diags...)
+	r.modifyPlan(ctx, req, resp, pending)
+}
+
+// modifyPlan takes pending explicitly: tests cannot build the framework's private state
+func (r blueprintResource) modifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse, pending bool) {
 	// Only these attributes: a whole-plan decode fails on an unknown spec_overrides object
 	var planned blueprintVersionAttributes
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("environment_id"), &planned.EnvironmentID)...)
@@ -300,9 +313,6 @@ func (r blueprintResource) ModifyPlan(ctx context.Context, req resource.ModifyPl
 			return
 		}
 	}
-
-	pending, diags := isPendingApply(ctx, req.Private)
-	resp.Diagnostics.Append(diags...)
 
 	tag, err := r.latestTag(ctx, planned.EnvironmentID, planned.Blueprint)
 	if err != nil {
