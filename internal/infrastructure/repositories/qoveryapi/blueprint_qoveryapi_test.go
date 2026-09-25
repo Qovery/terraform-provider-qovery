@@ -4,6 +4,7 @@ package qoveryapi
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -17,6 +18,10 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/blueprint"
 )
+
+type erroringRoundTripper struct{ err error }
+
+func (f erroringRoundTripper) RoundTrip(*http.Request) (*http.Response, error) { return nil, f.err }
 
 type recordedRequest struct {
 	method string
@@ -90,6 +95,24 @@ func TestBlueprintQoveryAPIDeleteService(t *testing.T) {
 			assert.Equal(t, tc.wantExisted, existed)
 		})
 	}
+
+	t.Run("transport failure with no response is an API error", func(t *testing.T) {
+		t.Parallel()
+		transportErr := errors.New("connection refused")
+		cfg := qovery.NewConfiguration()
+		cfg.Servers = qovery.ServerConfigurations{{URL: "http://qovery.invalid"}}
+		cfg.HTTPClient = &http.Client{Transport: erroringRoundTripper{err: transportErr}}
+		repo, err := newBlueprintQoveryAPI(qovery.NewAPIClient(cfg))
+		require.NoError(t, err)
+
+		existed, err := repo.DeleteService(context.Background(), blueprint.ServiceTypeHelm, serviceID)
+
+		var apiErr *apierrors.APIError
+		require.ErrorAs(t, err, &apiErr)
+		// APIError keeps the cause's text but has no Unwrap, so errors.Is cannot see it
+		assert.ErrorContains(t, err, transportErr.Error())
+		assert.False(t, existed)
+	})
 
 	t.Run("unknown service type calls nothing", func(t *testing.T) {
 		t.Parallel()
