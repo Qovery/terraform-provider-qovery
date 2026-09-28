@@ -238,8 +238,8 @@ You can find complete examples within these repositories:
   - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.
   - `terraform import` records every setting whose value differs from the default.
 - `annotations_group_ids` (Set of String) List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the application's pods. Terraform manages the whole list: annotations groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every annotations group.
-- `arguments` (List of String) List of arguments of this application. Overrides the Docker image's default `CMD`.
-- `auto_deploy` (Boolean) Specify if the application will be automatically redeployed after receiving a new commit on the configured branch.
+- `arguments` (List of String) List of arguments of this application. Overrides the Docker image's default `CMD`. Omitting the attribute sets no argument.
+- `auto_deploy` (Boolean) Specify if the application will be automatically redeployed after receiving a new commit on the configured branch. Default: `true`.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application. When enabled, Qovery creates a preview environment for each pull request. Default: `false`.
 - `autoscaling` (Attributes) Event-driven autoscaling (KEDA) configuration. KEDA is additive to the CPU/memory HPA (min/max_running_instances) and unlocks scale-to-zero (min_running_instances = 0). Requires KEDA to be enabled on the cluster. (see [below for nested schema](#nestedatt--autoscaling))
 - `build_mode` (String) Build mode of the application.
@@ -250,7 +250,7 @@ Default: `DOCKER`.
 - `cpu` (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
 - `custom_domains` (Attributes Set) List of custom domains linked to this application. You must configure a CNAME record on your DNS provider pointing to the `validation_domain` value. (see [below for nested schema](#nestedatt--custom_domains))
 - `deployment_restrictions` (Attributes Set) List of deployment restrictions. Deployment restrictions allow you to control when an application is deployed based on file path changes in the git repository. (see [below for nested schema](#nestedatt--deployment_restrictions))
-- `deployment_stage_id` (String) Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.
+- `deployment_stage_id` (String) Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment. Removing the attribute keeps the service in its current stage: the Qovery API attaches every service to a deployment stage and cannot detach it.
 - `docker_target_build_stage` (String) The target build stage in a multi-stage Dockerfile to build. Only applicable when `build_mode = "DOCKER"` and using a multi-stage Dockerfile.
 - `dockerfile_path` (String) Path to the Dockerfile relative to the `git_repository.root_path`. Required when `build_mode = "DOCKER"`. Example: `Dockerfile` or `docker/Dockerfile.prod`.
 - `entrypoint` (String) Entrypoint of the application. Overrides the Docker image's default `ENTRYPOINT`.
@@ -258,10 +258,10 @@ Default: `DOCKER`.
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this application. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this application. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
-- `ephemeral_storage` (Number) Ephemeral storage of the application in GiB. When unset, the platform default is used.
+- `ephemeral_storage` (Number) Ephemeral storage of the application in GiB. `0`, the default, sets none, so the platform default is used.
 - `external_secret_files` (Attributes Set) List of external secret files linked to this application. External secret files reference upstream secrets (e.g. from AWS Secrets Manager) and are mounted as files at a given path inside the container. (see [below for nested schema](#nestedatt--external_secret_files))
 - `external_secrets` (Attributes Set) List of external secrets linked to this application. External secrets reference upstream secrets (e.g. from AWS Secrets Manager) via a secret manager access configuration. (see [below for nested schema](#nestedatt--external_secrets))
-- `icon_uri` (String) Icon URI representing the application. Used in the Qovery console UI.
+- `icon_uri` (String) Icon URI representing the application. Used in the Qovery console UI. Default: `app://qovery-console/application`.
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
 - `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the application's pods. Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group.
 - `max_running_instances` (Number) Maximum number of instances running for the application.
@@ -290,7 +290,7 @@ Required:
 
 Optional:
 
-- `branch` (String) Branch of the git repository to use for builds. Defaults to `main` or `master` (depending on repository).
+- `branch` (String) Branch of the git repository to use for builds. Defaults to `main` or `master` (depending on repository). Removing the attribute keeps the current branch: an omitted branch means the repository's default branch, which is only known once the API resolves it. Changing the repository URL while the branch is omitted resolves the new repository's default branch.
 - `git_token_id` (String) The git token ID to be used for authenticating with the git provider. Required for private repositories. Reference a `qovery_git_token` resource.
 - `root_path` (String) Root path of the application within the repository. Useful for monorepos where the application code is in a subdirectory. Defaults to `/`.
 
@@ -492,8 +492,8 @@ Required:
 
 Optional:
 
-- `generate_certificate` (Boolean) Qovery will generate and manage a TLS/SSL certificate for this domain using Let's Encrypt.
-- `use_cdn` (Boolean) Indicates if the custom domain is behind a CDN (e.g. Cloudflare). This affects how Qovery validates the CNAME during deployment:
+- `generate_certificate` (Boolean) Qovery will generate and manage a TLS/SSL certificate for this domain using Let's Encrypt. Default: `false`.
+- `use_cdn` (Boolean) Indicates if the custom domain is behind a CDN (e.g. Cloudflare). Default: `false`. This affects how Qovery validates the CNAME during deployment:
   - If `true`: Qovery only checks that the domain points to an IP.
   - If `false`: Qovery checks that the domain resolves to the correct service Load Balancer.
 
@@ -636,7 +636,7 @@ Optional:
 
 - `external_port` (Number) External port of the application. Required if `ports.publicly_accessible = true`. Must be between 1 and 65535.
 - `is_default` (Boolean) If this port will be used for the root domain. The API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).
-- `name` (String) Name of the port.
+- `name` (String) Name of the port. Default: `p<internal_port>`, for example `p8080`.
 - `protocol` (String) Protocol used for the port of the application.
 
 Read-Only:

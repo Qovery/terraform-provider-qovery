@@ -5,15 +5,15 @@ import (
 	"fmt"
 
 	"github.com/AlekSi/pointer"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -94,12 +94,12 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				Required:            true,
 			},
 			"icon_uri": schema.StringAttribute{
-				Description:         "Icon URI representing the job.",
-				MarkdownDescription: "Icon URI representing the job.",
+				Description:         "Icon URI representing the job. Default: `" + jobCronIconURIDefault + "` for a cron job, `" + jobLifecycleIconURIDefault + "` for a lifecycle job.",
+				MarkdownDescription: "Icon URI representing the job. Default: `" + jobCronIconURIDefault + "` for a cron job, `" + jobLifecycleIconURIDefault + "` for a lifecycle job.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					JobIconUriDefault(),
 				},
 			},
 			"cpu": schema.Int64Attribute{
@@ -139,13 +139,11 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				},
 			},
 			"ephemeral_storage": schema.Int64Attribute{
-				Description:         "Ephemeral storage of the job in GiB. When unset, the platform default is used.",
-				MarkdownDescription: "Ephemeral storage of the job in GiB. When unset, the platform default is used.",
+				Description:         "Ephemeral storage of the job in GiB. `0`, the default, sets none, so the platform default is used.",
+				MarkdownDescription: "Ephemeral storage of the job in GiB. `0`, the default, sets none, so the platform default is used.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
-				},
+				Default:             int64default.StaticInt64(serviceEphemeralStorageDefault),
 				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: 0},
 				},
@@ -205,13 +203,11 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				},
 			},
 			"auto_preview": schema.BoolAttribute{
-				Description:         "Specify if the environment preview option is activated or not for this job.",
-				MarkdownDescription: "Specify if the environment preview option is activated or not for this job.",
+				Description:         descriptions.NewBoolDefaultDescription("Specify if the environment preview option is activated or not for this job.", serviceAutoPreviewDefault),
+				MarkdownDescription: descriptions.NewBoolDefaultDescription("Specify if the environment preview option is activated or not for this job.", serviceAutoPreviewDefault),
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
+				Default:             booldefault.StaticBool(serviceAutoPreviewDefault),
 			},
 			"healthchecks": healthchecksSchemaAttributes(true),
 			"schedule": schema.SingleNestedAttribute{
@@ -225,10 +221,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"entrypoint": schema.StringAttribute{
-								Description:         "Entrypoint of the job (e.g. the command to execute).",
-								MarkdownDescription: "Entrypoint of the job (e.g. the command to execute).",
+								Description:         "Entrypoint of the job (e.g. the command to execute). Omitting it keeps the image's entrypoint.",
+								MarkdownDescription: "Entrypoint of the job (e.g. the command to execute). Omitting it keeps the image's entrypoint.",
 								Optional:            true,
-								Computed:            true,
 							},
 							"arguments": schema.ListAttribute{
 								Description:         "List of arguments passed to the entrypoint.",
@@ -246,10 +241,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"entrypoint": schema.StringAttribute{
-								Description:         "Entrypoint of the job (e.g. the command to execute).",
-								MarkdownDescription: "Entrypoint of the job (e.g. the command to execute).",
+								Description:         "Entrypoint of the job (e.g. the command to execute). Omitting it keeps the image's entrypoint.",
+								MarkdownDescription: "Entrypoint of the job (e.g. the command to execute). Omitting it keeps the image's entrypoint.",
 								Optional:            true,
-								Computed:            true,
 							},
 							"arguments": schema.ListAttribute{
 								Description:         "List of arguments passed to the entrypoint.",
@@ -267,10 +261,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"entrypoint": schema.StringAttribute{
-								Description:         "Entrypoint of the job (e.g. the command to execute).",
-								MarkdownDescription: "Entrypoint of the job (e.g. the command to execute).",
+								Description:         "Entrypoint of the job (e.g. the command to execute). Omitting it keeps the image's entrypoint.",
+								MarkdownDescription: "Entrypoint of the job (e.g. the command to execute). Omitting it keeps the image's entrypoint.",
 								Optional:            true,
-								Computed:            true,
 							},
 							"arguments": schema.ListAttribute{
 								Description:         "List of arguments passed to the entrypoint.",
@@ -284,19 +277,22 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 					},
 					"lifecycle_type": schema.StringAttribute{
 						Description: descriptions.NewStringEnumDescription(
-							"Type of the lifecycle job.",
+							"Type of the lifecycle job. Default: `"+jobLifecycleTypeDefault+"` for a lifecycle job (`on_start`, `on_stop`, `on_delete`), none for a cron job. It cannot be changed once the job exists.",
 							clientEnumToStringArray(qovery.AllowedJobLifecycleTypeEnumEnumValues),
 							nil,
 						),
 						MarkdownDescription: descriptions.NewStringEnumDescription(
-							"Type of the lifecycle job.",
+							"Type of the lifecycle job. Default: `"+jobLifecycleTypeDefault+"` for a lifecycle job (`on_start`, `on_stop`, `on_delete`), none for a cron job. It cannot be changed once the job exists.",
 							clientEnumToStringArray(qovery.AllowedJobLifecycleTypeEnumEnumValues),
 							nil,
 						),
 						Optional: true,
 						Computed: true,
+						// q-core rejects a change of the lifecycle type of an existing job, so a
+						// planned change, including the reset of an omitted type, is a plan error.
 						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.UseStateForUnknown(),
+							JobLifecycleTypeDefault(),
+							RejectChangeAfterCreate(lifecycleTypeChangeReason),
 						},
 					},
 					"cronjob": schema.SingleNestedAttribute{
@@ -316,10 +312,9 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 								Required:            true,
 								Attributes: map[string]schema.Attribute{
 									"entrypoint": schema.StringAttribute{
-										Description:         "Entrypoint of the job (e.g. the command to execute).",
-										MarkdownDescription: "Entrypoint of the job (e.g. the command to execute).",
+										Description:         "Entrypoint of the job (e.g. the command to execute). Omitting it keeps the image's entrypoint.",
+										MarkdownDescription: "Entrypoint of the job (e.g. the command to execute). Omitting it keeps the image's entrypoint.",
 										Optional:            true,
-										Computed:            true,
 									},
 									"arguments": schema.ListAttribute{
 										Description:         "List of arguments passed to the entrypoint.",
@@ -393,10 +388,16 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 										Required:            true,
 									},
 									"root_path": schema.StringAttribute{
-										Description:         "Root path in the git repository where the Dockerfile is located.",
-										MarkdownDescription: "Root path in the git repository where the Dockerfile is located.",
+										Description:         descriptions.NewStringDefaultDescription("Root path in the git repository where the Dockerfile is located.", jobRootPathDefault),
+										MarkdownDescription: descriptions.NewStringDefaultDescription("Root path in the git repository where the Dockerfile is located.", jobRootPathDefault),
 										Optional:            true,
 										Computed:            true,
+										Default:             stringdefault.StaticString(jobRootPathDefault),
+										// The read maps an API "" to "/" (jobRootPathFromAPI), so "" in the
+										// configuration would never match the state.
+										Validators: []validator.String{
+											stringvalidator.LengthAtLeast(1),
+										},
 									},
 									"git_token_id": schema.StringAttribute{
 										Description:         "Git token ID for accessing a private repository (refers to a qovery_git_token resource).",
@@ -645,10 +646,12 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				},
 			},
 			"deployment_stage_id": schema.StringAttribute{
-				Description:         "Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.",
-				MarkdownDescription: "Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.",
+				Description:         "Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment." + deploymentStageIDRemovalNote,
+				MarkdownDescription: "Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment." + deploymentStageIDRemovalNote,
 				Optional:            true,
 				Computed:            true,
+				// Documented exception to the config-is-source-of-truth rule: q-core attaches
+				// every service to a stage and has no detach, so removal keeps the current stage.
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -665,18 +668,18 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				MarkdownDescription: "Advanced settings in JSON format. Use `jsonencode()` to set values. Only include settings you want to override. See the [Qovery API documentation](https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings) for the full list of available settings." + advancedSettingsRefreshSemantics,
 				Optional:            true,
 				Computed:            true,
+				// Documented exception to the config-is-source-of-truth rule: the QOV-2028
+				// contract described in advancedSettingsRefreshSemantics.
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"auto_deploy": schema.BoolAttribute{
-				Description:         "Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.",
-				MarkdownDescription: "Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.",
+				Description:         descriptions.NewBoolDefaultDescription("Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.", serviceAutoDeployDefault),
+				MarkdownDescription: descriptions.NewBoolDefaultDescription("Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.", serviceAutoDeployDefault),
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
+				Default:             booldefault.StaticBool(serviceAutoDeployDefault),
 			},
 			"deployment_restrictions": schema.SetNestedAttribute{
 				Description:         "List of deployment restrictions. Deployment restrictions allow you to control which changes trigger a deployment based on file path patterns.",

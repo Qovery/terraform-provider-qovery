@@ -138,21 +138,7 @@ func TestAcc_ContainerVariableDescriptionUpgradeFrom0x(t *testing.T) {
 // descriptions and group ids as null; the API holds "" and no group, which 1.0 also reads as
 // null, so the first 1.0 plan is empty.
 func testAccVariableDescriptionUpgradeFrom0x(t *testing.T, testName string, target testAccVariableDescriptionsTarget) {
-	resource.Test(t, resource.TestCase{
-		PreCheck:     func() { testAccPreCheck(t) },
-		CheckDestroy: target.destroy,
-		Steps: []resource.TestStep{
-			{
-				ExternalProviders: testAccLastProvider0xFromRegistry,
-				Config:            target.config(testName, "", false),
-			},
-			{
-				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
-				Config:                   target.config(testName, "", false),
-				PlanOnly:                 true,
-			},
-		},
-	})
+	testAccServiceContractUpgradeFrom0x(t, target.config(testName, "", false), target.destroy)
 }
 
 // testAccVariableDescriptionOwnership runs the ownership steps: a description set outside Terraform

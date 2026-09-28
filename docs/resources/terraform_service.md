@@ -118,8 +118,8 @@ resource "qovery_terraform_service" "my_terraform_service" {
   - Changes made in the Console to a tracked key, including a reset to its default value, are reflected on refresh and planned back to the configured value.
   - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.
   - `terraform import` records every setting whose value differs from the default.
-- `blueprint_id` (String) The blueprint ID the terraform service has been created from.
-- `deployment_stage_id` (String) Id of the deployment stage.
+- `blueprint_id` (String) The blueprint ID the terraform service has been created from. It can only be set when the service is created: the Qovery API ignores later changes, so a change is rejected at plan time, and removing the attribute keeps the recorded value.
+- `deployment_stage_id` (String) Id of the deployment stage. Removing the attribute keeps the service in its current stage: the Qovery API attaches every service to a deployment stage and cannot detach it.
 - `description` (String) Description of the terraform service.
 - `external_secret_files` (Attributes Set) List of external secret files linked to this terraform service. External secret files reference upstream secrets (e.g. from AWS Secrets Manager) and are mounted as files at a given path inside the container. (see [below for nested schema](#nestedatt--external_secret_files))
 - `external_secrets` (Attributes Set) List of external secrets linked to this terraform service. External secrets reference upstream secrets (e.g. from AWS Secrets Manager) via a secret manager access configuration. (see [below for nested schema](#nestedatt--external_secrets))

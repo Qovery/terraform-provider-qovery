@@ -815,9 +815,11 @@ func (d applicationDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	// Group ids report the API value; a data source has no plan to match, so none reads as [].
+	// Group ids and arguments report the API value; a data source has no plan to match, so none
+	// reads as [].
 	data.AnnotationsGroupIds = emptyStringSet()
 	data.LabelsGroupIds = emptyStringSet()
+	data.Arguments = emptyStringList()
 	state := convertResponseToApplication(ctx, data, application)
 	tflog.Trace(ctx, "read application", map[string]any{"application_id": state.Id.ValueString()})
 

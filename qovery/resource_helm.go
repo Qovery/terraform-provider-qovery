@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -100,22 +99,23 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Required:            true,
 			},
 			"blueprint_id": schema.StringAttribute{
-				Description:         "The blueprint ID the helm service has been created from.",
-				MarkdownDescription: "The blueprint ID the helm service has been created from.",
+				Description:         "The blueprint ID the helm service has been created from." + blueprintIDRemovalNote,
+				MarkdownDescription: "The blueprint ID the helm service has been created from." + blueprintIDRemovalNote,
 				Optional:            true,
 				Computed:            true,
+				// Documented exception to the config-is-source-of-truth rule: q-core records the
+				// blueprint only on create, so removal keeps it and a change is a plan error.
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					RejectChangeAfterCreate(blueprintIDChangeReason),
 				},
 			},
 			"icon_uri": schema.StringAttribute{
-				Description:         "Icon URI representing the helm service.",
-				MarkdownDescription: "Icon URI representing the helm service.",
+				Description:         descriptions.NewStringDefaultDescription("Icon URI representing the helm service.", helmIconURIDefault),
+				MarkdownDescription: descriptions.NewStringDefaultDescription("Icon URI representing the helm service.", helmIconURIDefault),
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				Default:             stringdefault.StaticString(helmIconURIDefault),
 			},
 			"timeout_sec": schema.Int64Attribute{
 				Description:         "Helm timeout in seconds. Maximum time allowed for the Helm operation to complete.",
@@ -126,22 +126,26 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				// Required: true,
 			},
 			"auto_preview": schema.BoolAttribute{
-				Description:         "Specify if the environment preview option is activated or not for this helm.",
-				MarkdownDescription: "Specify if the environment preview option is activated or not for this helm.",
+				Description:         descriptions.NewBoolDefaultDescription("Specify if the environment preview option is activated or not for this helm.", serviceAutoPreviewDefault),
+				MarkdownDescription: descriptions.NewBoolDefaultDescription("Specify if the environment preview option is activated or not for this helm.", serviceAutoPreviewDefault),
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
+				Default:             booldefault.StaticBool(serviceAutoPreviewDefault),
 			},
 			"auto_deploy": schema.BoolAttribute{
-				Description:         "Specify if the helm service will be automatically updated on every new commit on the branch.",
-				MarkdownDescription: "Specify if the helm service will be automatically updated on every new commit on the branch.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
+				Description: descriptions.NewBoolDefaultDescription(
+					"Specify if the helm service will be automatically updated on every new commit on the branch. "+
+						"Unlike the other services, it defaults to false: every 0.x release sent false when the attribute was omitted.",
+					helmAutoDeployDefault,
+				),
+				MarkdownDescription: descriptions.NewBoolDefaultDescription(
+					"Specify if the helm service will be automatically updated on every new commit on the branch. "+
+						"Unlike the other services, it defaults to `false`: every 0.x release sent `false` when the attribute was omitted.",
+					helmAutoDeployDefault,
+				),
+				Optional: true,
+				Computed: true,
+				Default:  booldefault.StaticBool(helmAutoDeployDefault),
 			},
 			"arguments": schema.ListAttribute{
 				Description:         "Helm CLI arguments passed to the helm command (e.g. --wait, --atomic, --debug).",
@@ -203,10 +207,17 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 								Required:            true,
 							},
 							"branch": schema.StringAttribute{
-								Description:         "Git branch to use for the Helm chart source.",
-								MarkdownDescription: "Git branch to use for the Helm chart source.",
+								Description:         "Git branch to use for the Helm chart source." + gitBranchRemovalNote,
+								MarkdownDescription: "Git branch to use for the Helm chart source." + gitBranchRemovalNote,
 								Optional:            true,
 								Computed:            true,
+								// Documented exception to the config-is-source-of-truth rule: the
+								// default branch depends on the repository, so there is no static
+								// Default, and planning unknown whenever it is omitted would give a
+								// permanent diff.
+								PlanModifiers: []planmodifier.String{
+									UseStateUnlessRepositoryChanges(),
+								},
 							},
 							"root_path": schema.StringAttribute{
 								Description:         "Root path in the git repository where the Helm chart is located.",
@@ -219,7 +230,6 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 								Description:         "Git token ID for accessing a private repository (refers to a qovery_git_token resource).",
 								MarkdownDescription: "Git token ID for accessing a private repository (refers to a `qovery_git_token` resource).",
 								Optional:            true,
-								Computed:            true,
 							},
 						},
 					},
@@ -292,7 +302,6 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 										Description:         "Git token ID for accessing a private repository (refers to a qovery_git_token resource).",
 										MarkdownDescription: "Git token ID for accessing a private repository (refers to a `qovery_git_token` resource).",
 										Optional:            true,
-										Computed:            true,
 									},
 								},
 							},
@@ -368,12 +377,15 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 							},
 							Optional: true,
 							Computed: true,
+							Default:  stringdefault.StaticString(helm.DefaultProtocol.String()),
 						},
 						"is_default": schema.BoolAttribute{
 							Description:         "If this port will be used for the root domain. Note: the API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).",
 							MarkdownDescription: "If this port will be used for the root domain. Note: the API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).",
 							Optional:            true,
 							Computed:            true,
+							// Documented exception to the config-is-source-of-truth rule: the API
+							// forces one default port (see smartAllowApiOverrideModifier).
 							PlanModifiers: []planmodifier.Bool{
 								SmartAllowApiOverride(),
 							},
@@ -598,6 +610,9 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				Description:         "List of custom domains linked to this helm.",
 				MarkdownDescription: "List of custom domains linked to this helm.",
 				Optional:            true,
+				PlanModifiers: []planmodifier.Set{
+					CustomDomainsBoolDefaults("use_cdn"),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -615,16 +630,20 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 							MarkdownDescription: "Qovery will generate and manage the certificate for this domain.",
 							Required:            true,
 						},
+						// use_cdn defaults to false through the CustomDomainsBoolDefaults plan
+						// modifier on custom_domains: a Default nested in a set breaks the matching
+						// of planned and applied elements.
 						"use_cdn": schema.BoolAttribute{
-							Description: "Indicates if the custom domain is behind a CDN (i.e Cloudflare). " +
-								"This will condition the way we are checking CNAME before & during a deployment: " +
-								"If true then we only check the domain points to an IP. " +
-								"If false then we check that the domain resolves to the correct service Load Balancer",
-							MarkdownDescription: "Indicates if the custom domain is behind a CDN (i.e Cloudflare).\n" +
+							Description: descriptions.NewBoolDefaultDescription("Indicates if the custom domain is behind a CDN (i.e Cloudflare). "+
+								"This will condition the way we are checking CNAME before & during a deployment: "+
+								"If true then we only check the domain points to an IP. "+
+								"If false then we check that the domain resolves to the correct service Load Balancer", false),
+							MarkdownDescription: "Indicates if the custom domain is behind a CDN (i.e Cloudflare). Default: `false`.\n" +
 								"This will condition the way we are checking CNAME before & during a deployment:\n" +
 								" * If `true` then we only check the domain points to an IP\n" +
 								" * If `false` then we check that the domain resolves to the correct service Load Balancer",
 							Optional: true,
+							Computed: true,
 						},
 						"validation_domain": schema.StringAttribute{
 							Description:         "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
@@ -656,10 +675,12 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				},
 			},
 			"deployment_stage_id": schema.StringAttribute{
-				Description:         "Id of the deployment stage. Controls the order of service deployment within an environment.",
-				MarkdownDescription: "Id of the deployment stage. Controls the order of service deployment within an environment.",
+				Description:         "Id of the deployment stage. Controls the order of service deployment within an environment." + deploymentStageIDRemovalNote,
+				MarkdownDescription: "Id of the deployment stage. Controls the order of service deployment within an environment." + deploymentStageIDRemovalNote,
 				Optional:            true,
 				Computed:            true,
+				// Documented exception to the config-is-source-of-truth rule: q-core attaches
+				// every service to a stage and has no detach, so removal keeps the current stage.
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -676,6 +697,8 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				MarkdownDescription: "Advanced settings in JSON format. Use `jsonencode()` to set values. Only include settings you want to override. See the [Qovery API documentation](https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings) for available settings." + advancedSettingsRefreshSemantics,
 				Optional:            true,
 				Computed:            true,
+				// Documented exception to the config-is-source-of-truth rule: the QOV-2028
+				// contract described in advancedSettingsRefreshSemantics.
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},

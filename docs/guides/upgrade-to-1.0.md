@@ -230,6 +230,68 @@ resource "qovery_application" "my_app" {
 }
 ```
 
+### Services: omitted attributes plan the Qovery default
+
+In 0.x, the attributes below kept their last value when the configuration omitted them. A value changed from the Qovery Console never showed up in `terraform plan`, and removing the attribute from the configuration left the remote value in place.
+
+In 1.0 each of them has a default, the value Qovery uses when a request omits it:
+
+| attribute | resources | default |
+|---|---|---|
+| `icon_uri` | `qovery_application`, `qovery_container`, `qovery_helm`, `qovery_database` | `app://qovery-console/application`, `…/container`, `…/helm`, `…/database` |
+| `icon_uri` | `qovery_job` | `app://qovery-console/cron-job` for a cron job, `app://qovery-console/lifecycle-job` for a lifecycle job |
+| `auto_deploy` | `qovery_application`, `qovery_container`, `qovery_job` | `true` |
+| `auto_deploy` | `qovery_helm` | `false`, the value every 0.x release sent |
+| `auto_preview` | `qovery_container`, `qovery_job`, `qovery_helm` (already `false` on `qovery_application`) | `false` |
+| `ephemeral_storage` | `qovery_application`, `qovery_container`, `qovery_job` | `0`: no ephemeral storage, the platform default applies |
+| `ports.name` | `qovery_application`, `qovery_container` | `p<internal_port>`, for example `p8080` |
+| `ports.protocol` | `qovery_container`, `qovery_helm` (already `HTTP` on `qovery_application`) | `HTTP` |
+| `custom_domains.generate_certificate` | `qovery_application`, `qovery_container` | `false`, the value 0.x sent |
+| `custom_domains.use_cdn` | `qovery_application`, `qovery_container`, `qovery_helm` | `false` |
+| `schedule.lifecycle_type` | `qovery_job` | `GENERIC` for a lifecycle job, none for a cron job |
+| `source.docker.git_repository.root_path` | `qovery_job` | `/` |
+
+- The refresh always reads the API. A value changed from the Console shows up as a difference in `terraform plan`, and `terraform apply` reverts it to the configured value or to the default.
+- Removing one of these attributes from the configuration plans the reset to the default.
+- `terraform import` records the remote values.
+- An empty job `root_path` is now rejected at plan time: Qovery builds `""` and `/` the same way, and the refresh reads a stored `""` as `/`. Use `/` or omit the attribute.
+- Qovery cannot change the lifecycle type of an existing job. A lifecycle job created with `TERRAFORM` or `CLOUDFORMATION` whose configuration omits `schedule.lifecycle_type` now fails at plan time, and the error names the type to declare. Any other change of the type fails at plan time too, where 0.x failed at apply.
+
+If you set any of these from the Console, declare them before the first apply on 1.0, otherwise that apply resets them:
+
+```terraform
+resource "qovery_container" "my_container" {
+  # ...
+  auto_deploy       = false
+  ephemeral_storage = 4
+  ports = [
+    { name = "web", internal_port = 8080, external_port = 443, publicly_accessible = true, protocol = "GRPC" },
+  ]
+}
+```
+
+A service whose remote values already equal the defaults plans no change after the upgrade. This covers every service that was created by Terraform with these attributes omitted and not changed from the Console since.
+
+### Services: `arguments`, job entrypoints and Helm git tokens mean none when omitted
+
+This applies to `arguments` on `qovery_application` and `qovery_container`, to `schedule.on_start.entrypoint`, `schedule.on_stop.entrypoint`, `schedule.on_delete.entrypoint` and `schedule.cronjob.command.entrypoint` on `qovery_job`, and to `source.git_repository.git_token_id` and `values_override.file.git_repository.git_token_id` on `qovery_helm`.
+
+In 0.x these attributes were computed: a value set from the Console stayed invisible to Terraform until an unrelated change cleared it.
+
+In 1.0 they are optional only. Omitting one means no argument, the image's entrypoint or no git token: a value set from the Console shows up in `terraform plan` as a removal, and removing the attribute from the configuration plans its removal. The state upgrade turns the empty `arguments` list that 0.x stored into null, so an unchanged configuration plans nothing. A configuration that declares `arguments = []` shows it being added on the first plan; applying it does not change the service.
+
+If you set any of these from the Console, declare them before the first apply on 1.0. A Helm chart in a private repository keeps its access only if its `git_token_id` is declared.
+
+### `qovery_terraform_service`: variable values are read from the API
+
+In 0.x the refresh kept the state value of every declared variable, so a value changed from the Qovery Console never showed up in `terraform plan`.
+
+In 1.0 the refresh reads the value of non-secret `variables` from the API. A value changed from the Console shows up as a difference, and `terraform apply` reverts it. The API does not return secret values, so a variable with `is_secret = true` still takes its value from the state.
+
+### `qovery_database`: `instance_type` is checked at plan time
+
+A `MANAGED` database requires `instance_type`: a configuration that omits it now fails at plan time instead of at apply. A `CONTAINER` database that sets it gets a plan warning, because the Qovery API ignores the value and reports the type it derives from the cluster. Remove `instance_type` from `CONTAINER` databases.
+
 ## Behaviour changes
 
 These changes need no configuration edit, but they can make `terraform plan` show differences that 0.x hid.
@@ -245,6 +307,16 @@ In 1.0 the refresh stores `cronjob_override` exactly when the pool is enabled on
 In 0.x, `qovery_cluster` had no attribute for the Karpenter GPU node pool. A GPU node pool created from the Qovery Console stayed invisible to Terraform, and the next `terraform apply`, even one that only changed the description, deleted it without the plan showing it.
 
 In 1.0 the pool is managed by `features.karpenter.qovery_node_pools.gpu_override`, and the refresh stores the block whenever the pool exists on the cluster. A GPU node pool created from the Console shows in `terraform plan` as the block being removed, with a warning, and applying that plan deletes the pool. To keep it, copy its settings into a `gpu_override` block: `terraform plan` shows them in the block being removed, and the plan is empty once the block matches.
+
+### Service attributes that keep their value when removed
+
+A few service attributes keep their current value when you remove them from the configuration, because the Qovery API gives Terraform no way to plan the reset. They are the only exceptions to the rule that the configuration is the source of truth:
+
+- `deployment_stage_id` on `qovery_application`, `qovery_container`, `qovery_job`, `qovery_helm`, `qovery_terraform_service` and `qovery_database`: Qovery attaches every service to a deployment stage and cannot detach it, so removing the attribute keeps the service in its current stage.
+- `ports.is_default` on `qovery_application`, `qovery_container` and `qovery_helm`: the API always marks one port as the default, so an omitted value keeps the value the API chose.
+- `git_repository.branch` on `qovery_application` and `source.git_repository.branch` on `qovery_helm`: an omitted branch means the repository's default branch, which is only known once the API resolves it, so removing the attribute keeps the current branch. Changing the repository URL while the branch is omitted resolves the new repository's default branch. In 0.x an unrelated change reset it to the default branch.
+- `blueprint_id` on `qovery_helm` and `qovery_terraform_service`: the API records it only when the service is created. Removing it keeps the recorded value, and changing it is now a plan error; to use another blueprint, recreate the service.
+- `advanced_settings_json`, described below.
 
 ### `advanced_settings_json`: Console resets of tracked keys are reflected
 

@@ -9,11 +9,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -30,9 +28,10 @@ import (
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
 var (
-	_ resource.ResourceWithConfigure   = &containerResource{}
-	_ resource.ResourceWithImportState = containerResource{}
-	_ resource.ResourceWithModifyPlan  = containerResource{}
+	_ resource.ResourceWithConfigure    = &containerResource{}
+	_ resource.ResourceWithImportState  = containerResource{}
+	_ resource.ResourceWithModifyPlan   = containerResource{}
+	_ resource.ResourceWithUpgradeState = containerResource{}
 )
 
 type containerResource struct {
@@ -69,6 +68,7 @@ func (r *containerResource) Configure(_ context.Context, req resource.ConfigureR
 
 func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Version:     1,
 		Description: "Provides a Qovery container resource. This can be used to create and manage Qovery containers.",
 		MarkdownDescription: "Provides a Qovery container resource. This can be used to create and manage Qovery containers.\n\n" +
 			"A container is a service that runs a Docker image from a container registry within a Qovery environment. " +
@@ -101,13 +101,11 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Required:            true,
 			},
 			"icon_uri": schema.StringAttribute{
-				Description:         "Icon URI representing the container.",
-				MarkdownDescription: "Icon URI representing the container. Used in the Qovery console UI.",
+				Description:         descriptions.NewStringDefaultDescription("Icon URI representing the container.", containerIconURIDefault),
+				MarkdownDescription: "Icon URI representing the container. Used in the Qovery console UI. Default: `" + containerIconURIDefault + "`.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				Default:             stringdefault.StaticString(containerIconURIDefault),
 			},
 			"image_name": schema.StringAttribute{
 				Description:         "Name of the container image.",
@@ -148,13 +146,11 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"ephemeral_storage": schema.Int64Attribute{
-				Description:         "Ephemeral storage of the container in GiB. When unset, the platform default is used.",
-				MarkdownDescription: "Ephemeral storage of the container in GiB. When unset, the platform default is used.",
+				Description:         "Ephemeral storage of the container in GiB. `0`, the default, sets none, so the platform default is used.",
+				MarkdownDescription: "Ephemeral storage of the container in GiB. `0`, the default, sets none, so the platform default is used.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
-				},
+				Default:             int64default.StaticInt64(serviceEphemeralStorageDefault),
 				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: 0},
 				},
@@ -189,14 +185,15 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			},
 			"autoscaling": autoscalingResourceSchema(),
 			"auto_preview": schema.BoolAttribute{
-				Description: "Specify if the environment preview option is activated or not for this container.",
+				Description: descriptions.NewBoolDefaultDescription(
+					"Specify if the environment preview option is activated or not for this container.",
+					serviceAutoPreviewDefault,
+				),
 				MarkdownDescription: "Specify if the environment preview option is activated or not for this container. " +
-					"When enabled, Qovery creates a preview environment for each pull request.",
+					"When enabled, Qovery creates a preview environment for each pull request. Default: `false`.",
 				Optional: true,
 				Computed: true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
+				Default:  booldefault.StaticBool(serviceAutoPreviewDefault),
 			},
 			"entrypoint": schema.StringAttribute{
 				Description:         "Entrypoint of the container.",
@@ -267,13 +264,12 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							},
 						},
 						"name": schema.StringAttribute{
-							Description:         "Name of the port.",
-							MarkdownDescription: "Name of the port.",
+							Description:         "Name of the port. Default: `p<internal_port>`, for example `p8080`.",
+							MarkdownDescription: "Name of the port. Default: `p<internal_port>`, for example `p8080`.",
 							Optional:            true,
 							Computed:            true,
 							PlanModifiers: []planmodifier.String{
-								stringplanmodifier.UseStateForUnknown(),
-								UseUnknownForNullString(),
+								PortNameDefault(),
 							},
 						},
 						"internal_port": schema.Int64Attribute{
@@ -316,12 +312,15 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							MarkdownDescription: "Protocol used for the port of the container.",
 							Optional:            true,
 							Computed:            true,
+							Default:             stringdefault.StaticString(port.DefaultProtocol.String()),
 						},
 						"is_default": schema.BoolAttribute{
 							Description:         "If this port will be used for the root domain. Note: the API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).",
 							MarkdownDescription: "If this port will be used for the root domain. The API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).",
 							Optional:            true,
 							Computed:            true,
+							// Documented exception to the config-is-source-of-truth rule: the API
+							// forces one default port (see smartAllowApiOverrideModifier).
 							PlanModifiers: []planmodifier.Bool{
 								SmartAllowApiOverride(),
 							},
@@ -557,20 +556,18 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			"healthchecks":               healthchecksSchemaAttributes(true),
 			"arguments": schema.ListAttribute{
 				Description:         "List of arguments of this container.",
-				MarkdownDescription: "List of arguments of this container. Overrides the Docker image's default `CMD`.",
+				MarkdownDescription: "List of arguments of this container. Overrides the Docker image's default `CMD`. Omitting the attribute sets no argument.",
 				Optional:            true,
 				ElementType:         types.StringType,
-				Computed:            true,
-				PlanModifiers: []planmodifier.List{
-					listplanmodifier.UseStateForUnknown(),
-				},
-				// Default:     listdefault.StaticValue(types.ListNull(types.StringType)),
 			},
 			"custom_domains": schema.SetNestedAttribute{
 				Description: "List of custom domains linked to this container.",
 				MarkdownDescription: "List of custom domains linked to this container. " +
 					"You must configure a CNAME record on your DNS provider pointing to the `validation_domain` value.",
 				Optional: true,
+				PlanModifiers: []planmodifier.Set{
+					CustomDomainsBoolDefaults("generate_certificate", "use_cdn"),
+				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
@@ -583,21 +580,26 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 							MarkdownDescription: "Your custom domain (e.g. `app.example.com`).",
 							Required:            true,
 						},
+						// generate_certificate and use_cdn default to false through the
+						// CustomDomainsBoolDefaults plan modifier on custom_domains: a Default
+						// nested in a set breaks the matching of planned and applied elements.
 						"generate_certificate": schema.BoolAttribute{
-							Description:         "Qovery will generate and manage the certificate for this domain.",
-							MarkdownDescription: "Qovery will generate and manage a TLS/SSL certificate for this domain using Let's Encrypt.",
+							Description:         descriptions.NewBoolDefaultDescription("Qovery will generate and manage the certificate for this domain.", false),
+							MarkdownDescription: "Qovery will generate and manage a TLS/SSL certificate for this domain using Let's Encrypt. Default: `false`.",
 							Optional:            true,
+							Computed:            true,
 						},
 						"use_cdn": schema.BoolAttribute{
-							Description: "Indicates if the custom domain is behind a CDN (i.e Cloudflare).\n" +
-								"This will condition the way we are checking CNAME before & during a deployment:\n" +
-								" * If `true` then we only check the domain points to an IP\n" +
-								" * If `false` then we check that the domain resolves to the correct service Load Balancer",
-							MarkdownDescription: "Indicates if the custom domain is behind a CDN (e.g. Cloudflare). " +
+							Description: descriptions.NewBoolDefaultDescription("Indicates if the custom domain is behind a CDN (i.e Cloudflare).\n"+
+								"This will condition the way we are checking CNAME before & during a deployment:\n"+
+								" * If `true` then we only check the domain points to an IP\n"+
+								" * If `false` then we check that the domain resolves to the correct service Load Balancer", false),
+							MarkdownDescription: "Indicates if the custom domain is behind a CDN (e.g. Cloudflare). Default: `false`. " +
 								"This affects how Qovery validates the CNAME during deployment:\n" +
 								"  - If `true`: Qovery only checks that the domain points to an IP.\n" +
 								"  - If `false`: Qovery checks that the domain resolves to the correct service Load Balancer.",
 							Optional: true,
+							Computed: true,
 						},
 						"validation_domain": schema.StringAttribute{
 							Description:         "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
@@ -629,10 +631,12 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"deployment_stage_id": schema.StringAttribute{
-				Description:         "Id of the deployment stage.",
-				MarkdownDescription: "Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.",
+				Description:         "Id of the deployment stage." + deploymentStageIDRemovalNote,
+				MarkdownDescription: "Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment." + deploymentStageIDRemovalNote,
 				Optional:            true,
 				Computed:            true,
+				// Documented exception to the config-is-source-of-truth rule: q-core attaches
+				// every service to a stage and has no detach, so removal keeps the current stage.
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -653,18 +657,18 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					advancedSettingsRefreshSemantics,
 				Optional: true,
 				Computed: true,
+				// Documented exception to the config-is-source-of-truth rule: the QOV-2028
+				// contract described in advancedSettingsRefreshSemantics.
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"auto_deploy": schema.BoolAttribute{
-				Description:         "Specify if the container will be automatically updated after receiving a new image tag.",
-				MarkdownDescription: "Specify if the container will be automatically redeployed after receiving a new image tag from the container registry.",
+				Description:         descriptions.NewBoolDefaultDescription("Specify if the container will be automatically updated after receiving a new image tag.", serviceAutoDeployDefault),
+				MarkdownDescription: "Specify if the container will be automatically redeployed after receiving a new image tag from the container registry. Default: `true`.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.Bool{
-					boolplanmodifier.UseStateForUnknown(),
-				},
+				Default:             booldefault.StaticBool(serviceAutoDeployDefault),
 			},
 			"annotations_group_ids": schema.SetAttribute{
 				Description:         "List of annotations group ids",
@@ -795,6 +799,29 @@ func (r containerResource) Delete(ctx context.Context, req resource.DeleteReques
 // ImportState imports a qovery container resource using its id
 func (r containerResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+// UpgradeState migrates container states written by 0.x (schema version 0).
+func (r containerResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	// Version 0 has the same attribute types as the current schema.
+	var schemaResp resource.SchemaResponse
+	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	priorSchema := schemaResp.Schema
+
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema: &priorSchema,
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				var cont Container
+				resp.Diagnostics.Append(req.State.Get(ctx, &cont)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+				cont.Arguments = upgradeArgumentsFrom0x(cont.Arguments)
+				resp.Diagnostics.Append(resp.State.Set(ctx, cont)...)
+			},
+		},
+	}
 }
 
 // ModifyPlan enforces KEDA autoscaling constraints at plan time so the backend
