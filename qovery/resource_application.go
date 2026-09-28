@@ -270,8 +270,8 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					validators.Int64MinValidator{Min: applicationMaxRunningInstancesMin},
 				},
 			},
-			"autoscaling":      autoscalingResourceSchema(),
-			"build_settings":   buildSettingsResourceSchemaAttributes(),
+			"autoscaling":    autoscalingResourceSchema(),
+			"build_settings": buildSettingsResourceSchemaAttributes(),
 			"auto_preview": schema.BoolAttribute{
 				Description: descriptions.NewBoolDefaultDescription(
 					"Specify if the environment preview option is activated or not for this application.",

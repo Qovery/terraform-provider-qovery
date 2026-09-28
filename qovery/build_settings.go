@@ -14,12 +14,12 @@ import (
 )
 
 var buildSettingsAttrTypes = map[string]attr.Type{
-	"timeout_max_sec":        types.Int64Type,
-	"cpu_max_in_milli":       types.Int64Type,
-	"ram_max_in_gib":         types.Int64Type,
+	"timeout_max_sec":          types.Int64Type,
+	"cpu_max_in_milli":         types.Int64Type,
+	"ram_max_in_gib":           types.Int64Type,
 	"ephemeral_storage_in_gib": types.Int64Type,
-	"disable_buildkit_cache": types.BoolType,
-	"skip_git_submodules":    types.BoolType,
+	"disable_buildkit_cache":   types.BoolType,
+	"skip_git_submodules":      types.BoolType,
 }
 
 func buildSettingsResourceSchemaAttributes() schema.SingleNestedAttribute {

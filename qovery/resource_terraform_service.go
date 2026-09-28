@@ -390,7 +390,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			},
 			"external_secrets":      externalSecretsSchemaAttribute("terraform service"),
 			"external_secret_files": externalSecretFilesSchemaAttribute("terraform service"),
-			"build_settings": buildSettingsResourceSchemaAttributes(),
+			"build_settings":        buildSettingsResourceSchemaAttributes(),
 			"advanced_settings_json": schema.StringAttribute{
 				Description:         "Advanced settings in JSON format. See the Qovery API documentation for available settings.",
 				MarkdownDescription: "Advanced settings in JSON format. See the Qovery API documentation for available settings.",
