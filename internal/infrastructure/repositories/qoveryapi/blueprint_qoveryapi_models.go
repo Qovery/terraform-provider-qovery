@@ -171,6 +171,21 @@ func newDomainCatalogEntriesFromQovery(catalog *qovery.BlueprintCatalogResponse)
 	return entries
 }
 
+// newVariableDefaultsFromQovery skips context variables: the platform resolves them, they are not inputs.
+func newVariableDefaultsFromQovery(manifest *qovery.BlueprintManifestResponse) map[string]string {
+	defaults := map[string]string{}
+	for _, field := range manifest.GetResults() {
+		variable := field.BlueprintManifestVariableField
+		if variable == nil {
+			continue
+		}
+		if value := variable.DefaultValue.Get(); value != nil {
+			defaults[variable.Name] = *value
+		}
+	}
+	return defaults
+}
+
 // findServiceStatus returns nil when the environment does not report the service.
 func findServiceStatus(statuses *qovery.EnvironmentStatuses, serviceType blueprint.ServiceType, serviceID string) (*blueprint.ServiceStatus, error) {
 	var candidates func() []qovery.Status

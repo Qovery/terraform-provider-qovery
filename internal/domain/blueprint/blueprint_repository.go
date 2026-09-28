@@ -15,9 +15,13 @@ type Repository interface {
 	Deploy(ctx context.Context, blueprintID string) (string, error)
 	// GetServiceStatus returns nil when the environment does not report the service yet.
 	GetServiceStatus(ctx context.Context, environmentID string, serviceType ServiceType, serviceID string) (*ServiceStatus, error)
+	// GetServiceIconURI returns nil when the service is gone.
+	GetServiceIconURI(ctx context.Context, serviceType ServiceType, serviceID string) (*string, error)
 	// DeleteService deletes the blueprint's service, which deletes the blueprint too.
 	// It reports false when the service was already gone.
 	DeleteService(ctx context.Context, serviceType ServiceType, serviceID string) (bool, error)
 	GetOrganizationID(ctx context.Context, environmentID string) (string, error)
 	ListCatalog(ctx context.Context, organizationID string) ([]CatalogEntry, error)
+	// GetVariableDefaults returns the manifest default of each variable of version that has one.
+	GetVariableDefaults(ctx context.Context, organizationID string, environmentID string, version CatalogVersion) (map[string]string, error)
 }

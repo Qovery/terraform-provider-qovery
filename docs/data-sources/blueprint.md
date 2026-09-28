@@ -22,6 +22,7 @@ data "qovery_blueprint" "my_postgres" {
 - `blueprint` (String) Catalog entry of the blueprint, as `<provider>/<service_family>/<service_version>`.
 - `catalog_url` (String) URL of the blueprint catalog entry.
 - `environment_id` (String) Id of the environment.
+- `icon_uri` (String) Icon URI of the blueprint service. Null until the blueprint has a service.
 - `name` (String) Name of the blueprint service.
 - `secret_variable_names` (Set of String) Names of the secret blueprint variables. The API never returns their values.
 - `service_id` (String) Id of the terraform or helm service the blueprint materialized.

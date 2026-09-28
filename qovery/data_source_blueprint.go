@@ -18,13 +18,14 @@ type blueprintDataSource struct {
 	service blueprint.Service
 }
 
-// BlueprintData holds what the API returns: icon, spec overrides and secret values are not readable.
+// BlueprintData holds what the API returns: spec overrides and secret values are not readable.
 type BlueprintData struct {
 	ID                  types.String `tfsdk:"id"`
 	EnvironmentID       types.String `tfsdk:"environment_id"`
 	Blueprint           types.String `tfsdk:"blueprint"`
 	Name                types.String `tfsdk:"name"`
 	Tag                 types.String `tfsdk:"tag"`
+	IconURI             types.String `tfsdk:"icon_uri"`
 	Variables           types.Map    `tfsdk:"variables"`
 	SecretVariableNames types.Set    `tfsdk:"secret_variable_names"`
 	ServiceID           types.String `tfsdk:"service_id"`
@@ -77,6 +78,10 @@ func (d blueprintDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 			},
 			"tag": schema.StringAttribute{
 				Description: "Catalog tag identifying the blueprint and its version.",
+				Computed:    true,
+			},
+			"icon_uri": schema.StringAttribute{
+				Description: "Icon URI of the blueprint service. Null until the blueprint has a service.",
 				Computed:    true,
 			},
 			"variables": schema.MapAttribute{
@@ -147,6 +152,7 @@ func convertDomainBlueprintToBlueprintData(ctx context.Context, bp *blueprint.Bl
 		Blueprint:           blueprintVersionValue(types.StringNull(), bp.Tag),
 		Name:                FromString(bp.Name),
 		Tag:                 FromString(bp.Tag),
+		IconURI:             FromStringPointer(bp.IconURI),
 		Variables:           variablesValue,
 		SecretVariableNames: secretVariableNamesValue,
 		ServiceID:           FromStringPointer(bp.ServiceID),

@@ -82,12 +82,28 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   blueprint only on create and rejects a lifecycle type change, so 0.x planned the change and
   then failed at apply. A job created with a lifecycle type other than `GENERIC` must declare
   it, otherwise the plan fails on the reset to the default. (QOV-2327)
+- **`qovery_blueprint`**: the refresh reads the API instead of keeping state values. It
+  reports every variable whose value differs from its catalog default, so a variable set from
+  the Console that the configuration omits shows up in `terraform plan` as a removal, and the
+  next apply resets it to the default. 0.90.0 only tracked the declared variables and never reset the others. `blueprint`
+  is derived from the deployed tag, so a major version changed from the Console shows up as
+  well. A deploy that failed outside Terraform no longer hides the settings it saved: only a
+  failed Terraform apply keeps the last applied values, so that the next apply retries it.
+  Declare the variables you set from the Console before upgrading. (QOV-2337)
+- **`qovery_blueprint`**: changing `icon_uri` after creation is a plan error. The Qovery API
+  applies the icon only when the blueprint is created, so 0.90.0 reported the new icon while
+  the service kept the old one. The refresh now reads the icon from the service the blueprint
+  materialized, so an icon changed from the Console fails the plan until the configuration
+  sets the same value. To change the icon, change it from the Console, then set the same value
+  in the configuration. (QOV-2337)
 
 ### Added
 
 - `qovery_cluster`: `features.karpenter.qovery_node_pools.gpu_override` manages the Karpenter
   GPU node pool, and the data source reports it. Declaring the block creates the pool and
   removing it deletes the pool; the plan warns when it removes the block. (QOV-2318)
+- `qovery_blueprint` supports `terraform import` by blueprint ID. The data source reports
+  `icon_uri`. (QOV-2337)
 
 ### Changed
 
@@ -119,6 +135,14 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_application`, `qovery_helm`: an unrelated change no longer resets
   `git_repository.branch` to the repository's default branch when the configuration omits
   it; the current branch is kept, as documented in the upgrade guide. (QOV-2327)
+
+## [0.90.0] - 2026-09-28
+
+### Added
+
+- `qovery_blueprint` resource and data source: a service instantiated from the Qovery service
+  catalog, such as a managed database, materialized as a Terraform or Helm service.
+  (QOV-2241, #630)
 
 ## [0.89.0] - 2026-09-23
 

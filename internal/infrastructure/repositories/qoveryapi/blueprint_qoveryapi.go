@@ -90,6 +90,36 @@ func (c blueprintQoveryAPI) GetServiceStatus(ctx context.Context, environmentID 
 	return findServiceStatus(statuses, serviceType, serviceID)
 }
 
+func (c blueprintQoveryAPI) GetServiceIconURI(ctx context.Context, serviceType blueprint.ServiceType, serviceID string) (*string, error) {
+	var (
+		iconURI  string
+		resp     *http.Response
+		err      error
+		resource apierrors.APIResource
+	)
+	switch serviceType {
+	case blueprint.ServiceTypeTerraform:
+		var service *qovery.TerraformResponse
+		resource = apierrors.APIResourceTerraformService
+		service, resp, err = c.client.TerraformMainCallsAPI.GetTerraform(ctx, serviceID).Execute()
+		iconURI = service.GetIconUri()
+	case blueprint.ServiceTypeHelm:
+		var service *qovery.HelmResponse
+		resource = apierrors.APIResourceHelm
+		service, resp, err = c.client.HelmMainCallsAPI.GetHelm(ctx, serviceID).Execute()
+		iconURI = service.GetIconUri()
+	default:
+		return nil, errors.Wrap(blueprint.ErrUnknownServiceType, string(serviceType))
+	}
+	if resp != nil && resp.StatusCode == http.StatusNotFound {
+		return nil, nil
+	}
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewReadAPIError(resource, serviceID, resp, err)
+	}
+	return &iconURI, nil
+}
+
 func (c blueprintQoveryAPI) GetOrganizationID(ctx context.Context, environmentID string) (string, error) {
 	environment, resp, err := c.client.EnvironmentMainCallsAPI.
 		GetEnvironment(ctx, environmentID).
@@ -108,6 +138,17 @@ func (c blueprintQoveryAPI) ListCatalog(ctx context.Context, organizationID stri
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceBlueprint, "catalog", resp, err)
 	}
 	return newDomainCatalogEntriesFromQovery(catalog), nil
+}
+
+func (c blueprintQoveryAPI) GetVariableDefaults(ctx context.Context, organizationID string, environmentID string, version blueprint.CatalogVersion) (map[string]string, error) {
+	manifest, resp, err := c.client.BlueprintCatalogAPI.
+		GetBlueprintCatalogServiceManifest(ctx, organizationID, version.Provider, version.ServiceFamily, version.ServiceVersion).
+		EnvironmentId(environmentID).
+		Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceBlueprint, version.String(), resp, err)
+	}
+	return newVariableDefaultsFromQovery(manifest), nil
 }
 
 func (c blueprintQoveryAPI) DeleteService(ctx context.Context, serviceType blueprint.ServiceType, serviceID string) (bool, error) {

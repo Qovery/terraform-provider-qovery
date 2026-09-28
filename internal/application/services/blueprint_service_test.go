@@ -173,7 +173,6 @@ func TestBlueprintServiceCreate(t *testing.T) {
 		bp, err := newTestBlueprintService(repo).Create(context.Background(), environmentID.String(), request)
 		assert.Equal(t, done, bp)
 		assert.ErrorIs(t, err, blueprint.ErrServiceDeploymentFailed)
-		assert.True(t, bp.LastApplyFailed(), "the returned blueprint must carry the failed service status")
 	})
 
 	t.Run("a dispatch that never ends times out with the blueprint sentinel", func(t *testing.T) {
@@ -275,13 +274,67 @@ func TestBlueprintServiceGet(t *testing.T) {
 	blueprintID := uuid.NewString()
 	serviceID := uuid.NewString()
 
-	repo := mocks_test.NewBlueprintRepository(t)
-	repo.EXPECT().Get(mock.Anything, blueprintID).Return(testBlueprint(environmentID, nil, &serviceID), nil)
-	repo.EXPECT().GetServiceStatus(mock.Anything, environmentID.String(), blueprint.ServiceTypeTerraform, serviceID).Return(&blueprint.ServiceStatus{State: "DEPLOYMENT_ERROR"}, nil)
+	t.Run("reads the icon from the service", func(t *testing.T) {
+		repo := mocks_test.NewBlueprintRepository(t)
+		repo.EXPECT().Get(mock.Anything, blueprintID).Return(testBlueprint(environmentID, nil, &serviceID), nil)
+		repo.EXPECT().GetServiceIconURI(mock.Anything, blueprint.ServiceTypeTerraform, serviceID).Return(strPtr("app://qovery-console/postgresql"), nil)
 
-	bp, err := newTestBlueprintService(repo).Get(context.Background(), blueprintID)
-	require.NoError(t, err)
-	assert.True(t, bp.LastApplyFailed())
+		bp, err := newTestBlueprintService(repo).Get(context.Background(), blueprintID)
+		require.NoError(t, err)
+		require.NotNil(t, bp.IconURI)
+		assert.Equal(t, "app://qovery-console/postgresql", *bp.IconURI)
+	})
+
+	t.Run("no service, no icon", func(t *testing.T) {
+		repo := mocks_test.NewBlueprintRepository(t)
+		repo.EXPECT().Get(mock.Anything, blueprintID).Return(testBlueprint(environmentID, nil, nil), nil)
+
+		bp, err := newTestBlueprintService(repo).Get(context.Background(), blueprintID)
+		require.NoError(t, err)
+		assert.Nil(t, bp.IconURI)
+	})
+
+	t.Run("icon read error", func(t *testing.T) {
+		repo := mocks_test.NewBlueprintRepository(t)
+		repo.EXPECT().Get(mock.Anything, blueprintID).Return(testBlueprint(environmentID, nil, &serviceID), nil)
+		repo.EXPECT().GetServiceIconURI(mock.Anything, blueprint.ServiceTypeTerraform, serviceID).Return(nil, errors.New("boom"))
+
+		bp, err := newTestBlueprintService(repo).Get(context.Background(), blueprintID)
+		assert.Nil(t, bp)
+		assert.ErrorContains(t, err, blueprint.ErrFailedToGetBlueprint.Error())
+	})
+}
+
+func TestBlueprintServiceGetVariableDefaults(t *testing.T) {
+	t.Parallel()
+	environmentID := uuid.NewString()
+	organizationID := uuid.NewString()
+	version := blueprint.CatalogVersion{Provider: "HELM", ServiceFamily: "redis", ServiceVersion: "8"}
+
+	t.Run("defaults of the catalog version in the environment's organization", func(t *testing.T) {
+		repo := mocks_test.NewBlueprintRepository(t)
+		repo.EXPECT().GetOrganizationID(mock.Anything, environmentID).Return(organizationID, nil)
+		repo.EXPECT().GetVariableDefaults(mock.Anything, organizationID, environmentID, version).Return(map[string]string{"memory_limit": "512Mi"}, nil)
+
+		defaults, err := newTestBlueprintService(repo).GetVariableDefaults(context.Background(), environmentID, version)
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"memory_limit": "512Mi"}, defaults)
+	})
+
+	t.Run("invalid environment id", func(t *testing.T) {
+		_, err := newTestBlueprintService(mocks_test.NewBlueprintRepository(t)).GetVariableDefaults(context.Background(), "not-a-uuid", version)
+		assert.ErrorContains(t, err, blueprint.ErrInvalidEnvironmentIDParam.Error())
+	})
+
+	t.Run("manifest read error", func(t *testing.T) {
+		repo := mocks_test.NewBlueprintRepository(t)
+		repo.EXPECT().GetOrganizationID(mock.Anything, environmentID).Return(organizationID, nil)
+		repo.EXPECT().GetVariableDefaults(mock.Anything, organizationID, environmentID, version).Return(nil, errors.New("boom"))
+
+		defaults, err := newTestBlueprintService(repo).GetVariableDefaults(context.Background(), environmentID, version)
+		assert.Nil(t, defaults)
+		assert.ErrorContains(t, err, blueprint.ErrFailedToGetDefaults.Error())
+	})
 }
 
 func TestBlueprintServiceResolveLatestTag(t *testing.T) {

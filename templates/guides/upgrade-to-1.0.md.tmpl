@@ -292,6 +292,24 @@ In 1.0 the refresh reads the value of non-secret `variables` from the API. A val
 
 A `MANAGED` database requires `instance_type`: a configuration that omits it now fails at plan time instead of at apply. A `CONTAINER` database that sets it gets a plan warning, because the Qovery API ignores the value and reports the type it derives from the cluster. Remove `instance_type` from `CONTAINER` databases.
 
+### `qovery_blueprint`: the refresh reads the API
+
+`qovery_blueprint` was released in 0.90.0. There, the refresh:
+
+- tracked only the declared `variables`, so a variable set from the Qovery Console stayed invisible and the next apply never reset it;
+- kept `blueprint` from the state, so a major version changed from the Console showed only as a `tag` difference;
+- kept `name`, `tag` and `variables` from the state whenever the last deploy had failed, including a deploy started from the Console;
+- took `icon_uri` from the configuration. A change after creation was applied without error, but the Qovery API kept the old icon.
+
+In 1.0:
+
+- The refresh reports every variable whose value differs from its catalog default. A variable set from the Console that the configuration omits shows up in `terraform plan` as a removal, and `terraform apply` resets it to the default. Removing a variable from the configuration plans the same reset. Secret values are still taken from the state, because the API does not return them.
+- `blueprint` is derived from the deployed tag. A major version changed from the Console shows up as a difference, and the spelling of the configuration is kept when it names the same version.
+- The last applied values are kept only while an apply made by Terraform waits for its retry.
+- `icon_uri` is read from the service the blueprint materialized, and changing it after creation is a plan error. To change the icon, change it from the Console, then set the same value in the configuration.
+
+Before the first apply on 1.0, declare the variables you set from the Console, and set `icon_uri` to the icon of the service if you changed it from the Console.
+
 ## Behaviour changes
 
 These changes need no configuration edit, but they can make `terraform plan` show differences that 0.x hid.

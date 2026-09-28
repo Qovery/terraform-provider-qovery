@@ -4,6 +4,7 @@ package qoveryapi
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -31,6 +32,12 @@ type recordedRequest struct {
 // newBlueprintQoveryAPIAnswering serves every request with status and records what was called.
 func newBlueprintQoveryAPIAnswering(t *testing.T, status int) (blueprint.Repository, func() []recordedRequest) {
 	t.Helper()
+	return newBlueprintQoveryAPIServing(t, status, "")
+}
+
+// newBlueprintQoveryAPIServing is newBlueprintQoveryAPIAnswering with body as the success response.
+func newBlueprintQoveryAPIServing(t *testing.T, status int, body string) (blueprint.Repository, func() []recordedRequest) {
+	t.Helper()
 	var (
 		mu       sync.Mutex
 		requests []recordedRequest
@@ -43,7 +50,9 @@ func newBlueprintQoveryAPIAnswering(t *testing.T, status int) (blueprint.Reposit
 		w.WriteHeader(status)
 		if status >= http.StatusBadRequest {
 			_, _ = w.Write([]byte(`{"message":"stub error"}`))
+			return
 		}
+		_, _ = w.Write([]byte(body))
 	}))
 	t.Cleanup(server.Close)
 
@@ -123,5 +132,122 @@ func TestBlueprintQoveryAPIDeleteService(t *testing.T) {
 		assert.ErrorIs(t, err, blueprint.ErrUnknownServiceType)
 		assert.False(t, existed)
 		assert.Empty(t, requests())
+	})
+}
+
+func TestBlueprintQoveryAPIGetServiceIconURI(t *testing.T) {
+	t.Parallel()
+	serviceID := uuid.NewString()
+	icon := "app://qovery-console/redis"
+
+	testCases := []struct {
+		name        string
+		serviceType blueprint.ServiceType
+		status      int
+		wantPath    string
+		wantIcon    *string
+		wantAPIErr  bool
+	}{
+		{name: "terraform service icon", serviceType: blueprint.ServiceTypeTerraform, status: http.StatusOK, wantPath: "/terraform/" + serviceID, wantIcon: &icon},
+		{name: "helm service icon", serviceType: blueprint.ServiceTypeHelm, status: http.StatusOK, wantPath: "/helm/" + serviceID, wantIcon: &icon},
+		{name: "service gone", serviceType: blueprint.ServiceTypeHelm, status: http.StatusNotFound, wantPath: "/helm/" + serviceID},
+		{name: "server error", serviceType: blueprint.ServiceTypeTerraform, status: http.StatusInternalServerError, wantPath: "/terraform/" + serviceID, wantAPIErr: true},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			body := terraformResponseJSON(t, icon)
+			if tc.serviceType == blueprint.ServiceTypeHelm {
+				body = helmResponseJSON(t, icon)
+			}
+			repo, requests := newBlueprintQoveryAPIServing(t, tc.status, body)
+
+			got, err := repo.GetServiceIconURI(context.Background(), tc.serviceType, serviceID)
+
+			assert.Equal(t, []recordedRequest{{method: http.MethodGet, path: tc.wantPath}}, requests())
+			if tc.wantAPIErr {
+				var apiErr *apierrors.APIError
+				require.ErrorAs(t, err, &apiErr)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tc.wantIcon, got)
+		})
+	}
+
+	t.Run("unknown service type calls nothing", func(t *testing.T) {
+		t.Parallel()
+		repo, requests := newBlueprintQoveryAPIAnswering(t, http.StatusOK)
+
+		_, err := repo.GetServiceIconURI(context.Background(), blueprint.ServiceType("JOB"), serviceID)
+
+		assert.ErrorIs(t, err, blueprint.ErrUnknownServiceType)
+		assert.Empty(t, requests())
+	})
+}
+
+func helmResponseJSON(t *testing.T, iconURI string) string {
+	t.Helper()
+	source := qovery.HelmResponseAllOfSourceOneOf1AsHelmResponseAllOfSource(&qovery.HelmResponseAllOfSourceOneOf1{
+		Repository: qovery.HelmSourceRepositoryResponse{
+			ChartName:    "redis",
+			ChartVersion: "1.0.0",
+			Repository:   qovery.HelmSourceRepositoryResponseRepository{Id: uuid.NewString(), Name: "catalog", Url: "https://charts.example.com"},
+		},
+	})
+	body, err := json.Marshal(qovery.HelmResponse{
+		Id:          uuid.NewString(),
+		Environment: qovery.ReferenceObject{Id: uuid.NewString()},
+		Name:        "redis",
+		Source:      source,
+		Arguments:   []string{},
+		IconUri:     iconURI,
+		ServiceType: qovery.SERVICETYPEENUM_HELM,
+	})
+	require.NoError(t, err)
+	return string(body)
+}
+
+func terraformResponseJSON(t *testing.T, iconURI string) string {
+	t.Helper()
+	service := minimalTerraformResponse()
+	service.IconUri = iconURI
+	service.ServiceType = qovery.SERVICETYPEENUM_TERRAFORM
+	body, err := json.Marshal(service)
+	require.NoError(t, err)
+	return string(body)
+}
+
+func TestBlueprintQoveryAPIGetVariableDefaults(t *testing.T) {
+	t.Parallel()
+	organizationID := uuid.NewString()
+	environmentID := uuid.NewString()
+	version := blueprint.CatalogVersion{Provider: "HELM", ServiceFamily: "redis", ServiceVersion: "8"}
+	manifest := `{"results":[
+		{"kind":"variable","name":"memory_limit","type":{"type":"string"},"required":false,"is_secret":false,"default_value":"512Mi"},
+		{"kind":"variable","name":"password","type":{"type":"string","min_length":10},"required":true,"is_secret":true,"default_value":null},
+		{"kind":"contextVariable","name":"region","source":"cluster.region","value":"eu-west-3"}
+	]}`
+
+	t.Run("variables with a default", func(t *testing.T) {
+		t.Parallel()
+		repo, requests := newBlueprintQoveryAPIServing(t, http.StatusOK, manifest)
+
+		defaults, err := repo.GetVariableDefaults(context.Background(), organizationID, environmentID, version)
+
+		require.NoError(t, err)
+		assert.Equal(t, map[string]string{"memory_limit": "512Mi"}, defaults)
+		assert.Equal(t, []recordedRequest{{method: http.MethodGet, path: "/organization/" + organizationID + "/blueprint/catalog/HELM/redis/8/manifest"}}, requests())
+	})
+
+	t.Run("catalog error", func(t *testing.T) {
+		t.Parallel()
+		repo, _ := newBlueprintQoveryAPIServing(t, http.StatusNotFound, "")
+
+		_, err := repo.GetVariableDefaults(context.Background(), organizationID, environmentID, version)
+
+		var apiErr *apierrors.APIError
+		require.ErrorAs(t, err, &apiErr)
 	})
 }

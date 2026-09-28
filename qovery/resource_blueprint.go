@@ -24,8 +24,9 @@ import (
 )
 
 var (
-	_ resource.ResourceWithConfigure  = &blueprintResource{}
-	_ resource.ResourceWithModifyPlan = blueprintResource{}
+	_ resource.ResourceWithConfigure   = &blueprintResource{}
+	_ resource.ResourceWithModifyPlan  = blueprintResource{}
+	_ resource.ResourceWithImportState = blueprintResource{}
 )
 
 // Private state key set while saved settings may not be deployed yet
@@ -62,7 +63,7 @@ func (r blueprintResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery blueprint resource: a service instantiated from the Qovery service catalog (e.g. a managed database). " +
 			"Qovery materializes the blueprint as a terraform or helm service, exposed as `service_id`. Every update is saved then applied, which redeploys that service. " +
-			"The API does not return `icon_uri`, `spec_overrides` nor secret values, so changes made to them outside Terraform are not detected.",
+			"The API returns neither `spec_overrides` nor the values of `secret_variables`, so changes made to them outside Terraform are not detected.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the blueprint.",
@@ -98,13 +99,18 @@ func (r blueprintResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"icon_uri": schema.StringAttribute{
-				Description: "Icon URI of the blueprint service. Defaults to `" + defaultBlueprintIconURI + "`.",
-				Optional:    true,
-				Computed:    true,
-				Default:     stringdefault.StaticString(defaultBlueprintIconURI),
+				Description: "Icon URI of the blueprint service, set when the blueprint is created. Defaults to `" + defaultBlueprintIconURI + "`. " +
+					"The Qovery API cannot change it afterwards, so a change is rejected at plan time: change the icon from the Qovery Console, then set the same value here.",
+				Optional: true,
+				Computed: true,
+				Default:  stringdefault.StaticString(defaultBlueprintIconURI),
+				PlanModifiers: []planmodifier.String{
+					RejectChangeAfterCreate(blueprintIconChangeReason),
+				},
 			},
 			"variables": schema.MapAttribute{
-				Description: "Blueprint variables, keyed by name. Variables left out keep their catalog default.",
+				Description: "Blueprint variables, keyed by name. Variables left out get their catalog default: " +
+					"a variable set outside Terraform to another value shows in the plan, and the next apply resets it.",
 				Optional:    true,
 				ElementType: types.StringType,
 			},
@@ -206,7 +212,7 @@ func (r blueprintResource) Create(ctx context.Context, req resource.CreateReques
 		resp.Diagnostics.Append(resp.Private.SetKey(ctx, blueprintPendingApplyKey, []byte("true"))...)
 	}
 
-	state, diags := convertDomainBlueprintToBlueprint(ctx, bp, plan, false)
+	state, diags := convertDomainBlueprintToBlueprint(ctx, bp, plan, false, nil)
 	resp.Diagnostics.Append(diags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
@@ -225,9 +231,29 @@ func (r blueprintResource) Read(ctx context.Context, req resource.ReadRequest, r
 
 	pending, diags := isPendingApply(ctx, req.Private)
 	resp.Diagnostics.Append(diags...)
-	newState, diags := convertDomainBlueprintToBlueprint(ctx, bp, state, pending)
+	// A pending retry keeps the last applied variables, so it has no use for the defaults
+	var defaults map[string]string
+	if !pending {
+		defaults = r.variableDefaults(ctx, bp, &resp.Diagnostics)
+	}
+	newState, diags := convertDomainBlueprintToBlueprint(ctx, bp, state, pending, defaults)
 	resp.Diagnostics.Append(diags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, newState)...)
+}
+
+// variableDefaults returns nil, with a warning, when the catalog cannot say which values are defaults
+func (r blueprintResource) variableDefaults(ctx context.Context, bp *blueprint.Blueprint, diags *diag.Diagnostics) map[string]string {
+	version, err := blueprint.CatalogVersionFromTag(bp.Tag)
+	if err == nil {
+		var defaults map[string]string
+		if defaults, err = r.service.GetVariableDefaults(ctx, bp.EnvironmentID.String(), version); err == nil {
+			return defaults
+		}
+	}
+	diags.AddAttributeWarning(path.Root("variables"),
+		"Cannot read the blueprint variable defaults, only declared variables are refreshed",
+		"Variables set outside Terraform to a value other than their default are not detected: "+err.Error())
+	return nil
 }
 
 func (r blueprintResource) Update(ctx context.Context, req resource.UpdateRequest, resp *resource.UpdateResponse) {
@@ -265,7 +291,7 @@ func (r blueprintResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 	resp.Diagnostics.Append(resp.Private.SetKey(ctx, blueprintPendingApplyKey, nil)...)
 
-	newState, diags := convertDomainBlueprintToBlueprint(ctx, bp, plan, false)
+	newState, diags := convertDomainBlueprintToBlueprint(ctx, bp, plan, false, nil)
 	resp.Diagnostics.Append(diags...)
 	resp.Diagnostics.Append(resp.State.Set(ctx, newState)...)
 }
@@ -282,6 +308,10 @@ func (r blueprintResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 	resp.State.RemoveResource(ctx)
+}
+
+func (r blueprintResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
 func (r blueprintResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {

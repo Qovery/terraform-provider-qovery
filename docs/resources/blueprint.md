@@ -1,6 +1,6 @@
 # qovery_blueprint (Resource)
 
-Provides a Qovery blueprint resource: a service instantiated from the Qovery service catalog (e.g. a managed database). Qovery materializes the blueprint as a terraform or helm service, exposed as `service_id`. Every update is saved then applied, which redeploys that service. The API does not return `icon_uri`, `spec_overrides` nor secret values, so changes made to them outside Terraform are not detected.
+Provides a Qovery blueprint resource: a service instantiated from the Qovery service catalog (e.g. a managed database). Qovery materializes the blueprint as a terraform or helm service, exposed as `service_id`. Every update is saved then applied, which redeploys that service. The API returns neither `spec_overrides` nor the values of `secret_variables`, so changes made to them outside Terraform are not detected.
 
 
 ## Example
@@ -46,10 +46,10 @@ resource "qovery_blueprint" "my_postgres" {
 ### Optional
 
 - `deploy` (Boolean) Whether to deploy the service on creation. Defaults to `true`. Later changes to any other attribute redeploy the service; changing `deploy` alone does not.
-- `icon_uri` (String) Icon URI of the blueprint service. Defaults to `app://qovery-console/terraform`.
+- `icon_uri` (String) Icon URI of the blueprint service, set when the blueprint is created. Defaults to `app://qovery-console/terraform`. The Qovery API cannot change it afterwards, so a change is rejected at plan time: change the icon from the Qovery Console, then set the same value here.
 - `secret_variables` (Map of String, Sensitive) Secret blueprint variables, keyed by name. The API never returns their values.
 - `spec_overrides` (Attributes) Overrides of the engine settings of the blueprint manifest. (see [below for nested schema](#nestedatt--spec_overrides))
-- `variables` (Map of String) Blueprint variables, keyed by name. Variables left out keep their catalog default.
+- `variables` (Map of String) Blueprint variables, keyed by name. Variables left out get their catalog default: a variable set outside Terraform to another value shows in the plan, and the next apply resets it.
 
 ### Read-Only
 
@@ -71,3 +71,10 @@ Optional:
 - `ram` (String) Memory of the apply job pod, e.g. `512Mi`.
 - `storage` (String) Ephemeral storage of the apply job pod, e.g. `1Gi`.
 - `timeout` (Number) Maximum duration in seconds of an apply job.
+## Import
+```shell
+# Import uses the blueprint ID, which the Helm or Terraform service it materialized reports as blueprint_id.
+# The API returns neither the values of secret_variables nor spec_overrides: they stay null in the state after an import,
+# so the first apply writes the values of the configuration and redeploys the service.
+terraform import qovery_blueprint.my_postgres "<blueprint_id>"
+```

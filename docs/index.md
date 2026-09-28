@@ -91,6 +91,7 @@ provider "qovery" {
 | `qovery_helm` | Manages Helm chart deployments |
 | `qovery_terraform_service` | Manages Terraform service deployments |
 | `qovery_database` | Manages databases |
+| `qovery_blueprint` | Manages services instantiated from the Qovery service catalog |
 
 ### Configuration
 
