@@ -203,13 +203,13 @@ func (d databaseDataSource) Schema(_ context.Context, _ datasource.SchemaRequest
 			"annotations_group_ids": schema.SetAttribute{
 				Description:         "List of annotations group ids.",
 				MarkdownDescription: "List of annotations group ids.",
-				Optional:            true,
+				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"labels_group_ids": schema.SetAttribute{
 				Description:         "List of labels group ids.",
 				MarkdownDescription: "List of labels group ids.",
-				Optional:            true,
+				Computed:            true,
 				ElementType:         types.StringType,
 			},
 		},
@@ -231,7 +231,10 @@ func (d databaseDataSource) Read(ctx context.Context, req datasource.ReadRequest
 		return
 	}
 
-	state := convertResponseToDatabase(ctx, data, database)
+	// Group ids report the API value; a data source has no plan to match, so none reads as [].
+	data.AnnotationsGroupIds = emptyStringSet()
+	data.LabelsGroupIds = emptyStringSet()
+	state := convertResponseToDatabase(data, database)
 	tflog.Trace(ctx, "read database", map[string]any{"database_id": state.Id.ValueString()})
 
 	// Set state

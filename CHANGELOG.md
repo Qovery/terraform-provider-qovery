@@ -35,6 +35,53 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   deletes the remaining routes. Import and the data source report the routes and labels groups
   attached to the cluster. Add the routes and labels groups you manage from the Console to
   the configuration before upgrading. (QOV-2029)
+- **`qovery_application`, `qovery_container`, `qovery_job`, `qovery_database`**:
+  `labels_group_ids` and `annotations_group_ids` are managed as a whole. The refresh always
+  reads the API, so a group attached or detached from the Console shows up in `terraform plan`
+  even when the attribute is omitted, and the next apply reverts it. 0.x ignored such a group
+  and detached it on the next update without showing it in the plan. Omitting the attribute
+  means no group: removing it from the configuration plans the detach. Import records the
+  attached groups. In the four data sources both attributes are now read-only and report the
+  groups attached to the service; remove them from data source configurations. Add the groups
+  you attach from the Console to the configuration before upgrading. (QOV-2326)
+- **`qovery_application`, `qovery_container`, `qovery_job`, `qovery_helm`,
+  `qovery_environment`, `qovery_project`**: the `description` of environment variables,
+  aliases, overrides, files, secrets and secret files is read from the API. A description set
+  from the Console now shows up in `terraform plan`, and the next apply clears it when the
+  configuration omits it. 0.x kept any description the state did not hold out of the state.
+  Import and the data sources report the descriptions. Secret values, and the mount path of
+  secret files where the API does not return it, are still taken from the state. Add the
+  descriptions you set from the Console to the configuration before upgrading. (QOV-2326)
+- **`qovery_application`, `qovery_container`, `qovery_job`, `qovery_helm`, `qovery_database`**:
+  omitted service attributes plan the Qovery default instead of keeping the last value:
+  `icon_uri` (the icon of the service type), `auto_deploy` (`true`; `false` on `qovery_helm`,
+  the value 0.x sent), `auto_preview` (`false`), `ephemeral_storage` (`0`, none),
+  `ports.name` (`p<internal_port>`), `ports.protocol` (`HTTP`), the `custom_domains` flags
+  `generate_certificate` and `use_cdn` (`false`), and on `qovery_job`
+  `schedule.lifecycle_type` (`GENERIC` for a lifecycle job) and
+  `source.docker.git_repository.root_path` (`/`, and `""` is now rejected). The refresh reads
+  the API, so a value changed from the Console shows up in `terraform plan` and the next apply
+  reverts it, and removing one of these attributes from the configuration plans the reset. 0.x
+  kept such values out of the plan. Declare the values you set from the Console before
+  upgrading. (QOV-2327)
+- **`qovery_application`, `qovery_container`, `qovery_job`, `qovery_helm`**: `arguments` on
+  applications and containers, the four `schedule` entrypoints of `qovery_job` and both
+  `git_token_id` of `qovery_helm` are Optional only: omitting one means none, so an argument
+  list, entrypoint or git token set from the Console now shows up in `terraform plan` as a
+  removal. The state upgrade turns the empty `arguments` list 0.x stored into null, so an
+  unchanged configuration plans nothing. (QOV-2327)
+- **`qovery_terraform_service`**: the refresh reads the value of non-secret `variables` from
+  the API, so a value changed from the Console shows up in `terraform plan`. 0.x kept the
+  state value. Secret values are still taken from the state, because the API does not return
+  them. (QOV-2327)
+- **`qovery_database`**: a `MANAGED` database without `instance_type` now fails at plan time
+  instead of at apply, and a `CONTAINER` database that sets it gets a warning, because the API
+  ignores it there. (QOV-2327)
+- **`qovery_helm`, `qovery_terraform_service`, `qovery_job`**: changing `blueprint_id`, or the
+  `schedule.lifecycle_type` of a job, after creation is a plan error. The API records a
+  blueprint only on create and rejects a lifecycle type change, so 0.x planned the change and
+  then failed at apply. A job created with a lifecycle type other than `GENERIC` must declare
+  it, otherwise the plan fails on the reset to the default. (QOV-2327)
 
 ### Added
 
@@ -62,6 +109,16 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_cluster`: an apply no longer deletes a GPU node pool created from the Console while
   the plan shows nothing. The pool now shows in `terraform plan` as `gpu_override` being
   removed; declare the block to keep it. (QOV-2318)
+- `qovery_application`: changing or removing the `description` of a secret, secret alias or
+  secret override now reaches the API. The update skipped a change that touched only the
+  description and otherwise resent the previous description, so the apply failed with an
+  inconsistent result. (QOV-2326)
+- `qovery_helm`: a port declared without `protocol` no longer fails the apply; it defaults
+  to `HTTP`. `values_override.set = {}` with `set_string` unset no longer fails with an
+  inconsistent result. (QOV-2327)
+- `qovery_application`, `qovery_helm`: an unrelated change no longer resets
+  `git_repository.branch` to the repository's default branch when the configuration omits
+  it; the current branch is kept, as documented in the upgrade guide. (QOV-2327)
 
 ## [0.89.0] - 2026-09-23
 

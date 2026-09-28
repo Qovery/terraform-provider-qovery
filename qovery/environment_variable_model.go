@@ -6,7 +6,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
@@ -211,11 +210,7 @@ func (e EnvironmentVariable) toDiffDeleteRequest() variable.DiffDeleteRequest {
 	}
 }
 
-func fromEnvironmentVariable(v *qovery.EnvironmentVariable, currentVariable *EnvironmentVariable) EnvironmentVariable {
-	description := FromNullableString(v.Description)
-	if currentVariable != nil && currentVariable.Description.IsNull() {
-		description = basetypes.NewStringNull()
-	}
+func fromEnvironmentVariable(v *qovery.EnvironmentVariable, description types.String) EnvironmentVariable {
 	return EnvironmentVariable{
 		Id:          FromString(v.Id),
 		Key:         FromString(v.Key),
@@ -230,7 +225,7 @@ func fromEnvironmentVariableList(vars []*qovery.EnvironmentVariable, scope qover
 		if v.Scope != scope || string(v.VariableType) != variableType {
 			continue
 		}
-		list = append(list, fromEnvironmentVariable(v, nil))
+		list = append(list, fromEnvironmentVariable(v, FromNullableString(v.Description)))
 	}
 
 	if len(list) == 0 {
@@ -246,8 +241,10 @@ func fromEnvironmentVariableListWithNullableInitialState(ctx context.Context, in
 		if v.Scope != scope || string(v.VariableType) != variableType {
 			continue
 		}
-		currentVariable := variableMap[v.Key]
-		list = append(list, fromEnvironmentVariable(v, &currentVariable))
+		// The API description always wins, so a description set in the Console shows in the plan.
+		// A key absent from the prior reads as a null description.
+		description := planAwareOptionalString(v.GetDescription(), variableMap[v.Key].Description)
+		list = append(list, fromEnvironmentVariable(v, description))
 	}
 
 	// Return nil only if list is empty and original state is nil
@@ -299,7 +296,7 @@ func convertDomainVariablesToEnvironmentVariableList(vars variable.Variables) En
 		if v.Scope != variable.ScopeBuiltIn || v.Type != "BUILT_IN" {
 			continue
 		}
-		list = append(list, convertDomainVariableToEnvironmentVariable(v, nil))
+		list = append(list, convertDomainVariableToEnvironmentVariable(v, FromString(v.Description)))
 	}
 
 	if len(list) == 0 {
@@ -316,8 +313,10 @@ func convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx
 		if v.Scope != scope || v.Type != variableType {
 			continue
 		}
-		currentVariable := variableMapByKey[v.Key]
-		list = append(list, convertDomainVariableToEnvironmentVariable(v, &currentVariable))
+		// The API description always wins, so a description set in the Console shows in the plan.
+		// A key absent from the prior reads as a null description.
+		description := planAwareOptionalString(v.Description, variableMapByKey[v.Key].Description)
+		list = append(list, convertDomainVariableToEnvironmentVariable(v, description))
 	}
 
 	// Return nil only if list is empty and original state is nil
@@ -338,11 +337,7 @@ func buildVariableMap(ctx context.Context, initialState types.Set) map[string]En
 	return variableMapByKey
 }
 
-func convertDomainVariableToEnvironmentVariable(v variable.Variable, variableInState *EnvironmentVariable) EnvironmentVariable {
-	description := FromString(v.Description)
-	if variableInState != nil && variableInState.Description.IsNull() {
-		description = basetypes.NewStringNull()
-	}
+func convertDomainVariableToEnvironmentVariable(v variable.Variable, description types.String) EnvironmentVariable {
 	return EnvironmentVariable{
 		Id:          FromString(v.ID.String()),
 		Key:         FromString(v.Key),

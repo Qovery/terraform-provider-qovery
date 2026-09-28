@@ -3,8 +3,6 @@ package qovery
 import (
 	"context"
 
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
-
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
@@ -70,7 +68,7 @@ func (ss SecretList) diff(old SecretList) client.SecretsDiff {
 
 	for _, s := range old {
 		if updatedVar := ss.find(ToString(s.Key)); updatedVar != nil {
-			if updatedVar.Value != s.Value {
+			if updatedVar.Value != s.Value || updatedVar.Description != s.Description {
 				diff.Update = append(diff.Update, s.toUpdateRequest(*updatedVar))
 			}
 		} else {
@@ -160,7 +158,7 @@ func (s Secret) toUpdateRequest(new Secret) client.SecretUpdateRequest {
 		SecretEditRequest: qovery.SecretEditRequest{
 			Key:         ToString(s.Key),
 			Value:       ToStringPointer(new.Value),
-			Description: *qovery.NewNullableString(ToStringPointer(s.Description)),
+			Description: *qovery.NewNullableString(ToStringPointer(new.Description)),
 		},
 	}
 }
@@ -188,19 +186,20 @@ func (s Secret) toDiffDeleteRequest() secret.DiffDeleteRequest {
 	}
 }
 
+// fromSecret converts an API secret. state is the prior entry for this key, nil when there is none.
 func fromSecret(v *qovery.Secret, state *Secret) Secret {
-	sec := Secret{
-		Id:          FromString(v.Id),
-		Key:         FromString(v.Key),
-		Description: FromNullableString(v.Description),
-	}
+	var prior Secret
 	if state != nil {
-		sec.Value = state.Value
-		if state.Description.IsNull() {
-			sec.Description = basetypes.NewStringNull()
-		}
+		prior = *state
 	}
-	return sec
+	return Secret{
+		Id:  FromString(v.Id),
+		Key: FromString(v.Key),
+		// The API never returns secret values: keep the prior one (null on import).
+		Value: prior.Value,
+		// The API description always wins, so a description set in the Console shows in the plan.
+		Description: planAwareOptionalString(v.GetDescription(), prior.Description),
+	}
 }
 
 func fromSecretList(initialState types.Set, secrets []*qovery.Secret, scope qovery.APIVariableScopeEnum, secretType string) SecretList {
@@ -251,19 +250,21 @@ func convertDomainSecretsToSecretList(initialState types.Set, secrets secret.Sec
 	return list
 }
 
+// convertDomainSecretToSecret converts a domain secret. state is the prior entry for this key, nil
+// when there is none.
 func convertDomainSecretToSecret(s secret.Secret, state *Secret) Secret {
-	sec := Secret{
-		Id:          FromString(s.ID.String()),
-		Key:         FromString(s.Key),
-		Description: FromString(s.Description),
-	}
+	var prior Secret
 	if state != nil {
-		sec.Value = state.Value
-		if state.Description.IsNull() {
-			sec.Description = basetypes.NewStringNull()
-		}
+		prior = *state
 	}
-	return sec
+	return Secret{
+		Id:  FromString(s.ID.String()),
+		Key: FromString(s.Key),
+		// The API never returns secret values: keep the prior one (null on import).
+		Value: prior.Value,
+		// The API description always wins, so a description set in the Console shows in the plan.
+		Description: planAwareOptionalString(s.Description, prior.Description),
+	}
 }
 
 func toSecret(v types.Object) Secret {

@@ -179,12 +179,14 @@ resource "qovery_helm" "my_helm_from_git" {
   - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.
   - `terraform import` records every setting whose value differs from the default.
 - `arguments` (List of String) Helm CLI arguments passed to the helm command (e.g. `--wait`, `--atomic`, `--debug`).
-- `auto_deploy` (Boolean) Specify if the helm service will be automatically updated on every new commit on the branch.
+- `auto_deploy` (Boolean) Specify if the helm service will be automatically updated on every new commit on the branch. Unlike the other services, it defaults to `false`: every 0.x release sent `false` when the attribute was omitted.
+	- Default: `false`.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this helm.
-- `blueprint_id` (String) The blueprint ID the helm service has been created from.
+	- Default: `false`.
+- `blueprint_id` (String) The blueprint ID the helm service has been created from. It can only be set when the service is created: the Qovery API ignores later changes, so a change is rejected at plan time, and removing the attribute keeps the recorded value.
 - `custom_domains` (Attributes Set) List of custom domains linked to this helm. (see [below for nested schema](#nestedatt--custom_domains))
 - `deployment_restrictions` (Attributes Set) List of deployment restrictions. (see [below for nested schema](#nestedatt--deployment_restrictions))
-- `deployment_stage_id` (String) Id of the deployment stage. Controls the order of service deployment within an environment.
+- `deployment_stage_id` (String) Id of the deployment stage. Controls the order of service deployment within an environment. Removing the attribute keeps the service in its current stage: the Qovery API attaches every service to a deployment stage and cannot detach it.
 - `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_overrides))
@@ -192,6 +194,7 @@ resource "qovery_helm" "my_helm_from_git" {
 - `external_secret_files` (Attributes Set) List of external secret files linked to this helm. External secret files reference upstream secrets (e.g. from AWS Secrets Manager) and are mounted as files at a given path inside the container. (see [below for nested schema](#nestedatt--external_secret_files))
 - `external_secrets` (Attributes Set) List of external secrets linked to this helm. External secrets reference upstream secrets (e.g. from AWS Secrets Manager) via a secret manager access configuration. (see [below for nested schema](#nestedatt--external_secrets))
 - `icon_uri` (String) Icon URI representing the helm service.
+	- Default: `app://qovery-console/helm`.
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
 - `ports` (Attributes Map) List of ports linked to this helm. (see [below for nested schema](#nestedatt--ports))
 - `secret_aliases` (Attributes Set) List of secret aliases linked to this helm. (see [below for nested schema](#nestedatt--secret_aliases))
@@ -224,7 +227,7 @@ Required:
 
 Optional:
 
-- `branch` (String) Git branch to use for the Helm chart source.
+- `branch` (String) Git branch to use for the Helm chart source. Removing the attribute keeps the current branch: an omitted branch means the repository's default branch, which is only known once the API resolves it. Changing the repository URL while the branch is omitted resolves the new repository's default branch.
 - `git_token_id` (String) Git token ID for accessing a private repository (refers to a `qovery_git_token` resource).
 - `root_path` (String) Root path in the git repository where the Helm chart is located.
 
@@ -292,7 +295,7 @@ Required:
 
 Optional:
 
-- `use_cdn` (Boolean) Indicates if the custom domain is behind a CDN (i.e Cloudflare).
+- `use_cdn` (Boolean) Indicates if the custom domain is behind a CDN (i.e Cloudflare). Default: `false`.
 This will condition the way we are checking CNAME before & during a deployment:
  * If `true` then we only check the domain points to an IP
  * If `false` then we check that the domain resolves to the correct service Load Balancer

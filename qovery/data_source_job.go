@@ -729,13 +729,13 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 			"annotations_group_ids": schema.SetAttribute{
 				Description:         "List of annotations group IDs.",
 				MarkdownDescription: "List of annotations group IDs.",
-				Optional:            true,
+				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"labels_group_ids": schema.SetAttribute{
 				Description:         "List of labels group IDs.",
 				MarkdownDescription: "List of labels group IDs.",
-				Optional:            true,
+				Computed:            true,
 				ElementType:         types.StringType,
 			},
 		},
@@ -758,6 +758,9 @@ func (d jobDataSource) Read(ctx context.Context, req datasource.ReadRequest, res
 		return
 	}
 
+	// Group ids report the API value; a data source has no plan to match, so none reads as [].
+	data.AnnotationsGroupIds = emptyStringSet()
+	data.LabelssGroupIds = emptyStringSet()
 	state := convertDomainJobToJob(ctx, data, cont)
 	tflog.Trace(ctx, "read job", map[string]any{"job_id": state.ID.ValueString()})
 

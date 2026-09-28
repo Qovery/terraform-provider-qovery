@@ -35,7 +35,6 @@ output "database_password" {
 - `accessibility` (String) Accessibility of the database.
 	- Can be: `PRIVATE`, `PUBLIC`.
 	- Default: `PUBLIC`.
-- `annotations_group_ids` (Set of String) List of annotations group ids.
 - `cpu` (Number) CPU of the database in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 250`.
 	- Default: `250`.
@@ -43,7 +42,6 @@ output "database_password" {
 - `icon_uri` (String) Icon URI representing the database.
 - `instance_type` (String) Instance type of the database.
 - `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
-- `labels_group_ids` (Set of String) List of labels group ids.
 - `memory` (Number) RAM of the database in MB [1024MB = 1GB].
 	- Must be: `>= 100`.
 	- Default: `256`.
@@ -53,9 +51,11 @@ output "database_password" {
 
 ### Read-Only
 
+- `annotations_group_ids` (Set of String) List of annotations group ids.
 - `environment_id` (String) Id of the environment.
 - `external_host` (String) The database external FQDN host. Only available when `accessibility = "PUBLIC"`.
 - `internal_host` (String) The database internal host. Use this to connect from services within the same environment (recommended over external host).
+- `labels_group_ids` (Set of String) List of labels group ids.
 - `login` (String) The login to connect to your database.
 - `mode` (String) Mode of the database [NOTE: can't be updated after creation].
 	- Can be: `CONTAINER`, `MANAGED`.

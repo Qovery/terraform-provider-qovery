@@ -245,6 +245,41 @@ func setFromAPIElements(elemType attr.Type, prior types.Set, elements []attr.Val
 	return types.SetValueMust(elemType, elements)
 }
 
+// emptyStringSet is the prior a data source passes to stringSetFromAPI. A data source has no
+// plan to match, so it reports an empty API value as [].
+func emptyStringSet() types.Set {
+	return types.SetValueMust(types.StringType, []attr.Value{})
+}
+
+// stringSetFromAPI is setFromAPIElements for a set of strings, such as labels_group_ids.
+func stringSetFromAPI(prior types.Set, values []string) types.Set {
+	elements := make([]attr.Value, 0, len(values))
+	for _, v := range values {
+		elements = append(elements, types.StringValue(v))
+	}
+	return setFromAPIElements(types.StringType, prior, elements)
+}
+
+// stringListFromAPI is the list version of stringSetFromAPI, for an Optional (not Computed)
+// list of strings such as arguments: the API value always wins, and an empty one takes the
+// shape of prior.
+func stringListFromAPI(prior types.List, values []string) types.List {
+	if len(values) == 0 && prior.IsNull() {
+		return types.ListNull(types.StringType)
+	}
+	elements := make([]attr.Value, 0, len(values))
+	for _, v := range values {
+		elements = append(elements, types.StringValue(v))
+	}
+	return types.ListValueMust(types.StringType, elements)
+}
+
+// emptyStringList is the prior a data source passes to stringListFromAPI. A data source has no
+// plan to match, so it reports an empty API value as [].
+func emptyStringList() types.List {
+	return types.ListValueMust(types.StringType, []attr.Value{})
+}
+
 func FromStringSet(array []string) types.Set {
 	if array == nil {
 		return basetypes.NewSetNull(types.StringType)

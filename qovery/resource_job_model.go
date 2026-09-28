@@ -43,7 +43,7 @@ func JobSourceFromDomainJobSource(j job.Source) JobSource {
 			GitRepository: GitRepository{
 				Url:        FromString(j.Docker.GitRepository.Url),
 				Branch:     FromStringPointer(j.Docker.GitRepository.Branch),
-				RootPath:   FromStringPointer(j.Docker.GitRepository.RootPath),
+				RootPath:   jobRootPathFromAPI(j.Docker.GitRepository.RootPath),
 				GitTokenId: FromStringPointer(j.Docker.GitRepository.GitTokenId),
 			},
 			DockerFilePath:         FromStringPointer(j.Docker.DockerFilePath),
@@ -65,6 +65,18 @@ func JobSourceFromDomainJobSource(j job.Source) JobSource {
 		Docker: dkr,
 		Image:  img,
 	}
+}
+
+// jobRootPathFromAPI reads source.docker.git_repository.root_path. The engine builds "" and "/"
+// from the same context with the same image tag (engine lib-engine/src/io_models/mod.rs), so an
+// API "" reads as "/", the schema default, without depending on the state: writing "/" back to
+// q-core would only mark the job out of date. The schema rejects "" in the configuration, which
+// this mapping would otherwise report as an inconsistent result after apply.
+func jobRootPathFromAPI(v *string) types.String {
+	if v == nil || *v == "" {
+		return types.StringValue(jobRootPathDefault)
+	}
+	return FromString(*v)
 }
 
 type JobSchedule struct {
@@ -435,7 +447,7 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		IconUri:                      FromString(job.IconUri),
 		CPU:                          FromInt32(job.CPU),
 		Memory:                       FromInt32(job.Memory),
-		EphemeralStorage:             FromInt32Pointer(job.EphemeralStorage),
+		EphemeralStorage:             ephemeralStorageFromAPI(job.EphemeralStorage),
 		MaxNbRestart:                 FromInt32(job.MaxNbRestart),
 		MaxDurationSeconds:           FromInt32(job.MaxDurationSeconds),
 		AutoPreview:                  FromBool(job.AutoPreview),
@@ -459,8 +471,8 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		AdvancedSettingsJson:         FromString(job.AdvancedSettingsJson),
 		AutoDeploy:                   FromBoolPointer(job.AutoDeploy),
 		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, job.JobDeploymentRestrictions),
-		AnnotationsGroupIds:          fromAnnotationsGroupList(ctx, state.AnnotationsGroupIds, job.AnnotationsGroupIds),
-		LabelssGroupIds:              fromLabelsGroupList(ctx, state.LabelssGroupIds, job.LabelsGroupIds),
+		AnnotationsGroupIds:          stringSetFromAPI(state.AnnotationsGroupIds, job.AnnotationsGroupIds),
+		LabelssGroupIds:              stringSetFromAPI(state.LabelssGroupIds, job.LabelsGroupIds),
 		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(job.ExternalSecrets, state.ExternalSecrets, variable.ScopeJob).toTerraformSet(ctx),
 		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(job.ExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeJob).toTerraformSet(ctx),
 	}

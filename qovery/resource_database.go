@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -25,8 +27,9 @@ import (
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
 var (
-	_ resource.ResourceWithConfigure   = &databaseResource{}
-	_ resource.ResourceWithImportState = databaseResource{}
+	_ resource.ResourceWithConfigure      = &databaseResource{}
+	_ resource.ResourceWithImportState    = databaseResource{}
+	_ resource.ResourceWithValidateConfig = databaseResource{}
 )
 
 var (
@@ -113,10 +116,11 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Required:            true,
 			},
 			"icon_uri": schema.StringAttribute{
-				Description:         "Icon URI representing the database.",
-				MarkdownDescription: "Icon URI representing the database. Used in the Qovery console UI.",
+				Description:         descriptions.NewStringDefaultDescription("Icon URI representing the database.", databaseIconURIDefault),
+				MarkdownDescription: "Icon URI representing the database. Used in the Qovery console UI. Default: `" + databaseIconURIDefault + "`.",
 				Optional:            true,
 				Computed:            true,
+				Default:             stringdefault.StaticString(databaseIconURIDefault),
 			},
 			"type": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -173,12 +177,18 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"instance_type": schema.StringAttribute{
-				Description: "Instance type of the database.",
+				Description: "Instance type of the database. Required when mode is MANAGED. " +
+					"Not applicable in CONTAINER mode, where the Qovery API ignores it and reports the type it derives.",
 				MarkdownDescription: "Instance type of the database. " +
-					"Required when `mode = \"MANAGED\"`. Not applicable for `CONTAINER` mode. " +
+					"Required when `mode = \"MANAGED\"`. Not applicable in `CONTAINER` mode, where the Qovery API ignores it and reports the type it derives. " +
 					"The available instance types depend on your cloud provider (e.g. `db.t3.micro` for AWS RDS).",
 				Optional: true,
+				// Computed because the Qovery API derives the value of a CONTAINER database;
+				// ValidateConfig requires it for MANAGED.
 				Computed: true,
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"cpu": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
@@ -235,10 +245,12 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Computed:            true,
 			},
 			"deployment_stage_id": schema.StringAttribute{
-				Description:         "Id of the deployment stage.",
-				MarkdownDescription: "Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.",
+				Description:         "Id of the deployment stage." + deploymentStageIDRemovalNote,
+				MarkdownDescription: "Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment." + deploymentStageIDRemovalNote,
 				Optional:            true,
 				Computed:            true,
+				// Documented exception to the config-is-source-of-truth rule: q-core attaches
+				// every service to a stage and has no detach, so removal keeps the current stage.
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -268,13 +280,13 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 			},
 			"annotations_group_ids": schema.SetAttribute{
 				Description:         "List of annotations group ids",
-				MarkdownDescription: "List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the database pods (only for `CONTAINER` mode).",
+				MarkdownDescription: "List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the database pods (only for `CONTAINER` mode). Terraform manages the whole list: annotations groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every annotations group.",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
 			"labels_group_ids": schema.SetAttribute{
 				Description:         "List of labels group ids",
-				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the database pods (only for `CONTAINER` mode).",
+				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the database pods (only for `CONTAINER` mode). Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group.",
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
@@ -304,7 +316,7 @@ func (r databaseResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Initialize state values
-	state := convertResponseToDatabase(ctx, plan, database)
+	state := convertResponseToDatabase(plan, database)
 	tflog.Trace(ctx, "created database", map[string]any{"database_id": state.Id.ValueString()})
 
 	// Set state
@@ -327,7 +339,7 @@ func (r databaseResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	// Refresh state values
-	state = convertResponseToDatabase(ctx, state, database)
+	state = convertResponseToDatabase(state, database)
 	tflog.Trace(ctx, "read database", map[string]any{"database_id": state.Id.ValueString()})
 
 	// Set state
@@ -357,7 +369,7 @@ func (r databaseResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Update state values
-	state = convertResponseToDatabase(ctx, plan, database)
+	state = convertResponseToDatabase(plan, database)
 	tflog.Trace(ctx, "updated database", map[string]any{"database_id": state.Id.ValueString()})
 
 	// Set state
@@ -389,4 +401,45 @@ func (r databaseResource) Delete(ctx context.Context, req resource.DeleteRequest
 // ImportState imports a qovery database resource using its id
 func (r databaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+// ValidateConfig checks instance_type against the mode: q-core requires it for a MANAGED
+// database and ignores it for a CONTAINER database, whose type it derives.
+func (r databaseResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var mode, instanceType types.String
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("mode"), &mode)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("instance_type"), &instanceType)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	resp.Diagnostics.Append(validateDatabaseInstanceType(mode, instanceType)...)
+}
+
+func validateDatabaseInstanceType(mode, instanceType types.String) diag.Diagnostics {
+	var diags diag.Diagnostics
+	if mode.IsNull() || mode.IsUnknown() {
+		return diags
+	}
+
+	switch mode.ValueString() {
+	case string(qovery.DATABASEMODEENUM_MANAGED):
+		if instanceType.IsNull() {
+			diags.AddAttributeError(
+				path.Root("instance_type"),
+				"Missing instance_type",
+				"A MANAGED database requires instance_type: the Qovery API rejects a MANAGED database without one. "+
+					"Set it to an instance type of your cloud provider, for example db.t3.micro on AWS.",
+			)
+		}
+	case string(qovery.DATABASEMODEENUM_CONTAINER):
+		if !instanceType.IsNull() {
+			diags.AddAttributeWarning(
+				path.Root("instance_type"),
+				"instance_type is ignored for a CONTAINER database",
+				"The Qovery API ignores instance_type for a CONTAINER database and reports the type it derives from the cluster. "+
+					"Remove instance_type from the configuration.",
+			)
+		}
+	}
+	return diags
 }

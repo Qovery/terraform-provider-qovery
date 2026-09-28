@@ -781,13 +781,13 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 			"annotations_group_ids": schema.SetAttribute{
 				Description:         "List of annotations group ids.",
 				MarkdownDescription: "List of annotations group ids.",
-				Optional:            true,
+				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"labels_group_ids": schema.SetAttribute{
 				Description:         "List of labels group ids.",
 				MarkdownDescription: "List of labels group ids.",
-				Optional:            true,
+				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"docker_target_build_stage": schema.StringAttribute{
@@ -815,6 +815,11 @@ func (d applicationDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
+	// Group ids and arguments report the API value; a data source has no plan to match, so none
+	// reads as [].
+	data.AnnotationsGroupIds = emptyStringSet()
+	data.LabelsGroupIds = emptyStringSet()
+	data.Arguments = emptyStringList()
 	state := convertResponseToApplication(ctx, data, application)
 	tflog.Trace(ctx, "read application", map[string]any{"application_id": state.Id.ValueString()})
 

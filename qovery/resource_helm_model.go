@@ -399,7 +399,7 @@ func HelmValuesOverrideFromDomainHelmValuesOverride(ctx context.Context, h helm.
 		helmValuesOverrideSetString = convertSetToHelmValuesOverrideSet(ctx, h.SetString, nil)
 		helmValuesOverrideSetJson = convertSetToHelmValuesOverrideSet(ctx, h.SetJson, nil)
 	} else {
-		helmValuesOverrideSet = convertSetToHelmValuesOverrideSet(ctx, h.Set, &state.HelmValuesOverrideSetString)
+		helmValuesOverrideSet = convertSetToHelmValuesOverrideSet(ctx, h.Set, &state.HelmValuesOverrideSet)
 		helmValuesOverrideSetString = convertSetToHelmValuesOverrideSet(ctx, h.SetString, &state.HelmValuesOverrideSetString)
 		helmValuesOverrideSetJson = convertSetToHelmValuesOverrideSet(ctx, h.SetJson, &state.HelmValuesOverrideSetJson)
 	}
@@ -410,16 +410,11 @@ func HelmValuesOverrideFromDomainHelmValuesOverride(ctx context.Context, h helm.
 	// dereference it.
 	var gitRepository *HelmValuesGitRepository
 	if h.File != nil && h.File.GitRepository != nil {
-		gitToken := ""
-		if h.File.GitRepository.GitToken != nil {
-			gitToken = *h.File.GitRepository.GitToken
-		}
-
 		gitRepository = &HelmValuesGitRepository{
 			Url:        FromString(h.File.GitRepository.Url),
 			Branch:     FromString(h.File.GitRepository.Branch),
 			Paths:      FromStringSet(h.File.GitRepository.Paths),
-			GitTokenId: FromString(gitToken),
+			GitTokenId: FromStringPointer(h.File.GitRepository.GitToken),
 		}
 	}
 

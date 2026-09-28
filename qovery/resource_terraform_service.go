@@ -89,10 +89,12 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 				},
 			},
 			"deployment_stage_id": schema.StringAttribute{
-				Description:         "Id of the deployment stage.",
-				MarkdownDescription: "Id of the deployment stage.",
+				Description:         "Id of the deployment stage." + deploymentStageIDRemovalNote,
+				MarkdownDescription: "Id of the deployment stage." + deploymentStageIDRemovalNote,
 				Optional:            true,
 				Computed:            true,
+				// Documented exception to the config-is-source-of-truth rule: q-core attaches
+				// every service to a stage and has no detach, so removal keeps the current stage.
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
@@ -115,12 +117,15 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 				Optional:            true,
 			},
 			"blueprint_id": schema.StringAttribute{
-				Description:         "The blueprint ID the terraform service has been created from.",
-				MarkdownDescription: "The blueprint ID the terraform service has been created from.",
+				Description:         "The blueprint ID the terraform service has been created from." + blueprintIDRemovalNote,
+				MarkdownDescription: "The blueprint ID the terraform service has been created from." + blueprintIDRemovalNote,
 				Optional:            true,
 				Computed:            true,
+				// Documented exception to the config-is-source-of-truth rule: q-core records the
+				// blueprint only on create, so removal keeps it and a change is a plan error.
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
+					RejectChangeAfterCreate(blueprintIDChangeReason),
 				},
 			},
 			"auto_deploy": schema.BoolAttribute{
@@ -395,6 +400,8 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 				MarkdownDescription: "Advanced settings in JSON format. Use `jsonencode()` to set values. Only include settings you want to override. See the Qovery API documentation for available settings." + advancedSettingsRefreshSemantics,
 				Optional:            true,
 				Computed:            true,
+				// Documented exception to the config-is-source-of-truth rule: the QOV-2028
+				// contract described in advancedSettingsRefreshSemantics.
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},

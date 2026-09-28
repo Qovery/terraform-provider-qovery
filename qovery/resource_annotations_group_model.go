@@ -1,8 +1,6 @@
 package qovery
 
 import (
-	"context"
-
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
@@ -88,34 +86,12 @@ func fromScopeList(scopes []qovery.OrganizationAnnotationsGroupScopeEnum) []stri
 	return list
 }
 
-func fromAnnotationsGroupResponseList(ctx context.Context, initialState types.Set, annotationsGroup []qovery.OrganizationAnnotationsGroupResponse) types.Set {
-	if initialState.IsNull() {
-		return types.SetNull(types.StringType)
+// fromAnnotationsGroupResponseList reads a service's annotations_group_ids from the API (see
+// setFromAPIElements), so groups attached or detached outside Terraform show in the plan.
+func fromAnnotationsGroupResponseList(prior types.Set, annotationsGroups []qovery.OrganizationAnnotationsGroupResponse) types.Set {
+	ids := make([]string, 0, len(annotationsGroups))
+	for _, v := range annotationsGroups {
+		ids = append(ids, v.Id)
 	}
-
-	elements := make([]string, 0, len(annotationsGroup))
-	for _, v := range annotationsGroup {
-		elements = append(elements, v.Id)
-	}
-	set, diagnostics := types.SetValueFrom(ctx, types.StringType, elements)
-	if diagnostics.HasError() {
-		panic("TODO")
-	}
-	return set
-}
-
-func fromAnnotationsGroupList(ctx context.Context, initialState types.Set, annotationsGroup []string) types.Set {
-	if initialState.IsNull() {
-		return types.SetNull(types.StringType)
-	}
-
-	elements := make([]string, 0, len(annotationsGroup))
-	for _, v := range annotationsGroup {
-		elements = append(elements, v)
-	}
-	set, diagnostics := types.SetValueFrom(ctx, types.StringType, elements)
-	if diagnostics.HasError() {
-		panic("TODO")
-	}
-	return set
+	return stringSetFromAPI(prior, ids)
 }
