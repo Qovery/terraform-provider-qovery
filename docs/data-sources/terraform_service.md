@@ -34,6 +34,7 @@ data "qovery_terraform_service" "my_terraform_service" {
 - `auto_deploy` (Boolean) Specify if the terraform service will be automatically updated on every new commit.
 - `backend` (Attributes) Terraform backend configuration. Indicates which backend type is used. (see [below for nested schema](#nestedatt--backend))
 - `blueprint_id` (String) The blueprint ID the terraform service has been created from.
+- `build_settings` (Attributes) Build configuration settings for the service. (see [below for nested schema](#nestedatt--build_settings))
 - `created_at` (String) Creation date of the terraform service.
 - `description` (String) Description of the terraform service.
 - `engine` (String) Terraform engine.
@@ -69,6 +70,19 @@ Read-Only:
 <a id="nestedatt--backend--user_provided"></a>
 ### Nested Schema for `backend.user_provided`
 
+
+
+<a id="nestedatt--build_settings"></a>
+### Nested Schema for `build_settings`
+
+Read-Only:
+
+- `cpu_max_in_milli` (Number) Maximum CPU resources for the build (in millicores).
+- `disable_buildkit_cache` (Boolean) Disable buildkit registry cache during build.
+- `ephemeral_storage_in_gib` (Number) Ephemeral storage for the build (in GiB).
+- `ram_max_in_gib` (Number) Maximum RAM resources for the build (in GiB).
+- `skip_git_submodules` (Boolean) Skip git submodules update when cloning the repository.
+- `timeout_max_sec` (Number) Maximum build timeout in seconds.
 
 
 <a id="nestedatt--engine_version"></a>

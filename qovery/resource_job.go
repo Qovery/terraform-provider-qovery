@@ -669,6 +669,7 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"build_settings": buildSettingsResourceSchemaAttributes(),
 			"auto_deploy": schema.BoolAttribute{
 				Description:         "Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.",
 				MarkdownDescription: "Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.",
@@ -728,6 +729,11 @@ func (r jobResource) Create(ctx context.Context, req resource.CreateRequest, res
 	// Retrieve values from plan
 	var plan Job
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -795,6 +801,11 @@ func (r jobResource) Update(ctx context.Context, req resource.UpdateRequest, res
 	var plan, state Job
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.Diagnostics.Append(validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

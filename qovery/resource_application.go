@@ -270,7 +270,8 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					validators.Int64MinValidator{Min: applicationMaxRunningInstancesMin},
 				},
 			},
-			"autoscaling": autoscalingResourceSchema(),
+			"autoscaling":      autoscalingResourceSchema(),
+			"build_settings":   buildSettingsResourceSchemaAttributes(),
 			"auto_preview": schema.BoolAttribute{
 				Description: descriptions.NewBoolDefaultDescription(
 					"Specify if the environment preview option is activated or not for this application.",
@@ -802,6 +803,12 @@ func (r applicationResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
+	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
 	// Create new application
 	request, err := plan.toCreateApplicationRequest()
 	if err != nil {
@@ -865,6 +872,12 @@ func (r applicationResource) Update(ctx context.Context, req resource.UpdateRequ
 	var plan, state Application
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

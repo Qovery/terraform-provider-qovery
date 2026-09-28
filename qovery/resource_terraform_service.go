@@ -390,6 +390,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			},
 			"external_secrets":      externalSecretsSchemaAttribute("terraform service"),
 			"external_secret_files": externalSecretFilesSchemaAttribute("terraform service"),
+			"build_settings": buildSettingsResourceSchemaAttributes(),
 			"advanced_settings_json": schema.StringAttribute{
 				Description:         "Advanced settings in JSON format. See the Qovery API documentation for available settings.",
 				MarkdownDescription: "Advanced settings in JSON format. See the Qovery API documentation for available settings.",
@@ -417,6 +418,12 @@ func (r terraformServiceResource) Create(ctx context.Context, req resource.Creat
 	// Retrieve values from plan
 	var plan TerraformService
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -484,6 +491,12 @@ func (r terraformServiceResource) Update(ctx context.Context, req resource.Updat
 	var plan, state TerraformService
 	resp.Diagnostics.Append(req.Plan.Get(ctx, &plan)...)
 	resp.Diagnostics.Append(req.State.Get(ctx, &state)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson)
+	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

@@ -309,6 +309,7 @@ func (d terraformServiceDataSource) Schema(_ context.Context, _ datasource.Schem
 					},
 				},
 			},
+			"build_settings": buildSettingsDataSourceSchemaAttributes(),
 			"advanced_settings_json": schema.StringAttribute{
 				Description:         "Advanced settings in JSON format.",
 				MarkdownDescription: "Advanced settings in JSON format.",

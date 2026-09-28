@@ -371,5 +371,6 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 		Healthchecks:      request.Healthchecks,
 		AnnotationsGroups: annotationsGroups,
 		LabelsGroups:      labelsGroups,
+		BuildSettings:     request.BuildSettings,
 	}, nil
 }

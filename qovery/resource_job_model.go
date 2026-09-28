@@ -285,6 +285,7 @@ type Job struct {
 	DeploymentRestrictions       types.Set     `tfsdk:"deployment_restrictions"`
 	AnnotationsGroupIds          types.Set     `tfsdk:"annotations_group_ids"`
 	LabelssGroupIds              types.Set     `tfsdk:"labels_group_ids"`
+	BuildSettings                types.Object  `tfsdk:"build_settings"`
 }
 
 func (j Job) EnvironmentVariableList() EnvironmentVariableList {
@@ -415,6 +416,7 @@ func (j Job) toUpsertRepositoryRequest() job.UpsertRepositoryRequest {
 		AutoDeploy:           *qovery.NewNullableBool(ToBoolPointer(j.AutoDeploy)),
 		AnnotationsGroupIds:  annotationsGroupIds,
 		LabelsGroupIds:       labelsGroupIds,
+		BuildSettings:        buildSettingsObjectToQovery(j.BuildSettings),
 	}
 }
 
@@ -463,5 +465,6 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		LabelssGroupIds:              fromLabelsGroupList(ctx, state.LabelssGroupIds, job.LabelsGroupIds),
 		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(job.ExternalSecrets, state.ExternalSecrets, variable.ScopeJob).toTerraformSet(ctx),
 		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(job.ExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeJob).toTerraformSet(ctx),
+		BuildSettings:                buildSettingsPreservePriorState(state.BuildSettings),
 	}
 }

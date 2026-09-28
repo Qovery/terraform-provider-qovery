@@ -56,6 +56,7 @@ type Application struct {
 	LabelsGroupIds               types.Set                 `tfsdk:"labels_group_ids"`
 	DockerTargetBuildStage       types.String              `tfsdk:"docker_target_build_stage"`
 	Autoscaling                  types.Object              `tfsdk:"autoscaling"`
+	BuildSettings                types.Object              `tfsdk:"build_settings"`
 }
 
 func (app Application) EnvironmentVariableList() EnvironmentVariableList {
@@ -198,6 +199,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			LabelsGroups:           labelsGroups,
 			DockerTargetBuildStage: ToNullableString(app.DockerTargetBuildStage),
 			Autoscaling:            autoscalingPolicy,
+			BuildSettings:          buildSettingsObjectToQovery(app.BuildSettings),
 		},
 		EnvironmentVariablesDiff:         app.EnvironmentVariableList().diff(nil),
 		EnvironmentVariableAliasesDiff:   app.EnvironmentVariableAliasList().diff(nil),
@@ -320,6 +322,7 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		LabelsGroups:           labelsGroups,
 		DockerTargetBuildStage: ToNullableString(app.DockerTargetBuildStage),
 		Autoscaling:            autoscalingPolicy,
+		BuildSettings:          buildSettingsObjectToQovery(app.BuildSettings),
 	}
 	return &client.ApplicationUpdateParams{
 		ApplicationEditRequest:           applicationEditRequest,
@@ -383,6 +386,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		LabelsGroupIds:               fromLabelsGroupResponseList(ctx, state.LabelsGroupIds, app.ApplicationResponse.LabelsGroups),
 		DockerTargetBuildStage:       FromNullableString(app.ApplicationResponse.DockerTargetBuildStage),
 		Autoscaling:                  fromAutoscalingResponse(app.ApplicationResponse.Autoscaling),
+		BuildSettings:                buildSettingsPreservePriorState(state.BuildSettings),
 		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(app.ApplicationExternalSecrets, state.ExternalSecrets, variable.ScopeApplication).toTerraformSet(ctx),
 		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(app.ApplicationExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeApplication).toTerraformSet(ctx),
 	}

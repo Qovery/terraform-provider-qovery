@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
+	"github.com/qovery/qovery-client-go"
 )
 
 // Repository represents the interface to implement to handle the persistence of a TerraformService.
@@ -39,6 +40,7 @@ type UpsertRepositoryRequest struct {
 	ActionExtraArguments  map[string][]string
 	AdvancedSettingsJson  string
 	BlueprintID           *string
+	BuildSettings         *qovery.BuildSettings
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.

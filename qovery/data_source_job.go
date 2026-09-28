@@ -691,6 +691,7 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 				Optional:            true,
 				Computed:            true,
 			},
+			"build_settings": buildSettingsDataSourceSchemaAttributes(),
 			"auto_deploy": schema.BoolAttribute{
 				Description:         "Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.",
 				MarkdownDescription: "Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.",

@@ -59,6 +59,7 @@ data "qovery_job" "my_job" {
 
 ### Read-Only
 
+- `build_settings` (Attributes) Build configuration settings for the service. (see [below for nested schema](#nestedatt--build_settings))
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this job. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this job. (see [below for nested schema](#nestedatt--environment_variable_files))
@@ -342,6 +343,19 @@ Read-Only:
 - `registry_id` (String) Job's image source registry ID.
 - `tag` (String) Job's image source tag.
 
+
+
+<a id="nestedatt--build_settings"></a>
+### Nested Schema for `build_settings`
+
+Read-Only:
+
+- `cpu_max_in_milli` (Number) Maximum CPU resources for the build (in millicores).
+- `disable_buildkit_cache` (Boolean) Disable buildkit registry cache during build.
+- `ephemeral_storage_in_gib` (Number) Ephemeral storage for the build (in GiB).
+- `ram_max_in_gib` (Number) Maximum RAM resources for the build (in GiB).
+- `skip_git_submodules` (Boolean) Skip git submodules update when cloning the repository.
+- `timeout_max_sec` (Number) Maximum build timeout in seconds.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>
