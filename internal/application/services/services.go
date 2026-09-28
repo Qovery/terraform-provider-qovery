@@ -16,6 +16,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 
+	"github.com/qovery/terraform-provider-qovery/internal/domain/blueprint"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/customrole"
@@ -68,6 +69,7 @@ type Services struct {
 	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Service
 	ApiToken                        apitoken.Service
 	CustomRole                      customrole.Service
+	Blueprint                       blueprint.Service
 	OrganizationMember              member.Service
 }
 
@@ -280,6 +282,11 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
+	blueprintService, err := NewBlueprintService(services.repos.Blueprint)
+	if err != nil {
+		return nil, err
+	}
+
 	organizationMemberService, err := NewOrganizationMemberService(services.repos.OrganizationMember)
 	if err != nil {
 		return nil, err
@@ -309,6 +316,7 @@ func New(configs ...Configuration) (*Services, error) {
 	services.ArgoCdDestinationClusterMapping = argoCdDestinationClusterMappingService
 	services.ApiToken = apiTokenService
 	services.CustomRole = customRoleService
+	services.Blueprint = blueprintService
 	services.OrganizationMember = organizationMemberService
 
 	return services, nil

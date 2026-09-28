@@ -11,6 +11,7 @@ const (
 	APIResourceApplicationEnvironmentVariable     APIResource = "application environment variable"
 	APIResourceApplicationSecret                  APIResource = "application secret"
 	APIResourceApplicationStatus                  APIResource = "application status"
+	APIResourceBlueprint                          APIResource = "blueprint"
 	APIResourceCluster                            APIResource = "cluster"
 	APIResourceClusterCloudProvider               APIResource = "cluster cloud provider"
 	APIResourceClusterInstanceType                APIResource = "cluster instance type"

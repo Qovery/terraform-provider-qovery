@@ -17,6 +17,7 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apitoken"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/blueprint"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/customrole"
@@ -88,6 +89,7 @@ type QoveryAPI struct {
 	ArgoCdDestinationClusterMapping argoCdDestinationClusterMapping.Repository
 	ApiToken                        apitoken.Repository
 	CustomRole                      customrole.Repository
+	Blueprint                       blueprint.Repository
 	OrganizationMember              member.Repository
 
 	ApplicationExternalSecret      variable.ExternalSecretRepository
@@ -357,6 +359,11 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		return nil, err
 	}
 
+	blueprintAPI, err := newBlueprintQoveryAPI(apiClient)
+	if err != nil {
+		return nil, err
+	}
+
 	organizationMemberAPI, err := newOrganizationMemberQoveryAPI(apiClient)
 	if err != nil {
 		return nil, err
@@ -402,6 +409,7 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 		ArgoCdDestinationClusterMapping: argoCdDestinationClusterMappingAPI,
 		ApiToken:                        apiTokenAPI,
 		CustomRole:                      customRoleAPI,
+		Blueprint:                       blueprintAPI,
 		OrganizationMember:              organizationMemberAPI,
 
 		ApplicationExternalSecret:      applicationExternalSecretAPI,
