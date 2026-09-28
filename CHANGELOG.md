@@ -145,6 +145,9 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_job`: an update of a cron job no longer resets the timezone set from the Console to
   `Etc/UTC`. The provider does not manage the timezone and now sends back the one the job runs
   at. (QOV-2330)
+- `qovery_cluster`: updating a cluster with KEDA enabled no longer resets the KEDA availability
+  and resource profiles set from the Console to `NORMAL`. Terraform does not manage the
+  profiles; the update now resends their current values. (QOV-2332)
 
 ## [0.90.0] - 2026-09-28
 

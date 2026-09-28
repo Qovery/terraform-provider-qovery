@@ -70,21 +70,12 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 }
 
 func (c *Client) UpdateCluster(ctx context.Context, organizationID string, clusterID string, params *ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {
-	// INFO (cor-775) As DiskSize is defaulted when no value is present in the request, we need to set it to current value
-	// This is due to the attribute `disk_size` that was not there before
-	// INFO: Same logic applies for MetricsParameters - preserve value set via console without exposing it in Terraform state
-	if params.ClusterRequest.DiskSize == nil || params.ClusterRequest.MetricsParameters == nil {
-		cluster, apiErr := c.getClusterByID(ctx, organizationID, clusterID)
-		if apiErr != nil {
-			return nil, apiErr
-		}
-		if params.ClusterRequest.DiskSize == nil {
-			params.ClusterRequest.DiskSize = cluster.DiskSize
-		}
-		if params.ClusterRequest.MetricsParameters == nil {
-			params.ClusterRequest.MetricsParameters = cluster.MetricsParameters
-		}
+	current, apiErr := c.getClusterByID(ctx, organizationID, clusterID)
+	if apiErr != nil {
+		return nil, apiErr
 	}
+	preserveUnmanagedClusterFields(&params.ClusterRequest, current)
+
 	cluster, res, err := c.api.ClustersAPI.
 		EditCluster(ctx, organizationID, clusterID).
 		ClusterRequest(params.ClusterRequest).
@@ -94,6 +85,40 @@ func (c *Client) UpdateCluster(ctx context.Context, organizationID string, clust
 	}
 
 	return c.updateCluster(ctx, organizationID, cluster, params)
+}
+
+// KEDA profile keys of the cluster `keda` object. client-go's ClusterKeda only models `enabled`,
+// so the profiles travel as additional properties.
+const (
+	clusterKedaAvailabilityProfileKey = "availability_profile"
+	clusterKedaResourceProfileKey     = "resource_profile"
+)
+
+// preserveUnmanagedClusterFields copies onto an edit request the current value of the fields the
+// provider does not manage, which the API resets to a default when the request omits them:
+//   - disk_size (cor-775): the attribute did not exist before, so older states have none.
+//   - metrics_parameters: set from the Console, not exposed in the Terraform schema.
+//   - keda availability_profile and resource_profile: set from the Console, not exposed in the
+//     Terraform schema. q-core resets an omitted profile to NORMAL.
+func preserveUnmanagedClusterFields(request *qovery.ClusterRequest, current *qovery.Cluster) {
+	if request.DiskSize == nil {
+		request.DiskSize = current.DiskSize
+	}
+	if request.MetricsParameters == nil {
+		request.MetricsParameters = current.MetricsParameters
+	}
+	if request.Keda != nil && current.Keda != nil {
+		for _, key := range []string{clusterKedaAvailabilityProfileKey, clusterKedaResourceProfileKey} {
+			value, ok := current.Keda.AdditionalProperties[key]
+			if !ok {
+				continue
+			}
+			if request.Keda.AdditionalProperties == nil {
+				request.Keda.AdditionalProperties = map[string]interface{}{}
+			}
+			request.Keda.AdditionalProperties[key] = value
+		}
+	}
 }
 
 func (c *Client) DeleteCluster(ctx context.Context, organizationID string, clusterID string) *apierrors.APIError {

@@ -144,13 +144,13 @@ func TestAcc_ClusterRemovedOutOfBand(t *testing.T) {
 		}),
 		Steps: []resource.TestStep{
 			{
-				Config: testAccClusterConfigWithKeda(testName, true),
+				Config: testAccClusterConfigWithKeda(testName, true, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
 				),
 			},
 			{
-				Config: testAccClusterConfigWithKeda(testName, true),
+				Config: testAccClusterConfigWithKeda(testName, true, ""),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryDisappears("qovery_cluster.test", func(id string) *apierrors.APIError {
 						return apiClient.DeleteCluster(context.TODO(), getTestOrganizationID(), id)

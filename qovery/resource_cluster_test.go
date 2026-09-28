@@ -12,6 +12,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 )
@@ -209,6 +210,7 @@ func TestAcc_ClusterAdvancedSettingsStringScalar(t *testing.T) {
 func TestAcc_ClusterWithKeda(t *testing.T) {
 	t.Parallel()
 	testName := "cluster-with-keda"
+	var clusterID string
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -216,23 +218,45 @@ func TestAcc_ClusterWithKeda(t *testing.T) {
 		Steps: []resource.TestStep{
 			// Create with KEDA enabled
 			{
-				Config:           testAccClusterConfigWithKeda(testName, true),
+				Config:           testAccClusterConfigWithKeda(testName, true, ""),
 				ConfigPlanChecks: testAccEmptyPlanAfterApply,
-				Check: resource.ComposeAggregateTestCheckFunc(
+				Check: resource.ComposeTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
+					testAccCaptureResourceID("qovery_cluster.test", &clusterID),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "cloud_provider", "AWS"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "keda.enabled", "true"),
 					resource.TestCheckResourceAttr("qovery_cluster.test", "state", "READY"),
+					testAccCheckClusterKedaProfilesInAPI(&clusterID, "NORMAL", "NORMAL"),
 				),
 			},
 			// Plan stability — no diff on re-apply of the same config.
 			{
-				Config:   testAccClusterConfigWithKeda(testName, true),
+				Config:   testAccClusterConfigWithKeda(testName, true, ""),
 				PlanOnly: true,
+			},
+			// KEDA profiles changed outside Terraform: the provider does not manage them, so
+			// the plan stays empty.
+			{
+				Config: testAccClusterConfigWithKeda(testName, true, ""),
+				Check: resource.ComposeTestCheckFunc(
+					testAccSetClusterKedaProfilesOutOfBand(&clusterID, "HIGH", "LOW"),
+					testAccCheckClusterKedaProfilesInAPI(&clusterID, "HIGH", "LOW"),
+				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
+			},
+			// A Terraform update resends keda, and the profiles survive it.
+			{
+				Config:           testAccClusterConfigWithKeda(testName, true, "keda profiles"),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
+				Check: resource.ComposeTestCheckFunc(
+					resource.TestCheckResourceAttr("qovery_cluster.test", "description", "keda profiles"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "keda.enabled", "true"),
+					testAccCheckClusterKedaProfilesInAPI(&clusterID, "HIGH", "LOW"),
+				),
 			},
 			// Update KEDA to disabled — exercises the toggle/redeploy path.
 			{
-				Config:           testAccClusterConfigWithKeda(testName, false),
+				Config:           testAccClusterConfigWithKeda(testName, false, ""),
 				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryClusterExists("qovery_cluster.test"),
@@ -749,12 +773,16 @@ resource "qovery_cluster" "test" {
 `, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), instanceType)
 }
 
-func testAccClusterConfigWithKeda(testName string, kedaEnabled bool) string {
+func testAccClusterConfigWithKeda(testName string, kedaEnabled bool, description string) string {
+	descriptionLine := ""
+	if description != "" {
+		descriptionLine = fmt.Sprintf("\n  description     = %q", description)
+	}
 	return fmt.Sprintf(`
 resource "qovery_cluster" "test" {
   credentials_id  = "%s"
   organization_id = "%s"
-  name            = "%s"
+  name            = "%s"%s
   cloud_provider  = "AWS"
   region          = "eu-west-3"
   kubernetes_mode = "MANAGED"
@@ -779,7 +807,7 @@ resource "qovery_cluster" "test" {
     }
   }
 }
-`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), kedaEnabled)
+`, getTestAWSCredentialsID(), getTestOrganizationID(), generateTestName(testName), descriptionLine, kedaEnabled)
 }
 
 func testAccClusterAWSReadyConfig(testName string) string {
@@ -927,4 +955,40 @@ func convertRoutingTableToString(routingTable map[string]string) string {
 		idx++
 	}
 	return fmt.Sprintf("[%s]", strings.Join(routes, ","))
+}
+
+// testAccCheckClusterKedaProfilesInAPI checks the KEDA availability and resource profiles the API
+// holds for the cluster. client-go's ClusterKeda only models `enabled`, so the profiles are read
+// from its additional properties.
+func testAccCheckClusterKedaProfilesInAPI(clusterID *string, availabilityProfile, resourceProfile string) resource.TestCheckFunc {
+	return func(_ *terraform.State) error {
+		cluster, err := testAccReadClusterFromAPI(*clusterID)
+		if err != nil {
+			return err
+		}
+		if cluster.Keda == nil {
+			return fmt.Errorf("cluster %s has no keda in API", *clusterID)
+		}
+		got := fmt.Sprintf("%v/%v", cluster.Keda.AdditionalProperties["availability_profile"], cluster.Keda.AdditionalProperties["resource_profile"])
+		if want := availabilityProfile + "/" + resourceProfile; got != want {
+			return fmt.Errorf("cluster %s keda availability/resource profiles in API: got %s, want %s", *clusterID, got, want)
+		}
+		return nil
+	}
+}
+
+// testAccSetClusterKedaProfilesOutOfBand sets the cluster's KEDA availability and resource profiles
+// through the API, bypassing Terraform, the way the Qovery Console does.
+func testAccSetClusterKedaProfilesOutOfBand(clusterID *string, availabilityProfile, resourceProfile string) resource.TestCheckFunc {
+	return func(_ *terraform.State) error {
+		return testAccEditClusterOutOfBand(*clusterID, nil, func(request *qovery.ClusterRequest) {
+			request.Keda = &qovery.ClusterKeda{
+				Enabled: true,
+				AdditionalProperties: map[string]interface{}{
+					"availability_profile": availabilityProfile,
+					"resource_profile":     resourceProfile,
+				},
+			}
+		})
+	}
 }
