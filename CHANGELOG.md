@@ -142,6 +142,9 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   icon URLs, and no longer fails with `Organization contact emails cannot be empty` when the
   organization has admin emails. The update resends the current values of the fields the
   provider does not manage. (QOV-2329)
+- `qovery_job`: an update of a cron job no longer resets the timezone set from the Console to
+  `Etc/UTC`. The provider does not manage the timezone and now sends back the one the job runs
+  at. (QOV-2330)
 
 ## [0.90.0] - 2026-09-28
 

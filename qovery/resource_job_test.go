@@ -512,6 +512,93 @@ func TestAcc_JobWithEphemeralStorage(t *testing.T) {
 	})
 }
 
+// TestAcc_CronJobTimezoneKeptOnUpdate guards that a Terraform update keeps a cron timezone set
+// outside Terraform. The provider does not manage the timezone, and q-core resets an omitted one
+// to Etc/UTC (QOV-2330).
+func TestAcc_CronJobTimezoneKeptOnUpdate(t *testing.T) {
+	t.Parallel()
+	const address = "qovery_job.test"
+	const consoleTimezone = "Europe/Paris"
+	testName := "cron-job-timezone"
+	var jobID string
+
+	jobModel := func(maxDurationSeconds uint32) qovery.Job {
+		return qovery.Job{
+			Name:               qovery.FromString(generateTestName(testName)),
+			IconUri:            qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName))),
+			AutoPreview:        qovery.FromBool(false),
+			CPU:                qovery.FromInt32(500),
+			Memory:             qovery.FromInt32(512),
+			MaxDurationSeconds: qovery.FromUInt32(maxDurationSeconds),
+			MaxNbRestart:       qovery.FromUInt32(0),
+			Port:               qovery.FromInt32Pointer(nil),
+			Source: &qovery.JobSource{
+				Image: &qovery.Image{
+					Name: qovery.FromString(jobImageName),
+					Tag:  qovery.FromString(jobImageTag),
+				},
+			},
+			Schedule: &qovery.JobSchedule{
+				CronJob: &qovery.JobScheduleCron{
+					Schedule: qovery.FromString(jobScheduleCronString),
+					Command: qovery.ExecutionCommand{
+						Entrypoint: qovery.FromString("test.sh"),
+						Arguments:  []types.String{qovery.FromString("arg1")},
+					},
+				},
+			},
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryJobDestroy(address),
+		Steps: []resource.TestStep{
+			// Create runs at the q-core default timezone, then the timezone is changed outside
+			// Terraform. The provider does not manage it, so the refreshed plan stays empty.
+			{
+				Config: getJobConfigFromModel(testName, jobModel(300)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryJobExists(address),
+					testAccCaptureResourceID(address, &jobID),
+					func(_ *terraform.State) error { return testAccCheckCronJobTimezone(jobID, "Etc/UTC") },
+					func(_ *terraform.State) error {
+						return testAccEditServiceOutOfBand("/job/"+jobID, nil, func(job map[string]any) {
+							jsonObject(jsonObject(job, "schedule"), "cronjob")["timezone"] = consoleTimezone
+						})
+					},
+				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
+			},
+			// An unrelated update keeps the timezone.
+			{
+				Config: getJobConfigFromModel(testName, jobModel(600)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(address, "max_duration_seconds", "600"),
+					func(_ *terraform.State) error { return testAccCheckCronJobTimezone(jobID, consoleTimezone) },
+				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
+			},
+		},
+	})
+}
+
+// testAccCheckCronJobTimezone checks the timezone the cron job jobID runs at in Qovery.
+func testAccCheckCronJobTimezone(jobID string, expected string) error {
+	j, _, err := qoveryAPIClient.JobMainCallsAPI.GetJob(context.TODO(), jobID).Execute()
+	if err != nil {
+		return err
+	}
+	if j.CronJobResponse == nil {
+		return fmt.Errorf("job %s is not a cron job", jobID)
+	}
+	if actual := j.CronJobResponse.Schedule.Cronjob.Timezone; actual != expected {
+		return fmt.Errorf("job %s: expected cron timezone %q, got %q", jobID, expected, actual)
+	}
+	return nil
+}
+
 func getJobConfigFromModel(testName string, job qovery.Job) string {
 	tmpl_model := struct {
 		EnvironmentStr       string
