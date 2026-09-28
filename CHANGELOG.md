@@ -138,6 +138,10 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_database`: an update no longer clears the description set from the Console. The
   resource does not manage the description, so the update now resends the current one.
   (QOV-2331)
+- `qovery_organization`: an update no longer clears the organization's logo, website and
+  icon URLs, and no longer fails with `Organization contact emails cannot be empty` when the
+  organization has admin emails. The update resends the current values of the fields the
+  provider does not manage. (QOV-2329)
 
 ## [0.90.0] - 2026-09-28
 

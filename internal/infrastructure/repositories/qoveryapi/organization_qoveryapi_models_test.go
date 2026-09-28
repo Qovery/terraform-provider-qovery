@@ -58,6 +58,7 @@ func TestNewQoveryOrganizationEditRequestFromDomain(t *testing.T) {
 	testCases := []struct {
 		TestName string
 		Request  organization.UpdateRequest
+		Current  qovery.Organization
 	}{
 		{
 			TestName: "success_without_description",
@@ -72,14 +73,48 @@ func TestNewQoveryOrganizationEditRequestFromDomain(t *testing.T) {
 				Description: new(gofakeit.Word()),
 			},
 		},
+		{
+			TestName: "success_copies_unmanaged_fields_from_current",
+			Request: organization.UpdateRequest{
+				Name:        gofakeit.Name(),
+				Description: new(gofakeit.Word()),
+			},
+			Current: qovery.Organization{
+				Name:        gofakeit.Name(),
+				Description: *qovery.NewNullableString(new(gofakeit.Word())),
+				WebsiteUrl:  *qovery.NewNullableString(new(gofakeit.URL())),
+				Repository:  *qovery.NewNullableString(new(gofakeit.URL())),
+				LogoUrl:     *qovery.NewNullableString(new(gofakeit.URL())),
+				IconUrl:     *qovery.NewNullableString(new(gofakeit.URL())),
+				AdminEmails: []string{gofakeit.Email(), gofakeit.Email()},
+			},
+		},
+		{
+			TestName: "success_copies_null_unmanaged_fields_from_current",
+			Request: organization.UpdateRequest{
+				Name: gofakeit.Name(),
+			},
+			Current: qovery.Organization{
+				WebsiteUrl:  *qovery.NewNullableString(nil),
+				Repository:  *qovery.NewNullableString(nil),
+				LogoUrl:     *qovery.NewNullableString(nil),
+				IconUrl:     *qovery.NewNullableString(nil),
+				AdminEmails: []string{},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.TestName, func(t *testing.T) {
-			req := newQoveryOrganizationEditRequestFromDomain(tc.Request)
+			req := newQoveryOrganizationEditRequestFromDomain(tc.Request, tc.Current)
 
 			assert.Equal(t, tc.Request.Name, req.Name)
 			assert.Equal(t, tc.Request.Description, req.Description)
+			assert.Equal(t, tc.Current.WebsiteUrl, req.WebsiteUrl)
+			assert.Equal(t, tc.Current.Repository, req.Repository)
+			assert.Equal(t, tc.Current.LogoUrl, req.LogoUrl)
+			assert.Equal(t, tc.Current.IconUrl, req.IconUrl)
+			assert.Equal(t, tc.Current.AdminEmails, req.AdminEmails)
 		})
 	}
 }

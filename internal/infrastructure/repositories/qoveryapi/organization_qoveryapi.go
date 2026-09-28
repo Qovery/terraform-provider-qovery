@@ -41,10 +41,18 @@ func (c organizationQoveryAPI) Get(ctx context.Context, organizationID string) (
 }
 
 // Update calls Qovery's API to update an organization using the given organizationID and request.
+// It reads the organization first, so that the edit keeps the fields the provider does not manage.
 func (c organizationQoveryAPI) Update(ctx context.Context, organizationID string, request organization.UpdateRequest) (*organization.Organization, error) {
+	current, resp, err := c.client.OrganizationMainCallsAPI.
+		GetOrganization(ctx, organizationID).
+		Execute()
+	if err != nil || resp.StatusCode >= 400 {
+		return nil, apierrors.NewReadAPIError(apierrors.APIResourceOrganization, organizationID, resp, err)
+	}
+
 	orga, resp, err := c.client.OrganizationMainCallsAPI.
 		EditOrganization(ctx, organizationID).
-		OrganizationEditRequest(newQoveryOrganizationEditRequestFromDomain(request)).
+		OrganizationEditRequest(newQoveryOrganizationEditRequestFromDomain(request, *current)).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceOrganization, organizationID, resp, err)

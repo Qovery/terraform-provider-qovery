@@ -21,9 +21,15 @@ func newDomainOrganizationFromQovery(orga *qovery.Organization) (*organization.O
 }
 
 // newQoveryOrganizationEditRequestFromDomain takes the domain request organization.UpdateRequest and turns it into a qovery.OrganizationEditRequest to make the api call.
-func newQoveryOrganizationEditRequestFromDomain(request organization.UpdateRequest) qovery.OrganizationEditRequest {
+// The API sets every field from the edit request, so the fields the provider does not manage are copied from the current organization to keep their values.
+func newQoveryOrganizationEditRequestFromDomain(request organization.UpdateRequest, current qovery.Organization) qovery.OrganizationEditRequest {
 	return qovery.OrganizationEditRequest{
 		Name:        request.Name,
 		Description: request.Description,
+		WebsiteUrl:  current.WebsiteUrl,
+		Repository:  current.Repository,
+		LogoUrl:     current.LogoUrl,
+		IconUrl:     current.IconUrl,
+		AdminEmails: current.AdminEmails,
 	}
 }
