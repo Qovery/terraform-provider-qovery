@@ -135,6 +135,9 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_application`, `qovery_helm`: an unrelated change no longer resets
   `git_repository.branch` to the repository's default branch when the configuration omits
   it; the current branch is kept, as documented in the upgrade guide. (QOV-2327)
+- `qovery_database`: an update no longer clears the description set from the Console. The
+  resource does not manage the description, so the update now resends the current one.
+  (QOV-2331)
 
 ## [0.90.0] - 2026-09-28
 

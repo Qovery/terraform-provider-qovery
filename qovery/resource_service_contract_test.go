@@ -1061,6 +1061,56 @@ func TestAcc_DatabaseContract(t *testing.T) {
 	})
 }
 
+// TestAcc_DatabaseKeepsConsoleDescription checks that an unrelated update keeps the description
+// set in the Console, which qovery_database does not manage (QOV-2331).
+func TestAcc_DatabaseKeepsConsoleDescription(t *testing.T) {
+	t.Parallel()
+	const address = "qovery_database.test"
+	const description = "set in the Console"
+	testName := "database-console-description"
+	var databaseID string
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryDatabaseDestroy(address),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccDatabaseContractConfig(testName, false),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryDatabaseExists(address),
+					testAccCaptureResourceID(address, &databaseID),
+				),
+			},
+			{
+				PreConfig: func() {
+					err := testAccEditServiceOutOfBand("/database/"+databaseID, nil, func(db map[string]any) {
+						db["description"] = description
+					})
+					if err != nil {
+						t.Fatal(err)
+					}
+				},
+				Config: testAccDatabaseContractConfig(testName, true),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{plancheck.ExpectResourceAction(address, plancheck.ResourceActionUpdate)},
+				},
+				Check: func(_ *terraform.State) error {
+					var db struct {
+						Description string `json:"description"`
+					}
+					if err := testAccQoveryAPIJSON(http.MethodGet, "/database/"+databaseID, nil, &db); err != nil {
+						return err
+					}
+					if db.Description != description {
+						return fmt.Errorf("description = %q, want %q", db.Description, description)
+					}
+					return nil
+				},
+			},
+		},
+	})
+}
+
 func TestAcc_DatabaseContractUpgradeFrom0x(t *testing.T) {
 	t.Parallel()
 	testName := "database-contract-upgrade"
