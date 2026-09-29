@@ -10,6 +10,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
@@ -135,6 +136,8 @@ type TerraformService struct {
 	CreatedAt             time.Time
 	UpdatedAt             *time.Time
 	BlueprintID           *string
+	// BuildSettings is only populated on reads, from the service's advanced settings.
+	BuildSettings *qovery.BuildSettings
 }
 
 // SetExternalSecrets sets the ExternalSecrets field, excluding BUILT_IN scoped items.

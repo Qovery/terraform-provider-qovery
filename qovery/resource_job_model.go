@@ -348,6 +348,7 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 	var stateDeploymentRestrictions types.Set
 	var stateExternalSecrets ExternalSecretList
 	var stateExternalSecretFiles ExternalSecretFileList
+	stateBuildSettings := types.ObjectNull(buildSettingsAttrTypes)
 
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
@@ -361,6 +362,7 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 		stateDeploymentRestrictions = state.DeploymentRestrictions
 		stateExternalSecrets = state.ExternalSecretList()
 		stateExternalSecretFiles = state.ExternalSecretFileList()
+		stateBuildSettings = state.BuildSettings
 	}
 
 	deploymentRestrictionsDiff, err := j.DeploymentRestrictionDiff(&stateDeploymentRestrictions)
@@ -368,8 +370,11 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 		return nil, err
 	}
 
+	jobUpsertRequest := j.toUpsertRepositoryRequest()
+	jobUpsertRequest.BuildSettings = buildSettingsRequest(j.BuildSettings, stateBuildSettings)
+
 	return &job.UpsertServiceRequest{
-		JobUpsertRequest:             j.toUpsertRepositoryRequest(),
+		JobUpsertRequest:             jobUpsertRequest,
 		EnvironmentVariables:         j.EnvironmentVariableList().diffRequest(stateEnvironmentVariables),
 		EnvironmentVariableAliases:   j.EnvironmentVariableAliasesList().diffRequest(stateEnvironmentVariableAliases),
 		EnvironmentVariableOverrides: j.EnvironmentVariableOverridesList().diffRequest(stateEnvironmentVariableOverrides),
@@ -416,7 +421,6 @@ func (j Job) toUpsertRepositoryRequest() job.UpsertRepositoryRequest {
 		AutoDeploy:           *qovery.NewNullableBool(ToBoolPointer(j.AutoDeploy)),
 		AnnotationsGroupIds:  annotationsGroupIds,
 		LabelsGroupIds:       labelsGroupIds,
-		BuildSettings:        buildSettingsObjectToQovery(j.BuildSettings),
 	}
 }
 
@@ -465,6 +469,6 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		LabelssGroupIds:              fromLabelsGroupList(ctx, state.LabelssGroupIds, job.LabelsGroupIds),
 		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(job.ExternalSecrets, state.ExternalSecrets, variable.ScopeJob).toTerraformSet(ctx),
 		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(job.ExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeJob).toTerraformSet(ctx),
-		BuildSettings:                buildSettingsPreservePriorState(state.BuildSettings),
+		BuildSettings:                buildSettingsToState(state.BuildSettings, job.BuildSettings),
 	}
 }

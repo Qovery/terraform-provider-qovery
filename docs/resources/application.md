@@ -240,7 +240,7 @@ You can find complete examples within these repositories:
   - `BUILDPACKS`: Build using Cloud Native Buildpacks (auto-detects language and framework).
 
 Default: `DOCKER`.
-- `build_settings` (Attributes) Build configuration settings for the service. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both. (see [below for nested schema](#nestedatt--build_settings))
+- `build_settings` (Attributes) Build configuration settings for the service. When set, all six properties are sent to the API — omitted properties use their defaults. Removing the block resets the build settings to their defaults. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both. Those keys remain supported when this block is not set. (see [below for nested schema](#nestedatt--build_settings))
 - `cpu` (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
 - `custom_domains` (Attributes Set) List of custom domains linked to this application. You must configure a CNAME record on your DNS provider pointing to the `validation_domain` value. (see [below for nested schema](#nestedatt--custom_domains))
 - `deployment_restrictions` (Attributes Set) List of deployment restrictions. Deployment restrictions allow you to control when an application is deployed based on file path changes in the git repository. (see [below for nested schema](#nestedatt--deployment_restrictions))

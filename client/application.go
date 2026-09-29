@@ -33,6 +33,8 @@ type ApplicationResponse struct {
 	AdvancedSettingsJson                    string
 	ApplicationExternalSecrets              variable.ExternalSecrets
 	ApplicationExternalSecretFiles          variable.ExternalSecretFiles
+	// ApplicationBuildSettings is only populated on reads, from the application's advanced settings.
+	ApplicationBuildSettings *qovery.BuildSettings
 }
 
 type ApplicationCreateParams struct {
@@ -171,7 +173,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string, advan
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
 
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).ReadServiceAdvancedSettings(domain.APPLICATION, applicationID, advancedSettingsFromState, isTriggeredFromImport)
+	advancedSettingsAsJson, buildSettings, err := advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).ReadServiceAdvancedSettingsWithBuildSettings(domain.APPLICATION, applicationID, advancedSettingsFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, nil, err)
 	}
@@ -208,6 +210,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string, advan
 		ApplicationExternalHost:                 hosts.external,
 		ApplicationInternalHost:                 hosts.internal,
 		AdvancedSettingsJson:                    *advancedSettingsAsJson,
+		ApplicationBuildSettings:                buildSettings,
 		ApplicationDeploymentRestrictions:       deploymentRestrictions,
 		ApplicationExternalSecrets:              externalSecrets,
 		ApplicationExternalSecretFiles:          externalSecretFiles,

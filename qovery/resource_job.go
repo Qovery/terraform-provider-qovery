@@ -733,11 +733,6 @@ func (r jobResource) Create(ctx context.Context, req resource.CreateRequest, res
 		return
 	}
 
-	resp.Diagnostics.Append(validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson, types.StringNull())...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	// Create new job
 	request, err := plan.toUpsertServiceRequest(nil)
 	if err != nil {
@@ -805,11 +800,6 @@ func (r jobResource) Update(ctx context.Context, req resource.UpdateRequest, res
 		return
 	}
 
-	resp.Diagnostics.Append(validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson, state.AdvancedSettingsJson)...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	// Update job in the backend
 	request, err := plan.toUpsertServiceRequest(&state)
 	if err != nil {
@@ -859,4 +849,5 @@ func (r jobResource) ImportState(ctx context.Context, req resource.ImportStateRe
 
 func (r jobResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.JOB, req.Config, &resp.Diagnostics)
+	modifyBuildSettingsPlan(ctx, req, resp)
 }

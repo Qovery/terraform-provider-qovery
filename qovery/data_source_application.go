@@ -817,6 +817,7 @@ func (d applicationDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	state := convertResponseToApplication(ctx, data, application)
+	state.BuildSettings = buildSettingsFromQovery(application.ApplicationBuildSettings)
 	tflog.Trace(ctx, "read application", map[string]any{"application_id": state.Id.ValueString()})
 
 	// Set state

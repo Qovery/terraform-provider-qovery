@@ -803,12 +803,6 @@ func (r applicationResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson, types.StringNull())
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	// Create new application
 	request, err := plan.toCreateApplicationRequest()
 	if err != nil {
@@ -876,12 +870,6 @@ func (r applicationResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson, state.AdvancedSettingsJson)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	// Update application in the backend
 	request, err := plan.toUpdateApplicationRequest(state)
 	if err != nil {
@@ -931,8 +919,10 @@ func (r applicationResource) ImportState(ctx context.Context, req resource.Impor
 
 // ModifyPlan enforces KEDA autoscaling constraints at plan time so the backend
 // never rejects them mid-apply (which would leave the service partially mutated),
-// and warns about advanced_settings_json keys that are unknown for this service type.
+// warns about advanced_settings_json keys that are unknown for this service type,
+// and lets build_settings own the build.* advanced settings when it is set.
 func (r applicationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	validateAutoscalingPlan(ctx, req.Plan, req.State, &resp.Diagnostics)
 	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.APPLICATION, req.Config, &resp.Diagnostics)
+	modifyBuildSettingsPlan(ctx, req, resp)
 }

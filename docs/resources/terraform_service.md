@@ -112,7 +112,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 - `action_extra_arguments` (Map of List of String) Extra CLI arguments for specific Terraform actions (plan, apply, destroy).
 - `advanced_settings_json` (String) Advanced settings in JSON format. See the Qovery API documentation for available settings.
 - `blueprint_id` (String) The blueprint ID the terraform service has been created from.
-- `build_settings` (Attributes) Build configuration settings for the service. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both. (see [below for nested schema](#nestedatt--build_settings))
+- `build_settings` (Attributes) Build configuration settings for the service. When set, all six properties are sent to the API — omitted properties use their defaults. Removing the block resets the build settings to their defaults. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both. Those keys remain supported when this block is not set. (see [below for nested schema](#nestedatt--build_settings))
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `description` (String) Description of the terraform service.
 - `external_secret_files` (Attributes Set) List of external secret files linked to this terraform service. External secret files reference upstream secrets (e.g. from AWS Secrets Manager) and are mounted as files at a given path inside the container. (see [below for nested schema](#nestedatt--external_secret_files))

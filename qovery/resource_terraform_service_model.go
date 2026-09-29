@@ -90,10 +90,13 @@ func (t TerraformService) toUpsertServiceRequest(state *TerraformService) (*terr
 
 	var stateExternalSecrets ExternalSecretList
 	var stateExternalSecretFiles ExternalSecretFileList
+	stateBuildSettings := types.ObjectNull(buildSettingsAttrTypes)
 	if state != nil {
 		stateExternalSecrets = toExternalSecretList(state.ExternalSecrets)
 		stateExternalSecretFiles = toExternalSecretFileList(state.ExternalSecretFiles)
+		stateBuildSettings = state.BuildSettings
 	}
+	req.BuildSettings = buildSettingsRequest(t.BuildSettings, stateBuildSettings)
 
 	return &terraformservice.UpsertServiceRequest{
 		TerraformServiceUpsertRequest: req,
@@ -129,7 +132,6 @@ func (t TerraformService) toUpsertRepositoryRequest() (terraformservice.UpsertRe
 		ActionExtraArguments:  toActionExtraArguments(t.ActionExtraArguments),
 		AdvancedSettingsJson:  ToString(t.AdvancedSettingsJson),
 		BlueprintID:           ToStringPointer(t.BlueprintID),
-		BuildSettings:         buildSettingsObjectToQovery(t.BuildSettings),
 	}, nil
 }
 
@@ -281,7 +283,7 @@ func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan T
 		CreatedAt:             FromTime(ts.CreatedAt),
 		UpdatedAt:             FromTimePointer(ts.UpdatedAt),
 		BlueprintID:           FromStringPointer(ts.BlueprintID),
-		BuildSettings:         buildSettingsPreservePriorState(plan.BuildSettings),
+		BuildSettings:         buildSettingsToState(plan.BuildSettings, ts.BuildSettings),
 		ExternalSecrets:       convertDomainExternalSecretsToExternalSecretList(ts.ExternalSecrets, plan.ExternalSecrets, variable.ScopeTerraform).toTerraformSet(ctx),
 		ExternalSecretFiles:   convertDomainExternalSecretFilesToExternalSecretFileList(ts.ExternalSecretFiles, plan.ExternalSecretFiles, variable.ScopeTerraform).toTerraformSet(ctx),
 	}

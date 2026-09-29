@@ -175,7 +175,7 @@ You can find complete examples within these repositories:
 - `annotations_group_ids` (Set of String) List of annotations group IDs to associate with this job. Annotations groups are defined using the `qovery_annotations_group` resource.
 - `auto_deploy` (Boolean) Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this job.
-- `build_settings` (Attributes) Build configuration settings for the service. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both. (see [below for nested schema](#nestedatt--build_settings))
+- `build_settings` (Attributes) Build configuration settings for the service. When set, all six properties are sent to the API — omitted properties use their defaults. Removing the block resets the build settings to their defaults. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both. Those keys remain supported when this block is not set. (see [below for nested schema](#nestedatt--build_settings))
 - `cpu` (Number) CPU of the job in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 10`.
 	- Default: `500`.

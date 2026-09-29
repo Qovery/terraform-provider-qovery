@@ -422,12 +422,6 @@ func (r terraformServiceResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson, types.StringNull())
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	// Create API request from plan
 	request, err := plan.toUpsertServiceRequest(nil)
 	if err != nil {
@@ -495,12 +489,6 @@ func (r terraformServiceResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson, state.AdvancedSettingsJson)
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
 	// Create API request from plan
 	request, err := plan.toUpsertServiceRequest(&state)
 	if err != nil {
@@ -547,6 +535,7 @@ func (r terraformServiceResource) ImportState(ctx context.Context, req resource.
 
 func (r terraformServiceResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.TERRAFORM, req.Config, &resp.Diagnostics)
+	modifyBuildSettingsPlan(ctx, req, resp)
 	// Prevent storage reduction
 	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
 		return
