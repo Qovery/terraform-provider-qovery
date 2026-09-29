@@ -350,12 +350,12 @@ Read-Only:
 
 Read-Only:
 
-- `cpu_max_in_milli` (Number) Maximum CPU resources for the build (in millicores).
-- `disable_buildkit_cache` (Boolean) Disable buildkit registry cache during build.
-- `ephemeral_storage_in_gib` (Number) Ephemeral storage for the build (in GiB).
-- `ram_max_in_gib` (Number) Maximum RAM resources for the build (in GiB).
-- `skip_git_submodules` (Boolean) Skip git submodules update when cloning the repository.
-- `timeout_max_sec` (Number) Maximum build timeout in seconds.
+- `cpu_max_in_milli` (Number) Maximum CPU resources for the build in millicores. Default: 4000.
+- `disable_buildkit_cache` (Boolean) Disable buildkit registry cache during build. Default: false.
+- `ephemeral_storage_in_gib` (Number) Ephemeral storage for the build in GiB.
+- `ram_max_in_gib` (Number) Maximum RAM resources for the build in GiB. Default: 8.
+- `skip_git_submodules` (Boolean) Skip git submodules update when cloning the repository. Default: false.
+- `timeout_max_sec` (Number) Maximum build timeout in seconds. Default: 1800.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>

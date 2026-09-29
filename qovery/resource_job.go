@@ -733,7 +733,7 @@ func (r jobResource) Create(ctx context.Context, req resource.CreateRequest, res
 		return
 	}
 
-	resp.Diagnostics.Append(validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson)...)
+	resp.Diagnostics.Append(validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson, types.StringNull())...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -805,7 +805,7 @@ func (r jobResource) Update(ctx context.Context, req resource.UpdateRequest, res
 		return
 	}
 
-	resp.Diagnostics.Append(validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson)...)
+	resp.Diagnostics.Append(validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson, state.AdvancedSettingsJson)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

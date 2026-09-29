@@ -803,7 +803,7 @@ func (r applicationResource) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson)
+	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson, types.StringNull())
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -876,7 +876,7 @@ func (r applicationResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson)
+	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson, state.AdvancedSettingsJson)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return

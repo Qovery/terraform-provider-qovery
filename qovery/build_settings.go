@@ -3,14 +3,18 @@ package qovery
 import (
 	"encoding/json"
 	"fmt"
+	"math"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
+
+	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
 var buildSettingsAttrTypes = map[string]attr.Type{
@@ -22,41 +26,51 @@ var buildSettingsAttrTypes = map[string]attr.Type{
 	"skip_git_submodules":      types.BoolType,
 }
 
+func buildSettingsInt64Validators() []validator.Int64 {
+	return []validator.Int64{
+		validators.Int64MinMaxValidator{Min: 0, Max: math.MaxInt32},
+	}
+}
+
 func buildSettingsResourceSchemaAttributes() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
-		Description: "Build configuration settings for the service. When set, all six properties are sent to the API — omitted properties use their defaults. Prefer this over build.* keys in advanced_settings_json.",
+		Description: "Build configuration settings for the service. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both.",
 		Optional:    true,
 		Attributes: map[string]schema.Attribute{
 			"timeout_max_sec": schema.Int64Attribute{
-				Description: "Maximum build timeout in seconds.",
+				Description: "Maximum build timeout in seconds. Default: 1800.",
 				Optional:    true,
 				Computed:    true,
 				Default:     int64default.StaticInt64(1800),
+				Validators:  buildSettingsInt64Validators(),
 			},
 			"cpu_max_in_milli": schema.Int64Attribute{
-				Description: "Maximum CPU resources for the build (in millicores).",
+				Description: "Maximum CPU resources for the build in millicores. Default: 4000.",
 				Optional:    true,
 				Computed:    true,
 				Default:     int64default.StaticInt64(4000),
+				Validators:  buildSettingsInt64Validators(),
 			},
 			"ram_max_in_gib": schema.Int64Attribute{
-				Description: "Maximum RAM resources for the build (in GiB).",
+				Description: "Maximum RAM resources for the build in GiB. Default: 8.",
 				Optional:    true,
 				Computed:    true,
 				Default:     int64default.StaticInt64(8),
+				Validators:  buildSettingsInt64Validators(),
 			},
 			"ephemeral_storage_in_gib": schema.Int64Attribute{
-				Description: "Ephemeral storage for the build (in GiB). When not set, the platform default is used.",
+				Description: "Ephemeral storage for the build in GiB. When not set, the platform default is used.",
 				Optional:    true,
+				Validators:  buildSettingsInt64Validators(),
 			},
 			"disable_buildkit_cache": schema.BoolAttribute{
-				Description: "Disable buildkit registry cache during build.",
+				Description: "Disable buildkit registry cache during build. Default: false.",
 				Optional:    true,
 				Computed:    true,
 				Default:     booldefault.StaticBool(false),
 			},
 			"skip_git_submodules": schema.BoolAttribute{
-				Description: "Skip git submodules update when cloning the repository.",
+				Description: "Skip git submodules update when cloning the repository. Default: false.",
 				Optional:    true,
 				Computed:    true,
 				Default:     booldefault.StaticBool(false),
@@ -71,27 +85,27 @@ func buildSettingsDataSourceSchemaAttributes() schema.SingleNestedAttribute {
 		Computed:    true,
 		Attributes: map[string]schema.Attribute{
 			"timeout_max_sec": schema.Int64Attribute{
-				Description: "Maximum build timeout in seconds.",
+				Description: "Maximum build timeout in seconds. Default: 1800.",
 				Computed:    true,
 			},
 			"cpu_max_in_milli": schema.Int64Attribute{
-				Description: "Maximum CPU resources for the build (in millicores).",
+				Description: "Maximum CPU resources for the build in millicores. Default: 4000.",
 				Computed:    true,
 			},
 			"ram_max_in_gib": schema.Int64Attribute{
-				Description: "Maximum RAM resources for the build (in GiB).",
+				Description: "Maximum RAM resources for the build in GiB. Default: 8.",
 				Computed:    true,
 			},
 			"ephemeral_storage_in_gib": schema.Int64Attribute{
-				Description: "Ephemeral storage for the build (in GiB).",
+				Description: "Ephemeral storage for the build in GiB.",
 				Computed:    true,
 			},
 			"disable_buildkit_cache": schema.BoolAttribute{
-				Description: "Disable buildkit registry cache during build.",
+				Description: "Disable buildkit registry cache during build. Default: false.",
 				Computed:    true,
 			},
 			"skip_git_submodules": schema.BoolAttribute{
-				Description: "Skip git submodules update when cloning the repository.",
+				Description: "Skip git submodules update when cloning the repository. Default: false.",
 				Computed:    true,
 			},
 		},
@@ -130,18 +144,23 @@ func buildSettingsPreservePriorState(prior types.Object) types.Object {
 	return prior
 }
 
-func validateBuildSettingsConflict(buildSettings types.Object, advancedSettingsJson types.String) diag.Diagnostics {
+func validateBuildSettingsConflict(buildSettings types.Object, planAdvancedSettingsJson types.String, stateAdvancedSettingsJson types.String) diag.Diagnostics {
 	var diags diag.Diagnostics
 
 	if buildSettings.IsNull() || buildSettings.IsUnknown() {
 		return diags
 	}
 
-	if advancedSettingsJson.IsNull() || advancedSettingsJson.IsUnknown() {
+	if planAdvancedSettingsJson.IsNull() || planAdvancedSettingsJson.IsUnknown() {
 		return diags
 	}
 
-	jsonStr := advancedSettingsJson.ValueString()
+	if !stateAdvancedSettingsJson.IsNull() && !stateAdvancedSettingsJson.IsUnknown() &&
+		planAdvancedSettingsJson.ValueString() == stateAdvancedSettingsJson.ValueString() {
+		return diags
+	}
+
+	jsonStr := planAdvancedSettingsJson.ValueString()
 	if jsonStr == "" || jsonStr == "{}" {
 		return diags
 	}

@@ -422,7 +422,7 @@ func (r terraformServiceResource) Create(ctx context.Context, req resource.Creat
 		return
 	}
 
-	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson)
+	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson, types.StringNull())
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -495,7 +495,7 @@ func (r terraformServiceResource) Update(ctx context.Context, req resource.Updat
 		return
 	}
 
-	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson)
+	diags := validateBuildSettingsConflict(plan.BuildSettings, plan.AdvancedSettingsJson, state.AdvancedSettingsJson)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
