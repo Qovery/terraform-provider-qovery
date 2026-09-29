@@ -35,6 +35,7 @@ const (
   disk_iops        = 3000
   disk_throughput  = 125
   spot_enabled     = true
+  consolidate_after = "10m"
   consolidation = {
     enabled    = true
     days       = ["MONDAY", "WEDNESDAY"]
@@ -83,13 +84,14 @@ func testAccGpuMinimalOnAPI() *qovery.KarpenterGpuNodePoolOverride {
 // testAccGpuEveryFieldOnAPI is the GPU node pool of testAccGpuEveryField as the API holds it.
 func testAccGpuEveryFieldOnAPI() *qovery.KarpenterGpuNodePoolOverride {
 	return &qovery.KarpenterGpuNodePoolOverride{
-		Requirements:   testAccGpuRequirements(true),
-		DiskSizeInGib:  new(int32(100)),
-		DiskIops:       new(int32(3000)),
-		DiskThroughput: new(int32(125)),
-		SpotEnabled:    new(true),
-		Consolidation:  qovery.NewKarpenterNodePoolConsolidation(true, []qovery.WeekdayEnum{qovery.WEEKDAYENUM_MONDAY, qovery.WEEKDAYENUM_WEDNESDAY}, "PT02:00", "PT04H00M"),
-		Limits:         qovery.NewKarpenterNodePoolLimits(true, 16, 64, 4),
+		Requirements:     testAccGpuRequirements(true),
+		DiskSizeInGib:    new(int32(100)),
+		DiskIops:         new(int32(3000)),
+		DiskThroughput:   new(int32(125)),
+		SpotEnabled:      new(true),
+		Consolidation:    qovery.NewKarpenterNodePoolConsolidation(true, []qovery.WeekdayEnum{qovery.WEEKDAYENUM_MONDAY, qovery.WEEKDAYENUM_WEDNESDAY}, "PT02:00", "PT04H00M"),
+		Limits:           qovery.NewKarpenterNodePoolLimits(true, 16, 64, 4),
+		ConsolidateAfter: new("10m"),
 	}
 }
 

@@ -74,9 +74,11 @@ resource "qovery_cluster" "cluster" {
         }
 
         # The default node pool runs your applications: spot instances save cost on
-        # fault-tolerant workloads.
+        # fault-tolerant workloads. consolidate_after sets how long Karpenter waits
+        # before consolidating an empty or underutilized node.
         default_override = {
-          spot_enabled = true
+          spot_enabled      = true
+          consolidate_after = "5m"
         }
 
         # Declaring this block enables the dedicated cronjob node pool: the engine

@@ -88,9 +88,11 @@ resource "qovery_cluster" "cluster" {
         }
 
         # The default node pool runs your applications: spot instances save cost on
-        # fault-tolerant workloads.
+        # fault-tolerant workloads. consolidate_after sets how long Karpenter waits
+        # before consolidating an empty or underutilized node.
         default_override = {
-          spot_enabled = true
+          spot_enabled      = true
+          consolidate_after = "5m"
         }
 
         # Declaring this block enables the dedicated cronjob node pool: the engine
@@ -458,6 +460,11 @@ Required:
 - `disk_size_in_gib` (Number) Root disk size in GiB for nodes provisioned by Karpenter (e.g., `50`).
 - `qovery_node_pools` (Attributes) Karpenter node pool configuration. Defines the requirements (instance families, sizes, architectures) and optional resource limits for Qovery-managed node pools. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools))
 
+Optional:
+
+- `disk_iops` (Number) Provisioned IOPS of the root disk of the nodes provisioned by Karpenter, which use gp3 volumes (e.g., `3000`). Leave it unset to use the volume default. The GPU node pool has its own `gpu_override.disk_iops`.
+- `disk_throughput` (Number) Provisioned throughput in MB/s of the root disk of the nodes provisioned by Karpenter, which use gp3 volumes (e.g., `125`). Leave it unset to use the volume default. The GPU node pool has its own `gpu_override.disk_throughput`.
+
 <a id="nestedatt--features--karpenter--qovery_node_pools"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools`
 
@@ -495,9 +502,33 @@ Required:
 
 Optional:
 
+- `consolidate_after` (String) Time Karpenter waits before consolidating an empty or underutilized node of the **cronjob** node pool, as `<number><unit>` where the unit is `s`, `m` or `h` (e.g., `30s`, `10m`, `1h`), at most `24h`. Write it in the largest whole unit, the form Qovery returns: `1h`, not `60m`. Leave it unset to use the Qovery default.
+- `consolidation` (Attributes) Node consolidation schedule for the cronjob node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on cronjob nodes. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override--consolidation))
+- `limits` (Attributes) Resource limits for the cronjob node pool. Use this to cap the total resources Karpenter can provision for cron jobs and lifecycle jobs. Qovery requires at least 6 vCPU and 6 GiB. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override--limits))
 - `spot_enabled` (Boolean) Whether to run the **cronjob** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
 
 Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances.
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--cronjob_override--consolidation"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.cronjob_override.consolidation`
+
+Required:
+
+- `days` (List of String) List of days of the week when consolidation should run (e.g., `["MONDAY", "TUESDAY"]`).
+- `duration` (String) Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).
+- `enabled` (Boolean) Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.
+- `start_time` (String) Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).
+
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--cronjob_override--limits"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.cronjob_override.limits`
+
+Required:
+
+- `enabled` (Boolean) Whether to enforce resource limits on the cronjob node pool.
+- `max_cpu_in_vcpu` (Number) Maximum total vCPU cores that Karpenter can provision for the cronjob node pool.
+- `max_memory_in_gibibytes` (Number) Maximum total memory in GiB that Karpenter can provision for the cronjob node pool.
+
 
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--default_override"></a>
@@ -505,6 +536,7 @@ Defaults to `false`, i.e. on-demand instances. The provider always sends an expl
 
 Optional:
 
+- `consolidate_after` (String) Time Karpenter waits before consolidating an empty or underutilized node of the **default** node pool, as `<number><unit>` where the unit is `s`, `m` or `h` (e.g., `30s`, `10m`, `1h`), at most `24h`. Write it in the largest whole unit, the form Qovery returns: `1h`, not `60m`. Leave it unset to use the Qovery default.
 - `limits` (Attributes) Resource limits for the default node pool. Use this to cap the total resources Karpenter can provision for application workloads. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override--limits))
 - `spot_enabled` (Boolean) Whether to run the **default** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
 
@@ -531,6 +563,7 @@ Required:
 
 Optional:
 
+- `consolidate_after` (String) Time Karpenter waits before consolidating an empty or underutilized node of the **GPU** node pool, as `<number><unit>` where the unit is `s`, `m` or `h` (e.g., `30s`, `10m`, `1h`), at most `24h`. Write it in the largest whole unit, the form Qovery returns: `1h`, not `60m`. Leave it unset to use the Qovery default.
 - `consolidation` (Attributes) Node consolidation schedule for the GPU node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on GPU nodes. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--consolidation))
 - `disk_iops` (Number) Provisioned IOPS of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.
 - `disk_throughput` (Number) Provisioned throughput in MB/s of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.
@@ -580,6 +613,7 @@ Optional:
 
 Optional:
 
+- `consolidate_after` (String) Time Karpenter waits before consolidating an empty or underutilized node of the **stable** node pool, as `<number><unit>` where the unit is `s`, `m` or `h` (e.g., `30s`, `10m`, `1h`), at most `24h`. Write it in the largest whole unit, the form Qovery returns: `1h`, not `60m`. Leave it unset to use the Qovery default.
 - `consolidation` (Attributes) Node consolidation schedule for the stable node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on stable nodes. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation))
 - `limits` (Attributes) Resource limits for the stable node pool. Use this to cap the total resources Karpenter can provision for stable workloads. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--limits))
 - `spot_enabled` (Boolean) Whether to run the **stable** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.

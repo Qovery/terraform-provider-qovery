@@ -1150,6 +1150,11 @@ func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeatur
 				return nil, err
 			}
 
+			// q-core rebuilds the Karpenter parameters from each request, so disk_iops and
+			// disk_throughput are sent on every write: an omitted value clears the one set before.
+			diskIops, _ := v.Attributes()["disk_iops"].(types.Int64)
+			diskThroughput, _ := v.Attributes()["disk_throughput"].(types.Int64)
+
 			// The API still requires the global spot flag, and it hands it to every node pool that
 			// carries no spot_enabled of its own. toQoveryNodePools gives every pool an explicit
 			// value, so the global decides nothing; it is sent as the OR of those values because
@@ -1158,6 +1163,8 @@ func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeatur
 			feature := qovery.ClusterFeatureKarpenterParameters{
 				SpotEnabled:                karpenterGlobalSpotEnabled(qoveryNodePools),
 				DiskSizeInGib:              ToInt32(v.Attributes()["disk_size_in_gib"].(types.Int64)),
+				DiskIops:                   ToInt32Pointer(diskIops),
+				DiskThroughput:             ToInt32Pointer(diskThroughput),
 				DefaultServiceArchitecture: arch,
 				QoveryNodePools:            *qoveryNodePools,
 			}
@@ -1404,6 +1411,8 @@ func extractStableNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Kar
 	}
 	qoveryStableOverride.Limits = limits
 
+	qoveryStableOverride.ConsolidateAfter = toQoveryNodePoolConsolidateAfter(stableOverride)
+
 	return &qoveryStableOverride, nil
 }
 
@@ -1436,6 +1445,8 @@ func extractDefaultNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Ka
 	}
 	qoveryDefaultOverride.Limits = limits
 
+	qoveryDefaultOverride.ConsolidateAfter = toQoveryNodePoolConsolidateAfter(defaultOverride)
+
 	return &qoveryDefaultOverride, nil
 }
 
@@ -1459,6 +1470,20 @@ func extractCronjobNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Ka
 		return nil, err
 	}
 	SetCronjobNodePoolSpotEnabled(&qoveryCronjobOverride, spotEnabled)
+
+	consolidation, err := toQoveryNodePoolConsolidation(cronjobOverride)
+	if err != nil {
+		return nil, err
+	}
+	qoveryCronjobOverride.Consolidation = consolidation
+
+	limits, err := toQoveryNodePoolLimits(cronjobOverride)
+	if err != nil {
+		return nil, err
+	}
+	qoveryCronjobOverride.Limits = limits
+
+	qoveryCronjobOverride.ConsolidateAfter = toQoveryNodePoolConsolidateAfter(cronjobOverride)
 
 	return &qoveryCronjobOverride, nil
 }
@@ -1497,14 +1522,23 @@ func extractGpuNodePoolOverrideFromTypesObject(obj types.Object) (*qovery.Karpen
 	}
 
 	return &qovery.KarpenterGpuNodePoolOverride{
-		Requirements:   requirements,
-		DiskSizeInGib:  ToInt32Pointer(gpuOverride.Attributes()["disk_size_in_gib"].(basetypes.Int64Value)),
-		DiskIops:       ToInt32Pointer(gpuOverride.Attributes()["disk_iops"].(basetypes.Int64Value)),
-		DiskThroughput: ToInt32Pointer(gpuOverride.Attributes()["disk_throughput"].(basetypes.Int64Value)),
-		SpotEnabled:    &spotEnabled,
-		Consolidation:  consolidation,
-		Limits:         limits,
+		Requirements:     requirements,
+		DiskSizeInGib:    ToInt32Pointer(gpuOverride.Attributes()["disk_size_in_gib"].(basetypes.Int64Value)),
+		DiskIops:         ToInt32Pointer(gpuOverride.Attributes()["disk_iops"].(basetypes.Int64Value)),
+		DiskThroughput:   ToInt32Pointer(gpuOverride.Attributes()["disk_throughput"].(basetypes.Int64Value)),
+		SpotEnabled:      &spotEnabled,
+		Consolidation:    consolidation,
+		Limits:           limits,
+		ConsolidateAfter: toQoveryNodePoolConsolidateAfter(gpuOverride),
 	}, nil
+}
+
+// toQoveryNodePoolConsolidateAfter converts the consolidate_after of a node pool override. It is
+// nil when the override does not set one: the node pool then uses the Qovery default. q-core
+// rebuilds the node pools from each request, so leaving it out clears a value set before.
+func toQoveryNodePoolConsolidateAfter(override basetypes.ObjectValue) *string {
+	consolidateAfter, _ := override.Attributes()["consolidate_after"].(basetypes.StringValue)
+	return ToStringPointer(consolidateAfter)
 }
 
 // toQoveryNodePoolConsolidation converts the consolidation of a node pool override. It is nil when
@@ -1636,22 +1670,27 @@ func karpenterLimitsAttrTypes() map[string]attr.Type {
 
 func karpenterStableOverrideAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"spot_enabled":  types.BoolType,
-		"consolidation": types.ObjectType{AttrTypes: karpenterConsolidationAttrTypes()},
-		"limits":        types.ObjectType{AttrTypes: karpenterLimitsAttrTypes()},
+		"spot_enabled":      types.BoolType,
+		"consolidation":     types.ObjectType{AttrTypes: karpenterConsolidationAttrTypes()},
+		"limits":            types.ObjectType{AttrTypes: karpenterLimitsAttrTypes()},
+		"consolidate_after": types.StringType,
 	}
 }
 
 func karpenterDefaultOverrideAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"spot_enabled": types.BoolType,
-		"limits":       types.ObjectType{AttrTypes: karpenterLimitsAttrTypes()},
+		"spot_enabled":      types.BoolType,
+		"limits":            types.ObjectType{AttrTypes: karpenterLimitsAttrTypes()},
+		"consolidate_after": types.StringType,
 	}
 }
 
 func karpenterCronjobOverrideAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"spot_enabled": types.BoolType,
+		"spot_enabled":      types.BoolType,
+		"consolidation":     types.ObjectType{AttrTypes: karpenterConsolidationAttrTypes()},
+		"limits":            types.ObjectType{AttrTypes: karpenterLimitsAttrTypes()},
+		"consolidate_after": types.StringType,
 	}
 }
 
@@ -1664,13 +1703,14 @@ func karpenterGpuLimitsAttrTypes() map[string]attr.Type {
 
 func karpenterGpuOverrideAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"requirements":     types.ListType{ElemType: types.ObjectType{AttrTypes: karpenterRequirementAttrTypes()}},
-		"disk_size_in_gib": types.Int64Type,
-		"disk_iops":        types.Int64Type,
-		"disk_throughput":  types.Int64Type,
-		"spot_enabled":     types.BoolType,
-		"consolidation":    types.ObjectType{AttrTypes: karpenterConsolidationAttrTypes()},
-		"limits":           types.ObjectType{AttrTypes: karpenterGpuLimitsAttrTypes()},
+		"requirements":      types.ListType{ElemType: types.ObjectType{AttrTypes: karpenterRequirementAttrTypes()}},
+		"disk_size_in_gib":  types.Int64Type,
+		"disk_iops":         types.Int64Type,
+		"disk_throughput":   types.Int64Type,
+		"spot_enabled":      types.BoolType,
+		"consolidation":     types.ObjectType{AttrTypes: karpenterConsolidationAttrTypes()},
+		"limits":            types.ObjectType{AttrTypes: karpenterGpuLimitsAttrTypes()},
+		"consolidate_after": types.StringType,
 	}
 }
 
@@ -1687,6 +1727,8 @@ func karpenterNodePoolsAttrTypes() map[string]attr.Type {
 func createKarpenterFeatureAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"disk_size_in_gib":             types.Int64Type,
+		"disk_iops":                    types.Int64Type,
+		"disk_throughput":              types.Int64Type,
 		"default_service_architecture": types.StringType,
 		"qovery_node_pools":            types.ObjectType{AttrTypes: karpenterNodePoolsAttrTypes()},
 	}
@@ -1853,7 +1895,7 @@ func effectiveNodePoolSpotEnabled(apiValue *bool, globalSpotEnabled bool) bool {
 // pools always exist, so the question is only whether the block says anything the schema default
 // would not:
 //   - a declared block is always stored, so the configuration and the state line up;
-//   - consolidation or limits are real content;
+//   - consolidation, limits or consolidate_after are real content;
 //   - a pool running on spot differs from the on-demand default. Storing it makes the plan show
 //     the block's removal, i.e. the switch back to on-demand, instead of the next apply performing
 //     it silently. This is how a configuration upgraded from 0.x without pinning its spot pools
@@ -1939,13 +1981,14 @@ func karpenterGpuOverrideAttrValue(gpuOverride *qovery.KarpenterGpuNodePoolOverr
 	}
 
 	return types.ObjectValueMust(karpenterGpuOverrideAttrTypes(), map[string]attr.Value{
-		"requirements":     karpenterRequirementsAttrValue(gpuOverride.Requirements),
-		"disk_size_in_gib": FromInt32Pointer(gpuOverride.DiskSizeInGib),
-		"disk_iops":        FromInt32Pointer(gpuOverride.DiskIops),
-		"disk_throughput":  FromInt32Pointer(gpuOverride.DiskThroughput),
-		"spot_enabled":     types.BoolValue(gpuOverride.GetSpotEnabled()),
-		"consolidation":    karpenterConsolidationAttrValue(gpuOverride.Consolidation),
-		"limits":           karpenterGpuLimitsAttrValue(gpuOverride.Limits),
+		"requirements":      karpenterRequirementsAttrValue(gpuOverride.Requirements),
+		"disk_size_in_gib":  FromInt32Pointer(gpuOverride.DiskSizeInGib),
+		"disk_iops":         FromInt32Pointer(gpuOverride.DiskIops),
+		"disk_throughput":   FromInt32Pointer(gpuOverride.DiskThroughput),
+		"spot_enabled":      types.BoolValue(gpuOverride.GetSpotEnabled()),
+		"consolidation":     karpenterConsolidationAttrValue(gpuOverride.Consolidation),
+		"limits":            karpenterGpuLimitsAttrValue(gpuOverride.Limits),
+		"consolidate_after": FromStringPointer(gpuOverride.ConsolidateAfter),
 	})
 }
 
@@ -1965,6 +2008,8 @@ func karpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpent
 	globalSpotEnabled := karpenterParameters.SpotEnabled
 
 	attrVals["disk_size_in_gib"] = FromInt32(karpenterParameters.DiskSizeInGib)
+	attrVals["disk_iops"] = FromInt32Pointer(karpenterParameters.DiskIops)
+	attrVals["disk_throughput"] = FromInt32Pointer(karpenterParameters.DiskThroughput)
 	attrVals["default_service_architecture"] = FromString(string(karpenterParameters.DefaultServiceArchitecture))
 
 	// Inject requirements
@@ -1976,16 +2021,20 @@ func karpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpent
 	stableOverride := nodePools.StableOverride
 	var stableConsolidation *qovery.KarpenterNodePoolConsolidation
 	var stableLimits *qovery.KarpenterNodePoolLimits
+	var stableConsolidateAfter *string
 	if stableOverride != nil {
 		stableConsolidation = stableOverride.Consolidation
 		stableLimits = stableOverride.Limits
+		stableConsolidateAfter = stableOverride.ConsolidateAfter
 	}
 	stableSpotEnabled := effectiveNodePoolSpotEnabled(GetStableNodePoolSpotEnabled(stableOverride), globalSpotEnabled)
-	if storeNodePoolOverride(plan, "stable_override", mode, stableConsolidation != nil || stableLimits != nil, stableSpotEnabled) {
+	stableHasContent := stableConsolidation != nil || stableLimits != nil || stableConsolidateAfter != nil
+	if storeNodePoolOverride(plan, "stable_override", mode, stableHasContent, stableSpotEnabled) {
 		qoveryNodePoolsAttrVals["stable_override"] = types.ObjectValueMust(karpenterStableOverrideAttrTypes(), map[string]attr.Value{
-			"spot_enabled":  types.BoolValue(stableSpotEnabled),
-			"consolidation": karpenterConsolidationAttrValue(stableConsolidation),
-			"limits":        karpenterLimitsAttrValue(stableLimits),
+			"spot_enabled":      types.BoolValue(stableSpotEnabled),
+			"consolidation":     karpenterConsolidationAttrValue(stableConsolidation),
+			"limits":            karpenterLimitsAttrValue(stableLimits),
+			"consolidate_after": FromStringPointer(stableConsolidateAfter),
 		})
 	} else {
 		qoveryNodePoolsAttrVals["stable_override"] = types.ObjectNull(karpenterStableOverrideAttrTypes())
@@ -1994,14 +2043,17 @@ func karpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpent
 	// Inject default_override — same rule as stable_override.
 	defaultOverride := nodePools.DefaultOverride
 	var defaultLimits *qovery.KarpenterNodePoolLimits
+	var defaultConsolidateAfter *string
 	if defaultOverride != nil {
 		defaultLimits = defaultOverride.Limits
+		defaultConsolidateAfter = defaultOverride.ConsolidateAfter
 	}
 	defaultSpotEnabled := effectiveNodePoolSpotEnabled(GetDefaultNodePoolSpotEnabled(defaultOverride), globalSpotEnabled)
-	if storeNodePoolOverride(plan, "default_override", mode, defaultLimits != nil, defaultSpotEnabled) {
+	if storeNodePoolOverride(plan, "default_override", mode, defaultLimits != nil || defaultConsolidateAfter != nil, defaultSpotEnabled) {
 		qoveryNodePoolsAttrVals["default_override"] = types.ObjectValueMust(karpenterDefaultOverrideAttrTypes(), map[string]attr.Value{
-			"spot_enabled": types.BoolValue(defaultSpotEnabled),
-			"limits":       karpenterLimitsAttrValue(defaultLimits),
+			"spot_enabled":      types.BoolValue(defaultSpotEnabled),
+			"limits":            karpenterLimitsAttrValue(defaultLimits),
+			"consolidate_after": FromStringPointer(defaultConsolidateAfter),
 		})
 	} else {
 		qoveryNodePoolsAttrVals["default_override"] = types.ObjectNull(karpenterDefaultOverrideAttrTypes())
@@ -2018,7 +2070,10 @@ func karpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpent
 	cronjobOverride := nodePools.CronjobOverride
 	if cronjobOverride != nil {
 		qoveryNodePoolsAttrVals["cronjob_override"] = types.ObjectValueMust(karpenterCronjobOverrideAttrTypes(), map[string]attr.Value{
-			"spot_enabled": types.BoolValue(effectiveNodePoolSpotEnabled(GetCronjobNodePoolSpotEnabled(cronjobOverride), globalSpotEnabled)),
+			"spot_enabled":      types.BoolValue(effectiveNodePoolSpotEnabled(GetCronjobNodePoolSpotEnabled(cronjobOverride), globalSpotEnabled)),
+			"consolidation":     karpenterConsolidationAttrValue(cronjobOverride.Consolidation),
+			"limits":            karpenterLimitsAttrValue(cronjobOverride.Limits),
+			"consolidate_after": FromStringPointer(cronjobOverride.ConsolidateAfter),
 		})
 	} else {
 		qoveryNodePoolsAttrVals["cronjob_override"] = types.ObjectNull(karpenterCronjobOverrideAttrTypes())

@@ -102,6 +102,10 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_cluster`: `features.karpenter.qovery_node_pools.gpu_override` manages the Karpenter
   GPU node pool, and the data source reports it. Declaring the block creates the pool and
   removing it deletes the pool; the plan warns when it removes the block. (QOV-2318)
+- `qovery_cluster`: `consolidate_after` on every Karpenter node pool override, `consolidation`
+  and `limits` on `cronjob_override`, and `disk_iops` and `disk_throughput` on
+  `features.karpenter`. The data source reports them. Write `consolidate_after` in the largest
+  whole unit, the form Qovery returns: `1h`, not `60m`. (QOV-2322)
 - `qovery_blueprint` supports `terraform import` by blueprint ID. The data source reports
   `icon_uri`. (QOV-2337)
 
@@ -125,6 +129,10 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_cluster`: an apply no longer deletes a GPU node pool created from the Console while
   the plan shows nothing. The pool now shows in `terraform plan` as `gpu_override` being
   removed; declare the block to keep it. (QOV-2318)
+- `qovery_cluster`: an apply no longer clears the Karpenter `consolidate_after`, the cronjob
+  node pool consolidation and limits, or the Karpenter node disk IOPS and throughput set from
+  the Console while the plan shows nothing. They now show in `terraform plan`; declare them to
+  keep them. (QOV-2322)
 - `qovery_application`: changing or removing the `description` of a secret, secret alias or
   secret override now reaches the API. The update skipped a change that touched only the
   description and otherwise resent the previous description, so the apply failed with an

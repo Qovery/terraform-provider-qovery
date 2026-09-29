@@ -57,12 +57,13 @@ func testGpuOverrideObject(mutate func(attrs map[string]attr.Value)) types.Objec
 			testKarpenterRequirement("InstanceSize", "xlarge"),
 			testKarpenterRequirement("Arch", "AMD64"),
 		),
-		"disk_size_in_gib": types.Int64Value(50),
-		"disk_iops":        types.Int64Null(),
-		"disk_throughput":  types.Int64Null(),
-		"spot_enabled":     types.BoolValue(false),
-		"consolidation":    testNullConsolidation(),
-		"limits":           types.ObjectNull(karpenterGpuLimitsAttrTypes()),
+		"disk_size_in_gib":  types.Int64Value(50),
+		"disk_iops":         types.Int64Null(),
+		"disk_throughput":   types.Int64Null(),
+		"spot_enabled":      types.BoolValue(false),
+		"consolidation":     testNullConsolidation(),
+		"limits":            types.ObjectNull(karpenterGpuLimitsAttrTypes()),
+		"consolidate_after": types.StringNull(),
 	}
 	if mutate != nil {
 		mutate(attrs)
@@ -78,6 +79,7 @@ func testGpuOverrideEveryField(attrs map[string]attr.Value) {
 	attrs["spot_enabled"] = types.BoolValue(true)
 	attrs["consolidation"] = testKarpenterConsolidationObject()
 	attrs["limits"] = testGpuLimitsObject(4)
+	attrs["consolidate_after"] = types.StringValue("10m")
 }
 
 func testGpuKarpenterObject(gpuOverride attr.Value) types.Object {
@@ -142,6 +144,7 @@ func TestExtractGpuNodePoolOverrideFromTypesObject(t *testing.T) {
 				o.SpotEnabled = boolPtr(true)
 				o.Consolidation = qovery.NewKarpenterNodePoolConsolidation(true, []qovery.WeekdayEnum{qovery.WEEKDAYENUM_MONDAY}, "PT02:00", "PT04H00M")
 				o.Limits = qovery.NewKarpenterNodePoolLimits(true, 10, 20, 4)
+				o.ConsolidateAfter = new("10m")
 				return o
 			}(),
 		},
@@ -455,6 +458,8 @@ func TestWarnKarpenterGpuNodePoolRemoval(t *testing.T) {
 			PlanKarpenter: func() *types.Object {
 				karpenter := types.ObjectValueMust(createKarpenterFeatureAttrTypes(), map[string]attr.Value{
 					"disk_size_in_gib":             types.Int64Value(50),
+					"disk_iops":                    types.Int64Null(),
+					"disk_throughput":              types.Int64Null(),
 					"default_service_architecture": types.StringValue("AMD64"),
 					"qovery_node_pools":            types.ObjectUnknown(karpenterNodePoolsAttrTypes()),
 				})

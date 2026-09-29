@@ -326,6 +326,14 @@ In 0.x, `qovery_cluster` had no attribute for the Karpenter GPU node pool. A GPU
 
 In 1.0 the pool is managed by `features.karpenter.qovery_node_pools.gpu_override`, and the refresh stores the block whenever the pool exists on the cluster. A GPU node pool created from the Console shows in `terraform plan` as the block being removed, with a warning, and applying that plan deletes the pool. To keep it, copy its settings into a `gpu_override` block: `terraform plan` shows them in the block being removed, and the plan is empty once the block matches.
 
+### `qovery_cluster`: Karpenter consolidation and disk settings are managed
+
+In 0.x, `qovery_cluster` had no attribute for these Karpenter settings, which the Qovery Console sets: `consolidate_after` on the node pools, the consolidation schedule and limits of the cronjob node pool, and the disk IOPS and throughput of the Karpenter nodes. The next `terraform apply`, even one that only changed the description, cleared them without the plan showing it.
+
+In 1.0 they are managed by `consolidate_after` on `stable_override`, `default_override`, `cronjob_override` and `gpu_override`, by `consolidation` and `limits` on `cronjob_override`, and by `disk_iops` and `disk_throughput` on `features.karpenter`. The refresh reads them from the API, so a value set from the Console shows in `terraform plan` as being removed, and applying that plan clears it. A `stable_override` or `default_override` block the configuration does not declare shows up in the plan as a block being removed when the Console set its `consolidate_after`. To keep a value, copy it into the configuration.
+
+Write `consolidate_after` in the largest whole unit. Qovery stores it in seconds and returns `1h` for `60m`, so the provider rejects `60m` at plan time.
+
 ### Service attributes that keep their value when removed
 
 A few service attributes keep their current value when you remove them from the configuration, because the Qovery API gives Terraform no way to plan the reset. They are the only exceptions to the rule that the configuration is the source of truth:

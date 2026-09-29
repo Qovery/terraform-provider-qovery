@@ -52,9 +52,10 @@ func testNullLimits() types.Object {
 
 func testStableOverrideObject(spotEnabled types.Bool, consolidation, limits attr.Value) types.Object {
 	return types.ObjectValueMust(karpenterStableOverrideAttrTypes(), map[string]attr.Value{
-		"spot_enabled":  spotEnabled,
-		"consolidation": consolidation,
-		"limits":        limits,
+		"spot_enabled":      spotEnabled,
+		"consolidation":     consolidation,
+		"limits":            limits,
+		"consolidate_after": types.StringNull(),
 	})
 }
 
@@ -65,14 +66,18 @@ func testStableSpotOnly(spotEnabled types.Bool) types.Object {
 
 func testDefaultOverrideObject(spotEnabled types.Bool, limits attr.Value) types.Object {
 	return types.ObjectValueMust(karpenterDefaultOverrideAttrTypes(), map[string]attr.Value{
-		"spot_enabled": spotEnabled,
-		"limits":       limits,
+		"spot_enabled":      spotEnabled,
+		"limits":            limits,
+		"consolidate_after": types.StringNull(),
 	})
 }
 
 func testCronjobOverrideObject(spotEnabled types.Bool) types.Object {
 	return types.ObjectValueMust(karpenterCronjobOverrideAttrTypes(), map[string]attr.Value{
-		"spot_enabled": spotEnabled,
+		"spot_enabled":      spotEnabled,
+		"consolidation":     testNullConsolidation(),
+		"limits":            testNullLimits(),
+		"consolidate_after": types.StringNull(),
 	})
 }
 
@@ -111,6 +116,8 @@ func testKarpenterObject(overrides map[string]attr.Value) types.Object {
 
 	return types.ObjectValueMust(createKarpenterFeatureAttrTypes(), map[string]attr.Value{
 		"disk_size_in_gib":             types.Int64Value(50),
+		"disk_iops":                    types.Int64Null(),
+		"disk_throughput":              types.Int64Null(),
 		"default_service_architecture": types.StringValue("AMD64"),
 		"qovery_node_pools":            types.ObjectValueMust(karpenterNodePoolsAttrTypes(), nodePools),
 	})
@@ -1131,6 +1138,8 @@ func TestWarnKarpenterSpotToOnDemand(t *testing.T) {
 			PlanKarpenter: func() *types.Object {
 				karpenter := types.ObjectValueMust(createKarpenterFeatureAttrTypes(), map[string]attr.Value{
 					"disk_size_in_gib":             types.Int64Value(50),
+					"disk_iops":                    types.Int64Null(),
+					"disk_throughput":              types.Int64Null(),
 					"default_service_architecture": types.StringValue("AMD64"),
 					"qovery_node_pools":            types.ObjectUnknown(karpenterNodePoolsAttrTypes()),
 				})

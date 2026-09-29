@@ -203,6 +203,20 @@ func karpenterNodePoolSpotEnabledMarkdownDescription(pool string) string {
 		"A " + pool + " node pool that runs on spot instances while the configuration does not declare it shows up as a change in the plan."
 }
 
+// karpenterNodePoolConsolidateAfterAttribute is the consolidate_after of a node pool override.
+func karpenterNodePoolConsolidateAfterAttribute(pool string) schema.StringAttribute {
+	return schema.StringAttribute{
+		Description: "Time Karpenter waits before consolidating an empty or underutilized node of the " + pool + " node pool, e.g. 30s, 10m or 1h. Maximum 24h.",
+		MarkdownDescription: "Time Karpenter waits before consolidating an empty or underutilized node of the **" + pool + "** node pool, as `<number><unit>` where the unit is `s`, `m` or `h` (e.g., `30s`, `10m`, `1h`), at most `24h`. " +
+			"Write it in the largest whole unit, the form Qovery returns: `1h`, not `60m`. Leave it unset to use the Qovery default.",
+		Optional: true,
+		Computed: false,
+		Validators: []validator.String{
+			validators.NewConsolidateAfterValidator(),
+		},
+	}
+}
+
 func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	// TODO (framework-migration): test if Default is OK when modifying the attribute, otherwise we'll need to use a modifier
 	resp.Schema = schema.Schema{
@@ -610,6 +624,18 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								Required:            true,
 								Computed:            false,
 							},
+							"disk_iops": schema.Int64Attribute{
+								Description:         "Disk IOPS for Karpenter-provisioned nodes.",
+								MarkdownDescription: "Provisioned IOPS of the root disk of the nodes provisioned by Karpenter, which use gp3 volumes (e.g., `3000`). Leave it unset to use the volume default. The GPU node pool has its own `gpu_override.disk_iops`.",
+								Optional:            true,
+								Computed:            false,
+							},
+							"disk_throughput": schema.Int64Attribute{
+								Description:         "Disk throughput in MB/s for Karpenter-provisioned nodes.",
+								MarkdownDescription: "Provisioned throughput in MB/s of the root disk of the nodes provisioned by Karpenter, which use gp3 volumes (e.g., `125`). Leave it unset to use the volume default. The GPU node pool has its own `gpu_override.disk_throughput`.",
+								Optional:            true,
+								Computed:            false,
+							},
 							"default_service_architecture": schema.StringAttribute{
 								Description:         "The default architecture of service",
 								MarkdownDescription: "Default CPU architecture for services deployed on this cluster. Common values: `AMD64`, `ARM64`. This determines the default node architecture when no specific architecture is requested by a service.",
@@ -731,6 +757,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 													},
 												},
 											},
+											"consolidate_after": karpenterNodePoolConsolidateAfterAttribute("stable"),
 										},
 									},
 									"default_override": schema.SingleNestedAttribute{
@@ -771,6 +798,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 													},
 												},
 											},
+											"consolidate_after": karpenterNodePoolConsolidateAfterAttribute("default"),
 										},
 									},
 									"cronjob_override": schema.SingleNestedAttribute{
@@ -789,6 +817,65 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 												Computed:            true,
 												Default:             booldefault.StaticBool(false),
 											},
+											"consolidation": schema.SingleNestedAttribute{
+												Description:         "Specifies the period to consolidate nodes (by default, no consolidation happens)",
+												MarkdownDescription: "Node consolidation schedule for the cronjob node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on cronjob nodes.",
+												Optional:            true,
+												Computed:            false,
+												Attributes: map[string]schema.Attribute{
+													"enabled": schema.BoolAttribute{
+														Description:         "Whether the consolidation schedule is active.",
+														MarkdownDescription: "Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.",
+														Required:            true,
+														Computed:            false,
+													},
+													"days": schema.ListAttribute{
+														Description:         "Days of the week when consolidation runs.",
+														MarkdownDescription: "List of days of the week when consolidation should run (e.g., `[\"MONDAY\", \"TUESDAY\"]`).",
+														Required:            true,
+														Computed:            false,
+														ElementType:         types.StringType,
+													},
+													"start_time": schema.StringAttribute{
+														Description:         "Start time for the consolidation window in ISO-8601 time format.",
+														MarkdownDescription: "Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).",
+														Required:            true,
+														Computed:            false,
+													},
+													"duration": schema.StringAttribute{
+														Description:         "Duration of the consolidation window in ISO-8601 duration format.",
+														MarkdownDescription: "Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).",
+														Required:            true,
+														Computed:            false,
+													},
+												},
+											},
+											"limits": schema.SingleNestedAttribute{
+												Description:         "Specifies the limits to apply on the cronjob node pool",
+												MarkdownDescription: "Resource limits for the cronjob node pool. Use this to cap the total resources Karpenter can provision for cron jobs and lifecycle jobs. Qovery requires at least 6 vCPU and 6 GiB.",
+												Optional:            true,
+												Attributes: map[string]schema.Attribute{
+													"enabled": schema.BoolAttribute{
+														Description:         "Enabled the limit",
+														MarkdownDescription: "Whether to enforce resource limits on the cronjob node pool.",
+														Required:            true,
+														Computed:            false,
+													},
+													"max_cpu_in_vcpu": schema.Int64Attribute{
+														Description:         "Maximum number of vCPU cores for the cronjob node pool.",
+														MarkdownDescription: "Maximum total vCPU cores that Karpenter can provision for the cronjob node pool.",
+														Required:            true,
+														Computed:            false,
+													},
+													"max_memory_in_gibibytes": schema.Int64Attribute{
+														Description:         "Maximum memory in GiB for the cronjob node pool.",
+														MarkdownDescription: "Maximum total memory in GiB that Karpenter can provision for the cronjob node pool.",
+														Required:            true,
+														Computed:            false,
+													},
+												},
+											},
+											"consolidate_after": karpenterNodePoolConsolidateAfterAttribute("cronjob"),
 										},
 									},
 									"gpu_override": schema.SingleNestedAttribute{
@@ -924,6 +1011,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 													},
 												},
 											},
+											"consolidate_after": karpenterNodePoolConsolidateAfterAttribute("GPU"),
 										},
 									},
 								},

@@ -115,6 +115,11 @@ Required:
 - `disk_size_in_gib` (Number) Root disk size in GiB for Karpenter-provisioned nodes.
 - `qovery_node_pools` (Attributes) Karpenter node pool configuration with requirements and resource limits. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools))
 
+Read-Only:
+
+- `disk_iops` (Number) Provisioned IOPS of the root disk of the Karpenter-provisioned nodes, when set.
+- `disk_throughput` (Number) Provisioned throughput in MB/s of the root disk of the Karpenter-provisioned nodes, when set.
+
 <a id="nestedatt--features--karpenter--qovery_node_pools"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools`
 
@@ -142,9 +147,36 @@ Required:
 <a id="nestedatt--features--karpenter--qovery_node_pools--cronjob_override"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.cronjob_override`
 
+Optional:
+
+- `consolidation` (Attributes) Node consolidation schedule for the cronjob node pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override--consolidation))
+- `limits` (Attributes) Resource limits for the cronjob node pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override--limits))
+
 Read-Only:
 
+- `consolidate_after` (String) Time Karpenter waits before consolidating an empty or underutilized node of the cronjob node pool (e.g., `30s`, `10m`, `1h`), when set.
 - `spot_enabled` (Boolean) Whether the cronjob node pool runs on EC2 Spot instances.
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--cronjob_override--consolidation"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.cronjob_override.consolidation`
+
+Required:
+
+- `days` (List of String) Days of the week when consolidation runs.
+- `duration` (String) Duration in ISO-8601 format (`PThhHmmM`).
+- `enabled` (Boolean) Whether the consolidation schedule is active.
+- `start_time` (String) Start time in ISO-8601 format (`PThh:mm`).
+
+
+<a id="nestedatt--features--karpenter--qovery_node_pools--cronjob_override--limits"></a>
+### Nested Schema for `features.karpenter.qovery_node_pools.cronjob_override.limits`
+
+Required:
+
+- `enabled` (Boolean) Whether resource limits are enforced.
+- `max_cpu_in_vcpu` (Number) Maximum total vCPU cores for the cronjob node pool.
+- `max_memory_in_gibibytes` (Number) Maximum total memory in GiB for the cronjob node pool.
+
 
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--default_override"></a>
@@ -156,6 +188,7 @@ Optional:
 
 Read-Only:
 
+- `consolidate_after` (String) Time Karpenter waits before consolidating an empty or underutilized node of the default node pool (e.g., `30s`, `10m`, `1h`), when set.
 - `spot_enabled` (Boolean) Whether the default node pool runs on EC2 Spot instances. Always reported for Karpenter clusters.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--default_override--limits"></a>
@@ -183,6 +216,7 @@ Optional:
 
 Read-Only:
 
+- `consolidate_after` (String) Time Karpenter waits before consolidating an empty or underutilized node of the GPU node pool (e.g., `30s`, `10m`, `1h`), when set.
 - `disk_iops` (Number) Provisioned IOPS of the root disk of the GPU nodes, when set.
 - `disk_size_in_gib` (Number) Root disk size in GiB for the GPU nodes.
 - `disk_throughput` (Number) Provisioned throughput in MB/s of the root disk of the GPU nodes, when set.
@@ -234,6 +268,7 @@ Optional:
 
 Read-Only:
 
+- `consolidate_after` (String) Time Karpenter waits before consolidating an empty or underutilized node of the stable node pool (e.g., `30s`, `10m`, `1h`), when set.
 - `spot_enabled` (Boolean) Whether the stable node pool runs on EC2 Spot instances. Always reported for Karpenter clusters.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation"></a>

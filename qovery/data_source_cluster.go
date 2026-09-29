@@ -50,6 +50,15 @@ func (d *clusterDataSource) Configure(_ context.Context, req datasource.Configur
 	d.client = provider.client
 }
 
+// dataSourceKarpenterNodePoolConsolidateAfterAttribute is the consolidate_after of a node pool override.
+func dataSourceKarpenterNodePoolConsolidateAfterAttribute(pool string) schema.StringAttribute {
+	return schema.StringAttribute{
+		Description:         "Time Karpenter waits before consolidating an empty or underutilized node of the " + pool + " node pool, when set.",
+		MarkdownDescription: "Time Karpenter waits before consolidating an empty or underutilized node of the " + pool + " node pool (e.g., `30s`, `10m`, `1h`), when set.",
+		Computed:            true,
+	}
+}
+
 func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description:         "Use this data source to retrieve information about an existing Qovery cluster.",
@@ -372,6 +381,16 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 								Required:            true,
 								Computed:            false,
 							},
+							"disk_iops": schema.Int64Attribute{
+								Description:         "Disk IOPS for Karpenter-provisioned nodes.",
+								MarkdownDescription: "Provisioned IOPS of the root disk of the Karpenter-provisioned nodes, when set.",
+								Computed:            true,
+							},
+							"disk_throughput": schema.Int64Attribute{
+								Description:         "Disk throughput in MB/s for Karpenter-provisioned nodes.",
+								MarkdownDescription: "Provisioned throughput in MB/s of the root disk of the Karpenter-provisioned nodes, when set.",
+								Computed:            true,
+							},
 							"default_service_architecture": schema.StringAttribute{
 								Description:         "The default architecture of service",
 								MarkdownDescription: "Default CPU architecture for services (`AMD64` or `ARM64`).",
@@ -488,6 +507,7 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 													},
 												},
 											},
+											"consolidate_after": dataSourceKarpenterNodePoolConsolidateAfterAttribute("stable"),
 										},
 									},
 									"default_override": schema.SingleNestedAttribute{
@@ -526,6 +546,7 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 													},
 												},
 											},
+											"consolidate_after": dataSourceKarpenterNodePoolConsolidateAfterAttribute("default"),
 										},
 									},
 									"cronjob_override": schema.SingleNestedAttribute{
@@ -539,6 +560,65 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 												MarkdownDescription: "Whether the cronjob node pool runs on EC2 Spot instances.",
 												Computed:            true,
 											},
+											"consolidation": schema.SingleNestedAttribute{
+												Description:         "Specifies the period to consolidate nodes (by default, no consolidation happens)",
+												MarkdownDescription: "Node consolidation schedule for the cronjob node pool.",
+												Optional:            true,
+												Computed:            false,
+												Attributes: map[string]schema.Attribute{
+													"enabled": schema.BoolAttribute{
+														Description:         "Indicates if the consolidation defines here must be applied",
+														MarkdownDescription: "Whether the consolidation schedule is active.",
+														Required:            true,
+														Computed:            false,
+													},
+													"days": schema.ListAttribute{
+														Description:         "A list of days where the consolidation must be triggered",
+														MarkdownDescription: "Days of the week when consolidation runs.",
+														Required:            true,
+														Computed:            false,
+														ElementType:         types.StringType,
+													},
+													"start_time": schema.StringAttribute{
+														Description:         "The start time where the consolidation must begin. It must follow the ISO-8601 time format: `PThh:mm`",
+														MarkdownDescription: "Start time in ISO-8601 format (`PThh:mm`).",
+														Required:            true,
+														Computed:            false,
+													},
+													"duration": schema.StringAttribute{
+														Description:         "The period during the consolidation will be applied. It must follow the ISO-8601 duration format: `PThhHmmM`",
+														MarkdownDescription: "Duration in ISO-8601 format (`PThhHmmM`).",
+														Required:            true,
+														Computed:            false,
+													},
+												},
+											},
+											"limits": schema.SingleNestedAttribute{
+												Description:         "Specifies the limits to apply on the cronjob node pool",
+												MarkdownDescription: "Resource limits for the cronjob node pool.",
+												Optional:            true,
+												Attributes: map[string]schema.Attribute{
+													"enabled": schema.BoolAttribute{
+														Description:         "Enabled the limit",
+														MarkdownDescription: "Whether resource limits are enforced.",
+														Required:            true,
+														Computed:            false,
+													},
+													"max_cpu_in_vcpu": schema.Int64Attribute{
+														Description:         "The maximum number of cpu cores to be used inside the cronjob node pool",
+														MarkdownDescription: "Maximum total vCPU cores for the cronjob node pool.",
+														Required:            true,
+														Computed:            false,
+													},
+													"max_memory_in_gibibytes": schema.Int64Attribute{
+														Description:         "The maximum number of memory to be used inside the cronjob node pool",
+														MarkdownDescription: "Maximum total memory in GiB for the cronjob node pool.",
+														Required:            true,
+														Computed:            false,
+													},
+												},
+											},
+											"consolidate_after": dataSourceKarpenterNodePoolConsolidateAfterAttribute("cronjob"),
 										},
 									},
 									"gpu_override": schema.SingleNestedAttribute{
@@ -659,6 +739,7 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 													},
 												},
 											},
+											"consolidate_after": dataSourceKarpenterNodePoolConsolidateAfterAttribute("GPU"),
 										},
 									},
 								},
