@@ -18,7 +18,7 @@ import (
 )
 
 // testAccLastProvider0x is the last 0.x release, the version users upgrade to 1.0 from.
-const testAccLastProvider0x = "0.89.0"
+const testAccLastProvider0x = "0.91.0"
 
 const testAccSpotClusterAddress = "qovery_cluster.test"
 

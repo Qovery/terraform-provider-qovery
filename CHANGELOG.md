@@ -111,13 +111,13 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - **`qovery_blueprint`**: the refresh reads the API instead of keeping state values. It reports
   every variable whose value differs from its catalog default, so a variable set from the
   Console that the configuration omits shows up in `terraform plan` as a removal, and the next
-  apply resets it to the default. 0.90.0 only tracked the declared variables and never reset
+  apply resets it to the default. 0.x only tracked the declared variables and never reset
   the others. `blueprint` is derived from the deployed tag, so a major version changed from the
   Console shows up as well. A deploy that failed outside Terraform no longer hides the settings
   it saved: only a failed Terraform apply keeps the last applied values, so that the next apply
   retries it. Declare the variables you set from the Console before upgrading. (QOV-2337)
 - **`qovery_blueprint`**: changing `icon_uri` after creation is a plan error. The Qovery API
-  applies the icon only when the blueprint is created, so 0.90.0 reported the new icon while
+  applies the icon only when the blueprint is created, so 0.x reported the new icon while
   the service kept the old one. The refresh now reads the icon from the service the blueprint
   materialized, so an icon changed from the Console fails the plan until the configuration
   sets the same value. To change the icon, change it from the Console, then set the same value
@@ -151,11 +151,6 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 
 ### Added
 
-- `qovery_application`, `qovery_job` and `qovery_terraform_service`: the `build_settings` block
-  manages the build timeout, CPU, RAM, ephemeral storage, BuildKit cache and git submodules,
-  and the data sources report it. Removing the block resets the build settings to their
-  defaults. A plan that sets both the block and `build.*` keys in `advanced_settings_json`
-  fails; the keys keep working when the block is not set. (QOV-2233)
 - `qovery_cluster`: `features.karpenter.qovery_node_pools.gpu_override` manages the Karpenter
   GPU node pool, and the data source reports it. Declaring the block creates the pool and
   removing it deletes the pool; the plan warns when it removes the block. (QOV-2318)
@@ -246,6 +241,16 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   variable or another resource. The provider treated a value not yet known as missing, and
   failed with "must be set". (QOV-2319)
 
+## [0.91.0] - 2026-09-29
+
+### Added
+
+- `qovery_application`, `qovery_job` and `qovery_terraform_service`: the `build_settings` block
+  manages the build timeout, CPU, RAM, ephemeral storage, BuildKit cache and git submodules,
+  and the data sources report it. Removing the block resets the build settings to their
+  defaults. A plan that sets both the block and `build.*` keys in `advanced_settings_json`
+  fails; the keys keep working when the block is not set. (QOV-2233, #631)
+
 ## [0.90.0] - 2026-09-28
 
 ### Added
@@ -333,7 +338,9 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v0.89.0...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v0.91.0...HEAD
+[0.91.0]: https://github.com/qovery/terraform-provider-qovery/compare/v0.90.0...v0.91.0
+[0.90.0]: https://github.com/qovery/terraform-provider-qovery/compare/v0.89.0...v0.90.0
 [0.89.0]: https://github.com/qovery/terraform-provider-qovery/compare/v0.88.0...v0.89.0
 [0.88.0]: https://github.com/qovery/terraform-provider-qovery/compare/v0.87.4...v0.88.0
 [0.87.4]: https://github.com/qovery/terraform-provider-qovery/compare/v0.87.2...v0.87.4

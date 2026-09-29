@@ -13,7 +13,7 @@ This guide lists every change that can affect an existing configuration and the 
 
 ## Before you start
 
-1. Upgrade to 0.90.0, the last 0.x release, run `terraform apply`, and make sure `terraform plan` reports no changes. The migration below relies on the state written by that release.
+1. Upgrade to 0.91.0, the last 0.x release, run `terraform apply`, and make sure `terraform plan` reports no changes. The migration below relies on the state written by that release.
 2. Back up your state: `terraform state pull > pre-1.0.tfstate`.
 3. Provider 1.0 is tested against Terraform 1.15. Earlier Terraform versions are expected to work but are not tested.
 
@@ -367,7 +367,7 @@ A `MANAGED` database requires `instance_type`: a configuration that omits it now
 
 ### `qovery_blueprint`: the refresh reads the API
 
-`qovery_blueprint` was released in 0.90.0. There, the refresh:
+`qovery_blueprint` was released in 0.90.0. In 0.x, the refresh:
 
 - tracked only the declared `variables`, so a variable set from the Qovery Console stayed invisible and the next apply never reset it;
 - kept `blueprint` from the state, so a major version changed from the Console showed only as a `tag` difference;
