@@ -232,6 +232,10 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_helm_repository`: an `OCI_SCALEWAY_CR` repository now sends
   `config.scaleway_project_id`, which the API requires. The provider left it out, so creating
   such a repository failed with a 400. (QOV-2333)
+- `qovery_cluster_dns_provider`: `terraform validate` and `terraform plan` accept a
+  `cloudflare.api_token` or a `route53.credentials.aws_secret_access_key` that comes from a
+  variable or another resource. The provider treated a value not yet known as missing, and
+  failed with "must be set". (QOV-2319)
 
 ## [0.90.0] - 2026-09-28
 

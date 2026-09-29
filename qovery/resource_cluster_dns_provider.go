@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/client"
@@ -186,7 +187,7 @@ func (r clusterDNSProviderResource) ValidateConfig(ctx context.Context, req reso
 
 	switch config.ProviderType.ValueString() {
 	case clusterDNSProviderTypeCloudflare:
-		if config.Cloudflare != nil && (config.Cloudflare.APIToken.IsNull() || config.Cloudflare.APIToken.ValueString() == "") {
+		if config.Cloudflare != nil && isMissingSecret(config.Cloudflare.APIToken) {
 			resp.Diagnostics.AddAttributeError(
 				path.Root("cloudflare").AtName("api_token"),
 				"Missing required attribute",
@@ -195,7 +196,7 @@ func (r clusterDNSProviderResource) ValidateConfig(ctx context.Context, req reso
 		}
 	case clusterDNSProviderTypeRoute53:
 		if config.Route53 != nil && config.Route53.Credentials != nil {
-			if config.Route53.Credentials.AWSSecretAccessKey.IsNull() || config.Route53.Credentials.AWSSecretAccessKey.ValueString() == "" {
+			if isMissingSecret(config.Route53.Credentials.AWSSecretAccessKey) {
 				resp.Diagnostics.AddAttributeError(
 					path.Root("route53").AtName("credentials").AtName("aws_secret_access_key"),
 					"Missing required attribute",
@@ -204,6 +205,16 @@ func (r clusterDNSProviderResource) ValidateConfig(ctx context.Context, req reso
 			}
 		}
 	}
+}
+
+// isMissingSecret reports a secret the configuration leaves null or empty. An unknown value,
+// such as a variable at validate time or another resource's output at plan time, is checked once
+// it is known.
+func isMissingSecret(secret types.String) bool {
+	if secret.IsUnknown() {
+		return false
+	}
+	return secret.IsNull() || secret.ValueString() == ""
 }
 
 func (r clusterDNSProviderResource) Create(ctx context.Context, req resource.CreateRequest, resp *resource.CreateResponse) {
