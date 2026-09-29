@@ -35,10 +35,9 @@ var customRoleProjectPermissionAttrTypes = map[string]attr.Type{
 type customRoleReadMode int
 
 const (
-	// keep only entries declared in prior state/plan (normal Read/Create/Update)
-	customRoleReadModeFilterDeclared customRoleReadMode = iota
-	// keep only entries that differ from server defaults (import)
-	customRoleReadModeKeepNonDefault
+	// keep the entries declared in the prior plan or state, plus every entry that differs from
+	// the server defaults (resource Create, Read, Update and import)
+	customRoleReadModeDeclaredOrNonDefault customRoleReadMode = iota
 	// keep the full matrix (data source)
 	customRoleReadModeKeepAll
 )
@@ -122,6 +121,12 @@ func declaredIDSet(set types.Set, idAttr string) map[string]bool {
 // convertDomainCustomRoleToCustomRole converts the full server matrix into Terraform state.
 // The server returns an entry for EVERY cluster and project of the org; storing that raw would
 // produce perpetual diffs, so entries are filtered according to mode.
+//
+// The resource keeps a declared entry even when it equals the defaults, so the state matches the
+// plan, and keeps every non-default entry on an undeclared cluster or project, so a permission
+// granted from the Console shows up in the plan. The write path resets undeclared entries to the
+// defaults: q-core rejects an update that omits a cluster or project and replaces the whole
+// matrix, so that is the only way to remove such a grant.
 func convertDomainCustomRoleToCustomRole(role *customrole.CustomRole, declared *CustomRole, mode customRoleReadMode) CustomRole {
 	declaredClusters := map[string]bool{}
 	declaredProjects := map[string]bool{}
@@ -135,15 +140,8 @@ func convertDomainCustomRoleToCustomRole(role *customrole.CustomRole, declared *
 
 	clusterObjects := make([]attr.Value, 0, len(role.ClusterPermissions))
 	for _, cp := range role.ClusterPermissions {
-		switch mode {
-		case customRoleReadModeFilterDeclared:
-			if !declaredClusters[cp.ClusterID] {
-				continue
-			}
-		case customRoleReadModeKeepNonDefault:
-			if isDefaultClusterPermission(cp) {
-				continue
-			}
+		if mode == customRoleReadModeDeclaredOrNonDefault && !declaredClusters[cp.ClusterID] && isDefaultClusterPermission(cp) {
+			continue
 		}
 		clusterObjects = append(clusterObjects, types.ObjectValueMust(customRoleClusterPermissionAttrTypes, map[string]attr.Value{
 			"cluster_id": FromString(cp.ClusterID),
@@ -153,15 +151,8 @@ func convertDomainCustomRoleToCustomRole(role *customrole.CustomRole, declared *
 
 	projectObjects := make([]attr.Value, 0, len(role.ProjectPermissions))
 	for _, pp := range role.ProjectPermissions {
-		switch mode {
-		case customRoleReadModeFilterDeclared:
-			if !declaredProjects[pp.ProjectID] {
-				continue
-			}
-		case customRoleReadModeKeepNonDefault:
-			if isDefaultProjectPermission(pp) {
-				continue
-			}
+		if mode == customRoleReadModeDeclaredOrNonDefault && !declaredProjects[pp.ProjectID] && isDefaultProjectPermission(pp) {
+			continue
 		}
 		permissionsValue := types.SetNull(types.ObjectType{AttrTypes: customRoleEnvPermissionAttrTypes})
 		if !pp.IsAdmin {
@@ -199,7 +190,7 @@ func convertDomainCustomRoleToCustomRole(role *customrole.CustomRole, declared *
 		Id:                 FromString(role.ID.String()),
 		OrganizationId:     FromString(role.OrganizationID.String()),
 		Name:               FromString(role.Name),
-		Description:        FromStringPointer(role.Description),
+		Description:        storedDescriptionFromAPI(role.Description),
 		ClusterPermissions: clusterSet,
 		ProjectPermissions: projectSet,
 	}

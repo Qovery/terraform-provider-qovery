@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 
@@ -105,13 +106,11 @@ func (r helmRepositoryResource) Schema(_ context.Context, _ resource.SchemaReque
 				Required:            true,
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the helm repository.",
-				MarkdownDescription: "Description of the helm repository.",
+				Description:         "Description of the helm repository. Defaults to an empty description.",
+				MarkdownDescription: "Description of the helm repository. Defaults to an empty description.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				Default:             stringdefault.StaticString(storedDescriptionDefault),
 			},
 			"skip_tls_verification": schema.BoolAttribute{
 				Description:         "Whether to bypass TLS certificate verification when connecting to the repository. Set to true for self-signed certificates.",

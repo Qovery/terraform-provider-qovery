@@ -261,7 +261,7 @@ func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan T
 		DeploymentStageId:     FromString(ts.DeploymentStageID),
 		IsSkipped:             FromBool(ts.IsSkipped),
 		Name:                  FromString(ts.Name),
-		Description:           normalizeOptionalDescription(plan.Description, ts.Description),
+		Description:           optionalStringFromAPI(plan.Description, ts.Description),
 		AutoDeploy:            FromBool(ts.AutoDeploy),
 		TerraformAction:       FromString(string(ts.TerraformAction)),
 		GitRepository:         fromGitRepository(ts.GitRepository),
@@ -282,17 +282,6 @@ func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan T
 		ExternalSecrets:       convertDomainExternalSecretsToExternalSecretList(ts.ExternalSecrets, plan.ExternalSecrets, variable.ScopeTerraform).toTerraformSet(ctx),
 		ExternalSecretFiles:   convertDomainExternalSecretFilesToExternalSecretFileList(ts.ExternalSecretFiles, plan.ExternalSecretFiles, variable.ScopeTerraform).toTerraformSet(ctx),
 	}
-}
-
-// normalizeOptionalDescription preserves a null description when the API echoes
-// nil or an empty string. The API normalizes a missing description to "", which
-// would otherwise trigger "provider produced inconsistent result after apply"
-// since the schema is Optional (not Computed).
-func normalizeOptionalDescription(prior types.String, apiVal *string) types.String {
-	if (apiVal == nil || *apiVal == "") && prior.IsNull() {
-		return types.StringNull()
-	}
-	return FromStringPointer(apiVal)
 }
 
 // fromGitRepository converts domain git repository to Terraform

@@ -21,8 +21,10 @@ import (
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
 var (
-	_ resource.ResourceWithConfigure   = &gitTokenResource{}
-	_ resource.ResourceWithImportState = gitTokenResource{}
+	_ resource.ResourceWithConfigure      = &gitTokenResource{}
+	_ resource.ResourceWithImportState    = gitTokenResource{}
+	_ resource.ResourceWithUpgradeState   = gitTokenResource{}
+	_ resource.ResourceWithValidateConfig = gitTokenResource{}
 )
 
 var gitTokenTypes = clientEnumToStringArray(gittoken.AllowedGitTokenTypeValues)
@@ -59,6 +61,7 @@ func (r *gitTokenResource) Configure(_ context.Context, req resource.ConfigureRe
 
 func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
+		Version:             1,
 		Description:         "Provides a Qovery git token resource. This can be used to create and manage Qovery git tokens for accessing private git repositories.",
 		MarkdownDescription: "Provides a Qovery git token resource. This can be used to create and manage Qovery git tokens for accessing private git repositories.",
 		Attributes: map[string]schema.Attribute{
@@ -84,13 +87,11 @@ func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Required:            true,
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the git token.",
-				MarkdownDescription: "Description of the git token.",
+				// Optional only: q-core stores no description when the request omits it, and an
+				// update replaces every field, so omitting it clears the description.
+				Description:         "Description of the git token. Removing it from the configuration clears the description.",
+				MarkdownDescription: "Description of the git token. Removing it from the configuration clears the description.",
 				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"type": schema.StringAttribute{
 				Description: descriptions.NewStringEnumDescription(
@@ -109,13 +110,9 @@ func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"bitbucket_workspace": schema.StringAttribute{
-				Description:         "Bitbucket workspace where the token has permissions. Required only when type is BITBUCKET.",
-				MarkdownDescription: "Bitbucket workspace where the token has permissions. Required only when `type` is `BITBUCKET`.",
+				Description:         "Bitbucket workspace where the token has permissions. Required when type is BITBUCKET.",
+				MarkdownDescription: "Bitbucket workspace where the token has permissions. Required when `type` is `BITBUCKET`.",
 				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 			"token": schema.StringAttribute{
 				Description:         "Value of the git token (personal access token or app token from the git provider). Sensitive.",
@@ -124,6 +121,19 @@ func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Sensitive:           true,
 			},
 		},
+	}
+}
+
+// ValidateConfig requires bitbucket_workspace for a BITBUCKET token at plan time: the Qovery API
+// needs it to list the repositories of the token.
+func (r gitTokenResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var config GitToken
+	resp.Diagnostics.Append(req.Config.Get(ctx, &config)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if err := validateGitTokenWorkspace(config.Type, config.BitbucketWorkspace); err != nil {
+		resp.Diagnostics.AddAttributeError(path.Root("bitbucket_workspace"), "Invalid git token configuration", err.Error())
 	}
 }
 
@@ -144,7 +154,7 @@ func (r gitTokenResource) Create(ctx context.Context, req resource.CreateRequest
 	}
 
 	// Initialize state values
-	state := toTerraformObject(plan.OrganizationId.ValueString(), plan.Token.ValueString(), *response)
+	state := gitTokenStateFromAPI(*response, plan)
 	tflog.Trace(ctx, "created git token", map[string]any{"git_token_id": state.ID.ValueString()})
 
 	// Set state
@@ -167,7 +177,7 @@ func (r gitTokenResource) Read(ctx context.Context, req resource.ReadRequest, re
 	}
 
 	// Refresh state values
-	state = toTerraformObject(state.OrganizationId.ValueString(), state.Token.ValueString(), *response)
+	state = gitTokenStateFromAPI(*response, state)
 	tflog.Trace(ctx, "read git token", map[string]any{"git_token_id": state.ID.ValueString()})
 
 	// Set state
@@ -192,7 +202,7 @@ func (r gitTokenResource) Update(ctx context.Context, req resource.UpdateRequest
 	}
 
 	// Update state values
-	state = toTerraformObject(plan.OrganizationId.ValueString(), plan.Token.ValueString(), *response)
+	state = gitTokenStateFromAPI(*response, plan)
 	tflog.Trace(ctx, "updated git token", map[string]any{"git_token_id": state.ID.ValueString()})
 
 	// Set state
@@ -235,4 +245,27 @@ func (r gitTokenResource) ImportState(ctx context.Context, req resource.ImportSt
 
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("id"), idParts[1])...)
 	resp.Diagnostics.Append(resp.State.SetAttribute(ctx, path.Root("organization_id"), idParts[0])...)
+}
+
+// UpgradeState migrates git token states written by 0.x (schema version 0).
+func (r gitTokenResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	// Version 0 has the same attribute types as the current schema.
+	var schemaResp resource.SchemaResponse
+	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	priorSchema := schemaResp.Schema
+
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema: &priorSchema,
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				var token GitToken
+				resp.Diagnostics.Append(req.State.Get(ctx, &token)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+				token.Description = upgradeOptionalDescriptionFrom0x(token.Description)
+				resp.Diagnostics.Append(resp.State.Set(ctx, token)...)
+			},
+		},
+	}
 }

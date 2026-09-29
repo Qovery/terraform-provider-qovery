@@ -88,7 +88,7 @@ resource "qovery_project" "my_project" {
 
 ### Optional
 
-- `description` (String) Description of the project.
+- `description` (String) Description of the project. Defaults to an empty description.
 - `environment_variable_aliases` (Attributes Set) Set of environment variable aliases linked to this project. An alias creates an alternative name that points to an existing environment variable. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this project. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `environment_variables` (Attributes Set) Set of environment variables linked to this project. These variables are inherited by all environments within the project. (see [below for nested schema](#nestedatt--environment_variables))

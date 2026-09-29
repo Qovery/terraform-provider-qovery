@@ -52,8 +52,8 @@ resource "qovery_git_token" "bitbucket_token" {
 
 ### Optional
 
-- `bitbucket_workspace` (String) Bitbucket workspace where the token has permissions. Required only when `type` is `BITBUCKET`.
-- `description` (String) Description of the git token.
+- `bitbucket_workspace` (String) Bitbucket workspace where the token has permissions. Required when `type` is `BITBUCKET`.
+- `description` (String) Description of the git token. Removing it from the configuration clears the description.
 
 ### Read-Only
 

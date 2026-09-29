@@ -59,6 +59,50 @@ func TestNewDomainRegistryFromQovery(t *testing.T) {
 	}
 }
 
+func TestNewDomainRegistryFromQovery_Config(t *testing.T) {
+	t.Parallel()
+
+	response := &qovery.ContainerRegistryResponse{
+		Id:   gofakeit.UUID(),
+		Name: new(gofakeit.Name()),
+		Kind: qovery.CONTAINERREGISTRYKINDENUM_GCP_ARTIFACT_REGISTRY.Ptr(),
+		Url:  new("https://europe-west1-docker.pkg.dev"),
+		Config: &qovery.ContainerRegistryResponseAllOfConfig{
+			Username:                         new("user"),
+			Region:                           new("europe-west1"),
+			ScalewayAccessKey:                new("SCW"),
+			ScalewayProjectId:                new("scaleway-project"),
+			AccessKeyId:                      new("AKIA"),
+			RoleArn:                          new("arn:aws:iam::123456789012:role/qovery"),
+			GcpCredentialsType:               new("workload_identity_federation"),
+			ProjectId:                        new("gcp-project"),
+			ServiceAccountEmail:              new("qovery@gcp-project.iam.gserviceaccount.com"),
+			WorkloadIdentityProviderResource: new("projects/1/locations/global/workloadIdentityPools/p/providers/p"),
+			TokenLifetimeSeconds:             new(int32(3600)),
+		},
+	}
+
+	reg, err := newDomainRegistryFromQovery(response, gofakeit.UUID())
+	require.NoError(t, err)
+	assert.Equal(t, registry.Config{
+		AccessKeyID:                      new("AKIA"),
+		Region:                           new("europe-west1"),
+		ScalewayAccessKey:                new("SCW"),
+		ScalewayProjectID:                new("scaleway-project"),
+		GcpCredentialsType:               new("workload_identity_federation"),
+		ProjectID:                        new("gcp-project"),
+		ServiceAccountEmail:              new("qovery@gcp-project.iam.gserviceaccount.com"),
+		WorkloadIdentityProviderResource: new("projects/1/locations/global/workloadIdentityPools/p/providers/p"),
+		TokenLifetimeSeconds:             new(int32(3600)),
+		Username:                         new("user"),
+	}, reg.Config)
+
+	response.Config = nil
+	reg, err = newDomainRegistryFromQovery(response, gofakeit.UUID())
+	require.NoError(t, err)
+	assert.Equal(t, registry.Config{}, reg.Config, "a response without config has no key")
+}
+
 func TestNewQoveryRegistryEditRequestFromDomain(t *testing.T) {
 	t.Parallel()
 

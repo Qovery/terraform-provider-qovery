@@ -32,15 +32,18 @@ func (creds ScalewayCredentials) toUpsertScalewayRequest() credentials.UpsertSca
 	}
 }
 
-func convertDomainCredentialsToScalewayCredentials(creds *credentials.Credentials, plan ScalewayCredentials) ScalewayCredentials {
+// convertDomainCredentialsToScalewayCredentials reads the access key, project and organization
+// from the API, so a value changed outside Terraform shows up in the plan. The API never returns
+// the secret key, so it is kept from prior, the plan on apply and the state on refresh.
+func convertDomainCredentialsToScalewayCredentials(creds *credentials.Credentials, prior ScalewayCredentials) ScalewayCredentials {
 	return ScalewayCredentials{
 		Id:                     FromString(creds.ID.String()),
 		OrganizationId:         FromString(creds.OrganizationID.String()),
 		Name:                   FromString(creds.Name),
-		ScalewayProjectId:      plan.ScalewayProjectId,
-		ScalewayAccessKey:      plan.ScalewayAccessKey,
-		ScalewaySecretKey:      plan.ScalewaySecretKey,
-		ScalewayOrganizationId: plan.ScalewayOrganizationId,
+		ScalewayProjectId:      credentialIdentifierFromAPI(prior.ScalewayProjectId, creds.Identifiers.ScalewayProjectID),
+		ScalewayAccessKey:      credentialIdentifierFromAPI(prior.ScalewayAccessKey, creds.Identifiers.ScalewayAccessKey),
+		ScalewaySecretKey:      prior.ScalewaySecretKey,
+		ScalewayOrganizationId: credentialIdentifierFromAPI(prior.ScalewayOrganizationId, creds.Identifiers.ScalewayOrganizationID),
 	}
 }
 

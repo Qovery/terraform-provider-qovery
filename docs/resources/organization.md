@@ -35,7 +35,7 @@ resource "qovery_organization" "my_organization" {
 
 ### Optional
 
-- `description` (String) Description of the organization.
+- `description` (String) Description of the organization. Removing it from the configuration clears the description.
 
 ### Read-Only
 

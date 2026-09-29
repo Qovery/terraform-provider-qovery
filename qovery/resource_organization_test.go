@@ -9,8 +9,10 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
@@ -79,6 +81,49 @@ func TestAcc_Organization(t *testing.T) {
 					testAccCheckOrganizationUnmanagedFieldsKept(organizationID, &before),
 				),
 			},
+			// Removing the description plans its removal, and the apply clears it
+			{
+				Config: testAccOrganizationConfigWithoutDescription(),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction(address, plancheck.ResourceActionUpdate),
+						plancheck.ExpectKnownValue(address, tfjsonpath.New("description"), knownvalue.Null()),
+					},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr(address, "description"),
+					testAccCheckOrganizationDescription(organizationID, nil),
+				),
+			},
+			// A description set outside Terraform shows up in the plan...
+			{
+				Config: testAccOrganizationConfigWithoutDescription(),
+				Check: func(_ *terraform.State) error {
+					return testAccSetOrganizationDescriptionOutOfBand(organizationID, before)
+				},
+				ExpectNonEmptyPlan: true,
+			},
+			// ... and the refresh stores it
+			{
+				RefreshState:       true,
+				Check:              resource.TestCheckResourceAttr(address, "description", testAccOrganizationDescription),
+				ExpectNonEmptyPlan: true,
+			},
+			// Declaring the description the organization holds plans nothing
+			{
+				Config: testAccOrganizationConfig(testAccOrganizationDescription),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			// Import records the remote description
+			{
+				ResourceName:      address,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
 			// Delete fails by design, so the organization leaves the state without being destroyed
 			{
 				Config: testAccOrganizationRemovedConfig(),
@@ -88,6 +133,38 @@ func TestAcc_Organization(t *testing.T) {
 					}
 					return nil
 				},
+			},
+		},
+	})
+}
+
+// TestAcc_OrganizationUpgradeFrom0x imports the test organization with the last 0.x release, then
+// plans with this provider, which upgrades the 0.x state: the plan must be empty. Not parallel, for
+// the reason given on TestAcc_Organization.
+func TestAcc_OrganizationUpgradeFrom0x(t *testing.T) {
+	organizationID := getTestOrganizationID()
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccGetOrganization(t, organizationID)
+		},
+		Steps: []resource.TestStep{
+			{
+				ExternalProviders: testAccLastProvider0xFromRegistry,
+				Config:            testAccOrganizationImportConfig(organizationID) + testAccOrganizationConfig(testAccOrganizationDescription),
+			},
+			{
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				Config:                   testAccOrganizationConfig(testAccOrganizationDescription),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+			},
+			// Delete fails by design, so the organization leaves the state without being destroyed
+			{
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				Config:                   testAccOrganizationRemovedConfig(),
 			},
 		},
 	})
@@ -126,6 +203,29 @@ func testAccRestoreOrganizationDescription(t *testing.T, organizationID string, 
 		Description: before.Description.Get(),
 	}); err != nil {
 		t.Errorf("failed to restore the description of organization %s: %s", organizationID, err)
+	}
+}
+
+// testAccSetOrganizationDescriptionOutOfBand puts back the description of before through the API,
+// bypassing Terraform. The edit resends the fields of the organization, which the API replaces.
+func testAccSetOrganizationDescriptionOutOfBand(organizationID string, before qovery.Organization) error {
+	return testAccEditServiceOutOfBand("/organization/"+organizationID, nil, func(orga map[string]any) {
+		orga["description"] = before.GetDescription()
+	})
+}
+
+// testAccCheckOrganizationDescription checks the description the API holds, nil meaning none.
+func testAccCheckOrganizationDescription(organizationID string, expected *string) resource.TestCheckFunc {
+	return func(_ *terraform.State) error {
+		orga, _, err := qoveryAPIClient.OrganizationMainCallsAPI.GetOrganization(context.Background(), organizationID).Execute()
+		if err != nil {
+			return fmt.Errorf("failed to read organization %s: %w", organizationID, err)
+		}
+		got := orga.Description.Get()
+		if (got == nil) != (expected == nil) || (got != nil && *got != *expected) {
+			return fmt.Errorf("organization %s has description %v, expected %v", organizationID, got, expected)
+		}
+		return nil
 	}
 }
 
@@ -174,6 +274,15 @@ resource "qovery_organization" "test" {
   description = "%s"
 }
 `, testAccOrganizationName, testAccOrganizationPlan, description)
+}
+
+func testAccOrganizationConfigWithoutDescription() string {
+	return fmt.Sprintf(`
+resource "qovery_organization" "test" {
+  name = "%s"
+  plan = "%s"
+}
+`, testAccOrganizationName, testAccOrganizationPlan)
 }
 
 func testAccOrganizationRemovedConfig() string {

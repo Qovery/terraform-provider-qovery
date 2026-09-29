@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -115,13 +116,11 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 				Required: true,
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the container registry.",
-				MarkdownDescription: "Description of the container registry.",
+				Description:         "Description of the container registry. Defaults to an empty description.",
+				MarkdownDescription: "Description of the container registry. Defaults to an empty description.",
 				Optional:            true,
 				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				Default:             stringdefault.StaticString(storedDescriptionDefault),
 			},
 			"config": schema.SingleNestedAttribute{
 				Description: "Configuration needed to authenticate the container registry.",

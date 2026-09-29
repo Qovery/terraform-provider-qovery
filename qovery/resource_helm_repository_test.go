@@ -22,6 +22,7 @@ const (
 func TestAcc_HelmRepository(t *testing.T) {
 	t.Parallel()
 	testName := "helm-repository"
+	var repositoryID string
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -60,15 +61,39 @@ func TestAcc_HelmRepository(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_helm_repository.test", "config.region", ecrRegion),
 					resource.TestCheckResourceAttr("qovery_helm_repository.test", "config.access_key_id", getTestAWSCredentialsAccessKeyID()),
 					resource.TestCheckResourceAttr("qovery_helm_repository.test", "config.secret_access_key", getTestAWSCredentialsSecretAccessKey()),
+					testAccCaptureResourceID("qovery_helm_repository.test", &repositoryID),
 				),
 			},
-			// Check Import
+			// Import records the non-secret config keys
 			{
 				ResourceName:            "qovery_helm_repository.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
-				ImportStateVerifyIgnore: []string{"config"},
+				ImportStateVerifyIgnore: []string{"config.secret_access_key"},
+			},
+			// A region changed outside Terraform shows up in the plan...
+			{
+				Config: testAccHelmRepositoryDefaultConfigWithDescription(testName, "this is a description"),
+				Check: func(_ *terraform.State) error {
+					return testAccEditECRRegionOutOfBand(fmt.Sprintf("/organization/%s/helmRepository/%s", getTestOrganizationID(), repositoryID), testAccOutOfBandECRRegion)
+				},
+				ExpectNonEmptyPlan: true,
+			},
+			// ... the refresh stores it, and the secret stays in the state...
+			{
+				RefreshState: true,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("qovery_helm_repository.test", "config.region", testAccOutOfBandECRRegion),
+					resource.TestCheckResourceAttr("qovery_helm_repository.test", "config.secret_access_key", getTestAWSCredentialsSecretAccessKey()),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			// ... and the next apply reverts it.
+			{
+				Config:           testAccHelmRepositoryDefaultConfigWithDescription(testName, "this is a description"),
+				Check:            resource.TestCheckResourceAttr("qovery_helm_repository.test", "config.region", ecrRegion),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 			},
 		},
 	})

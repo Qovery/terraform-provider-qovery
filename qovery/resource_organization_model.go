@@ -28,3 +28,12 @@ func convertDomainOrganizationToTerraform(organization *organization.Organizatio
 		Description: FromStringPointer(organization.Description),
 	}
 }
+
+// organizationStateFromAPI converts the organization for the resource. description is Optional
+// only, so an empty description from the API keeps the null of prior, the plan on apply or the
+// state on refresh.
+func organizationStateFromAPI(orga *organization.Organization, prior Organization) Organization {
+	state := convertDomainOrganizationToTerraform(orga)
+	state.Description = optionalStringFromAPI(prior.Description, orga.Description)
+	return state
+}

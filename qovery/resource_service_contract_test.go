@@ -28,7 +28,7 @@ import (
 // the remote value, and a state written by the last 0.x release upgrades to an empty plan.
 
 // testAccContractValue is the value of one attribute of a service, by flatmap key (for example
-// ports.0.name, or arguments.# for a list). A nil value means null.
+// ports.0.name, arguments.# for a list or config.% for an object). A nil value means null.
 type testAccContractValue struct {
 	key   string
 	value any
@@ -53,8 +53,11 @@ type testAccServiceContractTarget struct {
 	changed   []testAccContractValue
 	// importStateVerifyIgnore lists the attributes import cannot record.
 	importStateVerifyIgnore []string
-	exists                  resource.TestCheckFunc
-	destroy                 resource.TestCheckFunc
+	// importStateIDPrefix is prepended to the id to build the import ID, such as
+	// "<organization_id>," for an organization-level resource.
+	importStateIDPrefix string
+	exists              resource.TestCheckFunc
+	destroy             resource.TestCheckFunc
 }
 
 // testAccServiceContract runs the contract steps. Every step that applies is followed by an empty
@@ -113,6 +116,7 @@ func testAccServiceContract(t *testing.T, target testAccServiceContractTarget) {
 		{
 			ResourceName:            target.address,
 			ImportState:             true,
+			ImportStateIdPrefix:     target.importStateIDPrefix,
 			ImportStateVerify:       true,
 			ImportStateVerifyIgnore: target.importStateVerifyIgnore,
 		},
@@ -142,6 +146,7 @@ func testAccServiceContract(t *testing.T, target testAccServiceContractTarget) {
 		resource.TestStep{
 			ResourceName:            target.address,
 			ImportState:             true,
+			ImportStateIdPrefix:     target.importStateIDPrefix,
 			ImportStateVerify:       true,
 			ImportStateVerifyIgnore: target.importStateVerifyIgnore,
 		},
@@ -204,7 +209,7 @@ func testAccContractPlanChecks(address string, values []testAccContractValue) []
 
 // testAccContractJSONPath turns a flatmap key into the path of the attribute in the plan.
 func testAccContractJSONPath(key string) tfjsonpath.Path {
-	parts := strings.Split(strings.TrimSuffix(key, ".#"), ".")
+	parts := strings.Split(strings.TrimSuffix(strings.TrimSuffix(key, ".#"), ".%"), ".")
 	p := tfjsonpath.New(parts[0])
 	for _, part := range parts[1:] {
 		if index, err := strconv.Atoi(part); err == nil {

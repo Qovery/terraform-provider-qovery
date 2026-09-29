@@ -1,6 +1,6 @@
 # qovery_custom_role (Resource)
 
-Provides a Qovery organization custom role resource. Declare only the clusters and projects this role should have non-default access to: any cluster not listed keeps the VIEWER permission and any project not listed keeps NO_ACCESS. Permissions granted outside Terraform on undeclared clusters/projects are reset to those defaults on the next apply. Declaring an entry equal to the defaults (cluster VIEWER / project all-NO_ACCESS) is a no-op and will not survive an import round-trip.
+Provides a Qovery organization custom role resource. Declare only the clusters and projects this role should have non-default access to: any cluster not listed gets the VIEWER permission and any project not listed gets NO_ACCESS. A permission granted outside Terraform on a cluster or project that is not listed shows up in `terraform plan` as an entry to remove, and the next apply resets it to those defaults. Import records every entry that differs from the defaults. Declaring an entry equal to the defaults (cluster VIEWER / project all-NO_ACCESS) is a no-op and does not survive an import round-trip.
 
 
 ## Example
@@ -51,7 +51,7 @@ resource "qovery_custom_role" "project_admin" {
 ### Optional
 
 - `cluster_permissions` (Attributes Set) Cluster permissions of the custom role. Clusters not listed default to VIEWER. (see [below for nested schema](#nestedatt--cluster_permissions))
-- `description` (String) Description of the custom role.
+- `description` (String) Description of the custom role. Defaults to an empty description.
 - `project_permissions` (Attributes Set) Project permissions of the custom role. Projects not listed default to NO_ACCESS. (see [below for nested schema](#nestedatt--project_permissions))
 
 ### Read-Only

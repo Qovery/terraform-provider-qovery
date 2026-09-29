@@ -126,7 +126,7 @@ resource "qovery_container_registry" "gcp_artifact_registry_wif" {
 ### Optional
 
 - `config` (Attributes) Configuration needed to authenticate with the container registry. Required fields depend on the `kind` of registry. (see [below for nested schema](#nestedatt--config))
-- `description` (String) Description of the container registry.
+- `description` (String) Description of the container registry. Defaults to an empty description.
 
 ### Read-Only
 

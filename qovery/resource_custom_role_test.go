@@ -9,7 +9,10 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
@@ -22,6 +25,7 @@ import (
 // Serial tests run while all parallel tests are paused, which removes the overlap entirely.
 func TestAcc_CustomRole(t *testing.T) {
 	roleName := generateTestName("custom-role")
+	var roleID string
 
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
@@ -47,6 +51,7 @@ func TestAcc_CustomRole(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_custom_role.test", "name", roleName),
 					resource.TestCheckResourceAttr("qovery_custom_role.test", "project_permissions.#", "1"),
 					resource.TestCheckResourceAttr("qovery_custom_role.test", "project_permissions.0.permissions.#", "4"),
+					testAccCaptureResourceID("qovery_custom_role.test", &roleID),
 				),
 			},
 			// Step 3: update a permission in place (PRODUCTION DEPLOYER -> MANAGER)
@@ -58,17 +63,20 @@ func TestAcc_CustomRole(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_custom_role.test", "project_permissions.0.permissions.#", "4"),
 				),
 			},
-			// Step 4: dropping the `description` attribute from config must apply cleanly.
-			// The server persists an omitted description as "" (not null), so a plain
-			// Optional attribute failed with "Provider produced inconsistent result after
-			// apply" (null in config vs "" from the API). description is Optional+Computed
-			// with UseStateForUnknown, so removing it keeps the prior value; a clean apply
-			// plus the framework's empty post-apply plan is the regression guard.
+			// Step 4: dropping the `description` attribute from config plans its reset to the ""
+			// q-core stores for an omitted description, and the apply clears it.
 			{
 				Config: testAccCustomRoleConfigNoDescription(roleName, "MANAGER"),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("qovery_custom_role.test", plancheck.ResourceActionUpdate),
+						plancheck.ExpectKnownValue("qovery_custom_role.test", tfjsonpath.New("description"), knownvalue.StringExact("")),
+					},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryCustomRoleExists("qovery_custom_role.test"),
-					resource.TestCheckResourceAttr("qovery_custom_role.test", "description", "acceptance test role"),
+					resource.TestCheckResourceAttr("qovery_custom_role.test", "description", ""),
 				),
 			},
 			// Step 5: adding an unrelated project must NOT produce a diff on the role
@@ -79,7 +87,35 @@ func TestAcc_CustomRole(t *testing.T) {
 				Check:              testAccQoveryCustomRoleExists("qovery_custom_role.test"),
 				ExpectNonEmptyPlan: false,
 			},
-			// Step 6: import keeps non-default entries (id format: "org_id,role_id")
+			// Step 6: a permission granted from the Console on an undeclared cluster shows up in
+			// the plan...
+			{
+				Config: testAccCustomRoleConfigWithExtraProject(roleName, "MANAGER"),
+				Check: func(_ *terraform.State) error {
+					return testAccSetCustomRoleClusterPermissionOutOfBand(roleID, getTestClusterID(), "ADMIN")
+				},
+				ExpectNonEmptyPlan: true,
+			},
+			// ... the refresh stores it...
+			{
+				RefreshState: true,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("qovery_custom_role.test", "cluster_permissions.#", "1"),
+					resource.TestCheckResourceAttr("qovery_custom_role.test", "cluster_permissions.0.cluster_id", getTestClusterID()),
+					resource.TestCheckResourceAttr("qovery_custom_role.test", "cluster_permissions.0.permission", "ADMIN"),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			// ... and the next apply resets it to the VIEWER default.
+			{
+				Config: testAccCustomRoleConfigWithExtraProject(roleName, "MANAGER"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr("qovery_custom_role.test", "cluster_permissions.#"),
+					testAccCheckCustomRoleClusterPermission(&roleID, getTestClusterID(), "VIEWER"),
+				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
+			},
+			// Step 7: import keeps non-default entries (id format: "org_id,role_id")
 			{
 				ResourceName:      "qovery_custom_role.test",
 				ImportState:       true,
@@ -88,6 +124,47 @@ func TestAcc_CustomRole(t *testing.T) {
 			},
 		},
 	})
+}
+
+// testAccSetCustomRoleClusterPermissionOutOfBand sets the permission of the role on a cluster,
+// bypassing Terraform. The edit resends the whole matrix, as q-core requires.
+func testAccSetCustomRoleClusterPermissionOutOfBand(roleID, clusterID, permission string) error {
+	apiPath := fmt.Sprintf("/organization/%s/customRole/%s", getTestOrganizationID(), roleID)
+	found := false
+	err := testAccEditServiceOutOfBand(apiPath, nil, func(role map[string]any) {
+		clusters, _ := role["cluster_permissions"].([]any)
+		for _, c := range clusters {
+			entry, ok := c.(map[string]any)
+			if ok && entry["cluster_id"] == clusterID {
+				entry["permission"] = permission
+				found = true
+			}
+		}
+	})
+	if err == nil && !found {
+		return fmt.Errorf("cluster %s is not in the matrix of custom role %s", clusterID, roleID)
+	}
+	return err
+}
+
+// testAccCheckCustomRoleClusterPermission checks the permission of the role on a cluster in the API.
+// roleID is read when the check runs, since an earlier step captures it.
+func testAccCheckCustomRoleClusterPermission(roleID *string, clusterID, expected string) resource.TestCheckFunc {
+	return func(_ *terraform.State) error {
+		role, err := qoveryServices.CustomRole.Get(context.TODO(), getTestOrganizationID(), *roleID)
+		if err != nil {
+			return err
+		}
+		for _, cp := range role.ClusterPermissions {
+			if cp.ClusterID == clusterID {
+				if string(cp.Permission) != expected {
+					return fmt.Errorf("custom role %s has %s on cluster %s, expected %s", *roleID, cp.Permission, clusterID, expected)
+				}
+				return nil
+			}
+		}
+		return fmt.Errorf("cluster %s is not in the matrix of custom role %s", clusterID, *roleID)
+	}
 }
 
 func testAccCustomRoleConfigNamed(roleName string, prodPermission string) string {
@@ -151,8 +228,11 @@ resource "qovery_custom_role" "test" {
 `, getTestOrganizationID(), roleName, getTestProjectID(), prodPermission)
 }
 
+// testAccCustomRoleConfigWithExtraProject adds a project to the configuration of step 4, so the
+// role does not change in the apply that creates the project: q-core rejects a role update that
+// races a project creation (the matrix it reads misses the new project).
 func testAccCustomRoleConfigWithExtraProject(roleName string, prodPermission string) string {
-	return testAccCustomRoleConfigNamed(roleName, prodPermission) + fmt.Sprintf(`
+	return testAccCustomRoleConfigNoDescription(roleName, prodPermission) + fmt.Sprintf(`
 resource "qovery_project" "extra" {
   organization_id = "%s"
   name            = "%s-extra"

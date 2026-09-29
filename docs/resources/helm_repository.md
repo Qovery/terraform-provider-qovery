@@ -44,7 +44,7 @@ resource "qovery_helm_repository" "my_helm_repository" {
 ### Optional
 
 - `config` (Attributes) Configuration needed to authenticate with the helm repository. Required fields depend on the repository `kind`. (see [below for nested schema](#nestedatt--config))
-- `description` (String) Description of the helm repository.
+- `description` (String) Description of the helm repository. Defaults to an empty description.
 
 ### Read-Only
 

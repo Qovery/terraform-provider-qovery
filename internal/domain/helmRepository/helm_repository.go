@@ -25,7 +25,7 @@ type HelmRepository struct {
 	Kind               Kind      `validate:"required"`
 	URL                url.URL   `validate:"required"`
 	Description        *string
-	Config             map[string]string
+	Config             registry.Config
 	SkiTlsVerification *bool
 }
 
@@ -66,6 +66,7 @@ type NewHelmRepositoryParams struct {
 	Kind               string
 	URL                string
 	Description        *string
+	Config             registry.Config
 	SkiTlsVerification *bool
 }
 
@@ -101,6 +102,7 @@ func NewHelmRepository(params NewHelmRepositoryParams) (*HelmRepository, error) 
 		Kind:               *kind,
 		URL:                *repositoryUrl,
 		Description:        params.Description,
+		Config:             params.Config,
 		SkiTlsVerification: params.SkiTlsVerification,
 	}
 

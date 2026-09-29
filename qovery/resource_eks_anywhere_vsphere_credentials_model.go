@@ -79,16 +79,20 @@ func hasNonEmptyStringValue(value types.String) bool {
 	return strings.TrimSpace(value.ValueString()) != ""
 }
 
-func convertDomainCredentialsToEksAnywhereVsphereCredentials(creds *credentials.Credentials, plan EksAnywhereVsphereCredentials) EksAnywhereVsphereCredentials {
+// convertDomainCredentialsToEksAnywhereVsphereCredentials reads vsphere_user, access_key_id and
+// role_arn from the API, so a value changed outside Terraform shows up in the plan. The API never
+// returns the vSphere password or the secret access key, so they are kept from prior, the plan on
+// apply and the state on refresh.
+func convertDomainCredentialsToEksAnywhereVsphereCredentials(creds *credentials.Credentials, prior EksAnywhereVsphereCredentials) EksAnywhereVsphereCredentials {
 	return EksAnywhereVsphereCredentials{
 		Id:              FromString(creds.ID.String()),
 		OrganizationId:  FromString(creds.OrganizationID.String()),
 		Name:            FromString(creds.Name),
-		VsphereUser:     plan.VsphereUser,
-		VspherePassword: plan.VspherePassword,
-		AccessKeyId:     plan.AccessKeyId,
-		SecretAccessKey: plan.SecretAccessKey,
-		RoleArn:         plan.RoleArn,
+		VsphereUser:     credentialIdentifierFromAPI(prior.VsphereUser, creds.Identifiers.VsphereUser),
+		VspherePassword: prior.VspherePassword,
+		AccessKeyId:     credentialIdentifierFromAPI(prior.AccessKeyId, creds.Identifiers.AccessKeyID),
+		SecretAccessKey: prior.SecretAccessKey,
+		RoleArn:         credentialIdentifierFromAPI(prior.RoleArn, creds.Identifiers.RoleArn),
 	}
 }
 

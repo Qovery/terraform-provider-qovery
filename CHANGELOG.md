@@ -122,6 +122,32 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   materialized, so an icon changed from the Console fails the plan until the configuration
   sets the same value. To change the icon, change it from the Console, then set the same value
   in the configuration. (QOV-2337)
+- **`qovery_container_registry`, `qovery_helm_repository`, `qovery_custom_role`,
+  `qovery_project`**: `description` defaults to `""`, the value the API stores when a request
+  omits it. Removing the description from the configuration clears it, and a description set
+  from the Console shows up in `terraform plan`. 0.x kept the last value. (QOV-2333)
+- **`qovery_organization`, `qovery_git_token`**: `description` is optional only and omitting it
+  means no description. Removing it from the configuration clears it, and a description set from
+  the Console shows up in `terraform plan` as a removal. `qovery_git_token.bitbucket_workspace` is
+  optional only too, and a `BITBUCKET` token without a workspace now fails at plan time instead of
+  at apply. The state upgrade turns the empty description 0.x could store into null, so an
+  unchanged configuration plans nothing. (QOV-2333)
+- **`qovery_custom_role`**: the refresh records every permission that differs from the defaults
+  (`VIEWER` on a cluster, `NO_ACCESS` on a project) on a cluster or project the configuration does
+  not list. A permission granted from the Console now shows up in `terraform plan` as an entry to
+  remove; 0.x reset it on the next apply without showing it. (QOV-2333)
+- **`qovery_container_registry`, `qovery_helm_repository`**: the refresh reads the non-secret
+  keys of `config` from the API: `region`, `access_key_id`, `username`, `scaleway_access_key`,
+  `scaleway_project_id` and the GCP Workload Identity Federation keys, for the kinds that store
+  them. A key changed from the Console shows up in `terraform plan`, and import records them.
+  0.x kept the whole block from the state. Secrets are still taken from the state, because the
+  API never returns them. (QOV-2333)
+- **`qovery_aws_credentials`, `qovery_scaleway_credentials`, `qovery_gcp_credentials`,
+  `qovery_eks_anywhere_vsphere_credentials`**: the refresh reads the identifiers from the API:
+  `access_key_id`, `role_arn`, the Scaleway access key, project and organization, the GCP
+  `service_account_email` and `workload_identity_provider_resource`, and `vsphere_user`. An
+  identifier changed from the Console shows up in `terraform plan`, and import records them. 0.x
+  kept them from the state. Secrets are still taken from the state. (QOV-2333)
 
 ### Added
 
@@ -203,6 +229,9 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   custom subnet feature. (QOV-2328)
 - `qovery_cluster`: `features.gcp_existing_vpc.additional_ip_range_pods_names = []` no longer
   fails the apply with an inconsistent result. (QOV-2328)
+- `qovery_helm_repository`: an `OCI_SCALEWAY_CR` repository now sends
+  `config.scaleway_project_id`, which the API requires. The provider left it out, so creating
+  such a repository failed with a 400. (QOV-2333)
 
 ## [0.90.0] - 2026-09-28
 

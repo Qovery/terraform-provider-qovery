@@ -224,6 +224,17 @@ func FromStringArray(array []string) types.List {
 	return value
 }
 
+// optionalStringFromAPI reads an Optional (not Computed) string attribute. The API value wins,
+// so a change made outside Terraform shows up in the plan, except that nil or "" keeps a null
+// prior (the plan on apply, the state on refresh): the API reports some unset values as "",
+// which would otherwise fail the apply with "provider produced inconsistent result".
+func optionalStringFromAPI(prior types.String, apiVal *string) types.String {
+	if (apiVal == nil || *apiVal == "") && prior.IsNull() {
+		return types.StringNull()
+	}
+	return FromStringPointer(apiVal)
+}
+
 // setFromAPIElements builds the state value of an Optional (not Computed) set attribute from
 // what the API returns. The API elements always win, so a change made outside Terraform shows
 // up in the plan. An empty API value takes the shape of prior (the plan on apply, the state on

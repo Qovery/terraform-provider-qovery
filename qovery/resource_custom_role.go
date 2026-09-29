@@ -10,6 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
@@ -78,9 +79,9 @@ func environmentTypeValues() []string {
 func (r customRoleResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Description: "Provides a Qovery organization custom role resource. Declare only the clusters and projects this role should have non-default access to: " +
-			"any cluster not listed keeps the VIEWER permission and any project not listed keeps NO_ACCESS. " +
-			"Permissions granted outside Terraform on undeclared clusters/projects are reset to those defaults on the next apply. " +
-			"Declaring an entry equal to the defaults (cluster VIEWER / project all-NO_ACCESS) is a no-op and will not survive an import round-trip.",
+			"any cluster not listed gets the VIEWER permission and any project not listed gets NO_ACCESS. " +
+			"A permission granted outside Terraform on a cluster or project that is not listed shows up in `terraform plan` as an entry to remove, and the next apply resets it to those defaults. " +
+			"Import records every entry that differs from the defaults. Declaring an entry equal to the defaults (cluster VIEWER / project all-NO_ACCESS) is a no-op and does not survive an import round-trip.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				Description: "Id of the custom role.",
@@ -101,17 +102,12 @@ func (r customRoleResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				Required:    true,
 			},
 			"description": schema.StringAttribute{
-				// Optional+Computed: the server stores an omitted description as an empty
-				// string rather than keeping it null, so a plain Optional attribute would
-				// fail with "inconsistent result after apply" (null in config, "" from API).
-				// UseStateForUnknown keeps the prior value when the practitioner drops the
-				// attribute from config, matching the standard provider pattern.
-				Description: "Description of the custom role.",
+				// q-core stores an omitted description as "", so the Default is "": removing the
+				// description from the configuration plans its reset.
+				Description: "Description of the custom role. Defaults to an empty description.",
 				Optional:    true,
 				Computed:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				Default:     stringdefault.StaticString(storedDescriptionDefault),
 			},
 			"cluster_permissions": schema.SetNestedAttribute{
 				Description: "Cluster permissions of the custom role. Clusters not listed default to VIEWER.",
@@ -240,7 +236,7 @@ func (r customRoleResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	state := convertDomainCustomRoleToCustomRole(role, &plan, customRoleReadModeFilterDeclared)
+	state := convertDomainCustomRoleToCustomRole(role, &plan, customRoleReadModeDeclaredOrNonDefault)
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -256,16 +252,8 @@ func (r customRoleResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	// After `terraform import` only id + organization_id are set (name is null): keep
-	// non-default entries so the user sees what the role actually grants.
-	mode := customRoleReadModeFilterDeclared
-	declared := &state
-	if state.Name.IsNull() {
-		mode = customRoleReadModeKeepNonDefault
-		declared = nil
-	}
-
-	newState := convertDomainCustomRoleToCustomRole(role, declared, mode)
+	// After `terraform import` nothing is declared yet, so the state records the non-default entries.
+	newState := convertDomainCustomRoleToCustomRole(role, &state, customRoleReadModeDeclaredOrNonDefault)
 	resp.Diagnostics.Append(resp.State.Set(ctx, newState)...)
 }
 
@@ -284,7 +272,7 @@ func (r customRoleResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	state := convertDomainCustomRoleToCustomRole(role, &plan, customRoleReadModeFilterDeclared)
+	state := convertDomainCustomRoleToCustomRole(role, &plan, customRoleReadModeDeclaredOrNonDefault)
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 

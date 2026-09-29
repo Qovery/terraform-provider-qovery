@@ -21,6 +21,7 @@ const (
 func TestAcc_ContainerRegistry(t *testing.T) {
 	t.Parallel()
 	testName := "container-registry"
+	var registryID string
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -59,17 +60,56 @@ func TestAcc_ContainerRegistry(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "config.region", awsECRRegion),
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "config.access_key_id", getTestAWSCredentialsAccessKeyID()),
 					resource.TestCheckResourceAttr("qovery_container_registry.test", "config.secret_access_key", getTestAWSCredentialsSecretAccessKey()),
+					testAccCaptureResourceID("qovery_container_registry.test", &registryID),
 				),
 			},
-			// Check Import
+			// Import records the non-secret config keys
 			{
 				ResourceName:            "qovery_container_registry.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
-				ImportStateVerifyIgnore: []string{"config"},
+				ImportStateVerifyIgnore: []string{"config.secret_access_key"},
+			},
+			// A region changed outside Terraform shows up in the plan...
+			{
+				Config: testAccContainerRegistryDefaultConfigWithDescription(testName, "this is a description"),
+				Check: func(_ *terraform.State) error {
+					return testAccEditECRRegionOutOfBand(fmt.Sprintf("/organization/%s/containerRegistry/%s", getTestOrganizationID(), registryID), testAccOutOfBandECRRegion)
+				},
+				ExpectNonEmptyPlan: true,
+			},
+			// ... the refresh stores it, and the secret stays in the state...
+			{
+				RefreshState: true,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("qovery_container_registry.test", "config.region", testAccOutOfBandECRRegion),
+					resource.TestCheckResourceAttr("qovery_container_registry.test", "config.secret_access_key", getTestAWSCredentialsSecretAccessKey()),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			// ... and the next apply reverts it.
+			{
+				Config:           testAccContainerRegistryDefaultConfigWithDescription(testName, "this is a description"),
+				Check:            resource.TestCheckResourceAttr("qovery_container_registry.test", "config.region", awsECRRegion),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 			},
 		},
+	})
+}
+
+// testAccOutOfBandECRRegion is the region the out-of-band steps set on an ECR registry or helm
+// repository. The test AWS keys can reach ECR there too, which q-core checks on every write.
+const testAccOutOfBandECRRegion = "eu-west-1"
+
+// testAccEditECRRegionOutOfBand changes the region of the ECR registry or helm repository at
+// apiPath, bypassing Terraform. The API never returns the secret access key, so the edit sends the
+// test one.
+func testAccEditECRRegionOutOfBand(apiPath string, region string) error {
+	return testAccEditServiceOutOfBand(apiPath, nil, func(registry map[string]any) {
+		config := jsonObject(registry, "config")
+		config["region"] = region
+		config["secret_access_key"] = getTestAWSCredentialsSecretAccessKey()
 	})
 }
 

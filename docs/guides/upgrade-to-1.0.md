@@ -383,6 +383,63 @@ In 1.0:
 
 Before the first apply on 1.0, declare the variables you set from the Console, and set `icon_uri` to the icon of the service if you changed it from the Console.
 
+### Organization-level resources: `description` plans its removal
+
+This applies to `qovery_container_registry`, `qovery_helm_repository`, `qovery_custom_role`, `qovery_project`, `qovery_organization` and `qovery_git_token`.
+
+In 0.x `description` kept its last value when the configuration omitted it. Removing it from the configuration left the description in place, and a description changed from the Qovery Console never showed up in `terraform plan`.
+
+In 1.0:
+
+- On `qovery_container_registry`, `qovery_helm_repository`, `qovery_custom_role` and `qovery_project`, `description` defaults to `""`, which is what Qovery stores when a request omits it. Removing it from the configuration plans its reset to `""`.
+- On `qovery_organization` and `qovery_git_token`, `description` is optional only, because Qovery stores no description when a request omits it. Removing it from the configuration plans its removal. The state upgrade turns the empty description that 0.x could store into null, so an unchanged configuration plans nothing.
+- The refresh reads the description from the API. A description set or changed from the Console shows up as a difference, and `terraform apply` reverts it. `terraform import` records it.
+
+`qovery_git_token.bitbucket_workspace` follows the same rule: it is optional only, and a `BITBUCKET` token without a workspace now fails at plan time instead of at apply.
+
+If you set descriptions from the Console, declare them before the first apply on 1.0, otherwise that apply clears them.
+
+### `qovery_custom_role`: permissions granted from the Console show up in the plan
+
+A custom role applies the default permissions (`VIEWER` on a cluster, `NO_ACCESS` on a project) to every cluster and project that `cluster_permissions` and `project_permissions` do not list. In 0.x the refresh ignored those clusters and projects: a permission granted on one of them from the Qovery Console stayed invisible, and the next apply reset it to the default without the plan showing it.
+
+In 1.0 the refresh records every permission that differs from the defaults, listed or not. A permission granted from the Console on a cluster or project that the configuration does not list shows up in `terraform plan` as an entry to remove, and `terraform apply` resets it. Declare it to keep it:
+
+```terraform
+resource "qovery_custom_role" "developer" {
+  # ...
+  cluster_permissions = [
+    { cluster_id = qovery_cluster.production.id, permission = "ENV_CREATOR" },
+  ]
+}
+```
+
+A role without Console-only permissions plans no change after the upgrade.
+
+### Registry `config` blocks and credential identifiers are read from the API
+
+This applies to the `config` block of `qovery_container_registry` and `qovery_helm_repository`, and to `qovery_aws_credentials`, `qovery_scaleway_credentials`, `qovery_gcp_credentials` and `qovery_eks_anywhere_vsphere_credentials`.
+
+In 0.x the refresh kept these values from the state, so a change made from the Qovery Console never showed up in `terraform plan`, and `terraform import` recorded none of them.
+
+In 1.0 the refresh reads the non-secret values that the API returns:
+
+- the `config` keys `region`, `access_key_id`, `username`, `scaleway_access_key`, `scaleway_project_id`, `gcp_credentials_type`, `project_id`, `service_account_email`, `workload_identity_provider_resource` and `token_lifetime_seconds`, for the registry kinds that store them;
+- the credential identifiers `access_key_id`, `role_arn`, `scaleway_access_key`, `scaleway_project_id`, `scaleway_organization_id`, `service_account_email`, `workload_identity_provider_resource` and `vsphere_user`.
+
+A value changed from the Console shows up as a difference, and `terraform apply` reverts it. `terraform import` records these values. The API never returns secrets (secret access keys, secret keys, passwords, JSON keys), so they are still taken from the state, and an imported resource plans them once.
+
+A few values keep the state value because the API cannot report them:
+
+- the keys a registry kind does not store, such as `region` on a `PUBLIC_ECR` registry or on an `HTTPS` helm repository;
+- every key of `DOCR` and `AZURE_CR` registries and of `OCI_PUBLIC_ECR` helm repositories;
+- `project_id` on a GCP registry that uses a JSON key, because Qovery reads it from the key;
+- `scaleway_project_id` on an `OCI_SCALEWAY_CR` helm repository, which Qovery requires but does not store.
+
+`token_lifetime_seconds` reads as unset while it holds the Qovery default of 14400. A Scaleway `region` is kept as written when it names the region Qovery stores, such as `fr-par-1` for `fr-par`. A credential identifier is kept when it only differs by surrounding whitespace, which Qovery trims.
+
+A registry or credential whose remote values match the configuration plans no change after the upgrade.
+
 ## Behaviour changes
 
 These changes need no configuration edit, but they can make `terraform plan` show differences that 0.x hid.
