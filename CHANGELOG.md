@@ -151,6 +151,11 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 
 ### Added
 
+- `qovery_application`, `qovery_job` and `qovery_terraform_service`: the `build_settings` block
+  manages the build timeout, CPU, RAM, ephemeral storage, BuildKit cache and git submodules,
+  and the data sources report it. Removing the block resets the build settings to their
+  defaults. A plan that sets both the block and `build.*` keys in `advanced_settings_json`
+  fails; the keys keep working when the block is not set. (QOV-2233)
 - `qovery_cluster`: `features.karpenter.qovery_node_pools.gpu_override` manages the Karpenter
   GPU node pool, and the data source reports it. Declaring the block creates the pool and
   removing it deletes the pool; the plan warns when it removes the block. (QOV-2318)

@@ -93,6 +93,7 @@ You can find complete examples within these repositories:
 - `autoscaling` (Attributes) Event-driven autoscaling with KEDA, which requires KEDA on the cluster. It adds to the CPU and memory autoscaling of `min_running_instances` and `max_running_instances`, and allows `min_running_instances = 0`. (see [below for nested schema](#nestedatt--autoscaling))
 - `build_mode` (String) How Qovery builds the application: `DOCKER` builds the Dockerfile at `dockerfile_path`, `BUILDPACKS` detects the language with Cloud Native Buildpacks.
 	- Default: `DOCKER`.
+- `build_settings` (Attributes) Build configuration settings for the service. When set, all six properties are sent to the API — omitted properties use their defaults. Removing the block resets the build settings to their defaults. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both. Those keys remain supported when this block is not set. (see [below for nested schema](#nestedatt--build_settings))
 - `cpu` (Number) CPU of the application, in millicores (1000 = 1 vCPU).
 	- Must be: `>= 10`.
 	- Default: `500`.
@@ -340,6 +341,19 @@ Optional:
 - `config_yaml` (String) Configuration of the trigger authentication, as YAML.
 
 
+
+
+<a id="nestedatt--build_settings"></a>
+### Nested Schema for `build_settings`
+
+Optional:
+
+- `cpu_max_in_milli` (Number) Maximum CPU resources for the build in millicores. Default: 4000.
+- `disable_buildkit_cache` (Boolean) Disable buildkit registry cache during build. Default: false.
+- `ephemeral_storage_in_gib` (Number) Ephemeral storage for the build in GiB. When not set, the platform default is used.
+- `ram_max_in_gib` (Number) Maximum RAM resources for the build in GiB. Default: 8.
+- `skip_git_submodules` (Boolean) Skip git submodules update when cloning the repository. Default: false.
+- `timeout_max_sec` (Number) Maximum build timeout in seconds. Default: 1800.
 
 
 <a id="nestedatt--custom_domains"></a>

@@ -555,6 +555,7 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"build_settings": buildSettingsResourceSchemaAttributes(),
 			"auto_deploy": schema.BoolAttribute{
 				MarkdownDescription: descriptions.NewBoolDefaultDescription(jobAutoDeployDescription, serviceAutoDeployDefault),
 				Optional:            true,
@@ -724,4 +725,5 @@ func (r jobResource) ImportState(ctx context.Context, req resource.ImportStateRe
 
 func (r jobResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.JOB, req.Config, &resp.Diagnostics)
+	modifyBuildSettingsPlan(ctx, req, resp)
 }

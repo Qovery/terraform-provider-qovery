@@ -111,12 +111,17 @@ func (c jobQoveryAPI) Get(ctx context.Context, jobID string, advancedSettingsJso
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(domain.JOB, jobID, advancedSettingsJsonFromState, isTriggeredFromImport)
+	advancedSettingsAsJson, buildSettings, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettingsWithBuildSettings(domain.JOB, jobID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, nil, err)
 	}
 
-	return newDomainJobFromQovery(job, deploymentStage.Id, getServiceIsSkipped(deploymentStage, jobID), *advancedSettingsAsJson)
+	jobDomain, err := newDomainJobFromQovery(job, deploymentStage.Id, getServiceIsSkipped(deploymentStage, jobID), *advancedSettingsAsJson)
+	if err != nil {
+		return nil, err
+	}
+	jobDomain.BuildSettings = buildSettings
+	return jobDomain, nil
 }
 
 // Update calls Qovery's API to update a job using the given jobID and request.

@@ -552,6 +552,7 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 				Optional:            true,
 				Computed:            true,
 			},
+			"build_settings": buildSettingsDataSourceSchemaAttributes(),
 			"auto_deploy": schema.BoolAttribute{
 				MarkdownDescription: jobAutoDeployDescription,
 				Optional:            true,
@@ -615,6 +616,7 @@ func (d jobDataSource) Read(ctx context.Context, req datasource.ReadRequest, res
 	data.AnnotationsGroupIds = emptyStringSet()
 	data.LabelssGroupIds = emptyStringSet()
 	state := convertDomainJobToJob(ctx, data, cont)
+	state.BuildSettings = buildSettingsFromQovery(cont.BuildSettings)
 	tflog.Trace(ctx, "read job", map[string]any{"job_id": state.ID.ValueString()})
 
 	// Set state

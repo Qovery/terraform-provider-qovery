@@ -253,6 +253,7 @@ func (d terraformServiceDataSource) Schema(_ context.Context, _ datasource.Schem
 					},
 				},
 			},
+			"build_settings": buildSettingsDataSourceSchemaAttributes(),
 			"advanced_settings_json": schema.StringAttribute{
 				MarkdownDescription: dataSourceAdvancedSettingsJSONDescription("Terraform service"),
 				Computed:            true,
@@ -292,6 +293,7 @@ func (d terraformServiceDataSource) Read(ctx context.Context, req datasource.Rea
 	// Convert domain entity to Terraform state
 	state := convertDomainTerraformServiceToTerraformService(ctx, data, terraformSvc)
 	state.Variables = fromDataSourceVariableArray(terraformSvc.Variables)
+	state.BuildSettings = buildSettingsFromQovery(terraformSvc.BuildSettings)
 	tflog.Trace(ctx, "read terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 
 	// Set state

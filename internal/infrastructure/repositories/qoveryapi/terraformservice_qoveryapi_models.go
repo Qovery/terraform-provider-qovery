@@ -132,6 +132,10 @@ func newQoveryTerraformRequestFromDomain(request terraformservice.UpsertReposito
 		req.BlueprintId = *qovery.NewNullableString(request.BlueprintID)
 	}
 
+	if request.BuildSettings != nil {
+		req.BuildSettings = request.BuildSettings
+	}
+
 	return req, nil
 }
 

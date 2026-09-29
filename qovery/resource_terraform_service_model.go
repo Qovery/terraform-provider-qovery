@@ -38,6 +38,7 @@ type TerraformService struct {
 	CreatedAt             types.String            `tfsdk:"created_at"`
 	UpdatedAt             types.String            `tfsdk:"updated_at"`
 	BlueprintID           types.String            `tfsdk:"blueprint_id"`
+	BuildSettings         types.Object            `tfsdk:"build_settings"`
 }
 
 type TerraformGitRepository struct {
@@ -89,10 +90,13 @@ func (t TerraformService) toUpsertServiceRequest(state *TerraformService) (*terr
 
 	var stateExternalSecrets ExternalSecretList
 	var stateExternalSecretFiles ExternalSecretFileList
+	stateBuildSettings := types.ObjectNull(buildSettingsAttrTypes)
 	if state != nil {
 		stateExternalSecrets = toExternalSecretList(state.ExternalSecrets)
 		stateExternalSecretFiles = toExternalSecretFileList(state.ExternalSecretFiles)
+		stateBuildSettings = state.BuildSettings
 	}
+	req.BuildSettings = buildSettingsRequest(t.BuildSettings, stateBuildSettings)
 
 	return &terraformservice.UpsertServiceRequest{
 		TerraformServiceUpsertRequest: req,
@@ -279,6 +283,7 @@ func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan T
 		CreatedAt:             FromTime(ts.CreatedAt),
 		UpdatedAt:             FromTimePointer(ts.UpdatedAt),
 		BlueprintID:           FromStringPointer(ts.BlueprintID),
+		BuildSettings:         buildSettingsToState(plan.BuildSettings, ts.BuildSettings),
 		ExternalSecrets:       convertDomainExternalSecretsToExternalSecretList(ts.ExternalSecrets, plan.ExternalSecrets, variable.ScopeTerraform).toTerraformSet(ctx),
 		ExternalSecretFiles:   convertDomainExternalSecretFilesToExternalSecretFileList(ts.ExternalSecretFiles, plan.ExternalSecretFiles, variable.ScopeTerraform).toTerraformSet(ctx),
 	}

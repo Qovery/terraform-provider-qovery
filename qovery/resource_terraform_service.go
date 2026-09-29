@@ -332,6 +332,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			},
 			"external_secrets":      externalSecretsSchemaAttribute("Terraform service"),
 			"external_secret_files": externalSecretFilesSchemaAttribute("Terraform service"),
+			"build_settings":        buildSettingsResourceSchemaAttributes(),
 			"advanced_settings_json": schema.StringAttribute{
 				MarkdownDescription: advancedSettingsJSONDescription("Terraforms/operation/getDefaultTerraformAdvancedSettings"),
 				Optional:            true,
@@ -475,6 +476,7 @@ func (r terraformServiceResource) ImportState(ctx context.Context, req resource.
 
 func (r terraformServiceResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.TERRAFORM, req.Config, &resp.Diagnostics)
+	modifyBuildSettingsPlan(ctx, req, resp)
 	// Prevent storage reduction
 	if req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
 		return

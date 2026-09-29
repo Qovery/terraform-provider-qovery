@@ -148,7 +148,8 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				Optional:            true,
 				Computed:            true,
 			},
-			"autoscaling": autoscalingDataSourceSchema(),
+			"autoscaling":    autoscalingDataSourceSchema(),
+			"build_settings": buildSettingsDataSourceSchemaAttributes(),
 			"auto_preview": schema.BoolAttribute{
 				MarkdownDescription: autoPreviewDescription("application"),
 				Optional:            true,
@@ -623,6 +624,7 @@ func (d applicationDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	data.LabelsGroupIds = emptyStringSet()
 	data.Arguments = emptyStringList()
 	state := convertResponseToApplication(ctx, data, application)
+	state.BuildSettings = buildSettingsFromQovery(application.ApplicationBuildSettings)
 	tflog.Trace(ctx, "read application", map[string]any{"application_id": state.Id.ValueString()})
 
 	// Set state
