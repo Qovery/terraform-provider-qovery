@@ -1,7 +1,7 @@
-resource "qovery_custom_role" "project_admin" {
+resource "qovery_custom_role" "my_custom_role" {
   organization_id = qovery_organization.my_organization.id
-  name            = "project-admin"
-  description     = "Admin on the main project, can create environments on the main cluster"
+  name            = "developer"
+  description     = "Manages the non-production environments of the main project"
 
   cluster_permissions = [
     {
@@ -10,13 +10,10 @@ resource "qovery_custom_role" "project_admin" {
     }
   ]
 
+  # List every environment type, or set is_admin = true instead of permissions.
   project_permissions = [
     {
       project_id = qovery_project.my_project.id
-      is_admin   = true
-    },
-    {
-      project_id = qovery_project.my_other_project.id
       permissions = [
         { environment_type = "DEVELOPMENT", permission = "MANAGER" },
         { environment_type = "PREVIEW", permission = "MANAGER" },

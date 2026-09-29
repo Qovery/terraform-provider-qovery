@@ -20,6 +20,7 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/autoscaling"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
@@ -61,22 +62,34 @@ const (
 	autoscalingCooldownPeriodSecondsDefault  = 300
 )
 
-const autoscalingDescription = "Event-driven autoscaling (KEDA) configuration. " +
-	"KEDA is additive to the CPU/memory HPA (min/max_running_instances) and unlocks " +
-	"scale-to-zero (min_running_instances = 0). Requires KEDA to be enabled on the cluster."
+// Descriptions of the autoscaling block, shared by the resource and data source schemas.
+const (
+	autoscalingDescription = "Event-driven autoscaling with KEDA, which requires KEDA on the cluster. " +
+		"It adds to the CPU and memory autoscaling of `min_running_instances` and `max_running_instances`, and allows `min_running_instances = 0`."
+	autoscalingPollingIntervalDescription   = "Seconds between two polls of the scalers."
+	autoscalingCooldownPeriodDescription    = "Seconds to wait after the last trigger before scaling down."
+	autoscalingScalersDescription           = "KEDA scalers that drive the autoscaling. Set at least one."
+	autoscalingScalerTypeDescription        = "Type of the KEDA scaler, for example `cpu`, `memory`, `prometheus` or `cron`."
+	autoscalingScalerEnabledDescription     = "Whether the scaler is enabled."
+	autoscalingScalerRoleDescription        = "Role of the scaler: `PRIMARY` or `SAFETY`."
+	autoscalingScalerConfigJSONDescription  = "Configuration of the scaler, as JSON. Conflicts with `config_yaml`."
+	autoscalingScalerConfigYAMLDescription  = "Configuration of the scaler, as YAML. Conflicts with `config_json`."
+	autoscalingTriggerAuthDescription       = "KEDA TriggerAuthentication of the scaler."
+	autoscalingTriggerAuthNameDescription   = "Name of the trigger authentication."
+	autoscalingTriggerAuthConfigDescription = "Configuration of the trigger authentication, as YAML."
+)
 
 // autoscalingResourceSchema returns the resource schema attribute for the
 // `autoscaling` block, shared by the application and container resources.
 func autoscalingResourceSchema() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
-		Description:         autoscalingDescription,
 		MarkdownDescription: autoscalingDescription,
 		Optional:            true,
 		Attributes: map[string]schema.Attribute{
 			"polling_interval_seconds": schema.Int64Attribute{
-				Description: "Interval in seconds between each KEDA polling of the scalers. Defaults to 30.",
-				Optional:    true,
-				Computed:    true,
+				MarkdownDescription: descriptions.NewInt64DefaultDescription(autoscalingPollingIntervalDescription, autoscalingPollingIntervalSecondsDefault),
+				Optional:            true,
+				Computed:            true,
 				// Static default matches the backend default so adding an autoscaling
 				// block without this field does not yield a null plan value that the
 				// API then fills in (which fails with "inconsistent result after apply").
@@ -86,59 +99,59 @@ func autoscalingResourceSchema() schema.SingleNestedAttribute {
 				},
 			},
 			"cooldown_period_seconds": schema.Int64Attribute{
-				Description: "Period in seconds to wait after the last trigger before scaling back down. Defaults to 300.",
-				Optional:    true,
-				Computed:    true,
-				Default:     int64default.StaticInt64(autoscalingCooldownPeriodSecondsDefault),
+				MarkdownDescription: descriptions.NewInt64DefaultDescription(autoscalingCooldownPeriodDescription, autoscalingCooldownPeriodSecondsDefault),
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(autoscalingCooldownPeriodSecondsDefault),
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
 			"scalers": schema.SetNestedAttribute{
-				Description: "List of KEDA scalers driving the autoscaling. At least one scaler is required.",
-				Required:    true,
+				MarkdownDescription: autoscalingScalersDescription,
+				Required:            true,
 				Validators: []validator.Set{
 					validators.ScalerConfigExactlyOneValidator{},
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"scaler_type": schema.StringAttribute{
-							Description: "Type of the KEDA scaler (e.g. cpu, memory, prometheus, cron).",
-							Required:    true,
+							MarkdownDescription: autoscalingScalerTypeDescription,
+							Required:            true,
 						},
 						"enabled": schema.BoolAttribute{
-							Description: "Whether the scaler is enabled. Defaults to true.",
-							Optional:    true,
-							Computed:    true,
-							Default:     booldefault.StaticBool(true),
+							MarkdownDescription: descriptions.NewBoolDefaultDescription(autoscalingScalerEnabledDescription, true),
+							Optional:            true,
+							Computed:            true,
+							Default:             booldefault.StaticBool(true),
 						},
 						"role": schema.StringAttribute{
-							Description: "Role of the scaler: PRIMARY or SAFETY.",
-							Required:    true,
+							MarkdownDescription: autoscalingScalerRoleDescription,
+							Required:            true,
 							Validators: []validator.String{
 								validators.NewStringEnumValidator([]string{string(autoscaling.RolePrimary), string(autoscaling.RoleSafety)}),
 							},
 						},
 						"config_json": schema.StringAttribute{
-							Description: "Scaler configuration as JSON. Mutually exclusive with config_yaml.",
-							Optional:    true,
-							CustomType:  jsontypes.NormalizedType{},
+							MarkdownDescription: autoscalingScalerConfigJSONDescription,
+							Optional:            true,
+							CustomType:          jsontypes.NormalizedType{},
 						},
 						"config_yaml": schema.StringAttribute{
-							Description: "Scaler configuration as raw YAML. Mutually exclusive with config_json.",
-							Optional:    true,
+							MarkdownDescription: autoscalingScalerConfigYAMLDescription,
+							Optional:            true,
 						},
 						"trigger_authentication": schema.SingleNestedAttribute{
-							Description: "Inline KEDA TriggerAuthentication for this scaler.",
-							Optional:    true,
+							MarkdownDescription: autoscalingTriggerAuthDescription,
+							Optional:            true,
 							Attributes: map[string]schema.Attribute{
 								"name": schema.StringAttribute{
-									Description: "Name of the trigger authentication.",
-									Required:    true,
+									MarkdownDescription: autoscalingTriggerAuthNameDescription,
+									Required:            true,
 								},
 								"config_yaml": schema.StringAttribute{
-									Description: "Raw KEDA TriggerAuthentication YAML configuration.",
-									Optional:    true,
+									MarkdownDescription: autoscalingTriggerAuthConfigDescription,
+									Optional:            true,
 								},
 							},
 						},
@@ -155,55 +168,54 @@ func autoscalingResourceSchema() schema.SingleNestedAttribute {
 // state fails at runtime.
 func autoscalingDataSourceSchema() dsschema.SingleNestedAttribute {
 	return dsschema.SingleNestedAttribute{
-		Description:         autoscalingDescription,
 		MarkdownDescription: autoscalingDescription,
 		Computed:            true,
 		Attributes: map[string]dsschema.Attribute{
 			"polling_interval_seconds": dsschema.Int64Attribute{
-				Description: "Interval in seconds between each KEDA polling of the scalers.",
-				Computed:    true,
+				MarkdownDescription: autoscalingPollingIntervalDescription,
+				Computed:            true,
 			},
 			"cooldown_period_seconds": dsschema.Int64Attribute{
-				Description: "Period in seconds to wait after the last trigger before scaling back down.",
-				Computed:    true,
+				MarkdownDescription: autoscalingCooldownPeriodDescription,
+				Computed:            true,
 			},
 			"scalers": dsschema.SetNestedAttribute{
-				Description: "List of KEDA scalers driving the autoscaling.",
-				Computed:    true,
+				MarkdownDescription: autoscalingScalersDescription,
+				Computed:            true,
 				NestedObject: dsschema.NestedAttributeObject{
 					Attributes: map[string]dsschema.Attribute{
 						"scaler_type": dsschema.StringAttribute{
-							Description: "Type of the KEDA scaler.",
-							Computed:    true,
+							MarkdownDescription: autoscalingScalerTypeDescription,
+							Computed:            true,
 						},
 						"enabled": dsschema.BoolAttribute{
-							Description: "Whether the scaler is enabled.",
-							Computed:    true,
+							MarkdownDescription: autoscalingScalerEnabledDescription,
+							Computed:            true,
 						},
 						"role": dsschema.StringAttribute{
-							Description: "Role of the scaler: PRIMARY or SAFETY.",
-							Computed:    true,
+							MarkdownDescription: autoscalingScalerRoleDescription,
+							Computed:            true,
 						},
 						"config_json": dsschema.StringAttribute{
-							Description: "Scaler configuration as JSON.",
-							Computed:    true,
-							CustomType:  jsontypes.NormalizedType{},
+							MarkdownDescription: autoscalingScalerConfigJSONDescription,
+							Computed:            true,
+							CustomType:          jsontypes.NormalizedType{},
 						},
 						"config_yaml": dsschema.StringAttribute{
-							Description: "Scaler configuration as raw YAML.",
-							Computed:    true,
+							MarkdownDescription: autoscalingScalerConfigYAMLDescription,
+							Computed:            true,
 						},
 						"trigger_authentication": dsschema.SingleNestedAttribute{
-							Description: "Inline KEDA TriggerAuthentication for this scaler.",
-							Computed:    true,
+							MarkdownDescription: autoscalingTriggerAuthDescription,
+							Computed:            true,
 							Attributes: map[string]dsschema.Attribute{
 								"name": dsschema.StringAttribute{
-									Description: "Name of the trigger authentication.",
-									Computed:    true,
+									MarkdownDescription: autoscalingTriggerAuthNameDescription,
+									Computed:            true,
 								},
 								"config_yaml": dsschema.StringAttribute{
-									Description: "Raw KEDA TriggerAuthentication YAML configuration.",
-									Computed:    true,
+									MarkdownDescription: autoscalingTriggerAuthConfigDescription,
+									Computed:            true,
 								},
 							},
 						},

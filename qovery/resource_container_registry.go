@@ -60,148 +60,107 @@ func (r *containerRegistryResource) Configure(_ context.Context, req resource.Co
 
 func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery container registry resource. This can be used to create and manage Qovery container registries.",
-		MarkdownDescription: "Provides a Qovery container registry resource. This can be used to create and manage Qovery container registries.\n\n" +
-			"A container registry stores Docker images that can be deployed as Qovery container services. " +
-			"Container registries are configured at the organization level and can be referenced by containers across all projects.",
+		MarkdownDescription: "Manages a Qovery container registry: an organization-wide connection to a registry that containers pull their images from.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the container registry.",
-				MarkdownDescription: "Id of the container registry.",
+				MarkdownDescription: idDescription("container registry"),
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "Id of the organization. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: organizationIDDescription + recreatesOnChange("container registry"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the container registry.",
-				MarkdownDescription: "Name of the container registry.",
+				MarkdownDescription: nameDescription("container registry"),
 				Required:            true,
 			},
 			"kind": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Kind of the container registry.",
-					registryKinds,
-					nil,
-				),
-				MarkdownDescription: "Kind of the container registry. Supported values:\n" +
-					"  - `ECR`: Amazon Elastic Container Registry (private).\n" +
-					"  - `PUBLIC_ECR`: Amazon Elastic Container Registry (public).\n" +
-					"  - `DOCR`: DigitalOcean Container Registry.\n" +
-					"  - `SCALEWAY_CR`: Scaleway Container Registry.\n" +
-					"  - `DOCKER_HUB`: Docker Hub.\n" +
-					"  - `GITHUB_CR`: GitHub Container Registry.\n" +
-					"  - `GITHUB_ENTERPRISE_CR`: GitHub Enterprise Container Registry.\n" +
-					"  - `GITLAB_CR`: GitLab Container Registry.\n" +
-					"  - `GCP_ARTIFACT_REGISTRY`: Google Cloud Artifact Registry.\n" +
-					"  - `AZURE_CR`: Azure Container Registry.\n" +
-					"  - `GENERIC_CR`: Any OCI-compatible container registry.",
-				Required: true,
+				MarkdownDescription: descriptions.NewStringEnumDescription(registryKindDescription, registryKinds, nil),
+				Required:            true,
 				Validators: []validator.String{
 					validators.NewStringEnumValidator(registryKinds),
 				},
 			},
 			"url": schema.StringAttribute{
-				Description: "URL of the container registry.",
-				MarkdownDescription: "URL of the container registry (e.g. `https://docker.io` for Docker Hub, " +
-					"`https://<account_id>.dkr.ecr.<region>.amazonaws.com` for ECR).",
-				Required: true,
+				MarkdownDescription: registryURLDescription,
+				Required:            true,
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the container registry. Defaults to an empty description.",
-				MarkdownDescription: "Description of the container registry. Defaults to an empty description.",
+				MarkdownDescription: storedDescriptionDescription("container registry"),
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(storedDescriptionDefault),
 			},
 			"config": schema.SingleNestedAttribute{
-				Description: "Configuration needed to authenticate the container registry.",
-				MarkdownDescription: "Configuration needed to authenticate with the container registry. " +
-					"Required fields depend on the `kind` of registry.",
-				Optional: true,
+				MarkdownDescription: "Credentials of the container registry. The keys to set depend on `kind`.",
+				Optional:            true,
 				Attributes: map[string]schema.Attribute{
 					"access_key_id": schema.StringAttribute{
-						Description:         "Required if kind is `ECR` or `PUBLIC_ECR`.",
-						MarkdownDescription: "AWS Access Key ID. Required if `kind` is `ECR` or `PUBLIC_ECR`.",
+						MarkdownDescription: usedByKinds(credentialsAWSAccessKeyIDDescription, registry.KindECR, registry.KindPublicECR),
 						Optional:            true,
 					},
 					"secret_access_key": schema.StringAttribute{
-						Description:         "Required if kind is `ECR` or `PUBLIC_ECR`.",
-						MarkdownDescription: "AWS Secret Access Key. Required if `kind` is `ECR` or `PUBLIC_ECR`. This is a sensitive value and will not be displayed in plan output.",
+						MarkdownDescription: usedByKinds(credentialsAWSSecretAccessKeyDescription, registry.KindECR, registry.KindPublicECR),
 						Optional:            true,
 						Sensitive:           true,
 					},
 					"region": schema.StringAttribute{
-						Description:         "Required if kind is `ECR`, `SCALEWAY_CR` or `GCP_ARTIFACT_REGISTRY`.",
-						MarkdownDescription: "Region of the registry. Required if `kind` is `ECR`, `SCALEWAY_CR` or `GCP_ARTIFACT_REGISTRY` (e.g. `us-east-1`, `fr-par`).",
+						MarkdownDescription: usedByKinds(registryRegionDescription, registry.KindECR, registry.KindScalewayCR, registry.KindGcpArtifactRegistry),
 						Optional:            true,
 					},
 					"scaleway_access_key": schema.StringAttribute{
-						Description:         "Required if kind is `SCALEWAY_CR`.",
-						MarkdownDescription: "Scaleway Access Key. Required if `kind` is `SCALEWAY_CR`.",
+						MarkdownDescription: usedByKinds(credentialsScalewayAccessKeyDescription, registry.KindScalewayCR),
 						Optional:            true,
 					},
 					"scaleway_secret_key": schema.StringAttribute{
-						Description:         "Required if kind is `SCALEWAY_CR`.",
-						MarkdownDescription: "Scaleway Secret Key. Required if `kind` is `SCALEWAY_CR`. This is a sensitive value and will not be displayed in plan output.",
+						MarkdownDescription: usedByKinds(credentialsScalewaySecretKeyDescription, registry.KindScalewayCR),
 						Optional:            true,
 						Sensitive:           true,
 					},
 					"scaleway_project_id": schema.StringAttribute{
-						Description:         "Required if kind is `SCALEWAY_CR`.",
-						MarkdownDescription: "Scaleway Project ID. Required if `kind` is `SCALEWAY_CR`.",
+						MarkdownDescription: usedByKinds(credentialsScalewayProjectIDDescription, registry.KindScalewayCR),
 						Optional:            true,
 					},
 					"json_credentials": schema.StringAttribute{
-						Description:         "Required if kind is `GCP_ARTIFACT_REGISTRY` and gcp_credentials_type is not set.",
-						MarkdownDescription: "GCP service account JSON key used to authenticate with the registry. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is not set. Mutually exclusive with the Workload Identity Federation fields (`gcp_credentials_type`, `service_account_email`, `workload_identity_provider_resource`). This is a sensitive value and will not be displayed in plan output.",
+						MarkdownDescription: usedByKinds(credentialsGCPJSONKeyDescription, registry.KindGcpArtifactRegistry) + " Omit it when `gcp_credentials_type` is set.",
 						Optional:            true,
 						Sensitive:           true,
 					},
 					"gcp_credentials_type": schema.StringAttribute{
-						Description:         "For GCP Artifact Registry, set to `workload_identity_federation` to use keyless authentication instead of json_credentials.",
-						MarkdownDescription: "For `GCP_ARTIFACT_REGISTRY`, set to `workload_identity_federation` to authenticate via Workload Identity Federation instead of `json_credentials`. Requires `project_id`, `service_account_email`, and `workload_identity_provider_resource`.",
+						MarkdownDescription: "Set to `workload_identity_federation` to authenticate a `GCP_ARTIFACT_REGISTRY` registry through Workload Identity Federation instead of `json_credentials`. It requires `project_id`, `service_account_email` and `workload_identity_provider_resource`.",
 						Optional:            true,
 						Validators: []validator.String{
 							validators.NewStringEnumValidator([]string{"workload_identity_federation"}),
 						},
 					},
 					"project_id": schema.StringAttribute{
-						Description:         "Required if kind is `GCP_ARTIFACT_REGISTRY` and gcp_credentials_type is `workload_identity_federation`.",
-						MarkdownDescription: "GCP project ID. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is `workload_identity_federation`.",
+						MarkdownDescription: "ID of the GCP project." + registryWorkloadIdentityNote,
 						Optional:            true,
 					},
 					"service_account_email": schema.StringAttribute{
-						Description:         "Required if kind is `GCP_ARTIFACT_REGISTRY` and gcp_credentials_type is `workload_identity_federation`.",
-						MarkdownDescription: "GCP service account email to impersonate via Workload Identity Federation. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is `workload_identity_federation`.",
+						MarkdownDescription: credentialsGCPServiceAccountEmailDescription + registryWorkloadIdentityNote,
 						Optional:            true,
 					},
 					"workload_identity_provider_resource": schema.StringAttribute{
-						Description:         "Required if kind is `GCP_ARTIFACT_REGISTRY` and gcp_credentials_type is `workload_identity_federation`.",
-						MarkdownDescription: "Full Workload Identity Provider resource path (e.g. `projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider`). Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is `workload_identity_federation`.",
+						MarkdownDescription: credentialsGCPWorkloadIdentityProviderDescription + registryWorkloadIdentityNote,
 						Optional:            true,
 					},
 					"token_lifetime_seconds": schema.Int64Attribute{
-						Description:         "Optional if kind is GCP_ARTIFACT_REGISTRY and gcp_credentials_type is workload_identity_federation.",
-						MarkdownDescription: "Lifetime in seconds of the token generated via Workload Identity Federation (e.g. `14400`). Optional if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is `workload_identity_federation`.",
+						MarkdownDescription: descriptions.NewInt64DefaultDescription("Lifetime of the tokens Workload Identity Federation issues, in seconds."+registryWorkloadIdentityNote, gcpTokenLifetimeSecondsDefault),
 						Optional:            true,
 					},
 					"username": schema.StringAttribute{
-						Description:         "Required if kind is `DOCKER_HUB`, `GITHUB_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
-						MarkdownDescription: "Username for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
+						MarkdownDescription: usedByKinds(registryUsernameDescription, registry.KindDockerHub, registry.KindGithubCr, registry.KindGithubEnterpriseCr, registry.KindGitlabCr, registry.KindGenericCR),
 						Optional:            true,
 					},
 					"password": schema.StringAttribute{
-						Description:         "Required if kind is `DOCKER_HUB`, `GITHUB_CR`, `GITLAB_CR`, or `GENERIC_CR`.",
-						MarkdownDescription: "Password or access token for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`. This is a sensitive value and will not be displayed in plan output.",
+						MarkdownDescription: usedByKinds(registryPasswordDescription, registry.KindDockerHub, registry.KindGithubCr, registry.KindGithubEnterpriseCr, registry.KindGitlabCr, registry.KindGenericCR),
 						Optional:            true,
 						Sensitive:           true,
 					},

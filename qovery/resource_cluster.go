@@ -56,11 +56,9 @@ var (
 	cloudProviders = clientEnumToStringArray(qovery.AllowedCloudProviderEnumEnumValues)
 
 	// Cluster Min Running Nodes
-	clusterMinRunningNodesMin     int64 = 1
 	clusterMinRunningNodesDefault int64 = 3
 
 	// Cluster Max Running Nodes
-	clusterMaxRunningNodesMin     int64 = 1
 	clusterMaxRunningNodesDefault int64 = 10
 
 	// Cluster Feature VPC_SUBNET
@@ -190,151 +188,93 @@ func warnKarpenterGpuNodePoolRemoval(ctx context.Context, state tfsdk.State, pla
 	)
 }
 
-// karpenterNodePoolSpotEnabledMarkdownDescription builds the documentation of a per node pool
-// `spot_enabled` flag. The flag defaults to false and the provider sends it for every node pool,
-// so an unset value always means on-demand instances.
-func karpenterNodePoolSpotEnabledMarkdownDescription(pool string) string {
-	description := "Whether to run the **" + pool + "** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.\n\n" +
-		"Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances"
-	if pool == "cronjob" || pool == "GPU" {
-		return description + "."
-	}
-	return description + ", and so does removing the whole `" + pool + "_override` block. " +
-		"A " + pool + " node pool that runs on spot instances while the configuration does not declare it shows up as a change in the plan."
-}
-
 // karpenterNodePoolConsolidateAfterAttribute is the consolidate_after of a node pool override.
 func karpenterNodePoolConsolidateAfterAttribute(pool string) schema.StringAttribute {
 	return schema.StringAttribute{
-		Description: "Time Karpenter waits before consolidating an empty or underutilized node of the " + pool + " node pool, e.g. 30s, 10m or 1h. Maximum 24h.",
-		MarkdownDescription: "Time Karpenter waits before consolidating an empty or underutilized node of the **" + pool + "** node pool, as `<number><unit>` where the unit is `s`, `m` or `h` (e.g., `30s`, `10m`, `1h`), at most `24h`. " +
-			"Write it in the largest whole unit, the form Qovery returns: `1h`, not `60m`. Leave it unset to use the Qovery default.",
-		Optional: true,
-		Computed: false,
+		MarkdownDescription: karpenterNodePoolDescriptions(pool).ConsolidateAfter + karpenterConsolidateAfterNote,
+		Optional:            true,
+		Computed:            false,
 		Validators: []validator.String{
 			validators.NewConsolidateAfterValidator(),
 		},
 	}
 }
 
-// clusterNodeSizingMarkdownNote documents instance_type, disk_size, min_running_nodes and
-// max_running_nodes: their default only applies to the clusters whose node group Qovery sizes.
-const clusterNodeSizingMarkdownNote = "The default applies to the clusters whose node group Qovery sizes: `MANAGED` clusters on AWS without Karpenter, on Scaleway and on Azure. " +
-	"There, removing the attribute from the configuration resets it to the default, and a value changed outside Terraform shows up in the plan.\n\n" +
-	"~> **Note:** Karpenter, GCP Autopilot or the cluster owner sizes the nodes of Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters, and Qovery ignores this attribute there: " +
-	"the provider records the value the Qovery API reports, and the plan warns when the configuration sets one."
-
 func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
+	stable := karpenterNodePoolDescriptions("stable")
+	defaultPool := karpenterNodePoolDescriptions("default")
+	cronjob := karpenterNodePoolDescriptions("cronjob")
+	gpu := karpenterNodePoolDescriptions("GPU")
+
 	// TODO (framework-migration): test if Default is OK when modifying the attribute, otherwise we'll need to use a modifier
 	resp.Schema = schema.Schema{
-		Version:     1,
-		Description: "Provides a Qovery cluster resource. This can be used to create and manage Qovery cluster.",
-		MarkdownDescription: "Provides a Qovery cluster resource. This is used to create and manage Kubernetes clusters on your chosen cloud provider through Qovery.\n\n" +
-			"Qovery supports clusters on **AWS** (EKS), **GCP** (GKE), **Scaleway** (Kapsule), and **Azure** (AKS). " +
-			"Each cloud provider requires its own credentials resource (e.g., `qovery_aws_credentials`). " +
-			"For AWS clusters, you can optionally enable **Karpenter** for automatic node provisioning or deploy on an **existing VPC**. " +
-			"For GCP clusters, you can use **Autopilot** mode or deploy on an **existing VPC**. " +
-			"AWS also supports **PARTIALLY_MANAGED** mode for EKS Anywhere on-premise clusters.",
+		Version:             1,
+		MarkdownDescription: "Manages a Qovery cluster: the Kubernetes cluster Qovery deploys services to, on AWS (EKS), GCP (GKE), Scaleway (Kapsule), Azure (AKS) or EKS Anywhere.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the cluster.",
-				MarkdownDescription: "Unique identifier of the cluster (UUID format).",
+				MarkdownDescription: idDescription("cluster"),
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"credentials_id": schema.StringAttribute{
-				Description:         "Id of the credentials.",
-				MarkdownDescription: "ID of the cloud provider credentials to use for this cluster. Must match the `cloud_provider` type (e.g., use `qovery_aws_credentials.id` for AWS clusters, `qovery_gcp_credentials.id` for GCP clusters).",
+				MarkdownDescription: clusterCredentialsIDDescription,
 				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "ID of the Qovery organization in which to create the cluster. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: organizationIDDescription + recreatesOnChange("cluster"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the cluster.",
-				MarkdownDescription: "Name of the cluster. Must be unique within the organization.",
+				MarkdownDescription: nameDescription("cluster"),
 				Required:            true,
 			},
 			"cloud_provider": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Cloud provider of the cluster.",
-					cloudProviders,
-					nil,
-				),
-				MarkdownDescription: "Cloud provider where the cluster will be deployed.\n\n" +
-					"  - `AWS` - Amazon Web Services (EKS).\n" +
-					"  - `GCP` - Google Cloud Platform (GKE).\n" +
-					"  - `SCW` - Scaleway (Kapsule).\n" +
-					"  - `AZURE` - Microsoft Azure (AKS).\n" +
-					"  - `ON_PREMISE` - On-premise infrastructure.",
-				Required: true,
+				MarkdownDescription: descriptions.NewStringEnumDescription(clusterCloudProviderDescription, cloudProviders, nil),
+				Required:            true,
 				Validators: []validator.String{
 					validators.NewStringEnumValidator(cloudProviders),
 				},
 			},
 			"region": schema.StringAttribute{
-				Description:         "Region of the cluster.",
-				MarkdownDescription: "Cloud provider region where the cluster will be deployed (e.g., `us-east-2` for AWS, `europe-west9` for GCP, `pl-waw-1` for Scaleway, `westeurope` for Azure). For PARTIALLY_MANAGED clusters, use `on-premise`.",
+				MarkdownDescription: clusterRegionDescription,
 				Required:            true,
 			},
 			"description": schema.StringAttribute{
-				Description: descriptions.NewStringDefaultDescription(
-					"Description of the cluster.",
-					clusterDescriptionDefault,
-				),
-				MarkdownDescription: "Description of the cluster. Default: `\"\"`.",
+				MarkdownDescription: descriptionDescription("cluster"),
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(clusterDescriptionDefault),
 			},
 			"kubernetes_mode": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Kubernetes mode of the cluster.",
-					clusterKubernetesModes,
-					&clusterKubernetesModeDefault,
-				),
-				MarkdownDescription: "Kubernetes management mode for the cluster. Default: `MANAGED`.\n\n" +
-					"  - `MANAGED` - Fully managed Kubernetes cluster provisioned and managed by Qovery (e.g., AWS EKS, GCP GKE, Azure AKS).\n" +
-					"  - `SELF_MANAGED` - Bring your own Kubernetes cluster. Qovery deploys workloads but does not manage infrastructure.\n" +
-					"  - `PARTIALLY_MANAGED` - EKS Anywhere / on-premise mode. Qovery manages workloads on a user-provided Kubernetes cluster via kubeconfig. Requires `kubeconfig` and `infrastructure_charts_parameters`.",
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(clusterKubernetesModeDefault),
+				MarkdownDescription: descriptions.NewStringDefaultDescription(clusterKubernetesModeDescription, clusterKubernetesModeDefault),
+				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(clusterKubernetesModeDefault),
 				Validators: []validator.String{
 					validators.NewStringEnumValidator(clusterKubernetesModes),
 				},
 			},
 			"production": schema.BoolAttribute{
-				Description:         "Specific flag to indicate that this cluster is a production one.",
-				MarkdownDescription: "Flag to mark this cluster as a production cluster. Production clusters may have different default settings and safeguards. Default: `false`.",
+				MarkdownDescription: descriptions.NewBoolDefaultDescription(clusterProductionDescription, false),
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(false),
 			},
 			"instance_type": schema.StringAttribute{
-				Description: fmt.Sprintf("Instance type of the cluster nodes. Defaults to %s on AWS without Karpenter, %s on Scaleway and %s on Azure. Karpenter, GCP, self-managed and partially managed clusters ignore it.",
-					clusterInstanceTypeDefaults["AWS"], clusterInstanceTypeDefaults["SCW"], clusterInstanceTypeDefaults["AZURE"]),
-				MarkdownDescription: "Instance type for the cluster nodes. The available values depend on the cloud provider:\n\n" +
-					"  - **AWS**: EC2 instance types (e.g., `t3a.xlarge`, `m5.large`). Default: `" + clusterInstanceTypeDefaults["AWS"] + "`.\n" +
-					"  - **Scaleway**: Node types (e.g., `DEV1-L`, `GP1-S`). Default: `" + clusterInstanceTypeDefaults["SCW"] + "`.\n" +
-					"  - **Azure**: VM sizes (e.g., `Standard_B2s_v2`, `Standard_D4s_v3`). Default: `" + clusterInstanceTypeDefaults["AZURE"] + "`.\n\n" +
-					clusterNodeSizingMarkdownNote,
-				Optional: true,
-				Computed: true,
+				MarkdownDescription: clusterInstanceTypeDescription + clusterNodeSizingNote + clusterInstanceTypeDefaultNote,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					ClusterInstanceTypeDefault(),
 				},
 			},
 			"disk_size": schema.Int64Attribute{
-				Description:         fmt.Sprintf("Disk size of the cluster nodes in GB. Defaults to %d on AWS without Karpenter, Scaleway and Azure. Karpenter, GCP, self-managed and partially managed clusters ignore it.", clusterDiskSizeDefault),
-				MarkdownDescription: fmt.Sprintf("Disk size of the cluster nodes in GB. Default: `%d`.\n\n", clusterDiskSizeDefault) + clusterNodeSizingMarkdownNote,
+				MarkdownDescription: descriptions.NewInt64DefaultDescription(clusterDiskSizeDescription+clusterNodeSizingNote, clusterDiskSizeDefault),
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.Int64{
@@ -342,12 +282,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"min_running_nodes": schema.Int64Attribute{
-				Description: descriptions.NewInt64MinDescription(
-					"Minimum number of nodes running for the cluster. Karpenter, GCP, self-managed and partially managed clusters ignore it.",
-					clusterMinRunningNodesMin,
-					&clusterMinRunningNodesDefault,
-				),
-				MarkdownDescription: fmt.Sprintf("Minimum number of nodes running for the cluster autoscaler. Must be `>= 1`. Default: `%d`.\n\n", clusterMinRunningNodesDefault) + clusterNodeSizingMarkdownNote,
+				MarkdownDescription: descriptions.NewInt64DefaultDescription(clusterMinRunningNodesDescription+clusterNodeSizingNote, clusterMinRunningNodesDefault),
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.Int64{
@@ -355,12 +290,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"max_running_nodes": schema.Int64Attribute{
-				Description: descriptions.NewInt64MinDescription(
-					"Maximum number of nodes running for the cluster. Karpenter, GCP, self-managed and partially managed clusters ignore it.",
-					clusterMaxRunningNodesMin,
-					&clusterMaxRunningNodesDefault,
-				),
-				MarkdownDescription: fmt.Sprintf("Maximum number of nodes the cluster autoscaler can scale up to. Must be `>= 1`. Default: `%d`.\n\n", clusterMaxRunningNodesDefault) + clusterNodeSizingMarkdownNote,
+				MarkdownDescription: descriptions.NewInt64DefaultDescription(clusterMaxRunningNodesDescription+clusterNodeSizingNote, clusterMaxRunningNodesDefault),
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.Int64{
@@ -368,26 +298,16 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"features": schema.SingleNestedAttribute{
-				Description: "Features of the cluster. Omitting it means the default of every feature.",
-				MarkdownDescription: "Optional cluster features configuration. Use this block to customize VPC settings, enable static IPs, deploy on an existing VPC (AWS or GCP), or enable Karpenter for AWS clusters.\n\n" +
-					"Omitting the block means the default of every feature: `vpc_subnet = \"" + clusterFeatureVpcSubnetDefault + "\"`, no static IP, no reserved NAT gateway IP, no existing VPC, no Karpenter and no GKE KMS key. " +
-					"Removing the block, or one of its attributes, from the configuration plans the reset to the default, and a feature changed outside Terraform shows up in the plan.\n\n" +
-					"~> **Note:** The Qovery API cannot disable Karpenter on an existing cluster, nor change `static_ip` once an AWS, GCP or Azure cluster has been deployed: a plan that removes `karpenter`, or turns `static_ip` from `true` to `false` on such a cluster, fails and names the value to declare.",
-				Optional: true,
-				Computed: true,
-				Default:  objectdefault.StaticValue(clusterFeaturesDefault()),
+				MarkdownDescription: clusterFeaturesDescription,
+				Optional:            true,
+				Computed:            true,
+				Default:             objectdefault.StaticValue(clusterFeaturesDefault()),
 				Attributes: map[string]schema.Attribute{
 					"vpc_subnet": schema.StringAttribute{
-						Description: descriptions.NewStringDefaultDescription(
-							"Custom VPC subnet (not supported for GCP) [NOTE: can't be updated after creation].",
-							clusterFeatureVpcSubnetDefault,
-						),
-						MarkdownDescription: "Custom VPC CIDR block for non-GCP clusters. This defines the IP address range for the entire VPC. Default: `10.0.0.0/16`.\n\n" +
-							"~> **Note:** This value is ignored for GCP clusters unless a non-default value is configured, which is rejected because GCP uses its own network configuration.\n\n" +
-							"~> **Warning:** This value cannot be changed after cluster creation. Changing it will require destroying and recreating the cluster.",
-						Optional: true,
-						Computed: true,
-						Default:  stringdefault.StaticString(clusterFeatureVpcSubnetDefault),
+						MarkdownDescription: descriptions.NewStringDefaultDescription(clusterVpcSubnetDescription+recreatesOnChange("cluster"), clusterFeatureVpcSubnetDefault),
+						Optional:            true,
+						Computed:            true,
+						Default:             stringdefault.StaticString(clusterFeatureVpcSubnetDefault),
 						PlanModifiers: []planmodifier.String{
 							// Treat a legacy state value of "" as the default so a provider
 							// upgrade doesn't manufacture a phantom replacement.
@@ -395,36 +315,25 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						},
 					},
 					"static_ip": schema.BoolAttribute{
-						Description: descriptions.NewBoolDefaultDescription(
-							"Static IP (AWS and GCP) [NOTE: can't be updated once the cluster has been deployed].",
-							clusterFeatureStaticIPDefault,
-						),
-						MarkdownDescription: "Whether to assign static IP addresses to the cluster nodes or NAT gateways. Useful when your services need to be allowlisted by IP. Default: `false`.\n\n" +
-							"~> **Warning:** This value cannot be changed once the cluster has been deployed — the API rejects the change. Destroy and recreate the cluster to change it. On GCP, reserved static egress IPs are toggled via `nat_gateways.static_ips_enabled`, which remains editable after deployment.",
-						Optional: true,
-						Computed: true,
-						Default:  booldefault.StaticBool(clusterFeatureStaticIPDefault),
+						MarkdownDescription: descriptions.NewBoolDefaultDescription(clusterStaticIPDescription+clusterStaticIPNote, clusterFeatureStaticIPDefault),
+						Optional:            true,
+						Computed:            true,
+						Default:             booldefault.StaticBool(clusterFeatureStaticIPDefault),
 					},
 					"nat_gateways": schema.SingleNestedAttribute{
-						Optional:    true,
-						Computed:    true,
-						Description: "GCP NAT Gateway static IP configuration.",
-						MarkdownDescription: "GCP NAT Gateway static egress IP configuration. Reserved static egress IPs are an explicit opt-in via `static_ips_enabled = true` (requires `static_ip = true`).\n\n" +
-							"Omitting this block or setting `static_ips_enabled = false` keeps the platform default (ephemeral egress IPs).\n\n" +
-							"Removing this block after it was enabled resets to disabled with a visible diff on the next plan.\n\n" +
-							"~> **Note:** This block is ignored on non-GCP clusters; only the default value `{static_ips_enabled=false, static_ips_count=1}` is accepted in those cases.",
-						Default: objectdefault.StaticValue(clusterNatGatewaysDefault()),
+						Optional:            true,
+						Computed:            true,
+						MarkdownDescription: clusterNatGatewaysDescription,
+						Default:             objectdefault.StaticValue(clusterNatGatewaysDefault()),
 						Attributes: map[string]schema.Attribute{
 							"static_ips_enabled": schema.BoolAttribute{
-								Description:         "Whether to reserve static egress IPs for the GCP NAT gateways. Default: false (ephemeral egress IPs).",
-								MarkdownDescription: "Whether to reserve static egress IPs for the GCP NAT gateways. Default: `false` (ephemeral egress IPs).",
+								MarkdownDescription: descriptions.NewBoolDefaultDescription(clusterNatGatewaysStaticIPsEnabledDescription+clusterNatGatewaysStaticIPsEnabledNote, false),
 								Optional:            true,
 								Computed:            true,
 								Default:             booldefault.StaticBool(false),
 							},
 							"static_ips_count": schema.Int64Attribute{
-								Description:         "Number of static IPs to allocate for GCP NAT gateways. Meaningful only when static_ips_enabled is true.",
-								MarkdownDescription: "Number of static IPs to allocate for GCP NAT gateways. Must be greater than or equal to `1`. Meaningful only when `static_ips_enabled` is `true`. Default: `1`.",
+								MarkdownDescription: descriptions.NewInt64MinDescription(clusterNatGatewaysStaticIPsCountDescription, 1, new(int64(1))),
 								Optional:            true,
 								Computed:            true,
 								Default:             int64default.StaticInt64(1),
@@ -440,116 +349,96 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						PlanModifiers: []planmodifier.Object{
 							RejectExistingVpcChange(),
 						},
-						Description: "Network configuration if you want to install qovery on an existing VPC",
-						MarkdownDescription: "AWS existing VPC configuration. Use this block to deploy the Qovery cluster into an existing AWS VPC instead of creating a new one. " +
-							"All EKS subnets are required, while database and cache subnets are optional.\n\n" +
-							"~> **Warning:** This configuration cannot be changed after cluster creation.",
+						MarkdownDescription: clusterExistingVpcDescription + existingVpcImmutableNote,
 						Attributes: map[string]schema.Attribute{
 							"aws_vpc_eks_id": schema.StringAttribute{
-								Description:         "Aws VPC id",
-								MarkdownDescription: "The ID of the existing AWS VPC (e.g., `vpc-0123456789abcdef0`).",
+								MarkdownDescription: clusterExistingVpcIDDescription,
 								Required:            true,
 								Computed:            false,
 							},
 							"eks_subnets_zone_a_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for EKS zone a. Must have map_public_ip_on_launch set to true",
-								MarkdownDescription: "List of subnet IDs in availability zone A for EKS worker nodes. These subnets must have `map_public_ip_on_launch` set to `true`.",
+								MarkdownDescription: existingVpcSubnetsDescription("a", "the EKS nodes") + clusterExistingVpcEksSubnetsNote,
 								ElementType:         types.StringType,
 								Required:            true,
 								Computed:            false,
 							},
 							"eks_subnets_zone_b_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for EKS zone b. Must have map_public_ip_on_launch set to true",
-								MarkdownDescription: "List of subnet IDs in availability zone B for EKS worker nodes. These subnets must have `map_public_ip_on_launch` set to `true`.",
+								MarkdownDescription: existingVpcSubnetsDescription("b", "the EKS nodes") + clusterExistingVpcEksSubnetsNote,
 								ElementType:         types.StringType,
 								Required:            true,
 								Computed:            false,
 							},
 							"eks_subnets_zone_c_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for EKS zone c. Must have map_public_ip_on_launch set to true",
-								MarkdownDescription: "List of subnet IDs in availability zone C for EKS worker nodes. These subnets must have `map_public_ip_on_launch` set to `true`.",
+								MarkdownDescription: existingVpcSubnetsDescription("c", "the EKS nodes") + clusterExistingVpcEksSubnetsNote,
 								ElementType:         types.StringType,
 								Required:            true,
 								Computed:            false,
 							},
 							"rds_subnets_zone_a_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for RDS",
-								MarkdownDescription: "List of subnet IDs in availability zone A for Amazon RDS databases. These should be private subnets. Omitting it means none.",
+								MarkdownDescription: existingVpcSubnetsDescription("a", "Amazon RDS databases"),
 								ElementType:         types.StringType,
 								Optional:            true,
 							},
 							"rds_subnets_zone_b_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for RDS",
-								MarkdownDescription: "List of subnet IDs in availability zone B for Amazon RDS databases. These should be private subnets. Omitting it means none.",
+								MarkdownDescription: existingVpcSubnetsDescription("b", "Amazon RDS databases"),
 								ElementType:         types.StringType,
 								Optional:            true,
 							},
 							"rds_subnets_zone_c_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for RDS",
-								MarkdownDescription: "List of subnet IDs in availability zone C for Amazon RDS databases. These should be private subnets. Omitting it means none.",
+								MarkdownDescription: existingVpcSubnetsDescription("c", "Amazon RDS databases"),
 								ElementType:         types.StringType,
 								Optional:            true,
 							},
 							"documentdb_subnets_zone_a_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for document db",
-								MarkdownDescription: "List of subnet IDs in availability zone A for Amazon DocumentDB. These should be private subnets. Omitting it means none.",
+								MarkdownDescription: existingVpcSubnetsDescription("a", "Amazon DocumentDB"),
 								ElementType:         types.StringType,
 								Optional:            true,
 							},
 							"documentdb_subnets_zone_b_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for document db",
-								MarkdownDescription: "List of subnet IDs in availability zone B for Amazon DocumentDB. These should be private subnets. Omitting it means none.",
+								MarkdownDescription: existingVpcSubnetsDescription("b", "Amazon DocumentDB"),
 								ElementType:         types.StringType,
 								Optional:            true,
 							},
 							"documentdb_subnets_zone_c_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for document db",
-								MarkdownDescription: "List of subnet IDs in availability zone C for Amazon DocumentDB. These should be private subnets. Omitting it means none.",
+								MarkdownDescription: existingVpcSubnetsDescription("c", "Amazon DocumentDB"),
 								ElementType:         types.StringType,
 								Optional:            true,
 							},
 							"elasticache_subnets_zone_a_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for elasticache",
-								MarkdownDescription: "List of subnet IDs in availability zone A for Amazon ElastiCache. These should be private subnets. Omitting it means none.",
+								MarkdownDescription: existingVpcSubnetsDescription("a", "Amazon ElastiCache"),
 								ElementType:         types.StringType,
 								Optional:            true,
 							},
 							"elasticache_subnets_zone_b_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for elasticache",
-								MarkdownDescription: "List of subnet IDs in availability zone B for Amazon ElastiCache. These should be private subnets. Omitting it means none.",
+								MarkdownDescription: existingVpcSubnetsDescription("b", "Amazon ElastiCache"),
 								ElementType:         types.StringType,
 								Optional:            true,
 							},
 							"elasticache_subnets_zone_c_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for elasticache",
-								MarkdownDescription: "List of subnet IDs in availability zone C for Amazon ElastiCache. These should be private subnets. Omitting it means none.",
+								MarkdownDescription: existingVpcSubnetsDescription("c", "Amazon ElastiCache"),
 								ElementType:         types.StringType,
 								Optional:            true,
 							},
 							"eks_karpenter_fargate_subnets_zone_a_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for EKS fargate zone a. Must have to be private and connected to internet through a NAT Gateway",
-								MarkdownDescription: "List of private subnet IDs in availability zone A for EKS Fargate (required when using Karpenter). These subnets must be private and connected to the internet through a NAT Gateway.",
+								MarkdownDescription: existingVpcFargateSubnetsDescription("a") + clusterExistingVpcFargateSubnetsNote,
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            false,
 							},
 							"eks_karpenter_fargate_subnets_zone_b_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for EKS fargate zone b. Must have to be private and connected to internet through a NAT Gateway",
-								MarkdownDescription: "List of private subnet IDs in availability zone B for EKS Fargate (required when using Karpenter). These subnets must be private and connected to the internet through a NAT Gateway.",
+								MarkdownDescription: existingVpcFargateSubnetsDescription("b") + clusterExistingVpcFargateSubnetsNote,
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            false,
 							},
 							"eks_karpenter_fargate_subnets_zone_c_ids": schema.ListAttribute{
-								Description:         "Ids of the subnets for EKS fargate zone c. Must have to be private and connected to internet through a NAT Gateway",
-								MarkdownDescription: "List of private subnet IDs in availability zone C for EKS Fargate (required when using Karpenter). These subnets must be private and connected to the internet through a NAT Gateway.",
+								MarkdownDescription: existingVpcFargateSubnetsDescription("c") + clusterExistingVpcFargateSubnetsNote,
 								ElementType:         types.StringType,
 								Optional:            true,
 								Computed:            false,
 							},
 							"eks_create_nodes_in_private_subnet": schema.BoolAttribute{
-								Description:         "Whether to create EKS nodes in private subnet. Default: false.",
-								MarkdownDescription: "Whether to create EKS worker nodes in private subnets. When `true`, nodes are not directly accessible from the internet and route traffic through a NAT Gateway. Default: `false`.",
+								MarkdownDescription: descriptions.NewBoolDefaultDescription(clusterExistingVpcPrivateNodesDescription, false),
 								Optional:            true,
 								Computed:            true,
 								Default:             booldefault.StaticBool(false),
@@ -562,44 +451,35 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						PlanModifiers: []planmodifier.Object{
 							RejectExistingVpcChange(),
 						},
-						Description: "Network configuration if you want to install qovery on an existing GCP VPC",
-						MarkdownDescription: "GCP existing VPC configuration. Use this block to deploy the Qovery GKE cluster into an existing Google Cloud VPC network instead of creating a new one.\n\n" +
-							"~> **Warning:** This configuration cannot be changed after cluster creation.",
+						MarkdownDescription: clusterGcpExistingVpcDescription + existingVpcImmutableNote,
 						Attributes: map[string]schema.Attribute{
 							"vpc_name": schema.StringAttribute{
-								Description:         "Name of the existing GCP VPC network",
-								MarkdownDescription: "Name of the existing GCP VPC network to use (e.g., `my-existing-vpc`).",
+								MarkdownDescription: clusterGcpExistingVpcNameDescription,
 								Required:            true,
 							},
 							"vpc_project_id": schema.StringAttribute{
-								Description:         "GCP project ID that owns the VPC. Defaults to the project associated with your GCP credentials",
-								MarkdownDescription: "GCP project ID that owns the VPC. If omitted, defaults to the project associated with your GCP credentials. Use this when the VPC is in a different project (Shared VPC pattern).",
+								MarkdownDescription: clusterGcpExistingVpcProjectIDDescription,
 								Optional:            true,
 							},
 							"subnetwork_name": schema.StringAttribute{
-								Description:         "Name of the GCP subnetwork within the VPC",
-								MarkdownDescription: "Name of the GCP subnetwork within the VPC to use for the GKE cluster nodes.",
+								MarkdownDescription: clusterGcpExistingVpcSubnetworkDescription,
 								Optional:            true,
 							},
 							"ip_range_services_name": schema.StringAttribute{
-								Description:         "Name of the secondary IP range for GKE services",
-								MarkdownDescription: "Name of the secondary IP range in the subnetwork to use for GKE services (ClusterIP range).",
+								MarkdownDescription: clusterGcpExistingVpcServicesRangeDescription,
 								Optional:            true,
 							},
 							"ip_range_pods_name": schema.StringAttribute{
-								Description:         "Name of the secondary IP range for pods",
-								MarkdownDescription: "Name of the primary secondary IP range in the subnetwork to use for GKE pods.",
+								MarkdownDescription: clusterGcpExistingVpcPodsRangeDescription,
 								Optional:            true,
 							},
 							"additional_ip_range_pods_names": schema.ListAttribute{
-								Description:         "Additional secondary IP range names for pods",
-								MarkdownDescription: "Additional secondary IP range names for pods. Use this when you need multiple pod IP ranges (e.g., for multi-tenancy or large clusters). Omitting it means none.",
+								MarkdownDescription: clusterGcpExistingVpcExtraPodsRangesDescription,
 								ElementType:         types.StringType,
 								Optional:            true,
 							},
 							"private_nodes": schema.BoolAttribute{
-								Description:         "Whether to create GKE nodes without public IPs. Default: false.",
-								MarkdownDescription: "Make GKE nodes private with no public IPs. Node traffic goes through the gateway instead of exposing node public addresses. Default: `false`.",
+								MarkdownDescription: descriptions.NewBoolDefaultDescription(clusterGcpExistingVpcPrivateNodesDescription, false),
 								Optional:            true,
 								Computed:            true,
 								Default:             booldefault.StaticBool(false),
@@ -607,64 +487,51 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						},
 					},
 					"karpenter": schema.SingleNestedAttribute{
-						Optional:    true,
-						Computed:    false,
-						Description: "Karpenter parameters if you want to use Karpenter on an EKS cluster",
-						MarkdownDescription: "Karpenter configuration for AWS EKS clusters. [Karpenter](https://karpenter.sh/) is a Kubernetes node autoscaler that automatically provisions right-sized compute resources. " +
-							"When Karpenter is enabled, do not set `instance_type`, `min_running_nodes`, or `max_running_nodes` — Karpenter manages node scaling automatically.",
+						Optional:            true,
+						Computed:            false,
+						MarkdownDescription: clusterKarpenterDescription + clusterKarpenterNote,
 						Attributes: map[string]schema.Attribute{
 							"disk_size_in_gib": schema.Int64Attribute{
-								Description:         "Disk size in GiB for Karpenter-provisioned nodes.",
-								MarkdownDescription: "Root disk size in GiB for nodes provisioned by Karpenter (e.g., `50`).",
+								MarkdownDescription: karpenterDiskSizeDescription + karpenterDiskSizeMinNote,
 								Required:            true,
 								Computed:            false,
 							},
 							"disk_iops": schema.Int64Attribute{
-								Description:         "Disk IOPS for Karpenter-provisioned nodes.",
-								MarkdownDescription: "Provisioned IOPS of the root disk of the nodes provisioned by Karpenter, which use gp3 volumes (e.g., `3000`). Leave it unset to use the volume default. The GPU node pool has its own `gpu_override.disk_iops`.",
+								MarkdownDescription: karpenterDiskIopsDescription,
 								Optional:            true,
 								Computed:            false,
 							},
 							"disk_throughput": schema.Int64Attribute{
-								Description:         "Disk throughput in MB/s for Karpenter-provisioned nodes.",
-								MarkdownDescription: "Provisioned throughput in MB/s of the root disk of the nodes provisioned by Karpenter, which use gp3 volumes (e.g., `125`). Leave it unset to use the volume default. The GPU node pool has its own `gpu_override.disk_throughput`.",
+								MarkdownDescription: karpenterDiskThroughputDescription,
 								Optional:            true,
 								Computed:            false,
 							},
 							"default_service_architecture": schema.StringAttribute{
-								Description:         "The default architecture of service",
-								MarkdownDescription: "Default CPU architecture for services deployed on this cluster. Common values: `AMD64`, `ARM64`. This determines the default node architecture when no specific architecture is requested by a service.",
+								MarkdownDescription: karpenterDefaultServiceArchitectureDescription,
 								Required:            true,
 								Computed:            false,
 							},
 							"qovery_node_pools": schema.SingleNestedAttribute{
-								Description:         "Karpenter node pool configuration",
-								MarkdownDescription: "Karpenter node pool configuration. Defines the requirements (instance families, sizes, architectures) and optional resource limits for Qovery-managed node pools.",
+								MarkdownDescription: karpenterNodePoolsDescription,
 								Required:            true,
 								Computed:            false,
 								Attributes: map[string]schema.Attribute{
 									"requirements": schema.ListNestedAttribute{
-										Description:         "List of requirements for the node pool",
-										MarkdownDescription: "List of node selection requirements for the Karpenter node pool. Each requirement constrains which EC2 instances Karpenter can provision. You should define at least `InstanceFamily`, `InstanceSize`, and `Arch` requirements.",
+										MarkdownDescription: karpenterRequirementsDescription + karpenterRequirementsNote,
 										Required:            true,
 										Computed:            false,
 										NestedObject: schema.NestedAttributeObject{
 											Attributes: map[string]schema.Attribute{
 												"key": schema.StringAttribute{
-													Description: "The key of the requirement (e.g., InstanceFamily, InstanceSize, Arch)",
-													MarkdownDescription: "The requirement key. Valid values:\n\n" +
-														"  - `InstanceFamily` - EC2 instance family (e.g., `c5`, `m5`, `t3a`). Use broad families to reduce allocation issues.\n" +
-														"  - `InstanceSize` - EC2 instance size (e.g., `small`, `medium`, `xlarge`, `2xlarge`).\n" +
-														"  - `Arch` - CPU architecture (e.g., `AMD64`, `ARM64`).",
-													Required: true,
-													Computed: false,
+													MarkdownDescription: karpenterRequirementKeyDescription,
+													Required:            true,
+													Computed:            false,
 													Validators: []validator.String{
 														validators.NewStringEnumValidator([]string{"InstanceFamily", "InstanceSize", "Arch"}),
 													},
 												},
 												"operator": schema.StringAttribute{
-													Description:         "The operator for the requirement (e.g., In)",
-													MarkdownDescription: "The operator for the requirement. Currently only `In` is supported, meaning the node must match one of the specified values.",
+													MarkdownDescription: karpenterRequirementOperDescription,
 													Required:            true,
 													Computed:            false,
 													Validators: []validator.String{
@@ -672,8 +539,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 													},
 												},
 												"values": schema.ListAttribute{
-													Description:         "List of values for the requirement",
-													MarkdownDescription: "List of allowed values for the requirement. For example, for `InstanceFamily`: `[\"c5\", \"m5\", \"t3a\"]`, for `Arch`: `[\"AMD64\", \"ARM64\"]`.",
+													MarkdownDescription: karpenterRequirementValueDescription,
 													Required:            true,
 													Computed:            false,
 													ElementType:         types.StringType,
@@ -682,71 +548,60 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 										},
 									},
 									"stable_override": schema.SingleNestedAttribute{
-										Description:         "Defines some overridden options for Qovery stable node pool",
-										MarkdownDescription: "Override options for the Qovery **stable** node pool. The stable node pool runs services that require consistent availability (e.g., Qovery agents). Use this to configure spot instances, consolidation windows and resource limits.",
+										MarkdownDescription: stable.Override,
 										Optional:            true,
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{
 											"spot_enabled": schema.BoolAttribute{
-												Description:         "Run the stable node pool on spot instances. Defaults to false (on-demand instances).",
-												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("stable"),
+												MarkdownDescription: descriptions.NewBoolDefaultDescription(stable.SpotEnabled, false),
 												Optional:            true,
 												Computed:            true,
 												Default:             booldefault.StaticBool(false),
 											},
 											"consolidation": schema.SingleNestedAttribute{
-												Description:         "Specifies the period to consolidate nodes (by default, no consolidation happens)",
-												MarkdownDescription: "Node consolidation schedule for the stable node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on stable nodes.",
+												MarkdownDescription: stable.Consolidation + karpenterConsolidationOmittedNote,
 												Optional:            true,
 												Computed:            false,
 												Attributes: map[string]schema.Attribute{
 													"enabled": schema.BoolAttribute{
-														Description:         "Whether the consolidation schedule is active.",
-														MarkdownDescription: "Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.",
+														MarkdownDescription: stable.ConsolidationEnabled,
 														Required:            true,
 														Computed:            false,
 													},
 													"days": schema.ListAttribute{
-														Description:         "Days of the week when consolidation runs.",
-														MarkdownDescription: "List of days of the week when consolidation should run (e.g., `[\"MONDAY\", \"TUESDAY\", \"WEDNESDAY\"]`).",
+														MarkdownDescription: stable.ConsolidationDays,
 														Required:            true,
 														Computed:            false,
 														ElementType:         types.StringType,
 													},
 													"start_time": schema.StringAttribute{
-														Description:         "Start time for the consolidation window in ISO-8601 time format.",
-														MarkdownDescription: "Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).",
+														MarkdownDescription: stable.ConsolidationStartTime,
 														Required:            true,
 														Computed:            false,
 													},
 													"duration": schema.StringAttribute{
-														Description:         "Duration of the consolidation window in ISO-8601 duration format.",
-														MarkdownDescription: "Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).",
+														MarkdownDescription: stable.ConsolidationDuration,
 														Required:            true,
 														Computed:            false,
 													},
 												},
 											},
 											"limits": schema.SingleNestedAttribute{
-												Description:         "Specifies the limits to apply on the stable node pool",
-												MarkdownDescription: "Resource limits for the stable node pool. Use this to cap the total resources Karpenter can provision for stable workloads.",
+												MarkdownDescription: stable.Limits + karpenterNodePoolLimitsMinNote,
 												Optional:            true,
 												Attributes: map[string]schema.Attribute{
 													"enabled": schema.BoolAttribute{
-														Description:         "Enabled the limit",
-														MarkdownDescription: "Whether to enforce resource limits on the stable node pool.",
+														MarkdownDescription: stable.LimitsEnabled,
 														Required:            true,
 														Computed:            false,
 													},
 													"max_cpu_in_vcpu": schema.Int64Attribute{
-														Description:         "Maximum number of vCPU cores for the stable node pool.",
-														MarkdownDescription: "Maximum total vCPU cores that Karpenter can provision for the stable node pool.",
+														MarkdownDescription: stable.LimitsMaxCPU,
 														Required:            true,
 														Computed:            false,
 													},
 													"max_memory_in_gibibytes": schema.Int64Attribute{
-														Description:         "Maximum memory in GiB for the stable node pool.",
-														MarkdownDescription: "Maximum total memory in GiB that Karpenter can provision for the stable node pool.",
+														MarkdownDescription: stable.LimitsMaxMemory,
 														Required:            true,
 														Computed:            false,
 													},
@@ -756,38 +611,32 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 										},
 									},
 									"default_override": schema.SingleNestedAttribute{
-										Description:         "Defines some overridden options for Qovery default node pool",
-										MarkdownDescription: "Override options for the Qovery **default** node pool. The default node pool runs user application workloads. Use this to configure spot instances and resource limits.",
+										MarkdownDescription: defaultPool.Override,
 										Optional:            true,
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{
 											"spot_enabled": schema.BoolAttribute{
-												Description:         "Run the default node pool on spot instances. Defaults to false (on-demand instances).",
-												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("default"),
+												MarkdownDescription: descriptions.NewBoolDefaultDescription(defaultPool.SpotEnabled, false),
 												Optional:            true,
 												Computed:            true,
 												Default:             booldefault.StaticBool(false),
 											},
 											"limits": schema.SingleNestedAttribute{
-												Description:         "Specifies the limits to apply on the default node pool",
-												MarkdownDescription: "Resource limits for the default node pool. Use this to cap the total resources Karpenter can provision for application workloads.",
+												MarkdownDescription: defaultPool.Limits + karpenterNodePoolLimitsMinNote,
 												Optional:            true,
 												Attributes: map[string]schema.Attribute{
 													"enabled": schema.BoolAttribute{
-														Description:         "Enabled the limit",
-														MarkdownDescription: "Whether to enforce resource limits on the default node pool.",
+														MarkdownDescription: defaultPool.LimitsEnabled,
 														Required:            true,
 														Computed:            false,
 													},
 													"max_cpu_in_vcpu": schema.Int64Attribute{
-														Description:         "Maximum number of vCPU cores for the default node pool.",
-														MarkdownDescription: "Maximum total vCPU cores that Karpenter can provision for the default node pool.",
+														MarkdownDescription: defaultPool.LimitsMaxCPU,
 														Required:            true,
 														Computed:            false,
 													},
 													"max_memory_in_gibibytes": schema.Int64Attribute{
-														Description:         "Maximum memory in GiB for the default node pool.",
-														MarkdownDescription: "Maximum total memory in GiB that Karpenter can provision for the default node pool.",
+														MarkdownDescription: defaultPool.LimitsMaxMemory,
 														Required:            true,
 														Computed:            false,
 													},
@@ -797,74 +646,60 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 										},
 									},
 									"cronjob_override": schema.SingleNestedAttribute{
-										Description: "Defines some overridden options for the Qovery cronjob node pool. Declaring this block enables the dedicated cronjob node pool.",
-										MarkdownDescription: "Override options for the Qovery **cronjob** node pool.\n\n" +
-											"~> **Important:** the mere presence of this block enables the dedicated cronjob node pool across the Qovery stack — the engine creates the pool and pins cron jobs and lifecycle jobs to it. " +
-											"Removing the block disables the dedicated pool again, and the `spot_enabled` value below only has meaning while the block exists. " +
-											"A cronjob node pool enabled outside Terraform, for example from the Qovery Console, shows up in the plan as this block being removed, and applying that plan disables the pool.",
-										Optional: true,
-										Computed: false,
+										MarkdownDescription: cronjob.Override + karpenterOptionalNodePoolNote,
+										Optional:            true,
+										Computed:            false,
 										Attributes: map[string]schema.Attribute{
 											"spot_enabled": schema.BoolAttribute{
-												Description:         "Run the cronjob node pool on spot instances. Defaults to false (on-demand instances).",
-												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("cronjob"),
+												MarkdownDescription: descriptions.NewBoolDefaultDescription(cronjob.SpotEnabled, false),
 												Optional:            true,
 												Computed:            true,
 												Default:             booldefault.StaticBool(false),
 											},
 											"consolidation": schema.SingleNestedAttribute{
-												Description:         "Specifies the period to consolidate nodes (by default, no consolidation happens)",
-												MarkdownDescription: "Node consolidation schedule for the cronjob node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on cronjob nodes.",
+												MarkdownDescription: cronjob.Consolidation + karpenterConsolidationOmittedNote,
 												Optional:            true,
 												Computed:            false,
 												Attributes: map[string]schema.Attribute{
 													"enabled": schema.BoolAttribute{
-														Description:         "Whether the consolidation schedule is active.",
-														MarkdownDescription: "Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.",
+														MarkdownDescription: cronjob.ConsolidationEnabled,
 														Required:            true,
 														Computed:            false,
 													},
 													"days": schema.ListAttribute{
-														Description:         "Days of the week when consolidation runs.",
-														MarkdownDescription: "List of days of the week when consolidation should run (e.g., `[\"MONDAY\", \"TUESDAY\"]`).",
+														MarkdownDescription: cronjob.ConsolidationDays,
 														Required:            true,
 														Computed:            false,
 														ElementType:         types.StringType,
 													},
 													"start_time": schema.StringAttribute{
-														Description:         "Start time for the consolidation window in ISO-8601 time format.",
-														MarkdownDescription: "Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).",
+														MarkdownDescription: cronjob.ConsolidationStartTime,
 														Required:            true,
 														Computed:            false,
 													},
 													"duration": schema.StringAttribute{
-														Description:         "Duration of the consolidation window in ISO-8601 duration format.",
-														MarkdownDescription: "Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).",
+														MarkdownDescription: cronjob.ConsolidationDuration,
 														Required:            true,
 														Computed:            false,
 													},
 												},
 											},
 											"limits": schema.SingleNestedAttribute{
-												Description:         "Specifies the limits to apply on the cronjob node pool",
-												MarkdownDescription: "Resource limits for the cronjob node pool. Use this to cap the total resources Karpenter can provision for cron jobs and lifecycle jobs. Qovery requires at least 6 vCPU and 6 GiB.",
+												MarkdownDescription: cronjob.Limits + karpenterNodePoolLimitsMinNote,
 												Optional:            true,
 												Attributes: map[string]schema.Attribute{
 													"enabled": schema.BoolAttribute{
-														Description:         "Enabled the limit",
-														MarkdownDescription: "Whether to enforce resource limits on the cronjob node pool.",
+														MarkdownDescription: cronjob.LimitsEnabled,
 														Required:            true,
 														Computed:            false,
 													},
 													"max_cpu_in_vcpu": schema.Int64Attribute{
-														Description:         "Maximum number of vCPU cores for the cronjob node pool.",
-														MarkdownDescription: "Maximum total vCPU cores that Karpenter can provision for the cronjob node pool.",
+														MarkdownDescription: cronjob.LimitsMaxCPU,
 														Required:            true,
 														Computed:            false,
 													},
 													"max_memory_in_gibibytes": schema.Int64Attribute{
-														Description:         "Maximum memory in GiB for the cronjob node pool.",
-														MarkdownDescription: "Maximum total memory in GiB that Karpenter can provision for the cronjob node pool.",
+														MarkdownDescription: cronjob.LimitsMaxMemory,
 														Required:            true,
 														Computed:            false,
 													},
@@ -874,23 +709,18 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 										},
 									},
 									"gpu_override": schema.SingleNestedAttribute{
-										Description: "Defines the Qovery GPU node pool. Declaring this block creates the GPU node pool, removing it deletes the pool.",
-										MarkdownDescription: "The Qovery **GPU** node pool, which runs the workloads that request GPUs.\n\n" +
-											"~> **Important:** declaring this block creates the GPU node pool, and removing it deletes the pool together with the nodes running on it. " +
-											"A GPU node pool created outside Terraform, for example from the Qovery Console, shows up in the plan as this block being removed, and applying that plan deletes the pool: declare the block to keep it.",
-										Optional: true,
-										Computed: false,
+										MarkdownDescription: gpu.Override + karpenterGpuNodePoolNote,
+										Optional:            true,
+										Computed:            false,
 										Attributes: map[string]schema.Attribute{
 											"requirements": schema.ListNestedAttribute{
-												Description:         "List of requirements for the GPU node pool",
-												MarkdownDescription: "List of node selection requirements for the GPU node pool, with the same keys and operator as `qovery_node_pools.requirements`. Define `InstanceFamily` (GPU instance families, e.g., `g4dn`, `g5`), `InstanceSize` and `Arch` requirements.",
+												MarkdownDescription: karpenterGpuRequirementsDescription + karpenterRequirementsNote,
 												Required:            true,
 												Computed:            false,
 												NestedObject: schema.NestedAttributeObject{
 													Attributes: map[string]schema.Attribute{
 														"key": schema.StringAttribute{
-															Description:         "The key of the requirement (e.g., InstanceFamily, InstanceSize, Arch)",
-															MarkdownDescription: "The requirement key: `InstanceFamily`, `InstanceSize` or `Arch`.",
+															MarkdownDescription: karpenterRequirementKeyDescription,
 															Required:            true,
 															Computed:            false,
 															Validators: []validator.String{
@@ -898,8 +728,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 															},
 														},
 														"operator": schema.StringAttribute{
-															Description:         "The operator for the requirement (e.g., In)",
-															MarkdownDescription: "The operator for the requirement. Currently only `In` is supported, meaning the node must match one of the specified values.",
+															MarkdownDescription: karpenterRequirementOperDescription,
 															Required:            true,
 															Computed:            false,
 															Validators: []validator.String{
@@ -907,8 +736,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 															},
 														},
 														"values": schema.ListAttribute{
-															Description:         "List of values for the requirement",
-															MarkdownDescription: "List of allowed values for the requirement. For example, for `InstanceFamily`: `[\"g4dn\", \"g5\"]`, for `Arch`: `[\"AMD64\"]`.",
+															MarkdownDescription: karpenterRequirementValueDescription,
 															Required:            true,
 															Computed:            false,
 															ElementType:         types.StringType,
@@ -917,89 +745,75 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 												},
 											},
 											"disk_size_in_gib": schema.Int64Attribute{
-												Description:         "Root disk size in GiB for the GPU nodes.",
-												MarkdownDescription: "Root disk size in GiB for the nodes of the GPU node pool (e.g., `100`). Qovery rejects a value below its minimum node disk size.",
+												MarkdownDescription: gpu.DiskSize + karpenterDiskSizeMinNote,
 												Required:            true,
 												Computed:            false,
 											},
 											"disk_iops": schema.Int64Attribute{
-												Description:         "Disk IOPS for the GPU nodes.",
-												MarkdownDescription: "Provisioned IOPS of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.",
+												MarkdownDescription: gpu.DiskIops,
 												Optional:            true,
 												Computed:            false,
 											},
 											"disk_throughput": schema.Int64Attribute{
-												Description:         "Disk throughput in MB/s for the GPU nodes.",
-												MarkdownDescription: "Provisioned throughput in MB/s of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.",
+												MarkdownDescription: gpu.DiskThroughput,
 												Optional:            true,
 												Computed:            false,
 											},
 											"spot_enabled": schema.BoolAttribute{
-												Description:         "Run the GPU node pool on spot instances. Defaults to false (on-demand instances).",
-												MarkdownDescription: karpenterNodePoolSpotEnabledMarkdownDescription("GPU"),
+												MarkdownDescription: descriptions.NewBoolDefaultDescription(gpu.SpotEnabled, false),
 												Optional:            true,
 												Computed:            true,
 												Default:             booldefault.StaticBool(false),
 											},
 											"consolidation": schema.SingleNestedAttribute{
-												Description:         "Specifies the period to consolidate nodes (by default, no consolidation happens)",
-												MarkdownDescription: "Node consolidation schedule for the GPU node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on GPU nodes.",
+												MarkdownDescription: gpu.Consolidation + karpenterConsolidationOmittedNote,
 												Optional:            true,
 												Computed:            false,
 												Attributes: map[string]schema.Attribute{
 													"enabled": schema.BoolAttribute{
-														Description:         "Whether the consolidation schedule is active.",
-														MarkdownDescription: "Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.",
+														MarkdownDescription: gpu.ConsolidationEnabled,
 														Required:            true,
 														Computed:            false,
 													},
 													"days": schema.ListAttribute{
-														Description:         "Days of the week when consolidation runs.",
-														MarkdownDescription: "List of days of the week when consolidation should run (e.g., `[\"MONDAY\", \"TUESDAY\"]`).",
+														MarkdownDescription: gpu.ConsolidationDays,
 														Required:            true,
 														Computed:            false,
 														ElementType:         types.StringType,
 													},
 													"start_time": schema.StringAttribute{
-														Description:         "Start time for the consolidation window in ISO-8601 time format.",
-														MarkdownDescription: "Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).",
+														MarkdownDescription: gpu.ConsolidationStartTime,
 														Required:            true,
 														Computed:            false,
 													},
 													"duration": schema.StringAttribute{
-														Description:         "Duration of the consolidation window in ISO-8601 duration format.",
-														MarkdownDescription: "Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).",
+														MarkdownDescription: gpu.ConsolidationDuration,
 														Required:            true,
 														Computed:            false,
 													},
 												},
 											},
 											"limits": schema.SingleNestedAttribute{
-												Description:         "Specifies the limits to apply on the GPU node pool",
-												MarkdownDescription: "Resource limits for the GPU node pool. Use this to cap the total resources Karpenter can provision for GPU workloads.",
+												MarkdownDescription: gpu.Limits,
 												Optional:            true,
 												Attributes: map[string]schema.Attribute{
 													"enabled": schema.BoolAttribute{
-														Description:         "Enabled the limit",
-														MarkdownDescription: "Whether to enforce resource limits on the GPU node pool.",
+														MarkdownDescription: gpu.LimitsEnabled,
 														Required:            true,
 														Computed:            false,
 													},
 													"max_cpu_in_vcpu": schema.Int64Attribute{
-														Description:         "Maximum number of vCPU cores for the GPU node pool.",
-														MarkdownDescription: "Maximum total vCPU cores that Karpenter can provision for the GPU node pool.",
+														MarkdownDescription: gpu.LimitsMaxCPU,
 														Required:            true,
 														Computed:            false,
 													},
 													"max_memory_in_gibibytes": schema.Int64Attribute{
-														Description:         "Maximum memory in GiB for the GPU node pool.",
-														MarkdownDescription: "Maximum total memory in GiB that Karpenter can provision for the GPU node pool.",
+														MarkdownDescription: gpu.LimitsMaxMemory,
 														Required:            true,
 														Computed:            false,
 													},
 													"max_gpu": schema.Int64Attribute{
-														Description:         "Maximum number of GPUs for the GPU node pool. Defaults to 0.",
-														MarkdownDescription: "Maximum total number of GPUs for the GPU node pool. Defaults to `0`.",
+														MarkdownDescription: descriptions.NewInt64DefaultDescription(gpu.LimitsMaxGPU, 0),
 														Optional:            true,
 														Computed:            true,
 														Default:             int64default.StaticInt64(0),
@@ -1014,25 +828,19 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						},
 					},
 					"gke_kms_key": schema.StringAttribute{
-						Description: "GCP KMS key resource name for GKE cluster disk encryption (GCP only). Omitting it means none [NOTE: can't be changed after creation].",
-						MarkdownDescription: "GCP KMS key resource name used to encrypt the GKE cluster's boot disks / etcd / storage buckets / volumes. Only supported on GCP clusters. Omitting it means no KMS key.\n\n" +
-							"~> **Warning:** This value cannot be changed after cluster creation: a plan that sets, changes or removes it on an existing cluster fails. To use a different key, destroy the cluster and create a new one.",
-						Optional: true,
+						MarkdownDescription: clusterGkeKmsKeyDescription + clusterGkeKmsKeyNote,
+						Optional:            true,
 					},
 				},
 			},
 			"keda": schema.SingleNestedAttribute{
-				Description: "KEDA configuration of the cluster.",
-				MarkdownDescription: "Optional KEDA configuration. KEDA ([Kubernetes Event-driven Autoscaling](https://keda.sh/)) installs the KEDA operator on the cluster, which unlocks event-driven autoscaling (including scale-to-zero) for services. Toggling this triggers a cluster redeploy.\n\n" +
-					"Omitting the block means KEDA disabled: removing it from the configuration plans the disable, and KEDA enabled outside Terraform shows up in the plan. " +
-					"`PARTIALLY_MANAGED` clusters do not support KEDA.",
-				Optional: true,
-				Computed: true,
-				Default:  objectdefault.StaticValue(clusterKedaDefault()),
+				MarkdownDescription: clusterKedaDescription + clusterKedaNote,
+				Optional:            true,
+				Computed:            true,
+				Default:             objectdefault.StaticValue(clusterKedaDefault()),
 				Attributes: map[string]schema.Attribute{
 					"enabled": schema.BoolAttribute{
-						Description:         "Whether the KEDA operator is installed on the cluster. Default: false.",
-						MarkdownDescription: "Whether the KEDA operator is installed on the cluster. Default: `false`.",
+						MarkdownDescription: descriptions.NewBoolDefaultDescription(clusterKedaEnabledDescription, false),
 						Optional:            true,
 						Computed:            true,
 						Default:             booldefault.StaticBool(false),
@@ -1040,48 +848,36 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"routing_table": schema.SetNestedAttribute{
-				Description:         "List of routes of the cluster.",
-				MarkdownDescription: "Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections). Terraform manages the whole routing table: routes added outside Terraform show up in the plan and are removed on apply, and omitting the attribute removes every route.",
+				MarkdownDescription: clusterRoutingTableDescription + clusterRoutingTableNote,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"description": schema.StringAttribute{
-							Description:         "Description of the route.",
-							MarkdownDescription: "Human-readable description of the route's purpose.",
+							MarkdownDescription: clusterRouteDescriptionDescription,
 							Required:            true,
 						},
 						"destination": schema.StringAttribute{
-							Description:         "Destination of the route.",
-							MarkdownDescription: "Destination CIDR block for the route (e.g., `10.1.0.0/16`).",
+							MarkdownDescription: clusterRouteDestinationDescription,
 							Required:            true,
 						},
 						"target": schema.StringAttribute{
-							Description:         "Target of the route.",
-							MarkdownDescription: "Target gateway or endpoint for the route (e.g., a VPC peering connection ID or NAT gateway ID).",
+							MarkdownDescription: clusterRouteTargetDescription,
 							Required:            true,
 						},
 					},
 				},
 			},
 			"state": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"State of the cluster.",
-					clusterStates,
-					&clusterStateDefault,
-				),
-				MarkdownDescription: "Desired state of the cluster. Default: `DEPLOYED`.\n\n" +
-					"  - `DEPLOYED` - The cluster is running and ready to accept workloads.\n" +
-					"  - `STOPPED` - The cluster infrastructure is stopped to save costs. All workloads will be unavailable.",
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(clusterStateDefault),
+				MarkdownDescription: descriptions.NewStringDefaultDescription(clusterStateDescription+clusterStateValuesNote, clusterStateDefault),
+				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(clusterStateDefault),
 				Validators: []validator.String{
 					validators.NewStringEnumValidator(clusterStates),
 				},
 			},
 			"advanced_settings_json": schema.StringAttribute{
-				Description:         "Advanced settings of the cluster as a JSON string. Only include settings you want to override." + advancedSettingsRefreshSemanticsPlain,
-				MarkdownDescription: "Advanced settings of the cluster as a JSON string. Use `jsonencode()` to set values. The complete list of available settings is in the [Qovery API documentation](https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings). Only include settings you want to override." + advancedSettingsRefreshSemantics,
+				MarkdownDescription: advancedSettingsJSONDescription("Clusters/operation/getDefaultClusterAdvancedSettings"),
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -1089,60 +885,52 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"labels_group_ids": schema.SetAttribute{
-				Description:         "List of labels group ids (EKS clusters only).",
-				MarkdownDescription: "List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group. See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).",
+				MarkdownDescription: groupIDsDescription("labels", "the cluster's resources") + clusterLabelsGroupIDsNote,
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
 			"kubeconfig": schema.StringAttribute{
-				Description:         "Kubeconfig for connecting to the cluster. Required for PARTIALLY_MANAGED (EKS Anywhere) clusters.",
-				MarkdownDescription: "Kubeconfig YAML content for connecting to the cluster. **Required** for `PARTIALLY_MANAGED` (EKS Anywhere) clusters. This is a sensitive value and will not be displayed in plan output. Use `file()` to read from a file.",
+				MarkdownDescription: clusterKubeconfigDescription + clusterPartiallyManagedRequiredNote,
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"infrastructure_outputs": schema.SingleNestedAttribute{
-				Description:         "Outputs related to the underlying Kubernetes infrastructure. These values are only available once the cluster is deployed.",
-				MarkdownDescription: "Read-only outputs from the underlying Kubernetes infrastructure. These values are populated after the cluster is deployed and can be used to integrate with other infrastructure resources.",
+				MarkdownDescription: clusterInfrastructureOutputsDescription,
 				Computed:            true,
 				PlanModifiers: []planmodifier.Object{
 					objectplanmodifier.UseStateForUnknown(),
 				},
 				Attributes: map[string]schema.Attribute{
 					"cluster_name": schema.StringAttribute{
-						Description:         "The name of the Kubernetes cluster. Available after deployment for all providers.",
-						MarkdownDescription: "The name of the Kubernetes cluster as assigned by the cloud provider. Available after deployment for all providers.",
+						MarkdownDescription: clusterOutputClusterNameDescription,
 						Computed:            true,
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.UseStateForUnknown(),
 						},
 					},
 					"cluster_arn": schema.StringAttribute{
-						Description:         "The ARN of the AWS cluster. Only available for AWS after deployment.",
-						MarkdownDescription: "The Amazon Resource Name (ARN) of the EKS cluster. Only populated for AWS clusters after deployment.",
+						MarkdownDescription: clusterOutputClusterArnDescription,
 						Computed:            true,
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.UseStateForUnknown(),
 						},
 					},
 					"cluster_self_link": schema.StringAttribute{
-						Description:         "The self-link of the GCP cluster. Only available for GCP after deployment.",
-						MarkdownDescription: "The self-link URL of the GKE cluster. Only populated for GCP clusters after deployment.",
+						MarkdownDescription: clusterOutputClusterSelfLinkDescription,
 						Computed:            true,
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.UseStateForUnknown(),
 						},
 					},
 					"cluster_oidc_issuer": schema.StringAttribute{
-						Description:         "The OIDC issuer URL for the cluster. Available for AWS and Azure after deployment.",
-						MarkdownDescription: "The OIDC issuer URL for the cluster. Useful for configuring IAM roles for service accounts (IRSA on AWS, workload identity on Azure). Available for AWS and Azure after deployment.",
+						MarkdownDescription: clusterOutputOidcIssuerDescription,
 						Computed:            true,
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.UseStateForUnknown(),
 						},
 					},
 					"vpc_id": schema.StringAttribute{
-						Description:         "The VPC ID used by the cluster. Only available for AWS after deployment.",
-						MarkdownDescription: "The VPC ID used by the cluster. Only populated for AWS clusters after deployment. Useful for setting up VPC peering or other networking resources.",
+						MarkdownDescription: clusterOutputVpcIDDescription,
 						Computed:            true,
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.UseStateForUnknown(),
@@ -1151,105 +939,86 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"infrastructure_charts_parameters": schema.SingleNestedAttribute{
-				Description:         "Infrastructure charts parameters for PARTIALLY_MANAGED (EKS Anywhere) clusters. Required when kubernetes_mode is PARTIALLY_MANAGED.",
-				MarkdownDescription: "Infrastructure Helm chart parameters for `PARTIALLY_MANAGED` (EKS Anywhere) clusters. **Required** when `kubernetes_mode` is `PARTIALLY_MANAGED`. These configure the core infrastructure components (ingress, TLS, load balancing) on your on-premise cluster.",
+				MarkdownDescription: clusterInfraChartsDescription + clusterPartiallyManagedRequiredNote,
 				Optional:            true,
 				Attributes: map[string]schema.Attribute{
 					"nginx_parameters": schema.SingleNestedAttribute{
-						Description:         "Nginx ingress controller parameters.",
-						MarkdownDescription: "Configuration for the Nginx ingress controller deployed on the cluster.",
+						MarkdownDescription: clusterNginxParametersDescription,
 						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"replica_count": schema.Int64Attribute{
-								Description:         "Number of Nginx replicas.",
-								MarkdownDescription: "Number of Nginx ingress controller replicas. Increase for high-availability setups.",
+								MarkdownDescription: clusterNginxReplicaCountDescription,
 								Optional:            true,
 							},
 							"default_ssl_certificate": schema.StringAttribute{
-								Description:         "Default SSL certificate (e.g., 'cert-manager/letsencrypt-acme-qovery-cert').",
-								MarkdownDescription: "Default SSL certificate reference in `namespace/secret-name` format (e.g., `qovery/letsencrypt-acme-qovery-cert`).",
+								MarkdownDescription: clusterNginxDefaultSSLCertificateDescription,
 								Optional:            true,
 							},
 							"publish_status_address": schema.StringAttribute{
-								Description:         "Public IP address for status publishing.",
-								MarkdownDescription: "Public IP address reported in the ingress status. This is the IP that external DNS will resolve to.",
+								MarkdownDescription: clusterNginxPublishStatusAddressDescription,
 								Optional:            true,
 							},
 							"annotation_metal_lb_load_balancer_ips": schema.StringAttribute{
-								Description:         "MetalLB load balancer IP annotation.",
-								MarkdownDescription: "IP address annotation for MetalLB load balancer allocation (e.g., `192.168.1.100`). Must be within a MetalLB IP address pool.",
+								MarkdownDescription: clusterNginxMetalLbLoadBalancerIPsDescription + clusterNginxMetalLbLoadBalancerIPsNote,
 								Optional:            true,
 							},
 							"annotation_external_dns_kubernetes_target": schema.StringAttribute{
-								Description:         "External DNS Kubernetes target annotation.",
-								MarkdownDescription: "IP address or hostname used by external-dns for DNS record creation (e.g., `192.168.1.100`).",
+								MarkdownDescription: clusterNginxExternalDNSTargetDescription,
 								Optional:            true,
 							},
 						},
 					},
 					"cert_manager_parameters": schema.SingleNestedAttribute{
-						Description:         "Cert-manager parameters.",
-						MarkdownDescription: "Configuration for cert-manager, used for automatic TLS certificate provisioning.",
+						MarkdownDescription: clusterCertManagerParametersDescription,
 						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"kubernetes_namespace": schema.StringAttribute{
-								Description:         "Kubernetes namespace for cert-manager (e.g., 'cert-manager').",
-								MarkdownDescription: "Kubernetes namespace where cert-manager is installed (e.g., `cert-manager` or `qovery`).",
+								MarkdownDescription: clusterCertManagerNamespaceDescription,
 								Optional:            true,
 							},
 						},
 					},
 					"metal_lb_parameters": schema.SingleNestedAttribute{
-						Description:         "MetalLB load balancer parameters. Required for PARTIALLY_MANAGED mode.",
-						MarkdownDescription: "Configuration for MetalLB, a bare-metal load balancer for Kubernetes. Required for `PARTIALLY_MANAGED` clusters to expose services externally.",
+						MarkdownDescription: clusterMetalLbParametersDescription + clusterPartiallyManagedRequiredNote,
 						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"ip_address_pools": schema.ListAttribute{
-								Description:         "List of IP address pools as single IPs or IP range format (e.g., '192.168.1.100' or '192.168.1.100-192.168.1.200').",
-								MarkdownDescription: "List of IP address pools for MetalLB. Each entry can be a single IP or an IP range (e.g., `192.168.1.100` or `192.168.1.100-192.168.1.200`). These IPs must be routable on your network.",
+								MarkdownDescription: clusterMetalLbIPAddressPoolsDescription,
 								ElementType:         types.StringType,
 								Required:            true,
 							},
 						},
 					},
 					"eks_anywhere_parameters": schema.SingleNestedAttribute{
-						Description:         "EKS Anywhere GitOps parameters.",
-						MarkdownDescription: "Configuration for EKS Anywhere GitOps integration. Use this block to declare the Git repository and YAML path used for EKS Anywhere cluster lifecycle.",
+						MarkdownDescription: clusterEksAnywhereParametersDescription,
 						Optional:            true,
 						Attributes: map[string]schema.Attribute{
 							"yaml_file_path": schema.StringAttribute{
-								Description:         "Path to the EKS Anywhere cluster YAML file in the Git repository.",
-								MarkdownDescription: "Path to the EKS Anywhere cluster YAML file in the Git repository (for example: `clusters/prod/cluster.yaml`).",
+								MarkdownDescription: clusterEksAnywhereYAMLFilePathDescription,
 								Required:            true,
 							},
 							"git_repository": schema.SingleNestedAttribute{
-								Description:         "Git repository settings used for EKS Anywhere.",
-								MarkdownDescription: "Git repository settings used by Qovery to read and update EKS Anywhere configuration.",
+								MarkdownDescription: clusterEksAnywhereGitRepositoryDescription,
 								Required:            true,
 								Attributes: map[string]schema.Attribute{
 									"url": schema.StringAttribute{
-										Description:         "Git repository URL.",
-										MarkdownDescription: "Git repository URL containing the EKS Anywhere YAML files.",
+										MarkdownDescription: gitRepositoryURLDescription,
 										Required:            true,
 									},
 									"git_token_id": schema.StringAttribute{
-										Description:         "Qovery Git token ID used to access the repository.",
-										MarkdownDescription: "Qovery Git token ID used to access the repository.",
+										MarkdownDescription: gitRepositoryTokenIDDescription,
 										Required:            true,
 									},
 									"commit_id": schema.StringAttribute{
-										Description:         "Optional git commit SHA to pin EKS Anywhere configuration.",
-										MarkdownDescription: "Optional git commit SHA to pin EKS Anywhere configuration to a specific revision. If omitted, the latest commit from the selected branch is used.",
+										MarkdownDescription: clusterEksAnywhereCommitIDDescription,
 										Optional:            true,
 									},
 									"branch": schema.StringAttribute{
-										Description:         "Repository branch name. Defaults to the repository default branch when omitted.",
-										MarkdownDescription: "Repository branch name. Defaults to the repository default branch when omitted.",
+										MarkdownDescription: clusterEksAnywhereBranchDescription,
 										Optional:            true,
 									},
 									"provider": schema.StringAttribute{
-										Description:         "Git provider (`BITBUCKET`, `GITHUB`, `GITLAB`).",
-										MarkdownDescription: "Git provider (`BITBUCKET`, `GITHUB`, `GITLAB`).",
+										MarkdownDescription: clusterEksAnywhereProviderDescription,
 										Optional:            true,
 										Validators: []validator.String{
 											validators.NewStringEnumValidator([]string{"BITBUCKET", "GITHUB", "GITLAB"}),
@@ -1258,38 +1027,31 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								},
 							},
 							"cluster_backup": schema.SingleNestedAttribute{
-								Description:         "EKS Anywhere cluster backup parameters.",
-								MarkdownDescription: "Backup settings for EKS Anywhere clusters.",
+								MarkdownDescription: clusterEksAnywhereBackupDescription,
 								Optional:            true,
 								Attributes: map[string]schema.Attribute{
 									"enabled": schema.BoolAttribute{
-										Description:         "Enable or disable EKS Anywhere cluster backup.",
-										MarkdownDescription: "Enable or disable EKS Anywhere cluster backup.",
+										MarkdownDescription: clusterEksAnywhereBackupEnabledDescription,
 										Optional:            true,
 									},
 									"s3": schema.SingleNestedAttribute{
-										Description:         "S3 settings used to store backup artifacts.",
-										MarkdownDescription: "S3 settings used to store backup artifacts.",
+										MarkdownDescription: clusterEksAnywhereBackupS3Description,
 										Required:            true,
 										Attributes: map[string]schema.Attribute{
 											"bucket": schema.StringAttribute{
-												Description:         "S3 bucket name used to store EKS Anywhere backup artifacts.",
-												MarkdownDescription: "S3 bucket name used to store EKS Anywhere backup artifacts.",
+												MarkdownDescription: clusterEksAnywhereBackupBucketDescription,
 												Required:            true,
 											},
 											"region": schema.StringAttribute{
-												Description:         "AWS region where the backup bucket is hosted.",
-												MarkdownDescription: "AWS region where the backup bucket is hosted.",
+												MarkdownDescription: clusterEksAnywhereBackupRegionDescription,
 												Required:            true,
 											},
 											"role_arn": schema.StringAttribute{
-												Description:         "IAM role ARN assumed to upload backup artifacts.",
-												MarkdownDescription: "IAM role ARN assumed to upload backup artifacts.",
+												MarkdownDescription: clusterEksAnywhereBackupRoleARNDescription,
 												Required:            true,
 											},
 											"key_prefix": schema.StringAttribute{
-												Description:         "Optional S3 key prefix used for backup object keys.",
-												MarkdownDescription: "Optional S3 key prefix used for backup object keys.",
+												MarkdownDescription: clusterEksAnywhereBackupKeyPrefixDescription,
 												Optional:            true,
 											},
 										},
@@ -1301,72 +1063,71 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				},
 			},
 			"secret_manager_accesses": schema.SetNestedAttribute{
-				Description:         "List of secret manager accesses for the cluster.",
-				MarkdownDescription: "List of external secret manager configurations for the cluster. Each entry grants the cluster access to a secret provider (AWS Parameter Store, AWS Secrets Manager, or GCP Secret Manager).",
+				MarkdownDescription: clusterSecretManagerAccessesDescription,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description: "Id of the secret manager access.",
-							Computed:    true,
+							MarkdownDescription: secretManagerAccessIDDescription,
+							Computed:            true,
 						},
 						"name": schema.StringAttribute{
-							Description: "Name of the secret manager access.",
-							Required:    true,
+							MarkdownDescription: secretManagerAccessNameDescription,
+							Required:            true,
 						},
 						"endpoint": schema.SingleNestedAttribute{
-							Description: "Endpoint configuration for the secret manager.",
-							Required:    true,
+							MarkdownDescription: secretManagerEndpointDescription,
+							Required:            true,
 							Attributes: map[string]schema.Attribute{
 								"type": schema.StringAttribute{
-									Description: "Type of secret manager endpoint. One of: AWS_PARAMETER_STORE, AWS_SECRET_MANAGER, GCP_SECRET_MANAGER.",
-									Required:    true,
+									MarkdownDescription: secretManagerEndpointTypeDescription,
+									Required:            true,
 									Validators: []validator.String{
 										validators.NewStringEnumValidator([]string{"AWS_PARAMETER_STORE", "AWS_SECRET_MANAGER", "GCP_SECRET_MANAGER"}),
 									},
 								},
 								"region": schema.StringAttribute{
-									Description: "Region of the secret manager endpoint.",
-									Required:    true,
+									MarkdownDescription: secretManagerEndpointRegionDescription,
+									Required:            true,
 								},
 								"project_id": schema.StringAttribute{
-									Description: "GCP project ID. Required when type is GCP_SECRET_MANAGER.",
-									Optional:    true,
+									MarkdownDescription: secretManagerEndpointProjectIDDescription + requiredWhenType("GCP_SECRET_MANAGER"),
+									Optional:            true,
 								},
 							},
 						},
 						"authentication": schema.SingleNestedAttribute{
-							Description: "Authentication configuration for the secret manager.",
-							Required:    true,
+							MarkdownDescription: secretManagerAuthenticationDescription,
+							Required:            true,
 							Attributes: map[string]schema.Attribute{
 								"type": schema.StringAttribute{
-									Description: "Authentication mode. One of: AUTOMATICALLY_CONFIGURED, AWS_ROLE_ARN, AWS_STATIC_CREDENTIALS, GCP_JSON_CREDENTIALS.",
-									Required:    true,
+									MarkdownDescription: secretManagerAuthTypeDescription,
+									Required:            true,
 									Validators: []validator.String{
 										validators.NewStringEnumValidator([]string{"AUTOMATICALLY_CONFIGURED", "AWS_ROLE_ARN", "AWS_STATIC_CREDENTIALS", "GCP_JSON_CREDENTIALS"}),
 									},
 								},
 								"role_arn": schema.StringAttribute{
-									Description: "IAM role ARN. Required when type is AWS_ROLE_ARN.",
-									Optional:    true,
+									MarkdownDescription: secretManagerAuthRoleARNDescription + requiredWhenType("AWS_ROLE_ARN"),
+									Optional:            true,
 								},
 								"region": schema.StringAttribute{
-									Description: "AWS region. Required when type is AWS_STATIC_CREDENTIALS.",
-									Optional:    true,
+									MarkdownDescription: secretManagerAuthRegionDescription + requiredWhenType("AWS_STATIC_CREDENTIALS"),
+									Optional:            true,
 								},
 								"access_key": schema.StringAttribute{
-									Description: "AWS access key ID. Required when type is AWS_STATIC_CREDENTIALS.",
-									Optional:    true,
+									MarkdownDescription: secretManagerAuthAccessKeyDescription + requiredWhenType("AWS_STATIC_CREDENTIALS"),
+									Optional:            true,
 								},
 								"secret_key": schema.StringAttribute{
-									Description: "AWS secret access key. Required when type is AWS_STATIC_CREDENTIALS.",
-									Optional:    true,
-									Sensitive:   true,
+									MarkdownDescription: secretManagerAuthSecretKeyDescription + requiredWhenType("AWS_STATIC_CREDENTIALS"),
+									Optional:            true,
+									Sensitive:           true,
 								},
 								"json_credentials": schema.StringAttribute{
-									Description: "GCP service account JSON credentials. Required when type is GCP_JSON_CREDENTIALS.",
-									Optional:    true,
-									Sensitive:   true,
+									MarkdownDescription: secretManagerAuthJSONCredentialsDescription + requiredWhenType("GCP_JSON_CREDENTIALS"),
+									Optional:            true,
+									Sensitive:           true,
 								},
 							},
 						},

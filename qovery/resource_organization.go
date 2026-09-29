@@ -60,32 +60,23 @@ func (r *organizationResource) Configure(_ context.Context, req resource.Configu
 func (r organizationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version: 1,
-		Description: "Provides a Qovery organization resource. This can be used to manage Qovery organizations. " +
-			"Important: Organizations cannot be created or deleted via Terraform. Use terraform import to bring an existing organization under management.",
-		MarkdownDescription: "Provides a Qovery organization resource. This can be used to manage Qovery organizations.\n\n" +
-			"~> **Important:** Organizations cannot be created or deleted via Terraform. Use `terraform import` to bring an existing organization under management.",
+		MarkdownDescription: "Manages a Qovery organization.\n\n" +
+			"~> **Note:** Terraform cannot create or delete an organization. Import an existing one, and stop managing it with a `removed` block instead of destroying it.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the organization (UUID format).",
-				MarkdownDescription: "Unique identifier of the organization (UUID format).",
+				MarkdownDescription: idDescription("organization"),
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the organization. Must be unique across your Qovery account.",
-				MarkdownDescription: "Name of the organization. Must be unique across your Qovery account.",
+				MarkdownDescription: nameDescription("organization"),
 				Required:            true,
 			},
 			"plan": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Subscription plan of the organization. Determines available features, resource limits, and pricing tier.",
-					organizationPlans,
-					nil,
-				),
 				MarkdownDescription: descriptions.NewStringEnumDescription(
-					"Subscription plan of the organization. Determines available features, resource limits, and pricing tier.",
+					organizationPlanDescription,
 					organizationPlans,
 					nil,
 				),
@@ -97,8 +88,7 @@ func (r organizationResource) Schema(_ context.Context, _ resource.SchemaRequest
 			"description": schema.StringAttribute{
 				// Optional only: q-core stores no description when the request omits it, and an
 				// update replaces every field, so omitting it clears the description.
-				Description:         "Description of the organization. Removing it from the configuration clears the description.",
-				MarkdownDescription: "Description of the organization. Removing it from the configuration clears the description.",
+				MarkdownDescription: descriptionDescription("organization"),
 				Optional:            true,
 			},
 		},

@@ -162,14 +162,18 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   `icon_uri`. (QOV-2337)
 - The `qovery_cluster` data source reads `kubeconfig` for every cluster the API has one for,
   not only for `PARTIALLY_MANAGED` clusters. (QOV-2328)
+- A "Managing changes" guide explains how the provider plans changes and lists the attributes
+  that keep their value when removed. (QOV-2319)
 
 ### Changed
 
 - `advanced_settings_json` on `qovery_cluster`, `qovery_application`, `qovery_container`,
   `qovery_job`, `qovery_helm` and `qovery_terraform_service` now reflects a Console-side
   change to a tracked key, including a reset to its default value, on refresh and plans it
-  back to the configured value. The refresh semantics are documented on the attribute.
-  (QOV-2028)
+  back to the configured value. The refresh semantics are documented in the "Managing
+  changes" guide. (QOV-2028)
+- The Registry documentation is rewritten for 1.0: shorter attribute descriptions shared by
+  each resource and its data source, and minimal examples. (QOV-2319)
 - `qovery_cluster`: the database and cache subnet lists of `features.existing_vpc` are
   Optional only, so omitting one means none. The state upgrade turns the empty lists 0.x
   stored into null, so an unchanged configuration plans nothing.

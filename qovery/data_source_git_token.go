@@ -10,7 +10,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/gittoken"
-	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -48,52 +47,36 @@ func (d *gitTokenDataSource) Configure(_ context.Context, req datasource.Configu
 
 func (r gitTokenDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "Provides a Qovery git token data source. This can be used to read existing Qovery git tokens.",
-		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery git token.",
+		MarkdownDescription: "Reads an existing Qovery git token, without its value.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the git token.",
-				MarkdownDescription: "Id of the git token.",
+				MarkdownDescription: idDescription("git token"),
 				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization the git token belongs to.",
-				MarkdownDescription: "Id of the organization the git token belongs to.",
+				MarkdownDescription: organizationIDDescription,
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the git token.",
-				MarkdownDescription: "Name of the git token.",
+				MarkdownDescription: nameDescription("git token"),
 				Computed:            true,
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the git token.",
-				MarkdownDescription: "Description of the git token.",
+				MarkdownDescription: descriptionDescription("git token"),
 				Optional:            true,
 				Computed:            true,
 			},
 			"type": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Type of the git token.",
-					gitTokenTypes,
-					nil,
-				),
-				MarkdownDescription: descriptions.NewStringEnumDescription(
-					"Type of the git token.",
-					gitTokenTypes,
-					nil,
-				),
-				Computed: true,
+				MarkdownDescription: gitTokenTypeDescription,
+				Computed:            true,
 			},
 			"bitbucket_workspace": schema.StringAttribute{
-				Description:         "Bitbucket workspace where the token has permissions. Only set when type is BITBUCKET.",
-				MarkdownDescription: "Bitbucket workspace where the token has permissions. Only set when `type` is `BITBUCKET`.",
+				MarkdownDescription: gitTokenBitbucketWorkspaceDescription + " Set only when `type` is `BITBUCKET`.",
 				Optional:            true,
 				Computed:            true,
 			},
 			"token": schema.StringAttribute{
-				Description:         "Value of the git token. The Qovery API never returns it, so this attribute is always null when read through the data source.",
-				MarkdownDescription: "Value of the git token. The Qovery API never returns it, so this attribute is always `null` when read through the data source.",
+				MarkdownDescription: gitTokenTokenDescription + " Always `null`: the API never returns it.",
 				Computed:            true,
 				Sensitive:           true,
 			},

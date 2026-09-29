@@ -60,38 +60,29 @@ func (r *helmRepositoryResource) Configure(_ context.Context, req resource.Confi
 
 func (r helmRepositoryResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery helm repository resource. This can be used to create and manage Qovery helm repository connections. " +
-			"A helm repository stores Helm charts that can be deployed using the qovery_helm resource. " +
-			"Qovery supports both HTTPS (standard Helm) and OCI-based (container registry) repositories.",
-		MarkdownDescription: "Provides a Qovery helm repository resource. This can be used to create and manage Qovery helm repository connections.\n\n" +
-			"A helm repository stores Helm charts that can be deployed using the `qovery_helm` resource. " +
-			"Qovery supports both HTTPS (standard Helm) and OCI-based (container registry) repositories.",
+		MarkdownDescription: "Manages a Qovery helm repository: an organization-wide connection to a Helm chart repository, HTTPS or OCI, that `qovery_helm` services install their charts from.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the helm repository (UUID format).",
-				MarkdownDescription: "Unique identifier of the helm repository (UUID format).",
+				MarkdownDescription: idDescription("helm repository"),
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "Id of the organization. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: organizationIDDescription + recreatesOnChange("helm repository"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the helm repository. Must be unique within the organization.",
-				MarkdownDescription: "Name of the helm repository. Must be unique within the organization.",
+				MarkdownDescription: nameDescription("helm repository"),
 				Required:            true,
 			},
 			"kind": schema.StringAttribute{
-				Description: "Kind of the helm repository. Use HTTPS for standard Helm repositories, or one of the OCI_* values for OCI-based registries.",
 				MarkdownDescription: descriptions.NewStringEnumDescription(
-					"Kind of the helm repository. Use `HTTPS` for standard Helm repositories, or one of the `OCI_*` values for OCI-based registries.",
+					helmRepositoryKindDescription+" Use `HTTPS` for a classic Helm repository or an `OCI_*` kind for an OCI registry.",
 					helmRepositoryKinds,
 					nil,
 				),
@@ -101,67 +92,55 @@ func (r helmRepositoryResource) Schema(_ context.Context, _ resource.SchemaReque
 				},
 			},
 			"url": schema.StringAttribute{
-				Description:         "URL of the helm repository (e.g. https://charts.example.com for HTTPS, or https://docker.io for OCI Docker Hub).",
-				MarkdownDescription: "URL of the helm repository (e.g. `https://charts.example.com` for HTTPS, or `https://docker.io` for OCI Docker Hub).",
+				MarkdownDescription: helmRepositoryURLDescription,
 				Required:            true,
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the helm repository. Defaults to an empty description.",
-				MarkdownDescription: "Description of the helm repository. Defaults to an empty description.",
+				MarkdownDescription: storedDescriptionDescription("helm repository"),
 				Optional:            true,
 				Computed:            true,
 				Default:             stringdefault.StaticString(storedDescriptionDefault),
 			},
 			"skip_tls_verification": schema.BoolAttribute{
-				Description:         "Whether to bypass TLS certificate verification when connecting to the repository. Set to true for self-signed certificates.",
-				MarkdownDescription: "Whether to bypass TLS certificate verification when connecting to the repository. Set to `true` for self-signed certificates.",
+				MarkdownDescription: helmRepositorySkipTLSVerificationDescription + " Set it to `true` for a self-signed certificate.",
 				Required:            true,
 			},
 			"config": schema.SingleNestedAttribute{
-				Description:         "Configuration needed to authenticate with the helm repository. Required fields depend on the repository kind.",
-				MarkdownDescription: "Configuration needed to authenticate with the helm repository. Required fields depend on the repository `kind`.",
+				MarkdownDescription: "Credentials of the helm repository. The keys to set depend on `kind`.",
 				Optional:            true,
 				Attributes: map[string]schema.Attribute{
 					"access_key_id": schema.StringAttribute{
-						Description:         "AWS access key ID. Required if kind is OCI_ECR or OCI_PUBLIC_ECR.",
-						MarkdownDescription: "AWS access key ID. Required if kind is `OCI_ECR` or `OCI_PUBLIC_ECR`.",
+						MarkdownDescription: usedByKinds(credentialsAWSAccessKeyIDDescription, helmRepository.KindECR, helmRepository.KindPublicECR),
 						Optional:            true,
 					},
 					"secret_access_key": schema.StringAttribute{
-						Description:         "AWS secret access key. Required if kind is OCI_ECR or OCI_PUBLIC_ECR.",
-						MarkdownDescription: "AWS secret access key. Required if kind is `OCI_ECR` or `OCI_PUBLIC_ECR`. This is a sensitive value and will not be displayed in plan output.",
+						MarkdownDescription: usedByKinds(credentialsAWSSecretAccessKeyDescription, helmRepository.KindECR, helmRepository.KindPublicECR),
 						Optional:            true,
 						Sensitive:           true,
 					},
 					"region": schema.StringAttribute{
-						Description:         "AWS or Scaleway region. Required if kind is OCI_ECR or OCI_SCALEWAY_CR.",
-						MarkdownDescription: "AWS or Scaleway region. Required if kind is `OCI_ECR` or `OCI_SCALEWAY_CR`.",
+						MarkdownDescription: usedByKinds(registryRegionDescription, helmRepository.KindECR, helmRepository.KindScalewayCR),
 						Optional:            true,
 					},
 					"scaleway_access_key": schema.StringAttribute{
-						Description:         "Scaleway access key. Required if kind is OCI_SCALEWAY_CR.",
-						MarkdownDescription: "Scaleway access key. Required if kind is `OCI_SCALEWAY_CR`.",
+						MarkdownDescription: usedByKinds(credentialsScalewayAccessKeyDescription, helmRepository.KindScalewayCR),
 						Optional:            true,
 					},
 					"scaleway_secret_key": schema.StringAttribute{
-						Description:         "Scaleway secret key. Required if kind is OCI_SCALEWAY_CR.",
-						MarkdownDescription: "Scaleway secret key. Required if kind is `OCI_SCALEWAY_CR`. This is a sensitive value and will not be displayed in plan output.",
+						MarkdownDescription: usedByKinds(credentialsScalewaySecretKeyDescription, helmRepository.KindScalewayCR),
 						Optional:            true,
 						Sensitive:           true,
 					},
 					"scaleway_project_id": schema.StringAttribute{
-						Description:         "Scaleway project ID. Required if kind is OCI_SCALEWAY_CR.",
-						MarkdownDescription: "Scaleway project ID. Required if kind is `OCI_SCALEWAY_CR`.",
+						MarkdownDescription: usedByKinds(credentialsScalewayProjectIDDescription, helmRepository.KindScalewayCR),
 						Optional:            true,
 					},
 					"username": schema.StringAttribute{
-						Description:         "Username for authentication. Required if kind is OCI_DOCKER_HUB, OCI_GITHUB_CR, OCI_GITLAB_CR, or OCI_GENERIC_CR.",
-						MarkdownDescription: "Username for authentication. Required if kind is `OCI_DOCKER_HUB`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR`, or `OCI_GENERIC_CR`.",
+						MarkdownDescription: usedByKinds(registryUsernameDescription, helmRepository.KindHttps, helmRepository.KindDockerHub, helmRepository.KindGithubCr, helmRepository.KindGitlabCr, helmRepository.KindGenericCR),
 						Optional:            true,
 					},
 					"password": schema.StringAttribute{
-						Description:         "Password or access token for authentication. Required if kind is OCI_DOCKER_HUB, OCI_GITHUB_CR, OCI_GITLAB_CR, or OCI_GENERIC_CR.",
-						MarkdownDescription: "Password or access token for authentication. Required if kind is `OCI_DOCKER_HUB`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR`, or `OCI_GENERIC_CR`. This is a sensitive value and will not be displayed in plan output.",
+						MarkdownDescription: usedByKinds(registryPasswordDescription, helmRepository.KindHttps, helmRepository.KindDockerHub, helmRepository.KindGithubCr, helmRepository.KindGitlabCr, helmRepository.KindGenericCR),
 						Optional:            true,
 						Sensitive:           true,
 					},

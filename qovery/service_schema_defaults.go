@@ -49,12 +49,3 @@ func upgradeArgumentsFrom0x(arguments types.List) types.List {
 	}
 	return arguments
 }
-
-// Sentences appended to the description of the attributes that keep their value when removed
-// from the configuration. Each one is a documented exception to the config-is-source-of-truth
-// rule and is listed in the 1.0 upgrade guide.
-const (
-	deploymentStageIDRemovalNote = " Removing the attribute keeps the service in its current stage: the Qovery API attaches every service to a deployment stage and cannot detach it."
-	gitBranchRemovalNote         = " Removing the attribute keeps the current branch: an omitted branch means the repository's default branch, which is only known once the API resolves it. Changing the repository URL while the branch is omitted resolves the new repository's default branch."
-	blueprintIDRemovalNote       = " It can only be set when the service is created: the Qovery API ignores later changes, so a change is rejected at plan time, and removing the attribute keeps the recorded value."
-)

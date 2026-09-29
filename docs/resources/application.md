@@ -1,102 +1,36 @@
 # qovery_application (Resource)
 
-Provides a Qovery application resource. This can be used to create and manage Qovery applications.
-
-An application is a service built from source code in a git repository. Qovery builds the application using either Docker (with a Dockerfile) or Buildpacks, then deploys it to your cluster.
+Manages a Qovery application: a service Qovery builds from a git repository, with a Dockerfile or Buildpacks, and deploys to its environment.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
-
 ```terraform
 resource "qovery_application" "my_application" {
-  # Required
   environment_id = qovery_environment.my_environment.id
-  name           = "MyApplication"
+  name           = "my-application"
+
   git_repository = {
-    url       = "https://github.com/my-org/my-app.git"
-    branch    = "main" # Optional (defaults to main or master)
-    root_path = "/"    # Optional (defaults to "/", useful for monorepos)
+    url    = "https://github.com/my-org/my-app.git"
+    branch = "main"
   }
+  dockerfile_path = "Dockerfile"
 
-  # Build configuration
-  build_mode      = "DOCKER"     # DOCKER or BUILDPACKS
-  dockerfile_path = "Dockerfile" # Required when build_mode = "DOCKER"
-
-  # Optional
-  auto_preview      = false
-  auto_deploy       = true
-  cpu               = 500
-  memory            = 512
-  ephemeral_storage = 4
-  # min_running_instances = 0 enables scale-to-zero. Only allowed when an
-  # `autoscaling` (KEDA) block is set below, otherwise the minimum is 1.
-  min_running_instances = 0
-  max_running_instances = 3
-  entrypoint            = "/bin/sh"
-  arguments             = ["-c", "start-server"]
-
-  # Event-driven autoscaling (KEDA). Additive to the CPU/memory HPA above.
-  # Requires KEDA enabled on the cluster (see qovery_cluster `keda`).
-  autoscaling = {
-    polling_interval_seconds = 30
-    cooldown_period_seconds  = 300
-
-    scalers = [
-      # PRIMARY scaler driving scale-up/down from a Prometheus metric.
-      {
-        scaler_type = "prometheus"
-        role        = "PRIMARY"
-        enabled     = true
-        config_json = jsonencode({
-          serverAddress = "http://prometheus.cluster.local:9090"
-          query         = "sum(rate(http_requests_total[1m]))"
-          threshold     = "100"
-        })
-      },
-      # SAFETY scaler defined as raw YAML.
-      {
-        scaler_type = "cron"
-        role        = "SAFETY"
-        config_yaml = <<-EOT
-          timezone: Europe/Paris
-          start: 0 8 * * 1-5
-          end: 0 20 * * 1-5
-          desiredReplicas: "2"
-        EOT
-      }
-    ]
-  }
-
-  # Port configuration
   ports = [
     {
       internal_port       = 8080
       external_port       = 443
       publicly_accessible = true
-      protocol            = "HTTP"
-      is_default          = true
-      name                = "http"
-    },
-    {
-      internal_port       = 9090
-      publicly_accessible = false
-      protocol            = "HTTP"
-      name                = "metrics"
     }
   ]
 
-  # Healthchecks
   healthchecks = {
     readiness_probe = {
       type = {
         http = {
           port   = 8080
-          path   = "/ready"
           scheme = "HTTP"
+          path   = "/ready"
         }
       }
       initial_delay_seconds = 30
@@ -105,13 +39,10 @@ resource "qovery_application" "my_application" {
       success_threshold     = 1
       failure_threshold     = 3
     }
-
     liveness_probe = {
       type = {
-        http = {
-          port   = 8080
-          path   = "/health"
-          scheme = "HTTP"
+        tcp = {
+          port = 8080
         }
       }
       initial_delay_seconds = 30
@@ -122,95 +53,18 @@ resource "qovery_application" "my_application" {
     }
   }
 
-  # Environment variables
   environment_variables = [
     {
-      key   = "APP_PORT"
-      value = "8080"
-    }
-  ]
-  environment_variable_aliases = [
-    {
-      key = "PORT"
-      # The value of the alias must be the name of the aliased variable.
-      # Here it creates an alias "PORT" pointing to the "APP_PORT" variable above.
-      value = "APP_PORT"
-    }
-  ]
-  environment_variable_overrides = [
-    {
-      # The key must match a variable defined at a higher scope (project or environment).
-      key   = "SOME_PROJECT_VARIABLE"
-      value = "OVERRIDDEN_VALUE"
+      key   = "LOG_LEVEL"
+      value = "info"
     }
   ]
 
-  # Environment variable files (mounted as files in the container)
-  environment_variable_files = [
-    {
-      key        = "APP_CONFIG"
-      value      = "config-content"
-      mount_path = "/etc/app/config.yaml"
-    }
-  ]
-
-  # Secrets
   secrets = [
     {
-      key   = "SECRET_KEY"
-      value = "SECRET_VALUE"
+      key   = "API_KEY"
+      value = var.api_key
     }
-  ]
-  secret_aliases = [
-    {
-      key = "SECRET_KEY_ALIAS"
-      # The value of the alias must be the name of the aliased secret.
-      value = "SECRET_KEY"
-    }
-  ]
-  secret_overrides = [
-    {
-      # The key must match a secret defined at a higher scope (project or environment).
-      key   = "SOME_PROJECT_SECRET"
-      value = "OVERRIDDEN_VALUE"
-    }
-  ]
-
-  # Secret files (mounted as files, value is encrypted)
-  secret_files = [
-    {
-      key        = "API_KEY"
-      value      = "secret-value"
-      mount_path = "/usr/local/secrets/api-key"
-    }
-  ]
-
-  # Custom domains
-  custom_domains = [
-    {
-      domain               = "app.example.com"
-      generate_certificate = true
-    }
-  ]
-
-  # Deployment restrictions (only deploy when specific paths change)
-  deployment_restrictions = [
-    {
-      mode  = "MATCH"
-      type  = "PATH"
-      value = "src/"
-    }
-  ]
-
-  # Advanced settings (JSON)
-  advanced_settings_json = jsonencode({
-    # Non-exhaustive list. Full list: https://api-doc.qovery.com/#tag/Applications/operation/getDefaultApplicationAdvancedSettings
-    "network.ingress.proxy_buffer_size_kb" : 8,
-    "network.ingress.keepalive_time_seconds" : 1000,
-  })
-
-  depends_on = [
-    qovery_environment.my_environment
   ]
 }
 ```
@@ -222,77 +76,79 @@ You can find complete examples within these repositories:
 
 ### Required
 
-- `environment_id` (String) Id of the environment. Changing this forces the application to be re-created.
-- `git_repository` (Attributes) Git repository configuration for the application source code. (see [below for nested schema](#nestedatt--git_repository))
-- `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service. At least one of `readiness_probe` or `liveness_probe` should be configured for production workloads. (see [below for nested schema](#nestedatt--healthchecks))
+- `environment_id` (String) ID of the environment. Changing it recreates the application.
+- `git_repository` (Attributes) Git repository the application is built from. (see [below for nested schema](#nestedatt--git_repository))
+- `healthchecks` (Attributes) Readiness and liveness probes of the service. `healthchecks = {}` sets none; production workloads should set at least one. (see [below for nested schema](#nestedatt--healthchecks))
 - `name` (String) Name of the application.
 
 ### Optional
 
-- `advanced_settings_json` (String) Advanced settings as JSON. Use `jsonencode()` to set values. Only include settings you want to override. Full list available in [Qovery API documentation](https://api-doc.qovery.com/#tag/Applications/operation/getDefaultApplicationAdvancedSettings).
-
-  Refresh semantics — this attribute is desired state, not a mirror of the remote configuration:
-
-  - Refresh only reconciles keys already tracked in the Terraform state. A setting overridden only in the Qovery Console is not pulled into state, so declaring it afterwards plans as an addition even if the remote value already matches.
-  - Changes made in the Console to a tracked key, including a reset to its default value, are reflected on refresh and planned back to the configured value.
-  - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.
-  - `terraform import` records every setting whose value differs from the default.
-- `annotations_group_ids` (Set of String) List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the application's pods. Terraform manages the whole list: annotations groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every annotations group.
-- `arguments` (List of String) List of arguments of this application. Overrides the Docker image's default `CMD`. Omitting the attribute sets no argument.
-- `auto_deploy` (Boolean) Specify if the application will be automatically redeployed after receiving a new commit on the configured branch. Default: `true`.
-- `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this application. When enabled, Qovery creates a preview environment for each pull request. Default: `false`.
-- `autoscaling` (Attributes) Event-driven autoscaling (KEDA) configuration. KEDA is additive to the CPU/memory HPA (min/max_running_instances) and unlocks scale-to-zero (min_running_instances = 0). Requires KEDA to be enabled on the cluster. (see [below for nested schema](#nestedatt--autoscaling))
-- `build_mode` (String) Build mode of the application.
-  - `DOCKER`: Build using a Dockerfile in the repository. Requires `dockerfile_path` to be set.
-  - `BUILDPACKS`: Build using Cloud Native Buildpacks (auto-detects language and framework).
-
-Default: `DOCKER`.
-- `cpu` (Number) CPU of the application in millicores (m) [1000m = 1 CPU].
-- `custom_domains` (Attributes Set) List of custom domains linked to this application. You must configure a CNAME record on your DNS provider pointing to the `validation_domain` value. (see [below for nested schema](#nestedatt--custom_domains))
-- `deployment_restrictions` (Attributes Set) List of deployment restrictions. Deployment restrictions allow you to control when an application is deployed based on file path changes in the git repository. (see [below for nested schema](#nestedatt--deployment_restrictions))
-- `deployment_stage_id` (String) Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment. Removing the attribute keeps the service in its current stage: the Qovery API attaches every service to a deployment stage and cannot detach it.
-- `docker_target_build_stage` (String) The target build stage in a multi-stage Dockerfile to build. Only applicable when `build_mode = "DOCKER"` and using a multi-stage Dockerfile.
-- `dockerfile_path` (String) Path to the Dockerfile relative to the `git_repository.root_path`. Required when `build_mode = "DOCKER"`. Example: `Dockerfile` or `docker/Dockerfile.prod`.
-- `entrypoint` (String) Entrypoint of the application. Overrides the Docker image's default `ENTRYPOINT`.
-- `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this application. (see [below for nested schema](#nestedatt--environment_variable_aliases))
-- `environment_variable_files` (Attributes Set) List of environment variable files linked to this application. (see [below for nested schema](#nestedatt--environment_variable_files))
-- `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this application. (see [below for nested schema](#nestedatt--environment_variable_overrides))
-- `environment_variables` (Attributes Set) List of environment variables linked to this application. (see [below for nested schema](#nestedatt--environment_variables))
-- `ephemeral_storage` (Number) Ephemeral storage of the application in GiB. `0`, the default, sets none, so the platform default is used.
-- `external_secret_files` (Attributes Set) List of external secret files linked to this application. External secret files reference upstream secrets (e.g. from AWS Secrets Manager) and are mounted as files at a given path inside the container. (see [below for nested schema](#nestedatt--external_secret_files))
-- `external_secrets` (Attributes Set) List of external secrets linked to this application. External secrets reference upstream secrets (e.g. from AWS Secrets Manager) via a secret manager access configuration. (see [below for nested schema](#nestedatt--external_secrets))
-- `icon_uri` (String) Icon URI representing the application. Used in the Qovery console UI. Default: `app://qovery-console/application`.
-- `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
-- `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the application's pods. Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group.
-- `max_running_instances` (Number) Maximum number of instances running for the application.
-- `memory` (Number) RAM of the application in MB [1024MB = 1GB].
-- `min_running_instances` (Number) Minimum number of instances running for the application.
-- `ports` (Attributes List) List of ports linked to this application. At least one port must be set as `publicly_accessible = true` with an `external_port` for the application to be reachable from the internet. (see [below for nested schema](#nestedatt--ports))
-- `secret_aliases` (Attributes Set) List of secret aliases linked to this application. (see [below for nested schema](#nestedatt--secret_aliases))
-- `secret_files` (Attributes Set) List of secret files linked to this application. (see [below for nested schema](#nestedatt--secret_files))
-- `secret_overrides` (Attributes Set) List of secret overrides linked to this application. (see [below for nested schema](#nestedatt--secret_overrides))
-- `secrets` (Attributes Set) List of secrets linked to this application. (see [below for nested schema](#nestedatt--secrets))
-- `storage` (Attributes Set) List of persistent storage volumes linked to this application. Data stored in these volumes persists across application restarts. (see [below for nested schema](#nestedatt--storage))
+- `advanced_settings_json` (String) Advanced settings to override, as a JSON string built with `jsonencode()`. The [Qovery API documentation](https://api-doc.qovery.com/#tag/Applications/operation/getDefaultApplicationAdvancedSettings) lists them with their defaults. Terraform manages only the keys you set, and removing a key keeps its current value: see [Advanced settings](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes#advanced-settings).
+- `annotations_group_ids` (Set of String) IDs of the annotations groups applied to the application's pods. Omitting it detaches every annotations group.
+- `arguments` (List of String) Arguments that replace the `CMD` of the image. Omitting it sets none.
+- `auto_deploy` (Boolean) Whether Qovery redeploys the application on every new commit to its branch.
+	- Default: `true`.
+- `auto_preview` (Boolean) Whether Qovery creates a preview environment with the application for each pull request.
+	- Default: `false`.
+- `autoscaling` (Attributes) Event-driven autoscaling with KEDA, which requires KEDA on the cluster. It adds to the CPU and memory autoscaling of `min_running_instances` and `max_running_instances`, and allows `min_running_instances = 0`. (see [below for nested schema](#nestedatt--autoscaling))
+- `build_mode` (String) How Qovery builds the application: `DOCKER` builds the Dockerfile at `dockerfile_path`, `BUILDPACKS` detects the language with Cloud Native Buildpacks.
+	- Default: `DOCKER`.
+- `cpu` (Number) CPU of the application, in millicores (1000 = 1 vCPU).
+	- Must be: `>= 10`.
+	- Default: `500`.
+- `custom_domains` (Attributes Set) Custom domains of the application. Each one needs a CNAME record that points to its `validation_domain`. (see [below for nested schema](#nestedatt--custom_domains))
+- `deployment_restrictions` (Attributes Set) Deployment restrictions of the application: a new commit deploys it only if the files it changes pass them. (see [below for nested schema](#nestedatt--deployment_restrictions))
+- `deployment_stage_id` (String) ID of the deployment stage of the service. Stages set the order in which the services of an environment deploy. Removing it keeps the service in its current stage, because Qovery cannot detach a service from its stage.
+- `docker_target_build_stage` (String) Stage of a multi-stage Dockerfile to build.
+- `dockerfile_path` (String) Path of the Dockerfile, relative to `root_path`, for example `Dockerfile`. Required when `build_mode` is `DOCKER`.
+- `entrypoint` (String) Command that replaces the `ENTRYPOINT` of the image.
+- `environment_variable_aliases` (Attributes Set) Environment variable aliases of the application. An alias gives an existing variable another name. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variable_files` (Attributes Set) Environment variable files of the application, each mounted as a file. (see [below for nested schema](#nestedatt--environment_variable_files))
+- `environment_variable_overrides` (Attributes Set) Environment variable overrides of the application. An override replaces the value of a variable inherited from a broader scope. (see [below for nested schema](#nestedatt--environment_variable_overrides))
+- `environment_variables` (Attributes Set) Environment variables of the application. (see [below for nested schema](#nestedatt--environment_variables))
+- `ephemeral_storage` (Number) Ephemeral storage of the application, in GiB. `0` sets none, so the platform default applies.
+	- Default: `0`.
+- `external_secret_files` (Attributes Set) External secret files of the application, read from an external secret manager and mounted as files. (see [below for nested schema](#nestedatt--external_secret_files))
+- `external_secrets` (Attributes Set) External secrets of the application, read from an external secret manager such as AWS Secrets Manager. (see [below for nested schema](#nestedatt--external_secrets))
+- `icon_uri` (String) Icon of the application in the Qovery Console.
+	- Default: `app://qovery-console/application`.
+- `is_skipped` (Boolean) Whether environment-wide deployments skip the service. It stays in its deployment stage.
+	- Default: `false`.
+- `labels_group_ids` (Set of String) IDs of the labels groups applied to the application's pods. Omitting it detaches every labels group.
+- `max_running_instances` (Number) Maximum number of running instances of the application.
+	- Default: `1`.
+- `memory` (Number) Memory of the application, in MB.
+	- Must be: `>= 1`.
+	- Default: `512`.
+- `min_running_instances` (Number) Minimum number of running instances of the application.
+	- Default: `1`.
+- `ports` (Attributes List) Ports of the application. A publicly accessible port needs an `external_port`. (see [below for nested schema](#nestedatt--ports))
+- `secret_aliases` (Attributes Set) Secret aliases of the application. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secret_files` (Attributes Set) Secret files of the application, each mounted as a file. (see [below for nested schema](#nestedatt--secret_files))
+- `secret_overrides` (Attributes Set) Secret overrides of the application. An override replaces the value of a secret inherited from a broader scope. (see [below for nested schema](#nestedatt--secret_overrides))
+- `secrets` (Attributes Set) Secrets of the application. (see [below for nested schema](#nestedatt--secrets))
+- `storage` (Attributes Set) Persistent volumes of the application. Their data survives restarts. (see [below for nested schema](#nestedatt--storage))
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this application. Built-in variables are automatically generated by Qovery and include host information, port mappings, and other service metadata. These are read-only and cannot be modified. (see [below for nested schema](#nestedatt--built_in_environment_variables))
-- `external_host` (String) The application external FQDN host. Only available if your application has at least one publicly accessible port.
-- `id` (String) Id of the application.
-- `internal_host` (String) The application internal host. Use this to communicate between services within the same environment.
+- `built_in_environment_variables` (Attributes List) Environment variables Qovery defines for the application. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `external_host` (String) Public host of the application. Set only when the application has a publicly accessible port.
+- `id` (String) ID of the application.
+- `internal_host` (String) Internal host of the application, reachable from the other services of the environment.
 
 <a id="nestedatt--git_repository"></a>
 ### Nested Schema for `git_repository`
 
 Required:
 
-- `url` (String) URL of the git repository (e.g. `https://github.com/my-org/my-app.git`).
+- `url` (String) URL of the git repository, for example `https://github.com/my-org/my-app.git`.
 
 Optional:
 
-- `branch` (String) Branch of the git repository to use for builds. Defaults to `main` or `master` (depending on repository). Removing the attribute keeps the current branch: an omitted branch means the repository's default branch, which is only known once the API resolves it. Changing the repository URL while the branch is omitted resolves the new repository's default branch.
-- `git_token_id` (String) The git token ID to be used for authenticating with the git provider. Required for private repositories. Reference a `qovery_git_token` resource.
-- `root_path` (String) Root path of the application within the repository. Useful for monorepos where the application code is in a subdirectory. Defaults to `/`.
+- `branch` (String) Branch to build. When omitted, Qovery uses the repository's default branch, and removing it keeps the current branch.
+- `git_token_id` (String) ID of the `qovery_git_token` used to access a private repository.
+- `root_path` (String) Directory of the repository to build from, for monorepos.
+	- Default: `/`.
 
 
 <a id="nestedatt--healthchecks"></a>
@@ -300,37 +156,37 @@ Optional:
 
 Optional:
 
-- `liveness_probe` (Attributes) Configuration for the liveness probe, used to determine when your service is working correctly. If the liveness probe fails, the service container is killed and restarted. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe))
-- `readiness_probe` (Attributes) Configuration for the readiness probe, used to determine when your service is ready to receive traffic. If the readiness probe fails, the service is temporarily removed from the load balancer until it passes again. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe))
+- `liveness_probe` (Attributes) Probe that decides whether the service works: when it fails, the container restarts. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe))
+- `readiness_probe` (Attributes) Probe that decides when the service receives traffic: while it fails, the service is out of the load balancer. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe))
 
 <a id="nestedatt--healthchecks--liveness_probe"></a>
 ### Nested Schema for `healthchecks.liveness_probe`
 
 Required:
 
-- `failure_threshold` (Number) Number of consecutive failures required to declare the probe as failed.
-- `initial_delay_seconds` (Number) Number of seconds to wait after the container starts before the first probe is executed. Use this to give your application time to initialize.
-- `period_seconds` (Number) How often (in seconds) to perform the probe after the initial delay.
-- `success_threshold` (Number) Minimum consecutive successes for the probe to be considered successful after a failure.
-- `timeout_seconds` (Number) Number of seconds after which the probe times out. If the probe does not respond within this time, it is considered failed.
-- `type` (Attributes) Kind of check to run for this probe. Exactly one of `tcp`, `http`, `grpc`, or `exec` must be configured. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type))
+- `failure_threshold` (Number) Consecutive failures for the probe to fail.
+- `initial_delay_seconds` (Number) Seconds to wait after the container starts before the first probe.
+- `period_seconds` (Number) Seconds between two probes.
+- `success_threshold` (Number) Consecutive successes after a failure for the probe to pass.
+- `timeout_seconds` (Number) Seconds after which a probe that has not answered fails.
+- `type` (Attributes) Check the probe runs: set exactly one of `tcp`, `http`, `grpc` and `exec`. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type))
 
 <a id="nestedatt--healthchecks--liveness_probe--type"></a>
 ### Nested Schema for `healthchecks.liveness_probe.type`
 
 Optional:
 
-- `exec` (Attributes) Exec probe: runs a command inside the container. The probe succeeds if the command exits with status code 0. The command binary must be present in the container image. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--exec))
-- `grpc` (Attributes) gRPC probe: checks that the given port responds to gRPC health check requests. The service must implement the [gRPC Health Checking Protocol](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe). (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--grpc))
-- `http` (Attributes) HTTP probe: sends an HTTP GET request and expects a 2xx response code. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--http))
-- `tcp` (Attributes) TCP probe: checks that a TCP connection can be established on the given port. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--tcp))
+- `exec` (Attributes) Runs a command in the container, and passes when it exits with `0`. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--exec))
+- `grpc` (Attributes) Calls the [gRPC health checking protocol](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe) on `port`. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--grpc))
+- `http` (Attributes) Sends an HTTP GET request to `port` and passes on a status code from 200 to 399. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--http))
+- `tcp` (Attributes) Opens a TCP connection to `port`. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--tcp))
 
 <a id="nestedatt--healthchecks--liveness_probe--type--exec"></a>
 ### Nested Schema for `healthchecks.liveness_probe.type.exec`
 
 Required:
 
-- `command` (List of String) The command and its arguments to execute (e.g. `["cat", "/tmp/healthy"]`).
+- `command` (List of String) Command and its arguments, for example `["cat", "/tmp/healthy"]`.
 
 
 <a id="nestedatt--healthchecks--liveness_probe--type--grpc"></a>
@@ -338,11 +194,11 @@ Required:
 
 Required:
 
-- `port` (Number) The port number to try to connect to.
+- `port` (Number) Port to check.
 
 Optional:
 
-- `service` (String) The gRPC service name to health-check. If not specified, the overall server health is checked.
+- `service` (String) gRPC service to check. Defaults to the health of the whole server.
 
 
 <a id="nestedatt--healthchecks--liveness_probe--type--http"></a>
@@ -350,12 +206,12 @@ Optional:
 
 Required:
 
-- `port` (Number) The port number to try to connect to.
-- `scheme` (String) Scheme to use for the HTTP request. Must be `HTTP` or `HTTPS`.
+- `port` (Number) Port to check.
+- `scheme` (String) Scheme of the request: `HTTP` or `HTTPS`.
 
 Optional:
 
-- `path` (String) The path for the HTTP GET request (e.g. `/health`, `/ready`). Defaults to `/`.
+- `path` (String) Path of the request, for example `/health`. Defaults to `/`.
 
 
 <a id="nestedatt--healthchecks--liveness_probe--type--tcp"></a>
@@ -363,11 +219,11 @@ Optional:
 
 Required:
 
-- `port` (Number) The port number to try to connect to.
+- `port` (Number) Port to check.
 
 Optional:
 
-- `host` (String) Optional host to connect to. Defaults to the pod IP if not specified.
+- `host` (String) Host to connect to. Defaults to the pod IP.
 
 
 
@@ -377,29 +233,29 @@ Optional:
 
 Required:
 
-- `failure_threshold` (Number) Number of consecutive failures required to declare the probe as failed.
-- `initial_delay_seconds` (Number) Number of seconds to wait after the container starts before the first probe is executed. Use this to give your application time to initialize.
-- `period_seconds` (Number) How often (in seconds) to perform the probe after the initial delay.
-- `success_threshold` (Number) Minimum consecutive successes for the probe to be considered successful after a failure.
-- `timeout_seconds` (Number) Number of seconds after which the probe times out. If the probe does not respond within this time, it is considered failed.
-- `type` (Attributes) Kind of check to run for this probe. Exactly one of `tcp`, `http`, `grpc`, or `exec` must be configured. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type))
+- `failure_threshold` (Number) Consecutive failures for the probe to fail.
+- `initial_delay_seconds` (Number) Seconds to wait after the container starts before the first probe.
+- `period_seconds` (Number) Seconds between two probes.
+- `success_threshold` (Number) Consecutive successes after a failure for the probe to pass.
+- `timeout_seconds` (Number) Seconds after which a probe that has not answered fails.
+- `type` (Attributes) Check the probe runs: set exactly one of `tcp`, `http`, `grpc` and `exec`. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type))
 
 <a id="nestedatt--healthchecks--readiness_probe--type"></a>
 ### Nested Schema for `healthchecks.readiness_probe.type`
 
 Optional:
 
-- `exec` (Attributes) Exec probe: runs a command inside the container. The probe succeeds if the command exits with status code 0. The command binary must be present in the container image. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--exec))
-- `grpc` (Attributes) gRPC probe: checks that the given port responds to gRPC health check requests. The service must implement the [gRPC Health Checking Protocol](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe). (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--grpc))
-- `http` (Attributes) HTTP probe: sends an HTTP GET request and expects a 2xx response code. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--http))
-- `tcp` (Attributes) TCP probe: checks that a TCP connection can be established on the given port. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--tcp))
+- `exec` (Attributes) Runs a command in the container, and passes when it exits with `0`. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--exec))
+- `grpc` (Attributes) Calls the [gRPC health checking protocol](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe) on `port`. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--grpc))
+- `http` (Attributes) Sends an HTTP GET request to `port` and passes on a status code from 200 to 399. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--http))
+- `tcp` (Attributes) Opens a TCP connection to `port`. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--tcp))
 
 <a id="nestedatt--healthchecks--readiness_probe--type--exec"></a>
 ### Nested Schema for `healthchecks.readiness_probe.type.exec`
 
 Required:
 
-- `command` (List of String) The command and its arguments to execute (e.g. `["cat", "/tmp/healthy"]`).
+- `command` (List of String) Command and its arguments, for example `["cat", "/tmp/healthy"]`.
 
 
 <a id="nestedatt--healthchecks--readiness_probe--type--grpc"></a>
@@ -407,11 +263,11 @@ Required:
 
 Required:
 
-- `port` (Number) The port number to try to connect to.
+- `port` (Number) Port to check.
 
 Optional:
 
-- `service` (String) The gRPC service name to health-check. If not specified, the overall server health is checked.
+- `service` (String) gRPC service to check. Defaults to the health of the whole server.
 
 
 <a id="nestedatt--healthchecks--readiness_probe--type--http"></a>
@@ -419,12 +275,12 @@ Optional:
 
 Required:
 
-- `port` (Number) The port number to try to connect to.
-- `scheme` (String) Scheme to use for the HTTP request. Must be `HTTP` or `HTTPS`.
+- `port` (Number) Port to check.
+- `scheme` (String) Scheme of the request: `HTTP` or `HTTPS`.
 
 Optional:
 
-- `path` (String) The path for the HTTP GET request (e.g. `/health`, `/ready`). Defaults to `/`.
+- `path` (String) Path of the request, for example `/health`. Defaults to `/`.
 
 
 <a id="nestedatt--healthchecks--readiness_probe--type--tcp"></a>
@@ -432,11 +288,11 @@ Optional:
 
 Required:
 
-- `port` (Number) The port number to try to connect to.
+- `port` (Number) Port to check.
 
 Optional:
 
-- `host` (String) Optional host to connect to. Defaults to the pod IP if not specified.
+- `host` (String) Host to connect to. Defaults to the pod IP.
 
 
 
@@ -447,27 +303,30 @@ Optional:
 
 Required:
 
-- `scalers` (Attributes Set) List of KEDA scalers driving the autoscaling. At least one scaler is required. (see [below for nested schema](#nestedatt--autoscaling--scalers))
+- `scalers` (Attributes Set) KEDA scalers that drive the autoscaling. Set at least one. (see [below for nested schema](#nestedatt--autoscaling--scalers))
 
 Optional:
 
-- `cooldown_period_seconds` (Number) Period in seconds to wait after the last trigger before scaling back down. Defaults to 300.
-- `polling_interval_seconds` (Number) Interval in seconds between each KEDA polling of the scalers. Defaults to 30.
+- `cooldown_period_seconds` (Number) Seconds to wait after the last trigger before scaling down.
+	- Default: `300`.
+- `polling_interval_seconds` (Number) Seconds between two polls of the scalers.
+	- Default: `30`.
 
 <a id="nestedatt--autoscaling--scalers"></a>
 ### Nested Schema for `autoscaling.scalers`
 
 Required:
 
-- `role` (String) Role of the scaler: PRIMARY or SAFETY.
-- `scaler_type` (String) Type of the KEDA scaler (e.g. cpu, memory, prometheus, cron).
+- `role` (String) Role of the scaler: `PRIMARY` or `SAFETY`.
+- `scaler_type` (String) Type of the KEDA scaler, for example `cpu`, `memory`, `prometheus` or `cron`.
 
 Optional:
 
-- `config_json` (String) Scaler configuration as JSON. Mutually exclusive with config_yaml.
-- `config_yaml` (String) Scaler configuration as raw YAML. Mutually exclusive with config_json.
-- `enabled` (Boolean) Whether the scaler is enabled. Defaults to true.
-- `trigger_authentication` (Attributes) Inline KEDA TriggerAuthentication for this scaler. (see [below for nested schema](#nestedatt--autoscaling--scalers--trigger_authentication))
+- `config_json` (String) Configuration of the scaler, as JSON. Conflicts with `config_yaml`.
+- `config_yaml` (String) Configuration of the scaler, as YAML. Conflicts with `config_json`.
+- `enabled` (Boolean) Whether the scaler is enabled.
+	- Default: `true`.
+- `trigger_authentication` (Attributes) KEDA TriggerAuthentication of the scaler. (see [below for nested schema](#nestedatt--autoscaling--scalers--trigger_authentication))
 
 <a id="nestedatt--autoscaling--scalers--trigger_authentication"></a>
 ### Nested Schema for `autoscaling.scalers.trigger_authentication`
@@ -478,7 +337,7 @@ Required:
 
 Optional:
 
-- `config_yaml` (String) Raw KEDA TriggerAuthentication YAML configuration.
+- `config_yaml` (String) Configuration of the trigger authentication, as YAML.
 
 
 
@@ -488,20 +347,20 @@ Optional:
 
 Required:
 
-- `domain` (String) Your custom domain (e.g. `app.example.com`).
+- `domain` (String) Custom domain, for example `app.example.com`.
 
 Optional:
 
-- `generate_certificate` (Boolean) Qovery will generate and manage a TLS/SSL certificate for this domain using Let's Encrypt. Default: `false`.
-- `use_cdn` (Boolean) Indicates if the custom domain is behind a CDN (e.g. Cloudflare). Default: `false`. This affects how Qovery validates the CNAME during deployment:
-  - If `true`: Qovery only checks that the domain points to an IP.
-  - If `false`: Qovery checks that the domain resolves to the correct service Load Balancer.
+- `generate_certificate` (Boolean) Whether Qovery issues and renews a Let's Encrypt TLS certificate for the domain.
+	- Default: `false`.
+- `use_cdn` (Boolean) Whether the domain is behind a CDN such as Cloudflare. Qovery then only checks that the domain resolves to an IP, not to the service's load balancer.
+	- Default: `false`.
 
 Read-Only:
 
-- `id` (String) Id of the custom domain.
+- `id` (String) ID of the custom domain.
 - `status` (String) Status of the custom domain.
-- `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
+- `validation_domain` (String) Domain the CNAME record must point to.
 
 
 <a id="nestedatt--deployment_restrictions"></a>
@@ -509,13 +368,13 @@ Read-Only:
 
 Required:
 
-- `mode` (String) Restriction mode. `MATCH`: deploy only when changes match the value. `EXCLUDE`: deploy only when changes do NOT match the value.
-- `type` (String) Type of deployment restriction. Currently only `PATH` is supported.
-- `value` (String) Value of the deployment restriction (e.g. a file path pattern like `src/` or `services/api/`).
+- `mode` (String) `MATCH` deploys only when a changed file matches `value`; `EXCLUDE` ignores the changed files that match it.
+- `type` (String) Type of the restriction. Only `PATH` is supported.
+- `value` (String) Path the changed files are compared with, for example `src/`.
 
 Read-Only:
 
-- `id` (String) Id of the deployment restriction.
+- `id` (String) ID of the deployment restriction.
 
 
 <a id="nestedatt--environment_variable_aliases"></a>
@@ -523,16 +382,16 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the environment variable alias.
+- `key` (String) Name of the alias.
 - `value` (String) Name of the variable to alias.
 
 Optional:
 
-- `description` (String) Description of the environment variable alias.
+- `description` (String) Description of the alias.
 
 Read-Only:
 
-- `id` (String) Id of the environment variable alias.
+- `id` (String) ID of the alias.
 
 
 <a id="nestedatt--environment_variable_files"></a>
@@ -540,17 +399,17 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the environment variable file.
-- `mount_path` (String) Mount path of the environment variable file.
-- `value` (String) Value of the environment variable file.
+- `key` (String) Name of the variable.
+- `mount_path` (String) Path where the file is mounted.
+- `value` (String) Content of the file.
 
 Optional:
 
-- `description` (String) Description of the environment variable file.
+- `description` (String) Description of the variable.
 
 Read-Only:
 
-- `id` (String) Id of the environment variable file.
+- `id` (String) ID of the variable.
 
 
 <a id="nestedatt--environment_variable_overrides"></a>
@@ -558,16 +417,16 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the environment variable override.
-- `value` (String) Value of the environment variable override.
+- `key` (String) Name of the variable to override.
+- `value` (String) Value that replaces the inherited one.
 
 Optional:
 
-- `description` (String) Description of the environment variable override.
+- `description` (String) Description of the override.
 
 Read-Only:
 
-- `id` (String) Id of the environment variable override.
+- `id` (String) ID of the override.
 
 
 <a id="nestedatt--environment_variables"></a>
@@ -575,7 +434,7 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the environment variable.
+- `key` (String) Name of the environment variable.
 - `value` (String) Value of the environment variable.
 
 Optional:
@@ -584,7 +443,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the environment variable.
+- `id` (String) ID of the environment variable.
 
 
 <a id="nestedatt--external_secret_files"></a>
@@ -593,9 +452,9 @@ Read-Only:
 Required:
 
 - `key` (String) Name of the external secret file.
-- `mount_path` (String) Absolute path where the secret file will be mounted inside the container.
-- `reference` (String) Reference to the upstream secret (e.g. the secret name or ARN in AWS Secrets Manager).
-- `secret_manager_access_id` (String) Id of the secret manager access to use for this external secret file.
+- `mount_path` (String) Absolute path where the file is mounted.
+- `reference` (String) Reference of the secret in the secret manager, such as its name or ARN.
+- `secret_manager_access_id` (String) ID of the cluster's secret manager access that reads the secret.
 
 Optional:
 
@@ -603,7 +462,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the external secret file.
+- `id` (String) ID of the external secret file.
 
 
 <a id="nestedatt--external_secrets"></a>
@@ -612,8 +471,8 @@ Read-Only:
 Required:
 
 - `key` (String) Name of the external secret.
-- `reference` (String) Reference to the upstream secret (e.g. the secret name or ARN in AWS Secrets Manager).
-- `secret_manager_access_id` (String) Id of the secret manager access to use for this external secret.
+- `reference` (String) Reference of the secret in the secret manager, such as its name or ARN.
+- `secret_manager_access_id` (String) ID of the cluster's secret manager access that reads the secret.
 
 Optional:
 
@@ -621,7 +480,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the external secret.
+- `id` (String) ID of the external secret.
 
 
 <a id="nestedatt--ports"></a>
@@ -629,19 +488,24 @@ Read-Only:
 
 Required:
 
-- `internal_port` (Number) Internal port of the application. Must be between 1 and 65535.
-- `publicly_accessible` (Boolean) Specify if the port is exposed to the world or not for this application.
+- `internal_port` (Number) Port the application listens on.
+	- Must be: `>= 1` and `<= 65535`.
+- `publicly_accessible` (Boolean) Whether the port is exposed to the internet.
 
 Optional:
 
-- `external_port` (Number) External port of the application. Required if `ports.publicly_accessible = true`. Must be between 1 and 65535.
-- `is_default` (Boolean) If this port will be used for the root domain. The API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).
-- `name` (String) Name of the port. Default: `p<internal_port>`, for example `p8080`.
-- `protocol` (String) Protocol used for the port of the application.
+- `external_port` (Number) Port exposed to the internet. Required when `publicly_accessible` is `true`.
+	- Must be: `>= 1` and `<= 65535`.
+- `is_default` (Boolean) Whether the root domain of the application routes to this port. Qovery marks one port as the default, so an omitted value keeps the one Qovery chose.
+- `name` (String) Name of the port.
+	- Default: `p<internal_port>`, for example `p8080`.
+- `protocol` (String) Protocol of the port.
+	- Can be: `GRPC`, `HTTP`, `TCP`, `UDP`.
+	- Default: `HTTP`.
 
 Read-Only:
 
-- `id` (String) Id of the port.
+- `id` (String) ID of the port.
 
 
 <a id="nestedatt--secret_aliases"></a>
@@ -649,16 +513,16 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the secret alias.
+- `key` (String) Name of the alias.
 - `value` (String) Name of the secret to alias.
 
 Optional:
 
-- `description` (String) Description of the secret alias.
+- `description` (String) Description of the alias.
 
 Read-Only:
 
-- `id` (String) Id of the secret alias.
+- `id` (String) ID of the alias.
 
 
 <a id="nestedatt--secret_files"></a>
@@ -666,43 +530,9 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the secret file.
-- `mount_path` (String) Mount path of the secret file.
-- `value` (String, Sensitive) Value of the secret file.
-
-Optional:
-
-- `description` (String) Description of the secret file.
-
-Read-Only:
-
-- `id` (String) Id of the secret file.
-
-
-<a id="nestedatt--secret_overrides"></a>
-### Nested Schema for `secret_overrides`
-
-Required:
-
-- `key` (String) Name of the secret override.
-- `value` (String, Sensitive) Value of the secret override. The value is write-only and will not be displayed in plan outputs.
-
-Optional:
-
-- `description` (String) Description of the secret override.
-
-Read-Only:
-
-- `id` (String) Id of the secret override.
-
-
-<a id="nestedatt--secrets"></a>
-### Nested Schema for `secrets`
-
-Required:
-
-- `key` (String) Key of the secret.
-- `value` (String, Sensitive) Value of the secret. The value is write-only and will not be displayed in plan outputs.
+- `key` (String) Name of the secret.
+- `mount_path` (String) Path where the file is mounted.
+- `value` (String, Sensitive) Content of the file.
 
 Optional:
 
@@ -710,7 +540,41 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the secret.
+- `id` (String) ID of the secret.
+
+
+<a id="nestedatt--secret_overrides"></a>
+### Nested Schema for `secret_overrides`
+
+Required:
+
+- `key` (String) Name of the secret to override.
+- `value` (String, Sensitive) Value that replaces the inherited one.
+
+Optional:
+
+- `description` (String) Description of the override.
+
+Read-Only:
+
+- `id` (String) ID of the override.
+
+
+<a id="nestedatt--secrets"></a>
+### Nested Schema for `secrets`
+
+Required:
+
+- `key` (String) Name of the secret.
+- `value` (String, Sensitive) Value of the secret.
+
+Optional:
+
+- `description` (String) Description of the secret.
+
+Read-Only:
+
+- `id` (String) ID of the secret.
 
 
 <a id="nestedatt--storage"></a>
@@ -718,13 +582,15 @@ Read-Only:
 
 Required:
 
-- `mount_point` (String) Mount point of the storage for the application.
-- `size` (Number) Size of the storage for the application in GB [1024MB = 1GB].
-- `type` (String) Type of the storage for the application.
+- `mount_point` (String) Path where the storage is mounted.
+- `size` (Number) Size of the storage, in GB.
+	- Must be: `>= 1`.
+- `type` (String) Type of the storage.
+	- Can be: `FAST_SSD`.
 
 Read-Only:
 
-- `id` (String) Id of the storage.
+- `id` (String) ID of the storage.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>
@@ -733,8 +599,8 @@ Read-Only:
 Read-Only:
 
 - `description` (String) Description of the environment variable.
-- `id` (String) Id of the environment variable.
-- `key` (String) Key of the environment variable.
+- `id` (String) ID of the environment variable.
+- `key` (String) Name of the environment variable.
 - `value` (String) Value of the environment variable.
 ## Import
 ```shell

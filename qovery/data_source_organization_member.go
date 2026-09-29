@@ -46,37 +46,30 @@ func (d *organizationMemberDataSource) Configure(_ context.Context, req datasour
 
 func (d organizationMemberDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "Provides a Qovery organization member data source. This can be used to read an existing member (or pending invitation) of a Qovery organization by email.",
-		MarkdownDescription: "Use this data source to retrieve an existing member (or pending invitation) of a Qovery organization by email.",
+		MarkdownDescription: "Reads an existing member or pending invitation of a Qovery organization, found by `email`.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the member. Invitation id while the invitation is pending; user id once accepted.",
-				MarkdownDescription: "Id of the member. Invitation id while the invitation is pending; user id once accepted.",
+				MarkdownDescription: organizationMemberIDDescription,
 				Computed:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization.",
-				MarkdownDescription: "Id of the organization.",
+				MarkdownDescription: organizationIDDescription,
 				Required:            true,
 			},
 			"email": schema.StringAttribute{
-				Description:         "Email of the member.",
-				MarkdownDescription: "Email of the member.",
+				MarkdownDescription: organizationMemberEmailDescription,
 				Required:            true,
 			},
 			"role_id": schema.StringAttribute{
-				Description:         "Id of the role assigned to the member.",
-				MarkdownDescription: "Id of the role assigned to the member.",
+				MarkdownDescription: organizationMemberRoleIDDescription,
 				Computed:            true,
 			},
 			"user_id": schema.StringAttribute{
-				Description:         "User id of the member. Null until the invitation is accepted.",
-				MarkdownDescription: "User id of the member. Null until the invitation is accepted.",
+				MarkdownDescription: organizationMemberUserIDDescription,
 				Computed:            true,
 			},
 			"invitation_status": schema.StringAttribute{
-				Description:         "Status of the invitation: PENDING, EXPIRED or ACCEPTED.",
-				MarkdownDescription: "Status of the invitation: `PENDING`, `EXPIRED` or `ACCEPTED`.",
+				MarkdownDescription: organizationMemberStatusDescription,
 				Computed:            true,
 			},
 		},

@@ -62,65 +62,50 @@ func (r *clusterDNSProviderResource) Configure(_ context.Context, req resource.C
 
 func (r clusterDNSProviderResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "Provides a Qovery cluster DNS provider resource. This optional resource manages the DNS provider associated with a cluster.",
-		MarkdownDescription: "Provides a Qovery cluster DNS provider resource. Declare this resource only when Terraform must explicitly manage the cluster DNS provider.",
+		MarkdownDescription: "Manages the DNS provider of a Qovery cluster.\n\n" +
+			"~> **Note:** Destroying this resource only removes it from the Terraform state: the cluster keeps its DNS provider.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the cluster DNS provider resource. This is the cluster id.",
-				MarkdownDescription: "Id of the cluster DNS provider resource. This is the cluster id.",
+				MarkdownDescription: "ID of the resource, equal to `cluster_id`.",
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"cluster_id": schema.StringAttribute{
-				Description:         "Id of the cluster.",
-				MarkdownDescription: "Id of the cluster whose DNS provider is managed by this resource.",
+				MarkdownDescription: "ID of the cluster." + recreatesOnChange("cluster DNS provider"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"provider_type": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"DNS provider type.",
-					clusterDNSProviderTypes,
-					nil,
-				),
-				MarkdownDescription: descriptions.NewStringEnumDescription(
-					"DNS provider type.",
-					clusterDNSProviderTypes,
-					nil,
-				),
+				MarkdownDescription: "DNS provider of the cluster: `" + clusterDNSProviderTypeQovery + "` for the DNS Qovery manages, or `" +
+					clusterDNSProviderTypeCloudflare + "` or `" + clusterDNSProviderTypeRoute53 + "` with the block of the same name.",
 				Required: true,
 				Validators: []validator.String{
 					validators.NewStringEnumValidator(clusterDNSProviderTypes),
 				},
 			},
 			"domain": schema.StringAttribute{
-				Description:         "DNS domain associated with the cluster.",
-				MarkdownDescription: "DNS domain associated with the cluster.",
+				MarkdownDescription: "DNS domain of the cluster.",
 				Required:            true,
 			},
 			"cloudflare": schema.SingleNestedAttribute{
-				Description:         "Cloudflare DNS provider configuration. Required when provider_type is CLOUDFLARE.",
-				MarkdownDescription: "Cloudflare DNS provider configuration. Required when `provider_type` is `CLOUDFLARE`.",
+				MarkdownDescription: "Cloudflare configuration. Required when `provider_type` is `CLOUDFLARE`.",
 				Optional:            true,
 				Attributes: map[string]schema.Attribute{
 					"email": schema.StringAttribute{
-						Description:         "Cloudflare account email.",
-						MarkdownDescription: "Cloudflare account email.",
+						MarkdownDescription: "Email of the Cloudflare account.",
 						Required:            true,
 					},
 					"api_token": schema.StringAttribute{
-						Description:         "Cloudflare API token. This value must be provided on create and update and is not returned by the Qovery API.",
-						MarkdownDescription: "Cloudflare API token. This value must be provided on create and update and is not returned by the Qovery API.",
+						MarkdownDescription: "Cloudflare API token. Omitting it fails at plan time.",
 						Optional:            true,
 						Sensitive:           true,
 					},
 					"proxied": schema.BoolAttribute{
-						Description:         "Whether Cloudflare proxying is enabled.",
-						MarkdownDescription: "Whether Cloudflare proxying is enabled.",
+						MarkdownDescription: descriptions.NewBoolDefaultDescription("Whether Cloudflare proxies the DNS records of the cluster.", false),
 						Optional:            true,
 						Computed:            true,
 						Default:             booldefault.StaticBool(false),
@@ -128,44 +113,37 @@ func (r clusterDNSProviderResource) Schema(_ context.Context, _ resource.SchemaR
 				},
 			},
 			"route53": schema.SingleNestedAttribute{
-				Description:         "Route53 DNS provider configuration. Required when provider_type is ROUTE53.",
-				MarkdownDescription: "Route53 DNS provider configuration. Required when `provider_type` is `ROUTE53`.",
+				MarkdownDescription: "Route53 configuration. Required when `provider_type` is `ROUTE53`.",
 				Optional:            true,
 				Attributes: map[string]schema.Attribute{
 					"credentials": schema.SingleNestedAttribute{
-						Description:         "Route53 credentials.",
-						MarkdownDescription: "Route53 credentials.",
+						MarkdownDescription: "AWS credentials Qovery uses to manage the Route53 records.",
 						Required:            true,
 						Attributes: map[string]schema.Attribute{
 							"type": schema.StringAttribute{
-								Description:         "Route53 credentials type. Only STATIC is supported.",
-								MarkdownDescription: "Route53 credentials type. Only `STATIC` is supported.",
+								MarkdownDescription: "Type of the credentials. Only `" + clusterDNSProviderCredentialsStatic + "` is supported.",
 								Required:            true,
 								Validators: []validator.String{
 									validators.NewStringEnumValidator([]string{clusterDNSProviderCredentialsStatic}),
 								},
 							},
 							"aws_access_key_id": schema.StringAttribute{
-								Description:         "AWS access key id.",
-								MarkdownDescription: "AWS access key id.",
+								MarkdownDescription: credentialsAWSAccessKeyIDDescription,
 								Required:            true,
 							},
 							"aws_secret_access_key": schema.StringAttribute{
-								Description:         "AWS secret access key. This value must be provided on create and update and is not returned by the Qovery API.",
-								MarkdownDescription: "AWS secret access key. This value must be provided on create and update and is not returned by the Qovery API.",
+								MarkdownDescription: credentialsAWSSecretAccessKeyDescription + " Omitting it fails at plan time.",
 								Optional:            true,
 								Sensitive:           true,
 							},
 						},
 					},
 					"aws_region": schema.StringAttribute{
-						Description:         "AWS region.",
 						MarkdownDescription: "AWS region.",
 						Required:            true,
 					},
 					"hosted_zone_id": schema.StringAttribute{
-						Description:         "Route53 hosted zone id.",
-						MarkdownDescription: "Route53 hosted zone id.",
+						MarkdownDescription: "ID of the Route53 hosted zone.",
 						Optional:            true,
 					},
 				},

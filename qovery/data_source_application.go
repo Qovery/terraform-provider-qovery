@@ -11,9 +11,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/client"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
-	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
-	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
@@ -51,329 +48,205 @@ func (d *applicationDataSource) Configure(_ context.Context, req datasource.Conf
 }
 
 func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	envVars := variableListDescriptions("environment_variables", "application")
+	builtInEnvVars := variableListDescriptions("built_in_environment_variables", "application")
+	envVarAliases := variableListDescriptions("environment_variable_aliases", "application")
+	envVarOverrides := variableListDescriptions("environment_variable_overrides", "application")
+	secrets := variableListDescriptions("secrets", "application")
+	secretAliases := variableListDescriptions("secret_aliases", "application")
+	secretOverrides := variableListDescriptions("secret_overrides", "application")
+	envVarFiles := variableListDescriptions("environment_variable_files", "application")
+	secretFiles := variableListDescriptions("secret_files", "application")
+	externalSecrets := variableListDescriptions("external_secrets", "application")
+	externalSecretFiles := variableListDescriptions("external_secret_files", "application")
+	ports := portDescriptions("application")
+	storages := storageDescriptions("application")
+	customDomains := customDomainDescriptions("application")
+	restrictions := deploymentRestrictionDescriptions("application")
+
 	resp.Schema = schema.Schema{
-		Description:         "Use this data source to retrieve information about an existing Qovery application.",
-		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery application.",
+		MarkdownDescription: "Reads an existing Qovery application.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the application.",
-				MarkdownDescription: "Id of the application.",
+				MarkdownDescription: idDescription("application"),
 				Required:            true,
 			},
 			"environment_id": schema.StringAttribute{
-				Description:         "Id of the environment.",
-				MarkdownDescription: "Id of the environment.",
+				MarkdownDescription: environmentIDDescription,
 				Computed:            true,
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the application.",
-				MarkdownDescription: "Name of the application.",
+				MarkdownDescription: nameDescription("application"),
 				Computed:            true,
 			},
 			"icon_uri": schema.StringAttribute{
-				Description:         "Icon URI representing the application.",
-				MarkdownDescription: "Icon URI representing the application.",
+				MarkdownDescription: iconURIDescription("application"),
 				Optional:            true,
 				Computed:            true,
 			},
 			"git_repository": schema.SingleNestedAttribute{
-				Description:         "Git repository of the application.",
-				MarkdownDescription: "Git repository of the application.",
+				MarkdownDescription: "Git repository the application is built from.",
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"url": schema.StringAttribute{
-						Description:         "URL of the git repository.",
-						MarkdownDescription: "URL of the git repository.",
+						MarkdownDescription: gitRepositoryURLDescription,
 						Computed:            true,
 					},
 					"branch": schema.StringAttribute{
-						Description: descriptions.NewStringDefaultDescription(
-							"Branch of the git repository.",
-							applicationGitRepositoryBranchDefault,
-						),
-						MarkdownDescription: descriptions.NewStringDefaultDescription(
-							"Branch of the git repository.",
-							applicationGitRepositoryBranchDefault,
-						),
-						Optional: true,
-						Computed: true,
+						MarkdownDescription: "Branch to build.",
+						Optional:            true,
+						Computed:            true,
 					},
 					"root_path": schema.StringAttribute{
-						Description: descriptions.NewStringDefaultDescription(
-							"Root path of the application.",
-							applicationGitRepositoryRootPathDefault,
-						),
-						MarkdownDescription: descriptions.NewStringDefaultDescription(
-							"Root path of the application.",
-							applicationGitRepositoryRootPathDefault,
-						),
-						Optional: true,
-						Computed: true,
+						MarkdownDescription: gitRepositoryRootPathDescription,
+						Optional:            true,
+						Computed:            true,
 					},
 					"git_token_id": schema.StringAttribute{
-						Description:         "The git token ID to be used",
-						MarkdownDescription: "The git token ID to be used.",
+						MarkdownDescription: gitRepositoryTokenIDDescription,
 						Optional:            true,
 						Computed:            true,
 					},
 				},
 			},
 			"build_mode": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Build Mode of the application.",
-					applicationBuildModes,
-					&applicationBuildModeDefault,
-				),
-				MarkdownDescription: descriptions.NewStringEnumDescription(
-					"Build Mode of the application.",
-					applicationBuildModes,
-					&applicationBuildModeDefault,
-				),
-				Computed: true,
+				MarkdownDescription: "How Qovery builds the application: `DOCKER` or `BUILDPACKS`.",
+				Computed:            true,
 			},
 			"dockerfile_path": schema.StringAttribute{
-				Description:         "Dockerfile Path of the application. Required if build_mode is DOCKER.",
-				MarkdownDescription: "Dockerfile Path of the application.\n\t- Required if: `build_mode=\"DOCKER\"`.",
+				MarkdownDescription: dockerfilePathDescription,
 				Optional:            true,
 				Computed:            true,
 			},
 			"cpu": schema.Int64Attribute{
-				Description: descriptions.NewInt64MinDescription(
-					"CPU of the application in millicores (m) [1000m = 1 CPU].",
-					applicationCPUMin,
-					&applicationCPUDefault,
-				),
-				MarkdownDescription: descriptions.NewInt64MinDescription(
-					"CPU of the application in millicores (m) [1000m = 1 CPU].",
-					applicationCPUMin,
-					&applicationCPUDefault,
-				),
-				Optional: true,
-				Computed: true,
+				MarkdownDescription: cpuDescription("application"),
+				Optional:            true,
+				Computed:            true,
 			},
 			"memory": schema.Int64Attribute{
-				Description: descriptions.NewInt64MinDescription(
-					"RAM of the application in MB [1024MB = 1GB].",
-					applicationMemoryMin,
-					&applicationMemoryDefault,
-				),
-				MarkdownDescription: descriptions.NewInt64MinDescription(
-					"RAM of the application in MB [1024MB = 1GB].",
-					applicationMemoryMin,
-					&applicationMemoryDefault,
-				),
-				Optional: true,
-				Computed: true,
+				MarkdownDescription: memoryDescription("application"),
+				Optional:            true,
+				Computed:            true,
 				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: applicationMemoryMin},
 				},
 			},
 			"ephemeral_storage": schema.Int64Attribute{
-				Description:         "Ephemeral storage of the application in GiB. When unset, the platform default is used.",
-				MarkdownDescription: "Ephemeral storage of the application in GiB. When unset, the platform default is used.",
+				MarkdownDescription: ephemeralStorageDescription("application"),
 				Computed:            true,
 			},
 			"min_running_instances": schema.Int64Attribute{
-				Description: descriptions.NewInt64MinDescription(
-					"Minimum number of instances running for the application.",
-					applicationMinRunningInstancesMin,
-					&applicationMinRunningInstancesDefault,
-				),
-				MarkdownDescription: descriptions.NewInt64MinDescription(
-					"Minimum number of instances running for the application.",
-					applicationMinRunningInstancesMin,
-					&applicationMinRunningInstancesDefault,
-				),
-				Optional: true,
-				Computed: true,
+				MarkdownDescription: minRunningInstancesDescription("application"),
+				Optional:            true,
+				Computed:            true,
 				Validators: []validator.Int64{
 					validators.Int64MinValidator{Min: applicationMinRunningInstancesMin},
 				},
 			},
 			"max_running_instances": schema.Int64Attribute{
-				Description: descriptions.NewInt64MinDescription(
-					"Maximum number of instances running for the application.",
-					applicationMaxRunningInstancesMin,
-					&applicationMaxRunningInstancesDefault,
-				),
-				MarkdownDescription: descriptions.NewInt64MinDescription(
-					"Maximum number of instances running for the application.",
-					applicationMaxRunningInstancesMin,
-					&applicationMaxRunningInstancesDefault,
-				),
-				Optional: true,
-				Computed: true,
+				MarkdownDescription: maxRunningInstancesDescription("application"),
+				Optional:            true,
+				Computed:            true,
 			},
 			"autoscaling": autoscalingDataSourceSchema(),
 			"auto_preview": schema.BoolAttribute{
-				Description: descriptions.NewBoolDefaultDescription(
-					"Specify if the environment preview option is activated or not for this application.",
-					applicationAutoPreviewDefault,
-				),
-				MarkdownDescription: descriptions.NewBoolDefaultDescription(
-					"Specify if the environment preview option is activated or not for this application.",
-					applicationAutoPreviewDefault,
-				),
-				Optional: true,
-				Computed: true,
+				MarkdownDescription: autoPreviewDescription("application"),
+				Optional:            true,
+				Computed:            true,
 			},
 			"entrypoint": schema.StringAttribute{
-				Description:         "Entrypoint of the application.",
-				MarkdownDescription: "Entrypoint of the application.",
+				MarkdownDescription: entrypointDescription,
 				Optional:            true,
 				Computed:            true,
 			},
 			"arguments": schema.ListAttribute{
-				Description:         "List of arguments of this application.",
-				MarkdownDescription: "List of arguments of this application.",
+				MarkdownDescription: argumentsDescription,
 				Optional:            true,
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"storage": schema.SetNestedAttribute{
-				Description:         "List of storages linked to this application.",
-				MarkdownDescription: "List of storages linked to this application.",
+				MarkdownDescription: storages.List,
 				Optional:            true,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the storage.",
-							MarkdownDescription: "Id of the storage.",
+							MarkdownDescription: storages.ID,
 							Computed:            true,
 						},
 						"type": schema.StringAttribute{
-							Description: descriptions.NewStringEnumDescription(
-								"Type of the storage for the application.",
-								clientEnumToStringArray(storage.AllowedTypeValues),
-								nil,
-							),
-							MarkdownDescription: descriptions.NewStringEnumDescription(
-								"Type of the storage for the application.",
-								clientEnumToStringArray(storage.AllowedTypeValues),
-								nil,
-							),
-							Computed: true,
+							MarkdownDescription: storages.Type,
+							Computed:            true,
 						},
 						"size": schema.Int64Attribute{
-							Description: descriptions.NewInt64MinDescription(
-								"Size of the storage for the application in GB [1024MB = 1GB].",
-								applicationStorageSizeMin,
-								nil,
-							),
-							MarkdownDescription: descriptions.NewInt64MinDescription(
-								"Size of the storage for the application in GB [1024MB = 1GB].",
-								applicationStorageSizeMin,
-								nil,
-							),
-							Computed: true,
+							MarkdownDescription: storages.Size,
+							Computed:            true,
 						},
 						"mount_point": schema.StringAttribute{
-							Description:         "Mount point of the storage for the application.",
-							MarkdownDescription: "Mount point of the storage for the application.",
+							MarkdownDescription: storages.MountPoint,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"ports": schema.SetNestedAttribute{
-				Description:         "List of ports linked to this application.",
-				MarkdownDescription: "List of ports linked to this application.",
+				MarkdownDescription: ports.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the port.",
-							MarkdownDescription: "Id of the port.",
+							MarkdownDescription: ports.ID,
 							Computed:            true,
 						},
 						"name": schema.StringAttribute{
-							Description:         "Name of the port.",
-							MarkdownDescription: "Name of the port.",
+							MarkdownDescription: ports.Name,
 							Optional:            true,
 							Computed:            true,
 						},
 						"internal_port": schema.Int64Attribute{
-							Description: descriptions.NewInt64MinMaxDescription(
-								"Internal port of the application.",
-								port.MinPort,
-								port.MaxPort,
-								nil,
-							),
-							MarkdownDescription: descriptions.NewInt64MinMaxDescription(
-								"Internal port of the application.",
-								port.MinPort,
-								port.MaxPort,
-								nil,
-							),
-							Computed: true,
+							MarkdownDescription: ports.InternalPort,
+							Computed:            true,
 						},
 						"external_port": schema.Int64Attribute{
-							Description: descriptions.NewInt64MinMaxDescription(
-								"External port of the application. Required if ports.publicly_accessible is true.",
-								port.MinPort,
-								port.MaxPort,
-								nil,
-							),
-							MarkdownDescription: descriptions.NewInt64MinMaxDescription(
-								"External port of the application.\n\t- Required if: `ports.publicly_accessible=true`.",
-								port.MinPort,
-								port.MaxPort,
-								nil,
-							),
-							Computed: true,
+							MarkdownDescription: ports.ExternalPort,
+							Computed:            true,
 						},
 						"publicly_accessible": schema.BoolAttribute{
-							Description:         "Specify if the port is exposed to the world or not for this application.",
-							MarkdownDescription: "Specify if the port is exposed to the world or not for this application.",
+							MarkdownDescription: ports.PubliclyAccessible,
 							Computed:            true,
 						},
 						"protocol": schema.StringAttribute{
-							Description: descriptions.NewStringEnumDescription(
-								"Protocol used for the port of the application.",
-								clientEnumToStringArray(port.AllowedProtocolValues),
-								new(port.DefaultProtocol.String()),
-							),
-							MarkdownDescription: descriptions.NewStringEnumDescription(
-								"Protocol used for the port of the application.",
-								clientEnumToStringArray(port.AllowedProtocolValues),
-								new(port.DefaultProtocol.String()),
-							),
-							Optional: true,
-							Computed: true,
+							MarkdownDescription: ports.Protocol,
+							Optional:            true,
+							Computed:            true,
 						},
 						"is_default": schema.BoolAttribute{
-							Description:         "If this port will be used for the root domain.",
-							MarkdownDescription: "If this port will be used for the root domain.",
+							MarkdownDescription: dataSourcePortIsDefaultDescription("application"),
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"built_in_environment_variables": schema.ListNestedAttribute{
-				Description:         "List of built-in environment variables linked to this application.",
-				MarkdownDescription: "List of built-in environment variables linked to this application.",
+				MarkdownDescription: builtInEnvVars.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the environment variable.",
-							MarkdownDescription: "Id of the environment variable.",
+							MarkdownDescription: builtInEnvVars.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the environment variable.",
-							MarkdownDescription: "Key of the environment variable.",
+							MarkdownDescription: builtInEnvVars.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the environment variable.",
-							MarkdownDescription: "Value of the environment variable.",
+							MarkdownDescription: builtInEnvVars.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable.",
-							MarkdownDescription: "Description of the environment variable.",
+							MarkdownDescription: builtInEnvVars.Description,
 							Computed:            true,
 						},
 					},
@@ -381,418 +254,347 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 			},
 			// TODO (framework-migration) Extract environment variables + secrets attributes to avoid repetition everywhere (project / env / services)
 			"environment_variables": schema.SetNestedAttribute{
-				Description:         "List of environment variables linked to this application.",
-				MarkdownDescription: "List of environment variables linked to this application.",
+				MarkdownDescription: envVars.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the environment variable.",
-							MarkdownDescription: "Id of the environment variable.",
+							MarkdownDescription: envVars.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the environment variable.",
-							MarkdownDescription: "Key of the environment variable.",
+							MarkdownDescription: envVars.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the environment variable.",
-							MarkdownDescription: "Value of the environment variable.",
+							MarkdownDescription: envVars.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable.",
-							MarkdownDescription: "Description of the environment variable.",
+							MarkdownDescription: envVars.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"environment_variable_aliases": schema.SetNestedAttribute{
-				Description:         "List of environment variable aliases linked to this application.",
-				MarkdownDescription: "List of environment variable aliases linked to this application.",
+				MarkdownDescription: envVarAliases.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the environment variable alias.",
-							MarkdownDescription: "Id of the environment variable alias.",
+							MarkdownDescription: envVarAliases.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Name of the environment variable alias.",
-							MarkdownDescription: "Name of the environment variable alias.",
+							MarkdownDescription: envVarAliases.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Name of the variable to alias.",
-							MarkdownDescription: "Name of the variable to alias.",
+							MarkdownDescription: envVarAliases.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable alias.",
-							MarkdownDescription: "Description of the environment variable alias.",
+							MarkdownDescription: envVarAliases.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"environment_variable_overrides": schema.SetNestedAttribute{
-				Description:         "List of environment variable overrides linked to this application.",
-				MarkdownDescription: "List of environment variable overrides linked to this application.",
+				MarkdownDescription: envVarOverrides.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the environment variable override.",
-							MarkdownDescription: "Id of the environment variable override.",
+							MarkdownDescription: envVarOverrides.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Name of the environment variable override.",
-							MarkdownDescription: "Name of the environment variable override.",
+							MarkdownDescription: envVarOverrides.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the environment variable override.",
-							MarkdownDescription: "Value of the environment variable override.",
+							MarkdownDescription: envVarOverrides.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable override.",
-							MarkdownDescription: "Description of the environment variable override.",
+							MarkdownDescription: envVarOverrides.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"secrets": schema.SetNestedAttribute{
-				Description:         "List of secrets linked to this application.",
-				MarkdownDescription: "List of secrets linked to this application.",
+				MarkdownDescription: secrets.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the secret.",
-							MarkdownDescription: "Id of the secret.",
+							MarkdownDescription: secrets.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the secret.",
-							MarkdownDescription: "Key of the secret.",
+							MarkdownDescription: secrets.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the secret.",
-							MarkdownDescription: "Value of the secret.",
+							MarkdownDescription: secrets.Value,
 							Computed:            true,
 							Sensitive:           true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the secret.",
-							MarkdownDescription: "Description of the secret.",
+							MarkdownDescription: secrets.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"secret_aliases": schema.SetNestedAttribute{
-				Description:         "List of secret aliases linked to this application.",
-				MarkdownDescription: "List of secret aliases linked to this application.",
+				MarkdownDescription: secretAliases.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the secret alias.",
-							MarkdownDescription: "Id of the secret alias.",
+							MarkdownDescription: secretAliases.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Name of the secret alias.",
-							MarkdownDescription: "Name of the secret alias.",
+							MarkdownDescription: secretAliases.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Name of the secret to alias.",
-							MarkdownDescription: "Name of the secret to alias.",
+							MarkdownDescription: secretAliases.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the secret alias.",
-							MarkdownDescription: "Description of the secret alias.",
+							MarkdownDescription: secretAliases.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"secret_overrides": schema.SetNestedAttribute{
-				Description:         "List of secret overrides linked to this application.",
-				MarkdownDescription: "List of secret overrides linked to this application.",
+				MarkdownDescription: secretOverrides.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the secret override.",
-							MarkdownDescription: "Id of the secret override.",
+							MarkdownDescription: secretOverrides.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Name of the secret override.",
-							MarkdownDescription: "Name of the secret override.",
+							MarkdownDescription: secretOverrides.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the secret override.",
-							MarkdownDescription: "Value of the secret override.",
+							MarkdownDescription: secretOverrides.Value,
 							Computed:            true,
 							Sensitive:           true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the secret override.",
-							MarkdownDescription: "Description of the secret override.",
+							MarkdownDescription: secretOverrides.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"environment_variable_files": schema.SetNestedAttribute{
-				Description:         "List of environment variable files linked to this application.",
-				MarkdownDescription: "List of environment variable files linked to this application.",
+				MarkdownDescription: envVarFiles.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the environment variable file.",
-							MarkdownDescription: "Id of the environment variable file.",
+							MarkdownDescription: envVarFiles.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the environment variable file.",
-							MarkdownDescription: "Key of the environment variable file.",
+							MarkdownDescription: envVarFiles.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the environment variable file.",
-							MarkdownDescription: "Value of the environment variable file.",
+							MarkdownDescription: envVarFiles.Value,
 							Computed:            true,
 						},
 						"mount_path": schema.StringAttribute{
-							Description:         "Mount path of the environment variable file.",
-							MarkdownDescription: "Mount path of the environment variable file.",
+							MarkdownDescription: envVarFiles.MountPath,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable file.",
-							MarkdownDescription: "Description of the environment variable file.",
+							MarkdownDescription: envVarFiles.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"secret_files": schema.SetNestedAttribute{
-				Description:         "List of secret files linked to this application.",
-				MarkdownDescription: "List of secret files linked to this application.",
+				MarkdownDescription: secretFiles.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the secret file.",
-							MarkdownDescription: "Id of the secret file.",
+							MarkdownDescription: secretFiles.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the secret file.",
-							MarkdownDescription: "Key of the secret file.",
+							MarkdownDescription: secretFiles.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the secret file.",
-							MarkdownDescription: "Value of the secret file.",
+							MarkdownDescription: secretFiles.Value,
 							Computed:            true,
 							Sensitive:           true,
 						},
 						"mount_path": schema.StringAttribute{
-							Description:         "Mount path of the secret file.",
-							MarkdownDescription: "Mount path of the secret file.",
+							MarkdownDescription: secretFiles.MountPath,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the secret file.",
-							MarkdownDescription: "Description of the secret file.",
+							MarkdownDescription: secretFiles.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"external_secrets": schema.SetNestedAttribute{
-				Description:         "List of external secrets linked to this application.",
-				MarkdownDescription: "List of external secrets linked to this application.",
+				MarkdownDescription: externalSecrets.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description: "Id of the external secret.",
-							Computed:    true,
+							MarkdownDescription: externalSecrets.ID,
+							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description: "Name of the external secret.",
-							Computed:    true,
+							MarkdownDescription: externalSecrets.Key,
+							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description: "Description of the external secret.",
-							Computed:    true,
+							MarkdownDescription: externalSecrets.Description,
+							Computed:            true,
 						},
 						"reference": schema.StringAttribute{
-							Description: "Reference to the upstream secret.",
-							Computed:    true,
+							MarkdownDescription: externalSecrets.Reference,
+							Computed:            true,
 						},
 						"secret_manager_access_id": schema.StringAttribute{
-							Description: "Id of the secret manager access.",
-							Computed:    true,
+							MarkdownDescription: externalSecrets.SecretManagerAccessID,
+							Computed:            true,
 						},
 					},
 				},
 			},
 			"external_secret_files": schema.SetNestedAttribute{
-				Description:         "List of external secret files linked to this application.",
-				MarkdownDescription: "List of external secret files linked to this application.",
+				MarkdownDescription: externalSecretFiles.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"id":                       schema.StringAttribute{Computed: true},
-						"key":                      schema.StringAttribute{Computed: true},
-						"description":              schema.StringAttribute{Computed: true},
-						"mount_path":               schema.StringAttribute{Computed: true},
-						"reference":                schema.StringAttribute{Computed: true},
-						"secret_manager_access_id": schema.StringAttribute{Computed: true},
+						"id":                       schema.StringAttribute{MarkdownDescription: externalSecretFiles.ID, Computed: true},
+						"key":                      schema.StringAttribute{MarkdownDescription: externalSecretFiles.Key, Computed: true},
+						"description":              schema.StringAttribute{MarkdownDescription: externalSecretFiles.Description, Computed: true},
+						"mount_path":               schema.StringAttribute{MarkdownDescription: externalSecretFiles.MountPath, Computed: true},
+						"reference":                schema.StringAttribute{MarkdownDescription: externalSecretFiles.Reference, Computed: true},
+						"secret_manager_access_id": schema.StringAttribute{MarkdownDescription: externalSecretFiles.SecretManagerAccessID, Computed: true},
 					},
 				},
 			},
 			"healthchecks": healthchecksSchemaAttributes(false),
 			"custom_domains": schema.SetNestedAttribute{
-				Description:         "List of custom domains linked to this application.",
-				MarkdownDescription: "List of custom domains linked to this application.",
+				MarkdownDescription: customDomains.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the custom domain.",
-							MarkdownDescription: "Id of the custom domain.",
+							MarkdownDescription: customDomains.ID,
 							Computed:            true,
 						},
 						"domain": schema.StringAttribute{
-							Description:         "Your custom domain.",
-							MarkdownDescription: "Your custom domain.",
+							MarkdownDescription: customDomains.Domain,
 							Computed:            true,
 						},
 						"generate_certificate": schema.BoolAttribute{
-							Description:         "Qovery will generate and manage the certificate for this domain.",
-							MarkdownDescription: "Qovery will generate and manage the certificate for this domain.",
+							MarkdownDescription: customDomains.GenerateCertificate,
 							Optional:            true,
 						},
 						"use_cdn": schema.BoolAttribute{
-							Description: "Indicates if the custom domain is behind a CDN (i.e Cloudflare). " +
-								"This will condition the way we are checking CNAME before and during a deployment: " +
-								"if true then we only check the domain points to an IP, " +
-								"if false then we check that the domain resolves to the correct service Load Balancer.",
-							MarkdownDescription: "Indicates if the custom domain is behind a CDN (i.e Cloudflare).\n" +
-								"This will condition the way we are checking CNAME before & during a deployment:\n" +
-								" * If `true` then we only check the domain points to an IP\n" +
-								" * If `false` then we check that the domain resolves to the correct service Load Balancer",
-							Optional: true,
+							MarkdownDescription: customDomains.UseCDN,
+							Optional:            true,
 						},
 						"validation_domain": schema.StringAttribute{
-							Description:         "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
-							MarkdownDescription: "URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.",
+							MarkdownDescription: customDomains.ValidationDomain,
 							Computed:            true,
 						},
 						"status": schema.StringAttribute{
-							Description:         "Status of the custom domain.",
-							MarkdownDescription: "Status of the custom domain.",
+							MarkdownDescription: customDomains.Status,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"external_host": schema.StringAttribute{
-				Description:         "The application external FQDN host [NOTE: only if your application is using a publicly accessible port].",
-				MarkdownDescription: "The application external FQDN host. Only available if your application is using a publicly accessible port.",
+				MarkdownDescription: externalHostDescription("application"),
 				Computed:            true,
 			},
 			"internal_host": schema.StringAttribute{
-				Description:         "The application internal host.",
-				MarkdownDescription: "The application internal host.",
+				MarkdownDescription: internalHostDescription("application"),
 				Computed:            true,
 			},
 			"deployment_stage_id": schema.StringAttribute{
-				Description:         "Id of the deployment stage.",
-				MarkdownDescription: "Id of the deployment stage.",
+				MarkdownDescription: deploymentStageIDDescription,
 				Optional:            true,
 				Computed:            true,
 			},
 			"is_skipped": schema.BoolAttribute{
-				Description:         "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
-				MarkdownDescription: "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
+				MarkdownDescription: isSkippedDescription,
 				Optional:            true,
 				Computed:            true,
 			},
 			"advanced_settings_json": schema.StringAttribute{
-				Description:         "Advanced settings.",
-				MarkdownDescription: "Advanced settings.",
+				MarkdownDescription: dataSourceAdvancedSettingsJSONDescription("application"),
 				Optional:            true,
 				Computed:            true,
 			},
 			"auto_deploy": schema.BoolAttribute{
-				Description:         "Specify if the application will be automatically updated after receiving a new image tag.",
-				MarkdownDescription: "Specify if the application will be automatically updated after receiving a new image tag.",
+				MarkdownDescription: applicationAutoDeployDescription,
 				Optional:            true,
 				Computed:            true,
 			},
 			"deployment_restrictions": schema.SetNestedAttribute{
-				Description:         "List of deployment restrictions.",
-				MarkdownDescription: "List of deployment restrictions.",
+				MarkdownDescription: restrictions.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the deployment restriction.",
-							MarkdownDescription: "Id of the deployment restriction.",
+							MarkdownDescription: restrictions.ID,
 							Computed:            true,
 						},
 						"mode": schema.StringAttribute{
-							Description:         "Can be EXCLUDE or MATCH.",
-							MarkdownDescription: "Can be `EXCLUDE` or `MATCH`.",
+							MarkdownDescription: restrictions.Mode,
 							Computed:            true,
 						},
 						"type": schema.StringAttribute{
-							Description:         "Currently, only PATH is accepted.",
-							MarkdownDescription: "Currently, only `PATH` is accepted.",
+							MarkdownDescription: restrictions.Type,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the deployment restriction.",
-							MarkdownDescription: "Value of the deployment restriction.",
+							MarkdownDescription: restrictions.Value,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"annotations_group_ids": schema.SetAttribute{
-				Description:         "List of annotations group ids.",
-				MarkdownDescription: "List of annotations group ids.",
+				MarkdownDescription: dataSourceGroupIDsDescription("annotations", "application"),
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"labels_group_ids": schema.SetAttribute{
-				Description:         "List of labels group ids.",
-				MarkdownDescription: "List of labels group ids.",
+				MarkdownDescription: dataSourceGroupIDsDescription("labels", "application"),
 				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"docker_target_build_stage": schema.StringAttribute{
-				Description:         "The target build stage in the Dockerfile to build.",
-				MarkdownDescription: "The target build stage in the Dockerfile to build.",
+				MarkdownDescription: dockerTargetBuildStageDescription,
 				Optional:            true,
 			},
 		},

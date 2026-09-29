@@ -48,129 +48,103 @@ type ProbeExec struct {
 
 func healthchecksSchemaAttributes(required bool) schema.Attribute {
 	return schema.SingleNestedAttribute{
-		Description: "Configuration for the healthchecks that are going to be executed against your service",
-		MarkdownDescription: "Configuration for the healthchecks that are going to be executed against your service. " +
-			"At least one of `readiness_probe` or `liveness_probe` should be configured for production workloads.",
-		Required: required,
-		Optional: !required,
+		MarkdownDescription: "Readiness and liveness probes of the service. `healthchecks = {}` sets none; production workloads should set at least one.",
+		Required:            required,
+		Optional:            !required,
 		Attributes: map[string]schema.Attribute{
 			"readiness_probe": schema.SingleNestedAttribute{
-				Description: "Configuration for the readiness probe, in order to know when your service is ready to receive traffic. Failing the probe means your service will stop receiving traffic.",
-				MarkdownDescription: "Configuration for the readiness probe, used to determine when your service is ready to receive traffic. " +
-					"If the readiness probe fails, the service is temporarily removed from the load balancer until it passes again.",
-				Optional:   true,
-				Attributes: probeSchemaAttributes(),
+				MarkdownDescription: "Probe that decides when the service receives traffic: while it fails, the service is out of the load balancer.",
+				Optional:            true,
+				Attributes:          probeSchemaAttributes(),
 			},
 			"liveness_probe": schema.SingleNestedAttribute{
-				Description: "Configuration for the liveness probe, in order to know when your service is working correctly. Failing the probe means your service being killed/ask to be restarted.",
-				MarkdownDescription: "Configuration for the liveness probe, used to determine when your service is working correctly. " +
-					"If the liveness probe fails, the service container is killed and restarted.",
-				Optional:   true,
-				Attributes: probeSchemaAttributes(),
+				MarkdownDescription: "Probe that decides whether the service works: when it fails, the container restarts.",
+				Optional:            true,
+				Attributes:          probeSchemaAttributes(),
 			},
 		},
 	}
 }
 
 func probeSchemaAttributes() map[string]schema.Attribute {
+	const probePortDescription = "Port to check."
 	return map[string]schema.Attribute{
 		"initial_delay_seconds": schema.Int64Attribute{
-			Description: "Number of seconds to wait before the first execution of the probe to be trigerred",
-			MarkdownDescription: "Number of seconds to wait after the container starts before the first probe is executed. " +
-				"Use this to give your application time to initialize.",
-			Required: true,
+			MarkdownDescription: "Seconds to wait after the container starts before the first probe.",
+			Required:            true,
 		},
 		"period_seconds": schema.Int64Attribute{
-			Description:         "Number of seconds before each execution of the probe",
-			MarkdownDescription: "How often (in seconds) to perform the probe after the initial delay.",
+			MarkdownDescription: "Seconds between two probes.",
 			Required:            true,
 		},
 		"timeout_seconds": schema.Int64Attribute{
-			Description:         "Number of seconds within which the check need to respond before declaring it as a failure",
-			MarkdownDescription: "Number of seconds after which the probe times out. If the probe does not respond within this time, it is considered failed.",
+			MarkdownDescription: "Seconds after which a probe that has not answered fails.",
 			Required:            true,
 		},
 		"success_threshold": schema.Int64Attribute{
-			Description:         "Number of time the probe should success before declaring a failed probe as ok again",
-			MarkdownDescription: "Minimum consecutive successes for the probe to be considered successful after a failure.",
+			MarkdownDescription: "Consecutive successes after a failure for the probe to pass.",
 			Required:            true,
 		},
 		"failure_threshold": schema.Int64Attribute{
-			Description:         "Number of time the an ok probe should fail before declaring it as failed",
-			MarkdownDescription: "Number of consecutive failures required to declare the probe as failed.",
+			MarkdownDescription: "Consecutive failures for the probe to fail.",
 			Required:            true,
 		},
 		"type": schema.SingleNestedAttribute{
-			Description:         "Kind of check to run for this probe. There can only be one configured at a time",
-			MarkdownDescription: "Kind of check to run for this probe. Exactly one of `tcp`, `http`, `grpc`, or `exec` must be configured.",
+			MarkdownDescription: "Check the probe runs: set exactly one of `tcp`, `http`, `grpc` and `exec`.",
 			Required:            true,
 			Attributes: map[string]schema.Attribute{
 				"tcp": schema.SingleNestedAttribute{
-					Description:         "Check that the given port accepting connection",
-					MarkdownDescription: "TCP probe: checks that a TCP connection can be established on the given port.",
+					MarkdownDescription: "Opens a TCP connection to `port`.",
 					Optional:            true,
 					Attributes: map[string]schema.Attribute{
 						"port": schema.Int64Attribute{
-							Description:         "The port number to try to connect to",
-							MarkdownDescription: "The port number to try to connect to.",
+							MarkdownDescription: probePortDescription,
 							Required:            true,
 						},
 						"host": schema.StringAttribute{
-							Description:         "Optional. If the host need to be different than localhost/pod ip",
-							MarkdownDescription: "Optional host to connect to. Defaults to the pod IP if not specified.",
+							MarkdownDescription: "Host to connect to. Defaults to the pod IP.",
 							Optional:            true,
 						},
 					},
 				},
 				"http": schema.SingleNestedAttribute{
-					Description:         "Check that the given port respond to HTTP call (should return a 2xx response code)",
-					MarkdownDescription: "HTTP probe: sends an HTTP GET request and expects a 2xx response code.",
+					MarkdownDescription: "Sends an HTTP GET request to `port` and passes on a status code from 200 to 399.",
 					Optional:            true,
 					Attributes: map[string]schema.Attribute{
 						"port": schema.Int64Attribute{
-							Description:         "The port number to try to connect to",
-							MarkdownDescription: "The port number to try to connect to.",
+							MarkdownDescription: probePortDescription,
 							Required:            true,
 						},
 						"path": schema.StringAttribute{
-							Description:         "The path that the HTTP GET request. By default it is `/`",
-							MarkdownDescription: "The path for the HTTP GET request (e.g. `/health`, `/ready`). Defaults to `/`.",
+							MarkdownDescription: "Path of the request, for example `/health`. Defaults to `/`.",
 							Optional:            true,
 						},
 						"scheme": schema.StringAttribute{
-							Description:         "if the HTTP GET request should be done in HTTP or HTTPS.",
-							MarkdownDescription: "Scheme to use for the HTTP request. Must be `HTTP` or `HTTPS`.",
+							MarkdownDescription: "Scheme of the request: `HTTP` or `HTTPS`.",
 							Required:            true,
 						},
 					},
 				},
 				"grpc": schema.SingleNestedAttribute{
-					Description: "Check that the given port respond to GRPC call",
-					MarkdownDescription: "gRPC probe: checks that the given port responds to gRPC health check requests. " +
-						"The service must implement the [gRPC Health Checking Protocol](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe).",
-					Optional: true,
+					MarkdownDescription: "Calls the [gRPC health checking protocol](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe) on `port`.",
+					Optional:            true,
 					Attributes: map[string]schema.Attribute{
 						"port": schema.Int64Attribute{
-							Description:         "The port number to try to connect to",
-							MarkdownDescription: "The port number to try to connect to.",
+							MarkdownDescription: probePortDescription,
 							Required:            true,
 						},
 						"service": schema.StringAttribute{
-							Description:         "The grpc service to connect to. It needs to implement grpc health protocol. https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe",
-							MarkdownDescription: "The gRPC service name to health-check. If not specified, the overall server health is checked.",
+							MarkdownDescription: "gRPC service to check. Defaults to the health of the whole server.",
 							Optional:            true,
 						},
 					},
 				},
 				"exec": schema.SingleNestedAttribute{
-					Description: "Check that the given command return an exit 0. Binary should be present in the image",
-					MarkdownDescription: "Exec probe: runs a command inside the container. The probe succeeds if the command exits with status code 0. " +
-						"The command binary must be present in the container image.",
-					Optional: true,
+					MarkdownDescription: "Runs a command in the container, and passes when it exits with `0`.",
+					Optional:            true,
 					Attributes: map[string]schema.Attribute{
 						"command": schema.ListAttribute{
-							Description:         "The command and its arguments to exec",
-							MarkdownDescription: "The command and its arguments to execute (e.g. `[\"cat\", \"/tmp/healthy\"]`).",
+							MarkdownDescription: "Command and its arguments, for example `[\"cat\", \"/tmp/healthy\"]`.",
 							Required:            true,
 							ElementType:         types.StringType,
 						},

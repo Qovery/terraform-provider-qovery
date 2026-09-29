@@ -1,28 +1,21 @@
 # qovery_annotations_group (Resource)
 
-Provides a Qovery annotations group resource. This can be used to create and manage Qovery annotations groups.
-
-Annotations groups allow you to define reusable sets of Kubernetes annotations at the organization level. These groups can then be attached to Qovery services (applications, containers, jobs, Helm charts) to automatically apply consistent Kubernetes annotations across your deployments. Unlike labels, annotations are scoped to specific Kubernetes resource types (e.g. pods, deployments, services).
+Manages a Qovery annotations group: a reusable set of Kubernetes annotations that services of the organization attach with `annotations_group_ids`.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
-
 ```terraform
 resource "qovery_annotations_group" "my_annotations_group" {
   organization_id = qovery_organization.my_organization.id
-  name            = "MyAnnotationsGroup"
+  name            = "prometheus-scraping"
 
   annotations = {
     "prometheus.io/scrape" = "true"
     "prometheus.io/port"   = "8080"
   }
 
-  # Annotations will be applied to pods and deployments
-  scopes = ["PODS", "DEPLOYMENTS"]
+  scopes = ["PODS"]
 }
 ```
 
@@ -31,15 +24,16 @@ resource "qovery_annotations_group" "my_annotations_group" {
 
 ### Required
 
-- `annotations` (Map of String) Map of annotation key-value pairs to include in this group. Keys and values must conform to Kubernetes annotation constraints.
-- `name` (String) Name of the annotations group. Must be unique within the organization.
-- `organization_id` (String) Id of the organization. **Cannot be changed after creation** (forces resource replacement).
-- `scopes` (Set of String) Set of Kubernetes resource types to which these annotations will be applied. Valid values are: `PODS`, `DEPLOYMENTS`, `STATEFUL_SETS`, `SERVICES`, `INGRESS`, `HPA`, `SECRETS`, `JOBS`, `CRON_JOBS`.
+- `annotations` (Map of String) Kubernetes annotations of the group, as a map of key to value.
+- `name` (String) Name of the annotations group.
+- `organization_id` (String) ID of the organization. Changing it recreates the annotations group.
+- `scopes` (Set of String) Kubernetes resources the annotations apply to.
+	- Can be: `CRON_JOBS`, `DEPLOYMENTS`, `GATEWAY_API_ROUTES`, `HPA`, `INGRESS`, `JOBS`, `PODS`, `SECRETS`, `SERVICES`, `STATEFUL_SETS`.
 
 ### Read-Only
 
-- `id` (String) Unique identifier of the annotations group (UUID format).
+- `id` (String) ID of the annotations group.
 ## Import
 ```shell
-terraform import qovery_annotations_group.my_qovery_annotations_group "<annotations_group_id>"
+terraform import qovery_annotations_group.my_annotations_group "<annotations_group_id>"
 ```

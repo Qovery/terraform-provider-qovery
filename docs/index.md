@@ -7,7 +7,7 @@ The provider needs to be configured with the proper credentials before it can be
 
 The provider is tested against Terraform 1.15. Earlier versions are expected to work but are not tested.
 
-Upgrading from a 0.x release? Read the [1.0 upgrade guide](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/upgrade-to-1.0) first.
+Upgrading from an earlier version? Read the [upgrade guide](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/upgrade-to-1.0) first. The [Managing changes](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes) guide explains how the provider plans changes.
 
 ## Authentication
 
@@ -39,10 +39,8 @@ terraform {
   }
 }
 
-# Configure the Qovery provider
-provider "qovery" {
-  token = "<your-qovery-token>"
-}
+# The provider reads the API token from the QOVERY_API_TOKEN environment variable.
+provider "qovery" {}
 ```
 
 ## Resource Categories
@@ -110,4 +108,4 @@ provider "qovery" {
 
 ### Optional
 
-- `token` (String, Sensitive) The Qovery API Token to use. This can also be specified with the `QOVERY_API_TOKEN` environment variable. To generate a token, navigate to your [Qovery Console](https://console.qovery.com) > Settings > API Tokens.
+- `token` (String, Sensitive) Qovery API token, read from the `QOVERY_API_TOKEN` environment variable when omitted. Create one in the [Qovery Console](https://console.qovery.com), under Settings > API Tokens.

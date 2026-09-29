@@ -1,26 +1,15 @@
 # qovery_cluster_dns_provider (Resource)
 
-Provides a Qovery cluster DNS provider resource. Declare this resource only when Terraform must explicitly manage the cluster DNS provider.
+Manages the DNS provider of a Qovery cluster.
+
+~> **Note:** Destroying this resource only removes it from the Terraform state: the cluster keeps its DNS provider.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
-
 ```terraform
-# Choose one DNS provider resource per cluster.
-
-# Qovery DNS provider: use the domain returned by the Qovery API/import for this cluster.
-resource "qovery_cluster_dns_provider" "qovery" {
-  cluster_id    = qovery_cluster.my_cluster.id
-  provider_type = "QOVERY"
-  domain        = "my-cluster.qovery.dev"
-}
-
-# Cloudflare DNS provider.
-resource "qovery_cluster_dns_provider" "cloudflare" {
+# A cluster has a single DNS provider: declare one qovery_cluster_dns_provider per cluster.
+resource "qovery_cluster_dns_provider" "my_cluster_dns_provider" {
   cluster_id    = qovery_cluster.my_cluster.id
   provider_type = "CLOUDFLARE"
   domain        = "example.com"
@@ -28,25 +17,6 @@ resource "qovery_cluster_dns_provider" "cloudflare" {
   cloudflare = {
     email     = "admin@example.com"
     api_token = var.cloudflare_api_token
-    proxied   = false
-  }
-}
-
-# Route53 DNS provider.
-resource "qovery_cluster_dns_provider" "route53" {
-  cluster_id    = qovery_cluster.my_cluster.id
-  provider_type = "ROUTE53"
-  domain        = "example.com"
-
-  route53 = {
-    credentials = {
-      type                  = "STATIC"
-      aws_access_key_id     = var.aws_access_key_id
-      aws_secret_access_key = var.aws_secret_access_key
-    }
-
-    aws_region     = "eu-west-3"
-    hosted_zone_id = "Z0965488LE74BWDEVQDB"
   }
 }
 ```
@@ -56,31 +26,31 @@ resource "qovery_cluster_dns_provider" "route53" {
 
 ### Required
 
-- `cluster_id` (String) Id of the cluster whose DNS provider is managed by this resource.
-- `domain` (String) DNS domain associated with the cluster.
-- `provider_type` (String) DNS provider type.
-	- Can be: `CLOUDFLARE`, `QOVERY`, `ROUTE53`.
+- `cluster_id` (String) ID of the cluster. Changing it recreates the cluster DNS provider.
+- `domain` (String) DNS domain of the cluster.
+- `provider_type` (String) DNS provider of the cluster: `QOVERY` for the DNS Qovery manages, or `CLOUDFLARE` or `ROUTE53` with the block of the same name.
 
 ### Optional
 
-- `cloudflare` (Attributes) Cloudflare DNS provider configuration. Required when `provider_type` is `CLOUDFLARE`. (see [below for nested schema](#nestedatt--cloudflare))
-- `route53` (Attributes) Route53 DNS provider configuration. Required when `provider_type` is `ROUTE53`. (see [below for nested schema](#nestedatt--route53))
+- `cloudflare` (Attributes) Cloudflare configuration. Required when `provider_type` is `CLOUDFLARE`. (see [below for nested schema](#nestedatt--cloudflare))
+- `route53` (Attributes) Route53 configuration. Required when `provider_type` is `ROUTE53`. (see [below for nested schema](#nestedatt--route53))
 
 ### Read-Only
 
-- `id` (String) Id of the cluster DNS provider resource. This is the cluster id.
+- `id` (String) ID of the resource, equal to `cluster_id`.
 
 <a id="nestedatt--cloudflare"></a>
 ### Nested Schema for `cloudflare`
 
 Required:
 
-- `email` (String) Cloudflare account email.
+- `email` (String) Email of the Cloudflare account.
 
 Optional:
 
-- `api_token` (String, Sensitive) Cloudflare API token. This value must be provided on create and update and is not returned by the Qovery API.
-- `proxied` (Boolean) Whether Cloudflare proxying is enabled.
+- `api_token` (String, Sensitive) Cloudflare API token. Omitting it fails at plan time.
+- `proxied` (Boolean) Whether Cloudflare proxies the DNS records of the cluster.
+	- Default: `false`.
 
 
 <a id="nestedatt--route53"></a>
@@ -89,24 +59,24 @@ Optional:
 Required:
 
 - `aws_region` (String) AWS region.
-- `credentials` (Attributes) Route53 credentials. (see [below for nested schema](#nestedatt--route53--credentials))
+- `credentials` (Attributes) AWS credentials Qovery uses to manage the Route53 records. (see [below for nested schema](#nestedatt--route53--credentials))
 
 Optional:
 
-- `hosted_zone_id` (String) Route53 hosted zone id.
+- `hosted_zone_id` (String) ID of the Route53 hosted zone.
 
 <a id="nestedatt--route53--credentials"></a>
 ### Nested Schema for `route53.credentials`
 
 Required:
 
-- `aws_access_key_id` (String) AWS access key id.
-- `type` (String) Route53 credentials type. Only `STATIC` is supported.
+- `aws_access_key_id` (String) AWS access key ID.
+- `type` (String) Type of the credentials. Only `STATIC` is supported.
 
 Optional:
 
-- `aws_secret_access_key` (String, Sensitive) AWS secret access key. This value must be provided on create and update and is not returned by the Qovery API.
+- `aws_secret_access_key` (String, Sensitive) AWS secret access key. Omitting it fails at plan time.
 ## Import
 ```shell
-terraform import qovery_cluster_dns_provider.this "<cluster_id>"
+terraform import qovery_cluster_dns_provider.my_cluster_dns_provider "<cluster_id>"
 ```

@@ -1,36 +1,22 @@
 # qovery_blueprint (Resource)
 
-Provides a Qovery blueprint resource: a service instantiated from the Qovery service catalog (e.g. a managed database). Qovery materializes the blueprint as a terraform or helm service, exposed as `service_id`. Every update is saved then applied, which redeploys that service. The API returns neither `spec_overrides` nor the values of `secret_variables`, so changes made to them outside Terraform are not detected.
+Manages a Qovery blueprint: a service created from the Qovery service catalog, such as a managed database, that runs as the terraform or helm service `service_id`. Every change redeploys that service.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
-
 ```terraform
-resource "qovery_blueprint" "my_postgres" {
-  # Required
+resource "qovery_blueprint" "my_blueprint" {
   environment_id = qovery_environment.my_environment.id
-  name           = "my-postgres"
-  blueprint      = "AWS/postgres/17"
+  name           = "my-redis"
+  blueprint      = "HELM/redis/8"
 
-  # Optional
-  icon_uri = "app://qovery-console/postgresql"
   variables = {
-    db_name           = "app"
-    instance_class    = "db.t3.micro"
-    allocated_storage = "20"
+    memory_limit = "1Gi"
   }
   secret_variables = {
-    db_password = var.db_password
+    password = var.redis_password
   }
-  spec_overrides = {
-    engine_version = "1.13.3"
-    timeout        = 3600
-  }
-  deploy = true
 }
 ```
 
@@ -39,25 +25,27 @@ resource "qovery_blueprint" "my_postgres" {
 
 ### Required
 
-- `blueprint` (String) Catalog entry to instantiate, as `<provider>/<service_family>/<service_version>`, e.g. `AWS/postgres/17`. Changing the service version upgrades the service in place; changing the provider or the service family replaces it.
-- `environment_id` (String) Id of the environment.
-- `name` (String) Name of the blueprint service.
+- `blueprint` (String) Catalog entry of the blueprint, as `<provider>/<service_family>/<service_version>`, for example `AWS/postgres/17`. Changing the version upgrades the service in place, and changing the provider or the family recreates the blueprint.
+- `environment_id` (String) ID of the environment. Changing it recreates the blueprint.
+- `name` (String) Name of the blueprint.
 
 ### Optional
 
-- `deploy` (Boolean) Whether to deploy the service on creation. Defaults to `true`. Later changes to any other attribute redeploy the service; changing `deploy` alone does not.
-- `icon_uri` (String) Icon URI of the blueprint service, set when the blueprint is created. Defaults to `app://qovery-console/terraform`. The Qovery API cannot change it afterwards, so a change is rejected at plan time: change the icon from the Qovery Console, then set the same value here.
-- `secret_variables` (Map of String, Sensitive) Secret blueprint variables, keyed by name. The API never returns their values.
-- `spec_overrides` (Attributes) Overrides of the engine settings of the blueprint manifest. (see [below for nested schema](#nestedatt--spec_overrides))
-- `variables` (Map of String) Blueprint variables, keyed by name. Variables left out get their catalog default: a variable set outside Terraform to another value shows in the plan, and the next apply resets it.
+- `deploy` (Boolean) Whether Qovery deploys the service when it creates the blueprint. Changing only `deploy` later does not redeploy.
+	- Default: `true`.
+- `icon_uri` (String) Icon of the blueprint in the Qovery Console. It can only be set at creation: changing it fails at plan time.
+	- Default: `app://qovery-console/terraform`.
+- `secret_variables` (Map of String, Sensitive) Secret variables of the blueprint, as a map of name to value.
+- `spec_overrides` (Attributes) Overrides of the engine settings of the blueprint manifest. The API does not return them, so a change made outside Terraform does not show up in the plan. (see [below for nested schema](#nestedatt--spec_overrides))
+- `variables` (Map of String) Variables of the blueprint, as a map of name to value. Omitted variables use their catalog default.
 
 ### Read-Only
 
 - `catalog_url` (String) URL of the blueprint catalog entry.
-- `id` (String) Id of the blueprint.
-- `service_id` (String) Id of the terraform or helm service the blueprint materialized.
-- `service_type` (String) Type of the service the blueprint materialized: `TERRAFORM` or `HELM`.
-- `tag` (String) Catalog tag deployed, e.g. `AWS/postgres/17/4.1.0`. Always the latest release of `blueprint`: when the catalog publishes a new one, the next apply upgrades the service to it.
+- `id` (String) ID of the blueprint.
+- `service_id` (String) ID of the terraform or helm service that runs the blueprint.
+- `service_type` (String) Type of the service that runs the blueprint: `TERRAFORM` or `HELM`.
+- `tag` (String) Catalog release of the blueprint, for example `AWS/postgres/17/4.1.0`. Always the latest release of `blueprint`: when the catalog publishes a new one, the next apply upgrades the service.
 
 <a id="nestedatt--spec_overrides"></a>
 ### Nested Schema for `spec_overrides`
@@ -65,16 +53,16 @@ resource "qovery_blueprint" "my_postgres" {
 Optional:
 
 - `backend` (String) Where the Terraform state is stored: `qovery` or `user_provided`.
-- `cpu` (String) CPU of the apply job pod, e.g. `500m`.
-- `credentials` (String) How the apply job authenticates to the cloud provider: `cluster` reuses the cluster credentials, `env` expects credentials as environment variables.
-- `engine_version` (String) Terraform or OpenTofu version of the apply job. Must be one of the versions the manifest allows.
-- `ram` (String) Memory of the apply job pod, e.g. `512Mi`.
-- `storage` (String) Ephemeral storage of the apply job pod, e.g. `1Gi`.
-- `timeout` (Number) Maximum duration in seconds of an apply job.
+- `cpu` (String) CPU of the apply job pod, as a Kubernetes quantity, for example `500m`.
+- `credentials` (String) How the apply job authenticates to the cloud provider: `cluster` uses the cluster credentials, `env` reads them from environment variables.
+- `engine_version` (String) Terraform or OpenTofu version of the apply job. Must be a version the blueprint manifest allows.
+- `ram` (String) Memory of the apply job pod, as a Kubernetes quantity, for example `512Mi`.
+- `storage` (String) Ephemeral storage of the apply job pod, as a Kubernetes quantity, for example `1Gi`.
+- `timeout` (Number) Maximum duration of an apply job, in seconds.
 ## Import
 ```shell
 # Import uses the blueprint ID, which the Helm or Terraform service it materialized reports as blueprint_id.
 # The API returns neither the values of secret_variables nor spec_overrides: they stay null in the state after an import,
 # so the first apply writes the values of the configuration and redeploys the service.
-terraform import qovery_blueprint.my_postgres "<blueprint_id>"
+terraform import qovery_blueprint.my_blueprint "<blueprint_id>"
 ```

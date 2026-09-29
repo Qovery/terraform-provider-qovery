@@ -51,55 +51,41 @@ func (r *labelsGroupResource) Configure(_ context.Context, req resource.Configur
 
 func (r labelsGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery labels group resource. This can be used to create and manage Qovery labels groups. " +
-			"Labels groups allow you to define reusable sets of Kubernetes labels at the organization level. " +
-			"These groups can then be attached to Qovery services (applications, containers, jobs, Helm charts) " +
-			"to automatically apply consistent Kubernetes labels across your deployments.",
-		MarkdownDescription: "Provides a Qovery labels group resource. This can be used to create and manage Qovery labels groups.\n\n" +
-			"Labels groups allow you to define reusable sets of Kubernetes labels at the organization level. " +
-			"These groups can then be attached to Qovery services (applications, containers, jobs, Helm charts) " +
-			"to automatically apply consistent Kubernetes labels across your deployments.",
+		MarkdownDescription: "Manages a Qovery labels group: a reusable set of Kubernetes labels that services of the organization attach with `labels_group_ids`.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the labels group (UUID format).",
-				MarkdownDescription: "Unique identifier of the labels group (UUID format).",
+				MarkdownDescription: idDescription("labels group"),
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "Id of the organization. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: organizationIDDescription + recreatesOnChange("labels group"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the labels group. Must be unique within the organization.",
-				MarkdownDescription: "Name of the labels group. Must be unique within the organization.",
+				MarkdownDescription: nameDescription("labels group"),
 				Required:            true,
 			},
 			"labels": schema.SetNestedAttribute{
-				Description:         "Set of labels to include in this group. Each label consists of a key, value, and propagation setting.",
-				MarkdownDescription: "Set of labels to include in this group. Each label consists of a key, value, and propagation setting.",
+				MarkdownDescription: labelsGroupLabelsDescription,
 				Required:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"key": schema.StringAttribute{
-							Description:         "Key of the label. Must conform to Kubernetes label key constraints.",
-							MarkdownDescription: "Key of the label. Must conform to Kubernetes label key constraints.",
+							MarkdownDescription: labelsGroupLabelKeyDescription,
 							Required:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the label. Must conform to Kubernetes label value constraints.",
-							MarkdownDescription: "Value of the label. Must conform to Kubernetes label value constraints.",
+							MarkdownDescription: labelsGroupLabelValueDescription,
 							Required:            true,
 						},
 						"propagate_to_cloud_provider": schema.BoolAttribute{
-							Description:         "Whether this label should be propagated to the underlying cloud provider resources (e.g. AWS tags, GCP labels). Set to true to tag cloud resources with this label.",
-							MarkdownDescription: "Whether this label should be propagated to the underlying cloud provider resources (e.g. AWS tags, GCP labels). Set to `true` to tag cloud resources with this label.",
+							MarkdownDescription: labelsGroupLabelPropagateDescription,
 							Required:            true,
 						},
 					},

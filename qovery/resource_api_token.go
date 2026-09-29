@@ -53,56 +53,45 @@ func (r *apiTokenResource) Configure(_ context.Context, req resource.ConfigureRe
 
 func (r apiTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery API token resource. This can be used to create and manage Qovery organization API tokens." +
-			" The token value is only returned at creation time and is stored in the Terraform state: use an encrypted remote state with restricted access." +
-			" The API does not support updating a token, so every attribute change forces a replacement (rotation).",
-		MarkdownDescription: "Provides a Qovery API token resource. This can be used to create and manage Qovery organization API tokens." +
-			" The token value is only returned at creation time and is **stored in the Terraform state**: use an encrypted remote state with restricted access." +
-			" The API does not support updating a token, so every attribute change forces a replacement (rotation). Rotate a token explicitly with `terraform apply -replace=qovery_api_token.<name>`.",
+		MarkdownDescription: "Manages a Qovery API token: a token that authenticates to the Qovery API with the permissions of its role.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the API token.",
-				MarkdownDescription: "Id of the API token.",
+				MarkdownDescription: idDescription("API token"),
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "Id of the organization. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: organizationIDDescription + recreatesOnChange("API token"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the API token. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "Name of the API token. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: nameDescription("API token") + recreatesOnChange("API token"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the API token. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "Description of the API token. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: descriptionDescription("API token") + recreatesOnChange("API token"),
 				Optional:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"role_id": schema.StringAttribute{
-				Description:         "Id of the role to associate with the API token (built-in or custom role). Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "Id of the role to associate with the API token (built-in or custom role). **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: apiTokenRoleIDDescription + recreatesOnChange("API token"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"token": schema.StringAttribute{
-				Description:         "Value of the API token. Only returned at creation time and stored in the Terraform state; it cannot be retrieved afterwards.",
-				MarkdownDescription: "Value of the API token. Only returned at creation time and stored in the Terraform state; it cannot be retrieved afterwards.",
+				MarkdownDescription: apiTokenTokenDescription + " Only known at creation, so an imported token has no value.",
 				Computed:            true,
 				Sensitive:           true,
 				PlanModifiers: []planmodifier.String{

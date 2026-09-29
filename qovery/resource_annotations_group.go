@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
@@ -53,51 +54,35 @@ func (r *annotationsGroupResource) Configure(_ context.Context, req resource.Con
 
 func (r annotationsGroupResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery annotations group resource. This can be used to create and manage Qovery annotations groups. " +
-			"Annotations groups allow you to define reusable sets of Kubernetes annotations at the organization level. " +
-			"These groups can then be attached to Qovery services (applications, containers, jobs, Helm charts) " +
-			"to automatically apply consistent Kubernetes annotations across your deployments. " +
-			"Unlike labels, annotations are scoped to specific Kubernetes resource types (e.g. pods, deployments, services).",
-		MarkdownDescription: "Provides a Qovery annotations group resource. This can be used to create and manage Qovery annotations groups.\n\n" +
-			"Annotations groups allow you to define reusable sets of Kubernetes annotations at the organization level. " +
-			"These groups can then be attached to Qovery services (applications, containers, jobs, Helm charts) " +
-			"to automatically apply consistent Kubernetes annotations across your deployments. " +
-			"Unlike labels, annotations are scoped to specific Kubernetes resource types (e.g. pods, deployments, services).",
+		MarkdownDescription: "Manages a Qovery annotations group: a reusable set of Kubernetes annotations that services of the organization attach with `annotations_group_ids`.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the annotations group (UUID format).",
-				MarkdownDescription: "Unique identifier of the annotations group (UUID format).",
+				MarkdownDescription: idDescription("annotations group"),
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "Id of the organization. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: organizationIDDescription + recreatesOnChange("annotations group"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the annotations group. Must be unique within the organization.",
-				MarkdownDescription: "Name of the annotations group. Must be unique within the organization.",
+				MarkdownDescription: nameDescription("annotations group"),
 				Required:            true,
 			},
 			"annotations": schema.MapAttribute{
-				Description:         "Map of annotation key-value pairs to include in this group. Keys and values must conform to Kubernetes annotation constraints.",
-				MarkdownDescription: "Map of annotation key-value pairs to include in this group. Keys and values must conform to Kubernetes annotation constraints.",
+				MarkdownDescription: annotationsGroupAnnotationsDescription,
 				Required:            true,
 				ElementType:         types.StringType,
 			},
 			"scopes": schema.SetAttribute{
-				Description: "Set of Kubernetes resource types to which these annotations will be applied. " +
-					"Valid values are: PODS, DEPLOYMENTS, STATEFUL_SETS, SERVICES, INGRESS, HPA, SECRETS, JOBS, CRON_JOBS.",
-				MarkdownDescription: "Set of Kubernetes resource types to which these annotations will be applied. " +
-					"Valid values are: `PODS`, `DEPLOYMENTS`, `STATEFUL_SETS`, `SERVICES`, `INGRESS`, `HPA`, `SECRETS`, `JOBS`, `CRON_JOBS`.",
-				Required:    true,
-				ElementType: types.StringType,
+				MarkdownDescription: descriptions.NewStringEnumDescription(annotationsGroupScopesDescription, annotationsGroupScopes, nil),
+				Required:            true,
+				ElementType:         types.StringType,
 			},
 		},
 	}

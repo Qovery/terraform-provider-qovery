@@ -1,288 +1,90 @@
 # qovery_cluster (Resource)
 
-Provides a Qovery cluster resource. This is used to create and manage Kubernetes clusters on your chosen cloud provider through Qovery.
-
-Qovery supports clusters on **AWS** (EKS), **GCP** (GKE), **Scaleway** (Kapsule), and **Azure** (AKS). Each cloud provider requires its own credentials resource (e.g., `qovery_aws_credentials`). For AWS clusters, you can optionally enable **Karpenter** for automatic node provisioning or deploy on an **existing VPC**. For GCP clusters, you can use **Autopilot** mode or deploy on an **existing VPC**. AWS also supports **PARTIALLY_MANAGED** mode for EKS Anywhere on-premise clusters.
+Manages a Qovery cluster: the Kubernetes cluster Qovery deploys services to, on AWS (EKS), GCP (GKE), Scaleway (Kapsule), Azure (AKS) or EKS Anywhere.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
-
 ```terraform
-# Common
-resource "qovery_organization" "my_organization" {
-  name = "My Organization"
-  plan = "PROFESSIONAL"
-}
-
-#######
-# AWS #
-#######
-
-# AWS Credentials
-resource "qovery_aws_credentials" "aws_creds" {
-  organization_id   = qovery_organization.my_organization.id
-  name              = "My AWS credentials"
-  access_key_id     = var.access_key_id
-  secret_access_key = var.secret_access_key
-}
-
-# Labels group (EKS clusters only)
-resource "qovery_labels_group" "cluster_labels" {
+# AWS (EKS) with Karpenter
+resource "qovery_cluster" "my_cluster" {
   organization_id = qovery_organization.my_organization.id
-  name            = "cluster-labels"
-
-  labels = [
-    {
-      key                         = "team"
-      value                       = "platform"
-      propagate_to_cloud_provider = true
-    },
-  ]
-}
-
-# AWS Cluster with Karpenter example
-resource "qovery_cluster" "cluster" {
-  organization_id = qovery_organization.my_organization.id
-  credentials_id  = qovery_aws_credentials.aws_creds.id
-  name            = "test_terraform_provider"
+  credentials_id  = qovery_aws_credentials.my_aws_credentials.id
+  name            = "my-cluster"
   cloud_provider  = "AWS"
   region          = "us-east-2"
 
-  description = "My cluster description"
-
   features = {
-    vpc_subnet = "10.0.0.0/16"
-    static_ip  = "true"
     karpenter = {
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
-      # set the maximum instance size and familly you can to reduce allocation issue
       qovery_node_pools = {
+        # Allow as many instance families and sizes as possible: a short list makes node allocation fail more often.
         requirements = [
-          {
-            key      = "InstanceSize"
-            operator = "In"
-            values   = ["small", "medium", "large", "xlarge", "2xlarge", "3xlarge", "4xlarge", "6xlarge", "8xlarge", "9xlarge", "12xlarge", "16xlarge", "18xlarge", "24xlarge", "32xlarge"]
-          },
           {
             key      = "InstanceFamily"
             operator = "In"
-            values   = ["c5", "c5a", "c5d", "c5n", "c6gd", "c6gn", "c6i", "c6in", "c7g", "c7i", "c7i-flex", "d2", "d3", "i3", "i3en", "i4i", "im4gn", "inf2", "is4gen", "m5", "m5a", "m5ad", "m5d", "m6g", "m6gd", "m6i", "m7g", "m7gd", "m7i", "m7i-flex", "r4", "r5", "r5a", "r5ad", "r5d", "r5dn", "r5n", "r6g", "r6gd", "r6i", "r7i", "t2", "t3", "t3a", "t4g", "x2iedn"]
+            values   = ["c6i", "c7i", "m6i", "m7i", "r6i", "r7i", "t3", "t3a"]
+          },
+          {
+            key      = "InstanceSize"
+            operator = "In"
+            values   = ["medium", "large", "xlarge", "2xlarge", "4xlarge"]
           },
           {
             key      = "Arch"
             operator = "In"
-            values   = ["ARM64", "AMD64"]
+            values   = ["AMD64"]
           }
         ]
 
-        # Spot instances are configured per node pool, and a node pool without
-        # spot_enabled runs on on-demand instances. Keep the stable node pool on
-        # on-demand instances, it runs the workloads that must not be interrupted.
-        stable_override = {
-          spot_enabled = false
-        }
-
-        # The default node pool runs your applications: spot instances save cost on
-        # fault-tolerant workloads. consolidate_after sets how long Karpenter waits
-        # before consolidating an empty or underutilized node.
+        # Runs the application workloads on Spot instances; the stable node pool stays on on-demand instances.
         default_override = {
-          spot_enabled      = true
-          consolidate_after = "5m"
-        }
-
-        # Declaring this block enables the dedicated cronjob node pool: the engine
-        # creates the pool and pins cron jobs and lifecycle jobs to it. Remove the
-        # block to go back to running them on the default node pool.
-        cronjob_override = {
           spot_enabled = true
-        }
-
-        # Declaring this block creates the GPU node pool, for the workloads that
-        # request GPUs. Removing the block deletes the pool.
-        gpu_override = {
-          requirements = [
-            {
-              key      = "InstanceFamily"
-              operator = "In"
-              values   = ["g4dn", "g5"]
-            },
-            {
-              key      = "InstanceSize"
-              operator = "In"
-              values   = ["xlarge", "2xlarge"]
-            },
-            {
-              key      = "Arch"
-              operator = "In"
-              values   = ["AMD64"]
-            }
-          ]
-          disk_size_in_gib = 100
         }
       }
     }
   }
-
-  # KEDA event-driven autoscaling operator.
-  # Installs KEDA on the cluster, unlocking event-driven autoscaling and
-  # scale-to-zero (min_running_instances = 0) for services.
-  keda = {
-    enabled = true
-  }
-
-  # Labels groups are only supported on EKS (AWS MANAGED) clusters.
-  labels_group_ids = [qovery_labels_group.cluster_labels.id]
-
-  advanced_settings_json = jsonencode({
-    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings
-    # you can only indicate settings that you need to override
-    "aws.vpc.flow_logs_retention_days" : 100,
-    "aws.vpc.enable_s3_flow_logs" : true
-  })
-
-  state = "DEPLOYED"
 }
 
-#######
-# GCP #
-#######
-
-# GCP Credentials
-resource "qovery_gcp_credentials" "gcp_creds" {
+# GCP (GKE Autopilot): Autopilot sizes the nodes, so instance_type, disk_size and the node counts do not apply.
+resource "qovery_cluster" "my_gcp_cluster" {
   organization_id = qovery_organization.my_organization.id
-  name            = "My GCP credentials"
-  gcp_credentials = file("${path.module}/service-account.json")
-}
-
-resource "qovery_cluster" "gcp_cluster" {
-  organization_id = qovery_organization.my_organization.id
-  credentials_id  = qovery_gcp_credentials.gcp_creds.id
-  name            = "test_terraform_provider"
+  credentials_id  = qovery_gcp_credentials.my_gcp_credentials.id
+  name            = "my-gcp-cluster"
   cloud_provider  = "GCP"
   region          = "europe-west9"
-  state           = "DEPLOYED"
-
-  # GKE Autopilot sizes the nodes: instance_type, disk_size and the node counts do not apply.
-  description = "My cluster description"
-
-  advanced_settings_json = jsonencode({
-    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings
-    # you can only indicate settings that you need to override
-    "gcp.vpc.enable_flow_logs" : false,
-    "gcp.vpc.flow_logs_sampling" : 0.0,
-  })
 }
 
-# GCP Cluster with existing VPC
-resource "qovery_cluster" "gcp_cluster_custom_vpc" {
+# Azure (AKS): Azure credentials are created from the Qovery Console, the provider cannot create them.
+resource "qovery_cluster" "my_azure_cluster" {
   organization_id = qovery_organization.my_organization.id
-  credentials_id  = qovery_gcp_credentials.gcp_creds.id
-  name            = "gke-custom-vpc"
-  cloud_provider  = "GCP"
-  region          = "europe-west1"
-  state           = "DEPLOYED"
-
-  features = {
-    gcp_existing_vpc = {
-      vpc_name                       = "my-existing-vpc"
-      vpc_project_id                 = "my-gcp-project-id"
-      subnetwork_name                = "my-subnetwork"
-      ip_range_services_name         = "gke-services"
-      ip_range_pods_name             = "gke-pods"
-      additional_ip_range_pods_names = ["gke-pods-extra-1", "gke-pods-extra-2"]
-    }
-  }
-}
-
-#########
-# Azure #
-#########
-
-# Azure credentials must be created via the Qovery console (provisioning requires server-side scripts).
-# Use data source to reference existing credentials.
-data "qovery_azure_credentials" "azure_creds" {
-  id              = var.azure_credentials_id
-  organization_id = qovery_organization.my_organization.id
-}
-
-# Azure AKS Cluster
-resource "qovery_cluster" "azure_cluster" {
-  organization_id = qovery_organization.my_organization.id
-  credentials_id  = data.qovery_azure_credentials.azure_creds.id
+  credentials_id  = var.azure_credentials_id
   name            = "my-azure-cluster"
   cloud_provider  = "AZURE"
   region          = "westeurope"
-  state           = "DEPLOYED"
-
-  description       = "Azure AKS cluster managed by Qovery"
-  instance_type     = "Standard_B2s_v2"
-  min_running_nodes = 3
-  max_running_nodes = 10
+  instance_type   = "Standard_B2s_v2"
 }
 
-############
-# Scaleway #
-############
-
-resource "qovery_scaleway_credentials" "scw_creds" {
-  organization_id = qovery_organization.organization.id
-  name            = "qovery-scaleway-tests-creds"
-
-  scaleway_access_key      = var.scaleway_access_key
-  scaleway_secret_key      = var.scaleway_secret_key
-  scaleway_project_id      = var.scaleway_project_id
-  scaleway_organization_id = var.scaleway_organization_id
-}
-
-resource "qovery_cluster" "cluster" {
-  organization_id = qovery_organization.organization.id
-  credentials_id  = qovery_scaleway_credentials.scw_creds.id
-  name            = "test_terraform_provider"
+# Scaleway (Kapsule)
+resource "qovery_cluster" "my_scaleway_cluster" {
+  organization_id = qovery_organization.my_organization.id
+  credentials_id  = qovery_scaleway_credentials.my_scaleway_credentials.id
+  name            = "my-scaleway-cluster"
   cloud_provider  = "SCW"
   region          = "pl-waw-1"
-  state           = "DEPLOYED"
-
-  instance_type     = "DEV1-L"
-  min_running_nodes = 3
-  max_running_nodes = 10
-
-  description = "test"
-
-  advanced_settings_json = jsonencode({
-    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings
-    # you can only indicate settings that you need to override
-    "load_balancer.size" : "lb-s",
-    "scaleway.enable_private_network_migration" : false,
-  })
+  instance_type   = "DEV1-XL"
 }
 
-################
-# EKS Anywhere #
-################
-
-resource "qovery_aws_credentials" "eks_anywhere_creds" {
-  organization_id   = qovery_organization.my_organization.id
-  name              = "My EKS Anywhere credentials"
-  access_key_id     = var.access_key_id
-  secret_access_key = var.secret_access_key
-}
-
-resource "qovery_cluster" "eks_anywhere_cluster" {
+# EKS Anywhere on vSphere: Qovery manages the workloads of an existing on-premise cluster.
+resource "qovery_cluster" "my_eks_anywhere_cluster" {
   organization_id = qovery_organization.my_organization.id
-  credentials_id  = qovery_aws_credentials.eks_anywhere_creds.id
+  credentials_id  = qovery_eks_anywhere_vsphere_credentials.my_eks_anywhere_vsphere_credentials.id
   name            = "my-eks-anywhere-cluster"
   cloud_provider  = "AWS"
   region          = "on-premise"
   kubernetes_mode = "PARTIALLY_MANAGED"
-
-  description = "EKS Anywhere cluster managed by Qovery"
-
-  kubeconfig = file("${path.module}/kubeconfig.yaml")
+  kubeconfig      = file("${path.module}/kubeconfig.yaml")
 
   infrastructure_charts_parameters = {
     nginx_parameters = {
@@ -299,8 +101,6 @@ resource "qovery_cluster" "eks_anywhere_cluster" {
       ip_address_pools = ["192.168.1.100-192.168.1.110"]
     }
   }
-
-  state = "DEPLOYED"
 }
 ```
 
@@ -311,138 +111,85 @@ You can find complete examples within these repositories:
 
 ### Required
 
-- `cloud_provider` (String) Cloud provider where the cluster will be deployed.
-
-  - `AWS` - Amazon Web Services (EKS).
-  - `GCP` - Google Cloud Platform (GKE).
-  - `SCW` - Scaleway (Kapsule).
-  - `AZURE` - Microsoft Azure (AKS).
-  - `ON_PREMISE` - On-premise infrastructure.
-- `credentials_id` (String) ID of the cloud provider credentials to use for this cluster. Must match the `cloud_provider` type (e.g., use `qovery_aws_credentials.id` for AWS clusters, `qovery_gcp_credentials.id` for GCP clusters).
-- `name` (String) Name of the cluster. Must be unique within the organization.
-- `organization_id` (String) ID of the Qovery organization in which to create the cluster. **Cannot be changed after creation** (forces resource replacement).
-- `region` (String) Cloud provider region where the cluster will be deployed (e.g., `us-east-2` for AWS, `europe-west9` for GCP, `pl-waw-1` for Scaleway, `westeurope` for Azure). For PARTIALLY_MANAGED clusters, use `on-premise`.
+- `cloud_provider` (String) Cloud provider of the cluster.
+	- Can be: `AWS`, `AZURE`, `GCP`, `ON_PREMISE`, `SCW`.
+- `credentials_id` (String) ID of the cloud provider credentials of the cluster, such as a `qovery_aws_credentials` resource.
+- `name` (String) Name of the cluster.
+- `organization_id` (String) ID of the organization. Changing it recreates the cluster.
+- `region` (String) Region of the cluster, for example `us-east-2` on AWS, or `on-premise` for a `PARTIALLY_MANAGED` cluster.
 
 ### Optional
 
-- `advanced_settings_json` (String) Advanced settings of the cluster as a JSON string. Use `jsonencode()` to set values. The complete list of available settings is in the [Qovery API documentation](https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings). Only include settings you want to override.
-
-  Refresh semantics — this attribute is desired state, not a mirror of the remote configuration:
-
-  - Refresh only reconciles keys already tracked in the Terraform state. A setting overridden only in the Qovery Console is not pulled into state, so declaring it afterwards plans as an addition even if the remote value already matches.
-  - Changes made in the Console to a tracked key, including a reset to its default value, are reflected on refresh and planned back to the configured value.
-  - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.
-  - `terraform import` records every setting whose value differs from the default.
-- `description` (String) Description of the cluster. Default: `""`.
-- `disk_size` (Number) Disk size of the cluster nodes in GB. Default: `40`.
-
-The default applies to the clusters whose node group Qovery sizes: `MANAGED` clusters on AWS without Karpenter, on Scaleway and on Azure. There, removing the attribute from the configuration resets it to the default, and a value changed outside Terraform shows up in the plan.
-
-~> **Note:** Karpenter, GCP Autopilot or the cluster owner sizes the nodes of Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters, and Qovery ignores this attribute there: the provider records the value the Qovery API reports, and the plan warns when the configuration sets one.
-- `features` (Attributes) Optional cluster features configuration. Use this block to customize VPC settings, enable static IPs, deploy on an existing VPC (AWS or GCP), or enable Karpenter for AWS clusters.
-
-Omitting the block means the default of every feature: `vpc_subnet = "10.0.0.0/16"`, no static IP, no reserved NAT gateway IP, no existing VPC, no Karpenter and no GKE KMS key. Removing the block, or one of its attributes, from the configuration plans the reset to the default, and a feature changed outside Terraform shows up in the plan.
-
-~> **Note:** The Qovery API cannot disable Karpenter on an existing cluster, nor change `static_ip` once an AWS, GCP or Azure cluster has been deployed: a plan that removes `karpenter`, or turns `static_ip` from `true` to `false` on such a cluster, fails and names the value to declare. (see [below for nested schema](#nestedatt--features))
-- `infrastructure_charts_parameters` (Attributes) Infrastructure Helm chart parameters for `PARTIALLY_MANAGED` (EKS Anywhere) clusters. **Required** when `kubernetes_mode` is `PARTIALLY_MANAGED`. These configure the core infrastructure components (ingress, TLS, load balancing) on your on-premise cluster. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters))
-- `instance_type` (String) Instance type for the cluster nodes. The available values depend on the cloud provider:
-
-  - **AWS**: EC2 instance types (e.g., `t3a.xlarge`, `m5.large`). Default: `t3.xlarge`.
-  - **Scaleway**: Node types (e.g., `DEV1-L`, `GP1-S`). Default: `DEV1-L`.
-  - **Azure**: VM sizes (e.g., `Standard_B2s_v2`, `Standard_D4s_v3`). Default: `Standard_DS2_v2`.
-
-The default applies to the clusters whose node group Qovery sizes: `MANAGED` clusters on AWS without Karpenter, on Scaleway and on Azure. There, removing the attribute from the configuration resets it to the default, and a value changed outside Terraform shows up in the plan.
-
-~> **Note:** Karpenter, GCP Autopilot or the cluster owner sizes the nodes of Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters, and Qovery ignores this attribute there: the provider records the value the Qovery API reports, and the plan warns when the configuration sets one.
-- `keda` (Attributes) Optional KEDA configuration. KEDA ([Kubernetes Event-driven Autoscaling](https://keda.sh/)) installs the KEDA operator on the cluster, which unlocks event-driven autoscaling (including scale-to-zero) for services. Toggling this triggers a cluster redeploy.
-
-Omitting the block means KEDA disabled: removing it from the configuration plans the disable, and KEDA enabled outside Terraform shows up in the plan. `PARTIALLY_MANAGED` clusters do not support KEDA. (see [below for nested schema](#nestedatt--keda))
-- `kubeconfig` (String, Sensitive) Kubeconfig YAML content for connecting to the cluster. **Required** for `PARTIALLY_MANAGED` (EKS Anywhere) clusters. This is a sensitive value and will not be displayed in plan output. Use `file()` to read from a file.
-- `kubernetes_mode` (String) Kubernetes management mode for the cluster. Default: `MANAGED`.
-
-  - `MANAGED` - Fully managed Kubernetes cluster provisioned and managed by Qovery (e.g., AWS EKS, GCP GKE, Azure AKS).
-  - `SELF_MANAGED` - Bring your own Kubernetes cluster. Qovery deploys workloads but does not manage infrastructure.
-  - `PARTIALLY_MANAGED` - EKS Anywhere / on-premise mode. Qovery manages workloads on a user-provided Kubernetes cluster via kubeconfig. Requires `kubeconfig` and `infrastructure_charts_parameters`.
-- `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group. See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).
-- `max_running_nodes` (Number) Maximum number of nodes the cluster autoscaler can scale up to. Must be `>= 1`. Default: `10`.
-
-The default applies to the clusters whose node group Qovery sizes: `MANAGED` clusters on AWS without Karpenter, on Scaleway and on Azure. There, removing the attribute from the configuration resets it to the default, and a value changed outside Terraform shows up in the plan.
-
-~> **Note:** Karpenter, GCP Autopilot or the cluster owner sizes the nodes of Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters, and Qovery ignores this attribute there: the provider records the value the Qovery API reports, and the plan warns when the configuration sets one.
-- `min_running_nodes` (Number) Minimum number of nodes running for the cluster autoscaler. Must be `>= 1`. Default: `3`.
-
-The default applies to the clusters whose node group Qovery sizes: `MANAGED` clusters on AWS without Karpenter, on Scaleway and on Azure. There, removing the attribute from the configuration resets it to the default, and a value changed outside Terraform shows up in the plan.
-
-~> **Note:** Karpenter, GCP Autopilot or the cluster owner sizes the nodes of Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters, and Qovery ignores this attribute there: the provider records the value the Qovery API reports, and the plan warns when the configuration sets one.
-- `production` (Boolean) Flag to mark this cluster as a production cluster. Production clusters may have different default settings and safeguards. Default: `false`.
-- `routing_table` (Attributes Set) Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections). Terraform manages the whole routing table: routes added outside Terraform show up in the plan and are removed on apply, and omitting the attribute removes every route. (see [below for nested schema](#nestedatt--routing_table))
-- `secret_manager_accesses` (Attributes Set) List of external secret manager configurations for the cluster. Each entry grants the cluster access to a secret provider (AWS Parameter Store, AWS Secrets Manager, or GCP Secret Manager). (see [below for nested schema](#nestedatt--secret_manager_accesses))
-- `state` (String) Desired state of the cluster. Default: `DEPLOYED`.
-
-  - `DEPLOYED` - The cluster is running and ready to accept workloads.
-  - `STOPPED` - The cluster infrastructure is stopped to save costs. All workloads will be unavailable.
+- `advanced_settings_json` (String) Advanced settings to override, as a JSON string built with `jsonencode()`. The [Qovery API documentation](https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings) lists them with their defaults. Terraform manages only the keys you set, and removing a key keeps its current value: see [Advanced settings](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes#advanced-settings).
+- `description` (String) Description of the cluster.
+- `disk_size` (Number) Disk size of the cluster nodes, in GB. Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters ignore it, and the plan warns when it is set.
+	- Default: `40`.
+- `features` (Attributes) Features of the cluster: its VPC, static IPs, Karpenter and GKE KMS key. (see [below for nested schema](#nestedatt--features))
+- `infrastructure_charts_parameters` (Attributes) Parameters of the infrastructure Helm charts Qovery installs on a `PARTIALLY_MANAGED` cluster, for ingress, TLS certificates and load balancing. Required for `PARTIALLY_MANAGED` clusters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters))
+- `instance_type` (String) Instance type of the cluster nodes, for example `t3a.xlarge` on AWS, `DEV1-L` on Scaleway or `Standard_B2s_v2` on Azure. Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters ignore it, and the plan warns when it is set.
+	- Default: `t3.xlarge` on AWS, `DEV1-L` on Scaleway, `Standard_DS2_v2` on Azure.
+- `keda` (Attributes) KEDA configuration of the cluster: [KEDA](https://keda.sh/) enables the event-driven autoscaling of its services, including scale to zero. `PARTIALLY_MANAGED` clusters do not support it. (see [below for nested schema](#nestedatt--keda))
+- `kubeconfig` (String, Sensitive) Kubeconfig of the cluster, as YAML. Required for `PARTIALLY_MANAGED` clusters.
+- `kubernetes_mode` (String) How Qovery manages the Kubernetes cluster: `MANAGED` creates and operates it, `SELF_MANAGED` deploys to a cluster operated outside Qovery, and `PARTIALLY_MANAGED` deploys to an EKS Anywhere cluster.
+	- Default: `MANAGED`.
+- `labels_group_ids` (Set of String) IDs of the labels groups applied to the cluster's resources. Omitting it detaches every labels group. Only AWS `MANAGED` clusters support them.
+- `max_running_nodes` (Number) Maximum number of nodes of the cluster. Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters ignore it, and the plan warns when it is set.
+	- Default: `10`.
+- `min_running_nodes` (Number) Minimum number of nodes of the cluster. Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters ignore it, and the plan warns when it is set.
+	- Default: `3`.
+- `production` (Boolean) Whether the cluster is a production cluster.
+	- Default: `false`.
+- `routing_table` (Attributes Set) Routes of the cluster VPC, for example to a VPN or a peered VPC. Omitting it removes every route. (see [below for nested schema](#nestedatt--routing_table))
+- `secret_manager_accesses` (Attributes Set) Secret managers the cluster reads external secrets from: AWS Parameter Store, AWS Secrets Manager or GCP Secret Manager. (see [below for nested schema](#nestedatt--secret_manager_accesses))
+- `state` (String) State of the cluster. `DEPLOYED` deploys it, `STOPPED` stops it, and `READY` does not deploy it.
+	- Default: `DEPLOYED`.
 
 ### Read-Only
 
-- `id` (String) Unique identifier of the cluster (UUID format).
-- `infrastructure_outputs` (Attributes) Read-only outputs from the underlying Kubernetes infrastructure. These values are populated after the cluster is deployed and can be used to integrate with other infrastructure resources. (see [below for nested schema](#nestedatt--infrastructure_outputs))
+- `id` (String) ID of the cluster.
+- `infrastructure_outputs` (Attributes) Outputs of the cluster infrastructure, set once the cluster is deployed. (see [below for nested schema](#nestedatt--infrastructure_outputs))
 
 <a id="nestedatt--features"></a>
 ### Nested Schema for `features`
 
 Optional:
 
-- `existing_vpc` (Attributes) AWS existing VPC configuration. Use this block to deploy the Qovery cluster into an existing AWS VPC instead of creating a new one. All EKS subnets are required, while database and cache subnets are optional.
-
-~> **Warning:** This configuration cannot be changed after cluster creation. (see [below for nested schema](#nestedatt--features--existing_vpc))
-- `gcp_existing_vpc` (Attributes) GCP existing VPC configuration. Use this block to deploy the Qovery GKE cluster into an existing Google Cloud VPC network instead of creating a new one.
-
-~> **Warning:** This configuration cannot be changed after cluster creation. (see [below for nested schema](#nestedatt--features--gcp_existing_vpc))
-- `gke_kms_key` (String) GCP KMS key resource name used to encrypt the GKE cluster's boot disks / etcd / storage buckets / volumes. Only supported on GCP clusters. Omitting it means no KMS key.
-
-~> **Warning:** This value cannot be changed after cluster creation: a plan that sets, changes or removes it on an existing cluster fails. To use a different key, destroy the cluster and create a new one.
-- `karpenter` (Attributes) Karpenter configuration for AWS EKS clusters. [Karpenter](https://karpenter.sh/) is a Kubernetes node autoscaler that automatically provisions right-sized compute resources. When Karpenter is enabled, do not set `instance_type`, `min_running_nodes`, or `max_running_nodes` — Karpenter manages node scaling automatically. (see [below for nested schema](#nestedatt--features--karpenter))
-- `nat_gateways` (Attributes) GCP NAT Gateway static egress IP configuration. Reserved static egress IPs are an explicit opt-in via `static_ips_enabled = true` (requires `static_ip = true`).
-
-Omitting this block or setting `static_ips_enabled = false` keeps the platform default (ephemeral egress IPs).
-
-Removing this block after it was enabled resets to disabled with a visible diff on the next plan.
-
-~> **Note:** This block is ignored on non-GCP clusters; only the default value `{static_ips_enabled=false, static_ips_count=1}` is accepted in those cases. (see [below for nested schema](#nestedatt--features--nat_gateways))
-- `static_ip` (Boolean) Whether to assign static IP addresses to the cluster nodes or NAT gateways. Useful when your services need to be allowlisted by IP. Default: `false`.
-
-~> **Warning:** This value cannot be changed once the cluster has been deployed — the API rejects the change. Destroy and recreate the cluster to change it. On GCP, reserved static egress IPs are toggled via `nat_gateways.static_ips_enabled`, which remains editable after deployment.
-- `vpc_subnet` (String) Custom VPC CIDR block for non-GCP clusters. This defines the IP address range for the entire VPC. Default: `10.0.0.0/16`.
-
-~> **Note:** This value is ignored for GCP clusters unless a non-default value is configured, which is rejected because GCP uses its own network configuration.
-
-~> **Warning:** This value cannot be changed after cluster creation. Changing it will require destroying and recreating the cluster.
+- `existing_vpc` (Attributes) Existing AWS VPC to deploy the cluster into, instead of a VPC Qovery creates. Adding, changing or removing it after creation fails at plan time. (see [below for nested schema](#nestedatt--features--existing_vpc))
+- `gcp_existing_vpc` (Attributes) Existing GCP VPC network to deploy the cluster into, instead of a network Qovery creates. Adding, changing or removing it after creation fails at plan time. (see [below for nested schema](#nestedatt--features--gcp_existing_vpc))
+- `gke_kms_key` (String) Resource name of the Cloud KMS key that encrypts the boot disks, etcd, storage buckets and volumes of a GCP cluster. Setting, changing or removing it after creation fails at plan time.
+- `karpenter` (Attributes) Karpenter configuration of an AWS cluster, where [Karpenter](https://karpenter.sh/) provisions the nodes. New AWS `MANAGED` clusters require it, and it cannot be added or removed after creation. (see [below for nested schema](#nestedatt--features--karpenter))
+- `nat_gateways` (Attributes) Static egress IPs of the NAT gateways, on a GCP cluster. (see [below for nested schema](#nestedatt--features--nat_gateways))
+- `static_ip` (Boolean) Whether the cluster nodes or NAT gateways use static IP addresses. It cannot change once an AWS, GCP or Azure cluster has been deployed.
+	- Default: `false`.
+- `vpc_subnet` (String) CIDR block of the VPC of an AWS `MANAGED` cluster. Changing it recreates the cluster.
+	- Default: `10.0.0.0/16`.
 
 <a id="nestedatt--features--existing_vpc"></a>
 ### Nested Schema for `features.existing_vpc`
 
 Required:
 
-- `aws_vpc_eks_id` (String) The ID of the existing AWS VPC (e.g., `vpc-0123456789abcdef0`).
-- `eks_subnets_zone_a_ids` (List of String) List of subnet IDs in availability zone A for EKS worker nodes. These subnets must have `map_public_ip_on_launch` set to `true`.
-- `eks_subnets_zone_b_ids` (List of String) List of subnet IDs in availability zone B for EKS worker nodes. These subnets must have `map_public_ip_on_launch` set to `true`.
-- `eks_subnets_zone_c_ids` (List of String) List of subnet IDs in availability zone C for EKS worker nodes. These subnets must have `map_public_ip_on_launch` set to `true`.
+- `aws_vpc_eks_id` (String) ID of the existing VPC, for example `vpc-0123456789abcdef0`.
+- `eks_subnets_zone_a_ids` (List of String) IDs of the subnets of availability zone A for the EKS nodes. They must auto-assign public IPv4 addresses (`map_public_ip_on_launch = true`).
+- `eks_subnets_zone_b_ids` (List of String) IDs of the subnets of availability zone B for the EKS nodes. They must auto-assign public IPv4 addresses (`map_public_ip_on_launch = true`).
+- `eks_subnets_zone_c_ids` (List of String) IDs of the subnets of availability zone C for the EKS nodes. They must auto-assign public IPv4 addresses (`map_public_ip_on_launch = true`).
 
 Optional:
 
-- `documentdb_subnets_zone_a_ids` (List of String) List of subnet IDs in availability zone A for Amazon DocumentDB. These should be private subnets. Omitting it means none.
-- `documentdb_subnets_zone_b_ids` (List of String) List of subnet IDs in availability zone B for Amazon DocumentDB. These should be private subnets. Omitting it means none.
-- `documentdb_subnets_zone_c_ids` (List of String) List of subnet IDs in availability zone C for Amazon DocumentDB. These should be private subnets. Omitting it means none.
-- `eks_create_nodes_in_private_subnet` (Boolean) Whether to create EKS worker nodes in private subnets. When `true`, nodes are not directly accessible from the internet and route traffic through a NAT Gateway. Default: `false`.
-- `eks_karpenter_fargate_subnets_zone_a_ids` (List of String) List of private subnet IDs in availability zone A for EKS Fargate (required when using Karpenter). These subnets must be private and connected to the internet through a NAT Gateway.
-- `eks_karpenter_fargate_subnets_zone_b_ids` (List of String) List of private subnet IDs in availability zone B for EKS Fargate (required when using Karpenter). These subnets must be private and connected to the internet through a NAT Gateway.
-- `eks_karpenter_fargate_subnets_zone_c_ids` (List of String) List of private subnet IDs in availability zone C for EKS Fargate (required when using Karpenter). These subnets must be private and connected to the internet through a NAT Gateway.
-- `elasticache_subnets_zone_a_ids` (List of String) List of subnet IDs in availability zone A for Amazon ElastiCache. These should be private subnets. Omitting it means none.
-- `elasticache_subnets_zone_b_ids` (List of String) List of subnet IDs in availability zone B for Amazon ElastiCache. These should be private subnets. Omitting it means none.
-- `elasticache_subnets_zone_c_ids` (List of String) List of subnet IDs in availability zone C for Amazon ElastiCache. These should be private subnets. Omitting it means none.
-- `rds_subnets_zone_a_ids` (List of String) List of subnet IDs in availability zone A for Amazon RDS databases. These should be private subnets. Omitting it means none.
-- `rds_subnets_zone_b_ids` (List of String) List of subnet IDs in availability zone B for Amazon RDS databases. These should be private subnets. Omitting it means none.
-- `rds_subnets_zone_c_ids` (List of String) List of subnet IDs in availability zone C for Amazon RDS databases. These should be private subnets. Omitting it means none.
+- `documentdb_subnets_zone_a_ids` (List of String) IDs of the subnets of availability zone A for Amazon DocumentDB.
+- `documentdb_subnets_zone_b_ids` (List of String) IDs of the subnets of availability zone B for Amazon DocumentDB.
+- `documentdb_subnets_zone_c_ids` (List of String) IDs of the subnets of availability zone C for Amazon DocumentDB.
+- `eks_create_nodes_in_private_subnet` (Boolean) Whether the EKS nodes run in private subnets, which reach the internet through a NAT gateway.
+	- Default: `false`.
+- `eks_karpenter_fargate_subnets_zone_a_ids` (List of String) IDs of the private subnets of availability zone A for EKS Fargate, which Karpenter requires. They must reach the internet through a NAT gateway.
+- `eks_karpenter_fargate_subnets_zone_b_ids` (List of String) IDs of the private subnets of availability zone B for EKS Fargate, which Karpenter requires. They must reach the internet through a NAT gateway.
+- `eks_karpenter_fargate_subnets_zone_c_ids` (List of String) IDs of the private subnets of availability zone C for EKS Fargate, which Karpenter requires. They must reach the internet through a NAT gateway.
+- `elasticache_subnets_zone_a_ids` (List of String) IDs of the subnets of availability zone A for Amazon ElastiCache.
+- `elasticache_subnets_zone_b_ids` (List of String) IDs of the subnets of availability zone B for Amazon ElastiCache.
+- `elasticache_subnets_zone_c_ids` (List of String) IDs of the subnets of availability zone C for Amazon ElastiCache.
+- `rds_subnets_zone_a_ids` (List of String) IDs of the subnets of availability zone A for Amazon RDS databases.
+- `rds_subnets_zone_b_ids` (List of String) IDs of the subnets of availability zone B for Amazon RDS databases.
+- `rds_subnets_zone_c_ids` (List of String) IDs of the subnets of availability zone C for Amazon RDS databases.
 
 
 <a id="nestedatt--features--gcp_existing_vpc"></a>
@@ -450,16 +197,17 @@ Optional:
 
 Required:
 
-- `vpc_name` (String) Name of the existing GCP VPC network to use (e.g., `my-existing-vpc`).
+- `vpc_name` (String) Name of the existing VPC network, for example `my-existing-vpc`.
 
 Optional:
 
-- `additional_ip_range_pods_names` (List of String) Additional secondary IP range names for pods. Use this when you need multiple pod IP ranges (e.g., for multi-tenancy or large clusters). Omitting it means none.
-- `ip_range_pods_name` (String) Name of the primary secondary IP range in the subnetwork to use for GKE pods.
-- `ip_range_services_name` (String) Name of the secondary IP range in the subnetwork to use for GKE services (ClusterIP range).
-- `private_nodes` (Boolean) Make GKE nodes private with no public IPs. Node traffic goes through the gateway instead of exposing node public addresses. Default: `false`.
-- `subnetwork_name` (String) Name of the GCP subnetwork within the VPC to use for the GKE cluster nodes.
-- `vpc_project_id` (String) GCP project ID that owns the VPC. If omitted, defaults to the project associated with your GCP credentials. Use this when the VPC is in a different project (Shared VPC pattern).
+- `additional_ip_range_pods_names` (List of String) Names of additional secondary IP ranges for the GKE pods.
+- `ip_range_pods_name` (String) Name of the secondary IP range of the subnetwork for the GKE pods.
+- `ip_range_services_name` (String) Name of the secondary IP range of the subnetwork for the GKE services.
+- `private_nodes` (Boolean) Whether the GKE nodes are private, without public IP addresses.
+	- Default: `false`.
+- `subnetwork_name` (String) Name of the subnetwork of the VPC network for the GKE nodes.
+- `vpc_project_id` (String) ID of the GCP project that owns the VPC network, when it is not the project of the credentials (Shared VPC).
 
 
 <a id="nestedatt--features--karpenter"></a>
@@ -467,45 +215,37 @@ Optional:
 
 Required:
 
-- `default_service_architecture` (String) Default CPU architecture for services deployed on this cluster. Common values: `AMD64`, `ARM64`. This determines the default node architecture when no specific architecture is requested by a service.
-- `disk_size_in_gib` (Number) Root disk size in GiB for nodes provisioned by Karpenter (e.g., `50`).
-- `qovery_node_pools` (Attributes) Karpenter node pool configuration. Defines the requirements (instance families, sizes, architectures) and optional resource limits for Qovery-managed node pools. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools))
+- `default_service_architecture` (String) Default CPU architecture of the services deployed on the cluster: `AMD64` or `ARM64`.
+- `disk_size_in_gib` (Number) Root disk size of the nodes Karpenter provisions, in GiB. Qovery requires at least 20 GiB.
+- `qovery_node_pools` (Attributes) Node pools Karpenter provisions, and the instances they can use. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools))
 
 Optional:
 
-- `disk_iops` (Number) Provisioned IOPS of the root disk of the nodes provisioned by Karpenter, which use gp3 volumes (e.g., `3000`). Leave it unset to use the volume default. The GPU node pool has its own `gpu_override.disk_iops`.
-- `disk_throughput` (Number) Provisioned throughput in MB/s of the root disk of the nodes provisioned by Karpenter, which use gp3 volumes (e.g., `125`). Leave it unset to use the volume default. The GPU node pool has its own `gpu_override.disk_throughput`.
+- `disk_iops` (Number) Provisioned IOPS of the gp3 root disk of the nodes Karpenter provisions, other than the GPU nodes.
+- `disk_throughput` (Number) Provisioned throughput of the gp3 root disk of the nodes Karpenter provisions, other than the GPU nodes, in MB/s.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools`
 
 Required:
 
-- `requirements` (Attributes List) List of node selection requirements for the Karpenter node pool. Each requirement constrains which EC2 instances Karpenter can provision. You should define at least `InstanceFamily`, `InstanceSize`, and `Arch` requirements. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--requirements))
+- `requirements` (Attributes List) Requirements that select the EC2 instances Karpenter can provision. Set one requirement for each key: `InstanceFamily`, `InstanceSize` and `Arch`. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--requirements))
 
 Optional:
 
-- `cronjob_override` (Attributes) Override options for the Qovery **cronjob** node pool.
-
-~> **Important:** the mere presence of this block enables the dedicated cronjob node pool across the Qovery stack — the engine creates the pool and pins cron jobs and lifecycle jobs to it. Removing the block disables the dedicated pool again, and the `spot_enabled` value below only has meaning while the block exists. A cronjob node pool enabled outside Terraform, for example from the Qovery Console, shows up in the plan as this block being removed, and applying that plan disables the pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override))
-- `default_override` (Attributes) Override options for the Qovery **default** node pool. The default node pool runs user application workloads. Use this to configure spot instances and resource limits. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override))
-- `gpu_override` (Attributes) The Qovery **GPU** node pool, which runs the workloads that request GPUs.
-
-~> **Important:** declaring this block creates the GPU node pool, and removing it deletes the pool together with the nodes running on it. A GPU node pool created outside Terraform, for example from the Qovery Console, shows up in the plan as this block being removed, and applying that plan deletes the pool: declare the block to keep it. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override))
-- `stable_override` (Attributes) Override options for the Qovery **stable** node pool. The stable node pool runs services that require consistent availability (e.g., Qovery agents). Use this to configure spot instances, consolidation windows and resource limits. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override))
+- `cronjob_override` (Attributes) Settings of the cronjob node pool, which runs the cron jobs and lifecycle jobs. Declaring the block creates the pool, and removing it deletes the pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override))
+- `default_override` (Attributes) Settings of the default node pool, which runs the application workloads. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override))
+- `gpu_override` (Attributes) Settings of the GPU node pool, which runs the workloads that request GPUs. Declaring the block creates the pool, and removing it deletes the pool and its nodes, which the plan warns about. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override))
+- `stable_override` (Attributes) Settings of the stable node pool, which runs the workloads that need steady availability, such as the Qovery agents. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override))
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--requirements"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.requirements`
 
 Required:
 
-- `key` (String) The requirement key. Valid values:
-
-  - `InstanceFamily` - EC2 instance family (e.g., `c5`, `m5`, `t3a`). Use broad families to reduce allocation issues.
-  - `InstanceSize` - EC2 instance size (e.g., `small`, `medium`, `xlarge`, `2xlarge`).
-  - `Arch` - CPU architecture (e.g., `AMD64`, `ARM64`).
-- `operator` (String) The operator for the requirement. Currently only `In` is supported, meaning the node must match one of the specified values.
-- `values` (List of String) List of allowed values for the requirement. For example, for `InstanceFamily`: `["c5", "m5", "t3a"]`, for `Arch`: `["AMD64", "ARM64"]`.
+- `key` (String) Key of the requirement: `InstanceFamily` (for example `c6i`), `InstanceSize` (for example `xlarge`) or `Arch` (`AMD64` or `ARM64`).
+- `operator` (String) Operator of the requirement: `In`, which matches any of `values`.
+- `values` (List of String) Values of the requirement, for example `["c6i", "m6i"]` for `InstanceFamily`.
 
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--cronjob_override"></a>
@@ -513,22 +253,21 @@ Required:
 
 Optional:
 
-- `consolidate_after` (String) Time Karpenter waits before consolidating an empty or underutilized node of the **cronjob** node pool, as `<number><unit>` where the unit is `s`, `m` or `h` (e.g., `30s`, `10m`, `1h`), at most `24h`. Write it in the largest whole unit, the form Qovery returns: `1h`, not `60m`. Leave it unset to use the Qovery default.
-- `consolidation` (Attributes) Node consolidation schedule for the cronjob node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on cronjob nodes. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override--consolidation))
-- `limits` (Attributes) Resource limits for the cronjob node pool. Use this to cap the total resources Karpenter can provision for cron jobs and lifecycle jobs. Qovery requires at least 6 vCPU and 6 GiB. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override--limits))
-- `spot_enabled` (Boolean) Whether to run the **cronjob** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
-
-Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances.
+- `consolidate_after` (String) Time Karpenter waits before it consolidates an empty or underutilized node of the cronjob node pool, for example `30s`, `10m` or `1h`. At most `24h`, written in the largest whole unit: `1h`, not `60m`.
+- `consolidation` (Attributes) Window when Karpenter replaces underutilized nodes of the cronjob node pool with cheaper ones. Without it, Karpenter does not replace underutilized nodes. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override--consolidation))
+- `limits` (Attributes) Limits on the total resources Karpenter provisions for the cronjob node pool. Qovery requires at least 6 vCPU and 6 GiB. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override--limits))
+- `spot_enabled` (Boolean) Whether the cronjob node pool runs on EC2 Spot instances, which AWS can interrupt with a two-minute notice.
+	- Default: `false`.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--cronjob_override--consolidation"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.cronjob_override.consolidation`
 
 Required:
 
-- `days` (List of String) List of days of the week when consolidation should run (e.g., `["MONDAY", "TUESDAY"]`).
-- `duration` (String) Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).
-- `enabled` (Boolean) Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.
-- `start_time` (String) Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).
+- `days` (List of String) Days of the week of the window, for example `["MONDAY", "TUESDAY"]`.
+- `duration` (String) Duration of the window, as `PThhHmmM`, for example `PT04H00M`.
+- `enabled` (Boolean) Whether the consolidation window is active.
+- `start_time` (String) Start time of the window in UTC, as `PThh:mm`, for example `PT02:00`.
 
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--cronjob_override--limits"></a>
@@ -536,9 +275,9 @@ Required:
 
 Required:
 
-- `enabled` (Boolean) Whether to enforce resource limits on the cronjob node pool.
-- `max_cpu_in_vcpu` (Number) Maximum total vCPU cores that Karpenter can provision for the cronjob node pool.
-- `max_memory_in_gibibytes` (Number) Maximum total memory in GiB that Karpenter can provision for the cronjob node pool.
+- `enabled` (Boolean) Whether Karpenter enforces the limits.
+- `max_cpu_in_vcpu` (Number) Maximum total vCPUs of the cronjob node pool.
+- `max_memory_in_gibibytes` (Number) Maximum total memory of the cronjob node pool, in GiB.
 
 
 
@@ -547,20 +286,19 @@ Required:
 
 Optional:
 
-- `consolidate_after` (String) Time Karpenter waits before consolidating an empty or underutilized node of the **default** node pool, as `<number><unit>` where the unit is `s`, `m` or `h` (e.g., `30s`, `10m`, `1h`), at most `24h`. Write it in the largest whole unit, the form Qovery returns: `1h`, not `60m`. Leave it unset to use the Qovery default.
-- `limits` (Attributes) Resource limits for the default node pool. Use this to cap the total resources Karpenter can provision for application workloads. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override--limits))
-- `spot_enabled` (Boolean) Whether to run the **default** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
-
-Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances, and so does removing the whole `default_override` block. A default node pool that runs on spot instances while the configuration does not declare it shows up as a change in the plan.
+- `consolidate_after` (String) Time Karpenter waits before it consolidates an empty or underutilized node of the default node pool, for example `30s`, `10m` or `1h`. At most `24h`, written in the largest whole unit: `1h`, not `60m`.
+- `limits` (Attributes) Limits on the total resources Karpenter provisions for the default node pool. Qovery requires at least 6 vCPU and 6 GiB. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override--limits))
+- `spot_enabled` (Boolean) Whether the default node pool runs on EC2 Spot instances, which AWS can interrupt with a two-minute notice.
+	- Default: `false`.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--default_override--limits"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.default_override.limits`
 
 Required:
 
-- `enabled` (Boolean) Whether to enforce resource limits on the default node pool.
-- `max_cpu_in_vcpu` (Number) Maximum total vCPU cores that Karpenter can provision for the default node pool.
-- `max_memory_in_gibibytes` (Number) Maximum total memory in GiB that Karpenter can provision for the default node pool.
+- `enabled` (Boolean) Whether Karpenter enforces the limits.
+- `max_cpu_in_vcpu` (Number) Maximum total vCPUs of the default node pool.
+- `max_memory_in_gibibytes` (Number) Maximum total memory of the default node pool, in GiB.
 
 
 
@@ -569,28 +307,27 @@ Required:
 
 Required:
 
-- `disk_size_in_gib` (Number) Root disk size in GiB for the nodes of the GPU node pool (e.g., `100`). Qovery rejects a value below its minimum node disk size.
-- `requirements` (Attributes List) List of node selection requirements for the GPU node pool, with the same keys and operator as `qovery_node_pools.requirements`. Define `InstanceFamily` (GPU instance families, e.g., `g4dn`, `g5`), `InstanceSize` and `Arch` requirements. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--requirements))
+- `disk_size_in_gib` (Number) Root disk size of the GPU nodes, in GiB. Qovery requires at least 20 GiB.
+- `requirements` (Attributes List) Requirements that select the GPU instances of the GPU node pool, for example the `g5` instance family. Set one requirement for each key: `InstanceFamily`, `InstanceSize` and `Arch`. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--requirements))
 
 Optional:
 
-- `consolidate_after` (String) Time Karpenter waits before consolidating an empty or underutilized node of the **GPU** node pool, as `<number><unit>` where the unit is `s`, `m` or `h` (e.g., `30s`, `10m`, `1h`), at most `24h`. Write it in the largest whole unit, the form Qovery returns: `1h`, not `60m`. Leave it unset to use the Qovery default.
-- `consolidation` (Attributes) Node consolidation schedule for the GPU node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on GPU nodes. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--consolidation))
-- `disk_iops` (Number) Provisioned IOPS of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.
-- `disk_throughput` (Number) Provisioned throughput in MB/s of the root disk of the GPU nodes, which use gp3 volumes. Leave it unset to use the volume default.
-- `limits` (Attributes) Resource limits for the GPU node pool. Use this to cap the total resources Karpenter can provision for GPU workloads. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--limits))
-- `spot_enabled` (Boolean) Whether to run the **GPU** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
-
-Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances.
+- `consolidate_after` (String) Time Karpenter waits before it consolidates an empty or underutilized node of the GPU node pool, for example `30s`, `10m` or `1h`. At most `24h`, written in the largest whole unit: `1h`, not `60m`.
+- `consolidation` (Attributes) Window when Karpenter replaces underutilized nodes of the GPU node pool with cheaper ones. Without it, Karpenter does not replace underutilized nodes. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--consolidation))
+- `disk_iops` (Number) Provisioned IOPS of the gp3 root disk of the GPU nodes.
+- `disk_throughput` (Number) Provisioned throughput of the gp3 root disk of the GPU nodes, in MB/s.
+- `limits` (Attributes) Limits on the total resources Karpenter provisions for the GPU node pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override--limits))
+- `spot_enabled` (Boolean) Whether the GPU node pool runs on EC2 Spot instances, which AWS can interrupt with a two-minute notice.
+	- Default: `false`.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override--requirements"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.gpu_override.requirements`
 
 Required:
 
-- `key` (String) The requirement key: `InstanceFamily`, `InstanceSize` or `Arch`.
-- `operator` (String) The operator for the requirement. Currently only `In` is supported, meaning the node must match one of the specified values.
-- `values` (List of String) List of allowed values for the requirement. For example, for `InstanceFamily`: `["g4dn", "g5"]`, for `Arch`: `["AMD64"]`.
+- `key` (String) Key of the requirement: `InstanceFamily` (for example `c6i`), `InstanceSize` (for example `xlarge`) or `Arch` (`AMD64` or `ARM64`).
+- `operator` (String) Operator of the requirement: `In`, which matches any of `values`.
+- `values` (List of String) Values of the requirement, for example `["c6i", "m6i"]` for `InstanceFamily`.
 
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override--consolidation"></a>
@@ -598,10 +335,10 @@ Required:
 
 Required:
 
-- `days` (List of String) List of days of the week when consolidation should run (e.g., `["MONDAY", "TUESDAY"]`).
-- `duration` (String) Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).
-- `enabled` (Boolean) Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.
-- `start_time` (String) Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).
+- `days` (List of String) Days of the week of the window, for example `["MONDAY", "TUESDAY"]`.
+- `duration` (String) Duration of the window, as `PThhHmmM`, for example `PT04H00M`.
+- `enabled` (Boolean) Whether the consolidation window is active.
+- `start_time` (String) Start time of the window in UTC, as `PThh:mm`, for example `PT02:00`.
 
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--gpu_override--limits"></a>
@@ -609,13 +346,14 @@ Required:
 
 Required:
 
-- `enabled` (Boolean) Whether to enforce resource limits on the GPU node pool.
-- `max_cpu_in_vcpu` (Number) Maximum total vCPU cores that Karpenter can provision for the GPU node pool.
-- `max_memory_in_gibibytes` (Number) Maximum total memory in GiB that Karpenter can provision for the GPU node pool.
+- `enabled` (Boolean) Whether Karpenter enforces the limits.
+- `max_cpu_in_vcpu` (Number) Maximum total vCPUs of the GPU node pool.
+- `max_memory_in_gibibytes` (Number) Maximum total memory of the GPU node pool, in GiB.
 
 Optional:
 
-- `max_gpu` (Number) Maximum total number of GPUs for the GPU node pool. Defaults to `0`.
+- `max_gpu` (Number) Maximum total number of GPUs of the GPU node pool.
+	- Default: `0`.
 
 
 
@@ -624,22 +362,21 @@ Optional:
 
 Optional:
 
-- `consolidate_after` (String) Time Karpenter waits before consolidating an empty or underutilized node of the **stable** node pool, as `<number><unit>` where the unit is `s`, `m` or `h` (e.g., `30s`, `10m`, `1h`), at most `24h`. Write it in the largest whole unit, the form Qovery returns: `1h`, not `60m`. Leave it unset to use the Qovery default.
-- `consolidation` (Attributes) Node consolidation schedule for the stable node pool. Consolidation replaces underutilized nodes with more cost-effective alternatives. By default, no consolidation occurs on stable nodes. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation))
-- `limits` (Attributes) Resource limits for the stable node pool. Use this to cap the total resources Karpenter can provision for stable workloads. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--limits))
-- `spot_enabled` (Boolean) Whether to run the **stable** node pool on EC2 Spot instances. Spot instances can be interrupted by AWS with a 2-minute notice, so enable this only for fault-tolerant workloads.
-
-Defaults to `false`, i.e. on-demand instances. The provider always sends an explicit value for this node pool, so removing this value moves the node pool back to on-demand instances, and so does removing the whole `stable_override` block. A stable node pool that runs on spot instances while the configuration does not declare it shows up as a change in the plan.
+- `consolidate_after` (String) Time Karpenter waits before it consolidates an empty or underutilized node of the stable node pool, for example `30s`, `10m` or `1h`. At most `24h`, written in the largest whole unit: `1h`, not `60m`.
+- `consolidation` (Attributes) Window when Karpenter replaces underutilized nodes of the stable node pool with cheaper ones. Without it, Karpenter does not replace underutilized nodes. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation))
+- `limits` (Attributes) Limits on the total resources Karpenter provisions for the stable node pool. Qovery requires at least 6 vCPU and 6 GiB. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override--limits))
+- `spot_enabled` (Boolean) Whether the stable node pool runs on EC2 Spot instances, which AWS can interrupt with a two-minute notice.
+	- Default: `false`.
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--stable_override--consolidation"></a>
 ### Nested Schema for `features.karpenter.qovery_node_pools.stable_override.consolidation`
 
 Required:
 
-- `days` (List of String) List of days of the week when consolidation should run (e.g., `["MONDAY", "TUESDAY", "WEDNESDAY"]`).
-- `duration` (String) Duration of the consolidation window. Must follow the ISO-8601 duration format: `PThhHmmM` (e.g., `PT04H00M` for a 4-hour window).
-- `enabled` (Boolean) Whether the consolidation schedule defined here is active. Set to `true` to enable scheduled consolidation.
-- `start_time` (String) Start time for the consolidation window. Must follow the ISO-8601 time format: `PThh:mm` (e.g., `PT02:00` for 2:00 AM UTC).
+- `days` (List of String) Days of the week of the window, for example `["MONDAY", "TUESDAY"]`.
+- `duration` (String) Duration of the window, as `PThhHmmM`, for example `PT04H00M`.
+- `enabled` (Boolean) Whether the consolidation window is active.
+- `start_time` (String) Start time of the window in UTC, as `PThh:mm`, for example `PT02:00`.
 
 
 <a id="nestedatt--features--karpenter--qovery_node_pools--stable_override--limits"></a>
@@ -647,9 +384,9 @@ Required:
 
 Required:
 
-- `enabled` (Boolean) Whether to enforce resource limits on the stable node pool.
-- `max_cpu_in_vcpu` (Number) Maximum total vCPU cores that Karpenter can provision for the stable node pool.
-- `max_memory_in_gibibytes` (Number) Maximum total memory in GiB that Karpenter can provision for the stable node pool.
+- `enabled` (Boolean) Whether Karpenter enforces the limits.
+- `max_cpu_in_vcpu` (Number) Maximum total vCPUs of the stable node pool.
+- `max_memory_in_gibibytes` (Number) Maximum total memory of the stable node pool, in GiB.
 
 
 
@@ -660,8 +397,11 @@ Required:
 
 Optional:
 
-- `static_ips_count` (Number) Number of static IPs to allocate for GCP NAT gateways. Must be greater than or equal to `1`. Meaningful only when `static_ips_enabled` is `true`. Default: `1`.
-- `static_ips_enabled` (Boolean) Whether to reserve static egress IPs for the GCP NAT gateways. Default: `false` (ephemeral egress IPs).
+- `static_ips_count` (Number) Number of static egress IPs of the NAT gateways.
+	- Must be: `>= 1`.
+	- Default: `1`.
+- `static_ips_enabled` (Boolean) Whether the NAT gateways use reserved static egress IPs. Requires `static_ip = true`.
+	- Default: `false`.
 
 
 
@@ -670,17 +410,17 @@ Optional:
 
 Optional:
 
-- `cert_manager_parameters` (Attributes) Configuration for cert-manager, used for automatic TLS certificate provisioning. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--cert_manager_parameters))
-- `eks_anywhere_parameters` (Attributes) Configuration for EKS Anywhere GitOps integration. Use this block to declare the Git repository and YAML path used for EKS Anywhere cluster lifecycle. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters))
-- `metal_lb_parameters` (Attributes) Configuration for MetalLB, a bare-metal load balancer for Kubernetes. Required for `PARTIALLY_MANAGED` clusters to expose services externally. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--metal_lb_parameters))
-- `nginx_parameters` (Attributes) Configuration for the Nginx ingress controller deployed on the cluster. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--nginx_parameters))
+- `cert_manager_parameters` (Attributes) Parameters of cert-manager, which issues the TLS certificates. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--cert_manager_parameters))
+- `eks_anywhere_parameters` (Attributes) Parameters of the EKS Anywhere GitOps integration: the git repository and the path of the cluster YAML file. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters))
+- `metal_lb_parameters` (Attributes) Parameters of MetalLB, the load balancer that exposes the services of the cluster. Required for `PARTIALLY_MANAGED` clusters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--metal_lb_parameters))
+- `nginx_parameters` (Attributes) Parameters of the NGINX ingress controller. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--nginx_parameters))
 
 <a id="nestedatt--infrastructure_charts_parameters--cert_manager_parameters"></a>
 ### Nested Schema for `infrastructure_charts_parameters.cert_manager_parameters`
 
 Optional:
 
-- `kubernetes_namespace` (String) Kubernetes namespace where cert-manager is installed (e.g., `cert-manager` or `qovery`).
+- `kubernetes_namespace` (String) Kubernetes namespace of cert-manager, for example `cert-manager` or `qovery`.
 
 
 <a id="nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters"></a>
@@ -688,26 +428,26 @@ Optional:
 
 Required:
 
-- `git_repository` (Attributes) Git repository settings used by Qovery to read and update EKS Anywhere configuration. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--git_repository))
-- `yaml_file_path` (String) Path to the EKS Anywhere cluster YAML file in the Git repository (for example: `clusters/prod/cluster.yaml`).
+- `git_repository` (Attributes) Git repository of the EKS Anywhere configuration, which Qovery reads and updates. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--git_repository))
+- `yaml_file_path` (String) Path of the EKS Anywhere cluster YAML file in the repository, for example `clusters/prod/cluster.yaml`.
 
 Optional:
 
-- `cluster_backup` (Attributes) Backup settings for EKS Anywhere clusters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--cluster_backup))
+- `cluster_backup` (Attributes) Backup of the EKS Anywhere cluster. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--cluster_backup))
 
 <a id="nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--git_repository"></a>
 ### Nested Schema for `infrastructure_charts_parameters.eks_anywhere_parameters.git_repository`
 
 Required:
 
-- `git_token_id` (String) Qovery Git token ID used to access the repository.
-- `url` (String) Git repository URL containing the EKS Anywhere YAML files.
+- `git_token_id` (String) ID of the `qovery_git_token` used to access a private repository.
+- `url` (String) URL of the git repository, for example `https://github.com/my-org/my-app.git`.
 
 Optional:
 
-- `branch` (String) Repository branch name. Defaults to the repository default branch when omitted.
-- `commit_id` (String) Optional git commit SHA to pin EKS Anywhere configuration to a specific revision. If omitted, the latest commit from the selected branch is used.
-- `provider` (String) Git provider (`BITBUCKET`, `GITHUB`, `GITLAB`).
+- `branch` (String) Branch of the repository.
+- `commit_id` (String) Commit the configuration is pinned to, instead of the latest commit of `branch`.
+- `provider` (String) Git provider of the repository: `BITBUCKET`, `GITHUB` or `GITLAB`.
 
 
 <a id="nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--cluster_backup"></a>
@@ -715,24 +455,24 @@ Optional:
 
 Required:
 
-- `s3` (Attributes) S3 settings used to store backup artifacts. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--cluster_backup--s3))
+- `s3` (Attributes) S3 bucket that stores the backups. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--cluster_backup--s3))
 
 Optional:
 
-- `enabled` (Boolean) Enable or disable EKS Anywhere cluster backup.
+- `enabled` (Boolean) Whether the cluster is backed up.
 
 <a id="nestedatt--infrastructure_charts_parameters--eks_anywhere_parameters--cluster_backup--s3"></a>
 ### Nested Schema for `infrastructure_charts_parameters.eks_anywhere_parameters.cluster_backup.s3`
 
 Required:
 
-- `bucket` (String) S3 bucket name used to store EKS Anywhere backup artifacts.
-- `region` (String) AWS region where the backup bucket is hosted.
-- `role_arn` (String) IAM role ARN assumed to upload backup artifacts.
+- `bucket` (String) Name of the S3 bucket.
+- `region` (String) AWS region of the S3 bucket.
+- `role_arn` (String) ARN of the IAM role Qovery assumes to upload the backups.
 
 Optional:
 
-- `key_prefix` (String) Optional S3 key prefix used for backup object keys.
+- `key_prefix` (String) Prefix of the keys of the backup objects.
 
 
 
@@ -742,7 +482,7 @@ Optional:
 
 Required:
 
-- `ip_address_pools` (List of String) List of IP address pools for MetalLB. Each entry can be a single IP or an IP range (e.g., `192.168.1.100` or `192.168.1.100-192.168.1.200`). These IPs must be routable on your network.
+- `ip_address_pools` (List of String) IP address pools of MetalLB, each an IP address or a range, for example `192.168.1.100-192.168.1.200`.
 
 
 <a id="nestedatt--infrastructure_charts_parameters--nginx_parameters"></a>
@@ -750,11 +490,11 @@ Required:
 
 Optional:
 
-- `annotation_external_dns_kubernetes_target` (String) IP address or hostname used by external-dns for DNS record creation (e.g., `192.168.1.100`).
-- `annotation_metal_lb_load_balancer_ips` (String) IP address annotation for MetalLB load balancer allocation (e.g., `192.168.1.100`). Must be within a MetalLB IP address pool.
-- `default_ssl_certificate` (String) Default SSL certificate reference in `namespace/secret-name` format (e.g., `qovery/letsencrypt-acme-qovery-cert`).
-- `publish_status_address` (String) Public IP address reported in the ingress status. This is the IP that external DNS will resolve to.
-- `replica_count` (Number) Number of Nginx ingress controller replicas. Increase for high-availability setups.
+- `annotation_external_dns_kubernetes_target` (String) IP address or hostname external-dns sets as the target of the DNS records, for example `192.168.1.100`.
+- `annotation_metal_lb_load_balancer_ips` (String) IP address MetalLB assigns to the ingress load balancer, for example `192.168.1.100`. It must be in a MetalLB IP address pool.
+- `default_ssl_certificate` (String) Default TLS certificate, as `<namespace>/<secret name>`, for example `qovery/letsencrypt-acme-qovery-cert`.
+- `publish_status_address` (String) IP address the ingress status reports, which the DNS records resolve to.
+- `replica_count` (Number) Number of replicas of the NGINX ingress controller.
 
 
 
@@ -763,7 +503,8 @@ Optional:
 
 Optional:
 
-- `enabled` (Boolean) Whether the KEDA operator is installed on the cluster. Default: `false`.
+- `enabled` (Boolean) Whether KEDA is installed on the cluster.
+	- Default: `false`.
 
 
 <a id="nestedatt--routing_table"></a>
@@ -771,9 +512,9 @@ Optional:
 
 Required:
 
-- `description` (String) Human-readable description of the route's purpose.
-- `destination` (String) Destination CIDR block for the route (e.g., `10.1.0.0/16`).
-- `target` (String) Target gateway or endpoint for the route (e.g., a VPC peering connection ID or NAT gateway ID).
+- `description` (String) Description of the route.
+- `destination` (String) Destination CIDR block of the route, for example `10.1.0.0/16`.
+- `target` (String) Target of the route, for example the ID of a VPC peering connection or of a NAT gateway.
 
 
 <a id="nestedatt--secret_manager_accesses"></a>
@@ -781,28 +522,28 @@ Required:
 
 Required:
 
-- `authentication` (Attributes) Authentication configuration for the secret manager. (see [below for nested schema](#nestedatt--secret_manager_accesses--authentication))
-- `endpoint` (Attributes) Endpoint configuration for the secret manager. (see [below for nested schema](#nestedatt--secret_manager_accesses--endpoint))
+- `authentication` (Attributes) How the cluster authenticates to the secret manager. (see [below for nested schema](#nestedatt--secret_manager_accesses--authentication))
+- `endpoint` (Attributes) Endpoint of the secret manager. (see [below for nested schema](#nestedatt--secret_manager_accesses--endpoint))
 - `name` (String) Name of the secret manager access.
 
 Read-Only:
 
-- `id` (String) Id of the secret manager access.
+- `id` (String) ID of the secret manager access.
 
 <a id="nestedatt--secret_manager_accesses--authentication"></a>
 ### Nested Schema for `secret_manager_accesses.authentication`
 
 Required:
 
-- `type` (String) Authentication mode. One of: AUTOMATICALLY_CONFIGURED, AWS_ROLE_ARN, AWS_STATIC_CREDENTIALS, GCP_JSON_CREDENTIALS.
+- `type` (String) Authentication mode: `AUTOMATICALLY_CONFIGURED`, `AWS_ROLE_ARN`, `AWS_STATIC_CREDENTIALS` or `GCP_JSON_CREDENTIALS`.
 
 Optional:
 
-- `access_key` (String) AWS access key ID. Required when type is AWS_STATIC_CREDENTIALS.
-- `json_credentials` (String, Sensitive) GCP service account JSON credentials. Required when type is GCP_JSON_CREDENTIALS.
-- `region` (String) AWS region. Required when type is AWS_STATIC_CREDENTIALS.
-- `role_arn` (String) IAM role ARN. Required when type is AWS_ROLE_ARN.
-- `secret_key` (String, Sensitive) AWS secret access key. Required when type is AWS_STATIC_CREDENTIALS.
+- `access_key` (String) AWS access key ID. Required when `type` is `AWS_STATIC_CREDENTIALS`.
+- `json_credentials` (String, Sensitive) JSON key of the GCP service account. Required when `type` is `GCP_JSON_CREDENTIALS`.
+- `region` (String) AWS region of the static credentials. Required when `type` is `AWS_STATIC_CREDENTIALS`.
+- `role_arn` (String) ARN of the IAM role the cluster assumes. Required when `type` is `AWS_ROLE_ARN`.
+- `secret_key` (String, Sensitive) AWS secret access key. Required when `type` is `AWS_STATIC_CREDENTIALS`.
 
 
 <a id="nestedatt--secret_manager_accesses--endpoint"></a>
@@ -810,12 +551,12 @@ Optional:
 
 Required:
 
-- `region` (String) Region of the secret manager endpoint.
-- `type` (String) Type of secret manager endpoint. One of: AWS_PARAMETER_STORE, AWS_SECRET_MANAGER, GCP_SECRET_MANAGER.
+- `region` (String) Region of the secret manager.
+- `type` (String) Type of the secret manager: `AWS_PARAMETER_STORE`, `AWS_SECRET_MANAGER` or `GCP_SECRET_MANAGER`.
 
 Optional:
 
-- `project_id` (String) GCP project ID. Required when type is GCP_SECRET_MANAGER.
+- `project_id` (String) ID of the GCP project of the secret manager. Required when `type` is `GCP_SECRET_MANAGER`.
 
 
 
@@ -824,11 +565,11 @@ Optional:
 
 Read-Only:
 
-- `cluster_arn` (String) The Amazon Resource Name (ARN) of the EKS cluster. Only populated for AWS clusters after deployment.
-- `cluster_name` (String) The name of the Kubernetes cluster as assigned by the cloud provider. Available after deployment for all providers.
-- `cluster_oidc_issuer` (String) The OIDC issuer URL for the cluster. Useful for configuring IAM roles for service accounts (IRSA on AWS, workload identity on Azure). Available for AWS and Azure after deployment.
-- `cluster_self_link` (String) The self-link URL of the GKE cluster. Only populated for GCP clusters after deployment.
-- `vpc_id` (String) The VPC ID used by the cluster. Only populated for AWS clusters after deployment. Useful for setting up VPC peering or other networking resources.
+- `cluster_arn` (String) ARN of the EKS cluster, on AWS.
+- `cluster_name` (String) Name of the Kubernetes cluster at the cloud provider.
+- `cluster_oidc_issuer` (String) OIDC issuer URL of the cluster, on AWS and Azure, for example to grant IAM roles to service accounts.
+- `cluster_self_link` (String) Self link of the GKE cluster, on GCP.
+- `vpc_id` (String) ID of the VPC of the cluster, on AWS.
 ## Import
 ```shell
 terraform import qovery_cluster.my_cluster "<organization_id>,<cluster_id>"

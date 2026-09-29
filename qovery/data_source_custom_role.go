@@ -44,47 +44,48 @@ func (d *customRoleDataSource) Configure(_ context.Context, req datasource.Confi
 
 func (d customRoleDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery organization custom role. Returns the full permission matrix (every cluster and project of the organization).",
+		MarkdownDescription: "Reads an existing Qovery custom role, with its permissions on every cluster and project of the organization.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the custom role.",
-				Required:    true,
+				MarkdownDescription: idDescription("custom role"),
+				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				MarkdownDescription: organizationIDDescription,
+				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the custom role.",
-				Computed:    true,
+				MarkdownDescription: nameDescription("custom role"),
+				Computed:            true,
 			},
 			"description": schema.StringAttribute{
-				Description: "Description of the custom role.",
-				Computed:    true,
+				MarkdownDescription: descriptionDescription("custom role"),
+				Computed:            true,
 			},
 			"cluster_permissions": schema.SetNestedAttribute{
-				Description: "Cluster permissions of the custom role (every cluster of the organization).",
-				Computed:    true,
+				MarkdownDescription: customRoleClusterPermissionsDescription + " Lists every cluster of the organization.",
+				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"cluster_id": schema.StringAttribute{Computed: true},
-						"permission": schema.StringAttribute{Computed: true},
+						"cluster_id": schema.StringAttribute{MarkdownDescription: customRoleClusterIDDescription, Computed: true},
+						"permission": schema.StringAttribute{MarkdownDescription: customRoleClusterPermissionDescription, Computed: true},
 					},
 				},
 			},
 			"project_permissions": schema.SetNestedAttribute{
-				Description: "Project permissions of the custom role (every project of the organization).",
-				Computed:    true,
+				MarkdownDescription: customRoleProjectPermissionsDescription + " Lists every project of the organization.",
+				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"project_id": schema.StringAttribute{Computed: true},
-						"is_admin":   schema.BoolAttribute{Computed: true},
+						"project_id": schema.StringAttribute{MarkdownDescription: customRoleProjectIDDescription, Computed: true},
+						"is_admin":   schema.BoolAttribute{MarkdownDescription: customRoleIsAdminDescription, Computed: true},
 						"permissions": schema.SetNestedAttribute{
-							Computed: true,
+							MarkdownDescription: customRoleEnvironmentPermissionsDescription + " `null` when `is_admin` is `true`.",
+							Computed:            true,
 							NestedObject: schema.NestedAttributeObject{
 								Attributes: map[string]schema.Attribute{
-									"environment_type": schema.StringAttribute{Computed: true},
-									"permission":       schema.StringAttribute{Computed: true},
+									"environment_type": schema.StringAttribute{MarkdownDescription: customRoleEnvironmentTypeDescription, Computed: true},
+									"permission":       schema.StringAttribute{MarkdownDescription: customRoleEnvironmentPermissionDescription, Computed: true},
 								},
 							},
 						},

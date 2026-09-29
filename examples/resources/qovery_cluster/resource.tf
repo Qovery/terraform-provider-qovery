@@ -1,274 +1,82 @@
-# Common
-resource "qovery_organization" "my_organization" {
-  name = "My Organization"
-  plan = "PROFESSIONAL"
-}
-
-#######
-# AWS #
-#######
-
-# AWS Credentials
-resource "qovery_aws_credentials" "aws_creds" {
-  organization_id   = qovery_organization.my_organization.id
-  name              = "My AWS credentials"
-  access_key_id     = var.access_key_id
-  secret_access_key = var.secret_access_key
-}
-
-# Labels group (EKS clusters only)
-resource "qovery_labels_group" "cluster_labels" {
+# AWS (EKS) with Karpenter
+resource "qovery_cluster" "my_cluster" {
   organization_id = qovery_organization.my_organization.id
-  name            = "cluster-labels"
-
-  labels = [
-    {
-      key                         = "team"
-      value                       = "platform"
-      propagate_to_cloud_provider = true
-    },
-  ]
-}
-
-# AWS Cluster with Karpenter example
-resource "qovery_cluster" "cluster" {
-  organization_id = qovery_organization.my_organization.id
-  credentials_id  = qovery_aws_credentials.aws_creds.id
-  name            = "test_terraform_provider"
+  credentials_id  = qovery_aws_credentials.my_aws_credentials.id
+  name            = "my-cluster"
   cloud_provider  = "AWS"
   region          = "us-east-2"
 
-  description = "My cluster description"
-
   features = {
-    vpc_subnet = "10.0.0.0/16"
-    static_ip  = "true"
     karpenter = {
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
-      # set the maximum instance size and familly you can to reduce allocation issue
       qovery_node_pools = {
+        # Allow as many instance families and sizes as possible: a short list makes node allocation fail more often.
         requirements = [
-          {
-            key      = "InstanceSize"
-            operator = "In"
-            values   = ["small", "medium", "large", "xlarge", "2xlarge", "3xlarge", "4xlarge", "6xlarge", "8xlarge", "9xlarge", "12xlarge", "16xlarge", "18xlarge", "24xlarge", "32xlarge"]
-          },
           {
             key      = "InstanceFamily"
             operator = "In"
-            values   = ["c5", "c5a", "c5d", "c5n", "c6gd", "c6gn", "c6i", "c6in", "c7g", "c7i", "c7i-flex", "d2", "d3", "i3", "i3en", "i4i", "im4gn", "inf2", "is4gen", "m5", "m5a", "m5ad", "m5d", "m6g", "m6gd", "m6i", "m7g", "m7gd", "m7i", "m7i-flex", "r4", "r5", "r5a", "r5ad", "r5d", "r5dn", "r5n", "r6g", "r6gd", "r6i", "r7i", "t2", "t3", "t3a", "t4g", "x2iedn"]
+            values   = ["c6i", "c7i", "m6i", "m7i", "r6i", "r7i", "t3", "t3a"]
+          },
+          {
+            key      = "InstanceSize"
+            operator = "In"
+            values   = ["medium", "large", "xlarge", "2xlarge", "4xlarge"]
           },
           {
             key      = "Arch"
             operator = "In"
-            values   = ["ARM64", "AMD64"]
+            values   = ["AMD64"]
           }
         ]
 
-        # Spot instances are configured per node pool, and a node pool without
-        # spot_enabled runs on on-demand instances. Keep the stable node pool on
-        # on-demand instances, it runs the workloads that must not be interrupted.
-        stable_override = {
-          spot_enabled = false
-        }
-
-        # The default node pool runs your applications: spot instances save cost on
-        # fault-tolerant workloads. consolidate_after sets how long Karpenter waits
-        # before consolidating an empty or underutilized node.
+        # Runs the application workloads on Spot instances; the stable node pool stays on on-demand instances.
         default_override = {
-          spot_enabled      = true
-          consolidate_after = "5m"
-        }
-
-        # Declaring this block enables the dedicated cronjob node pool: the engine
-        # creates the pool and pins cron jobs and lifecycle jobs to it. Remove the
-        # block to go back to running them on the default node pool.
-        cronjob_override = {
           spot_enabled = true
-        }
-
-        # Declaring this block creates the GPU node pool, for the workloads that
-        # request GPUs. Removing the block deletes the pool.
-        gpu_override = {
-          requirements = [
-            {
-              key      = "InstanceFamily"
-              operator = "In"
-              values   = ["g4dn", "g5"]
-            },
-            {
-              key      = "InstanceSize"
-              operator = "In"
-              values   = ["xlarge", "2xlarge"]
-            },
-            {
-              key      = "Arch"
-              operator = "In"
-              values   = ["AMD64"]
-            }
-          ]
-          disk_size_in_gib = 100
         }
       }
     }
   }
-
-  # KEDA event-driven autoscaling operator.
-  # Installs KEDA on the cluster, unlocking event-driven autoscaling and
-  # scale-to-zero (min_running_instances = 0) for services.
-  keda = {
-    enabled = true
-  }
-
-  # Labels groups are only supported on EKS (AWS MANAGED) clusters.
-  labels_group_ids = [qovery_labels_group.cluster_labels.id]
-
-  advanced_settings_json = jsonencode({
-    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings
-    # you can only indicate settings that you need to override
-    "aws.vpc.flow_logs_retention_days" : 100,
-    "aws.vpc.enable_s3_flow_logs" : true
-  })
-
-  state = "DEPLOYED"
 }
 
-#######
-# GCP #
-#######
-
-# GCP Credentials
-resource "qovery_gcp_credentials" "gcp_creds" {
+# GCP (GKE Autopilot): Autopilot sizes the nodes, so instance_type, disk_size and the node counts do not apply.
+resource "qovery_cluster" "my_gcp_cluster" {
   organization_id = qovery_organization.my_organization.id
-  name            = "My GCP credentials"
-  gcp_credentials = file("${path.module}/service-account.json")
-}
-
-resource "qovery_cluster" "gcp_cluster" {
-  organization_id = qovery_organization.my_organization.id
-  credentials_id  = qovery_gcp_credentials.gcp_creds.id
-  name            = "test_terraform_provider"
+  credentials_id  = qovery_gcp_credentials.my_gcp_credentials.id
+  name            = "my-gcp-cluster"
   cloud_provider  = "GCP"
   region          = "europe-west9"
-  state           = "DEPLOYED"
-
-  # GKE Autopilot sizes the nodes: instance_type, disk_size and the node counts do not apply.
-  description = "My cluster description"
-
-  advanced_settings_json = jsonencode({
-    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings
-    # you can only indicate settings that you need to override
-    "gcp.vpc.enable_flow_logs" : false,
-    "gcp.vpc.flow_logs_sampling" : 0.0,
-  })
 }
 
-# GCP Cluster with existing VPC
-resource "qovery_cluster" "gcp_cluster_custom_vpc" {
+# Azure (AKS): Azure credentials are created from the Qovery Console, the provider cannot create them.
+resource "qovery_cluster" "my_azure_cluster" {
   organization_id = qovery_organization.my_organization.id
-  credentials_id  = qovery_gcp_credentials.gcp_creds.id
-  name            = "gke-custom-vpc"
-  cloud_provider  = "GCP"
-  region          = "europe-west1"
-  state           = "DEPLOYED"
-
-  features = {
-    gcp_existing_vpc = {
-      vpc_name                       = "my-existing-vpc"
-      vpc_project_id                 = "my-gcp-project-id"
-      subnetwork_name                = "my-subnetwork"
-      ip_range_services_name         = "gke-services"
-      ip_range_pods_name             = "gke-pods"
-      additional_ip_range_pods_names = ["gke-pods-extra-1", "gke-pods-extra-2"]
-    }
-  }
-}
-
-#########
-# Azure #
-#########
-
-# Azure credentials must be created via the Qovery console (provisioning requires server-side scripts).
-# Use data source to reference existing credentials.
-data "qovery_azure_credentials" "azure_creds" {
-  id              = var.azure_credentials_id
-  organization_id = qovery_organization.my_organization.id
-}
-
-# Azure AKS Cluster
-resource "qovery_cluster" "azure_cluster" {
-  organization_id = qovery_organization.my_organization.id
-  credentials_id  = data.qovery_azure_credentials.azure_creds.id
+  credentials_id  = var.azure_credentials_id
   name            = "my-azure-cluster"
   cloud_provider  = "AZURE"
   region          = "westeurope"
-  state           = "DEPLOYED"
-
-  description       = "Azure AKS cluster managed by Qovery"
-  instance_type     = "Standard_B2s_v2"
-  min_running_nodes = 3
-  max_running_nodes = 10
+  instance_type   = "Standard_B2s_v2"
 }
 
-############
-# Scaleway #
-############
-
-resource "qovery_scaleway_credentials" "scw_creds" {
-  organization_id = qovery_organization.organization.id
-  name            = "qovery-scaleway-tests-creds"
-
-  scaleway_access_key      = var.scaleway_access_key
-  scaleway_secret_key      = var.scaleway_secret_key
-  scaleway_project_id      = var.scaleway_project_id
-  scaleway_organization_id = var.scaleway_organization_id
-}
-
-resource "qovery_cluster" "cluster" {
-  organization_id = qovery_organization.organization.id
-  credentials_id  = qovery_scaleway_credentials.scw_creds.id
-  name            = "test_terraform_provider"
+# Scaleway (Kapsule)
+resource "qovery_cluster" "my_scaleway_cluster" {
+  organization_id = qovery_organization.my_organization.id
+  credentials_id  = qovery_scaleway_credentials.my_scaleway_credentials.id
+  name            = "my-scaleway-cluster"
   cloud_provider  = "SCW"
   region          = "pl-waw-1"
-  state           = "DEPLOYED"
-
-  instance_type     = "DEV1-L"
-  min_running_nodes = 3
-  max_running_nodes = 10
-
-  description = "test"
-
-  advanced_settings_json = jsonencode({
-    # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings
-    # you can only indicate settings that you need to override
-    "load_balancer.size" : "lb-s",
-    "scaleway.enable_private_network_migration" : false,
-  })
+  instance_type   = "DEV1-XL"
 }
 
-################
-# EKS Anywhere #
-################
-
-resource "qovery_aws_credentials" "eks_anywhere_creds" {
-  organization_id   = qovery_organization.my_organization.id
-  name              = "My EKS Anywhere credentials"
-  access_key_id     = var.access_key_id
-  secret_access_key = var.secret_access_key
-}
-
-resource "qovery_cluster" "eks_anywhere_cluster" {
+# EKS Anywhere on vSphere: Qovery manages the workloads of an existing on-premise cluster.
+resource "qovery_cluster" "my_eks_anywhere_cluster" {
   organization_id = qovery_organization.my_organization.id
-  credentials_id  = qovery_aws_credentials.eks_anywhere_creds.id
+  credentials_id  = qovery_eks_anywhere_vsphere_credentials.my_eks_anywhere_vsphere_credentials.id
   name            = "my-eks-anywhere-cluster"
   cloud_provider  = "AWS"
   region          = "on-premise"
   kubernetes_mode = "PARTIALLY_MANAGED"
-
-  description = "EKS Anywhere cluster managed by Qovery"
-
-  kubeconfig = file("${path.module}/kubeconfig.yaml")
+  kubeconfig      = file("${path.module}/kubeconfig.yaml")
 
   infrastructure_charts_parameters = {
     nginx_parameters = {
@@ -285,6 +93,4 @@ resource "qovery_cluster" "eks_anywhere_cluster" {
       ip_address_pools = ["192.168.1.100-192.168.1.110"]
     }
   }
-
-  state = "DEPLOYED"
 }

@@ -1,32 +1,24 @@
 # qovery_deployment (Resource)
 
-Provides a Qovery deployment resource. This is used to trigger and manage the deployment state of an environment and all its services.
+Manages the deployment of a Qovery environment: Terraform deploys, stops or redeploys all its services. Qovery stores no deployment, so a deploy or a stop made outside Terraform does not show up in the plan.
 
-~> **Note:** This resource does not support import. When destroying this resource, all services in the environment will be stopped.
-
-Qovery stores no deployment object, so the refresh keeps the last applied values: a deploy or a stop made from the Qovery Console does not show up in `terraform plan`.
+~> **Note:** Destroying this resource deletes the environment and all its services.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
-
 ```terraform
 resource "qovery_deployment" "my_deployment" {
-  # Required
   environment_id = qovery_environment.my_environment.id
   desired_state  = "RUNNING"
 
-  # Optional - use a random UUID to force redeployment on every apply
-  version = "random_uuid_to_force_retrigger_terraform_apply"
+  # To deploy again without changing desired_state, set `version` to a new UUID.
 
-  # Ensure all services are created before deploying the environment
+  # Deploy the environment once its services exist.
   depends_on = [
     qovery_application.my_application,
-    qovery_database.my_database,
     qovery_container.my_container,
+    qovery_database.my_database,
   ]
 }
 ```
@@ -36,11 +28,10 @@ resource "qovery_deployment" "my_deployment" {
 
 ### Required
 
-- `desired_state` (String) Desired state of the deployment. Setting this to `RUNNING` starts all services, `STOPPED` stops all services, and `RESTARTED` triggers a restart of all running services.
-	- Can be: `RESTARTED`, `RUNNING`, `STOPPED`.
-- `environment_id` (String) Identifier of the environment to deploy (UUID format).
+- `desired_state` (String) Desired state of the environment. `RUNNING` deploys all its services, `STOPPED` stops them, and `RESTARTED` redeploys them but fails at creation.
+- `environment_id` (String) ID of the environment to deploy.
 
 ### Optional
 
-- `id` (String) Unique identifier of the deployment (UUID format). If not provided, a random UUID will be generated.
-- `version` (String) Version identifier to force a redeployment when `desired_state` hasn't changed. Use a random UUID (e.g., via `uuid()`) to force Terraform to trigger a new deployment on every apply.
+- `id` (String) ID of the deployment, as a UUID. A random UUID is generated when omitted.
+- `version` (String) Version of the deployment, as a UUID. Changing it runs the `desired_state` action again: set it to `uuid()` to redeploy on every apply.

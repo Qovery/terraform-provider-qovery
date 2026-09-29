@@ -21,6 +21,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/blueprint"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 )
 
 var (
@@ -61,125 +62,120 @@ func (r *blueprintResource) Configure(_ context.Context, req resource.ConfigureR
 
 func (r blueprintResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery blueprint resource: a service instantiated from the Qovery service catalog (e.g. a managed database). " +
-			"Qovery materializes the blueprint as a terraform or helm service, exposed as `service_id`. Every update is saved then applied, which redeploys that service. " +
-			"The API returns neither `spec_overrides` nor the values of `secret_variables`, so changes made to them outside Terraform are not detected.",
+		MarkdownDescription: "Manages a Qovery blueprint: a service created from the Qovery service catalog, such as a managed database, that runs as the terraform or helm service `service_id`. Every change redeploys that service.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the blueprint.",
-				Computed:    true,
+				MarkdownDescription: idDescription("blueprint"),
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"environment_id": schema.StringAttribute{
-				Description: "Id of the environment.",
-				Required:    true,
+				MarkdownDescription: environmentIDDescription + recreatesOnChange("blueprint"),
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the blueprint service.",
-				Required:    true,
+				MarkdownDescription: nameDescription("blueprint"),
+				Required:            true,
 			},
 			"blueprint": schema.StringAttribute{
-				Description: "Catalog entry to instantiate, as `<provider>/<service_family>/<service_version>`, e.g. `AWS/postgres/17`. " +
-					"Changing the service version upgrades the service in place; changing the provider or the service family replaces it.",
-				Required: true,
+				MarkdownDescription: blueprintCatalogEntryDescription + " Changing the version upgrades the service in place, and changing the provider or the family recreates the blueprint.",
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					requiresReplaceIfOtherBlueprintService(),
 				},
 			},
 			"tag": schema.StringAttribute{
-				Description: "Catalog tag deployed, e.g. `AWS/postgres/17/4.1.0`. Always the latest release of `blueprint`: when the catalog publishes a new one, the next apply upgrades the service to it.",
-				Computed:    true,
+				MarkdownDescription: blueprintTagDescription + " Always the latest release of `blueprint`: when the catalog publishes a new one, the next apply upgrades the service.",
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"icon_uri": schema.StringAttribute{
-				Description: "Icon URI of the blueprint service, set when the blueprint is created. Defaults to `" + defaultBlueprintIconURI + "`. " +
-					"The Qovery API cannot change it afterwards, so a change is rejected at plan time: change the icon from the Qovery Console, then set the same value here.",
-				Optional: true,
-				Computed: true,
-				Default:  stringdefault.StaticString(defaultBlueprintIconURI),
+				MarkdownDescription: descriptions.NewStringDefaultDescription(iconURIDescription("blueprint")+" It can only be set at creation: changing it fails at plan time.", defaultBlueprintIconURI),
+				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(defaultBlueprintIconURI),
 				PlanModifiers: []planmodifier.String{
 					RejectChangeAfterCreate(blueprintIconChangeReason),
 				},
 			},
 			"variables": schema.MapAttribute{
-				Description: "Blueprint variables, keyed by name. Variables left out get their catalog default: " +
-					"a variable set outside Terraform to another value shows in the plan, and the next apply resets it.",
-				Optional:    true,
-				ElementType: types.StringType,
+				MarkdownDescription: blueprintVariablesDescription + " Omitted variables use their catalog default.",
+				Optional:            true,
+				ElementType:         types.StringType,
 			},
 			"secret_variables": schema.MapAttribute{
-				Description: "Secret blueprint variables, keyed by name. The API never returns their values.",
-				Optional:    true,
-				Sensitive:   true,
-				ElementType: types.StringType,
+				MarkdownDescription: "Secret variables of the blueprint, as a map of name to value.",
+				Optional:            true,
+				Sensitive:           true,
+				ElementType:         types.StringType,
 			},
 			"spec_overrides": schema.SingleNestedAttribute{
-				Description: "Overrides of the engine settings of the blueprint manifest.",
-				Optional:    true,
+				MarkdownDescription: "Overrides of the engine settings of the blueprint manifest. The API does not return them, so a change made outside Terraform does not show up in the plan.",
+				Optional:            true,
 				Attributes: map[string]schema.Attribute{
 					"engine_version": schema.StringAttribute{
-						Description: "Terraform or OpenTofu version of the apply job. Must be one of the versions the manifest allows.",
-						Optional:    true,
+						MarkdownDescription: "Terraform or OpenTofu version of the apply job. Must be a version the blueprint manifest allows.",
+						Optional:            true,
 					},
 					"credentials": schema.StringAttribute{
-						Description: "How the apply job authenticates to the cloud provider: `cluster` reuses the cluster credentials, `env` expects credentials as environment variables.",
-						Optional:    true,
+						MarkdownDescription: "How the apply job authenticates to the cloud provider: `cluster` uses the cluster credentials, `env` reads them from environment variables.",
+						Optional:            true,
 					},
 					"backend": schema.StringAttribute{
-						Description: "Where the Terraform state is stored: `qovery` or `user_provided`.",
-						Optional:    true,
+						MarkdownDescription: "Where the Terraform state is stored: `qovery` or `user_provided`.",
+						Optional:            true,
 					},
 					"timeout": schema.Int64Attribute{
-						Description: "Maximum duration in seconds of an apply job.",
-						Optional:    true,
+						MarkdownDescription: "Maximum duration of an apply job, in seconds.",
+						Optional:            true,
 						Validators: []validator.Int64{
 							int64validator.Between(0, math.MaxInt32),
 						},
 					},
 					"cpu": schema.StringAttribute{
-						Description: "CPU of the apply job pod, e.g. `500m`.",
-						Optional:    true,
+						MarkdownDescription: "CPU of the apply job pod, as a Kubernetes quantity, for example `500m`.",
+						Optional:            true,
 					},
 					"ram": schema.StringAttribute{
-						Description: "Memory of the apply job pod, e.g. `512Mi`.",
-						Optional:    true,
+						MarkdownDescription: "Memory of the apply job pod, as a Kubernetes quantity, for example `512Mi`.",
+						Optional:            true,
 					},
 					"storage": schema.StringAttribute{
-						Description: "Ephemeral storage of the apply job pod, e.g. `1Gi`.",
-						Optional:    true,
+						MarkdownDescription: "Ephemeral storage of the apply job pod, as a Kubernetes quantity, for example `1Gi`.",
+						Optional:            true,
 					},
 				},
 			},
 			"deploy": schema.BoolAttribute{
-				Description: "Whether to deploy the service on creation. Defaults to `true`. Later changes to any other attribute redeploy the service; changing `deploy` alone does not.",
-				Optional:    true,
-				Computed:    true,
-				Default:     booldefault.StaticBool(true),
+				MarkdownDescription: descriptions.NewBoolDefaultDescription("Whether Qovery deploys the service when it creates the blueprint. Changing only `deploy` later does not redeploy.", true),
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(true),
 			},
 			"service_id": schema.StringAttribute{
-				Description: "Id of the terraform or helm service the blueprint materialized.",
-				Computed:    true,
+				MarkdownDescription: blueprintServiceIDDescription,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"service_type": schema.StringAttribute{
-				Description: "Type of the service the blueprint materialized: `TERRAFORM` or `HELM`.",
-				Computed:    true,
+				MarkdownDescription: blueprintServiceTypeDescription,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"catalog_url": schema.StringAttribute{
-				Description: "URL of the blueprint catalog entry.",
-				Computed:    true,
+				MarkdownDescription: blueprintCatalogURLDescription,
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},

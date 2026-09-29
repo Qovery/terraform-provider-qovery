@@ -4,7 +4,7 @@ resource "qovery_api_token" "my_api_token" {
   organization_id = qovery_organization.my_organization.id
   name            = "my-api-token"
   description     = "API token for the delegated terraform workspace"
-  role_id         = var.role_id # built-in or custom role id
+  role_id         = qovery_custom_role.my_custom_role.id
 }
 
 # The API has no update endpoint: every attribute change forces a replacement.

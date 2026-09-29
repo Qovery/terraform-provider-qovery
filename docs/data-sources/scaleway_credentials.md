@@ -1,13 +1,13 @@
 # qovery_scaleway_credentials (Data Source)
 
-Use this data source to retrieve information about existing Qovery Scaleway credentials. This is useful for referencing credentials created outside of Terraform or in a different Terraform configuration.
+Reads existing Qovery Scaleway credentials.
 
 ## Example Usage
 
 ```terraform
-data "qovery_scaleway_credentials" "my_scaleway_creds" {
-  id              = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-  organization_id = qovery_organization.my_organization.id
+data "qovery_scaleway_credentials" "my_scaleway_credentials" {
+  id              = "<scaleway_credentials_id>"
+  organization_id = "<organization_id>"
 }
 ```
 
@@ -16,8 +16,8 @@ data "qovery_scaleway_credentials" "my_scaleway_creds" {
 
 ### Required
 
-- `id` (String) ID of the Scaleway credentials to retrieve.
-- `organization_id` (String) ID of the organization containing the credentials.
+- `id` (String) ID of the Scaleway credentials.
+- `organization_id` (String) ID of the organization.
 
 ### Read-Only
 

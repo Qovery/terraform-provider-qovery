@@ -1,88 +1,28 @@
 resource "qovery_application" "my_application" {
-  # Required
   environment_id = qovery_environment.my_environment.id
-  name           = "MyApplication"
+  name           = "my-application"
+
   git_repository = {
-    url       = "https://github.com/my-org/my-app.git"
-    branch    = "main" # Optional (defaults to main or master)
-    root_path = "/"    # Optional (defaults to "/", useful for monorepos)
+    url    = "https://github.com/my-org/my-app.git"
+    branch = "main"
   }
+  dockerfile_path = "Dockerfile"
 
-  # Build configuration
-  build_mode      = "DOCKER"     # DOCKER or BUILDPACKS
-  dockerfile_path = "Dockerfile" # Required when build_mode = "DOCKER"
-
-  # Optional
-  auto_preview      = false
-  auto_deploy       = true
-  cpu               = 500
-  memory            = 512
-  ephemeral_storage = 4
-  # min_running_instances = 0 enables scale-to-zero. Only allowed when an
-  # `autoscaling` (KEDA) block is set below, otherwise the minimum is 1.
-  min_running_instances = 0
-  max_running_instances = 3
-  entrypoint            = "/bin/sh"
-  arguments             = ["-c", "start-server"]
-
-  # Event-driven autoscaling (KEDA). Additive to the CPU/memory HPA above.
-  # Requires KEDA enabled on the cluster (see qovery_cluster `keda`).
-  autoscaling = {
-    polling_interval_seconds = 30
-    cooldown_period_seconds  = 300
-
-    scalers = [
-      # PRIMARY scaler driving scale-up/down from a Prometheus metric.
-      {
-        scaler_type = "prometheus"
-        role        = "PRIMARY"
-        enabled     = true
-        config_json = jsonencode({
-          serverAddress = "http://prometheus.cluster.local:9090"
-          query         = "sum(rate(http_requests_total[1m]))"
-          threshold     = "100"
-        })
-      },
-      # SAFETY scaler defined as raw YAML.
-      {
-        scaler_type = "cron"
-        role        = "SAFETY"
-        config_yaml = <<-EOT
-          timezone: Europe/Paris
-          start: 0 8 * * 1-5
-          end: 0 20 * * 1-5
-          desiredReplicas: "2"
-        EOT
-      }
-    ]
-  }
-
-  # Port configuration
   ports = [
     {
       internal_port       = 8080
       external_port       = 443
       publicly_accessible = true
-      protocol            = "HTTP"
-      is_default          = true
-      name                = "http"
-    },
-    {
-      internal_port       = 9090
-      publicly_accessible = false
-      protocol            = "HTTP"
-      name                = "metrics"
     }
   ]
 
-  # Healthchecks
   healthchecks = {
     readiness_probe = {
       type = {
         http = {
           port   = 8080
-          path   = "/ready"
           scheme = "HTTP"
+          path   = "/ready"
         }
       }
       initial_delay_seconds = 30
@@ -91,13 +31,10 @@ resource "qovery_application" "my_application" {
       success_threshold     = 1
       failure_threshold     = 3
     }
-
     liveness_probe = {
       type = {
-        http = {
-          port   = 8080
-          path   = "/health"
-          scheme = "HTTP"
+        tcp = {
+          port = 8080
         }
       }
       initial_delay_seconds = 30
@@ -108,94 +45,17 @@ resource "qovery_application" "my_application" {
     }
   }
 
-  # Environment variables
   environment_variables = [
     {
-      key   = "APP_PORT"
-      value = "8080"
-    }
-  ]
-  environment_variable_aliases = [
-    {
-      key = "PORT"
-      # The value of the alias must be the name of the aliased variable.
-      # Here it creates an alias "PORT" pointing to the "APP_PORT" variable above.
-      value = "APP_PORT"
-    }
-  ]
-  environment_variable_overrides = [
-    {
-      # The key must match a variable defined at a higher scope (project or environment).
-      key   = "SOME_PROJECT_VARIABLE"
-      value = "OVERRIDDEN_VALUE"
+      key   = "LOG_LEVEL"
+      value = "info"
     }
   ]
 
-  # Environment variable files (mounted as files in the container)
-  environment_variable_files = [
-    {
-      key        = "APP_CONFIG"
-      value      = "config-content"
-      mount_path = "/etc/app/config.yaml"
-    }
-  ]
-
-  # Secrets
   secrets = [
     {
-      key   = "SECRET_KEY"
-      value = "SECRET_VALUE"
+      key   = "API_KEY"
+      value = var.api_key
     }
-  ]
-  secret_aliases = [
-    {
-      key = "SECRET_KEY_ALIAS"
-      # The value of the alias must be the name of the aliased secret.
-      value = "SECRET_KEY"
-    }
-  ]
-  secret_overrides = [
-    {
-      # The key must match a secret defined at a higher scope (project or environment).
-      key   = "SOME_PROJECT_SECRET"
-      value = "OVERRIDDEN_VALUE"
-    }
-  ]
-
-  # Secret files (mounted as files, value is encrypted)
-  secret_files = [
-    {
-      key        = "API_KEY"
-      value      = "secret-value"
-      mount_path = "/usr/local/secrets/api-key"
-    }
-  ]
-
-  # Custom domains
-  custom_domains = [
-    {
-      domain               = "app.example.com"
-      generate_certificate = true
-    }
-  ]
-
-  # Deployment restrictions (only deploy when specific paths change)
-  deployment_restrictions = [
-    {
-      mode  = "MATCH"
-      type  = "PATH"
-      value = "src/"
-    }
-  ]
-
-  # Advanced settings (JSON)
-  advanced_settings_json = jsonencode({
-    # Non-exhaustive list. Full list: https://api-doc.qovery.com/#tag/Applications/operation/getDefaultApplicationAdvancedSettings
-    "network.ingress.proxy_buffer_size_kb" : 8,
-    "network.ingress.keepalive_time_seconds" : 1000,
-  })
-
-  depends_on = [
-    qovery_environment.my_environment
   ]
 }

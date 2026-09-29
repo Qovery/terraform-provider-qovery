@@ -52,49 +52,37 @@ func (r *organizationMemberResource) Configure(_ context.Context, req resource.C
 
 func (r organizationMemberResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery organization member resource. This can be used to invite members to a Qovery organization and manage their role." +
-			" Creating the resource sends an invitation; the invitee becomes an active member once they accept it (out-of-band)." +
-			" An expired invitation stays in the state with invitation_status EXPIRED: re-send it with terraform apply -replace." +
-			" The invitee must accept with the invited email address, otherwise Terraform loses track of the membership.",
-		MarkdownDescription: "Provides a Qovery organization member resource. This can be used to invite members to a Qovery organization and manage their role." +
-			" Creating the resource sends an invitation; the invitee becomes an active member once they accept it (out-of-band)." +
-			" An expired invitation stays in the state with `invitation_status = \"EXPIRED\"`: re-send it with `terraform apply -replace=qovery_organization_member.<name>`." +
-			" The invitee must accept with the invited email address, otherwise Terraform loses track of the membership.",
+		MarkdownDescription: "Manages a member of a Qovery organization: Terraform invites the email, and the invitee becomes a member once they accept the invitation.\n\n" +
+			"~> **Note:** The invitee must accept with the invited email address, otherwise Terraform loses track of the membership.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the member. While the invitation is pending this is the invitation id; once accepted it becomes the user id. It also changes when the role of a pending invitation is updated (the invitation is re-sent).",
-				MarkdownDescription: "Id of the member. While the invitation is pending this is the invitation id; once accepted it becomes the user id. It also changes when the role of a pending invitation is updated (the invitation is re-sent).",
+				MarkdownDescription: organizationMemberIDDescription,
 				Computed:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "Id of the organization. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: organizationIDDescription + recreatesOnChange("member"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"email": schema.StringAttribute{
-				Description:         "Email of the member. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "Email of the member. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: organizationMemberEmailDescription + recreatesOnChange("member"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"role_id": schema.StringAttribute{
-				Description:         "Id of the role to assign to the member (built-in or custom role). Updating the role of a pending invitation re-sends the invitation.",
-				MarkdownDescription: "Id of the role to assign to the member (built-in or custom role). Updating the role of a pending invitation re-sends the invitation.",
+				MarkdownDescription: organizationMemberRoleIDDescription + " Changing it on a pending invitation re-sends the invitation, which changes `id`.",
 				Required:            true,
 			},
 			"user_id": schema.StringAttribute{
-				Description:         "User id of the member. Null until the invitation is accepted.",
-				MarkdownDescription: "User id of the member. Null until the invitation is accepted.",
+				MarkdownDescription: organizationMemberUserIDDescription,
 				Computed:            true,
 			},
 			"invitation_status": schema.StringAttribute{
-				Description:         "Status of the invitation: PENDING, EXPIRED or ACCEPTED.",
-				MarkdownDescription: "Status of the invitation: `PENDING`, `EXPIRED` or `ACCEPTED`.",
+				MarkdownDescription: organizationMemberStatusDescription + " To re-send an expired invitation, replace the resource with `terraform apply -replace`.",
 				Computed:            true,
 			},
 		},

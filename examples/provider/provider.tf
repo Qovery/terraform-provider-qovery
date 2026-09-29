@@ -7,7 +7,5 @@ terraform {
   }
 }
 
-# Configure the Qovery provider
-provider "qovery" {
-  token = "<your-qovery-token>"
-}
+# The provider reads the API token from the QOVERY_API_TOKEN environment variable.
+provider "qovery" {}

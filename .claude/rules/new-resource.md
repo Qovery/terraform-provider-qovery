@@ -57,6 +57,7 @@ deploymentStage, _, _ := c.client.DeploymentStageMainCallsAPI.GetServiceDeployme
 
 - [ ] Every attribute follows "HCL Config Is the Source of Truth" in `AGENTS.md`, apart from the exceptions in the table above
 - [ ] Each exception is commented at the spot and explained in the attribute description
+- [ ] Descriptions set `MarkdownDescription` only, in one or two sentences: shared wording comes from `qovery/schema_descriptions.go`, defaults and limits from the `qovery/descriptions` helpers, and the data source reuses the resource's base sentence
 - [ ] Domain entity has `DeploymentStageID string` field
 - [ ] `UpsertRepositoryRequest` has `DeploymentStageID string` field
 - [ ] Repository Create/Update calls `AttachServiceToDeploymentStage()` if provided

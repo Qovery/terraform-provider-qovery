@@ -1,19 +1,12 @@
 # qovery_project (Data Source)
 
-Use this data source to retrieve information about an existing Qovery project.
+Reads an existing Qovery project.
 
 ## Example Usage
 
 ```terraform
-# Retrieve an existing project by its ID
 data "qovery_project" "my_project" {
   id = "<project_id>"
-}
-
-# Use project attributes in other resources
-resource "qovery_environment" "example" {
-  project_id = data.qovery_project.my_project.id
-  name       = "production"
 }
 ```
 
@@ -22,33 +15,33 @@ resource "qovery_environment" "example" {
 
 ### Required
 
-- `id` (String) Unique identifier of the project (UUID format).
+- `id` (String) ID of the project.
 
 ### Optional
 
 - `description` (String) Description of the project.
-- `environment_variable_aliases` (Attributes Set) Set of environment variable aliases linked to this project. (see [below for nested schema](#nestedatt--environment_variable_aliases))
-- `environment_variables` (Attributes Set) Set of environment variables linked to this project. (see [below for nested schema](#nestedatt--environment_variables))
-- `secret_aliases` (Attributes Set) Set of secret aliases linked to this project. (see [below for nested schema](#nestedatt--secret_aliases))
-- `secrets` (Attributes Set) Set of secrets linked to this project. (see [below for nested schema](#nestedatt--secrets))
+- `environment_variable_aliases` (Attributes Set) Environment variable aliases of the project. An alias gives an existing variable another name. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variables` (Attributes Set) Environment variables of the project. (see [below for nested schema](#nestedatt--environment_variables))
+- `secret_aliases` (Attributes Set) Secret aliases of the project. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secrets` (Attributes Set) Secrets of the project. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this project. (see [below for nested schema](#nestedatt--built_in_environment_variables))
-- `environment_variable_files` (Attributes Set) List of environment variable files linked to this project. (see [below for nested schema](#nestedatt--environment_variable_files))
+- `built_in_environment_variables` (Attributes List) Environment variables Qovery defines for the project. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `environment_variable_files` (Attributes Set) Environment variable files of the project, each mounted as a file. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `name` (String) Name of the project.
-- `organization_id` (String) Identifier of the organization containing this project.
-- `secret_files` (Attributes Set) List of secret files linked to this project. (see [below for nested schema](#nestedatt--secret_files))
+- `organization_id` (String) ID of the organization.
+- `secret_files` (Attributes Set) Secret files of the project, each mounted as a file. (see [below for nested schema](#nestedatt--secret_files))
 
 <a id="nestedatt--environment_variable_aliases"></a>
 ### Nested Schema for `environment_variable_aliases`
 
 Read-Only:
 
-- `description` (String) Description of the environment variable alias.
-- `id` (String) Identifier of the environment variable alias.
-- `key` (String) Name of the environment variable alias.
-- `value` (String) Name of the variable being aliased.
+- `description` (String) Description of the alias.
+- `id` (String) ID of the alias.
+- `key` (String) Name of the alias.
+- `value` (String) Name of the variable to alias.
 
 
 <a id="nestedatt--environment_variables"></a>
@@ -57,8 +50,8 @@ Read-Only:
 Read-Only:
 
 - `description` (String) Description of the environment variable.
-- `id` (String) Identifier of the environment variable.
-- `key` (String) Key of the environment variable.
+- `id` (String) ID of the environment variable.
+- `key` (String) Name of the environment variable.
 - `value` (String) Value of the environment variable.
 
 
@@ -67,10 +60,10 @@ Read-Only:
 
 Read-Only:
 
-- `description` (String) Description of the secret alias.
-- `id` (String) Identifier of the secret alias.
-- `key` (String) Name of the secret alias.
-- `value` (String) Name of the secret being aliased.
+- `description` (String) Description of the alias.
+- `id` (String) ID of the alias.
+- `key` (String) Name of the alias.
+- `value` (String) Name of the secret to alias.
 
 
 <a id="nestedatt--secrets"></a>
@@ -79,8 +72,8 @@ Read-Only:
 Read-Only:
 
 - `description` (String) Description of the secret.
-- `id` (String) Identifier of the secret.
-- `key` (String) Key of the secret.
+- `id` (String) ID of the secret.
+- `key` (String) Name of the secret.
 - `value` (String, Sensitive) Value of the secret.
 
 
@@ -90,8 +83,8 @@ Read-Only:
 Read-Only:
 
 - `description` (String) Description of the environment variable.
-- `id` (String) Identifier of the environment variable.
-- `key` (String) Key of the environment variable.
+- `id` (String) ID of the environment variable.
+- `key` (String) Name of the environment variable.
 - `value` (String) Value of the environment variable.
 
 
@@ -100,11 +93,11 @@ Read-Only:
 
 Read-Only:
 
-- `description` (String) Description of the environment variable file.
-- `id` (String) Id of the environment variable file.
-- `key` (String) Key of the environment variable file.
-- `mount_path` (String) Mount path of the environment variable file.
-- `value` (String) Value of the environment variable file.
+- `description` (String) Description of the variable.
+- `id` (String) ID of the variable.
+- `key` (String) Name of the variable.
+- `mount_path` (String) Path where the file is mounted.
+- `value` (String) Content of the file.
 
 
 <a id="nestedatt--secret_files"></a>
@@ -112,8 +105,8 @@ Read-Only:
 
 Read-Only:
 
-- `description` (String) Description of the secret file.
-- `id` (String) Id of the secret file.
-- `key` (String) Key of the secret file.
-- `mount_path` (String) Mount path of the secret file.
-- `value` (String, Sensitive) Value of the secret file.
+- `description` (String) Description of the secret.
+- `id` (String) ID of the secret.
+- `key` (String) Name of the secret.
+- `mount_path` (String) Path where the file is mounted.
+- `value` (String, Sensitive) Content of the file.

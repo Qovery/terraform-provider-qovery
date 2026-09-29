@@ -1,13 +1,13 @@
 # qovery_labels_group (Data Source)
 
-Use this data source to retrieve information about an existing Qovery labels group.
+Reads an existing Qovery labels group.
 
 ## Example Usage
 
 ```terraform
 data "qovery_labels_group" "my_labels_group" {
-  id              = qovery_labels_group.my_labels_group.id
-  organization_id = qovery_organization.my_organization.id
+  id              = "<labels_group_id>"
+  organization_id = "<organization_id>"
 }
 ```
 
@@ -16,12 +16,12 @@ data "qovery_labels_group" "my_labels_group" {
 
 ### Required
 
-- `id` (String) Unique identifier of the labels group (UUID format).
-- `organization_id` (String) Id of the organization.
+- `id` (String) ID of the labels group.
+- `organization_id` (String) ID of the organization.
 
 ### Optional
 
-- `labels` (Attributes Set) Set of labels included in this group. (see [below for nested schema](#nestedatt--labels))
+- `labels` (Attributes Set) Kubernetes labels of the group. (see [below for nested schema](#nestedatt--labels))
 - `name` (String) Name of the labels group.
 
 <a id="nestedatt--labels"></a>
@@ -30,5 +30,5 @@ data "qovery_labels_group" "my_labels_group" {
 Required:
 
 - `key` (String) Key of the label.
-- `propagate_to_cloud_provider` (Boolean) Whether this label is propagated to the underlying cloud provider resources.
+- `propagate_to_cloud_provider` (Boolean) Whether Qovery also applies the label to the cloud provider resources, for example as AWS tags or GCP labels.
 - `value` (String) Value of the label.

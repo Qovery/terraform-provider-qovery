@@ -45,22 +45,18 @@ func (d *eksAnywhereVsphereCredentialsDataSource) Configure(_ context.Context, r
 
 func (d eksAnywhereVsphereCredentialsDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "Use this data source to retrieve information about existing Qovery EKS Anywhere vSphere credentials.",
-		MarkdownDescription: "Use this data source to retrieve information about existing Qovery EKS Anywhere vSphere credentials.",
+		MarkdownDescription: "Reads existing Qovery EKS Anywhere vSphere credentials.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the EKS Anywhere vSphere credentials.",
-				MarkdownDescription: "ID of the EKS Anywhere vSphere credentials to retrieve.",
+				MarkdownDescription: idDescription("EKS Anywhere vSphere credentials"),
 				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization.",
-				MarkdownDescription: "ID of the organization containing the credentials.",
+				MarkdownDescription: organizationIDDescription,
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the EKS Anywhere vSphere credentials.",
-				MarkdownDescription: "Name of the EKS Anywhere vSphere credentials.",
+				MarkdownDescription: nameDescription("EKS Anywhere vSphere credentials"),
 				Computed:            true,
 			},
 		},

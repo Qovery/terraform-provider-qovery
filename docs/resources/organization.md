@@ -1,25 +1,22 @@
 # qovery_organization (Resource)
 
-Provides a Qovery organization resource. This can be used to manage Qovery organizations.
+Manages a Qovery organization.
 
-~> **Important:** Organizations cannot be created or deleted via Terraform. Use `terraform import` to bring an existing organization under management.
+~> **Note:** Terraform cannot create or delete an organization. Import an existing one, and stop managing it with a `removed` block instead of destroying it.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
-
 ```terraform
-# Qovery organizations cannot be created or deleted via Terraform.
-# Use `terraform import` to bring an existing organization under management.
-resource "qovery_organization" "my_organization" {
-  # Required
-  name = "MyOrganization"
-  plan = "TEAM"
+# Qovery organizations cannot be created or deleted via Terraform: import an existing one.
+import {
+  to = qovery_organization.my_organization
+  id = "<organization_id>"
+}
 
-  # Optional
+resource "qovery_organization" "my_organization" {
+  name        = "my-organization"
+  plan        = "TEAM"
   description = "Production organization for our SaaS platform"
 }
 ```
@@ -29,17 +26,17 @@ resource "qovery_organization" "my_organization" {
 
 ### Required
 
-- `name` (String) Name of the organization. Must be unique across your Qovery account.
-- `plan` (String) Subscription plan of the organization. Determines available features, resource limits, and pricing tier.
+- `name` (String) Name of the organization.
+- `plan` (String) Subscription plan of the organization.
 	- Can be: `BUSINESS`, `BUSINESS_2025`, `ENTERPRISE`, `ENTERPRISE_2025`, `ENTERPRISE_YEARLY`, `FREE`, `PROFESSIONAL`, `TEAM`, `TEAM_2025`, `TEAM_YEARLY`, `USER_2025`.
 
 ### Optional
 
-- `description` (String) Description of the organization. Removing it from the configuration clears the description.
+- `description` (String) Description of the organization.
 
 ### Read-Only
 
-- `id` (String) Unique identifier of the organization (UUID format).
+- `id` (String) ID of the organization.
 ## Import
 ```shell
 terraform import qovery_organization.my_organization "<organization_id>"

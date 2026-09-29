@@ -47,37 +47,29 @@ func (d *annotationsGroupDataSource) Configure(_ context.Context, req datasource
 
 func (d annotationsGroupDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "Use this data source to retrieve information about an existing Qovery annotations group.",
-		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery annotations group.",
+		MarkdownDescription: "Reads an existing Qovery annotations group.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the annotations group (UUID format).",
-				MarkdownDescription: "Unique identifier of the annotations group (UUID format).",
+				MarkdownDescription: idDescription("annotations group"),
 				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization.",
-				MarkdownDescription: "Id of the organization.",
+				MarkdownDescription: organizationIDDescription,
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the annotations group.",
-				MarkdownDescription: "Name of the annotations group.",
+				MarkdownDescription: nameDescription("annotations group"),
 				Optional:            true,
 			},
 			"annotations": schema.MapAttribute{
-				Description:         "Map of annotation key-value pairs included in this group.",
-				MarkdownDescription: "Map of annotation key-value pairs included in this group.",
+				MarkdownDescription: annotationsGroupAnnotationsDescription,
 				Optional:            true,
 				ElementType:         types.StringType,
 			},
 			"scopes": schema.SetAttribute{
-				Description: "Set of Kubernetes resource types to which these annotations are applied. " +
-					"Valid values are: PODS, DEPLOYMENTS, STATEFUL_SETS, SERVICES, INGRESS, HPA, SECRETS, JOBS, CRON_JOBS.",
-				MarkdownDescription: "Set of Kubernetes resource types to which these annotations are applied. " +
-					"Valid values are: `PODS`, `DEPLOYMENTS`, `STATEFUL_SETS`, `SERVICES`, `INGRESS`, `HPA`, `SECRETS`, `JOBS`, `CRON_JOBS`.",
-				Optional:    true,
-				ElementType: types.StringType,
+				MarkdownDescription: annotationsGroupScopesDescription,
+				Optional:            true,
+				ElementType:         types.StringType,
 			},
 		},
 	}

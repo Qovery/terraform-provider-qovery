@@ -25,30 +25,23 @@ func (d deploymentDataSource) Metadata(_ context.Context, req datasource.Metadat
 
 func (r deploymentDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Echoes its arguments. Qovery stores no deployment object: a deployment is an action on an environment, " +
-			"so this data source reads nothing from Qovery. Use the qovery_deployment resource to deploy an environment.",
-		MarkdownDescription: "Echoes its arguments. Qovery stores no deployment object: a deployment is an action on an environment, " +
-			"so this data source reads nothing from Qovery. Use the `qovery_deployment` resource to deploy an environment.",
+		MarkdownDescription: "Reads a Qovery deployment. Qovery stores no deployment, so this data source only echoes its arguments.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the deployment (UUID format). Echoed as configured.",
-				MarkdownDescription: "Unique identifier of the deployment (UUID format). Echoed as configured.",
+				MarkdownDescription: deploymentIDDescription + " Echoed as configured.",
 				Required:            true,
 			},
 			"environment_id": schema.StringAttribute{
-				Description:         "Always null: this data source reads nothing from Qovery.",
-				MarkdownDescription: "Always `null`: this data source reads nothing from Qovery.",
+				MarkdownDescription: deploymentEnvironmentIDDescription + deploymentReadsNothingNote,
 				Computed:            true,
 			},
 			"version": schema.StringAttribute{
-				Description:         "Version identifier of the deployment. Echoed as configured.",
-				MarkdownDescription: "Version identifier of the deployment. Echoed as configured.",
+				MarkdownDescription: deploymentVersionDescription + " Echoed as configured.",
 				Optional:            true,
 				Computed:            false,
 			},
 			"desired_state": schema.StringAttribute{
-				Description:         "Always null: this data source reads nothing from Qovery.",
-				MarkdownDescription: "Always `null`: this data source reads nothing from Qovery.",
+				MarkdownDescription: deploymentDesiredStateDescription + deploymentReadsNothingNote,
 				Computed:            true,
 			},
 		},

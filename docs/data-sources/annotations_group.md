@@ -1,13 +1,13 @@
 # qovery_annotations_group (Data Source)
 
-Use this data source to retrieve information about an existing Qovery annotations group.
+Reads an existing Qovery annotations group.
 
 ## Example Usage
 
 ```terraform
 data "qovery_annotations_group" "my_annotations_group" {
-  id              = qovery_annotations_group.my_annotations_group.id
-  organization_id = qovery_organization.my_organization.id
+  id              = "<annotations_group_id>"
+  organization_id = "<organization_id>"
 }
 ```
 
@@ -16,11 +16,11 @@ data "qovery_annotations_group" "my_annotations_group" {
 
 ### Required
 
-- `id` (String) Unique identifier of the annotations group (UUID format).
-- `organization_id` (String) Id of the organization.
+- `id` (String) ID of the annotations group.
+- `organization_id` (String) ID of the organization.
 
 ### Optional
 
-- `annotations` (Map of String) Map of annotation key-value pairs included in this group.
+- `annotations` (Map of String) Kubernetes annotations of the group, as a map of key to value.
 - `name` (String) Name of the annotations group.
-- `scopes` (Set of String) Set of Kubernetes resource types to which these annotations are applied. Valid values are: `PODS`, `DEPLOYMENTS`, `STATEFUL_SETS`, `SERVICES`, `INGRESS`, `HPA`, `SECRETS`, `JOBS`, `CRON_JOBS`.
+- `scopes` (Set of String) Kubernetes resources the annotations apply to.

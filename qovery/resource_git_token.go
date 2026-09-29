@@ -62,45 +62,35 @@ func (r *gitTokenResource) Configure(_ context.Context, req resource.ConfigureRe
 func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
 		Version:             1,
-		Description:         "Provides a Qovery git token resource. This can be used to create and manage Qovery git tokens for accessing private git repositories.",
-		MarkdownDescription: "Provides a Qovery git token resource. This can be used to create and manage Qovery git tokens for accessing private git repositories.",
+		MarkdownDescription: "Manages a Qovery git token: a token of a git provider that Qovery uses to access private repositories.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the git token.",
-				MarkdownDescription: "Id of the git token.",
+				MarkdownDescription: idDescription("git token"),
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "Id of the organization. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: organizationIDDescription + recreatesOnChange("git token"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the git token.",
-				MarkdownDescription: "Name of the git token.",
+				MarkdownDescription: nameDescription("git token"),
 				Required:            true,
 			},
 			"description": schema.StringAttribute{
 				// Optional only: q-core stores no description when the request omits it, and an
 				// update replaces every field, so omitting it clears the description.
-				Description:         "Description of the git token. Removing it from the configuration clears the description.",
-				MarkdownDescription: "Description of the git token. Removing it from the configuration clears the description.",
+				MarkdownDescription: descriptionDescription("git token"),
 				Optional:            true,
 			},
 			"type": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Type of the git token.",
-					gitTokenTypes,
-					nil,
-				),
 				MarkdownDescription: descriptions.NewStringEnumDescription(
-					"Type of the git token.",
+					gitTokenTypeDescription,
 					gitTokenTypes,
 					nil,
 				),
@@ -110,13 +100,11 @@ func (r gitTokenResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				},
 			},
 			"bitbucket_workspace": schema.StringAttribute{
-				Description:         "Bitbucket workspace where the token has permissions. Required when type is BITBUCKET.",
-				MarkdownDescription: "Bitbucket workspace where the token has permissions. Required when `type` is `BITBUCKET`.",
+				MarkdownDescription: gitTokenBitbucketWorkspaceDescription + " Required when `type` is `BITBUCKET`: omitting it fails at plan time.",
 				Optional:            true,
 			},
 			"token": schema.StringAttribute{
-				Description:         "Value of the git token (personal access token or app token from the git provider). Sensitive.",
-				MarkdownDescription: "Value of the git token (personal access token or app token from the git provider). Sensitive.",
+				MarkdownDescription: gitTokenTokenDescription,
 				Required:            true,
 				Sensitive:           true,
 			},

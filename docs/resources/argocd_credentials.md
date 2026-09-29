@@ -1,16 +1,12 @@
 # qovery_argocd_credentials (Resource)
 
-Provides a Qovery ArgoCD credentials resource. This can be used to configure ArgoCD integration for a cluster.
+Manages the ArgoCD credentials of a Qovery cluster: the URL and API token of the ArgoCD instance Qovery connects to.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
-
 ```terraform
-resource "qovery_argocd_credentials" "example" {
+resource "qovery_argocd_credentials" "my_argocd_credentials" {
   cluster_id   = qovery_cluster.my_cluster.id
   argocd_url   = "https://argocd.example.com"
   argocd_token = var.argocd_token
@@ -22,13 +18,13 @@ resource "qovery_argocd_credentials" "example" {
 
 ### Required
 
-- `argocd_token` (String, Sensitive) ArgoCD API authentication token.
-- `argocd_url` (String) URL of the ArgoCD instance (e.g. https://argocd.example.com).
-- `cluster_id` (String) Id of the cluster.
+- `argocd_token` (String, Sensitive) API token of the ArgoCD instance.
+- `argocd_url` (String) URL of the ArgoCD instance, for example `https://argocd.example.com`.
+- `cluster_id` (String) ID of the cluster. Changing it recreates the ArgoCD credentials.
 
 ### Read-Only
 
-- `id` (String) Unique identifier of the ArgoCD credentials.
+- `id` (String) ID of the ArgoCD credentials.
 ## Import
 ```shell
 terraform import qovery_argocd_credentials.my_argocd_credentials "<cluster_id>"

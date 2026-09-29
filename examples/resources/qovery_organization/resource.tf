@@ -1,10 +1,11 @@
-# Qovery organizations cannot be created or deleted via Terraform.
-# Use `terraform import` to bring an existing organization under management.
-resource "qovery_organization" "my_organization" {
-  # Required
-  name = "MyOrganization"
-  plan = "TEAM"
+# Qovery organizations cannot be created or deleted via Terraform: import an existing one.
+import {
+  to = qovery_organization.my_organization
+  id = "<organization_id>"
+}
 
-  # Optional
+resource "qovery_organization" "my_organization" {
+  name        = "my-organization"
+  plan        = "TEAM"
   description = "Production organization for our SaaS platform"
 }

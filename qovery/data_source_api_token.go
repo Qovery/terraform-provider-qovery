@@ -46,37 +46,30 @@ func (d *apiTokenDataSource) Configure(_ context.Context, req datasource.Configu
 
 func (d apiTokenDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "Provides a Qovery API token data source. This can be used to read the metadata of an existing Qovery organization API token. The token secret value is only returned by the API at creation time, so this data source never exposes it.",
-		MarkdownDescription: "Use this data source to retrieve the metadata of an existing Qovery organization API token. The token secret value is only returned by the API at creation time, so this data source never exposes it.",
+		MarkdownDescription: "Reads an existing Qovery API token, without its value.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the API token.",
-				MarkdownDescription: "Id of the API token.",
+				MarkdownDescription: idDescription("API token"),
 				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization.",
-				MarkdownDescription: "Id of the organization.",
+				MarkdownDescription: organizationIDDescription,
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the API token.",
-				MarkdownDescription: "Name of the API token.",
+				MarkdownDescription: nameDescription("API token"),
 				Computed:            true,
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the API token.",
-				MarkdownDescription: "Description of the API token.",
+				MarkdownDescription: descriptionDescription("API token"),
 				Computed:            true,
 			},
 			"role_id": schema.StringAttribute{
-				Description:         "Id of the role associated with the API token.",
-				MarkdownDescription: "Id of the role associated with the API token.",
+				MarkdownDescription: apiTokenRoleIDDescription,
 				Computed:            true,
 			},
 			"token": schema.StringAttribute{
-				Description:         "Value of the API token. Always null: the secret is only returned by the API at creation time and cannot be retrieved afterwards.",
-				MarkdownDescription: "Value of the API token. Always null: the secret is only returned by the API at creation time and cannot be retrieved afterwards.",
+				MarkdownDescription: apiTokenTokenDescription + " Always `null`: the API returns it only at creation.",
 				Computed:            true,
 				Sensitive:           true,
 			},

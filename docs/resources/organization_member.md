@@ -1,19 +1,17 @@
 # qovery_organization_member (Resource)
 
-Provides a Qovery organization member resource. This can be used to invite members to a Qovery organization and manage their role. Creating the resource sends an invitation; the invitee becomes an active member once they accept it (out-of-band). An expired invitation stays in the state with `invitation_status = "EXPIRED"`: re-send it with `terraform apply -replace=qovery_organization_member.<name>`. The invitee must accept with the invited email address, otherwise Terraform loses track of the membership.
+Manages a member of a Qovery organization: Terraform invites the email, and the invitee becomes a member once they accept the invitation.
+
+~> **Note:** The invitee must accept with the invited email address, otherwise Terraform loses track of the membership.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
-
 ```terraform
-resource "qovery_organization_member" "dev" {
+resource "qovery_organization_member" "my_organization_member" {
   organization_id = qovery_organization.my_organization.id
-  email           = "dev@company.com"
-  role_id         = qovery_custom_role.project_admin.id
+  email           = "dev@example.com"
+  role_id         = qovery_custom_role.my_custom_role.id
 }
 ```
 
@@ -22,16 +20,16 @@ resource "qovery_organization_member" "dev" {
 
 ### Required
 
-- `email` (String) Email of the member. **Cannot be changed after creation** (forces resource replacement).
-- `organization_id` (String) Id of the organization. **Cannot be changed after creation** (forces resource replacement).
-- `role_id` (String) Id of the role to assign to the member (built-in or custom role). Updating the role of a pending invitation re-sends the invitation.
+- `email` (String) Email of the member. Changing it recreates the member.
+- `organization_id` (String) ID of the organization. Changing it recreates the member.
+- `role_id` (String) ID of the role of the member, built-in or custom. Changing it on a pending invitation re-sends the invitation, which changes `id`.
 
 ### Read-Only
 
-- `id` (String) Id of the member. While the invitation is pending this is the invitation id; once accepted it becomes the user id. It also changes when the role of a pending invitation is updated (the invitation is re-sent).
-- `invitation_status` (String) Status of the invitation: `PENDING`, `EXPIRED` or `ACCEPTED`.
-- `user_id` (String) User id of the member. Null until the invitation is accepted.
+- `id` (String) ID of the member: the invitation ID while the invitation is pending, then the user ID.
+- `invitation_status` (String) Status of the invitation: `PENDING`, `EXPIRED` or `ACCEPTED`. To re-send an expired invitation, replace the resource with `terraform apply -replace`.
+- `user_id` (String) User ID of the member, `null` until the invitation is accepted.
 ## Import
 ```shell
-terraform import qovery_organization_member.dev "<organization_id>,<email>"
+terraform import qovery_organization_member.my_organization_member "<organization_id>,<email>"
 ```

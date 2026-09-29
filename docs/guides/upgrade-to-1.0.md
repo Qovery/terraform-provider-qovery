@@ -472,22 +472,13 @@ Write `consolidate_after` in the largest whole unit. Qovery stores it in seconds
 
 ### Service attributes that keep their value when removed
 
-A few service attributes keep their current value when you remove them from the configuration, because the Qovery API gives Terraform no way to plan the reset. They are the only exceptions to the rule that the configuration is the source of truth:
+A few attributes keep their current value when you remove them from the configuration, because the Qovery API gives Terraform no way to plan the reset: `deployment_stage_id`, `ports.is_default`, the git `branch` of `qovery_application` and `qovery_helm`, `blueprint_id` and `advanced_settings_json`. They are the only exceptions to the rule that the configuration is the source of truth, and the [Managing changes](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes#attributes-that-keep-their-value-when-removed) guide explains each one.
 
-- `deployment_stage_id` on `qovery_application`, `qovery_container`, `qovery_job`, `qovery_helm`, `qovery_terraform_service` and `qovery_database`: Qovery attaches every service to a deployment stage and cannot detach it, so removing the attribute keeps the service in its current stage.
-- `ports.is_default` on `qovery_application`, `qovery_container` and `qovery_helm`: the API always marks one port as the default, so an omitted value keeps the value the API chose.
-- `git_repository.branch` on `qovery_application` and `source.git_repository.branch` on `qovery_helm`: an omitted branch means the repository's default branch, which is only known once the API resolves it, so removing the attribute keeps the current branch. Changing the repository URL while the branch is omitted resolves the new repository's default branch. In 0.x an unrelated change reset it to the default branch.
-- `blueprint_id` on `qovery_helm` and `qovery_terraform_service`: the API records it only when the service is created. Removing it keeps the recorded value, and changing it is now a plan error; to use another blueprint, recreate the service.
-- `advanced_settings_json`, described below.
+Two of them behave differently from 0.x. An omitted git branch keeps the current branch, where an unrelated change in 0.x reset it to the default branch. Changing `blueprint_id` after creation is a plan error, where 0.x applied it without effect.
 
 ### `advanced_settings_json`: Console resets of tracked keys are reflected
 
-On `qovery_cluster`, `qovery_application`, `qovery_container`, `qovery_job`, `qovery_helm` and `qovery_terraform_service`, `advanced_settings_json` is desired state, not a mirror of the remote configuration:
-
-- Refresh only reconciles keys already tracked in the Terraform state. A setting overridden only in the Console is not pulled into the state, so declaring it afterwards plans as an addition even if the remote value already matches.
-- A Console change to a tracked key, including a reset to its default value, is now reflected on refresh and planned back to the configured value. In 0.x a reset was invisible.
-- Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly.
-- `terraform import` records every setting whose value differs from the default.
+A change made from the Qovery Console to a key the configuration sets in `advanced_settings_json`, including a reset to its default value, now shows up in `terraform plan`, and `terraform apply` sets it back. In 0.x a reset was invisible. The [Managing changes](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes#advanced-settings) guide describes how the provider tracks advanced settings.
 
 ### Deployment waits fail on timeout (since 0.89.0)
 
