@@ -24,6 +24,10 @@ func TestAcc_ClusterDataSource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "id", getTestClusterID()),
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "organization_id", getTestOrganizationID()),
+					resource.TestCheckResourceAttrSet("data.qovery_cluster.test", "instance_type"),
+					resource.TestCheckResourceAttrSet("data.qovery_cluster.test", "max_running_nodes"),
+					// The shared test cluster is deployed, so the API returns its kubeconfig.
+					resource.TestCheckResourceAttrSet("data.qovery_cluster.test", "kubeconfig"),
 				),
 			},
 		},

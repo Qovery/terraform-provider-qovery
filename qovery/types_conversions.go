@@ -224,15 +224,6 @@ func FromStringArray(array []string) types.List {
 	return value
 }
 
-// fromStringArrayNullIfEmpty returns null for both nil and empty slices.
-// Use this for Optional fields where the API returns [] instead of null.
-func fromStringArrayNullIfEmpty(array []string) types.List {
-	if len(array) == 0 {
-		return basetypes.NewListNull(types.StringType)
-	}
-	return FromStringArray(array)
-}
-
 // setFromAPIElements builds the state value of an Optional (not Computed) set attribute from
 // what the API returns. The API elements always win, so a change made outside Terraform shows
 // up in the plan. An empty API value takes the shape of prior (the plan on apply, the state on

@@ -23,13 +23,9 @@ data "qovery_cluster" "my_cluster" {
 
 - `advanced_settings_json` (String) Advanced settings of the cluster as a JSON string.
 - `description` (String) Description of the cluster.
-- `disk_size` (Number) Disk size of the cluster nodes in GB.
 - `features` (Attributes) Cluster features configuration including VPC settings, static IPs, existing VPC, and Karpenter. (see [below for nested schema](#nestedatt--features))
-- `instance_type` (String) Instance type of the cluster nodes (e.g., `t3a.xlarge` for AWS, `DEV1-L` for Scaleway, `AUTO_PILOT` for GCP).
 - `keda` (Attributes) KEDA configuration of the cluster. When enabled, the KEDA operator is installed on the cluster, unlocking event-driven autoscaling (including scale-to-zero) for services. (see [below for nested schema](#nestedatt--keda))
 - `kubernetes_mode` (String) Kubernetes management mode (`MANAGED`, `SELF_MANAGED`, or `PARTIALLY_MANAGED`).
-- `max_running_nodes` (Number) Maximum number of nodes for the cluster autoscaler.
-- `min_running_nodes` (Number) Minimum number of nodes for the cluster autoscaler.
 - `production` (Boolean) Whether this cluster is flagged as a production cluster.
 - `routing_table` (Attributes Set) Custom routing table entries for the cluster VPC. (see [below for nested schema](#nestedatt--routing_table))
 - `secret_manager_accesses` (Attributes Set) List of external secret manager configurations for the cluster. Each entry grants the cluster access to a secret provider (AWS Parameter Store, AWS Secrets Manager, or GCP Secret Manager). (see [below for nested schema](#nestedatt--secret_manager_accesses))
@@ -39,10 +35,14 @@ data "qovery_cluster" "my_cluster" {
 
 - `cloud_provider` (String) Cloud provider of the cluster (`AWS`, `GCP`, `SCW`, `AZURE`, or `ON_PREMISE`).
 - `credentials_id` (String) ID of the cloud provider credentials associated with this cluster.
+- `disk_size` (Number) Disk size of the cluster nodes in GB, as the Qovery API reports it. A GCP cluster reports `0`.
 - `infrastructure_charts_parameters` (Attributes) Infrastructure Helm chart parameters for `PARTIALLY_MANAGED` clusters. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters))
 - `infrastructure_outputs` (Attributes) Read-only outputs from the underlying Kubernetes infrastructure. Available after deployment. (see [below for nested schema](#nestedatt--infrastructure_outputs))
-- `kubeconfig` (String, Sensitive) Kubeconfig for connecting to the cluster. Only available for `PARTIALLY_MANAGED` clusters.
+- `instance_type` (String) Instance type of the cluster nodes, as the Qovery API reports it (e.g., `t3a.xlarge` for AWS, `DEV1-L` for Scaleway). A Karpenter cluster reports `KARPENTER` and a GCP cluster `AUTO_PILOT`.
+- `kubeconfig` (String, Sensitive) Kubeconfig for connecting to the cluster, read from the Qovery API. It is null when the API cannot return one, for example before the cluster is first deployed, or when the API token lacks the cluster admin permission. This is a sensitive value.
 - `labels_group_ids` (Set of String) List of labels group ids associated with the cluster.
+- `max_running_nodes` (Number) Maximum number of nodes for the cluster autoscaler, as the Qovery API reports it. On Karpenter, GCP and self-managed clusters, which do not use it, the API reports a placeholder, such as `2147483647`.
+- `min_running_nodes` (Number) Minimum number of nodes for the cluster autoscaler, as the Qovery API reports it. On Karpenter, GCP and self-managed clusters, which do not use it, the API reports a placeholder.
 - `name` (String) Name of the cluster.
 - `region` (String) Cloud provider region where the cluster is deployed.
 

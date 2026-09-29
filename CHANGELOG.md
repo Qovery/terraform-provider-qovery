@@ -35,6 +35,32 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   deletes the remaining routes. Import and the data source report the routes and labels groups
   attached to the cluster. Add the routes and labels groups you manage from the Console to
   the configuration before upgrading. (QOV-2029)
+- **`qovery_cluster`**: omitted `instance_type`, `disk_size`, `min_running_nodes` and
+  `max_running_nodes` plan the Qovery default instead of keeping the last value, on the
+  clusters whose node group Qovery sizes: `MANAGED` clusters on AWS without Karpenter
+  (`t3.xlarge`), Scaleway (`DEV1-L`) and Azure (`Standard_DS2_v2`), with a 40 GB disk and 3 to
+  10 nodes. The refresh reads the API, so a value changed from the Console shows up in
+  `terraform plan` and the next apply reverts it, and removing one of these attributes plans
+  the reset. Karpenter, GCP, self-managed and partially managed clusters ignore the four
+  attributes: they keep the value the API reports, and the plan warns when the configuration
+  sets one. Declare the node sizing you set from the Console before upgrading, and always
+  declare `instance_type` when the cluster's instance type has another CPU architecture than
+  the default. (QOV-2328)
+- **`qovery_cluster`**: omitting `features` or `keda` plans their defaults instead of keeping
+  the last value: the default VPC subnet, no static IP, no existing VPC, no Karpenter, no GKE
+  KMS key, and KEDA disabled. A feature or KEDA changed from the Console shows up in
+  `terraform plan`, and removing a block, or one of its attributes, plans the reset. A plan that
+  removes `features.karpenter`, or turns `features.static_ip` from `true` to `false` on a
+  deployed AWS, GCP or Azure cluster, now fails at plan time: the API rejects both, so 0.x
+  failed at apply. Declare the features and KEDA you set from the Console before upgrading.
+  (QOV-2328)
+- **`qovery_cluster`**: `features.gke_kms_key` is Optional only, and setting, changing or
+  removing it after creation is a plan error instead of a cluster replacement: the API only
+  takes the key when it creates the cluster. (QOV-2328)
+- **`qovery_cluster` data source**: `instance_type`, `disk_size`, `min_running_nodes` and
+  `max_running_nodes` are read-only and report the API values, including the `KARPENTER` and
+  `AUTO_PILOT` instance types and the placeholder node counts of Karpenter, GCP and
+  self-managed clusters; remove them from data source configurations. (QOV-2328)
 - **`qovery_application`, `qovery_container`, `qovery_job`, `qovery_database`**:
   `labels_group_ids` and `annotations_group_ids` are managed as a whole. The refresh always
   reads the API, so a group attached or detached from the Console shows up in `terraform plan`
@@ -108,6 +134,8 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   whole unit, the form Qovery returns: `1h`, not `60m`. (QOV-2322)
 - `qovery_blueprint` supports `terraform import` by blueprint ID. The data source reports
   `icon_uri`. (QOV-2337)
+- The `qovery_cluster` data source reads `kubeconfig` for every cluster the API has one for,
+  not only for `PARTIALLY_MANAGED` clusters. (QOV-2328)
 
 ### Changed
 
@@ -116,6 +144,11 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   change to a tracked key, including a reset to its default value, on refresh and plans it
   back to the configured value. The refresh semantics are documented on the attribute.
   (QOV-2028)
+- `qovery_cluster`: the database and cache subnet lists of `features.existing_vpc` are
+  Optional only, so omitting one means none. The state upgrade turns the empty lists 0.x
+  stored into null, so an unchanged configuration plans nothing.
+  `existing_vpc.eks_create_nodes_in_private_subnet` and `gcp_existing_vpc.private_nodes`
+  default to `false`, the value the API stores when they are omitted. (QOV-2328)
 
 ### Fixed
 
@@ -164,6 +197,12 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_deployment` data source: a read no longer fails with `invalid deployment desired
   state`. Qovery stores no deployment object, so the data source reads nothing and echoes its
   arguments; `environment_id` and `desired_state` are always `null`. (QOV-2334)
+- `qovery_cluster`: a Scaleway, Azure or self-managed cluster whose configuration declares
+  `features` can be created. The provider sent the VPC subnet feature, which the API only
+  accepts when it creates an AWS `MANAGED` cluster, so the create failed with a 400 on the
+  custom subnet feature. (QOV-2328)
+- `qovery_cluster`: `features.gcp_existing_vpc.additional_ip_range_pods_names = []` no longer
+  fails the apply with an inconsistent result. (QOV-2328)
 
 ## [0.90.0] - 2026-09-28
 

@@ -124,35 +124,23 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 				Computed:            true,
 			},
 			"instance_type": schema.StringAttribute{
-				Description:         "Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`, and not set for Karpenter-enabled clusters",
-				MarkdownDescription: "Instance type of the cluster nodes (e.g., `t3a.xlarge` for AWS, `DEV1-L` for Scaleway, `AUTO_PILOT` for GCP).",
-				Optional:            true,
+				Description:         "Instance type of the cluster nodes, as the Qovery API reports it: KARPENTER on a Karpenter cluster, AUTO_PILOT on a GCP cluster.",
+				MarkdownDescription: "Instance type of the cluster nodes, as the Qovery API reports it (e.g., `t3a.xlarge` for AWS, `DEV1-L` for Scaleway). A Karpenter cluster reports `KARPENTER` and a GCP cluster `AUTO_PILOT`.",
 				Computed:            true,
 			},
 			"disk_size": schema.Int64Attribute{
-				Description:         "Disk size of the cluster nodes in GB.",
-				MarkdownDescription: "Disk size of the cluster nodes in GB.",
-				Optional:            true,
+				Description:         "Disk size of the cluster nodes in GB, as the Qovery API reports it.",
+				MarkdownDescription: "Disk size of the cluster nodes in GB, as the Qovery API reports it. A GCP cluster reports `0`.",
 				Computed:            true,
 			},
 			"min_running_nodes": schema.Int64Attribute{
-				Description: descriptions.NewInt64MinDescription(
-					"Minimum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters, and not set for Karpenter-enabled clusters].",
-					clusterMinRunningNodesMin,
-					&clusterMinRunningNodesDefault,
-				),
-				MarkdownDescription: "Minimum number of nodes for the cluster autoscaler.",
-				Optional:            true,
+				Description:         "Minimum number of nodes of the cluster, as the Qovery API reports it.",
+				MarkdownDescription: "Minimum number of nodes for the cluster autoscaler, as the Qovery API reports it. On Karpenter, GCP and self-managed clusters, which do not use it, the API reports a placeholder.",
 				Computed:            true,
 			},
 			"max_running_nodes": schema.Int64Attribute{
-				Description: descriptions.NewInt64MinDescription(
-					"Maximum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters, and not set for Karpenter-enabled clusters]",
-					clusterMaxRunningNodesMin,
-					&clusterMaxRunningNodesDefault,
-				),
-				MarkdownDescription: "Maximum number of nodes for the cluster autoscaler.",
-				Optional:            true,
+				Description:         "Maximum number of nodes of the cluster, as the Qovery API reports it.",
+				MarkdownDescription: "Maximum number of nodes for the cluster autoscaler, as the Qovery API reports it. On Karpenter, GCP and self-managed clusters, which do not use it, the API reports a placeholder, such as `2147483647`.",
 				Computed:            true,
 			},
 			"features": schema.SingleNestedAttribute{
@@ -814,8 +802,8 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 				ElementType:         types.StringType,
 			},
 			"kubeconfig": schema.StringAttribute{
-				Description:         "Kubeconfig for connecting to the cluster. Only available for PARTIALLY_MANAGED (EKS Anywhere) clusters.",
-				MarkdownDescription: "Kubeconfig for connecting to the cluster. Only available for `PARTIALLY_MANAGED` clusters.",
+				Description:         "Kubeconfig for connecting to the cluster, read from the Qovery API. Null when the API cannot return it, e.g. before the cluster is deployed.",
+				MarkdownDescription: "Kubeconfig for connecting to the cluster, read from the Qovery API. It is null when the API cannot return one, for example before the cluster is first deployed, or when the API token lacks the cluster admin permission. This is a sensitive value.",
 				Computed:            true,
 				Sensitive:           true,
 			},
@@ -1092,6 +1080,18 @@ func (d clusterDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	}
 
 	state := convertResponseToClusterForDataSource(ctx, cluster, data)
+
+	// The kubeconfig has its own endpoint. It fails when the cluster has no kubeconfig yet, e.g.
+	// before its first deployment, or when the token may not read it: that leaves it null
+	// instead of failing a data source that is mostly read for other attributes.
+	kubeconfig, apiErr := d.client.GetClusterKubeconfig(ctx, state.OrganizationId.ValueString(), state.Id.ValueString())
+	if apiErr != nil {
+		tflog.Warn(ctx, "failed to fetch the cluster kubeconfig", map[string]any{"cluster_id": state.Id.ValueString(), "error": apiErr.Detail()})
+		state.Kubeconfig = types.StringNull()
+	} else {
+		state.Kubeconfig = types.StringValue(kubeconfig)
+	}
+
 	tflog.Trace(ctx, "read cluster", map[string]any{"cluster_id": state.Id.ValueString()})
 
 	// Set state

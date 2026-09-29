@@ -4,13 +4,11 @@ import (
 	"context"
 	_ "embed"
 	"fmt"
+	"maps"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
@@ -114,11 +112,13 @@ func (r *clusterResource) Configure(_ context.Context, req resource.ConfigureReq
 
 // ModifyPlan warns at plan time about advanced_settings_json keys that are not recognized
 // cluster advanced settings, instead of letting them silently no-op, and about Karpenter node
-// pool changes that are easy to read past in a plan.
+// pool changes that are easy to read past in a plan. It fails the plan of a features change the
+// Qovery API rejects on an existing cluster.
 func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	warnUnknownClusterAdvancedSettings(ctx, r.clusterAdvancedSettingsService, req.Config, &resp.Diagnostics)
 	warnKarpenterSpotToOnDemand(ctx, req.State, req.Plan, &resp.Diagnostics)
 	warnKarpenterGpuNodePoolRemoval(ctx, req.State, req.Plan, &resp.Diagnostics)
+	rejectForbiddenClusterFeatureChanges(ctx, req.State, req.Plan, &resp.Diagnostics)
 }
 
 var karpenterPath = path.Root("features").AtName("karpenter")
@@ -217,6 +217,13 @@ func karpenterNodePoolConsolidateAfterAttribute(pool string) schema.StringAttrib
 	}
 }
 
+// clusterNodeSizingMarkdownNote documents instance_type, disk_size, min_running_nodes and
+// max_running_nodes: their default only applies to the clusters whose node group Qovery sizes.
+const clusterNodeSizingMarkdownNote = "The default applies to the clusters whose node group Qovery sizes: `MANAGED` clusters on AWS without Karpenter, on Scaleway and on Azure. " +
+	"There, removing the attribute from the configuration resets it to the default, and a value changed outside Terraform shows up in the plan.\n\n" +
+	"~> **Note:** Karpenter, GCP Autopilot or the cluster owner sizes the nodes of Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters, and Qovery ignores this attribute there: " +
+	"the provider records the value the Qovery API reports, and the plan warns when the configuration sets one."
+
 func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	// TODO (framework-migration): test if Default is OK when modifying the attribute, otherwise we'll need to use a modifier
 	resp.Schema = schema.Schema{
@@ -312,59 +319,63 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				Default:             booldefault.StaticBool(false),
 			},
 			"instance_type": schema.StringAttribute{
-				Description:         "Instance type of the cluster. I.e: For Aws `t3a.xlarge`, for Scaleway `DEV-L`, and not set for Karpenter-enabled clusters",
-				MarkdownDescription: "Instance type for the cluster nodes. The available values depend on the cloud provider:\n\n  - **AWS**: EC2 instance types (e.g., `t3a.xlarge`, `m5.large`). Not required when Karpenter is enabled.\n  - **GCP**: Machine types or `AUTO_PILOT` for GKE Autopilot mode.\n  - **Scaleway**: Node types (e.g., `DEV1-L`, `GP1-S`).\n  - **Azure**: VM sizes (e.g., `Standard_B2s_v2`, `Standard_D4s_v3`).",
-				Optional:            true,
-				Computed:            true,
+				Description: fmt.Sprintf("Instance type of the cluster nodes. Defaults to %s on AWS without Karpenter, %s on Scaleway and %s on Azure. Karpenter, GCP, self-managed and partially managed clusters ignore it.",
+					clusterInstanceTypeDefaults["AWS"], clusterInstanceTypeDefaults["SCW"], clusterInstanceTypeDefaults["AZURE"]),
+				MarkdownDescription: "Instance type for the cluster nodes. The available values depend on the cloud provider:\n\n" +
+					"  - **AWS**: EC2 instance types (e.g., `t3a.xlarge`, `m5.large`). Default: `" + clusterInstanceTypeDefaults["AWS"] + "`.\n" +
+					"  - **Scaleway**: Node types (e.g., `DEV1-L`, `GP1-S`). Default: `" + clusterInstanceTypeDefaults["SCW"] + "`.\n" +
+					"  - **Azure**: VM sizes (e.g., `Standard_B2s_v2`, `Standard_D4s_v3`). Default: `" + clusterInstanceTypeDefaults["AZURE"] + "`.\n\n" +
+					clusterNodeSizingMarkdownNote,
+				Optional: true,
+				Computed: true,
 				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
+					ClusterInstanceTypeDefault(),
 				},
 			},
 			"disk_size": schema.Int64Attribute{
-				Description:         "Disk size of the cluster nodes in GB.",
-				MarkdownDescription: "Disk size of the cluster nodes in GB. The default value depends on the cloud provider and instance type.",
+				Description:         fmt.Sprintf("Disk size of the cluster nodes in GB. Defaults to %d on AWS without Karpenter, Scaleway and Azure. Karpenter, GCP, self-managed and partially managed clusters ignore it.", clusterDiskSizeDefault),
+				MarkdownDescription: fmt.Sprintf("Disk size of the cluster nodes in GB. Default: `%d`.\n\n", clusterDiskSizeDefault) + clusterNodeSizingMarkdownNote,
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
+					ClusterNodeSizingInt64Default(clusterDiskSizeDefault),
 				},
 			},
 			"min_running_nodes": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
-					"Minimum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters, and not set for Karpenter-enabled clusters].",
+					"Minimum number of nodes running for the cluster. Karpenter, GCP, self-managed and partially managed clusters ignore it.",
 					clusterMinRunningNodesMin,
 					&clusterMinRunningNodesDefault,
 				),
-				MarkdownDescription: "Minimum number of nodes running for the cluster autoscaler. Must be `>= 1`. Default: `3`.\n\n" +
-					"~> **Note:** Must be set to `1` for K3S clusters. Do not set this attribute when Karpenter is enabled (Karpenter manages scaling automatically).",
-				Optional: true,
-				Computed: true,
+				MarkdownDescription: fmt.Sprintf("Minimum number of nodes running for the cluster autoscaler. Must be `>= 1`. Default: `%d`.\n\n", clusterMinRunningNodesDefault) + clusterNodeSizingMarkdownNote,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
+					ClusterNodeSizingInt64Default(clusterMinRunningNodesDefault),
 				},
 			},
 			"max_running_nodes": schema.Int64Attribute{
 				Description: descriptions.NewInt64MinDescription(
-					"Maximum number of nodes running for the cluster. [NOTE: have to be set to 1 in case of K3S clusters; and not set for Karpenter-enabled clusters]",
+					"Maximum number of nodes running for the cluster. Karpenter, GCP, self-managed and partially managed clusters ignore it.",
 					clusterMaxRunningNodesMin,
 					&clusterMaxRunningNodesDefault,
 				),
-				MarkdownDescription: "Maximum number of nodes the cluster autoscaler can scale up to. Must be `>= 1`. Default: `10`.\n\n" +
-					"~> **Note:** Must be set to `1` for K3S clusters. Do not set this attribute when Karpenter is enabled (Karpenter manages scaling automatically).",
-				Optional: true,
-				Computed: true,
+				MarkdownDescription: fmt.Sprintf("Maximum number of nodes the cluster autoscaler can scale up to. Must be `>= 1`. Default: `%d`.\n\n", clusterMaxRunningNodesDefault) + clusterNodeSizingMarkdownNote,
+				Optional:            true,
+				Computed:            true,
 				PlanModifiers: []planmodifier.Int64{
-					int64planmodifier.UseStateForUnknown(),
+					ClusterNodeSizingInt64Default(clusterMaxRunningNodesDefault),
 				},
 			},
 			"features": schema.SingleNestedAttribute{
-				Description:         "Features of the cluster.",
-				MarkdownDescription: "Optional cluster features configuration. Use this block to customize VPC settings, enable static IPs, deploy on an existing VPC (AWS or GCP), or enable Karpenter for AWS clusters.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
-				},
+				Description: "Features of the cluster. Omitting it means the default of every feature.",
+				MarkdownDescription: "Optional cluster features configuration. Use this block to customize VPC settings, enable static IPs, deploy on an existing VPC (AWS or GCP), or enable Karpenter for AWS clusters.\n\n" +
+					"Omitting the block means the default of every feature: `vpc_subnet = \"" + clusterFeatureVpcSubnetDefault + "\"`, no static IP, no reserved NAT gateway IP, no existing VPC, no Karpenter and no GKE KMS key. " +
+					"Removing the block, or one of its attributes, from the configuration plans the reset to the default, and a feature changed outside Terraform shows up in the plan.\n\n" +
+					"~> **Note:** The Qovery API cannot disable Karpenter on an existing cluster, nor change `static_ip` once an AWS, GCP or Azure cluster has been deployed: a plan that removes `karpenter`, or turns `static_ip` from `true` to `false` on such a cluster, fails and names the value to declare.",
+				Optional: true,
+				Computed: true,
+				Default:  objectdefault.StaticValue(clusterFeaturesDefault()),
 				Attributes: map[string]schema.Attribute{
 					"vpc_subnet": schema.StringAttribute{
 						Description: descriptions.NewStringDefaultDescription(
@@ -402,13 +413,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 							"Omitting this block or setting `static_ips_enabled = false` keeps the platform default (ephemeral egress IPs).\n\n" +
 							"Removing this block after it was enabled resets to disabled with a visible diff on the next plan.\n\n" +
 							"~> **Note:** This block is ignored on non-GCP clusters; only the default value `{static_ips_enabled=false, static_ips_count=1}` is accepted in those cases.",
-						Default: objectdefault.StaticValue(types.ObjectValueMust(
-							createNatGatewaysFeatureAttrTypes(),
-							map[string]attr.Value{
-								"static_ips_enabled": types.BoolValue(false),
-								"static_ips_count":   types.Int64Value(1),
-							},
-						)),
+						Default: objectdefault.StaticValue(clusterNatGatewaysDefault()),
 						Attributes: map[string]schema.Attribute{
 							"static_ips_enabled": schema.BoolAttribute{
 								Description:         "Whether to reserve static egress IPs for the GCP NAT gateways. Default: false (ephemeral egress IPs).",
@@ -469,66 +474,57 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 							},
 							"rds_subnets_zone_a_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for RDS",
-								MarkdownDescription: "List of subnet IDs in availability zone A for Amazon RDS databases. These should be private subnets.",
+								MarkdownDescription: "List of subnet IDs in availability zone A for Amazon RDS databases. These should be private subnets. Omitting it means none.",
 								ElementType:         types.StringType,
 								Optional:            true,
-								Computed:            true,
 							},
 							"rds_subnets_zone_b_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for RDS",
-								MarkdownDescription: "List of subnet IDs in availability zone B for Amazon RDS databases. These should be private subnets.",
+								MarkdownDescription: "List of subnet IDs in availability zone B for Amazon RDS databases. These should be private subnets. Omitting it means none.",
 								ElementType:         types.StringType,
 								Optional:            true,
-								Computed:            true,
 							},
 							"rds_subnets_zone_c_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for RDS",
-								MarkdownDescription: "List of subnet IDs in availability zone C for Amazon RDS databases. These should be private subnets.",
+								MarkdownDescription: "List of subnet IDs in availability zone C for Amazon RDS databases. These should be private subnets. Omitting it means none.",
 								ElementType:         types.StringType,
 								Optional:            true,
-								Computed:            true,
 							},
 							"documentdb_subnets_zone_a_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for document db",
-								MarkdownDescription: "List of subnet IDs in availability zone A for Amazon DocumentDB. These should be private subnets.",
+								MarkdownDescription: "List of subnet IDs in availability zone A for Amazon DocumentDB. These should be private subnets. Omitting it means none.",
 								ElementType:         types.StringType,
 								Optional:            true,
-								Computed:            true,
 							},
 							"documentdb_subnets_zone_b_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for document db",
-								MarkdownDescription: "List of subnet IDs in availability zone B for Amazon DocumentDB. These should be private subnets.",
+								MarkdownDescription: "List of subnet IDs in availability zone B for Amazon DocumentDB. These should be private subnets. Omitting it means none.",
 								ElementType:         types.StringType,
 								Optional:            true,
-								Computed:            true,
 							},
 							"documentdb_subnets_zone_c_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for document db",
-								MarkdownDescription: "List of subnet IDs in availability zone C for Amazon DocumentDB. These should be private subnets.",
+								MarkdownDescription: "List of subnet IDs in availability zone C for Amazon DocumentDB. These should be private subnets. Omitting it means none.",
 								ElementType:         types.StringType,
 								Optional:            true,
-								Computed:            true,
 							},
 							"elasticache_subnets_zone_a_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for elasticache",
-								MarkdownDescription: "List of subnet IDs in availability zone A for Amazon ElastiCache. These should be private subnets.",
+								MarkdownDescription: "List of subnet IDs in availability zone A for Amazon ElastiCache. These should be private subnets. Omitting it means none.",
 								ElementType:         types.StringType,
 								Optional:            true,
-								Computed:            true,
 							},
 							"elasticache_subnets_zone_b_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for elasticache",
-								MarkdownDescription: "List of subnet IDs in availability zone B for Amazon ElastiCache. These should be private subnets.",
+								MarkdownDescription: "List of subnet IDs in availability zone B for Amazon ElastiCache. These should be private subnets. Omitting it means none.",
 								ElementType:         types.StringType,
 								Optional:            true,
-								Computed:            true,
 							},
 							"elasticache_subnets_zone_c_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for elasticache",
-								MarkdownDescription: "List of subnet IDs in availability zone C for Amazon ElastiCache. These should be private subnets.",
+								MarkdownDescription: "List of subnet IDs in availability zone C for Amazon ElastiCache. These should be private subnets. Omitting it means none.",
 								ElementType:         types.StringType,
 								Optional:            true,
-								Computed:            true,
 							},
 							"eks_karpenter_fargate_subnets_zone_a_ids": schema.ListAttribute{
 								Description:         "Ids of the subnets for EKS fargate zone a. Must have to be private and connected to internet through a NAT Gateway",
@@ -552,10 +548,11 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								Computed:            false,
 							},
 							"eks_create_nodes_in_private_subnet": schema.BoolAttribute{
-								Description:         "Whether to create EKS nodes in private subnet",
-								MarkdownDescription: "Whether to create EKS worker nodes in private subnets. When `true`, nodes are not directly accessible from the internet and route traffic through a NAT Gateway.",
+								Description:         "Whether to create EKS nodes in private subnet. Default: false.",
+								MarkdownDescription: "Whether to create EKS worker nodes in private subnets. When `true`, nodes are not directly accessible from the internet and route traffic through a NAT Gateway. Default: `false`.",
 								Optional:            true,
 								Computed:            true,
+								Default:             booldefault.StaticBool(false),
 							},
 						},
 					},
@@ -596,18 +593,16 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 							},
 							"additional_ip_range_pods_names": schema.ListAttribute{
 								Description:         "Additional secondary IP range names for pods",
-								MarkdownDescription: "Additional secondary IP range names for pods. Use this when you need multiple pod IP ranges (e.g., for multi-tenancy or large clusters).",
+								MarkdownDescription: "Additional secondary IP range names for pods. Use this when you need multiple pod IP ranges (e.g., for multi-tenancy or large clusters). Omitting it means none.",
 								ElementType:         types.StringType,
 								Optional:            true,
 							},
 							"private_nodes": schema.BoolAttribute{
-								Description:         "Whether to create GKE nodes without public IPs",
-								MarkdownDescription: "Make GKE nodes private with no public IPs. Node traffic goes through the gateway instead of exposing node public addresses.",
+								Description:         "Whether to create GKE nodes without public IPs. Default: false.",
+								MarkdownDescription: "Make GKE nodes private with no public IPs. Node traffic goes through the gateway instead of exposing node public addresses. Default: `false`.",
 								Optional:            true,
 								Computed:            true,
-								PlanModifiers: []planmodifier.Bool{
-									boolplanmodifier.UseStateForUnknown(),
-								},
+								Default:             booldefault.StaticBool(false),
 							},
 						},
 					},
@@ -1019,35 +1014,28 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 						},
 					},
 					"gke_kms_key": schema.StringAttribute{
-						Description: "GCP KMS key resource name for GKE cluster disk encryption (GCP only) [NOTE: can't be updated after creation].",
-						MarkdownDescription: "GCP KMS key resource name used to encrypt the GKE cluster's boot disks / etcd / storage buckets / volumes. Only supported on GCP clusters.\n\n" +
-							"~> **Warning:** This value cannot be changed after cluster creation. You'll need to create another cluster.",
+						Description: "GCP KMS key resource name for GKE cluster disk encryption (GCP only). Omitting it means none [NOTE: can't be changed after creation].",
+						MarkdownDescription: "GCP KMS key resource name used to encrypt the GKE cluster's boot disks / etcd / storage buckets / volumes. Only supported on GCP clusters. Omitting it means no KMS key.\n\n" +
+							"~> **Warning:** This value cannot be changed after cluster creation: a plan that sets, changes or removes it on an existing cluster fails. To use a different key, destroy the cluster and create a new one.",
 						Optional: true,
-						Computed: true,
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.UseStateForUnknown(),
-							RequiresReplaceIfKnownChange(),
-						},
 					},
 				},
 			},
 			"keda": schema.SingleNestedAttribute{
-				Description:         "KEDA configuration of the cluster.",
-				MarkdownDescription: "Optional KEDA configuration. KEDA ([Kubernetes Event-driven Autoscaling](https://keda.sh/)) installs the KEDA operator on the cluster, which unlocks event-driven autoscaling (including scale-to-zero) for services. Toggling this triggers a cluster redeploy.",
-				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.Object{
-					objectplanmodifier.UseStateForUnknown(),
-				},
+				Description: "KEDA configuration of the cluster.",
+				MarkdownDescription: "Optional KEDA configuration. KEDA ([Kubernetes Event-driven Autoscaling](https://keda.sh/)) installs the KEDA operator on the cluster, which unlocks event-driven autoscaling (including scale-to-zero) for services. Toggling this triggers a cluster redeploy.\n\n" +
+					"Omitting the block means KEDA disabled: removing it from the configuration plans the disable, and KEDA enabled outside Terraform shows up in the plan. " +
+					"`PARTIALLY_MANAGED` clusters do not support KEDA.",
+				Optional: true,
+				Computed: true,
+				Default:  objectdefault.StaticValue(clusterKedaDefault()),
 				Attributes: map[string]schema.Attribute{
 					"enabled": schema.BoolAttribute{
-						Description:         "Whether the KEDA operator is installed on the cluster.",
+						Description:         "Whether the KEDA operator is installed on the cluster. Default: false.",
 						MarkdownDescription: "Whether the KEDA operator is installed on the cluster. Default: `false`.",
 						Optional:            true,
 						Computed:            true,
-						PlanModifiers: []planmodifier.Bool{
-							boolplanmodifier.UseStateForUnknown(),
-						},
+						Default:             booldefault.StaticBool(false),
 					},
 				},
 			},
@@ -1586,9 +1574,11 @@ func (r clusterResource) UpgradeState(ctx context.Context) map[int64]resource.St
 	}
 }
 
-// upgradeClusterStateV0ToV1 turns the empty routing_table that 0.x stored for every cluster
-// without routes into null. routing_table was Optional + Computed in 0.x and is Optional only
-// since 1.0, so keeping [] would plan a "[] -> null" change on every cluster that omits it.
+// upgradeClusterStateV0ToV1 turns the empty values that 0.x stored for attributes the
+// configuration omitted into null: routing_table, the database and cache subnet lists of
+// features.existing_vpc, and the "" features.gke_kms_key of a GCP cluster without a key. They
+// were Optional + Computed in 0.x and are Optional only since 1.0, so keeping the empty value
+// would plan a change to null on every cluster that omits them.
 func upgradeClusterStateV0ToV1(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
 	var cluster Cluster
 	resp.Diagnostics.Append(req.State.Get(ctx, &cluster)...)
@@ -1599,8 +1589,56 @@ func upgradeClusterStateV0ToV1(ctx context.Context, req resource.UpgradeStateReq
 	if !cluster.RoutingTables.IsNull() && len(cluster.RoutingTables.Elements()) == 0 {
 		cluster.RoutingTables = types.SetNull(types.ObjectType{AttrTypes: clusterRouteAttrTypes})
 	}
+	cluster.Features = upgradeGkeKmsKeyFrom0x(upgradeExistingVpcSubnetListsFrom0x(cluster.Features))
 
 	resp.Diagnostics.Append(resp.State.Set(ctx, cluster)...)
+}
+
+// upgradeGkeKmsKeyFrom0x turns the "" features.gke_kms_key that 0.x stored for a GCP cluster
+// without a KMS key into null, which the read now reports for it.
+func upgradeGkeKmsKeyFrom0x(features types.Object) types.Object {
+	gkeKmsKey, ok := featureValue(features, featureKeyGkeKmsKey).(types.String)
+	if !ok || gkeKmsKey.IsNull() || gkeKmsKey.IsUnknown() || gkeKmsKey.ValueString() != "" {
+		return features
+	}
+
+	featuresAttributes := maps.Clone(features.Attributes())
+	featuresAttributes[featureKeyGkeKmsKey] = types.StringNull()
+	return types.ObjectValueMust(createFeaturesAttrTypes(), featuresAttributes)
+}
+
+// existingVpcOptionalSubnetLists are the database and cache subnet lists of
+// features.existing_vpc, which the API reports as [] when none is set.
+var existingVpcOptionalSubnetLists = []string{
+	"rds_subnets_zone_a_ids", "rds_subnets_zone_b_ids", "rds_subnets_zone_c_ids",
+	"documentdb_subnets_zone_a_ids", "documentdb_subnets_zone_b_ids", "documentdb_subnets_zone_c_ids",
+	"elasticache_subnets_zone_a_ids", "elasticache_subnets_zone_b_ids", "elasticache_subnets_zone_c_ids",
+}
+
+// upgradeExistingVpcSubnetListsFrom0x turns the empty existing_vpc subnet lists of a 0.x state
+// into null. The read keeps the shape of the prior value for an empty list, so without it the
+// [] would stay in state and plan a change forever.
+func upgradeExistingVpcSubnetListsFrom0x(features types.Object) types.Object {
+	existingVpc, ok := featureValue(features, featureKeyExistingVpc).(types.Object)
+	if !ok || existingVpc.IsNull() || existingVpc.IsUnknown() {
+		return features
+	}
+
+	existingVpcAttributes := maps.Clone(existingVpc.Attributes())
+	changed := false
+	for _, name := range existingVpcOptionalSubnetLists {
+		if list, ok := existingVpcAttributes[name].(types.List); ok && !list.IsNull() && !list.IsUnknown() && len(list.Elements()) == 0 {
+			existingVpcAttributes[name] = types.ListNull(types.StringType)
+			changed = true
+		}
+	}
+	if !changed {
+		return features
+	}
+
+	featuresAttributes := maps.Clone(features.Attributes())
+	featuresAttributes[featureKeyExistingVpc] = types.ObjectValueMust(createExistingVpcFeatureAttrTypes(), existingVpcAttributes)
+	return types.ObjectValueMust(createFeaturesAttrTypes(), featuresAttributes)
 }
 
 // ValidateConfig performs plan-time cross-attribute validation for the cluster resource.

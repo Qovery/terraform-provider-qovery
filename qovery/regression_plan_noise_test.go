@@ -35,7 +35,8 @@ func preservesState(m planmodifier.Describer) bool {
 	// known like a schema Default does.
 	case portNameDefaultModifier,
 		jobIconUriDefaultModifier,
-		jobLifecycleTypeDefaultModifier:
+		jobLifecycleTypeDefaultModifier,
+		clusterNodeSizingDefaultModifier:
 		return true
 	}
 	return m.Description(context.Background()) == useStateForUnknownDescription
@@ -158,21 +159,11 @@ var flickerAllowlist = map[string]string{
 	"qovery_project.secret_files.id":                                "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_project.secrets.id":                                     "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 
-	"qovery_cluster.features.existing_vpc.documentdb_subnets_zone_a_ids":      "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.documentdb_subnets_zone_b_ids":      "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.documentdb_subnets_zone_c_ids":      "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.eks_create_nodes_in_private_subnet": "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.elasticache_subnets_zone_a_ids":     "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.elasticache_subnets_zone_b_ids":     "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.elasticache_subnets_zone_c_ids":     "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.rds_subnets_zone_a_ids":             "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.rds_subnets_zone_b_ids":             "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.rds_subnets_zone_c_ids":             "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.secret_manager_accesses.id":                               "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_terraform_service.created_at":                                     "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
-	"qovery_terraform_service.updated_at":                                     "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
-	"qovery_terraform_service.external_secrets.id":                            "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
-	"qovery_terraform_service.external_secret_files.id":                       "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_cluster.secret_manager_accesses.id":         "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
+	"qovery_terraform_service.created_at":               "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
+	"qovery_terraform_service.updated_at":               "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
+	"qovery_terraform_service.external_secrets.id":      "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_terraform_service.external_secret_files.id": "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 
 	// Organization member lifecycle attributes are legitimately volatile: they track
 	// invitation state that transitions out-of-band (the invitee accepts or the invite

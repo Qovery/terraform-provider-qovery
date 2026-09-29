@@ -181,6 +181,79 @@ resource "qovery_cluster" "my_cluster" {
 
 A cluster that declares neither attribute and has nothing attached from the Console plans no change after the upgrade. A configuration that declares `routing_table = []` shows it being added on the first plan; applying it does not change the cluster's configuration.
 
+### `qovery_cluster`: node sizing plans the Qovery default
+
+In 0.x, `instance_type`, `disk_size`, `min_running_nodes` and `max_running_nodes` kept their last value when the configuration omitted them. A value changed from the Qovery Console never showed up in `terraform plan`, and removing the attribute from the configuration left the remote value in place.
+
+In 1.0 these attributes have a default on the clusters whose node group Qovery sizes, `MANAGED` clusters on AWS without Karpenter, on Scaleway and on Azure. The defaults are the values Qovery uses when a request omits them:
+
+| attribute | AWS without Karpenter | Scaleway | Azure |
+|---|---|---|---|
+| `instance_type` | `t3.xlarge` | `DEV1-L` | `Standard_DS2_v2` |
+| `disk_size` | `40` | `40` | `40` |
+| `min_running_nodes` | `3` | `3` | `3` |
+| `max_running_nodes` | `10` | `10` | `10` |
+
+- The refresh reads the API. A value changed from the Console shows up as a difference in `terraform plan`, and `terraform apply` reverts it to the configured value or to the default.
+- Removing one of these attributes from the configuration plans the reset to the default.
+- `terraform import` records the remote values.
+
+Qovery does not use these attributes on Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters: Karpenter, GKE Autopilot or the cluster owner sizes the nodes. There the provider keeps the value the API reports, such as `KARPENTER` or `AUTO_PILOT` for the instance type, and the plan warns when the configuration sets one of them. Remove them from such configurations.
+
+If you set the node sizing from the Console, declare it before the first apply on 1.0, otherwise that apply resets it:
+
+```terraform
+resource "qovery_cluster" "my_cluster" {
+  # ...
+  instance_type     = "GP1-S"
+  disk_size         = 100
+  min_running_nodes = 3
+  max_running_nodes = 6
+}
+```
+
+Qovery cannot change the CPU architecture of an existing cluster's nodes. On a cluster whose instance type has another architecture than the default, for example an ARM instance type on AWS, always declare `instance_type`: the default would change the architecture, and the apply would fail.
+
+A cluster whose remote values already equal the defaults plans no change after the upgrade. This covers every cluster that was created by Terraform with these attributes omitted and not changed from the Console since.
+
+### `qovery_cluster`: omitted `features` and `keda` plan their defaults
+
+In 0.x, the `features` and `keda` blocks kept their last value when the configuration omitted them: a feature or KEDA changed from the Qovery Console stayed invisible to Terraform, and removing a block left the remote configuration in place.
+
+In 1.0, omitting `features` means the default of every feature: `vpc_subnet = "10.0.0.0/16"`, `static_ip = false`, no reserved NAT gateway IP, and no `existing_vpc`, `gcp_existing_vpc`, `karpenter` or `gke_kms_key`. Omitting `keda` means `enabled = false`.
+
+- The refresh reads the API. A feature or KEDA changed from the Console shows up as a difference in `terraform plan`, and `terraform apply` reverts it. KEDA enabled from the Console on a cluster whose configuration omits `keda` shows up as its disable.
+- Removing a block, or one of its attributes, from the configuration plans the reset to the default.
+- `features.vpc_subnet` still cannot change after creation: on a cluster created with another subnet, omitting `features` plans the replacement of the cluster. Declare `vpc_subnet` to keep it.
+- The Qovery API cannot disable Karpenter on an existing cluster, nor enable or disable static IPs once an AWS, GCP or Azure cluster has been deployed. A plan that removes `features.karpenter`, or turns `features.static_ip` from `true` to `false` on such a cluster, now fails at plan time and names the value to declare. 0.x failed at apply instead.
+
+If you set features or KEDA from the Console, declare them before the first apply on 1.0:
+
+```terraform
+resource "qovery_cluster" "my_cluster" {
+  # ...
+  features = {
+    vpc_subnet = "10.42.0.0/16"
+    static_ip  = true
+  }
+  keda = {
+    enabled = true
+  }
+}
+```
+
+A cluster whose features and KEDA already equal the defaults plans no change after the upgrade.
+
+### `qovery_cluster`: `features.gke_kms_key` cannot change after creation
+
+In 0.x, changing `features.gke_kms_key` planned the replacement of the cluster, and removing it from the configuration kept the recorded key.
+
+In 1.0 `gke_kms_key` is optional only: omitting it means no KMS key, and the refresh reports the key the API holds. Setting, changing or removing the key on an existing cluster fails at plan time, because the Qovery API only takes it when it creates the cluster. To use another key, destroy the cluster explicitly, e.g. `terraform destroy -target=qovery_cluster.my_cluster`, then apply. `terraform apply -replace` cannot be used, because the plan fails before the replacement.
+
+### `qovery_cluster` data source: node sizing is read-only
+
+The `instance_type`, `disk_size`, `min_running_nodes` and `max_running_nodes` of the `qovery_cluster` data source are read-only and report the values the Qovery API holds, including `KARPENTER` or `AUTO_PILOT` as the instance type and the placeholder node counts of Karpenter, GCP and self-managed clusters, such as `2147483647`. Remove them from data source configurations, otherwise Terraform rejects the configuration.
+
 ### Services: `labels_group_ids` and `annotations_group_ids` are managed as a whole
 
 This applies to `qovery_application`, `qovery_container`, `qovery_job` and `qovery_database`.
@@ -319,6 +392,12 @@ These changes need no configuration edit, but they can make `terraform plan` sho
 In 0.x, the refresh only kept `features.karpenter.qovery_node_pools.cronjob_override` when the configuration declared it. A cronjob node pool enabled from the Qovery Console stayed invisible to Terraform, and the next `terraform apply` disabled it without the plan showing it. A pool disabled from the Console while the block was declared was re-enabled the same way.
 
 In 1.0 the refresh stores `cronjob_override` exactly when the pool is enabled on the cluster. A pool enabled from the Console shows in `terraform plan` as the block being removed, and applying that plan disables the pool: declare `cronjob_override` to keep it. A pool disabled from the Console shows as the block being added back.
+
+### `qovery_cluster`: existing VPC subnet lists mean none when omitted
+
+The database and cache subnet lists of `features.existing_vpc` (`rds_subnets_zone_*_ids`, `documentdb_subnets_zone_*_ids` and `elasticache_subnets_zone_*_ids`) are optional only: omitting one means no subnet, and the refresh reports the subnets the API holds. The state upgrade turns the empty lists that 0.x stored for the omitted ones into null, so an unchanged configuration plans nothing. The existing VPC configuration still cannot change after creation.
+
+`existing_vpc.eks_create_nodes_in_private_subnet` and `gcp_existing_vpc.private_nodes` default to `false`, the value Qovery stores when they are omitted.
 
 ### `qovery_cluster`: the GPU node pool is managed by `gpu_override`
 

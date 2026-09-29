@@ -153,10 +153,8 @@ resource "qovery_cluster" "gcp_cluster" {
   region          = "europe-west9"
   state           = "DEPLOYED"
 
-  description       = "My cluster description"
-  instance_type     = "AUTO_PILOT"
-  min_running_nodes = 3
-  max_running_nodes = 200
+  # GKE Autopilot sizes the nodes: instance_type, disk_size and the node counts do not apply.
+  description = "My cluster description"
 
   advanced_settings_json = jsonencode({
     # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings
@@ -174,10 +172,6 @@ resource "qovery_cluster" "gcp_cluster_custom_vpc" {
   cloud_provider  = "GCP"
   region          = "europe-west1"
   state           = "DEPLOYED"
-
-  instance_type     = "AUTO_PILOT"
-  min_running_nodes = 3
-  max_running_nodes = 200
 
   features = {
     gcp_existing_vpc = {

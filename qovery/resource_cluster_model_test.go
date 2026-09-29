@@ -644,7 +644,7 @@ func TestToQoveryClusterFeatures_GcpRejectsCustomVpcSubnet(t *testing.T) {
 	require.ErrorContains(t, err, "features.vpc_subnet is not supported for GCP clusters")
 }
 
-func TestToQoveryClusterFeatures_NonGcpAllowsCustomVpcSubnet(t *testing.T) {
+func TestToQoveryClusterFeatures_AwsManagedAllowsCustomVpcSubnet(t *testing.T) {
 	t.Parallel()
 
 	featuresObj := types.ObjectValueMust(
@@ -660,7 +660,7 @@ func TestToQoveryClusterFeatures_NonGcpAllowsCustomVpcSubnet(t *testing.T) {
 		},
 	)
 
-	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "SCW")
+	features, err := toQoveryClusterFeatures(featuresObj, "MANAGED", "AWS")
 	require.NoError(t, err)
 
 	found := false
@@ -671,7 +671,7 @@ func TestToQoveryClusterFeatures_NonGcpAllowsCustomVpcSubnet(t *testing.T) {
 			break
 		}
 	}
-	assert.True(t, found, "non-GCP providers should still send VPC_SUBNET when provided")
+	assert.True(t, found, "AWS MANAGED clusters send VPC_SUBNET")
 }
 
 func TestToQoveryClusterFeatures_GcpNatGateways(t *testing.T) {

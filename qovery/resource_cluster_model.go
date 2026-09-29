@@ -32,8 +32,6 @@ const (
 	featureKeyGkeKmsKey      = "gke_kms_key"
 	featureIdGkeKmsKey       = "GKE_KMS_KEY"
 
-	instanceTypeAutoPilot = "AUTO_PILOT"
-
 	// Infrastructure charts parameter keys
 	infraChartsNginxKey         = "nginx_parameters"
 	infraChartsCertManagerKey   = "cert_manager_parameters"
@@ -234,9 +232,10 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			return nil, errors.New("kubeconfig is required when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
 		}
 
-		// keda is not applicable for PARTIALLY_MANAGED: convertResponseToCluster forces it
-		// to null, so a config-set value would yield "inconsistent result after apply".
-		if toQoveryClusterKeda(c.Keda) != nil {
+		// KEDA is not applicable for PARTIALLY_MANAGED: convertResponseToCluster reads it as
+		// disabled, so enabling it would yield "inconsistent result after apply". Disabled, the
+		// schema default, is what such a cluster has.
+		if keda := toQoveryClusterKeda(c.Keda); keda != nil && keda.Enabled {
 			return nil, errors.New("keda is not supported when kubernetes_mode is PARTIALLY_MANAGED (EKS Anywhere)")
 		}
 
@@ -512,50 +511,18 @@ func convertResponseToClusterWithMode(ctx context.Context, res *client.ClusterRe
 		SecretManagerAccesses:          fromQoverySecretManagerAccesses(ctx, res.ClusterResponse.SecretManagerAccesses, initialPlan.SecretManagerAccesses),
 	}
 
-	// For PARTIALLY_MANAGED (EKS Anywhere) clusters, these fields are not applicable
-	// Return null values to avoid spurious terraform plan changes
+	cluster.InstanceType, cluster.DiskSize, cluster.MinRunningNodes, cluster.MaxRunningNodes = clusterNodeSizingFromResponse(res.ClusterResponse, initialPlan, mode)
+
+	// PARTIALLY_MANAGED (EKS Anywhere) clusters support no feature, no KEDA and no route. The
+	// features and keda defaults stand for that, which is what the schema plans for them.
 	if isPartiallyManaged {
-		cluster.InstanceType = types.StringNull()
-		cluster.DiskSize = types.Int64Null()
-		cluster.MinRunningNodes = types.Int64Null()
-		cluster.MaxRunningNodes = types.Int64Null()
-		cluster.Features = types.ObjectNull(createFeaturesAttrTypes())
-		cluster.Keda = types.ObjectNull(createKedaAttrTypes())
+		cluster.Features = clusterFeaturesDefault()
+		cluster.Keda = clusterKedaDefault()
 		cluster.RoutingTables = types.SetNull(types.ObjectType{AttrTypes: clusterRouteAttrTypes})
 		cluster.InfrastructureOutputs = types.ObjectNull(clusterInfrastructureOutputsAttrTypes)
 		// Preserve kubeconfig from initialPlan - it's fetched separately via API in Read operation
 		cluster.Kubeconfig = initialPlan.Kubeconfig
 	} else {
-		hasKarpenter := responseHasKarpenter(res.ClusterResponse.Features)
-
-		// When Karpenter is enabled the API rewrites instance_type to the literal
-		// "KARPENTER" in the response. Preserve the plan value to avoid an
-		// "inconsistent result after apply" on create and a spurious diff on every
-		// subsequent plan.
-		if hasKarpenter && !initialPlan.InstanceType.IsNull() && !initialPlan.InstanceType.IsUnknown() {
-			cluster.InstanceType = initialPlan.InstanceType
-		} else {
-			cluster.InstanceType = FromStringPointer(res.ClusterResponse.InstanceType)
-		}
-		cluster.DiskSize = FromInt32Pointer(res.ClusterResponse.DiskSize)
-
-		// GCP Autopilot and Karpenter manage node scaling themselves, so min/max_running_nodes
-		// are not set in config and the API returns unstable sentinel values (e.g. MaxInt32 right
-		// after create, a real number on later reads). Preserve the plan values to avoid a spurious
-		// "inconsistent result after apply" on update.
-		isAutoPilot := res.ClusterResponse.InstanceType != nil && *res.ClusterResponse.InstanceType == instanceTypeAutoPilot
-		nodeCountsManaged := isAutoPilot || hasKarpenter
-		if nodeCountsManaged && !initialPlan.MinRunningNodes.IsNull() && !initialPlan.MinRunningNodes.IsUnknown() {
-			cluster.MinRunningNodes = initialPlan.MinRunningNodes
-		} else {
-			cluster.MinRunningNodes = FromInt32Pointer(res.ClusterResponse.MinRunningNodes)
-		}
-		if nodeCountsManaged && !initialPlan.MaxRunningNodes.IsNull() && !initialPlan.MaxRunningNodes.IsUnknown() {
-			cluster.MaxRunningNodes = initialPlan.MaxRunningNodes
-		} else {
-			cluster.MaxRunningNodes = FromInt32Pointer(res.ClusterResponse.MaxRunningNodes)
-		}
-
 		cluster.Features = clusterFeaturesFromResponse(res.ClusterResponse.Features, initialPlan.Features, mode)
 		cluster.Keda = fromQoveryClusterKeda(res.ClusterResponse.Keda)
 		cluster.RoutingTables = routingTable.toTerraformSet(routingTablePrior)
@@ -567,11 +534,83 @@ func convertResponseToClusterWithMode(ctx context.Context, res *client.ClusterRe
 	return cluster
 }
 
+// clusterNodeSizingFromResponse reads instance_type, disk_size, min_running_nodes and
+// max_running_nodes.
+//
+// On a cluster whose node group Qovery sizes from the request, the resource reads the API value,
+// so a change made outside Terraform shows up in the plan. On any other cluster Qovery ignores
+// these values and the API reports what it derives: "KARPENTER" or "AUTO_PILOT" as the instance
+// type, and node counts that change from one read to the next (MaxInt32 right after a create, the
+// request default after an edit). There the resource keeps the planned or recorded value, and
+// reads the API only when it has none, e.g. on create or import: an unstable sentinel would
+// otherwise show as a difference, or fail an apply as an inconsistent result. A partially managed
+// cluster has no node group, so the resource never reads these values from the API.
+//
+// The data source has no plan to be consistent with and reports the API values as they are.
+func clusterNodeSizingFromResponse(res *qovery.Cluster, prior Cluster, mode clusterReadMode) (instanceType types.String, diskSize, minRunningNodes, maxRunningNodes types.Int64) {
+	instanceType = FromStringPointer(res.InstanceType)
+	diskSize = FromInt32Pointer(res.DiskSize)
+	minRunningNodes = FromInt32Pointer(res.MinRunningNodes)
+	maxRunningNodes = FromInt32Pointer(res.MaxRunningNodes)
+
+	kubernetesMode := clusterKubernetesModeDefault
+	if res.Kubernetes != nil {
+		kubernetesMode = string(*res.Kubernetes)
+	}
+	sizing := clusterNodeSizingFor(string(res.CloudProvider), kubernetesMode, responseHasKarpenter(res.Features))
+	if mode == clusterReadModeDataSource || sizing == clusterNodeSizingNodeGroup {
+		return instanceType, diskSize, minRunningNodes, maxRunningNodes
+	}
+
+	if kubernetesMode == string(qovery.KUBERNETESENUM_PARTIALLY_MANAGED) {
+		instanceType = types.StringNull()
+		diskSize, minRunningNodes, maxRunningNodes = types.Int64Null(), types.Int64Null(), types.Int64Null()
+	}
+	return knownOr(prior.InstanceType, instanceType), knownOr(prior.DiskSize, diskSize), knownOr(prior.MinRunningNodes, minRunningNodes), knownOr(prior.MaxRunningNodes, maxRunningNodes)
+}
+
+// knownOr returns prior when it holds a known value, and fallback otherwise.
+func knownOr[T attr.Value](prior, fallback T) T {
+	if prior.IsNull() || prior.IsUnknown() {
+		return fallback
+	}
+	return prior
+}
+
 // createKedaAttrTypes returns the attribute types for the cluster `keda` nested object.
 func createKedaAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"enabled": types.BoolType,
 	}
+}
+
+// clusterKedaDefault is the keda object of a cluster without KEDA, the schema Default of keda.
+// q-core disables KEDA when a request omits it.
+func clusterKedaDefault() types.Object {
+	return fromQoveryClusterKeda(nil)
+}
+
+// clusterNatGatewaysDefault is the nat_gateways object of a cluster that reserves no static
+// egress IP, the schema Default of features.nat_gateways.
+func clusterNatGatewaysDefault() types.Object {
+	return types.ObjectValueMust(createNatGatewaysFeatureAttrTypes(), map[string]attr.Value{
+		"static_ips_enabled": types.BoolValue(false),
+		"static_ips_count":   types.Int64Value(1),
+	})
+}
+
+// clusterFeaturesDefault is the features object of a cluster that sets no feature, the schema
+// Default of features: the values q-core uses when a request omits a feature.
+func clusterFeaturesDefault() types.Object {
+	return types.ObjectValueMust(createFeaturesAttrTypes(), map[string]attr.Value{
+		featureKeyVpcSubnet:      types.StringValue(clusterFeatureVpcSubnetDefault),
+		featureKeyStaticIP:       types.BoolValue(clusterFeatureStaticIPDefault),
+		featureKeyNatGateways:    clusterNatGatewaysDefault(),
+		featureKeyExistingVpc:    types.ObjectNull(createExistingVpcFeatureAttrTypes()),
+		featureKeyGcpExistingVpc: types.ObjectNull(createGcpExistingVpcFeatureAttrTypes()),
+		featureKeyKarpenter:      types.ObjectNull(createKarpenterFeatureAttrTypes()),
+		featureKeyGkeKmsKey:      types.StringNull(),
+	})
 }
 
 // toQoveryClusterKeda converts the Terraform `keda` object to the API model.
@@ -710,16 +749,14 @@ func planKarpenterObject(planFeatures types.Object) types.Object {
 // the schema defaults would not (see storeNodePoolOverride), so that a block the API returns on
 // its own does not become permanent plan noise. Pass a null object when no plan is available,
 // e.g. from the data source.
+//
+// A feature the response omits reads as its default, and so does a response without features:
+// features is never null, like its schema Default.
 func clusterFeaturesFromResponse(
 	clusterFeatures []qovery.ClusterFeatureResponse,
 	planFeatures types.Object,
 	mode clusterReadMode,
 ) types.Object {
-	if clusterFeatures == nil {
-		// Early return object null without attribute types
-		return types.ObjectNull(make(map[string]attr.Type))
-	}
-
 	attributes := make(map[string]attr.Value)
 	attributeTypes := make(map[string]attr.Type)
 	hasStaticIPFeature := false
@@ -732,17 +769,18 @@ func clusterFeaturesFromResponse(
 		}
 		switch *f.Id {
 		case featureIdVpcSubnet:
-			if f.GetValueObject().ClusterFeatureStringResponse != nil {
-				attributes[featureKeyVpcSubnet] = FromString(f.GetValueObject().ClusterFeatureStringResponse.Value)
-			} else {
-				attributes[featureKeyVpcSubnet] = basetypes.NewStringNull()
+			// The API reports no subnet, or an empty one, for a cluster that never set one, such
+			// as a self-managed cluster: that is the default subnet, which the schema plans.
+			attributes[featureKeyVpcSubnet] = types.StringValue(clusterFeatureVpcSubnetDefault)
+			if value := f.GetValueObject().ClusterFeatureStringResponse; value != nil && value.Value != "" {
+				attributes[featureKeyVpcSubnet] = types.StringValue(value.Value)
 			}
 			attributeTypes[featureKeyVpcSubnet] = types.StringType
 		case featureIdGkeKmsKey:
-			if f.GetValueObject().ClusterFeatureStringResponse != nil {
-				attributes[featureKeyGkeKmsKey] = FromString(f.GetValueObject().ClusterFeatureStringResponse.Value)
-			} else {
-				attributes[featureKeyGkeKmsKey] = basetypes.NewStringNull()
+			// A GCP cluster without a KMS key reports an empty key: that is no key, i.e. null.
+			attributes[featureKeyGkeKmsKey] = types.StringNull()
+			if value := f.GetValueObject().ClusterFeatureStringResponse; value != nil && value.Value != "" {
+				attributes[featureKeyGkeKmsKey] = types.StringValue(value.Value)
 			}
 			attributeTypes[featureKeyGkeKmsKey] = types.StringType
 		case featureIdNatGateway:
@@ -773,8 +811,8 @@ func clusterFeaturesFromResponse(
 					"subnetwork_name":                FromNullableString(gcpVpc.SubnetworkName),
 					"ip_range_services_name":         FromNullableString(gcpVpc.IpRangeServicesName),
 					"ip_range_pods_name":             FromNullableString(gcpVpc.IpRangePodsName),
-					"additional_ip_range_pods_names": fromStringArrayNullIfEmpty(gcpVpc.AdditionalIpRangePodsNames),
-					"private_nodes":                  FromBoolPointer(gcpVpc.PrivateNodes),
+					"additional_ip_range_pods_names": stringListFromAPI(priorFeatureList(planFeatures, featureKeyGcpExistingVpc, "additional_ip_range_pods_names", mode), gcpVpc.AdditionalIpRangePodsNames),
+					"private_nodes":                  types.BoolValue(gcpVpc.GetPrivateNodes()),
 				})
 				if diagnostics.HasError() {
 					panic(fmt.Errorf("bad %s feature: %s", featureKeyGcpExistingVpc, diagnostics.Errors()))
@@ -807,25 +845,31 @@ func clusterFeaturesFromResponse(
 				continue
 			}
 
+			// The optional subnet lists are Optional only: the API reports [] for a list that was
+			// never set, which reads back in the shape of the prior value (null or []).
+			optionalList := func(name string, values []string) types.List {
+				return stringListFromAPI(priorFeatureList(planFeatures, featureKeyExistingVpc, name, mode), values)
+			}
 			attrVals := make(map[string]attr.Value)
 			attrVals["aws_vpc_eks_id"] = FromStringPointer(&v.AwsVpcEksId)
 			attrVals["eks_subnets_zone_a_ids"] = FromStringArray(v.EksSubnetsZoneAIds)
 			attrVals["eks_subnets_zone_b_ids"] = FromStringArray(v.EksSubnetsZoneBIds)
 			attrVals["eks_subnets_zone_c_ids"] = FromStringArray(v.EksSubnetsZoneCIds)
-			attrVals["rds_subnets_zone_a_ids"] = FromStringArray(v.RdsSubnetsZoneAIds)
-			attrVals["rds_subnets_zone_b_ids"] = FromStringArray(v.RdsSubnetsZoneBIds)
-			attrVals["rds_subnets_zone_c_ids"] = FromStringArray(v.RdsSubnetsZoneCIds)
-			attrVals["documentdb_subnets_zone_a_ids"] = FromStringArray(v.DocumentdbSubnetsZoneAIds)
-			attrVals["documentdb_subnets_zone_b_ids"] = FromStringArray(v.DocumentdbSubnetsZoneBIds)
-			attrVals["documentdb_subnets_zone_c_ids"] = FromStringArray(v.DocumentdbSubnetsZoneCIds)
-			attrVals["elasticache_subnets_zone_a_ids"] = FromStringArray(v.ElasticacheSubnetsZoneAIds)
-			attrVals["elasticache_subnets_zone_b_ids"] = FromStringArray(v.ElasticacheSubnetsZoneBIds)
-			attrVals["elasticache_subnets_zone_c_ids"] = FromStringArray(v.ElasticacheSubnetsZoneCIds)
+			attrVals["rds_subnets_zone_a_ids"] = optionalList("rds_subnets_zone_a_ids", v.RdsSubnetsZoneAIds)
+			attrVals["rds_subnets_zone_b_ids"] = optionalList("rds_subnets_zone_b_ids", v.RdsSubnetsZoneBIds)
+			attrVals["rds_subnets_zone_c_ids"] = optionalList("rds_subnets_zone_c_ids", v.RdsSubnetsZoneCIds)
+			attrVals["documentdb_subnets_zone_a_ids"] = optionalList("documentdb_subnets_zone_a_ids", v.DocumentdbSubnetsZoneAIds)
+			attrVals["documentdb_subnets_zone_b_ids"] = optionalList("documentdb_subnets_zone_b_ids", v.DocumentdbSubnetsZoneBIds)
+			attrVals["documentdb_subnets_zone_c_ids"] = optionalList("documentdb_subnets_zone_c_ids", v.DocumentdbSubnetsZoneCIds)
+			attrVals["elasticache_subnets_zone_a_ids"] = optionalList("elasticache_subnets_zone_a_ids", v.ElasticacheSubnetsZoneAIds)
+			attrVals["elasticache_subnets_zone_b_ids"] = optionalList("elasticache_subnets_zone_b_ids", v.ElasticacheSubnetsZoneBIds)
+			attrVals["elasticache_subnets_zone_c_ids"] = optionalList("elasticache_subnets_zone_c_ids", v.ElasticacheSubnetsZoneCIds)
 
-			attrVals["eks_karpenter_fargate_subnets_zone_a_ids"] = FromStringArray(v.EksKarpenterFargateSubnetsZoneAIds)
-			attrVals["eks_karpenter_fargate_subnets_zone_b_ids"] = FromStringArray(v.EksKarpenterFargateSubnetsZoneBIds)
-			attrVals["eks_karpenter_fargate_subnets_zone_c_ids"] = FromStringArray(v.EksKarpenterFargateSubnetsZoneCIds)
-			attrVals["eks_create_nodes_in_private_subnet"] = FromBoolPointer(v.EksCreateNodesInPrivateSubnet)
+			attrVals["eks_karpenter_fargate_subnets_zone_a_ids"] = optionalList("eks_karpenter_fargate_subnets_zone_a_ids", v.EksKarpenterFargateSubnetsZoneAIds)
+			attrVals["eks_karpenter_fargate_subnets_zone_b_ids"] = optionalList("eks_karpenter_fargate_subnets_zone_b_ids", v.EksKarpenterFargateSubnetsZoneBIds)
+			attrVals["eks_karpenter_fargate_subnets_zone_c_ids"] = optionalList("eks_karpenter_fargate_subnets_zone_c_ids", v.EksKarpenterFargateSubnetsZoneCIds)
+			// q-core stores false when a request omits it, the schema Default.
+			attrVals["eks_create_nodes_in_private_subnet"] = types.BoolValue(v.GetEksCreateNodesInPrivateSubnet())
 
 			terraformObjectValue, diagnostics := types.ObjectValue(attrTypes, attrVals)
 			if diagnostics.HasError() {
@@ -918,12 +962,8 @@ func clusterFeaturesFromResponse(
 	}
 
 	if attributes[featureKeyNatGateways] == nil {
-		natGatewaysAttrTypes := createNatGatewaysFeatureAttrTypes()
-		attributes[featureKeyNatGateways] = types.ObjectValueMust(natGatewaysAttrTypes, map[string]attr.Value{
-			"static_ips_enabled": types.BoolValue(false),
-			"static_ips_count":   types.Int64Value(1),
-		})
-		attributeTypes[featureKeyNatGateways] = types.ObjectType{AttrTypes: natGatewaysAttrTypes}
+		attributes[featureKeyNatGateways] = clusterNatGatewaysDefault()
+		attributeTypes[featureKeyNatGateways] = types.ObjectType{AttrTypes: createNatGatewaysFeatureAttrTypes()}
 	}
 
 	// featureKeyExistingVpc includes actually 2 entries: featureKeyExistingVpc and featureKeyVpcSubnet
@@ -963,6 +1003,24 @@ func clusterFeaturesFromResponse(
 	return terraformObjectValue
 }
 
+// priorFeatureList returns the list attribute name of the block of the planned (or, on a
+// refresh, recorded) features, which gives an empty API list its shape. It is null when the plan
+// has no such block. The data source has no plan to match and reads every empty list as [].
+func priorFeatureList(planFeatures types.Object, block string, name string, mode clusterReadMode) types.List {
+	if mode == clusterReadModeDataSource {
+		return emptyStringList()
+	}
+	blockObject, ok := featureValue(planFeatures, block).(types.Object)
+	if !ok || blockObject.IsNull() || blockObject.IsUnknown() {
+		return types.ListNull(types.StringType)
+	}
+	list, ok := blockObject.Attributes()[name].(types.List)
+	if !ok {
+		return types.ListNull(types.StringType)
+	}
+	return list
+}
+
 // toQoveryClusterFeatures converts the Terraform features object into the API request. The
 // result depends on the configuration alone, which is what lets hasFeaturesDiff compare the plan
 // and the prior state through it.
@@ -974,12 +1032,18 @@ func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string) 
 	features := make([]qovery.ClusterRequestFeaturesInner, 0, len(f.Attributes()))
 	if vpcSubnetAttr, ok := f.Attributes()[featureKeyVpcSubnet]; ok {
 		vpcSubnet := vpcSubnetAttr.(types.String)
-		if cloudProvider != "GCP" {
-			// Normalize the legacy empty-string state value to the schema default so a
-			// provider upgrade doesn't manufacture a features diff (and a forced redeploy).
-			if !vpcSubnet.IsNull() && !vpcSubnet.IsUnknown() && vpcSubnet.ValueString() == "" {
-				vpcSubnet = types.StringValue(clusterFeatureVpcSubnetDefault)
-			}
+		// Normalize the legacy empty-string state value to the schema default so a provider
+		// upgrade doesn't manufacture a features diff (and a forced redeploy).
+		if !vpcSubnet.IsNull() && !vpcSubnet.IsUnknown() && vpcSubnet.ValueString() == "" {
+			vpcSubnet = types.StringValue(clusterFeatureVpcSubnetDefault)
+		}
+		isCustom := !vpcSubnet.IsNull() && !vpcSubnet.IsUnknown() && vpcSubnet.ValueString() != clusterFeatureVpcSubnetDefault
+
+		// q-core only takes a VPC subnet from an EKS cluster (AWS MANAGED): it rejects the
+		// feature when it creates any other cluster, even with the default subnet, and ignores it
+		// on edit. The default subnet is what every other cluster gets, so it is not sent there.
+		switch {
+		case cloudProvider == "AWS" && mode == string(qovery.KUBERNETESENUM_MANAGED):
 			value := qovery.NewNullableClusterRequestFeaturesInnerValue(&qovery.ClusterRequestFeaturesInnerValue{
 				String: ToStringPointer(vpcSubnet),
 			})
@@ -988,8 +1052,10 @@ func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string) 
 				Id:    new(featureIdVpcSubnet),
 				Value: *value,
 			})
-		} else if !vpcSubnet.IsNull() && !vpcSubnet.IsUnknown() && vpcSubnet.ValueString() != "" && vpcSubnet.ValueString() != clusterFeatureVpcSubnetDefault {
+		case isCustom && cloudProvider == "GCP":
 			return nil, errors.New("features.vpc_subnet is not supported for GCP clusters")
+		case isCustom:
+			return nil, errors.New("features.vpc_subnet is only supported for AWS clusters whose kubernetes_mode is MANAGED")
 		}
 	}
 

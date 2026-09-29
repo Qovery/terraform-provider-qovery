@@ -167,10 +167,8 @@ resource "qovery_cluster" "gcp_cluster" {
   region          = "europe-west9"
   state           = "DEPLOYED"
 
-  description       = "My cluster description"
-  instance_type     = "AUTO_PILOT"
-  min_running_nodes = 3
-  max_running_nodes = 200
+  # GKE Autopilot sizes the nodes: instance_type, disk_size and the node counts do not apply.
+  description = "My cluster description"
 
   advanced_settings_json = jsonencode({
     # non exhaustive list, the complete list is available in Qovery API doc: https://api-doc.qovery.com/#tag/Clusters/operation/getDefaultClusterAdvancedSettings
@@ -188,10 +186,6 @@ resource "qovery_cluster" "gcp_cluster_custom_vpc" {
   cloud_provider  = "GCP"
   region          = "europe-west1"
   state           = "DEPLOYED"
-
-  instance_type     = "AUTO_PILOT"
-  min_running_nodes = 3
-  max_running_nodes = 200
 
   features = {
     gcp_existing_vpc = {
@@ -340,16 +334,29 @@ You can find complete examples within these repositories:
   - Removing a key from the JSON does not reset it remotely: omitted keys keep their current value. To reset a setting, set it to its default value explicitly. Omitting the attribute entirely leaves the previously applied settings untouched.
   - `terraform import` records every setting whose value differs from the default.
 - `description` (String) Description of the cluster. Default: `""`.
-- `disk_size` (Number) Disk size of the cluster nodes in GB. The default value depends on the cloud provider and instance type.
-- `features` (Attributes) Optional cluster features configuration. Use this block to customize VPC settings, enable static IPs, deploy on an existing VPC (AWS or GCP), or enable Karpenter for AWS clusters. (see [below for nested schema](#nestedatt--features))
+- `disk_size` (Number) Disk size of the cluster nodes in GB. Default: `40`.
+
+The default applies to the clusters whose node group Qovery sizes: `MANAGED` clusters on AWS without Karpenter, on Scaleway and on Azure. There, removing the attribute from the configuration resets it to the default, and a value changed outside Terraform shows up in the plan.
+
+~> **Note:** Karpenter, GCP Autopilot or the cluster owner sizes the nodes of Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters, and Qovery ignores this attribute there: the provider records the value the Qovery API reports, and the plan warns when the configuration sets one.
+- `features` (Attributes) Optional cluster features configuration. Use this block to customize VPC settings, enable static IPs, deploy on an existing VPC (AWS or GCP), or enable Karpenter for AWS clusters.
+
+Omitting the block means the default of every feature: `vpc_subnet = "10.0.0.0/16"`, no static IP, no reserved NAT gateway IP, no existing VPC, no Karpenter and no GKE KMS key. Removing the block, or one of its attributes, from the configuration plans the reset to the default, and a feature changed outside Terraform shows up in the plan.
+
+~> **Note:** The Qovery API cannot disable Karpenter on an existing cluster, nor change `static_ip` once an AWS, GCP or Azure cluster has been deployed: a plan that removes `karpenter`, or turns `static_ip` from `true` to `false` on such a cluster, fails and names the value to declare. (see [below for nested schema](#nestedatt--features))
 - `infrastructure_charts_parameters` (Attributes) Infrastructure Helm chart parameters for `PARTIALLY_MANAGED` (EKS Anywhere) clusters. **Required** when `kubernetes_mode` is `PARTIALLY_MANAGED`. These configure the core infrastructure components (ingress, TLS, load balancing) on your on-premise cluster. (see [below for nested schema](#nestedatt--infrastructure_charts_parameters))
 - `instance_type` (String) Instance type for the cluster nodes. The available values depend on the cloud provider:
 
-  - **AWS**: EC2 instance types (e.g., `t3a.xlarge`, `m5.large`). Not required when Karpenter is enabled.
-  - **GCP**: Machine types or `AUTO_PILOT` for GKE Autopilot mode.
-  - **Scaleway**: Node types (e.g., `DEV1-L`, `GP1-S`).
-  - **Azure**: VM sizes (e.g., `Standard_B2s_v2`, `Standard_D4s_v3`).
-- `keda` (Attributes) Optional KEDA configuration. KEDA ([Kubernetes Event-driven Autoscaling](https://keda.sh/)) installs the KEDA operator on the cluster, which unlocks event-driven autoscaling (including scale-to-zero) for services. Toggling this triggers a cluster redeploy. (see [below for nested schema](#nestedatt--keda))
+  - **AWS**: EC2 instance types (e.g., `t3a.xlarge`, `m5.large`). Default: `t3.xlarge`.
+  - **Scaleway**: Node types (e.g., `DEV1-L`, `GP1-S`). Default: `DEV1-L`.
+  - **Azure**: VM sizes (e.g., `Standard_B2s_v2`, `Standard_D4s_v3`). Default: `Standard_DS2_v2`.
+
+The default applies to the clusters whose node group Qovery sizes: `MANAGED` clusters on AWS without Karpenter, on Scaleway and on Azure. There, removing the attribute from the configuration resets it to the default, and a value changed outside Terraform shows up in the plan.
+
+~> **Note:** Karpenter, GCP Autopilot or the cluster owner sizes the nodes of Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters, and Qovery ignores this attribute there: the provider records the value the Qovery API reports, and the plan warns when the configuration sets one.
+- `keda` (Attributes) Optional KEDA configuration. KEDA ([Kubernetes Event-driven Autoscaling](https://keda.sh/)) installs the KEDA operator on the cluster, which unlocks event-driven autoscaling (including scale-to-zero) for services. Toggling this triggers a cluster redeploy.
+
+Omitting the block means KEDA disabled: removing it from the configuration plans the disable, and KEDA enabled outside Terraform shows up in the plan. `PARTIALLY_MANAGED` clusters do not support KEDA. (see [below for nested schema](#nestedatt--keda))
 - `kubeconfig` (String, Sensitive) Kubeconfig YAML content for connecting to the cluster. **Required** for `PARTIALLY_MANAGED` (EKS Anywhere) clusters. This is a sensitive value and will not be displayed in plan output. Use `file()` to read from a file.
 - `kubernetes_mode` (String) Kubernetes management mode for the cluster. Default: `MANAGED`.
 
@@ -359,10 +366,14 @@ You can find complete examples within these repositories:
 - `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the cluster's resources. **Currently supported only for EKS (AWS managed Kubernetes) clusters.** Terraform manages the whole list: labels groups attached outside Terraform show up in the plan and are detached on apply, and omitting the attribute detaches every labels group. See [Labels & Annotations](https://www.qovery.com/docs/configuration/organization/labels-annotations).
 - `max_running_nodes` (Number) Maximum number of nodes the cluster autoscaler can scale up to. Must be `>= 1`. Default: `10`.
 
-~> **Note:** Must be set to `1` for K3S clusters. Do not set this attribute when Karpenter is enabled (Karpenter manages scaling automatically).
+The default applies to the clusters whose node group Qovery sizes: `MANAGED` clusters on AWS without Karpenter, on Scaleway and on Azure. There, removing the attribute from the configuration resets it to the default, and a value changed outside Terraform shows up in the plan.
+
+~> **Note:** Karpenter, GCP Autopilot or the cluster owner sizes the nodes of Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters, and Qovery ignores this attribute there: the provider records the value the Qovery API reports, and the plan warns when the configuration sets one.
 - `min_running_nodes` (Number) Minimum number of nodes running for the cluster autoscaler. Must be `>= 1`. Default: `3`.
 
-~> **Note:** Must be set to `1` for K3S clusters. Do not set this attribute when Karpenter is enabled (Karpenter manages scaling automatically).
+The default applies to the clusters whose node group Qovery sizes: `MANAGED` clusters on AWS without Karpenter, on Scaleway and on Azure. There, removing the attribute from the configuration resets it to the default, and a value changed outside Terraform shows up in the plan.
+
+~> **Note:** Karpenter, GCP Autopilot or the cluster owner sizes the nodes of Karpenter, GCP, `SELF_MANAGED` and `PARTIALLY_MANAGED` clusters, and Qovery ignores this attribute there: the provider records the value the Qovery API reports, and the plan warns when the configuration sets one.
 - `production` (Boolean) Flag to mark this cluster as a production cluster. Production clusters may have different default settings and safeguards. Default: `false`.
 - `routing_table` (Attributes Set) Custom routing table entries for the cluster VPC. Use this to define network routes for traffic between the cluster and other networks (e.g., VPN, peering connections). Terraform manages the whole routing table: routes added outside Terraform show up in the plan and are removed on apply, and omitting the attribute removes every route. (see [below for nested schema](#nestedatt--routing_table))
 - `secret_manager_accesses` (Attributes Set) List of external secret manager configurations for the cluster. Each entry grants the cluster access to a secret provider (AWS Parameter Store, AWS Secrets Manager, or GCP Secret Manager). (see [below for nested schema](#nestedatt--secret_manager_accesses))
@@ -387,9 +398,9 @@ Optional:
 - `gcp_existing_vpc` (Attributes) GCP existing VPC configuration. Use this block to deploy the Qovery GKE cluster into an existing Google Cloud VPC network instead of creating a new one.
 
 ~> **Warning:** This configuration cannot be changed after cluster creation. (see [below for nested schema](#nestedatt--features--gcp_existing_vpc))
-- `gke_kms_key` (String) GCP KMS key resource name used to encrypt the GKE cluster's boot disks / etcd / storage buckets / volumes. Only supported on GCP clusters.
+- `gke_kms_key` (String) GCP KMS key resource name used to encrypt the GKE cluster's boot disks / etcd / storage buckets / volumes. Only supported on GCP clusters. Omitting it means no KMS key.
 
-~> **Warning:** This value cannot be changed after cluster creation. You'll need to create another cluster.
+~> **Warning:** This value cannot be changed after cluster creation: a plan that sets, changes or removes it on an existing cluster fails. To use a different key, destroy the cluster and create a new one.
 - `karpenter` (Attributes) Karpenter configuration for AWS EKS clusters. [Karpenter](https://karpenter.sh/) is a Kubernetes node autoscaler that automatically provisions right-sized compute resources. When Karpenter is enabled, do not set `instance_type`, `min_running_nodes`, or `max_running_nodes` — Karpenter manages node scaling automatically. (see [below for nested schema](#nestedatt--features--karpenter))
 - `nat_gateways` (Attributes) GCP NAT Gateway static egress IP configuration. Reserved static egress IPs are an explicit opt-in via `static_ips_enabled = true` (requires `static_ip = true`).
 
@@ -419,19 +430,19 @@ Required:
 
 Optional:
 
-- `documentdb_subnets_zone_a_ids` (List of String) List of subnet IDs in availability zone A for Amazon DocumentDB. These should be private subnets.
-- `documentdb_subnets_zone_b_ids` (List of String) List of subnet IDs in availability zone B for Amazon DocumentDB. These should be private subnets.
-- `documentdb_subnets_zone_c_ids` (List of String) List of subnet IDs in availability zone C for Amazon DocumentDB. These should be private subnets.
-- `eks_create_nodes_in_private_subnet` (Boolean) Whether to create EKS worker nodes in private subnets. When `true`, nodes are not directly accessible from the internet and route traffic through a NAT Gateway.
+- `documentdb_subnets_zone_a_ids` (List of String) List of subnet IDs in availability zone A for Amazon DocumentDB. These should be private subnets. Omitting it means none.
+- `documentdb_subnets_zone_b_ids` (List of String) List of subnet IDs in availability zone B for Amazon DocumentDB. These should be private subnets. Omitting it means none.
+- `documentdb_subnets_zone_c_ids` (List of String) List of subnet IDs in availability zone C for Amazon DocumentDB. These should be private subnets. Omitting it means none.
+- `eks_create_nodes_in_private_subnet` (Boolean) Whether to create EKS worker nodes in private subnets. When `true`, nodes are not directly accessible from the internet and route traffic through a NAT Gateway. Default: `false`.
 - `eks_karpenter_fargate_subnets_zone_a_ids` (List of String) List of private subnet IDs in availability zone A for EKS Fargate (required when using Karpenter). These subnets must be private and connected to the internet through a NAT Gateway.
 - `eks_karpenter_fargate_subnets_zone_b_ids` (List of String) List of private subnet IDs in availability zone B for EKS Fargate (required when using Karpenter). These subnets must be private and connected to the internet through a NAT Gateway.
 - `eks_karpenter_fargate_subnets_zone_c_ids` (List of String) List of private subnet IDs in availability zone C for EKS Fargate (required when using Karpenter). These subnets must be private and connected to the internet through a NAT Gateway.
-- `elasticache_subnets_zone_a_ids` (List of String) List of subnet IDs in availability zone A for Amazon ElastiCache. These should be private subnets.
-- `elasticache_subnets_zone_b_ids` (List of String) List of subnet IDs in availability zone B for Amazon ElastiCache. These should be private subnets.
-- `elasticache_subnets_zone_c_ids` (List of String) List of subnet IDs in availability zone C for Amazon ElastiCache. These should be private subnets.
-- `rds_subnets_zone_a_ids` (List of String) List of subnet IDs in availability zone A for Amazon RDS databases. These should be private subnets.
-- `rds_subnets_zone_b_ids` (List of String) List of subnet IDs in availability zone B for Amazon RDS databases. These should be private subnets.
-- `rds_subnets_zone_c_ids` (List of String) List of subnet IDs in availability zone C for Amazon RDS databases. These should be private subnets.
+- `elasticache_subnets_zone_a_ids` (List of String) List of subnet IDs in availability zone A for Amazon ElastiCache. These should be private subnets. Omitting it means none.
+- `elasticache_subnets_zone_b_ids` (List of String) List of subnet IDs in availability zone B for Amazon ElastiCache. These should be private subnets. Omitting it means none.
+- `elasticache_subnets_zone_c_ids` (List of String) List of subnet IDs in availability zone C for Amazon ElastiCache. These should be private subnets. Omitting it means none.
+- `rds_subnets_zone_a_ids` (List of String) List of subnet IDs in availability zone A for Amazon RDS databases. These should be private subnets. Omitting it means none.
+- `rds_subnets_zone_b_ids` (List of String) List of subnet IDs in availability zone B for Amazon RDS databases. These should be private subnets. Omitting it means none.
+- `rds_subnets_zone_c_ids` (List of String) List of subnet IDs in availability zone C for Amazon RDS databases. These should be private subnets. Omitting it means none.
 
 
 <a id="nestedatt--features--gcp_existing_vpc"></a>
@@ -443,10 +454,10 @@ Required:
 
 Optional:
 
-- `additional_ip_range_pods_names` (List of String) Additional secondary IP range names for pods. Use this when you need multiple pod IP ranges (e.g., for multi-tenancy or large clusters).
+- `additional_ip_range_pods_names` (List of String) Additional secondary IP range names for pods. Use this when you need multiple pod IP ranges (e.g., for multi-tenancy or large clusters). Omitting it means none.
 - `ip_range_pods_name` (String) Name of the primary secondary IP range in the subnetwork to use for GKE pods.
 - `ip_range_services_name` (String) Name of the secondary IP range in the subnetwork to use for GKE services (ClusterIP range).
-- `private_nodes` (Boolean) Make GKE nodes private with no public IPs. Node traffic goes through the gateway instead of exposing node public addresses.
+- `private_nodes` (Boolean) Make GKE nodes private with no public IPs. Node traffic goes through the gateway instead of exposing node public addresses. Default: `false`.
 - `subnetwork_name` (String) Name of the GCP subnetwork within the VPC to use for the GKE cluster nodes.
 - `vpc_project_id` (String) GCP project ID that owns the VPC. If omitted, defaults to the project associated with your GCP credentials. Use this when the VPC is in a different project (Shared VPC pattern).
 
