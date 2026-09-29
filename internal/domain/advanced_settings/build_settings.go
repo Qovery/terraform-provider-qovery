@@ -1,6 +1,8 @@
 package advanced_settings
 
 import (
+	"math"
+
 	"github.com/qovery/qovery-client-go"
 )
 
@@ -25,8 +27,8 @@ var BuildSettingsKeys = []string{
 }
 
 // BuildSettingsFromAdvancedSettings extracts the build settings from the build.* keys of a service's
-// advanced settings. It returns nil when none of those keys is present. A missing or malformed key
-// falls back to the API default.
+// advanced settings. It returns nil when none of those keys is present. A missing or malformed key,
+// including a number that is not a whole value in [0, MaxInt32], falls back to the API default.
 func BuildSettingsFromAdvancedSettings(settings map[string]any) *qovery.BuildSettings {
 	found := false
 	for _, key := range BuildSettingsKeys {
@@ -65,7 +67,8 @@ func BuildSettingsFromAdvancedSettings(settings map[string]any) *qovery.BuildSet
 
 func int32Setting(settings map[string]any, key string) (int32, bool) {
 	v, ok := normalizeJSONValue(settings[key]).(float64)
-	if !ok {
+	// Converting a float64 outside the int32 range is implementation-dependent in Go, and fractions truncate.
+	if !ok || v < 0 || v > math.MaxInt32 || v != math.Trunc(v) {
 		return 0, false
 	}
 	return int32(v), true

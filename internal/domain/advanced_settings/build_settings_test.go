@@ -58,6 +58,27 @@ func TestBuildSettingsFromAdvancedSettings(t *testing.T) {
 			// missing keys fall back to the API defaults
 			ExpectDisableBuildkit: true,
 		},
+		{
+			TestName:            "out_of_range_value_falls_back_to_default",
+			Settings:            `{"build.timeout_max_sec":3000000000}`,
+			ExpectTimeoutMaxSec: 1800,
+			ExpectCpuMaxInMilli: 4000,
+			ExpectRamMaxInGib:   8,
+		},
+		{
+			TestName:            "negative_value_falls_back_to_default",
+			Settings:            `{"build.timeout_max_sec":-1}`,
+			ExpectTimeoutMaxSec: 1800,
+			ExpectCpuMaxInMilli: 4000,
+			ExpectRamMaxInGib:   8,
+		},
+		{
+			TestName:            "fractional_value_falls_back_to_default",
+			Settings:            `{"build.timeout_max_sec":3600.5}`,
+			ExpectTimeoutMaxSec: 1800,
+			ExpectCpuMaxInMilli: 4000,
+			ExpectRamMaxInGib:   8,
+		},
 	}
 
 	for _, tc := range testCases {
