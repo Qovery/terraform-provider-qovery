@@ -222,3 +222,54 @@ func TestFromVariableArray(t *testing.T) {
 		})
 	}
 }
+
+func TestFromDataSourceVariableArray(t *testing.T) {
+	t.Parallel()
+
+	variable := func(key string, value types.String, secret bool) attr.Value {
+		return types.ObjectValueMust(terraformVariableAttrTypes, map[string]attr.Value{
+			"key":       types.StringValue(key),
+			"value":     value,
+			"is_secret": types.BoolValue(secret),
+		})
+	}
+	variables := func(elements ...attr.Value) types.Set {
+		return types.SetValueMust(types.ObjectType{AttrTypes: terraformVariableAttrTypes}, elements)
+	}
+
+	testCases := []struct {
+		TestName string
+		API      []terraformservice.Variable
+		Expect   types.Set
+	}{
+		{
+			TestName: "non_secret_value_is_the_api_value",
+			API:      []terraformservice.Variable{{Key: "region", Value: "us-east-1"}},
+			Expect:   variables(variable("region", types.StringValue("us-east-1"), false)),
+		},
+		{
+			TestName: "secret_value_sentinel_reads_as_null",
+			API: []terraformservice.Variable{
+				{Key: "region", Value: "us-east-1"},
+				{Key: "token", Value: "SECRET_VALUE_UNCHANGED", Secret: true},
+			},
+			Expect: variables(
+				variable("region", types.StringValue("us-east-1"), false),
+				variable("token", types.StringNull(), true),
+			),
+		},
+		{
+			TestName: "no_api_variable_reads_as_null",
+			API:      nil,
+			Expect:   types.SetNull(types.ObjectType{AttrTypes: terraformVariableAttrTypes}),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+			got := fromDataSourceVariableArray(tc.API)
+			assert.True(t, tc.Expect.Equal(got), "got %s, want %s", got, tc.Expect)
+		})
+	}
+}

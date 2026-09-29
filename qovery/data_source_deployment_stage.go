@@ -71,14 +71,14 @@ func (r deploymentStageDataSource) Schema(_ context.Context, _ datasource.Schema
 				Computed:            true,
 			},
 			"is_after": schema.StringAttribute{
-				Description:         "Identifier (UUID) of the deployment stage that this stage is positioned after.",
-				MarkdownDescription: "Identifier (UUID) of the deployment stage that this stage is positioned after.",
+				Description:         "Echoes the configured value, null when omitted: the Qovery API does not return which stage this stage is positioned after.",
+				MarkdownDescription: "Echoes the configured value, `null` when omitted: the Qovery API does not return which stage this stage is positioned after.",
 				Optional:            true,
 				Computed:            true,
 			},
 			"is_before": schema.StringAttribute{
-				Description:         "Identifier (UUID) of the deployment stage that this stage is positioned before.",
-				MarkdownDescription: "Identifier (UUID) of the deployment stage that this stage is positioned before.",
+				Description:         "Echoes the configured value, null when omitted: the Qovery API does not return which stage this stage is positioned before.",
+				MarkdownDescription: "Echoes the configured value, `null` when omitted: the Qovery API does not return which stage this stage is positioned before.",
 				Optional:            true,
 				Computed:            true,
 			},
@@ -105,7 +105,8 @@ func (d deploymentStageDataSource) Read(ctx context.Context, req datasource.Read
 	newState := convertDomainDeploymentStageToDeploymentStage(deploymentStageDomain, data.Description)
 	tflog.Trace(ctx, "read deployment stage", map[string]any{"deployment_stage_id": data.Id.ValueString()})
 
-	// We need to keep the 'IsAfter' and 'IsBefore' properties
+	// is_after and is_before echo the configuration: they are write-only move instructions, and
+	// the API only returns the stage's deployment_order, not its neighbours.
 	newState = DeploymentStage{
 		Id:            newState.Id,
 		EnvironmentId: newState.EnvironmentId,

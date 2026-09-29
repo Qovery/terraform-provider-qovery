@@ -9,7 +9,10 @@ import (
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
@@ -69,6 +72,29 @@ func TestAcc_TerraformService(t *testing.T) {
 						"is_secret": "true",
 					}),
 				),
+			},
+			// The data source reports the API value of each variable. The API returns a
+			// placeholder instead of a secret value, which the data source reports as null.
+			{
+				Config: testAccTerraformServiceWithVariablesConfig(testName) + `
+data "qovery_terraform_service" "test" {
+  id = qovery_terraform_service.test.id
+}
+`,
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("data.qovery_terraform_service.test", tfjsonpath.New("variables"), knownvalue.SetExact([]knownvalue.Check{
+						knownvalue.ObjectExact(map[string]knownvalue.Check{
+							"key":       knownvalue.StringExact("AWS_REGION"),
+							"value":     knownvalue.StringExact("us-east-1"),
+							"is_secret": knownvalue.Bool(false),
+						}),
+						knownvalue.ObjectExact(map[string]knownvalue.Check{
+							"key":       knownvalue.StringExact("DATABASE_PASSWORD"),
+							"value":     knownvalue.Null(),
+							"is_secret": knownvalue.Bool(true),
+						}),
+					})),
+				},
 			},
 			// ImportState testing
 			{

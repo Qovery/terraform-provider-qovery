@@ -21,18 +21,21 @@ paths:
 
 ## Qovery Service Resource Patterns
 
-When creating or modifying a **service resource** (application, container, job, helm, terraform_service), ensure these common attributes are present:
+A **service resource** (application, container, job, helm, terraform_service) carries the common attributes below. The table records each one's service contract; every other attribute follows "HCL Config Is the Source of Truth" in `AGENTS.md`.
 
-**Required Service Attributes:**
-| Attribute | Type | Notes |
-|-----------|------|-------|
-| `environment_id` | Required | With `RequiresReplace()` plan modifier |
-| `deployment_stage_id` | Optional + Computed | Separate API call pattern (see below) |
-| `name` | Required | Service name |
-| `description` | Optional | Service description |
-| `icon_uri` | Optional + Computed | Default icon URI |
-| `auto_deploy` | Required/Optional | Auto-deploy on commit |
-| `advanced_settings_json` | Optional + Computed | JSON advanced settings |
+| Attribute | Schema | Notes |
+|-----------|--------|-------|
+| `environment_id` | Required | `RequiresReplace()` plan modifier |
+| `name` | Required | |
+| `description` | Optional | |
+| `icon_uri` | Optional + Computed, `Default` = the type's q-core icon (`app://qovery-console/<type>`) | Job: the `JobIconUriDefault()` plan modifier picks the cron or lifecycle icon |
+| `auto_deploy` | Optional + Computed, `Default` `true` (helm `false`) | Required on terraform_service |
+| `auto_preview` | Optional + Computed, `Default` `false` | Not on terraform_service |
+| `ephemeral_storage` | Optional + Computed, `Default` `0` | The read maps an API null to `0` (`ephemeralStorageFromAPI`). Not on helm and terraform_service |
+| `deployment_stage_id` | Optional + Computed, `UseStateForUnknown` | Exception, commented in code: q-core cannot detach a service from its stage. Append `deploymentStageIDRemovalNote` to the description. Separate API calls (see below) |
+| `advanced_settings_json` | Optional + Computed, `UseStateForUnknown` | Exception, commented in code: the QOV-2028 contract (removing a key keeps its value) until QOV-2315 exposes ownership |
+
+The default values are constants in `qovery/service_schema_defaults.go`.
 
 **Deployment Stage Pattern (IMPORTANT):**
 
@@ -52,16 +55,17 @@ deploymentStage, _, _ := c.client.DeploymentStageMainCallsAPI.GetServiceDeployme
 
 ## Checklist for New Service Resources
 
+- [ ] Every attribute follows "HCL Config Is the Source of Truth" in `AGENTS.md`, apart from the exceptions in the table above
+- [ ] Each exception is commented at the spot and explained in the attribute description
 - [ ] Domain entity has `DeploymentStageID string` field
 - [ ] `UpsertRepositoryRequest` has `DeploymentStageID string` field
 - [ ] Repository Create/Update calls `AttachServiceToDeploymentStage()` if provided
 - [ ] Repository Create/Update/Get calls `GetServiceDeploymentStage()` to retrieve
 - [ ] Model conversion function accepts and uses `deploymentStageID` parameter
-- [ ] Terraform schema has `deployment_stage_id` as Optional + Computed
 - [ ] Terraform model struct has `DeploymentStageId types.String` field
 - [ ] Mirror every new attribute in `data_source_{entity}.go` schema (see step 7 above — fails at runtime, not `go build`)
 - [ ] Update the matching `Terraform*Resource.kt` model in the q-core exporter (no automatic sync; audit helper-function schema attrs too, not just inline `schema.X`)
 - [ ] Add the resource to the table in `templates/index.md.tmpl` (`docs/index.md` is generated from it)
 - [ ] Run `task docs` to regenerate documentation
 - [ ] Add an entry under `## [Unreleased]` in `CHANGELOG.md`
-- [ ] Add acceptance tests for the new resource/attribute
+- [ ] Add acceptance tests for the new resource/attribute, with steps showing that removing the attribute from the config plans a difference, a change made outside Terraform shows on refresh, and import records the remote value

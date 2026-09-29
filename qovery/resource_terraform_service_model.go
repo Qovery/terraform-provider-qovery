@@ -392,14 +392,39 @@ func fromVariableArray(prior types.Set, variables []terraformservice.Variable) t
 		if priorValue, ok := priorValues[v.Key]; ok && v.Secret {
 			value = priorValue
 		}
-		elements = append(elements, types.ObjectValueMust(terraformVariableAttrTypes, map[string]attr.Value{
-			"key":       FromString(v.Key),
-			"value":     value,
-			"is_secret": FromBool(v.Secret),
-		}))
+		elements = append(elements, terraformVariableObject(v, value))
 	}
 
 	return types.SetValueMust(elementType, elements)
+}
+
+// fromDataSourceVariableArray converts the API variables for the data source, which reports the
+// API value as-is. The API returns the SECRET_VALUE_UNCHANGED sentinel instead of a secret value
+// and a data source has no prior value to keep, so a secret variable reads as a null value.
+func fromDataSourceVariableArray(variables []terraformservice.Variable) types.Set {
+	elementType := types.ObjectType{AttrTypes: terraformVariableAttrTypes}
+	if len(variables) == 0 {
+		return types.SetNull(elementType)
+	}
+
+	elements := make([]attr.Value, 0, len(variables))
+	for _, v := range variables {
+		value := FromString(v.Value)
+		if v.Secret {
+			value = types.StringNull()
+		}
+		elements = append(elements, terraformVariableObject(v, value))
+	}
+
+	return types.SetValueMust(elementType, elements)
+}
+
+func terraformVariableObject(v terraformservice.Variable, value types.String) types.Object {
+	return types.ObjectValueMust(terraformVariableAttrTypes, map[string]attr.Value{
+		"key":       FromString(v.Key),
+		"value":     value,
+		"is_secret": FromBool(v.Secret),
+	})
 }
 
 // fromActionExtraArguments converts domain map to Terraform map

@@ -93,6 +93,11 @@ func (d terraformServiceDataSource) Schema(_ context.Context, _ datasource.Schem
 				MarkdownDescription: "Specify if the terraform service will be automatically updated on every new commit.",
 				Computed:            true,
 			},
+			"terraform_action": schema.StringAttribute{
+				Description:         descriptions.NewStringEnumDescription("Action to force a specific Terraform behavior on autodeploy.", terraformActionValues, nil),
+				MarkdownDescription: descriptions.NewStringEnumDescription("Action to force a specific Terraform behavior on autodeploy.", terraformActionValues, nil),
+				Computed:            true,
+			},
 			"git_repository": schema.SingleNestedAttribute{
 				Description:         "Terraform service git repository configuration.",
 				MarkdownDescription: "Terraform service git repository configuration.",
@@ -138,8 +143,8 @@ func (d terraformServiceDataSource) Schema(_ context.Context, _ datasource.Schem
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Terraform variable value.",
-							MarkdownDescription: "Terraform variable value.",
+							Description:         "Terraform variable value. Null for a secret variable: the Qovery API does not return secret values.",
+							MarkdownDescription: "Terraform variable value. `null` for a secret variable: the Qovery API does not return secret values.",
 							Computed:            true,
 							Sensitive:           true,
 						},
@@ -167,6 +172,24 @@ func (d terraformServiceDataSource) Schema(_ context.Context, _ datasource.Schem
 						MarkdownDescription: "Use user-provided backend configuration (configured in Terraform code).",
 						Computed:            true,
 						Attributes:          map[string]schema.Attribute{},
+					},
+					"blueprint": schema.SingleNestedAttribute{
+						Description:         "Blueprint-managed backend. The platform generates and injects backend.tf for the service.",
+						MarkdownDescription: "Blueprint-managed backend. The platform generates and injects `backend.tf` for the service.",
+						Computed:            true,
+						Attributes: map[string]schema.Attribute{
+							"type": schema.StringAttribute{
+								Description:         "Terraform backend type (e.g. s3, gcs, azurerm).",
+								MarkdownDescription: "Terraform backend type (e.g. `s3`, `gcs`, `azurerm`).",
+								Computed:            true,
+							},
+							"config": schema.MapAttribute{
+								Description:         "Static backend configuration (bucket, region, etc.).",
+								MarkdownDescription: "Static backend configuration (bucket, region, etc.).",
+								Computed:            true,
+								ElementType:         types.StringType,
+							},
+						},
 					},
 				},
 			},
@@ -350,6 +373,7 @@ func (d terraformServiceDataSource) Read(ctx context.Context, req datasource.Rea
 
 	// Convert domain entity to Terraform state
 	state := convertDomainTerraformServiceToTerraformService(ctx, data, terraformSvc)
+	state.Variables = fromDataSourceVariableArray(terraformSvc.Variables)
 	tflog.Trace(ctx, "read terraform service", map[string]any{"terraform_service_id": state.ID.ValueString()})
 
 	// Set state

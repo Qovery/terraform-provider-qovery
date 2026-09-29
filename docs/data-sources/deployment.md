@@ -1,6 +1,6 @@
 # qovery_deployment (Data Source)
 
-Use this data source to retrieve information about an existing Qovery deployment.
+Echoes its arguments. Qovery stores no deployment object: a deployment is an action on an environment, so this data source reads nothing from Qovery. Use the `qovery_deployment` resource to deploy an environment.
 
 ## Example Usage
 
@@ -16,14 +16,13 @@ data "qovery_deployment" "my_deployment" {
 
 ### Required
 
-- `id` (String) Unique identifier of the deployment (UUID format).
+- `id` (String) Unique identifier of the deployment (UUID format). Echoed as configured.
 
 ### Optional
 
-- `version` (String) Version identifier of the deployment.
+- `version` (String) Version identifier of the deployment. Echoed as configured.
 
 ### Read-Only
 
-- `desired_state` (String) Desired state of the deployment.
-	- Can be: `RESTARTED`, `RUNNING`, `STOPPED`.
-- `environment_id` (String) Identifier of the environment associated with this deployment.
+- `desired_state` (String) Always `null`: this data source reads nothing from Qovery.
+- `environment_id` (String) Always `null`: this data source reads nothing from Qovery.

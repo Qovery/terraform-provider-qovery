@@ -82,14 +82,14 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   blueprint only on create and rejects a lifecycle type change, so 0.x planned the change and
   then failed at apply. A job created with a lifecycle type other than `GENERIC` must declare
   it, otherwise the plan fails on the reset to the default. (QOV-2327)
-- **`qovery_blueprint`**: the refresh reads the API instead of keeping state values. It
-  reports every variable whose value differs from its catalog default, so a variable set from
-  the Console that the configuration omits shows up in `terraform plan` as a removal, and the
-  next apply resets it to the default. 0.90.0 only tracked the declared variables and never reset the others. `blueprint`
-  is derived from the deployed tag, so a major version changed from the Console shows up as
-  well. A deploy that failed outside Terraform no longer hides the settings it saved: only a
-  failed Terraform apply keeps the last applied values, so that the next apply retries it.
-  Declare the variables you set from the Console before upgrading. (QOV-2337)
+- **`qovery_blueprint`**: the refresh reads the API instead of keeping state values. It reports
+  every variable whose value differs from its catalog default, so a variable set from the
+  Console that the configuration omits shows up in `terraform plan` as a removal, and the next
+  apply resets it to the default. 0.90.0 only tracked the declared variables and never reset
+  the others. `blueprint` is derived from the deployed tag, so a major version changed from the
+  Console shows up as well. A deploy that failed outside Terraform no longer hides the settings
+  it saved: only a failed Terraform apply keeps the last applied values, so that the next apply
+  retries it. Declare the variables you set from the Console before upgrading. (QOV-2337)
 - **`qovery_blueprint`**: changing `icon_uri` after creation is a plan error. The Qovery API
   applies the icon only when the blueprint is created, so 0.90.0 reported the new icon while
   the service kept the old one. The refresh now reads the icon from the service the blueprint
@@ -156,6 +156,14 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_cluster`: updating a cluster with KEDA enabled no longer resets the KEDA availability
   and resource profiles set from the Console to `NORMAL`. Terraform does not manage the
   profiles; the update now resends their current values. (QOV-2332)
+- `qovery_terraform_service` data source: a read no longer fails with `Struct defines fields
+  not found in object`, which every read hit since 0.60.0. The data source now reports
+  `terraform_action` and `backend.blueprint`, and the `value` of a secret variable is `null`
+  instead of the `SECRET_VALUE_UNCHANGED` placeholder the API returns in place of secret
+  values. (QOV-2334)
+- `qovery_deployment` data source: a read no longer fails with `invalid deployment desired
+  state`. Qovery stores no deployment object, so the data source reads nothing and echoes its
+  arguments; `environment_id` and `desired_state` are always `null`. (QOV-2334)
 
 ## [0.90.0] - 2026-09-28
 

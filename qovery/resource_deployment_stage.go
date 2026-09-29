@@ -150,7 +150,9 @@ func (r deploymentStageResource) Read(ctx context.Context, req resource.ReadRequ
 	newState := convertDomainDeploymentStageToDeploymentStage(deploymentStage, state.Description)
 	tflog.Trace(ctx, "read deployment stage", map[string]any{"deployment_stage_id": state.Id.ValueString()})
 
-	// We need to keep the 'IsAfter' and 'IsBefore' properties
+	// is_after and is_before are kept from the state: they are write-only move instructions sent
+	// on create and update, and the API only returns the stage's deployment_order, not its
+	// neighbours, so a reorder made from the Console does not show up in the plan.
 	newState = DeploymentStage{
 		Id:            newState.Id,
 		EnvironmentId: newState.EnvironmentId,

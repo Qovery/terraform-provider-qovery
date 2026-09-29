@@ -46,6 +46,8 @@ data "qovery_terraform_service" "my_terraform_service" {
 - `icon_uri` (String) Icon URI representing the terraform service.
 - `job_resources` (Attributes) Resource allocation for the Terraform job. (see [below for nested schema](#nestedatt--job_resources))
 - `name` (String) Name of the terraform service.
+- `terraform_action` (String) Action to force a specific Terraform behavior on autodeploy.
+	- Can be: `DEFAULT`, `NOOP`, `PLAN`.
 - `tfvars_files` (List of String) List of `.tfvars` file paths relative to the root path.
 - `timeout_seconds` (Number) Timeout in seconds for Terraform operations.
 	- Must be: `>= 0`.
@@ -59,8 +61,18 @@ data "qovery_terraform_service" "my_terraform_service" {
 
 Read-Only:
 
+- `blueprint` (Attributes) Blueprint-managed backend. The platform generates and injects `backend.tf` for the service. (see [below for nested schema](#nestedatt--backend--blueprint))
 - `kubernetes` (Attributes) Use Kubernetes backend for state management. (see [below for nested schema](#nestedatt--backend--kubernetes))
 - `user_provided` (Attributes) Use user-provided backend configuration (configured in Terraform code). (see [below for nested schema](#nestedatt--backend--user_provided))
+
+<a id="nestedatt--backend--blueprint"></a>
+### Nested Schema for `backend.blueprint`
+
+Read-Only:
+
+- `config` (Map of String) Static backend configuration (bucket, region, etc.).
+- `type` (String) Terraform backend type (e.g. `s3`, `gcs`, `azurerm`).
+
 
 <a id="nestedatt--backend--kubernetes"></a>
 ### Nested Schema for `backend.kubernetes`
@@ -142,4 +154,4 @@ Read-Only:
 
 - `is_secret` (Boolean) Whether this variable is a secret.
 - `key` (String) Terraform variable name.
-- `value` (String, Sensitive) Terraform variable value.
+- `value` (String, Sensitive) Terraform variable value. `null` for a secret variable: the Qovery API does not return secret values.

@@ -4,6 +4,8 @@ Provides a Qovery deployment resource. This is used to trigger and manage the de
 
 ~> **Note:** This resource does not support import. When destroying this resource, all services in the environment will be stopped.
 
+Qovery stores no deployment object, so the refresh keeps the last applied values: a deploy or a stop made from the Qovery Console does not show up in `terraform plan`.
+
 
 ## Example
 

@@ -21,8 +21,8 @@ data "qovery_deployment_stage" "my_deployment_stage" {
 ### Optional
 
 - `description` (String) Description of the deployment stage.
-- `is_after` (String) Identifier (UUID) of the deployment stage that this stage is positioned after.
-- `is_before` (String) Identifier (UUID) of the deployment stage that this stage is positioned before.
+- `is_after` (String) Echoes the configured value, `null` when omitted: the Qovery API does not return which stage this stage is positioned after.
+- `is_before` (String) Echoes the configured value, `null` when omitted: the Qovery API does not return which stage this stage is positioned before.
 
 ### Read-Only
 
