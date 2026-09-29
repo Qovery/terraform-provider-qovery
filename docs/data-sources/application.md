@@ -68,6 +68,7 @@ data "qovery_application" "my_application" {
 - `build_mode` (String) Build Mode of the application.
 	- Can be: `DOCKER`.
 	- Default: `DOCKER`.
+- `build_settings` (Attributes) Build configuration settings for the service. (see [below for nested schema](#nestedatt--build_settings))
 - `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this application. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) Id of the environment.
 - `environment_variable_files` (Attributes Set) List of environment variable files linked to this application. (see [below for nested schema](#nestedatt--environment_variable_files))
@@ -367,6 +368,19 @@ Read-Only:
 - `name` (String) Name of the trigger authentication.
 
 
+
+
+<a id="nestedatt--build_settings"></a>
+### Nested Schema for `build_settings`
+
+Read-Only:
+
+- `cpu_max_in_milli` (Number) Maximum CPU resources for the build in millicores. Default: 4000.
+- `disable_buildkit_cache` (Boolean) Disable buildkit registry cache during build. Default: false.
+- `ephemeral_storage_in_gib` (Number) Ephemeral storage for the build in GiB.
+- `ram_max_in_gib` (Number) Maximum RAM resources for the build in GiB. Default: 8.
+- `skip_git_submodules` (Boolean) Skip git submodules update when cloning the repository. Default: false.
+- `timeout_max_sec` (Number) Maximum build timeout in seconds. Default: 1800.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>

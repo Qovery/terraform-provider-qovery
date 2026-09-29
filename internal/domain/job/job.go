@@ -93,6 +93,8 @@ type Job struct {
 	JobDeploymentRestrictions    []deploymentrestriction.ServiceDeploymentRestriction
 	AnnotationsGroupIds          []string
 	LabelsGroupIds               []string
+	// BuildSettings is only populated on reads, from the service's advanced settings.
+	BuildSettings *qovery2.BuildSettings
 }
 
 // Validate returns an error to tell whether the Job domain model is valid or not.

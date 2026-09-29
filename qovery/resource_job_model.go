@@ -285,6 +285,7 @@ type Job struct {
 	DeploymentRestrictions       types.Set     `tfsdk:"deployment_restrictions"`
 	AnnotationsGroupIds          types.Set     `tfsdk:"annotations_group_ids"`
 	LabelssGroupIds              types.Set     `tfsdk:"labels_group_ids"`
+	BuildSettings                types.Object  `tfsdk:"build_settings"`
 }
 
 func (j Job) EnvironmentVariableList() EnvironmentVariableList {
@@ -347,6 +348,7 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 	var stateDeploymentRestrictions types.Set
 	var stateExternalSecrets ExternalSecretList
 	var stateExternalSecretFiles ExternalSecretFileList
+	stateBuildSettings := types.ObjectNull(buildSettingsAttrTypes)
 
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
@@ -360,6 +362,7 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 		stateDeploymentRestrictions = state.DeploymentRestrictions
 		stateExternalSecrets = state.ExternalSecretList()
 		stateExternalSecretFiles = state.ExternalSecretFileList()
+		stateBuildSettings = state.BuildSettings
 	}
 
 	deploymentRestrictionsDiff, err := j.DeploymentRestrictionDiff(&stateDeploymentRestrictions)
@@ -367,8 +370,11 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 		return nil, err
 	}
 
+	jobUpsertRequest := j.toUpsertRepositoryRequest()
+	jobUpsertRequest.BuildSettings = buildSettingsRequest(j.BuildSettings, stateBuildSettings)
+
 	return &job.UpsertServiceRequest{
-		JobUpsertRequest:             j.toUpsertRepositoryRequest(),
+		JobUpsertRequest:             jobUpsertRequest,
 		EnvironmentVariables:         j.EnvironmentVariableList().diffRequest(stateEnvironmentVariables),
 		EnvironmentVariableAliases:   j.EnvironmentVariableAliasesList().diffRequest(stateEnvironmentVariableAliases),
 		EnvironmentVariableOverrides: j.EnvironmentVariableOverridesList().diffRequest(stateEnvironmentVariableOverrides),
@@ -463,5 +469,6 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		LabelssGroupIds:              fromLabelsGroupList(ctx, state.LabelssGroupIds, job.LabelsGroupIds),
 		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(job.ExternalSecrets, state.ExternalSecrets, variable.ScopeJob).toTerraformSet(ctx),
 		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(job.ExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeJob).toTerraformSet(ctx),
+		BuildSettings:                buildSettingsToState(state.BuildSettings, job.BuildSettings),
 	}
 }

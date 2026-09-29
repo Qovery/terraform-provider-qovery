@@ -175,6 +175,7 @@ You can find complete examples within these repositories:
 - `annotations_group_ids` (Set of String) List of annotations group IDs to associate with this job. Annotations groups are defined using the `qovery_annotations_group` resource.
 - `auto_deploy` (Boolean) Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.
 - `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this job.
+- `build_settings` (Attributes) Build configuration settings for the service. When set, all six properties are sent to the API — omitted properties use their defaults. Removing the block resets the build settings to their defaults. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both. Those keys remain supported when this block is not set. (see [below for nested schema](#nestedatt--build_settings))
 - `cpu` (Number) CPU of the job in millicores (m) [1000m = 1 CPU].
 	- Must be: `>= 10`.
 	- Default: `500`.
@@ -417,6 +418,19 @@ Optional:
 - `arguments` (List of String) List of arguments passed to the entrypoint.
 - `entrypoint` (String) Entrypoint of the job (e.g. the command to execute).
 
+
+
+<a id="nestedatt--build_settings"></a>
+### Nested Schema for `build_settings`
+
+Optional:
+
+- `cpu_max_in_milli` (Number) Maximum CPU resources for the build in millicores. Default: 4000.
+- `disable_buildkit_cache` (Boolean) Disable buildkit registry cache during build. Default: false.
+- `ephemeral_storage_in_gib` (Number) Ephemeral storage for the build in GiB. When not set, the platform default is used.
+- `ram_max_in_gib` (Number) Maximum RAM resources for the build in GiB. Default: 8.
+- `skip_git_submodules` (Boolean) Skip git submodules update when cloning the repository. Default: false.
+- `timeout_max_sec` (Number) Maximum build timeout in seconds. Default: 1800.
 
 
 <a id="nestedatt--deployment_restrictions"></a>

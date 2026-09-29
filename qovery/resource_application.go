@@ -270,7 +270,8 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					validators.Int64MinValidator{Min: applicationMaxRunningInstancesMin},
 				},
 			},
-			"autoscaling": autoscalingResourceSchema(),
+			"autoscaling":    autoscalingResourceSchema(),
+			"build_settings": buildSettingsResourceSchemaAttributes(),
 			"auto_preview": schema.BoolAttribute{
 				Description: descriptions.NewBoolDefaultDescription(
 					"Specify if the environment preview option is activated or not for this application.",
@@ -918,8 +919,10 @@ func (r applicationResource) ImportState(ctx context.Context, req resource.Impor
 
 // ModifyPlan enforces KEDA autoscaling constraints at plan time so the backend
 // never rejects them mid-apply (which would leave the service partially mutated),
-// and warns about advanced_settings_json keys that are unknown for this service type.
+// warns about advanced_settings_json keys that are unknown for this service type,
+// and lets build_settings own the build.* advanced settings when it is set.
 func (r applicationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	validateAutoscalingPlan(ctx, req.Plan, req.State, &resp.Diagnostics)
 	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.APPLICATION, req.Config, &resp.Diagnostics)
+	modifyBuildSettingsPlan(ctx, req, resp)
 }

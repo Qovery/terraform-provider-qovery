@@ -669,6 +669,7 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
+			"build_settings": buildSettingsResourceSchemaAttributes(),
 			"auto_deploy": schema.BoolAttribute{
 				Description:         "Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.",
 				MarkdownDescription: "Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.",
@@ -848,4 +849,5 @@ func (r jobResource) ImportState(ctx context.Context, req resource.ImportStateRe
 
 func (r jobResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.JOB, req.Config, &resp.Diagnostics)
+	modifyBuildSettingsPlan(ctx, req, resp)
 }

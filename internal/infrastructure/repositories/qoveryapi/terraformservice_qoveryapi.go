@@ -104,12 +104,17 @@ func (c terraformServiceQoveryAPI) Get(ctx context.Context, terraformServiceID s
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceTerraformService, terraform.Id, resp, err)
 	}
 
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(domain.TERRAFORM, terraformServiceID, advancedSettingsJsonFromState, isTriggeredFromImport)
+	advancedSettingsAsJson, buildSettings, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettingsWithBuildSettings(domain.TERRAFORM, terraformServiceID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceTerraformService, terraformServiceID, nil, err)
 	}
 
-	return newDomainTerraformServiceFromQovery(terraform, deploymentStage.Id, getServiceIsSkipped(deploymentStage, terraform.Id), *advancedSettingsAsJson)
+	terraformSvc, err := newDomainTerraformServiceFromQovery(terraform, deploymentStage.Id, getServiceIsSkipped(deploymentStage, terraform.Id), *advancedSettingsAsJson)
+	if err != nil {
+		return nil, err
+	}
+	terraformSvc.BuildSettings = buildSettings
+	return terraformSvc, nil
 }
 
 // Update calls Qovery's API to update a terraform service using the given terraformServiceID and request.

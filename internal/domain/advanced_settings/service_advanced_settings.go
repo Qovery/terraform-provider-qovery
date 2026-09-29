@@ -80,6 +80,13 @@ func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl
 
 // ReadServiceAdvancedSettings Get only overridden advanced settings
 func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, error) {
+	advancedSettingsJson, _, err := c.ReadServiceAdvancedSettingsWithBuildSettings(serviceType, serviceId, advancedSettingsJsonFromState, isTriggeredFromImport)
+	return advancedSettingsJson, err
+}
+
+// ReadServiceAdvancedSettingsWithBuildSettings behaves like ReadServiceAdvancedSettings and also returns the
+// service's build settings, parsed from the unfiltered build.* keys of the same API response.
+func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSettings(serviceType int, serviceId string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, *qovery.BuildSettings, error) {
 	httpClient := &http.Client{}
 	apiToken := c.apiConfig.DefaultHeader["Authorization"]
 
@@ -94,11 +101,11 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 	// Get service advanced settings
 	urlAdvancedSettings, err := c.computeServiceAdvancedSettingsUrl(serviceType, serviceId)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	getRequest, err := http.NewRequest("GET", *urlAdvancedSettings, nil)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	getRequest.Header.Set("Authorization", apiToken)
 	getRequest.Header.Set("Content-Type", "application/json")
@@ -106,17 +113,17 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 
 	respGetAdvancedSettings, err := httpClient.Do(getRequest)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer respGetAdvancedSettings.Body.Close()
 
 	if respGetAdvancedSettings.StatusCode >= 400 {
-		return nil, errors.New("Cannot get advanced settings :" + respGetAdvancedSettings.Status)
+		return nil, nil, errors.New("Cannot get advanced settings :" + respGetAdvancedSettings.Status)
 	}
 
 	serviceAdvancedSettings, err := io.ReadAll(respGetAdvancedSettings.Body)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	advancedSettingsStringJson := string(serviceAdvancedSettings)
@@ -125,17 +132,17 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 	// Compute the Diff
 	advancedSettingsFromStateHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(serviceAdvancedSettingsState), &advancedSettingsFromStateHashMap); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	currentAdvancedSettingsHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	defaultAdvancedSettingsHashMap, err := c.fetchDefaultAdvancedSettings(serviceType)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	overriddenAdvancedSettings := computeOverriddenSettings(
@@ -149,11 +156,11 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType 
 	// Transform to JSON
 	overriddenAdvancedSettingsJSON, err := json.Marshal(overriddenAdvancedSettings)
 	if err != nil {
-		return nil, errors.New("Cannot parse overridden advanced settings")
+		return nil, nil, errors.New("Cannot parse overridden advanced settings")
 	}
 
 	s := string(overriddenAdvancedSettingsJSON)
-	return &s, nil
+	return &s, BuildSettingsFromAdvancedSettings(currentAdvancedSettingsHashMap), nil
 }
 
 // UpdateServiceAdvancedSettings Update advanced settings by computing the whole http body

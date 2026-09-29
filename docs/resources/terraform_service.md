@@ -112,6 +112,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 - `action_extra_arguments` (Map of List of String) Extra CLI arguments for specific Terraform actions (plan, apply, destroy).
 - `advanced_settings_json` (String) Advanced settings in JSON format. See the Qovery API documentation for available settings.
 - `blueprint_id` (String) The blueprint ID the terraform service has been created from.
+- `build_settings` (Attributes) Build configuration settings for the service. When set, all six properties are sent to the API — omitted properties use their defaults. Removing the block resets the build settings to their defaults. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both. Those keys remain supported when this block is not set. (see [below for nested schema](#nestedatt--build_settings))
 - `deployment_stage_id` (String) Id of the deployment stage.
 - `description` (String) Description of the terraform service.
 - `external_secret_files` (Attributes Set) List of external secret files linked to this terraform service. External secret files reference upstream secrets (e.g. from AWS Secrets Manager) and are mounted as files at a given path inside the container. (see [below for nested schema](#nestedatt--external_secret_files))
@@ -206,6 +207,19 @@ Optional:
 - `storage_gib` (Number) Storage of the terraform job in GiB [1 GiB = 1024 MiB]. WARNING: Cannot be reduced after creation.
 	- Must be: `>= 1`.
 	- Default: `20`.
+
+
+<a id="nestedatt--build_settings"></a>
+### Nested Schema for `build_settings`
+
+Optional:
+
+- `cpu_max_in_milli` (Number) Maximum CPU resources for the build in millicores. Default: 4000.
+- `disable_buildkit_cache` (Boolean) Disable buildkit registry cache during build. Default: false.
+- `ephemeral_storage_in_gib` (Number) Ephemeral storage for the build in GiB. When not set, the platform default is used.
+- `ram_max_in_gib` (Number) Maximum RAM resources for the build in GiB. Default: 8.
+- `skip_git_submodules` (Boolean) Skip git submodules update when cloning the repository. Default: false.
+- `timeout_max_sec` (Number) Maximum build timeout in seconds. Default: 1800.
 
 
 <a id="nestedatt--external_secret_files"></a>

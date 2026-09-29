@@ -204,7 +204,8 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 				Optional: true,
 				Computed: true,
 			},
-			"autoscaling": autoscalingDataSourceSchema(),
+			"autoscaling":    autoscalingDataSourceSchema(),
+			"build_settings": buildSettingsDataSourceSchemaAttributes(),
 			"auto_preview": schema.BoolAttribute{
 				Description: descriptions.NewBoolDefaultDescription(
 					"Specify if the environment preview option is activated or not for this application.",
@@ -816,6 +817,7 @@ func (d applicationDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	state := convertResponseToApplication(ctx, data, application)
+	state.BuildSettings = buildSettingsFromQovery(application.ApplicationBuildSettings)
 	tflog.Trace(ctx, "read application", map[string]any{"application_id": state.Id.ValueString()})
 
 	// Set state
