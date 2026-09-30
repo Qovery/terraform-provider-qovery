@@ -249,6 +249,9 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   showed in every later plan. To use another type or mode, recreate the database. (QOV-2343)
 - `qovery_terraform_service`: a `timeout_seconds` below 60 now fails at plan time. The
   provider accepted it and the API rejected it at apply time with a 400. (QOV-2345)
+- `qovery_scaleway_credentials`: the error for a malformed import identifier now gives the
+  format `organization_id,scaleway_credentials_id`, the order the import reads. It gave the two
+  parts in the reverse order. (QOV-2344)
 
 ## [0.91.0] - 2026-09-29
 

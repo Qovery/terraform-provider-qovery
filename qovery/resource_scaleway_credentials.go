@@ -197,7 +197,7 @@ func (r scalewayCredentialsResource) ImportState(ctx context.Context, req resour
 	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
 		resp.Diagnostics.AddError(
 			"Unexpected Import Identifier",
-			fmt.Sprintf("Expected import identifier with format: scaleway_credentials_id,organization_id. Got: %q", req.ID),
+			fmt.Sprintf("Expected import identifier with format: organization_id,scaleway_credentials_id. Got: %q", req.ID),
 		)
 		return
 	}
