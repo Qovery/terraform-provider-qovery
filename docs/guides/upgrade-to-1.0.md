@@ -13,7 +13,7 @@ This guide lists every change that can affect an existing configuration and the 
 
 ## Before you start
 
-1. Upgrade to 0.91.0, the last 0.x release, run `terraform apply`, and make sure `terraform plan` reports no changes. The migration below relies on the state written by that release.
+1. Upgrade to 0.91.0, the last 0.x release, and run `terraform apply -refresh-only`: the migration below relies on the state written by that release. Do not apply other changes with 0.x, because a 0.x update can clear values set from the Qovery Console without the plan showing it. For example, updating a Karpenter cluster with 0.x deletes its GPU node pool, disables a cronjob node pool the configuration does not declare, clears `consolidate_after` and the disk IOPS and throughput, and resets the KEDA profiles to `NORMAL`. 1.0 shows these node pool and disk settings in the plan, and keeps the KEDA profiles.
 2. Back up your state: `terraform state pull > pre-1.0.tfstate`.
 3. Provider 1.0 is tested against Terraform 1.15. Earlier Terraform versions are expected to work but are not tested.
 
@@ -32,7 +32,7 @@ terraform {
 }
 ```
 
-Run `terraform init -upgrade` only after completing the migration steps below.
+Then run `terraform init -upgrade` and `terraform plan`, and do not apply until the plan shows only the changes you want. The sections below describe each difference the first plan on 1.0 can show, and how to keep the current value.
 
 ## Breaking changes
 
@@ -46,9 +46,9 @@ In 1.0, the configuration decides where every node pool runs:
 - The provider sends an explicit value for the stable and default node pools on every apply, and for the cronjob node pool while `cronjob_override` exists.
 - A node pool that runs on spot instances without `spot_enabled = true` in the configuration shows up in `terraform plan`, for example because it inherited the global flag or was changed from the Console. An override block the configuration does not declare is shown being removed; a declared block without `spot_enabled` shows `spot_enabled` changing from `true` to `false`. Applying that plan moves the pool to on-demand instances, and the plan prints a warning naming each such node pool.
 
-**Recommended: pin every node pool on the last 0.x release first.** For each node pool, write the value it effectively has today: its own `spot_enabled` if it has one, otherwise the global value. If the global argument is not in your configuration, read its computed value with `terraform state show qovery_cluster.<name>`. Only declare `cronjob_override` if the block already exists in your configuration: declaring it enables a dedicated cronjob node pool.
+**Pin every node pool on 1.0, before the first apply.** Delete `spot_enabled` from `features.karpenter`, set the provider version to `~> 1.0`, run `terraform init -upgrade`, then `terraform plan`. The plan lists, with a warning, every node pool that runs on spot instances without `spot_enabled = true` in the configuration. Add `spot_enabled = true` to each of them, then plan again: the node pools must plan no change. The removed attribute is dropped from the state automatically; no `terraform state` command is needed.
 
-Before:
+Before, on 0.x:
 
 ```terraform
 features = {
@@ -66,12 +66,11 @@ features = {
 }
 ```
 
-After, still on 0.x:
+After, on 1.0:
 
 ```terraform
 features = {
   karpenter = {
-    spot_enabled                 = true
     disk_size_in_gib             = 50
     default_service_architecture = "AMD64"
     qovery_node_pools = {
@@ -87,29 +86,13 @@ features = {
 }
 ```
 
-Run `terraform apply`, then `terraform plan`: it must report no changes.
+Declare `cronjob_override` only if it is already in your configuration or the plan shows it being removed: declaring it enables a dedicated cronjob node pool.
 
-**Then remove the global argument and upgrade.** Delete `spot_enabled` from `features.karpenter`, set the provider version to `~> 1.0`, run `terraform init -upgrade`, then `terraform plan`. The plan must report no changes. The removed attribute is dropped from the state automatically; no `terraform state` command is needed.
+Terraform does not reject a `spot_enabled` left in `features.karpenter`: it ignores the argument. The plan warning is what shows the node pools that would lose spot instances.
 
-```terraform
-features = {
-  karpenter = {
-    disk_size_in_gib             = 50
-    default_service_architecture = "AMD64"
-    qovery_node_pools = {
-      # requirements unchanged
-      stable_override = {
-        spot_enabled = false
-      }
-      default_override = {
-        spot_enabled = true
-      }
-    }
-  }
-}
-```
+Pin the node pools on 1.0 rather than on 0.x. On 0.x, the apply that adds the override blocks updates the cluster, which clears the Karpenter settings 0.x does not manage (see [Before you start](#before-you-start)).
 
-**If you upgrade without pinning first,** the first 1.0 `terraform plan` lists every node pool that runs on spot instances without `spot_enabled = true` in the configuration, as described above. Do not apply that plan unless you want those node pools on on-demand instances. Add `spot_enabled = true` to them, then plan again: it must report no changes. A pipeline that applies without a human reviewing the plan moves those node pools to on-demand instances.
+Do not apply the first 1.0 plan while it lists node pools you want on spot instances: applying it moves them to on-demand instances. A pipeline that applies without a human reviewing the plan does exactly that.
 
 Things to check while migrating:
 

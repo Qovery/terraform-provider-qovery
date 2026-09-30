@@ -25,8 +25,8 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   sends an explicit value for every node pool instead of letting the API apply the global
   flag. A node pool that runs on spot instances without being declared shows up in
   `terraform plan`, with a warning, instead of being moved by the next apply without notice.
-  The data source always reports the stable and default node pools. Pin your node pools as
-  described in the upgrade guide before upgrading. (QOV-2301)
+  The data source always reports the stable and default node pools. Pin your node pools on 1.0,
+  before the first apply, as described in the upgrade guide. (QOV-2301)
 - **`qovery_cluster`**: `routing_table` and `labels_group_ids` are managed as a whole. The
   refresh always reads the API, so a route or labels group added, changed or removed from the
   Console shows up in `terraform plan` even when the attribute is omitted, and the next apply
