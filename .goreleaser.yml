@@ -54,8 +54,12 @@ signs:
       - "--detach-sign"
       - "${artifact}"
 release:
-  # A semver prerelease tag (v1.0.0-rc.1) is published as a GitHub prerelease; final tags stay releases.
-  prerelease: auto
+  # Never mark a release as a GitHub pre-release, even for a semver pre-release tag such as
+  # v1.0.0-rc.1: the Terraform Registry ingests a version only on GitHub's `released` webhook
+  # action, which GitHub does not send for a flagged pre-release (it sends `prereleased`
+  # instead, and the Registry ignores it). A semver pre-release version is still never
+  # selected by a constraint such as `~> 1.0`; users must pin it exactly.
+  prerelease: false
   extra_files:
     - glob: 'terraform-registry-manifest.json'
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
