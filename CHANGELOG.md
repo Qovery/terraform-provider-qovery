@@ -247,6 +247,8 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_database`: changing `type` or `mode` of an existing database now fails at plan
   time. The API cannot change them, so the update left them unchanged and the same change
   showed in every later plan. To use another type or mode, recreate the database. (QOV-2343)
+- `qovery_terraform_service`: a `timeout_seconds` below 60 now fails at plan time. The
+  provider accepted it and the API rejected it at apply time with a 400. (QOV-2345)
 
 ## [0.91.0] - 2026-09-29
 

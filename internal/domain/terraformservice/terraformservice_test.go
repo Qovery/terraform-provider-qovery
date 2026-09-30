@@ -1,4 +1,3 @@
-// go:build unit && !integration
 //go:build unit && !integration
 
 package terraformservice_test
@@ -235,6 +234,38 @@ func TestTerraformService_Validate(t *testing.T) {
 				},
 			},
 			expectError: true,
+		},
+		{
+			name: "timeout below minimum",
+			service: terraformservice.TerraformService{
+				ID:            uuid.New(),
+				EnvironmentID: uuid.New(),
+				Name:          "test-service",
+				Description:   stringPtr("Test description"),
+				GitRepository: validGitRepo,
+				Backend:       validBackend,
+				Engine:        terraformservice.EngineTerraform,
+				EngineVersion: validEngineVersion,
+				JobResources:  validJobResources,
+				TimeoutSec:    new(int32(59)),
+			},
+			expectError: true,
+		},
+		{
+			name: "timeout at minimum",
+			service: terraformservice.TerraformService{
+				ID:            uuid.New(),
+				EnvironmentID: uuid.New(),
+				Name:          "test-service",
+				Description:   stringPtr("Test description"),
+				GitRepository: validGitRepo,
+				Backend:       validBackend,
+				Engine:        terraformservice.EngineTerraform,
+				EngineVersion: validEngineVersion,
+				JobResources:  validJobResources,
+				TimeoutSec:    new(int32(60)),
+			},
+			expectError: false,
 		},
 		{
 			name: "valid terraform action",

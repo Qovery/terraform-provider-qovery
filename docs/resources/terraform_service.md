@@ -78,7 +78,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 	- Can be: `DEFAULT`, `NOOP`, `PLAN`.
 	- Default: `DEFAULT`.
 - `timeout_seconds` (Number) Maximum duration of the Terraform operations, in seconds.
-	- Must be: `>= 0`.
+	- Must be: `>= 60`.
 	- Default: `1800`.
 - `use_cluster_credentials` (Boolean) Whether the Terraform job authenticates to the cloud provider with the credentials of the cluster.
 	- Default: `false`.
