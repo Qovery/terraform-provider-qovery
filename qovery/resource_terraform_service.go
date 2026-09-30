@@ -167,6 +167,9 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 						Optional:            true,
 						Computed:            true,
 						Default:             stringdefault.StaticString(terraformservice.DefaultRootPath),
+						PlanModifiers: []planmodifier.String{
+							NormalizeGitRootPath(terraformservice.DefaultRootPath),
+						},
 					},
 					"git_token_id": schema.StringAttribute{
 						Description:         "Git token ID for private repositories.",

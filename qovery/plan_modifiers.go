@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"context"
+	stdpath "path"
 	"sort"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -619,4 +620,56 @@ func (m deprecatedGlobalSpotEnabledModifier) PlanModifyBool(ctx context.Context,
 // flag.
 func DeprecatedGlobalSpotEnabled() planmodifier.Bool {
 	return deprecatedGlobalSpotEnabledModifier{}
+}
+
+// normalizeGitRootPathModifier plans a git root path the way the API stores it and this
+// provider reads it back.
+//
+// q-core runs the submitted path through Java's `Path.of(p).normalize()` before persisting it
+// (`service/terraform/persistence/TerraformJpaEntity.kt`), so a configured "/AWS/postgres/17/"
+// is read back as "/AWS/postgres/17". Without this modifier the planned value keeps the
+// trailing slash while the applied one does not, and Terraform aborts with "Provider produced
+// inconsistent result after apply: .git_repository". Attach it to an Optional+Computed root
+// path attribute so the plan already holds the stored form.
+type normalizeGitRootPathModifier struct {
+	defaultRootPath string
+}
+
+func (m normalizeGitRootPathModifier) Description(_ context.Context) string {
+	return "Normalizes the path (drops trailing and duplicate separators, resolves . and ..) to the form the API stores."
+}
+
+func (m normalizeGitRootPathModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m normalizeGitRootPathModifier) PlanModifyString(_ context.Context, req planmodifier.StringRequest, resp *planmodifier.StringResponse) {
+	// Null means the attribute has no planned value yet and unknown means the API decides it;
+	// neither can be normalized, and the schema Default fills null before this runs.
+	if req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
+		return
+	}
+	resp.PlanValue = types.StringValue(normalizeGitRootPath(req.PlanValue.ValueString(), m.defaultRootPath))
+}
+
+// normalizeGitRootPath mirrors the round trip a root path makes through the API.
+//
+// `Path.of(p).normalize()` and stdpath.Clean agree everywhere but on a path whose elements all
+// cancel out: Java empties "", ".", "./" and "foo/.." while Clean returns ".". The empty path
+// is what the API then returns, and newDomainTerraformServiceFromQovery keeps the default
+// rather than an empty root path, so state holds defaultRootPath. Planning "." instead would
+// reproduce the very inconsistency this modifier removes.
+func normalizeGitRootPath(rootPath string, defaultRootPath string) string {
+	cleaned := stdpath.Clean(rootPath)
+	if cleaned == "." {
+		return defaultRootPath
+	}
+	return cleaned
+}
+
+// NormalizeGitRootPath returns the plan modifier that aligns a git root path with the
+// normalized form the Qovery API persists and returns. defaultRootPath is the attribute's
+// schema default, planned for any path the API stores empty.
+func NormalizeGitRootPath(defaultRootPath string) planmodifier.String {
+	return normalizeGitRootPathModifier{defaultRootPath: defaultRootPath}
 }
