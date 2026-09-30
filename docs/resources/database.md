@@ -24,9 +24,9 @@ resource "qovery_database" "my_database" {
 ### Required
 
 - `environment_id` (String) ID of the environment. Changing it recreates the database.
-- `mode` (String) How Qovery runs the database: `CONTAINER` as a container on the cluster, `MANAGED` as a managed service of the cloud provider, such as Amazon RDS. It cannot change after creation.
+- `mode` (String) How Qovery runs the database: `CONTAINER` as a container on the cluster, `MANAGED` as a managed service of the cloud provider, such as Amazon RDS. It can only be set at creation: changing it fails at plan time.
 - `name` (String) Name of the database.
-- `type` (String) Engine of the database. It cannot change after creation.
+- `type` (String) Engine of the database. It can only be set at creation: changing it fails at plan time.
 	- Can be: `MONGODB`, `MYSQL`, `POSTGRESQL`, `REDIS`.
 - `version` (String) Version of the engine, for example `16` for PostgreSQL. The available versions depend on `type` and `mode`.
 

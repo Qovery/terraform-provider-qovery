@@ -240,6 +240,9 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   `cloudflare.api_token` or a `route53.credentials.aws_secret_access_key` that comes from a
   variable or another resource. The provider treated a value not yet known as missing, and
   failed with "must be set". (QOV-2319)
+- `qovery_database`: changing `type` or `mode` of an existing database now fails at plan
+  time. The API cannot change them, so the update left them unchanged and the same change
+  showed in every later plan. To use another type or mode, recreate the database. (QOV-2343)
 
 ## [0.91.0] - 2026-09-29
 

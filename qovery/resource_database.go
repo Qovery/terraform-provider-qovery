@@ -120,6 +120,11 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Validators: []validator.String{
 					validators.NewStringEnumValidator(databaseTypes),
 				},
+				// The update request cannot carry the type, and replacing the database would
+				// delete its data, so a planned change is a plan error.
+				PlanModifiers: []planmodifier.String{
+					RejectChangeAfterCreate(databaseTypeModeChangeReason),
+				},
 			},
 			"version": schema.StringAttribute{
 				MarkdownDescription: databaseVersionDescription + " The available versions depend on `type` and `mode`.",
@@ -130,6 +135,10 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				Required:            true,
 				Validators: []validator.String{
 					validators.NewStringEnumValidator(databaseModes),
+				},
+				// Same rule as type.
+				PlanModifiers: []planmodifier.String{
+					RejectChangeAfterCreate(databaseTypeModeChangeReason),
 				},
 			},
 			"accessibility": schema.StringAttribute{

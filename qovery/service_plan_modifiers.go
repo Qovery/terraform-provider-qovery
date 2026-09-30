@@ -322,4 +322,6 @@ const (
 	lifecycleTypeChangeReason = "The Qovery API cannot change the lifecycle type of an existing job."
 	blueprintIconChangeReason = "The Qovery API applies icon_uri only when the blueprint is created and ignores later changes. " +
 		"To change the icon of an existing blueprint, change it from the Qovery Console, then set the same value here."
+	databaseTypeModeChangeReason = "The Qovery API cannot change the type or the mode of an existing database. " +
+		"Recreating the database deletes its data."
 )

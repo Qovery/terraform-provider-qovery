@@ -260,3 +260,20 @@ func TestValidateDatabaseInstanceType(t *testing.T) {
 		})
 	}
 }
+
+// TestDatabaseTypeAndModeRejectChangeAfterCreate: the update request cannot carry type or
+// mode, so a change must fail the plan instead of planning an update that never applies.
+func TestDatabaseTypeAndModeRejectChangeAfterCreate(t *testing.T) {
+	t.Parallel()
+	var resp resource.SchemaResponse
+	databaseResource{}.Schema(context.Background(), resource.SchemaRequest{}, &resp)
+
+	for _, name := range []string{"type", "mode"} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			attribute, ok := resp.Schema.Attributes[name].(schema.StringAttribute)
+			require.True(t, ok)
+			assert.Contains(t, attribute.PlanModifiers, RejectChangeAfterCreate(databaseTypeModeChangeReason))
+		})
+	}
+}
