@@ -16,12 +16,12 @@ type Int64MinMaxValidator struct {
 
 // Description returns a plain text description of the validator's behavior, suitable for a practitioner to understand its impact.
 func (v Int64MinMaxValidator) Description(ctx context.Context) string {
-	return fmt.Sprintf("number value must be greater than %d", v.Min)
+	return fmt.Sprintf("number value must be between %d and %d", v.Min, v.Max)
 }
 
 // MarkdownDescription returns a markdown formatted description of the validator's behavior, suitable for a practitioner to understand its impact.
 func (v Int64MinMaxValidator) MarkdownDescription(ctx context.Context) string {
-	return fmt.Sprintf("number value must be greater than `%d`", v.Min)
+	return fmt.Sprintf("number value must be between `%d` and `%d`", v.Min, v.Max)
 }
 
 // Validate runs the main validation logic of the validator, reading configuration data out of `req` and updating `resp` with diagnostics.

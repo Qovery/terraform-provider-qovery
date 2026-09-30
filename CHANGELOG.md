@@ -252,6 +252,9 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - `qovery_scaleway_credentials`: the error for a malformed import identifier now gives the
   format `organization_id,scaleway_credentials_id`, the order the import reads. It gave the two
   parts in the reverse order. (QOV-2344)
+- Validation errors for a minimum value now say `must be at least <minimum>`. They said
+  `must be greater than <minimum>`, although the minimum itself is accepted, for example
+  `timeout_seconds = 60` on `qovery_terraform_service`. (QOV-2348)
 
 ## [0.91.0] - 2026-09-29
 
