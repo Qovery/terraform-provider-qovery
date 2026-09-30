@@ -23,6 +23,11 @@ on:
         type: string
         required: false
         default: ""
+      provider_version:
+        description: "Qovery provider version to install, exact (e.g. 1.0.0-rc.1). Empty = latest stable release from the Registry. Terraform only installs a pre-release when it is pinned exactly."
+        type: string
+        required: false
+        default: ""
       notify_slack:
         description: "Send the Slack summary for this manual run"
         type: boolean
@@ -39,7 +44,7 @@ permissions:
   contents: read
 
 env:
-  TF_VERSION: "1.14.*"
+  TF_VERSION: "1.15.*" # the version the provider is tested against (README, upgrade guide)
 
 jobs:
   setup:
@@ -100,6 +105,27 @@ jobs:
             scaleway-kapsule) echo "id=${{ secrets.TEST_SCALEWAY_CREDENTIALS_ID }}" >> "$GITHUB_OUTPUT" ;;
             *) echo "Unknown cloud: ${{ matrix.cloud }}"; exit 1 ;;
           esac
+
+      - name: Pin the provider version
+        if: github.event.inputs.provider_version != ''
+        working-directory: tests/cluster-smoke/${{ matrix.cloud }}
+        env:
+          PROVIDER_VERSION: ${{ github.event.inputs.provider_version }}
+        run: |
+          # A version constraint cannot come from a variable, so write an override file.
+          # Terraform merges *_override.tf into the base configuration and replaces the
+          # qovery entry of required_providers, which main.tf declares without a version.
+          cat > provider_version_override.tf <<EOF
+          terraform {
+            required_providers {
+              qovery = {
+                source  = "qovery/qovery"
+                version = "= ${PROVIDER_VERSION}"
+              }
+            }
+          }
+          EOF
+          echo "Pinned the qovery provider to = ${PROVIDER_VERSION}"
 
       - name: Terraform init
         working-directory: tests/cluster-smoke/${{ matrix.cloud }}
