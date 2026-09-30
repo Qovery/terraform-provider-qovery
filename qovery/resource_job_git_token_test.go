@@ -96,8 +96,6 @@ func TestAcc_JobGitToken(t *testing.T) {
 						"key":   "secretkey1",
 						"value": "",
 					}),
-					resource.TestCheckNoResourceAttr("qovery_job.test", "external_host"),
-					resource.TestCheckNoResourceAttr("qovery_job.test", "internal_host"),
 					resource.TestCheckResourceAttr("qovery_job.test", "advanced_settings_json", "{\"deployment.termination_grace_period_seconds\":61}"),
 				),
 			},

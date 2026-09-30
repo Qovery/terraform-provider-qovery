@@ -515,20 +515,6 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 			"secret_files":               secretFilesSchemaAttribute("job"),
 			"external_secrets":           externalSecretsSchemaAttribute("job"),
 			"external_secret_files":      externalSecretFilesSchemaAttribute("job"),
-			"external_host": schema.StringAttribute{
-				MarkdownDescription: jobHostDescription,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
-			"internal_host": schema.StringAttribute{
-				MarkdownDescription: jobHostDescription,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
-			},
 			"deployment_stage_id": schema.StringAttribute{
 				MarkdownDescription: deploymentStageIDDescription + deploymentStageIDRemovalNote,
 				Optional:            true,

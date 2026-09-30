@@ -23,9 +23,6 @@ const (
 	jobMaxNbRestartDescription       = "Number of restarts allowed before the job is marked failed. `0` allows none."
 	jobPortDescription               = "Port the health checks probe. It is not exposed outside the cluster."
 	jobAutoDeployDescription         = "Whether Qovery redeploys the job on every new commit to its branch, or on every new image tag for an `image` source."
-	// The provider never reads the hosts of a job: the job domain has no SetHosts, unlike
-	// container and helm, so external_host and internal_host stay null.
-	jobHostDescription = "Always null for a job."
 )
 
 // Schedule and source of qovery_job.

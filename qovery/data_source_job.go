@@ -529,14 +529,6 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 					},
 				},
 			},
-			"external_host": schema.StringAttribute{
-				MarkdownDescription: jobHostDescription,
-				Computed:            true,
-			},
-			"internal_host": schema.StringAttribute{
-				MarkdownDescription: jobHostDescription,
-				Computed:            true,
-			},
 			"deployment_stage_id": schema.StringAttribute{
 				MarkdownDescription: deploymentStageIDDescription,
 				Optional:            true,

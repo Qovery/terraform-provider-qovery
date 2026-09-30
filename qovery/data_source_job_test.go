@@ -44,8 +44,6 @@ func TestAcc_JobDataSource(t *testing.T) {
 					resource.TestMatchTypeSetElemNestedAttrs("data.qovery_job.test", "built_in_environment_variables.*", map[string]*regexp.Regexp{
 						"key": regexp.MustCompile(`^QOVERY_`),
 					}),
-					resource.TestCheckNoResourceAttr("data.qovery_job.test", "external_host"),
-					resource.TestCheckNoResourceAttr("data.qovery_job.test", "internal_host"),
 					resource.TestCheckResourceAttr("data.qovery_job.test", "advanced_settings_json", "{\"deployment.termination_grace_period_seconds\":61}"),
 					resource.TestCheckResourceAttr("data.qovery_job.test", "auto_deploy", "true"),
 					resource.TestCheckResourceAttrSet("data.qovery_job.test", "build_settings.timeout_max_sec"),

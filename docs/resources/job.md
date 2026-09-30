@@ -92,9 +92,7 @@ You can find complete examples within these repositories:
 ### Read-Only
 
 - `built_in_environment_variables` (Attributes List) Environment variables Qovery defines for the job. (see [below for nested schema](#nestedatt--built_in_environment_variables))
-- `external_host` (String) Always null for a job.
 - `id` (String) ID of the job.
-- `internal_host` (String) Always null for a job.
 
 <a id="nestedatt--healthchecks"></a>
 ### Nested Schema for `healthchecks`

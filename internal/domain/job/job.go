@@ -55,8 +55,6 @@ var (
 	ErrInvalidJobEnvironmentVariablesParam = errors.New("invalid job environment variables param")
 	// ErrInvalidJobSecretsParam is returned if the secrets param is invalid.
 	ErrInvalidJobSecretsParam = errors.New("invalid job secrets param")
-	// ErrFailedToSetHosts is returned if the internal & external host failed to be set.
-	ErrFailedToSetHosts = errors.New("failed to set hosts")
 )
 
 type Job struct {
@@ -82,8 +80,6 @@ type Job struct {
 	Secrets                      secret.Secrets
 	SecretAliases                secret.Secrets
 	SecretOverrides              secret.Secrets
-	InternalHost                 *string
-	ExternalHost                 *string
 	State                        status.State
 	DeploymentStageID            string
 	IsSkipped                    bool

@@ -355,6 +355,12 @@ In 1.0 they are optional only. Omitting one means no argument, the image's entry
 
 If you set any of these from the Console, declare them before the first apply on 1.0. A Helm chart in a private repository keeps its access only if its `git_token_id` is declared.
 
+### `qovery_job`: `external_host` and `internal_host` are removed
+
+In 0.x the `qovery_job` resource and data source exposed `external_host` and `internal_host`, but both were always null, because the Qovery API reports no host for a job.
+
+In 1.0 both attributes are removed. The state upgrade drops them, so an unchanged configuration plans nothing. A configuration that references `qovery_job.<name>.external_host` or `qovery_job.<name>.internal_host` now fails with an `Unsupported attribute` error: remove the reference, it always evaluated to null.
+
 ### `qovery_terraform_service`: variable values are read from the API
 
 In 0.x the refresh kept the state value of every declared variable, so a value changed from the Qovery Console never showed up in `terraform plan`.

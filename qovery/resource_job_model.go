@@ -288,8 +288,6 @@ type Job struct {
 	ExternalSecrets              types.Set     `tfsdk:"external_secrets"`
 	ExternalSecretFiles          types.Set     `tfsdk:"external_secret_files"`
 	Port                         types.Int64   `tfsdk:"port"`
-	ExternalHost                 types.String  `tfsdk:"external_host"`
-	InternalHost                 types.String  `tfsdk:"internal_host"`
 	DeploymentStageId            types.String  `tfsdk:"deployment_stage_id"`
 	IsSkipped                    types.Bool    `tfsdk:"is_skipped"`
 	AdvancedSettingsJson         types.String  `tfsdk:"advanced_settings_json"`
@@ -469,8 +467,6 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, job.Secrets, variable.ScopeJob, "OVERRIDE").toTerraformSet(ctx),
 		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, job.EnvironmentVariables, variable.ScopeJob).toTerraformSet(ctx),
 		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, job.Secrets, variable.ScopeJob).toTerraformSet(ctx),
-		InternalHost:                 FromStringPointer(job.InternalHost),
-		ExternalHost:                 FromStringPointer(job.ExternalHost),
 		DeploymentStageId:            FromString(job.DeploymentStageID),
 		IsSkipped:                    FromBool(job.IsSkipped),
 		HealthChecks:                 &healthchecks,

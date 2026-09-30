@@ -108,6 +108,10 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   blueprint only on create and rejects a lifecycle type change, so 0.x planned the change and
   then failed at apply. A job created with a lifecycle type other than `GENERIC` must declare
   it, otherwise the plan fails on the reset to the default. (QOV-2327)
+- **`qovery_job`**: `external_host` and `internal_host` are removed from the resource and the
+  data source. Both were always null, because the Qovery API reports no host for a job. Remove
+  any reference to them from the configuration; the state upgrade drops them, so an unchanged
+  configuration plans nothing. (QOV-2342)
 - **`qovery_blueprint`**: the refresh reads the API instead of keeping state values. It reports
   every variable whose value differs from its catalog default, so a variable set from the
   Console that the configuration omits shows up in `terraform plan` as a removal, and the next
