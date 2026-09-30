@@ -54,6 +54,8 @@ signs:
       - "--detach-sign"
       - "${artifact}"
 release:
+  # A semver prerelease tag (v1.0.0-rc.1) is published as a GitHub prerelease; final tags stay releases.
+  prerelease: auto
   extra_files:
     - glob: 'terraform-registry-manifest.json'
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
