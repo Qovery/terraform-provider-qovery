@@ -14,6 +14,13 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Fixed
+
+- `qovery_cluster`: creating a `SELF_MANAGED` cluster works again. Since 1.0.0 the create
+  deployed the new cluster, which the API refuses with `You cannot deploy a self-managed
+  cluster`, and the cluster was created in Qovery but missing from the Terraform state. A
+  create no longer forces a deploy: a new managed cluster is still deployed. (QOV-2355)
+
 ## [1.0.0] - 2026-10-01
 
 1.0.0 is the first stable release of the provider. Read the

@@ -2170,6 +2170,71 @@ func TestCluster_toUpsertClusterRequest_SpecChangeForcesDeploy(t *testing.T) {
 	}
 }
 
+// TestCluster_toUpsertClusterRequest_CreateNeverForcesDeploy guards QOV-2355: q-core marks a new
+// self-managed cluster DEPLOYED and refuses to deploy it, so a create forcing a deploy fails with
+// a 400 and leaks the cluster. A new managed cluster is still deployed, since it is not DEPLOYED yet.
+func TestCluster_toUpsertClusterRequest_CreateNeverForcesDeploy(t *testing.T) {
+	t.Parallel()
+
+	selfManaged := func() Cluster {
+		return Cluster{
+			OrganizationId:                 types.StringValue("org-123"),
+			CredentialsId:                  types.StringValue("cred-123"),
+			Name:                           types.StringValue("c"),
+			CloudProvider:                  types.StringValue("ON_PREMISE"),
+			Region:                         types.StringValue("on-premise"),
+			KubernetesMode:                 types.StringValue("SELF_MANAGED"),
+			State:                          types.StringValue("DEPLOYED"),
+			Production:                     types.BoolValue(false),
+			AdvancedSettingsJson:           types.StringValue("{}"),
+			Features:                       clusterFeaturesDefault(),
+			Keda:                           clusterKedaDefault(),
+			RoutingTables:                  types.SetNull(types.ObjectType{AttrTypes: clusterRouteAttrTypes}),
+			LabelsGroupIds:                 types.SetNull(types.StringType),
+			InfrastructureChartsParameters: types.ObjectNull(createInfrastructureChartsParametersAttrTypes()),
+			SecretManagerAccesses:          types.SetNull(types.ObjectType{AttrTypes: secretManagerAccessAttrTypes}),
+		}
+	}
+
+	tests := []struct {
+		name    string
+		cluster func() Cluster
+	}{
+		{"self-managed with schema defaults", selfManaged},
+		{"self-managed with keda enabled", func() Cluster {
+			c := selfManaged()
+			c.Keda = types.ObjectValueMust(createKedaAttrTypes(), map[string]attr.Value{"enabled": types.BoolValue(true)})
+			return c
+		}},
+		{"self-managed with a route", func() Cluster {
+			c := selfManaged()
+			c.RoutingTables = types.SetValueMust(types.ObjectType{AttrTypes: clusterRouteAttrTypes}, []attr.Value{
+				types.ObjectValueMust(clusterRouteAttrTypes, map[string]attr.Value{
+					"description": types.StringValue("vpn"),
+					"destination": types.StringValue("10.1.0.0/16"),
+					"target":      types.StringValue("vgw-1"),
+				}),
+			})
+			return c
+		}},
+		{"managed with features", func() Cluster {
+			c := baseScwCluster()
+			c.Features = clusterFeaturesDefault()
+			c.Keda = clusterKedaDefault()
+			return c
+		}},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			params, err := tc.cluster().toUpsertClusterRequest(nil)
+			require.NoError(t, err)
+			assert.False(t, params.ForceUpdate)
+		})
+	}
+}
+
 // TestCluster_hasClusterSpecDiff exercises the spec-diff helper directly, including
 // kubernetes_mode and labels_group_ids, and confirms metadata changes are ignored.
 func TestCluster_hasClusterSpecDiff(t *testing.T) {
@@ -2198,13 +2263,6 @@ func TestCluster_hasClusterSpecDiff(t *testing.T) {
 		{"production only (metadata)", func(c *Cluster) { c.Production = types.BoolValue(true) }, false},
 	}
 
-	// nil state is the create path — never a spec "diff".
-	t.Run("nil state", func(t *testing.T) {
-		t.Parallel()
-		plan := baseScwCluster()
-		assert.False(t, plan.hasClusterSpecDiff(nil))
-	})
-
 	for _, tc := range tests {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
@@ -2229,19 +2287,6 @@ func TestCluster_hasKedaDiff(t *testing.T) {
 			"enabled": types.BoolValue(enabled),
 		})
 	}
-
-	t.Run("nil state without keda is not a diff", func(t *testing.T) {
-		t.Parallel()
-		plan := baseScwCluster()
-		assert.False(t, plan.hasKedaDiff(nil))
-	})
-
-	t.Run("nil state with keda enabled is a diff", func(t *testing.T) {
-		t.Parallel()
-		plan := baseScwCluster()
-		plan.Keda = keda(true)
-		assert.True(t, plan.hasKedaDiff(nil))
-	})
 
 	t.Run("identical keda is not a diff", func(t *testing.T) {
 		t.Parallel()
