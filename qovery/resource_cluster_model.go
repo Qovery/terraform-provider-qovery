@@ -68,10 +68,6 @@ type Cluster struct {
 
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
 	clusterFeatures, _ := toQoveryClusterFeatures(c.Features, ToString(c.KubernetesMode), ToString(c.CloudProvider))
-	if state == nil {
-		return len(clusterFeatures) > 0
-	}
-
 	stateFeature, _ := toQoveryClusterFeatures(state.Features, ToString(state.KubernetesMode), ToString(state.CloudProvider))
 	if len(clusterFeatures) != len(stateFeature) {
 		return true
@@ -97,18 +93,11 @@ func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
 // effect on a (re)deploy gated by ClusterUpsertParams.ForceUpdate — so a toggle
 // must force a deploy, otherwise EditCluster saves it but it is never applied.
 func (c Cluster) hasKedaDiff(state *Cluster) bool {
-	if state == nil {
-		return toQoveryClusterKeda(c.Keda) != nil
-	}
 	return !c.Keda.Equal(state.Keda)
 }
 
 func (c Cluster) hasRoutingTableDiff(state *Cluster) bool {
 	clusterRoutes := toClusterRouteList(c.RoutingTables).toUpsertRequest().Routes
-	if state == nil {
-		return len(clusterRoutes) > 0
-	}
-
 	stateRoutes := toClusterRouteList(state.RoutingTables).toUpsertRequest().Routes
 	if len(clusterRoutes) != len(stateRoutes) {
 		return true
@@ -138,7 +127,7 @@ func (c Cluster) hasSecretManagerAccessesDiff(state *Cluster) bool {
 	if c.SecretManagerAccesses.IsNull() || c.SecretManagerAccesses.IsUnknown() {
 		return false
 	}
-	if state == nil || state.SecretManagerAccesses.IsNull() || state.SecretManagerAccesses.IsUnknown() {
+	if state.SecretManagerAccesses.IsNull() || state.SecretManagerAccesses.IsUnknown() {
 		return len(c.SecretManagerAccesses.Elements()) > 0
 	}
 	return !c.SecretManagerAccesses.Equal(state.SecretManagerAccesses)
@@ -146,9 +135,9 @@ func (c Cluster) hasSecretManagerAccessesDiff(state *Cluster) bool {
 
 func (c Cluster) hasInfraChartsParamsDiff(state *Cluster) bool {
 	if c.InfrastructureChartsParameters.IsNull() || c.InfrastructureChartsParameters.IsUnknown() {
-		return state != nil && !state.InfrastructureChartsParameters.IsNull() && !state.InfrastructureChartsParameters.IsUnknown()
+		return !state.InfrastructureChartsParameters.IsNull() && !state.InfrastructureChartsParameters.IsUnknown()
 	}
-	if state == nil || state.InfrastructureChartsParameters.IsNull() || state.InfrastructureChartsParameters.IsUnknown() {
+	if state.InfrastructureChartsParameters.IsNull() || state.InfrastructureChartsParameters.IsUnknown() {
 		return true
 	}
 	// Compare the object values
@@ -166,9 +155,6 @@ func (c Cluster) hasInfraChartsParamsDiff(state *Cluster) bool {
 // but at edit q-core's KubernetesProviderDomain.update persists it without
 // re-deriving any deploy-affecting settings.
 func (c Cluster) hasClusterSpecDiff(state *Cluster) bool {
-	if state == nil {
-		return false
-	}
 	return !c.InstanceType.Equal(state.InstanceType) ||
 		!c.DiskSize.Equal(state.DiskSize) ||
 		!c.MinRunningNodes.Equal(state.MinRunningNodes) ||
@@ -362,7 +348,10 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		return nil, errors.Wrap(err, "failed to parse secret_manager_accesses")
 	}
 
-	forceUpdate := c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || c.hasInfraChartsParamsDiff(state) || c.hasClusterSpecDiff(state) || c.hasSecretManagerAccessesDiff(state) || c.hasKedaDiff(state)
+	// A new cluster never forces a deploy: either it is not deployed yet, so updateClusterStatus
+	// deploys it anyway, or it is self-managed, which q-core marks DEPLOYED on creation and refuses
+	// to deploy unless the Qovery Operator manages it.
+	forceUpdate := state != nil && (c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || c.hasInfraChartsParamsDiff(state) || c.hasClusterSpecDiff(state) || c.hasSecretManagerAccessesDiff(state) || c.hasKedaDiff(state))
 
 	desiredState, err := qovery.NewClusterStateEnumFromValue(ToString(c.State))
 	if err != nil {

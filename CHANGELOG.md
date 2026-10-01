@@ -14,6 +14,15 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.0.1] - 2026-10-01
+
+### Fixed
+
+- `qovery_cluster`: creating a `SELF_MANAGED` cluster works again. Since 1.0.0 the create
+  deployed the new cluster, which the API refuses with `You cannot deploy a self-managed
+  cluster`, and the cluster was created in Qovery but missing from the Terraform state. A
+  create no longer forces a deploy: a new managed cluster is still deployed. (QOV-2355)
+
 ## [1.0.0] - 2026-10-01
 
 1.0.0 is the first stable release of the provider. Read the
@@ -370,7 +379,8 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.1...HEAD
+[1.0.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/qovery/terraform-provider-qovery/compare/v0.91.0...v1.0.0
 [0.91.0]: https://github.com/qovery/terraform-provider-qovery/compare/v0.90.0...v0.91.0
 [0.90.0]: https://github.com/qovery/terraform-provider-qovery/compare/v0.89.0...v0.90.0
