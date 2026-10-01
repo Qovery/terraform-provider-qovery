@@ -168,36 +168,42 @@ func argumentsFromDomain(domainArgs []string, priorArgs []types.String) []types.
 func JobScheduleFromDomainJobSchedule(s job.JobSchedule, state *JobSchedule) JobSchedule {
 	var onStart *ExecutionCommand = nil
 	if s.OnStart != nil {
+		priorEntrypoint := types.StringNull()
 		var priorArgs []types.String
 		if state != nil && state.OnStart != nil {
+			priorEntrypoint = state.OnStart.Entrypoint
 			priorArgs = state.OnStart.Arguments
 		}
 		onStart = &ExecutionCommand{
-			Entrypoint: FromStringPointer(s.OnStart.Entrypoint),
+			Entrypoint: optionalStringFromAPI(priorEntrypoint, s.OnStart.Entrypoint),
 			Arguments:  argumentsFromDomain(s.OnStart.Arguments, priorArgs),
 		}
 	}
 
 	var onStop *ExecutionCommand = nil
 	if s.OnStop != nil {
+		priorEntrypoint := types.StringNull()
 		var priorArgs []types.String
 		if state != nil && state.OnStop != nil {
+			priorEntrypoint = state.OnStop.Entrypoint
 			priorArgs = state.OnStop.Arguments
 		}
 		onStop = &ExecutionCommand{
-			Entrypoint: FromStringPointer(s.OnStop.Entrypoint),
+			Entrypoint: optionalStringFromAPI(priorEntrypoint, s.OnStop.Entrypoint),
 			Arguments:  argumentsFromDomain(s.OnStop.Arguments, priorArgs),
 		}
 	}
 
 	var onDelete *ExecutionCommand = nil
 	if s.OnDelete != nil {
+		priorEntrypoint := types.StringNull()
 		var priorArgs []types.String
 		if state != nil && state.OnDelete != nil {
+			priorEntrypoint = state.OnDelete.Entrypoint
 			priorArgs = state.OnDelete.Arguments
 		}
 		onDelete = &ExecutionCommand{
-			Entrypoint: FromStringPointer(s.OnDelete.Entrypoint),
+			Entrypoint: optionalStringFromAPI(priorEntrypoint, s.OnDelete.Entrypoint),
 			Arguments:  argumentsFromDomain(s.OnDelete.Arguments, priorArgs),
 		}
 	}
@@ -248,15 +254,17 @@ func (s JobScheduleCron) toUpsertRequest() job.JobScheduleCron {
 }
 
 func JobScheduleCronFromDomainJobScheduleCron(s job.JobScheduleCron, state *JobScheduleCron) JobScheduleCron {
+	priorEntrypoint := types.StringNull()
 	var priorArgs []types.String
 	if state != nil {
+		priorEntrypoint = state.Command.Entrypoint
 		priorArgs = state.Command.Arguments
 	}
 
 	return JobScheduleCron{
 		Schedule: FromString(s.Schedule),
 		Command: ExecutionCommand{
-			Entrypoint: FromStringPointer(s.Command.Entrypoint),
+			Entrypoint: optionalStringFromAPI(priorEntrypoint, s.Command.Entrypoint),
 			Arguments:  argumentsFromDomain(s.Command.Arguments, priorArgs),
 		},
 	}

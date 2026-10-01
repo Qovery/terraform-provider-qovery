@@ -374,7 +374,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		CustomDomains:                fromCustomDomainList(state.CustomDomains, app.ApplicationCustomDomains).toTerraformSet(ctx),
 		InternalHost:                 FromString(app.ApplicationInternalHost),
 		ExternalHost:                 FromStringPointer(app.ApplicationExternalHost),
-		Entrypoint:                   FromStringPointer(app.ApplicationResponse.Entrypoint),
+		Entrypoint:                   optionalStringFromAPI(state.Entrypoint, app.ApplicationResponse.Entrypoint),
 		Arguments:                    stringListFromAPI(state.Arguments, app.ApplicationResponse.Arguments),
 		DeploymentStageId:            FromString(app.ApplicationDeploymentStageID),
 		IsSkipped:                    FromBool(app.ApplicationIsSkipped),

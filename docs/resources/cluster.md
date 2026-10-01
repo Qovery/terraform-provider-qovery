@@ -233,7 +233,7 @@ Required:
 
 Optional:
 
-- `cronjob_override` (Attributes) Settings of the cronjob node pool, which runs the cron jobs and lifecycle jobs. Declaring the block creates the pool, and removing it deletes the pool. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override))
+- `cronjob_override` (Attributes) Settings of the cronjob node pool, which runs the cron jobs and lifecycle jobs. Declaring the block enables the pool, and removing it disables the pool, which the plan warns about. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--cronjob_override))
 - `default_override` (Attributes) Settings of the default node pool, which runs the application workloads. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--default_override))
 - `gpu_override` (Attributes) Settings of the GPU node pool, which runs the workloads that request GPUs. Declaring the block creates the pool, and removing it deletes the pool and its nodes, which the plan warns about. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--gpu_override))
 - `stable_override` (Attributes) Settings of the stable node pool, which runs the workloads that need steady availability, such as the Qovery agents. (see [below for nested schema](#nestedatt--features--karpenter--qovery_node_pools--stable_override))

@@ -144,10 +144,10 @@ const (
 	karpenterNodePoolLimitsMinNote = " Qovery requires at least 6 vCPU and 6 GiB."
 	// karpenterConsolidateAfterNote documents NewConsolidateAfterValidator.
 	karpenterConsolidateAfterNote = " At most `24h`, written in the largest whole unit: `1h`, not `60m`."
-	// karpenterOptionalNodePoolNote documents the cronjob and GPU node pools, which exist only
-	// while their override is declared.
-	karpenterOptionalNodePoolNote = " Declaring the block creates the pool, and removing it deletes the pool."
-	// karpenterGpuNodePoolNote documents the GPU node pool and warnKarpenterGpuNodePoolRemoval.
+	// karpenterCronjobNodePoolNote documents the cronjob node pool, which exists only while its
+	// override is declared, and warnKarpenterNodePoolRemoval.
+	karpenterCronjobNodePoolNote = " Declaring the block enables the pool, and removing it disables the pool, which the plan warns about."
+	// karpenterGpuNodePoolNote documents the GPU node pool and warnKarpenterNodePoolRemoval.
 	karpenterGpuNodePoolNote = " Declaring the block creates the pool, and removing it deletes the pool and its nodes, which the plan warns about."
 )
 

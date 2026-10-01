@@ -604,13 +604,29 @@ func (d jobDataSource) Read(ctx context.Context, req datasource.ReadRequest, res
 		return
 	}
 
-	// Group ids report the API value; a data source has no plan to match, so none reads as [].
+	// Group ids and entrypoints report the API value; a data source has no plan to match, so none
+	// reads as [] and an empty entrypoint as "".
 	data.AnnotationsGroupIds = emptyStringSet()
 	data.LabelssGroupIds = emptyStringSet()
+	data.Schedule = dataSourceJobSchedulePrior()
 	state := convertDomainJobToJob(ctx, data, cont)
 	state.BuildSettings = buildSettingsFromQovery(cont.BuildSettings)
 	tflog.Trace(ctx, "read job", map[string]any{"job_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// dataSourceJobSchedulePrior is the schedule a data source passes as the prior of
+// JobScheduleFromDomainJobSchedule: every entrypoint is "", so an empty API entrypoint reads as
+// "". The arguments stay unset, as without a prior.
+func dataSourceJobSchedulePrior() *JobSchedule {
+	command := func() ExecutionCommand { return ExecutionCommand{Entrypoint: types.StringValue("")} }
+	onStart, onStop, onDelete := command(), command(), command()
+	return &JobSchedule{
+		OnStart:  &onStart,
+		OnStop:   &onStop,
+		OnDelete: &onDelete,
+		CronJob:  &JobScheduleCron{Command: command()},
+	}
 }

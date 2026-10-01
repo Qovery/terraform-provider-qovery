@@ -408,53 +408,89 @@ func TestKarpenterGpuOverride_RoundTrip(t *testing.T) {
 
 // --- plan-time warnings ---------------------------------------------------------------------------
 
-func TestWarnKarpenterGpuNodePoolRemoval(t *testing.T) {
+// TestWarnKarpenterNodePoolRemoval covers the warning of a plan that removes cronjob_override or
+// gpu_override, which disables the cronjob node pool or deletes the GPU node pool.
+func TestWarnKarpenterNodePoolRemoval(t *testing.T) {
 	t.Parallel()
 
 	gpu := map[string]attr.Value{"gpu_override": testGpuOverrideObject(nil)}
 	gpuBiggerDisk := map[string]attr.Value{"gpu_override": testGpuOverrideObject(func(attrs map[string]attr.Value) {
 		attrs["disk_size_in_gib"] = types.Int64Value(100)
 	})}
-	gpuPath := path.Root("features").AtName("karpenter").AtName("qovery_node_pools").AtName("gpu_override")
+	cronjob := map[string]attr.Value{"cronjob_override": testCronjobOverrideObject(types.BoolValue(false))}
+	cronjobSpot := map[string]attr.Value{"cronjob_override": testCronjobOverrideObject(types.BoolValue(true))}
+	cronjobAndGpu := map[string]attr.Value{"cronjob_override": cronjob["cronjob_override"], "gpu_override": gpu["gpu_override"]}
+	nodePoolsPath := path.Root("features").AtName("karpenter").AtName("qovery_node_pools")
+	gpuPath := nodePoolsPath.AtName("gpu_override")
+	cronjobPath := nodePoolsPath.AtName("cronjob_override")
 
 	testCases := []struct {
 		TestName       string
 		StateOverrides map[string]attr.Value
 		PlanOverrides  map[string]attr.Value
 		// PlanKarpenter replaces the planned karpenter object built from PlanOverrides.
-		PlanKarpenter *types.Object
-		ExpectWarning bool
+		PlanKarpenter  *types.Object
+		ExpectWarnings []path.Path
 	}{
 		{
 			// A pool created from the Console, which the refresh stored: the configuration does not
 			// declare it.
-			TestName:       "removed_block_warns",
+			TestName:       "removed_gpu_block_warns",
 			StateOverrides: gpu,
-			ExpectWarning:  true,
+			ExpectWarnings: []path.Path{gpuPath},
 		},
 		{
-			TestName:       "kept_block_is_quiet",
+			TestName:       "kept_gpu_block_is_quiet",
 			StateOverrides: gpu,
 			PlanOverrides:  gpu,
 		},
 		{
-			TestName:       "changed_block_is_quiet",
+			TestName:       "changed_gpu_block_is_quiet",
 			StateOverrides: gpu,
 			PlanOverrides:  gpuBiggerDisk,
 		},
 		{
-			TestName:      "added_block_is_quiet",
+			TestName:      "added_gpu_block_is_quiet",
 			PlanOverrides: gpu,
+		},
+		{
+			// A cronjob pool enabled from the Console, which the refresh stored.
+			TestName:       "removed_cronjob_block_warns",
+			StateOverrides: cronjob,
+			ExpectWarnings: []path.Path{cronjobPath},
+		},
+		{
+			TestName:       "kept_cronjob_block_is_quiet",
+			StateOverrides: cronjob,
+			PlanOverrides:  cronjob,
+		},
+		{
+			// warnKarpenterSpotToOnDemand covers this change.
+			TestName:       "changed_cronjob_block_is_quiet",
+			StateOverrides: cronjobSpot,
+			PlanOverrides:  cronjob,
+		},
+		{
+			TestName:      "added_cronjob_block_is_quiet",
+			PlanOverrides: cronjob,
+		},
+		{
+			TestName:       "removing_both_blocks_warns_twice",
+			StateOverrides: cronjobAndGpu,
+			ExpectWarnings: []path.Path{cronjobPath, gpuPath},
 		},
 		{
 			// An override block computed from a value unknown at plan time may resolve to a block.
 			TestName:       "unknown_planned_override_is_quiet",
-			StateOverrides: gpu,
-			PlanOverrides:  map[string]attr.Value{"gpu_override": types.ObjectUnknown(karpenterGpuOverrideAttrTypes())},
+			StateOverrides: cronjobAndGpu,
+			PlanOverrides: map[string]attr.Value{
+				"cronjob_override": types.ObjectUnknown(karpenterCronjobOverrideAttrTypes()),
+				"gpu_override":     types.ObjectUnknown(karpenterGpuOverrideAttrTypes()),
+			},
 		},
 		{
 			TestName:       "unknown_planned_node_pools_are_quiet",
-			StateOverrides: gpu,
+			StateOverrides: cronjobAndGpu,
 			PlanKarpenter: func() *types.Object {
 				karpenter := types.ObjectValueMust(createKarpenterFeatureAttrTypes(), map[string]attr.Value{
 					"disk_size_in_gib":             types.Int64Value(50),
@@ -479,20 +515,19 @@ func TestWarnKarpenterGpuNodePoolRemoval(t *testing.T) {
 			}
 
 			var diags diag.Diagnostics
-			warnKarpenterGpuNodePoolRemoval(context.Background(),
+			warnKarpenterNodePoolRemoval(context.Background(),
 				testKarpenterState(t, testKarpenterObject(tc.StateOverrides)),
 				testKarpenterPlan(t, planKarpenter),
 				&diags)
 
 			require.False(t, diags.HasError(), "%v", diags)
-			if !tc.ExpectWarning {
-				assert.Empty(t, diags)
-				return
+			var warnings []path.Path
+			for _, d := range diags.Warnings() {
+				withPath, ok := d.(diag.DiagnosticWithPath)
+				require.True(t, ok, "the warning must point at the node pool override")
+				warnings = append(warnings, withPath.Path())
 			}
-			require.Len(t, diags.Warnings(), 1)
-			withPath, ok := diags.Warnings()[0].(diag.DiagnosticWithPath)
-			require.True(t, ok, "the warning must point at gpu_override")
-			assert.Equal(t, gpuPath, withPath.Path())
+			assert.ElementsMatch(t, tc.ExpectWarnings, warnings)
 		})
 	}
 
@@ -501,9 +536,9 @@ func TestWarnKarpenterGpuNodePoolRemoval(t *testing.T) {
 
 		_, sch := testKarpenterRawFeatures(t, testKarpenterObject(nil))
 		var diags diag.Diagnostics
-		warnKarpenterGpuNodePoolRemoval(context.Background(),
+		warnKarpenterNodePoolRemoval(context.Background(),
 			tfsdk.State{Raw: tftypes.NewValue(sch.Type().TerraformType(context.Background()), nil), Schema: sch},
-			testKarpenterPlan(t, testKarpenterObject(gpu)),
+			testKarpenterPlan(t, testKarpenterObject(cronjobAndGpu)),
 			&diags)
 		assert.Empty(t, diags)
 	})

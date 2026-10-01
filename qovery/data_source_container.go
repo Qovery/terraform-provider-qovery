@@ -544,11 +544,12 @@ func (d containerDataSource) Read(ctx context.Context, req datasource.ReadReques
 		return
 	}
 
-	// Group ids and arguments report the API value; a data source has no plan to match, so none
-	// reads as [].
+	// Group ids, arguments and entrypoint report the API value; a data source has no plan to
+	// match, so none reads as [] and an empty entrypoint as "".
 	data.AnnotationsGroupIds = emptyStringSet()
 	data.LabelsGroupIds = emptyStringSet()
 	data.Arguments = emptyStringList()
+	data.Entrypoint = types.StringValue("")
 	state := convertDomainContainerToContainer(ctx, data, cont)
 	tflog.Trace(ctx, "read container", map[string]any{"container_id": state.ID.ValueString()})
 

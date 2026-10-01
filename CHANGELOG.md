@@ -259,6 +259,17 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
   `values_override.set`, `set_string` and `set_json` from `{}` to `null` when the
   configuration omits them. An import now reads an empty map as `null`, so a configuration
   that declares `{}` shows that change once instead; applying it changes nothing. (QOV-2354)
+- `qovery_cluster`: saving the Karpenter instances from the Console no longer shows in
+  `terraform plan`. The Console rewrites the requirements of the node pools and of
+  `gpu_override` in its own order, without duplicate values, which the plan showed as a
+  difference that changed nothing. A value added or removed from the Console still shows.
+  (QOV-2353)
+- `qovery_application`, `qovery_container`, `qovery_job`: saving the service settings from the
+  Console no longer plans `entrypoint = "" -> null`. The Console writes an empty entrypoint,
+  which means the image's entrypoint, like an omitted one. (QOV-2353)
+- `qovery_cluster`: the plan warns when it removes `cronjob_override`, which disables the
+  Karpenter cronjob node pool, as it does for `gpu_override`. A cronjob node pool enabled from
+  the Console showed in the plan as the block being removed, without a warning. (QOV-2353)
 
 ## [0.91.0] - 2026-09-29
 

@@ -618,11 +618,12 @@ func (d applicationDataSource) Read(ctx context.Context, req datasource.ReadRequ
 		return
 	}
 
-	// Group ids and arguments report the API value; a data source has no plan to match, so none
-	// reads as [].
+	// Group ids, arguments and entrypoint report the API value; a data source has no plan to
+	// match, so none reads as [] and an empty entrypoint as "".
 	data.AnnotationsGroupIds = emptyStringSet()
 	data.LabelsGroupIds = emptyStringSet()
 	data.Arguments = emptyStringList()
+	data.Entrypoint = types.StringValue("")
 	state := convertResponseToApplication(ctx, data, application)
 	state.BuildSettings = buildSettingsFromQovery(application.ApplicationBuildSettings)
 	tflog.Trace(ctx, "read application", map[string]any{"application_id": state.Id.ValueString()})

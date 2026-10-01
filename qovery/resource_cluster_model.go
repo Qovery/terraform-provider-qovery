@@ -1912,6 +1912,30 @@ func (p karpenterPlanView) overrideKnownAbsent(name string) bool {
 	return !ok || override.IsNull()
 }
 
+// requirements returns the requirements of qovery_node_pools, or of the named node pool override
+// when override is not empty. The list is null when this view does not hold them.
+func (p karpenterPlanView) requirements(override string) types.List {
+	nullList := types.ListNull(types.ObjectType{AttrTypes: karpenterRequirementAttrTypes()})
+	if !p.available {
+		return nullList
+	}
+	nodePools, ok := p.karpenter.Attributes()["qovery_node_pools"].(basetypes.ObjectValue)
+	if !ok || nodePools.IsNull() || nodePools.IsUnknown() {
+		return nullList
+	}
+	holder := nodePools
+	if override != "" {
+		if holder, ok = p.override(override); !ok {
+			return nullList
+		}
+	}
+	requirements, ok := holder.Attributes()["requirements"].(basetypes.ListValue)
+	if !ok {
+		return nullList
+	}
+	return requirements
+}
+
 // karpenterNodePoolOverrideNames lists the node pool overrides that carry a spot_enabled, in a
 // fixed order.
 var karpenterNodePoolOverrideNames = []string{"stable_override", "default_override", "cronjob_override", "gpu_override"}
@@ -2020,11 +2044,40 @@ func karpenterGpuLimitsAttrValue(limits *qovery.KarpenterNodePoolLimits) basetyp
 	})
 }
 
-func karpenterRequirementsAttrValue(requirements []qovery.KarpenterNodePoolRequirement) basetypes.ListValue {
+// karpenterRequirementsAttrValue converts the requirements of an API response. prior is the
+// planned list on apply and the state on refresh, or null without a plan (import, data source).
+//
+// Karpenter matches a requirement against any of its values, so neither the order of the
+// requirements nor the order or repetition of their values means anything. The Console rewrites
+// both when its instance filter edits them: it lists the requirements as InstanceSize,
+// InstanceFamily and Arch, and their values in the order of its instance type catalog, without
+// duplicates. Where the API differs from prior only in these ways, prior's order and values are
+// kept: the API form would otherwise show in the plan as a change that changes nothing. An added
+// or removed requirement or value follows the API, so it shows in the plan, and so do the values
+// of a key and operator that more than one requirement holds, which cannot be matched.
+func karpenterRequirementsAttrValue(requirements []qovery.KarpenterNodePoolRequirement, prior types.List) basetypes.ListValue {
+	priorRequirements := karpenterRequirementsFromList(prior)
+	priorValues := make(map[string][]string, len(priorRequirements))
+	priorCount := make(map[string]int, len(priorRequirements))
+	for _, p := range priorRequirements {
+		priorValues[p.id] = p.values
+		priorCount[p.id]++
+	}
+	apiCount := make(map[string]int, len(requirements))
+	for _, req := range requirements {
+		apiCount[karpenterRequirementID(string(req.Key), string(req.Operator))]++
+	}
+
+	requirements = karpenterRequirementsInPriorOrder(requirements, priorRequirements)
 	requirementsAttrList := make([]attr.Value, len(requirements))
 	for i, req := range requirements {
-		valuesAttrList := make([]attr.Value, len(req.Values))
-		for j, val := range req.Values {
+		values := req.Values
+		id := karpenterRequirementID(string(req.Key), string(req.Operator))
+		if planned := priorValues[id]; planned != nil && priorCount[id] == 1 && apiCount[id] == 1 && sameStringSet(planned, values) {
+			values = planned
+		}
+		valuesAttrList := make([]attr.Value, len(values))
+		for j, val := range values {
 			valuesAttrList[j] = types.StringValue(val)
 		}
 
@@ -2038,16 +2091,121 @@ func karpenterRequirementsAttrValue(requirements []qovery.KarpenterNodePoolRequi
 	return types.ListValueMust(types.ObjectType{AttrTypes: karpenterRequirementAttrTypes()}, requirementsAttrList)
 }
 
+// karpenterPriorRequirement is a requirement of a plan or a state. values is nil when they are not
+// all known.
+type karpenterPriorRequirement struct {
+	id     string
+	values []string
+}
+
+// karpenterRequirementID identifies a requirement by its key and operator.
+func karpenterRequirementID(key, operator string) string {
+	return key + " " + operator
+}
+
+// karpenterRequirementsFromList reads a requirements list of a plan or a state. A null or unknown
+// list reads as none, and a requirement whose key or operator is not known is skipped.
+func karpenterRequirementsFromList(requirements types.List) []karpenterPriorRequirement {
+	if requirements.IsNull() || requirements.IsUnknown() {
+		return nil
+	}
+	priorRequirements := make([]karpenterPriorRequirement, 0, len(requirements.Elements()))
+	for _, element := range requirements.Elements() {
+		requirement, ok := element.(basetypes.ObjectValue)
+		if !ok || requirement.IsNull() || requirement.IsUnknown() {
+			continue
+		}
+		attrs := requirement.Attributes()
+		key, keyOk := attrs["key"].(basetypes.StringValue)
+		operator, operatorOk := attrs["operator"].(basetypes.StringValue)
+		if !keyOk || !operatorOk || key.IsUnknown() || operator.IsUnknown() {
+			continue
+		}
+		priorRequirements = append(priorRequirements, karpenterPriorRequirement{
+			id:     karpenterRequirementID(key.ValueString(), operator.ValueString()),
+			values: knownStrings(attrs["values"]),
+		})
+	}
+	return priorRequirements
+}
+
+// knownStrings returns the elements of a list of strings, or nil when the list or one of its
+// elements is not known.
+func knownStrings(value attr.Value) []string {
+	list, ok := value.(basetypes.ListValue)
+	if !ok || list.IsNull() || list.IsUnknown() {
+		return nil
+	}
+	values := make([]string, 0, len(list.Elements()))
+	for _, element := range list.Elements() {
+		v, ok := element.(basetypes.StringValue)
+		if !ok || v.IsNull() || v.IsUnknown() {
+			return nil
+		}
+		values = append(values, v.ValueString())
+	}
+	return values
+}
+
+// karpenterRequirementsInPriorOrder returns the API requirements in the order of prior when both
+// hold the same requirements, each once, in another order. Otherwise it returns them in the API
+// order.
+func karpenterRequirementsInPriorOrder(requirements []qovery.KarpenterNodePoolRequirement, prior []karpenterPriorRequirement) []qovery.KarpenterNodePoolRequirement {
+	if len(prior) != len(requirements) {
+		return requirements
+	}
+	byID := make(map[string]qovery.KarpenterNodePoolRequirement, len(requirements))
+	for _, req := range requirements {
+		byID[karpenterRequirementID(string(req.Key), string(req.Operator))] = req
+	}
+	if len(byID) != len(requirements) {
+		return requirements
+	}
+
+	ordered := make([]qovery.KarpenterNodePoolRequirement, 0, len(requirements))
+	for _, p := range prior {
+		req, ok := byID[p.id]
+		if !ok {
+			return requirements
+		}
+		delete(byID, p.id)
+		ordered = append(ordered, req)
+	}
+	return ordered
+}
+
+// sameStringSet reports whether a and b hold the same strings, ignoring order and repetition.
+func sameStringSet(a, b []string) bool {
+	setA := make(map[string]struct{}, len(a))
+	for _, v := range a {
+		setA[v] = struct{}{}
+	}
+	setB := make(map[string]struct{}, len(b))
+	for _, v := range b {
+		setB[v] = struct{}{}
+	}
+	if len(setA) != len(setB) {
+		return false
+	}
+	for v := range setA {
+		if _, ok := setB[v]; !ok {
+			return false
+		}
+	}
+	return true
+}
+
 // karpenterGpuOverrideAttrValue converts the GPU node pool of an API response. The response
 // carries its spot_enabled explicitly: the API only omits the per node pool values that the
-// global flag stands for, and the global flag never covered the GPU node pool.
-func karpenterGpuOverrideAttrValue(gpuOverride *qovery.KarpenterGpuNodePoolOverride) basetypes.ObjectValue {
+// global flag stands for, and the global flag never covered the GPU node pool. priorRequirements
+// is the planned or prior state requirements of the pool, see karpenterRequirementsAttrValue.
+func karpenterGpuOverrideAttrValue(gpuOverride *qovery.KarpenterGpuNodePoolOverride, priorRequirements types.List) basetypes.ObjectValue {
 	if gpuOverride == nil {
 		return types.ObjectNull(karpenterGpuOverrideAttrTypes())
 	}
 
 	return types.ObjectValueMust(karpenterGpuOverrideAttrTypes(), map[string]attr.Value{
-		"requirements":      karpenterRequirementsAttrValue(gpuOverride.Requirements),
+		"requirements":      karpenterRequirementsAttrValue(gpuOverride.Requirements, priorRequirements),
 		"disk_size_in_gib":  FromInt32Pointer(gpuOverride.DiskSizeInGib),
 		"disk_iops":         FromInt32Pointer(gpuOverride.DiskIops),
 		"disk_throughput":   FromInt32Pointer(gpuOverride.DiskThroughput),
@@ -2081,7 +2239,7 @@ func karpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpent
 	// Inject requirements
 	nodePools := karpenterParameters.QoveryNodePools
 	qoveryNodePoolsAttrVals := make(map[string]attr.Value)
-	qoveryNodePoolsAttrVals["requirements"] = karpenterRequirementsAttrValue(nodePools.Requirements)
+	qoveryNodePoolsAttrVals["requirements"] = karpenterRequirementsAttrValue(nodePools.Requirements, plan.requirements(""))
 
 	// Inject stable_override — see storeNodePoolOverride for when it is stored.
 	stableOverride := nodePools.StableOverride
@@ -2149,7 +2307,7 @@ func karpenterFeatureAttrValue(karpenterParameters *qovery.ClusterFeatureKarpent
 	// request, so an apply whose request lacks the block deletes the GPU node pool. Storing the
 	// block whenever the API returns it makes a pool created from the Console show in the plan as
 	// the block being removed, instead of the next apply deleting it silently.
-	qoveryNodePoolsAttrVals["gpu_override"] = karpenterGpuOverrideAttrValue(nodePools.GpuOverride)
+	qoveryNodePoolsAttrVals["gpu_override"] = karpenterGpuOverrideAttrValue(nodePools.GpuOverride, plan.requirements("gpu_override"))
 
 	// Inject qovery_node_pools
 	attrVals["qovery_node_pools"], diags = types.ObjectValue(karpenterNodePoolsAttrTypes(), qoveryNodePoolsAttrVals)

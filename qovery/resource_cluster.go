@@ -115,7 +115,7 @@ func (r *clusterResource) Configure(_ context.Context, req resource.ConfigureReq
 func (r clusterResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	warnUnknownClusterAdvancedSettings(ctx, r.clusterAdvancedSettingsService, req.Config, &resp.Diagnostics)
 	warnKarpenterSpotToOnDemand(ctx, req.State, req.Plan, &resp.Diagnostics)
-	warnKarpenterGpuNodePoolRemoval(ctx, req.State, req.Plan, &resp.Diagnostics)
+	warnKarpenterNodePoolRemoval(ctx, req.State, req.Plan, &resp.Diagnostics)
 	rejectForbiddenClusterFeatureChanges(ctx, req.State, req.Plan, &resp.Diagnostics)
 }
 
@@ -171,21 +171,43 @@ func warnKarpenterSpotToOnDemand(ctx context.Context, state tfsdk.State, plan tf
 	}
 }
 
-// warnKarpenterGpuNodePoolRemoval warns when the plan removes gpu_override, which deletes the GPU
-// node pool and the nodes running on it. A GPU node pool created from the Console reaches the
-// state on refresh, so a configuration that never declared one sees exactly this change.
-func warnKarpenterGpuNodePoolRemoval(ctx context.Context, state tfsdk.State, plan tfsdk.Plan, diags *diag.Diagnostics) {
+// karpenterNodePoolRemovalWarnings lists the node pools that exist only while their override is
+// declared, with the warning of a plan that removes the override.
+var karpenterNodePoolRemovalWarnings = []struct {
+	override string
+	summary  string
+	detail   string
+}{
+	{
+		override: "cronjob_override",
+		summary:  "Karpenter cronjob node pool will be disabled",
+		detail: "This plan removes `cronjob_override`, which disables the cronjob node pool. " +
+			"If the cronjob node pool was enabled outside Terraform, for example from the Qovery Console, declare `cronjob_override` in the configuration to keep it.",
+	},
+	{
+		override: "gpu_override",
+		summary:  "Karpenter GPU node pool will be deleted",
+		detail: "This plan removes `gpu_override`, which deletes the GPU node pool and the nodes running on it. " +
+			"If the GPU node pool was created outside Terraform, for example from the Qovery Console, declare `gpu_override` in the configuration to keep it.",
+	},
+}
+
+// warnKarpenterNodePoolRemoval warns when the plan removes cronjob_override or gpu_override,
+// which removes the node pool. A pool created from the Console reaches the state on refresh, so a
+// configuration that never declared one sees exactly this change, shown only as a block being
+// removed.
+func warnKarpenterNodePoolRemoval(ctx context.Context, state tfsdk.State, plan tfsdk.Plan, diags *diag.Diagnostics) {
 	stateView, planView, ok := karpenterStateAndPlanViews(ctx, state, plan)
-	if !ok || !stateView.declaresOverride("gpu_override") || !planView.overrideKnownAbsent("gpu_override") {
+	if !ok {
 		return
 	}
 
-	diags.AddAttributeWarning(
-		karpenterPath.AtName("qovery_node_pools").AtName("gpu_override"),
-		"Karpenter GPU node pool will be deleted",
-		"This plan removes `gpu_override`, which deletes the GPU node pool and the nodes running on it. "+
-			"If the GPU node pool was created outside Terraform, for example from the Qovery Console, declare `gpu_override` in the configuration to keep it.",
-	)
+	for _, pool := range karpenterNodePoolRemovalWarnings {
+		if !stateView.declaresOverride(pool.override) || !planView.overrideKnownAbsent(pool.override) {
+			continue
+		}
+		diags.AddAttributeWarning(karpenterPath.AtName("qovery_node_pools").AtName(pool.override), pool.summary, pool.detail)
+	}
 }
 
 // karpenterNodePoolConsolidateAfterAttribute is the consolidate_after of a node pool override.
@@ -646,7 +668,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 										},
 									},
 									"cronjob_override": schema.SingleNestedAttribute{
-										MarkdownDescription: cronjob.Override + karpenterOptionalNodePoolNote,
+										MarkdownDescription: cronjob.Override + karpenterCronjobNodePoolNote,
 										Optional:            true,
 										Computed:            false,
 										Attributes: map[string]schema.Attribute{

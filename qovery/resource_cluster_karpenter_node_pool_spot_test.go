@@ -229,7 +229,9 @@ func TestAcc_ClusterKarpenterCronjobPoolDrift(t *testing.T) {
 				),
 				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 			},
-			// 2. Enable the pool out of band: the plan shows cronjob_override being removed.
+			// 2. Enable the pool out of band: the plan shows cronjob_override being removed, with
+			// the warning TestWarnKarpenterNodePoolRemoval covers. The Console sends the
+			// spot_enabled of the default pool, false here, which the response then omits.
 			{
 				Config: testAccClusterKarpenterSpotConfig(testName, "", testAccNoKarpenterExtra),
 				Check: func(_ *terraform.State) error {

@@ -226,7 +226,7 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		MinRunningInstances:          FromInt32(container.MinRunningInstances),
 		MaxRunningInstances:          FromInt32(container.MaxRunningInstances),
 		AutoPreview:                  FromBool(container.AutoPreview),
-		Entrypoint:                   FromStringPointer(container.Entrypoint),
+		Entrypoint:                   optionalStringFromAPI(state.Entrypoint, container.Entrypoint),
 		Arguments:                    stringListFromAPI(state.Arguments, container.Arguments),
 		Storages:                     convertDomainStoragesToStorageList(state.Storages, container.Storages).toTerraformSet(ctx),
 		Ports:                        convertDomainPortsToPortList(ctx, state.Ports, container.Ports).toTerraformList(ctx),

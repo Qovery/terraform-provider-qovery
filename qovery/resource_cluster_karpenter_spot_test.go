@@ -1105,7 +1105,8 @@ func TestWarnKarpenterSpotToOnDemand(t *testing.T) {
 			ExpectWarnings: []path.Path{nodePoolsPath.AtName("cronjob_override")},
 		},
 		{
-			// Removing cronjob_override removes the dedicated pool: nothing moves to on-demand.
+			// Removing cronjob_override disables the dedicated pool, which
+			// warnKarpenterNodePoolRemoval reports: nothing moves to on-demand.
 			TestName:       "removed_cronjob_block_is_quiet",
 			StateOverrides: cronjobSpot,
 		},
@@ -1116,7 +1117,7 @@ func TestWarnKarpenterSpotToOnDemand(t *testing.T) {
 			ExpectWarnings: []path.Path{nodePoolsPath.AtName("gpu_override")},
 		},
 		{
-			// Removing gpu_override deletes the GPU pool, which warnKarpenterGpuNodePoolRemoval
+			// Removing gpu_override deletes the GPU pool, which warnKarpenterNodePoolRemoval
 			// reports: nothing moves to on-demand.
 			TestName:       "removed_gpu_block_is_quiet",
 			StateOverrides: gpuSpot,

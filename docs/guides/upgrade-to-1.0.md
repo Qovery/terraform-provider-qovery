@@ -437,7 +437,7 @@ These changes need no configuration edit, but they can make `terraform plan` sho
 
 In 0.x, the refresh only kept `features.karpenter.qovery_node_pools.cronjob_override` when the configuration declared it. A cronjob node pool enabled from the Qovery Console stayed invisible to Terraform, and the next `terraform apply` disabled it without the plan showing it. A pool disabled from the Console while the block was declared was re-enabled the same way.
 
-In 1.0 the refresh stores `cronjob_override` exactly when the pool is enabled on the cluster. A pool enabled from the Console shows in `terraform plan` as the block being removed, and applying that plan disables the pool: declare `cronjob_override` to keep it. A pool disabled from the Console shows as the block being added back.
+In 1.0 the refresh stores `cronjob_override` exactly when the pool is enabled on the cluster. A pool enabled from the Console shows in `terraform plan` as the block being removed, with a warning, and applying that plan disables the pool: declare `cronjob_override` to keep it. A pool disabled from the Console shows as the block being added back.
 
 ### `qovery_cluster`: existing VPC subnet lists mean none when omitted
 
