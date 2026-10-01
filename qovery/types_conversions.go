@@ -282,6 +282,13 @@ func emptyStringList() types.List {
 	return types.ListValueMust(types.StringType, []attr.Value{})
 }
 
+// emptyStringMap is the prior a data source passes for a map of strings, such as the
+// values_override maps of qovery_helm. A data source has no plan to match, so it reports an empty
+// API value as {}.
+func emptyStringMap() types.Map {
+	return types.MapValueMust(types.StringType, map[string]attr.Value{})
+}
+
 func FromStringSet(array []string) types.Set {
 	if array == nil {
 		return basetypes.NewSetNull(types.StringType)

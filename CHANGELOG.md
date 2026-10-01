@@ -255,6 +255,10 @@ The next release is **1.0.0**, the first stable release of the provider. Read th
 - Validation errors for a minimum value now say `must be at least <minimum>`. They said
   `must be greater than <minimum>`, although the minimum itself is accepted, for example
   `timeout_seconds = 60` on `qovery_terraform_service`. (QOV-2348)
+- `qovery_helm`: the first plan after `terraform import` no longer changes
+  `values_override.set`, `set_string` and `set_json` from `{}` to `null` when the
+  configuration omits them. An import now reads an empty map as `null`, so a configuration
+  that declares `{}` shows that change once instead; applying it changes nothing. (QOV-2354)
 
 ## [0.91.0] - 2026-09-29
 

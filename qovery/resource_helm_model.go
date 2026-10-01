@@ -358,9 +358,13 @@ func (valuesOverride HelmValuesOverride) toUpsertRequest() helm.ValuesOverride {
 	}
 }
 
-func convertSetToHelmValuesOverrideSet(ctx context.Context, set [][]string, state *types.Map) types.Map {
-	if state != nil && len(set) == 0 && (state.IsUnknown() || state.IsNull()) {
-		return *state
+// convertSetToHelmValuesOverrideSet builds the state value of a values_override map from what the
+// API returns. An empty API value takes the shape of prior (the plan on apply, the state on
+// refresh): null stays null and {} stays {}, because Terraform requires the value stored after
+// apply to match the planned one.
+func convertSetToHelmValuesOverrideSet(ctx context.Context, set [][]string, prior types.Map) types.Map {
+	if len(set) == 0 && prior.IsNull() {
+		return types.MapNull(types.StringType)
 	}
 
 	elements := make(map[string]string, len(set))
@@ -391,18 +395,14 @@ func convertSetToHelmValuesOverrideSet(ctx context.Context, set [][]string, stat
 }
 
 func HelmValuesOverrideFromDomainHelmValuesOverride(ctx context.Context, h helm.ValuesOverride, state *HelmValuesOverride) HelmValuesOverride {
-	var helmValuesOverrideSet types.Map
-	var helmValuesOverrideSetString types.Map
-	var helmValuesOverrideSetJson types.Map
-	if state == nil {
-		helmValuesOverrideSet = convertSetToHelmValuesOverrideSet(ctx, h.Set, nil)
-		helmValuesOverrideSetString = convertSetToHelmValuesOverrideSet(ctx, h.SetString, nil)
-		helmValuesOverrideSetJson = convertSetToHelmValuesOverrideSet(ctx, h.SetJson, nil)
-	} else {
-		helmValuesOverrideSet = convertSetToHelmValuesOverrideSet(ctx, h.Set, &state.HelmValuesOverrideSet)
-		helmValuesOverrideSetString = convertSetToHelmValuesOverrideSet(ctx, h.SetString, &state.HelmValuesOverrideSetString)
-		helmValuesOverrideSetJson = convertSetToHelmValuesOverrideSet(ctx, h.SetJson, &state.HelmValuesOverrideSetJson)
+	// An import has no prior: an empty map then reads as null, like a map the configuration omits.
+	priorSet, priorSetString, priorSetJson := types.MapNull(types.StringType), types.MapNull(types.StringType), types.MapNull(types.StringType)
+	if state != nil {
+		priorSet, priorSetString, priorSetJson = state.HelmValuesOverrideSet, state.HelmValuesOverrideSetString, state.HelmValuesOverrideSetJson
 	}
+	helmValuesOverrideSet := convertSetToHelmValuesOverrideSet(ctx, h.Set, priorSet)
+	helmValuesOverrideSetString := convertSetToHelmValuesOverrideSet(ctx, h.SetString, priorSetString)
+	helmValuesOverrideSetJson := convertSetToHelmValuesOverrideSet(ctx, h.SetJson, priorSetJson)
 
 	// File is nil on the identity-only helm the repository returns when a freshly created
 	// helm service cannot be converted from its API response. That entity is still

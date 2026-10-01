@@ -828,11 +828,7 @@ resource "qovery_helm" "test" {
       git_token_id = "%s"
     }
   }
-  values_override = {
-    "set"= {}
-    "set_string"= {}
-    "set_json"= {}
-  }
+  values_override = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), getTestQoverySandboxGitTokenID())
 }
@@ -872,6 +868,13 @@ func TestAcc_HelmWithGitSource(t *testing.T) {
 				// Create stores "" when unset while Read returns "{}"; state is not refreshed
 				// before import.
 				ImportStateVerifyIgnore: []string{"advanced_settings_json"},
+			},
+			// Step 3: An import block plans no change. The configuration omits the
+			// values_override maps, which an import reads as null.
+			{
+				ResourceName:    "qovery_helm.test",
+				ImportState:     true,
+				ImportStateKind: resource.ImportBlockWithID,
 			},
 		},
 	})

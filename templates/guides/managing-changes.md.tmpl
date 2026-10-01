@@ -39,7 +39,7 @@ The Qovery API gives Terraform no way to plan the reset of a few attributes. Rem
 - Terraform tracks the keys the configuration sets. A setting overridden only from the Console stays out of the state, so declaring it later plans an addition even when the remote value already matches.
 - A change made outside Terraform to a tracked key, including a reset to its default, shows up in the plan, and `terraform apply` sets it back.
 - Removing a key keeps its current value. To reset a setting, set it to its default value.
-- `terraform import` records every setting whose value differs from its default.
+- `terraform import` records every setting whose value differs from its default. A key the configuration sets to its default value is therefore missing from the imported state: it shows in the first plan after the import, and applying that plan changes nothing in Qovery.
 
 The [Qovery API documentation](https://api-doc.qovery.com) lists the settings of each service with their defaults.
 

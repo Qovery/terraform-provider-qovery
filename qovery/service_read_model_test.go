@@ -142,6 +142,19 @@ func TestHelmValuesOverrideFromDomain_SetShapes(t *testing.T) {
 	}
 }
 
+func TestHelmValuesOverrideFromDomain_ImportHasNoPrior(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+
+	empty := HelmValuesOverrideFromDomainHelmValuesOverride(ctx, helm.ValuesOverride{}, nil)
+	assert.True(t, empty.HelmValuesOverrideSet.IsNull(), "an empty set reads as null, like an omitted map")
+	assert.True(t, empty.HelmValuesOverrideSetString.IsNull(), "an empty set_string reads as null, like an omitted map")
+	assert.True(t, empty.HelmValuesOverrideSetJson.IsNull(), "an empty set_json reads as null, like an omitted map")
+
+	withSet := HelmValuesOverrideFromDomainHelmValuesOverride(ctx, helm.ValuesOverride{Set: [][]string{{"replicaCount", "2"}}}, nil)
+	assert.Equal(t, types.MapValueMust(types.StringType, map[string]attr.Value{"replicaCount": types.StringValue("2")}), withSet.HelmValuesOverrideSet)
+}
+
 func TestHelmValuesOverrideFromDomain_GitTokenID(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()

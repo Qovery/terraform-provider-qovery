@@ -628,6 +628,13 @@ func (d helmDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 		return
 	}
 
+	// The values_override maps report the API value; a data source has no plan to match, so none
+	// reads as {}.
+	data.ValuesOverride = &HelmValuesOverride{
+		HelmValuesOverrideSet:       emptyStringMap(),
+		HelmValuesOverrideSetString: emptyStringMap(),
+		HelmValuesOverrideSetJson:   emptyStringMap(),
+	}
 	state := convertDomainHelmToHelm(ctx, data, h)
 	tflog.Trace(ctx, "read helm", map[string]any{"helm_id": state.ID.ValueString()})
 
