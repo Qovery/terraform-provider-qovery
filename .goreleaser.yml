@@ -60,6 +60,10 @@ release:
   # instead, and the Registry ignores it). A semver pre-release version is still never
   # selected by a constraint such as `~> 1.0`; users must pin it exactly.
   prerelease: false
+  # With prerelease: false, GitHub would mark every tag as its Latest release. Keep a semver
+  # pre-release tag such as v1.0.0-rc.2 off Latest, so users browsing GitHub land on the
+  # last stable release. This flag does not change the `released` webhook the Registry needs.
+  make_latest: '{{ if .Prerelease }}false{{ else }}true{{ end }}'
   extra_files:
     - glob: 'terraform-registry-manifest.json'
       name_template: '{{ .ProjectName }}_{{ .Version }}_manifest.json'
