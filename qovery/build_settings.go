@@ -18,6 +18,7 @@ import (
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
@@ -47,48 +48,46 @@ func buildSettingsInt64Validators() []validator.Int64 {
 
 func buildSettingsResourceSchemaAttributes() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
-		Description: "Build configuration settings for the service. When set, all six properties are sent to the API — omitted properties use their defaults. " +
-			"Removing the block resets the build settings to their defaults. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both. " +
-			"Those keys remain supported when this block is not set.",
-		Optional: true,
+		MarkdownDescription: buildSettingsDescription + buildSettingsManagedNote,
+		Optional:            true,
 		Attributes: map[string]schema.Attribute{
 			"timeout_max_sec": schema.Int64Attribute{
-				Description: "Maximum build timeout in seconds. Default: 1800.",
-				Optional:    true,
-				Computed:    true,
-				Default:     int64default.StaticInt64(buildSettingsDefaultTimeoutMaxSec),
-				Validators:  buildSettingsInt64Validators(),
+				MarkdownDescription: descriptions.NewInt64DefaultDescription(buildSettingsTimeoutMaxSecDescription, buildSettingsDefaultTimeoutMaxSec),
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(buildSettingsDefaultTimeoutMaxSec),
+				Validators:          buildSettingsInt64Validators(),
 			},
 			"cpu_max_in_milli": schema.Int64Attribute{
-				Description: "Maximum CPU resources for the build in millicores. Default: 4000.",
-				Optional:    true,
-				Computed:    true,
-				Default:     int64default.StaticInt64(buildSettingsDefaultCpuMaxInMilli),
-				Validators:  buildSettingsInt64Validators(),
+				MarkdownDescription: descriptions.NewInt64DefaultDescription(buildSettingsCPUMaxInMilliDescription, buildSettingsDefaultCpuMaxInMilli),
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(buildSettingsDefaultCpuMaxInMilli),
+				Validators:          buildSettingsInt64Validators(),
 			},
 			"ram_max_in_gib": schema.Int64Attribute{
-				Description: "Maximum RAM resources for the build in GiB. Default: 8.",
-				Optional:    true,
-				Computed:    true,
-				Default:     int64default.StaticInt64(buildSettingsDefaultRamMaxInGib),
-				Validators:  buildSettingsInt64Validators(),
+				MarkdownDescription: descriptions.NewInt64DefaultDescription(buildSettingsRAMMaxInGibDescription, buildSettingsDefaultRamMaxInGib),
+				Optional:            true,
+				Computed:            true,
+				Default:             int64default.StaticInt64(buildSettingsDefaultRamMaxInGib),
+				Validators:          buildSettingsInt64Validators(),
 			},
 			"ephemeral_storage_in_gib": schema.Int64Attribute{
-				Description: "Ephemeral storage for the build in GiB. When not set, the platform default is used.",
-				Optional:    true,
-				Validators:  buildSettingsInt64Validators(),
+				MarkdownDescription: buildSettingsEphemeralStorageDescription + " Omitting it uses the platform default.",
+				Optional:            true,
+				Validators:          buildSettingsInt64Validators(),
 			},
 			"disable_buildkit_cache": schema.BoolAttribute{
-				Description: "Disable buildkit registry cache during build. Default: false.",
-				Optional:    true,
-				Computed:    true,
-				Default:     booldefault.StaticBool(buildSettingsDefaultDisableBuildkitCache),
+				MarkdownDescription: descriptions.NewBoolDefaultDescription(buildSettingsDisableBuildkitCacheDescription, buildSettingsDefaultDisableBuildkitCache),
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(buildSettingsDefaultDisableBuildkitCache),
 			},
 			"skip_git_submodules": schema.BoolAttribute{
-				Description: "Skip git submodules update when cloning the repository. Default: false.",
-				Optional:    true,
-				Computed:    true,
-				Default:     booldefault.StaticBool(buildSettingsDefaultSkipGitSubmodules),
+				MarkdownDescription: descriptions.NewBoolDefaultDescription(buildSettingsSkipGitSubmodulesDescription, buildSettingsDefaultSkipGitSubmodules),
+				Optional:            true,
+				Computed:            true,
+				Default:             booldefault.StaticBool(buildSettingsDefaultSkipGitSubmodules),
 			},
 		},
 	}
@@ -96,32 +95,32 @@ func buildSettingsResourceSchemaAttributes() schema.SingleNestedAttribute {
 
 func buildSettingsDataSourceSchemaAttributes() schema.SingleNestedAttribute {
 	return schema.SingleNestedAttribute{
-		Description: "Build configuration settings for the service.",
-		Computed:    true,
+		MarkdownDescription: buildSettingsDescription,
+		Computed:            true,
 		Attributes: map[string]schema.Attribute{
 			"timeout_max_sec": schema.Int64Attribute{
-				Description: "Maximum build timeout in seconds. Default: 1800.",
-				Computed:    true,
+				MarkdownDescription: buildSettingsTimeoutMaxSecDescription,
+				Computed:            true,
 			},
 			"cpu_max_in_milli": schema.Int64Attribute{
-				Description: "Maximum CPU resources for the build in millicores. Default: 4000.",
-				Computed:    true,
+				MarkdownDescription: buildSettingsCPUMaxInMilliDescription,
+				Computed:            true,
 			},
 			"ram_max_in_gib": schema.Int64Attribute{
-				Description: "Maximum RAM resources for the build in GiB. Default: 8.",
-				Computed:    true,
+				MarkdownDescription: buildSettingsRAMMaxInGibDescription,
+				Computed:            true,
 			},
 			"ephemeral_storage_in_gib": schema.Int64Attribute{
-				Description: "Ephemeral storage for the build in GiB.",
-				Computed:    true,
+				MarkdownDescription: buildSettingsEphemeralStorageDescription,
+				Computed:            true,
 			},
 			"disable_buildkit_cache": schema.BoolAttribute{
-				Description: "Disable buildkit registry cache during build. Default: false.",
-				Computed:    true,
+				MarkdownDescription: buildSettingsDisableBuildkitCacheDescription,
+				Computed:            true,
 			},
 			"skip_git_submodules": schema.BoolAttribute{
-				Description: "Skip git submodules update when cloning the repository. Default: false.",
-				Computed:    true,
+				MarkdownDescription: buildSettingsSkipGitSubmodulesDescription,
+				Computed:            true,
 			},
 		},
 	}

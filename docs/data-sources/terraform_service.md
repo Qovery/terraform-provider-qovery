@@ -29,7 +29,7 @@ data "qovery_terraform_service" "my_terraform_service" {
 - `auto_deploy` (Boolean) Whether Qovery redeploys the Terraform service on every new commit to its branch.
 - `backend` (Attributes) Backend that stores the Terraform state. (see [below for nested schema](#nestedatt--backend))
 - `blueprint_id` (String) ID of the blueprint the Terraform service is created from.
-- `build_settings` (Attributes) Build configuration settings for the service. (see [below for nested schema](#nestedatt--build_settings))
+- `build_settings` (Attributes) Build limits and options of the service. (see [below for nested schema](#nestedatt--build_settings))
 - `created_at` (String) Creation date of the Terraform service.
 - `description` (String) Description of the Terraform service.
 - `engine` (String) Engine that runs the Terraform code.
@@ -80,12 +80,12 @@ Read-Only:
 
 Read-Only:
 
-- `cpu_max_in_milli` (Number) Maximum CPU resources for the build in millicores. Default: 4000.
-- `disable_buildkit_cache` (Boolean) Disable buildkit registry cache during build. Default: false.
-- `ephemeral_storage_in_gib` (Number) Ephemeral storage for the build in GiB.
-- `ram_max_in_gib` (Number) Maximum RAM resources for the build in GiB. Default: 8.
-- `skip_git_submodules` (Boolean) Skip git submodules update when cloning the repository. Default: false.
-- `timeout_max_sec` (Number) Maximum build timeout in seconds. Default: 1800.
+- `cpu_max_in_milli` (Number) Maximum CPU of a build, in millicores (1000 = 1 vCPU).
+- `disable_buildkit_cache` (Boolean) Whether builds skip the BuildKit registry cache.
+- `ephemeral_storage_in_gib` (Number) Ephemeral storage of a build, in GiB.
+- `ram_max_in_gib` (Number) Maximum memory of a build, in GiB.
+- `skip_git_submodules` (Boolean) Whether builds skip the update of the git submodules.
+- `timeout_max_sec` (Number) Maximum duration of a build, in seconds.
 
 
 <a id="nestedatt--engine_version"></a>

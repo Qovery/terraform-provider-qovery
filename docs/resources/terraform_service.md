@@ -65,7 +65,7 @@ resource "qovery_terraform_service" "my_terraform_service" {
 - `action_extra_arguments` (Map of List of String) Extra arguments of each Terraform command, keyed by command, for example `{ apply = ["-lock=false"] }`.
 - `advanced_settings_json` (String) Advanced settings to override, as a JSON string built with `jsonencode()`. The [Qovery API documentation](https://api-doc.qovery.com/#tag/Terraforms/operation/getDefaultTerraformAdvancedSettings) lists them with their defaults. Terraform manages only the keys you set, and removing a key keeps its current value: see [Advanced settings](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes#advanced-settings).
 - `blueprint_id` (String) ID of the blueprint the Terraform service is created from. It can only be set at creation: changing it fails at plan time, and removing it keeps the recorded value.
-- `build_settings` (Attributes) Build configuration settings for the service. When set, all six properties are sent to the API — omitted properties use their defaults. Removing the block resets the build settings to their defaults. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both. Those keys remain supported when this block is not set. (see [below for nested schema](#nestedatt--build_settings))
+- `build_settings` (Attributes) Build limits and options of the service. Terraform manages them only while the block is set: omitted settings plan their default, and removing the block resets them all. It conflicts with `build.*` keys in `advanced_settings_json`. (see [below for nested schema](#nestedatt--build_settings))
 - `deployment_stage_id` (String) ID of the deployment stage of the service. Stages set the order in which the services of an environment deploy. Removing it keeps the service in its current stage, because Qovery cannot detach a service from its stage.
 - `description` (String) Description of the Terraform service.
 - `external_secret_files` (Attributes Set) External secret files of the Terraform service, read from an external secret manager and mounted as files. (see [below for nested schema](#nestedatt--external_secret_files))
@@ -172,12 +172,17 @@ Optional:
 
 Optional:
 
-- `cpu_max_in_milli` (Number) Maximum CPU resources for the build in millicores. Default: 4000.
-- `disable_buildkit_cache` (Boolean) Disable buildkit registry cache during build. Default: false.
-- `ephemeral_storage_in_gib` (Number) Ephemeral storage for the build in GiB. When not set, the platform default is used.
-- `ram_max_in_gib` (Number) Maximum RAM resources for the build in GiB. Default: 8.
-- `skip_git_submodules` (Boolean) Skip git submodules update when cloning the repository. Default: false.
-- `timeout_max_sec` (Number) Maximum build timeout in seconds. Default: 1800.
+- `cpu_max_in_milli` (Number) Maximum CPU of a build, in millicores (1000 = 1 vCPU).
+	- Default: `4000`.
+- `disable_buildkit_cache` (Boolean) Whether builds skip the BuildKit registry cache.
+	- Default: `false`.
+- `ephemeral_storage_in_gib` (Number) Ephemeral storage of a build, in GiB. Omitting it uses the platform default.
+- `ram_max_in_gib` (Number) Maximum memory of a build, in GiB.
+	- Default: `8`.
+- `skip_git_submodules` (Boolean) Whether builds skip the update of the git submodules.
+	- Default: `false`.
+- `timeout_max_sec` (Number) Maximum duration of a build, in seconds.
+	- Default: `1800`.
 
 
 <a id="nestedatt--external_secret_files"></a>

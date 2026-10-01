@@ -104,6 +104,21 @@ const (
 	dockerTargetBuildStageDescription = "Stage of a multi-stage Dockerfile to build."
 )
 
+// build_settings block of application, job and terraform_service, and of their data sources.
+const (
+	buildSettingsDescription = "Build limits and options of the service."
+	// buildSettingsManagedNote documents buildSettingsRequest and buildSettingsToState: the block is
+	// only tracked while it is set, and removing it sends the defaults.
+	buildSettingsManagedNote = " Terraform manages them only while the block is set: omitted settings plan their default, and removing the block resets them all. " +
+		"It conflicts with `build.*` keys in `advanced_settings_json`."
+	buildSettingsTimeoutMaxSecDescription        = "Maximum duration of a build, in seconds."
+	buildSettingsCPUMaxInMilliDescription        = "Maximum CPU of a build, in millicores (1000 = 1 vCPU)."
+	buildSettingsRAMMaxInGibDescription          = "Maximum memory of a build, in GiB."
+	buildSettingsEphemeralStorageDescription     = "Ephemeral storage of a build, in GiB."
+	buildSettingsDisableBuildkitCacheDescription = "Whether builds skip the BuildKit registry cache."
+	buildSettingsSkipGitSubmodulesDescription    = "Whether builds skip the update of the git submodules."
+)
+
 func externalHostDescription(kind string) string {
 	return fmt.Sprintf("Public host of the %s. Set only when the %s has a publicly accessible port.", kind, kind)
 }
