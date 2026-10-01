@@ -242,7 +242,9 @@ func TestAcc_ClusterGkeKmsKeyCannotChange(t *testing.T) {
 
 // TestAcc_ClusterContractUpgradeFrom0x upgrades from the last 0.x release clusters that omit
 // every node sizing attribute, features and keda: the defaults 1.0 plans are the values the
-// Qovery API stored for them, so the first 1.0 plan is empty.
+// Qovery API stored for them, so the first 1.0 plan is empty. The 1.0 step applies instead of
+// being PlanOnly: a PlanOnly step leaves the 0.x state, which the post-test destroy reads with the
+// latest qovery/qovery release from the registry, and that fails once the release is 1.x.
 func TestAcc_ClusterContractUpgradeFrom0x(t *testing.T) {
 	testCases := []struct {
 		name   string
@@ -270,7 +272,10 @@ func TestAcc_ClusterContractUpgradeFrom0x(t *testing.T) {
 					{
 						ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 						Config:                   tc.config(testName),
-						PlanOnly:                 true,
+						ConfigPlanChecks: resource.ConfigPlanChecks{
+							PreApply:             []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+							PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+						},
 					},
 				},
 			})

@@ -261,7 +261,8 @@ func TestAcc_ClusterLabelsGroupIdsOwnership(t *testing.T) {
 
 // TestAcc_ClusterRoutesLabelsUpgradeFrom0x upgrades from the last 0.x release a cluster that
 // declares neither routing_table nor labels_group_ids. 0.x stored routing_table as [] for such a
-// cluster; the state upgrade turns it into null, so the first 1.0 plan is empty.
+// cluster; the state upgrade turns it into null, so the first 1.0 plan is empty. The 1.0 step
+// applies instead of being PlanOnly, for the reason given on TestAcc_ClusterContractUpgradeFrom0x.
 func TestAcc_ClusterRoutesLabelsUpgradeFrom0x(t *testing.T) {
 	t.Parallel()
 
@@ -281,7 +282,10 @@ func TestAcc_ClusterRoutesLabelsUpgradeFrom0x(t *testing.T) {
 			{
 				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
 				Config:                   testAccClusterAWSReadyConfig(testName),
-				PlanOnly:                 true,
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
 			},
 		},
 	})
