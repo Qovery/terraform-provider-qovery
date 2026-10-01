@@ -7,6 +7,8 @@ Manages a Qovery custom role: an organization role with its own permissions on e
 
 ## Example
 
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
+
 ```terraform
 resource "qovery_custom_role" "my_custom_role" {
   organization_id = qovery_organization.my_organization.id

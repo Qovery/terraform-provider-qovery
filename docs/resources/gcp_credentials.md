@@ -5,6 +5,8 @@ Manages Qovery GCP credentials: the service account Qovery uses to create and ma
 
 ## Example
 
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
+
 ```terraform
 # Service account JSON key. For Workload Identity Federation (keyless), set service_account_email and
 # workload_identity_provider_resource instead.

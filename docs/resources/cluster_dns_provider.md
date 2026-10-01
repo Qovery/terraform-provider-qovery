@@ -7,6 +7,8 @@ Manages the DNS provider of a Qovery cluster.
 
 ## Example
 
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
+
 ```terraform
 # A cluster has a single DNS provider: declare one qovery_cluster_dns_provider per cluster.
 resource "qovery_cluster_dns_provider" "my_cluster_dns_provider" {

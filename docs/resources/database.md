@@ -5,6 +5,8 @@ Manages a Qovery database: PostgreSQL, MySQL, MongoDB or Redis, run as a contain
 
 ## Example
 
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
+
 ```terraform
 # mode = "MANAGED" uses the managed database service of the cloud provider, such as AWS RDS, and requires instance_type.
 resource "qovery_database" "my_database" {

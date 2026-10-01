@@ -5,6 +5,8 @@ Manages a Qovery ArgoCD destination cluster mapping: it maps the URL of an ArgoC
 
 ## Example
 
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
+
 ```terraform
 # https://kubernetes.default.svc is the in-cluster destination of the ArgoCD instance:
 # the cluster ArgoCD runs on, here mapped to that same Qovery cluster.

@@ -7,6 +7,8 @@ Manages the deployment of a Qovery environment: Terraform deploys, stops or rede
 
 ## Example
 
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
+
 ```terraform
 resource "qovery_deployment" "my_deployment" {
   environment_id = qovery_environment.my_environment.id

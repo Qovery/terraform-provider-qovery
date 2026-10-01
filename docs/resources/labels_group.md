@@ -5,6 +5,8 @@ Manages a Qovery labels group: a reusable set of Kubernetes labels that services
 
 ## Example
 
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
+
 ```terraform
 resource "qovery_labels_group" "my_labels_group" {
   organization_id = qovery_organization.my_organization.id

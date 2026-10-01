@@ -5,6 +5,8 @@ Manages Qovery EKS Anywhere vSphere credentials: the vSphere account and the AWS
 
 ## Example
 
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
+
 ```terraform
 # IAM role that Qovery assumes (STS). For static IAM access keys, set access_key_id and secret_access_key instead.
 resource "qovery_eks_anywhere_vsphere_credentials" "my_eks_anywhere_vsphere_credentials" {

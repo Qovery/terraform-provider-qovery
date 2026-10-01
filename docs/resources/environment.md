@@ -5,6 +5,8 @@ Manages a Qovery environment: an isolated set of services of a project, deployed
 
 ## Example
 
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
+
 ```terraform
 resource "qovery_environment" "my_environment" {
   project_id = qovery_project.my_project.id
