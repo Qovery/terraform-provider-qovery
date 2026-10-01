@@ -218,7 +218,7 @@ func TestAcc_TerraformServiceTimeoutBelowMinimum(t *testing.T) {
 			{
 				Config:      testAccTerraformServiceWithTimeoutConfig(59),
 				PlanOnly:    true,
-				ExpectError: regexp.MustCompile(`Number\s+value\s+must\s+be\s+greater\s+than\s+60,\s+got:\s+59`),
+				ExpectError: regexp.MustCompile(`Number\s+value\s+must\s+be\s+at\s+least\s+60,\s+got:\s+59`),
 			},
 		},
 	})
