@@ -29,6 +29,13 @@ jobs:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.PASSPHRASE }}
 
+      # GoReleaser builds the release notes from the commits since the closest earlier tag. For a
+      # final release, that is its last release candidate, so point it at the previous final
+      # release instead: v1.0.0 then lists every change since v0.91.0, not only those since rc.2.
+      - name: Compare a final release with the previous final release
+        if: ${{ !contains(github.ref_name, '-') }}
+        run: echo "GORELEASER_PREVIOUS_TAG=$(git describe --tags --abbrev=0 --exclude '*-*' "${GITHUB_REF_NAME}^")" >> "$GITHUB_ENV"
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v7
         with:
