@@ -177,6 +177,73 @@ func TestNewDomainCredentialsFromQovery_GcpWif(t *testing.T) {
 	assert.Equal(t, orgID, creds.OrganizationID.String())
 }
 
+func TestNewDomainCredentialsFromQovery_Identifiers(t *testing.T) {
+	t.Parallel()
+
+	credID := gofakeit.UUID()
+	testCases := []struct {
+		TestName    string
+		Credentials *qovery.ClusterCredentials
+		Expected    credentials.Identifiers
+	}{
+		{
+			TestName:    "aws_static",
+			Credentials: &qovery.ClusterCredentials{AwsStaticClusterCredentials: &qovery.AwsStaticClusterCredentials{Id: credID, Name: "creds", AccessKeyId: "AKIA"}},
+			Expected:    credentials.Identifiers{AccessKeyID: new("AKIA")},
+		},
+		{
+			TestName:    "aws_role",
+			Credentials: &qovery.ClusterCredentials{AwsRoleClusterCredentials: &qovery.AwsRoleClusterCredentials{Id: credID, Name: "creds", RoleArn: "arn:aws:iam::123456789012:role/qovery"}},
+			Expected:    credentials.Identifiers{RoleArn: new("arn:aws:iam::123456789012:role/qovery")},
+		},
+		{
+			TestName: "scaleway",
+			Credentials: &qovery.ClusterCredentials{ScalewayClusterCredentials: &qovery.ScalewayClusterCredentials{
+				Id: credID, Name: "creds", ScalewayAccessKey: "SCW", ScalewayProjectId: "project", ScalewayOrganizationId: "organization",
+			}},
+			Expected: credentials.Identifiers{ScalewayAccessKey: new("SCW"), ScalewayProjectID: new("project"), ScalewayOrganizationID: new("organization")},
+		},
+		{
+			TestName:    "gcp_service_account_key",
+			Credentials: &qovery.ClusterCredentials{GcpStaticClusterCredentials: &qovery.GcpStaticClusterCredentials{Id: credID, Name: "creds"}},
+			Expected:    credentials.Identifiers{},
+		},
+		{
+			TestName: "gcp_workload_identity_federation",
+			Credentials: &qovery.ClusterCredentials{GcpWorkloadIdentityFederationClusterCredentials: &qovery.GcpWorkloadIdentityFederationClusterCredentials{
+				Id: credID, Name: "creds", ProjectId: "project", ServiceAccountEmail: "qovery@project.iam.gserviceaccount.com", WorkloadIdentityProviderResource: "projects/1/locations/global/workloadIdentityPools/p/providers/p",
+			}},
+			Expected: credentials.Identifiers{ServiceAccountEmail: new("qovery@project.iam.gserviceaccount.com"), WorkloadIdentityProviderResource: new("projects/1/locations/global/workloadIdentityPools/p/providers/p")},
+		},
+		{
+			TestName: "eks_anywhere_vsphere_static",
+			Credentials: &qovery.ClusterCredentials{EksAnywhereVsphereClusterCredentials: &qovery.EksAnywhereVsphereClusterCredentials{
+				Id: credID, Name: "creds", VsphereUser: "user", AccessKeyId: *qovery.NewNullableString(new("AKIA")),
+			}},
+			Expected: credentials.Identifiers{VsphereUser: new("user"), AccessKeyID: new("AKIA")},
+		},
+		{
+			TestName: "eks_anywhere_vsphere_role",
+			Credentials: &qovery.ClusterCredentials{EksAnywhereVsphereClusterCredentials: &qovery.EksAnywhereVsphereClusterCredentials{
+				Id: credID, Name: "creds", VsphereUser: "user", RoleArn: *qovery.NewNullableString(new("arn:aws:iam::123456789012:role/qovery")),
+			}},
+			Expected: credentials.Identifiers{VsphereUser: new("user"), RoleArn: new("arn:aws:iam::123456789012:role/qovery")},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+			creds, err := newDomainCredentialsFromQovery(gofakeit.UUID(), tc.Credentials)
+
+			assert.NoError(t, err)
+			assert.Equal(t, credID, creds.ID.String())
+			assert.Equal(t, "creds", creds.Name)
+			assert.Equal(t, tc.Expected, creds.Identifiers)
+		})
+	}
+}
+
 func TestNewQoveryScalewayCredentialsRequestFromDomain(t *testing.T) {
 	t.Parallel()
 

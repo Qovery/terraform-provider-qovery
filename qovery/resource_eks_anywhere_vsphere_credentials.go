@@ -52,56 +52,46 @@ func (r *eksAnywhereVsphereCredentialsResource) Configure(_ context.Context, req
 
 func (r eksAnywhereVsphereCredentialsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery EKS Anywhere vSphere credentials resource. This can be used to create and manage Qovery EKS Anywhere vSphere credentials.",
-		MarkdownDescription: "Provides a Qovery EKS Anywhere vSphere credentials resource. This is used to create and manage credentials that Qovery uses to provision and manage EKS Anywhere clusters running on vSphere infrastructure.\n\n" +
-			"You can authenticate the AWS side using either **IAM access keys** (`access_key_id` + `secret_access_key`) or an **IAM role** (`role_arn`). These two methods are mutually exclusive.",
+		MarkdownDescription: "Manages Qovery EKS Anywhere vSphere credentials: the vSphere account and the AWS IAM role or access key Qovery uses to manage EKS Anywhere clusters on vSphere. Set either `role_arn` or `access_key_id` and `secret_access_key`.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the EKS Anywhere vSphere credentials.",
-				MarkdownDescription: "Unique identifier of the EKS Anywhere vSphere credentials (UUID format).",
+				MarkdownDescription: idDescription("EKS Anywhere vSphere credentials"),
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "ID of the Qovery organization in which to create the credentials. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: organizationIDDescription + recreatesOnChange("EKS Anywhere vSphere credentials"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the EKS Anywhere vSphere credentials.",
-				MarkdownDescription: "Name of the EKS Anywhere vSphere credentials. Used for display purposes in the Qovery console.",
+				MarkdownDescription: nameDescription("EKS Anywhere vSphere credentials"),
 				Required:            true,
 			},
 			"vsphere_user": schema.StringAttribute{
-				Description:         "Your vSphere username.",
-				MarkdownDescription: "Username used to authenticate against the vSphere API.",
+				MarkdownDescription: "User Qovery authenticates to the vSphere API with.",
 				Required:            true,
 			},
 			"vsphere_password": schema.StringAttribute{
-				Description:         "Your vSphere password.",
-				MarkdownDescription: "Password used to authenticate against the vSphere API. This is a sensitive value and will not be displayed in plan output.",
+				MarkdownDescription: "Password of `vsphere_user`.",
 				Required:            true,
 				Sensitive:           true,
 			},
 			"access_key_id": schema.StringAttribute{
-				Description:         "Your AWS access key id.",
-				MarkdownDescription: "AWS IAM access key ID. Required when using access key authentication. Must not be set when `role_arn` is specified.",
+				MarkdownDescription: credentialsAWSAccessKeyIDDescription,
 				Optional:            true,
 			},
 			"secret_access_key": schema.StringAttribute{
-				Description:         "Your AWS secret access key.",
-				MarkdownDescription: "AWS IAM secret access key. Required when using access key authentication. This is a sensitive value and will not be displayed in plan output.",
+				MarkdownDescription: credentialsAWSSecretAccessKeyDescription,
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"role_arn": schema.StringAttribute{
-				Description:         "Your AWS role ARN that you want Qovery to assume. You can't specify access/secret_key if you use a role.",
-				MarkdownDescription: "ARN of the AWS IAM role that Qovery will assume. Must not be set when `access_key_id`/`secret_access_key` are specified.",
+				MarkdownDescription: credentialsAWSRoleARNDescription,
 				Optional:            true,
 			},
 		},

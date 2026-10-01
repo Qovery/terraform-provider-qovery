@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAcc_OrganizationDataSource(t *testing.T) {
@@ -22,9 +22,9 @@ func TestAcc_OrganizationDataSource(t *testing.T) {
 				),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.qovery_organization.test", "id", getTestOrganizationID()),
-					resource.TestCheckResourceAttr("data.qovery_organization.test", "name", "Q Sandbox"),
-					resource.TestCheckResourceAttr("data.qovery_organization.test", "plan", "ENTERPRISE"),
-					resource.TestCheckResourceAttr("data.qovery_organization.test", "description", "Organization for team's test"),
+					resource.TestCheckResourceAttr("data.qovery_organization.test", "name", testAccOrganizationName),
+					resource.TestCheckResourceAttr("data.qovery_organization.test", "plan", testAccOrganizationPlan),
+					resource.TestCheckResourceAttr("data.qovery_organization.test", "description", testAccOrganizationDescription),
 				),
 			},
 		},

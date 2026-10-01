@@ -1,6 +1,8 @@
 package qovery
 
 import (
+	"strings"
+
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
@@ -84,9 +86,81 @@ func convertDomainRegistryToContainerRegistry(state ContainerRegistry, res *regi
 		Name:           FromString(res.Name),
 		Kind:           FromString(res.Kind.String()),
 		URL:            FromString(res.URL.String()),
-		Description:    FromStringPointer(res.Description),
-		Config:         state.Config,
+		Description:    storedDescriptionFromAPI(res.Description),
+		Config:         containerRegistryConfigFromAPI(res.Kind, state.Config, res.Config),
 	}
+}
+
+// containerRegistryConfigFromAPI builds the config block of a registry of the given kind. The API
+// returns the non-secret keys the kind stores, so such a key changed or removed outside Terraform
+// shows up in the plan. Everything else is kept from prior, the plan on apply and the state on
+// refresh:
+//   - the secrets (secret_access_key, scaleway_secret_key, json_credentials, password), which the
+//     API never returns;
+//   - the keys the kind does not store, which the API ignores, such as region on PUBLIC_ECR;
+//   - every key of DOCR and AZURE_CR registries, which the provider cannot manage;
+//   - project_id on a GCP registry that uses a JSON key, which q-core reads from the key. The
+//     API reports gcp_credentials_type only for Workload Identity Federation.
+//
+// The block stays null when prior has none and the API returns no key the provider manages.
+func containerRegistryConfigFromAPI(kind registry.Kind, prior *ContainerRegistryConfig, api registry.Config) *ContainerRegistryConfig {
+	var config ContainerRegistryConfig
+	if prior != nil {
+		config = *prior
+	}
+
+	switch kind {
+	case registry.KindECR:
+		config.Region = optionalStringFromAPI(config.Region, api.Region)
+		config.AccessKeyID = optionalStringFromAPI(config.AccessKeyID, api.AccessKeyID)
+	case registry.KindPublicECR:
+		config.AccessKeyID = optionalStringFromAPI(config.AccessKeyID, api.AccessKeyID)
+	case registry.KindScalewayCR:
+		config.Region = scalewayRegionFromAPI(config.Region, api.Region)
+		config.ScalewayAccessKey = optionalStringFromAPI(config.ScalewayAccessKey, api.ScalewayAccessKey)
+		config.ScalewayProjectId = optionalStringFromAPI(config.ScalewayProjectId, api.ScalewayProjectID)
+	case registry.KindDockerHub, registry.KindGithubCr, registry.KindGithubEnterpriseCr, registry.KindGitlabCr, registry.KindGenericCR:
+		config.Username = optionalStringFromAPI(config.Username, api.Username)
+	case registry.KindGcpArtifactRegistry:
+		config.Region = optionalStringFromAPI(config.Region, api.Region)
+		config.GcpCredentialsType = optionalStringFromAPI(config.GcpCredentialsType, api.GcpCredentialsType)
+		config.ServiceAccountEmail = optionalStringFromAPI(config.ServiceAccountEmail, api.ServiceAccountEmail)
+		config.WorkloadIdentityProviderResource = optionalStringFromAPI(config.WorkloadIdentityProviderResource, api.WorkloadIdentityProviderResource)
+		config.TokenLifetimeSeconds = gcpTokenLifetimeSecondsFromAPI(config.TokenLifetimeSeconds, api.TokenLifetimeSeconds)
+		if api.GcpCredentialsType != nil {
+			config.ProjectId = optionalStringFromAPI(config.ProjectId, api.ProjectID)
+		}
+	}
+
+	// All the attributes are null: the zero value of every types.* value is null.
+	if prior == nil && config == (ContainerRegistryConfig{}) {
+		return nil
+	}
+	return &config
+}
+
+// scalewayRegionFromAPI reads the region of a Scaleway registry. q-core stores the canonical
+// region the request starts with (fr-par for fr-par-1 or FR-PAR), so prior is kept when it names
+// the region the API returns.
+func scalewayRegionFromAPI(prior types.String, apiVal *string) types.String {
+	if apiVal != nil && *apiVal != "" && !prior.IsNull() && !prior.IsUnknown() && strings.HasPrefix(strings.ToLower(prior.ValueString()), *apiVal) {
+		return prior
+	}
+	return optionalStringFromAPI(prior, apiVal)
+}
+
+// gcpTokenLifetimeSecondsDefault is the token lifetime q-core stores for a Workload Identity
+// Federation registry whose request omits it.
+const gcpTokenLifetimeSecondsDefault = 14400
+
+// gcpTokenLifetimeSecondsFromAPI reads token_lifetime_seconds. The API value wins, except that nil
+// or the q-core default keeps a null prior: config has no schema Default, since the attribute
+// only applies to Workload Identity Federation.
+func gcpTokenLifetimeSecondsFromAPI(prior types.Int64, apiVal *int32) types.Int64 {
+	if prior.IsNull() && (apiVal == nil || *apiVal == gcpTokenLifetimeSecondsDefault) {
+		return types.Int64Null()
+	}
+	return FromInt32Pointer(apiVal)
 }
 
 func convertDomainRegistryToContainerRegistryDataSource(res *registry.Registry) ContainerRegistryDataSource {

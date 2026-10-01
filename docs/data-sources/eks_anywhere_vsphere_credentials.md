@@ -1,13 +1,13 @@
 # qovery_eks_anywhere_vsphere_credentials (Data Source)
 
-Use this data source to retrieve information about existing Qovery EKS Anywhere vSphere credentials.
+Reads existing Qovery EKS Anywhere vSphere credentials.
 
 ## Example Usage
 
 ```terraform
-data "qovery_eks_anywhere_vsphere_credentials" "my_eks_anywhere_vsphere_creds" {
-  id              = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-  organization_id = qovery_organization.my_organization.id
+data "qovery_eks_anywhere_vsphere_credentials" "my_eks_anywhere_vsphere_credentials" {
+  id              = "<eks_anywhere_vsphere_credentials_id>"
+  organization_id = "<organization_id>"
 }
 ```
 
@@ -16,8 +16,8 @@ data "qovery_eks_anywhere_vsphere_credentials" "my_eks_anywhere_vsphere_creds" {
 
 ### Required
 
-- `id` (String) ID of the EKS Anywhere vSphere credentials to retrieve.
-- `organization_id` (String) ID of the organization containing the credentials.
+- `id` (String) ID of the EKS Anywhere vSphere credentials.
+- `organization_id` (String) ID of the organization.
 
 ### Read-Only
 

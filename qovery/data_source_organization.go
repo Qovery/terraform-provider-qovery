@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/organization"
-	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -47,35 +46,22 @@ func (d *organizationDataSource) Configure(_ context.Context, req datasource.Con
 
 func (r organizationDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "Use this data source to retrieve information about an existing Qovery organization.",
-		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery organization.",
+		MarkdownDescription: "Reads an existing Qovery organization.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the organization (UUID format).",
-				MarkdownDescription: "Unique identifier of the organization (UUID format).",
+				MarkdownDescription: idDescription("organization"),
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the organization.",
-				MarkdownDescription: "Name of the organization.",
+				MarkdownDescription: nameDescription("organization"),
 				Computed:            true,
 			},
 			"plan": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Subscription plan of the organization.",
-					organizationPlans,
-					nil,
-				),
-				MarkdownDescription: descriptions.NewStringEnumDescription(
-					"Subscription plan of the organization.",
-					organizationPlans,
-					nil,
-				),
-				Computed: true,
+				MarkdownDescription: organizationPlanDescription,
+				Computed:            true,
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the organization.",
-				MarkdownDescription: "Description of the organization.",
+				MarkdownDescription: descriptionDescription("organization"),
 				Computed:            true,
 			},
 		},

@@ -1,11 +1,11 @@
 # qovery_blueprint (Data Source)
 
-Provides a Qovery blueprint.
+Reads an existing Qovery blueprint.
 
 ## Example Usage
 
 ```terraform
-data "qovery_blueprint" "my_postgres" {
+data "qovery_blueprint" "my_blueprint" {
   id = "<blueprint_id>"
 }
 ```
@@ -15,16 +15,17 @@ data "qovery_blueprint" "my_postgres" {
 
 ### Required
 
-- `id` (String) Id of the blueprint.
+- `id` (String) ID of the blueprint.
 
 ### Read-Only
 
-- `blueprint` (String) Catalog entry of the blueprint, as `<provider>/<service_family>/<service_version>`.
+- `blueprint` (String) Catalog entry of the blueprint, as `<provider>/<service_family>/<service_version>`, for example `AWS/postgres/17`.
 - `catalog_url` (String) URL of the blueprint catalog entry.
-- `environment_id` (String) Id of the environment.
-- `name` (String) Name of the blueprint service.
-- `secret_variable_names` (Set of String) Names of the secret blueprint variables. The API never returns their values.
-- `service_id` (String) Id of the terraform or helm service the blueprint materialized.
-- `service_type` (String) Type of the service the blueprint materialized: `TERRAFORM` or `HELM`.
-- `tag` (String) Catalog tag identifying the blueprint and its version.
-- `variables` (Map of String) Non-secret blueprint variables, catalog defaults included.
+- `environment_id` (String) ID of the environment.
+- `icon_uri` (String) Icon of the blueprint in the Qovery Console. `null` until the blueprint has a service.
+- `name` (String) Name of the blueprint.
+- `secret_variable_names` (Set of String) Names of the secret variables of the blueprint.
+- `service_id` (String) ID of the terraform or helm service that runs the blueprint.
+- `service_type` (String) Type of the service that runs the blueprint: `TERRAFORM` or `HELM`.
+- `tag` (String) Catalog release of the blueprint, for example `AWS/postgres/17/4.1.0`.
+- `variables` (Map of String) Variables of the blueprint, as a map of name to value. Includes the catalog defaults, not the secret variables.

@@ -265,7 +265,7 @@ func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan T
 		DeploymentStageId:     FromString(ts.DeploymentStageID),
 		IsSkipped:             FromBool(ts.IsSkipped),
 		Name:                  FromString(ts.Name),
-		Description:           normalizeOptionalDescription(plan.Description, ts.Description),
+		Description:           optionalStringFromAPI(plan.Description, ts.Description),
 		AutoDeploy:            FromBool(ts.AutoDeploy),
 		TerraformAction:       FromString(string(ts.TerraformAction)),
 		GitRepository:         fromGitRepository(ts.GitRepository),
@@ -287,17 +287,6 @@ func convertDomainTerraformServiceToTerraformService(ctx context.Context, plan T
 		ExternalSecrets:       convertDomainExternalSecretsToExternalSecretList(ts.ExternalSecrets, plan.ExternalSecrets, variable.ScopeTerraform).toTerraformSet(ctx),
 		ExternalSecretFiles:   convertDomainExternalSecretFilesToExternalSecretFileList(ts.ExternalSecretFiles, plan.ExternalSecretFiles, variable.ScopeTerraform).toTerraformSet(ctx),
 	}
-}
-
-// normalizeOptionalDescription preserves a null description when the API echoes
-// nil or an empty string. The API normalizes a missing description to "", which
-// would otherwise trigger "provider produced inconsistent result after apply"
-// since the schema is Optional (not Computed).
-func normalizeOptionalDescription(prior types.String, apiVal *string) types.String {
-	if (apiVal == nil || *apiVal == "") && prior.IsNull() {
-		return types.StringNull()
-	}
-	return FromStringPointer(apiVal)
 }
 
 // fromGitRepository converts domain git repository to Terraform
@@ -359,103 +348,77 @@ func fromJobResources(j terraformservice.JobResources) *TerraformJobResources {
 	}
 }
 
-// fromVariableArray converts domain variables to Terraform set while preserving sensitive values from plan
-func fromVariableArray(planVars types.Set, variables []terraformservice.Variable) types.Set {
-	// If API returns no variables but plan has variables, preserve the plan (API might not return them)
-	if len(variables) == 0 {
-		if !planVars.IsNull() && !planVars.IsUnknown() && len(planVars.Elements()) > 0 {
-			return planVars
-		}
-		return types.SetNull(types.ObjectType{
-			AttrTypes: map[string]attr.Type{
-				"key":       types.StringType,
-				"value":     types.StringType,
-				"is_secret": types.BoolType,
-			},
-		})
+var terraformVariableAttrTypes = map[string]attr.Type{
+	"key":       types.StringType,
+	"value":     types.StringType,
+	"is_secret": types.BoolType,
+}
+
+// fromVariableArray converts the API variables. A non-secret value is the API value, so a
+// change made outside Terraform shows up in the plan. The API returns the
+// SECRET_VALUE_UNCHANGED sentinel instead of a secret value, so a secret keeps the value of
+// the prior (plan or state) variable with the same key. No API variable keeps the shape of
+// prior: null stays null and [] stays [].
+func fromVariableArray(prior types.Set, variables []terraformservice.Variable) types.Set {
+	elementType := types.ObjectType{AttrTypes: terraformVariableAttrTypes}
+	if len(variables) == 0 && prior.IsNull() {
+		return types.SetNull(elementType)
 	}
 
-	// Build a map of existing variables from plan state (keyed by variable key)
-	planVarMap := make(map[string]types.Object)
-	if !planVars.IsNull() && !planVars.IsUnknown() {
-		planVarElements := planVars.Elements()
-		for _, elem := range planVarElements {
-			if objVal, ok := elem.(types.Object); ok {
-				attrs := objVal.Attributes()
-				if keyAttr, exists := attrs["key"]; exists {
-					if keyStr, ok := keyAttr.(types.String); ok && !keyStr.IsNull() {
-						planVarMap[keyStr.ValueString()] = objVal
-					}
-				}
+	priorValues := make(map[string]types.String)
+	if !prior.IsUnknown() {
+		for _, element := range prior.Elements() {
+			object, ok := element.(types.Object)
+			if !ok {
+				continue
+			}
+			key, keyOk := object.Attributes()["key"].(types.String)
+			value, valueOk := object.Attributes()["value"].(types.String)
+			if keyOk && valueOk && !key.IsNull() {
+				priorValues[key.ValueString()] = value
 			}
 		}
 	}
 
-	// Process all variables from plan first (to ensure we include any that were in plan but not in API response)
-	processedKeys := make(map[string]bool)
-	tfVars := make([]attr.Value, 0, len(variables))
-
-	// For each variable from the API, check if it exists in plan and use plan's value
+	elements := make([]attr.Value, 0, len(variables))
 	for _, v := range variables {
-		varValue := FromString(v.Value)
-
-		// Always check plan for this variable to preserve sensitive values
-		if planVar, exists := planVarMap[v.Key]; exists {
-			attrs := planVar.Attributes()
-			if valueAttr, ok := attrs["value"]; ok {
-				if valueStr, ok := valueAttr.(types.String); ok {
-					// Preserve the value from plan to maintain sensitivity
-					varValue = valueStr
-				}
-			}
+		value := FromString(v.Value)
+		if priorValue, ok := priorValues[v.Key]; ok && v.Secret {
+			value = priorValue
 		}
-
-		objValue, diag := types.ObjectValue(
-			map[string]attr.Type{
-				"key":       types.StringType,
-				"value":     types.StringType,
-				"is_secret": types.BoolType,
-			},
-			map[string]attr.Value{
-				"key":       FromString(v.Key),
-				"value":     varValue,
-				"is_secret": FromBool(v.Secret),
-			},
-		)
-		if diag.HasError() {
-			return types.SetNull(types.ObjectType{
-				AttrTypes: map[string]attr.Type{
-					"key":       types.StringType,
-					"value":     types.StringType,
-					"is_secret": types.BoolType,
-				},
-			})
-		}
-		tfVars = append(tfVars, objValue)
-		processedKeys[v.Key] = true
+		elements = append(elements, terraformVariableObject(v, value))
 	}
 
-	setValue, diag := types.SetValue(
-		types.ObjectType{
-			AttrTypes: map[string]attr.Type{
-				"key":       types.StringType,
-				"value":     types.StringType,
-				"is_secret": types.BoolType,
-			},
-		},
-		tfVars,
-	)
-	if diag.HasError() {
-		return types.SetNull(types.ObjectType{
-			AttrTypes: map[string]attr.Type{
-				"key":       types.StringType,
-				"value":     types.StringType,
-				"is_secret": types.BoolType,
-			},
-		})
+	return types.SetValueMust(elementType, elements)
+}
+
+// fromDataSourceVariableArray converts the API variables for the data source, which reports the
+// API value as-is. The API returns the SECRET_VALUE_UNCHANGED sentinel instead of a secret value
+// and a data source has no prior value to keep, so a secret variable reads as a null value.
+func fromDataSourceVariableArray(variables []terraformservice.Variable) types.Set {
+	elementType := types.ObjectType{AttrTypes: terraformVariableAttrTypes}
+	if len(variables) == 0 {
+		return types.SetNull(elementType)
 	}
 
-	return setValue
+	elements := make([]attr.Value, 0, len(variables))
+	for _, v := range variables {
+		value := FromString(v.Value)
+		if v.Secret {
+			value = types.StringNull()
+		}
+		elements = append(elements, terraformVariableObject(v, value))
+	}
+
+	return types.SetValueMust(elementType, elements)
+}
+
+func terraformVariableObject(v terraformservice.Variable, value types.String) types.Object {
+	return types.ObjectValueMust(terraformVariableAttrTypes, map[string]attr.Value{
+		"key":       FromString(v.Key),
+		"value":     value,
+		"is_secret": FromBool(v.Secret),
+	})
 }
 
 // fromActionExtraArguments converts domain map to Terraform map

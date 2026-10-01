@@ -52,39 +52,39 @@ func (r *argoCdDestinationClusterMappingResource) Configure(_ context.Context, r
 
 func (r argoCdDestinationClusterMappingResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery ArgoCD destination cluster mapping resource. This maps an ArgoCD destination cluster URL to a Qovery cluster.",
+		MarkdownDescription: "Manages a Qovery ArgoCD destination cluster mapping: it maps the URL of an ArgoCD destination cluster to a Qovery cluster.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Composite identifier of the mapping, matching the import format (organization_id,agent_cluster_id,argocd_cluster_url).",
-				Computed:    true,
+				MarkdownDescription: "ID of the mapping, in the import format `<organization_id>,<agent_cluster_id>,<argocd_cluster_url>`.",
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				MarkdownDescription: organizationIDDescription + recreatesOnChange("mapping"),
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"agent_cluster_id": schema.StringAttribute{
-				Description: "Id of the Qovery cluster where the ArgoCD instance is running.",
-				Required:    true,
+				MarkdownDescription: "ID of the Qovery cluster that runs the ArgoCD instance." + recreatesOnChange("mapping"),
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"argocd_cluster_url": schema.StringAttribute{
-				Description: "URL of the ArgoCD destination cluster (e.g. https://kubernetes.default.svc).",
-				Required:    true,
+				MarkdownDescription: "URL of the ArgoCD destination cluster, for example `https://kubernetes.default.svc`." + recreatesOnChange("mapping"),
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"cluster_id": schema.StringAttribute{
-				Description: "Id of the Qovery cluster mapped to the ArgoCD destination.",
-				Required:    true,
+				MarkdownDescription: "ID of the Qovery cluster mapped to the ArgoCD destination.",
+				Required:            true,
 			},
 		},
 	}

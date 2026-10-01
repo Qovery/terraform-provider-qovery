@@ -27,7 +27,7 @@ const (
 	DefaultRootPath   string = "/"
 	DefaultIconURI    string = "app://qovery-console/terraform"
 	DefaultTimeoutSec int32  = 1800
-	MinTimeoutSec     int32  = 0
+	MinTimeoutSec     int32  = 60
 )
 
 var (

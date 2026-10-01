@@ -1,14 +1,11 @@
-# Terraform 1.0.3+ uses the Terraform Registry:
-
 terraform {
   required_providers {
     qovery = {
-      source = "qovery/qovery"
+      source  = "qovery/qovery"
+      version = "~> 1.0"
     }
   }
 }
 
-# Configure the Qovery provider
-provider "qovery" {
-  token = "<your-qovery-token>"
-}
+# The provider reads the API token from the QOVERY_API_TOKEN environment variable.
+provider "qovery" {}

@@ -2,21 +2,18 @@ package qovery
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
-
-	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
-	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
-var _ datasource.DataSourceWithConfigure = &deploymentDataSource{}
+var _ datasource.DataSource = &deploymentDataSource{}
 
-type deploymentDataSource struct {
-	deploymentService newdeployment.Service
-}
+// deploymentDataSource reads nothing from Qovery. A deployment is an action on an environment,
+// not an object Qovery stores, and the qovery_deployment id is a UUID the provider generates,
+// so there is no API value to report and Read echoes the configuration.
+type deploymentDataSource struct{}
 
 func newDeploymentDataSource() datasource.DataSource {
 	return &deploymentDataSource{}
@@ -26,83 +23,38 @@ func (d deploymentDataSource) Metadata(_ context.Context, req datasource.Metadat
 	resp.TypeName = req.ProviderTypeName + "_deployment"
 }
 
-func (d *deploymentDataSource) Configure(_ context.Context, req datasource.ConfigureRequest, resp *datasource.ConfigureResponse) {
-	// Prevent panic if the provider has not been configured.
-	if req.ProviderData == nil {
-		return
-	}
-
-	provider, ok := req.ProviderData.(*qProvider)
-	if !ok {
-		resp.Diagnostics.AddError(
-			"Unexpected Data Source Configure Type",
-			fmt.Sprintf("Expected *qProvider, got: %T. Please report this issue to the provider developers.", req.ProviderData),
-		)
-		return
-	}
-
-	d.deploymentService = provider.deploymentService
-}
-
 func (r deploymentDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "Use this data source to retrieve information about an existing Qovery deployment.",
-		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery deployment.",
+		MarkdownDescription: "Reads a Qovery deployment. Qovery stores no deployment, so this data source only echoes its arguments.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the deployment (UUID format).",
-				MarkdownDescription: "Unique identifier of the deployment (UUID format).",
+				MarkdownDescription: deploymentIDDescription + " Echoed as configured.",
 				Required:            true,
 			},
 			"environment_id": schema.StringAttribute{
-				Description:         "Identifier of the environment associated with this deployment.",
-				MarkdownDescription: "Identifier of the environment associated with this deployment.",
+				MarkdownDescription: deploymentEnvironmentIDDescription + deploymentReadsNothingNote,
 				Computed:            true,
 			},
 			"version": schema.StringAttribute{
-				Description:         "Version identifier of the deployment.",
-				MarkdownDescription: "Version identifier of the deployment.",
+				MarkdownDescription: deploymentVersionDescription + " Echoed as configured.",
 				Optional:            true,
 				Computed:            false,
 			},
 			"desired_state": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Desired state of the deployment.",
-					deploymentStates,
-					nil),
-				MarkdownDescription: descriptions.NewStringEnumDescription(
-					"Desired state of the deployment.",
-					deploymentStates,
-					nil),
-				Computed: true,
+				MarkdownDescription: deploymentDesiredStateDescription + deploymentReadsNothingNote,
+				Computed:            true,
 			},
 		},
 	}
 }
 
-// Read qovery deployment data source
+// Read echoes the configuration: there is no deployment object to read (see deploymentDataSource).
 func (d deploymentDataSource) Read(ctx context.Context, req datasource.ReadRequest, resp *datasource.ReadResponse) {
-	// Get current state
 	var data NewDeploymentTerraform
 	resp.Diagnostics.Append(req.Config.Get(ctx, &data)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	// Get deployment from API
-	_, err := d.deploymentService.Get(ctx, newdeployment.NewDeploymentParams{
-		ID:            ToStringPointer(data.Id),
-		EnvironmentID: ToString(data.EnvironmentId),
-		Version:       ToStringPointer(data.Version),
-		DesiredState:  ToString(data.DesiredState),
-	})
-	if err != nil {
-		resp.Diagnostics.AddError("Error on deployment read", err.Error())
-		return
-	}
-
-	// state is not recomputed
-	state := data
-	// Set state
-	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+	resp.Diagnostics.Append(resp.State.Set(ctx, &data)...)
 }

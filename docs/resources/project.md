@@ -1,79 +1,24 @@
 # qovery_project (Resource)
 
-Provides a Qovery project resource. This can be used to create and manage Qovery projects.
-
-A project is a grouping mechanism for environments. Environment variables and secrets defined at the project level are inherited by all environments within the project.
+Manages a Qovery project: a group of environments of an organization.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
 
 ```terraform
 resource "qovery_project" "my_project" {
-  # Required
   organization_id = qovery_organization.my_organization.id
-  name            = "MyProject"
+  name            = "my-project"
+  description     = "Backend services for our SaaS platform"
 
-  # Optional
-  description = "Backend services for our SaaS platform"
-
-  # Project-level environment variables are inherited by all environments
+  # Inherited by every environment of the project.
   environment_variables = [
     {
-      key   = "ENV_VAR_KEY"
-      value = "ENV_VAR_VALUE"
+      key   = "COMPANY_NAME"
+      value = "my-company"
     }
-  ]
-
-  # Aliases create alternative names for existing environment variables
-  environment_variable_aliases = [
-    {
-      key = "ENV_VAR_KEY_ALIAS"
-      # Must match the key of an existing environment variable
-      value = "ENV_VAR_KEY"
-    }
-  ]
-
-  # Environment variable files (mounted as files in services)
-  environment_variable_files = [
-    {
-      key        = "APP_CONFIG"
-      value      = "config-content"
-      mount_path = "/etc/app/config.yaml"
-    }
-  ]
-
-  # Secrets are encrypted and not visible after creation
-  secrets = [
-    {
-      key   = "SECRET_KEY"
-      value = "SECRET_VALUE"
-    }
-  ]
-
-  # Aliases create alternative names for existing secrets
-  secret_aliases = [
-    {
-      key = "SECRET_KEY_ALIAS"
-      # Must match the key of an existing secret
-      value = "SECRET_KEY"
-    }
-  ]
-
-  # Secret files (mounted as files in services, value is encrypted)
-  secret_files = [
-    {
-      key        = "API_KEY"
-      value      = "secret-value"
-      mount_path = "/usr/local/secrets/api-key"
-    }
-  ]
-
-  depends_on = [
-    qovery_organization.my_organization
   ]
 }
 ```
@@ -84,38 +29,39 @@ resource "qovery_project" "my_project" {
 ### Required
 
 - `name` (String) Name of the project.
-- `organization_id` (String) Identifier of the organization containing this project (UUID format). **Cannot be changed after creation** (forces resource replacement).
+- `organization_id` (String) ID of the organization. Changing it recreates the project.
 
 ### Optional
 
 - `description` (String) Description of the project.
-- `environment_variable_aliases` (Attributes Set) Set of environment variable aliases linked to this project. An alias creates an alternative name that points to an existing environment variable. (see [below for nested schema](#nestedatt--environment_variable_aliases))
-- `environment_variable_files` (Attributes Set) List of environment variable files linked to this project. (see [below for nested schema](#nestedatt--environment_variable_files))
-- `environment_variables` (Attributes Set) Set of environment variables linked to this project. These variables are inherited by all environments within the project. (see [below for nested schema](#nestedatt--environment_variables))
-- `secret_aliases` (Attributes Set) Set of secret aliases linked to this project. An alias creates an alternative name that points to an existing secret. (see [below for nested schema](#nestedatt--secret_aliases))
-- `secret_files` (Attributes Set) List of secret files linked to this project. (see [below for nested schema](#nestedatt--secret_files))
-- `secrets` (Attributes Set) Set of secrets linked to this project. Secrets are like environment variables but their values are encrypted and not visible after creation. They are inherited by all environments within the project. (see [below for nested schema](#nestedatt--secrets))
+	- Default: `""`.
+- `environment_variable_aliases` (Attributes Set) Environment variable aliases of the project. An alias gives an existing variable another name. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variable_files` (Attributes Set) Environment variable files of the project, each mounted as a file. (see [below for nested schema](#nestedatt--environment_variable_files))
+- `environment_variables` (Attributes Set) Environment variables of the project. (see [below for nested schema](#nestedatt--environment_variables))
+- `secret_aliases` (Attributes Set) Secret aliases of the project. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secret_files` (Attributes Set) Secret files of the project, each mounted as a file. (see [below for nested schema](#nestedatt--secret_files))
+- `secrets` (Attributes Set) Secrets of the project. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this project. Built-in variables are automatically generated by Qovery and provide metadata about the project (e.g., project ID, organization ID). (see [below for nested schema](#nestedatt--built_in_environment_variables))
-- `id` (String) Unique identifier of the project (UUID format).
+- `built_in_environment_variables` (Attributes List) Environment variables Qovery defines for the project. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `id` (String) ID of the project.
 
 <a id="nestedatt--environment_variable_aliases"></a>
 ### Nested Schema for `environment_variable_aliases`
 
 Required:
 
-- `key` (String) Name of the alias. This is the new key that will be available as an environment variable.
-- `value` (String) Name of the variable to alias. Must match the `key` of an existing environment variable.
+- `key` (String) Name of the alias.
+- `value` (String) Name of the variable to alias.
 
 Optional:
 
-- `description` (String) Description of the environment variable alias.
+- `description` (String) Description of the alias.
 
 Read-Only:
 
-- `id` (String) Identifier of the environment variable alias.
+- `id` (String) ID of the alias.
 
 
 <a id="nestedatt--environment_variable_files"></a>
@@ -123,17 +69,17 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the environment variable file.
-- `mount_path` (String) Mount path of the environment variable file.
-- `value` (String) Value of the environment variable file.
+- `key` (String) Name of the variable.
+- `mount_path` (String) Path where the file is mounted.
+- `value` (String) Content of the file.
 
 Optional:
 
-- `description` (String) Description of the environment variable file.
+- `description` (String) Description of the variable.
 
 Read-Only:
 
-- `id` (String) Id of the environment variable file.
+- `id` (String) ID of the variable.
 
 
 <a id="nestedatt--environment_variables"></a>
@@ -141,7 +87,7 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the environment variable.
+- `key` (String) Name of the environment variable.
 - `value` (String) Value of the environment variable.
 
 Optional:
@@ -150,7 +96,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Identifier of the environment variable.
+- `id` (String) ID of the environment variable.
 
 
 <a id="nestedatt--secret_aliases"></a>
@@ -158,16 +104,16 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the alias. This is the new key that will be available as a secret.
-- `value` (String) Name of the secret to alias. Must match the `key` of an existing secret.
+- `key` (String) Name of the alias.
+- `value` (String) Name of the secret to alias.
 
 Optional:
 
-- `description` (String) Description of the secret alias.
+- `description` (String) Description of the alias.
 
 Read-Only:
 
-- `id` (String) Identifier of the secret alias.
+- `id` (String) ID of the alias.
 
 
 <a id="nestedatt--secret_files"></a>
@@ -175,26 +121,9 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the secret file.
-- `mount_path` (String) Mount path of the secret file.
-- `value` (String, Sensitive) Value of the secret file.
-
-Optional:
-
-- `description` (String) Description of the secret file.
-
-Read-Only:
-
-- `id` (String) Id of the secret file.
-
-
-<a id="nestedatt--secrets"></a>
-### Nested Schema for `secrets`
-
-Required:
-
-- `key` (String) Key of the secret.
-- `value` (String, Sensitive) Value of the secret. The value is write-only and will not be displayed in plan output.
+- `key` (String) Name of the secret.
+- `mount_path` (String) Path where the file is mounted.
+- `value` (String, Sensitive) Content of the file.
 
 Optional:
 
@@ -202,7 +131,24 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Identifier of the secret.
+- `id` (String) ID of the secret.
+
+
+<a id="nestedatt--secrets"></a>
+### Nested Schema for `secrets`
+
+Required:
+
+- `key` (String) Name of the secret.
+- `value` (String, Sensitive) Value of the secret.
+
+Optional:
+
+- `description` (String) Description of the secret.
+
+Read-Only:
+
+- `id` (String) ID of the secret.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>
@@ -211,8 +157,8 @@ Read-Only:
 Read-Only:
 
 - `description` (String) Description of the environment variable.
-- `id` (String) Identifier of the environment variable.
-- `key` (String) Key of the environment variable.
+- `id` (String) ID of the environment variable.
+- `key` (String) Name of the environment variable.
 - `value` (String) Value of the environment variable.
 ## Import
 ```shell

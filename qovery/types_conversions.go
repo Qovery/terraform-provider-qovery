@@ -224,13 +224,69 @@ func FromStringArray(array []string) types.List {
 	return value
 }
 
-// fromStringArrayNullIfEmpty returns null for both nil and empty slices.
-// Use this for Optional fields where the API returns [] instead of null.
-func fromStringArrayNullIfEmpty(array []string) types.List {
-	if len(array) == 0 {
-		return basetypes.NewListNull(types.StringType)
+// optionalStringFromAPI reads an Optional (not Computed) string attribute. The API value wins,
+// so a change made outside Terraform shows up in the plan, except that nil or "" keeps a null
+// prior (the plan on apply, the state on refresh): the API reports some unset values as "",
+// which would otherwise fail the apply with "provider produced inconsistent result".
+func optionalStringFromAPI(prior types.String, apiVal *string) types.String {
+	if (apiVal == nil || *apiVal == "") && prior.IsNull() {
+		return types.StringNull()
 	}
-	return FromStringArray(array)
+	return FromStringPointer(apiVal)
+}
+
+// setFromAPIElements builds the state value of an Optional (not Computed) set attribute from
+// what the API returns. The API elements always win, so a change made outside Terraform shows
+// up in the plan. An empty API value takes the shape of prior (the plan on apply, the state on
+// refresh): null stays null and [] stays [], because Terraform requires the value stored after
+// apply to match the planned one.
+func setFromAPIElements(elemType attr.Type, prior types.Set, elements []attr.Value) types.Set {
+	if len(elements) == 0 && prior.IsNull() {
+		return types.SetNull(elemType)
+	}
+	return types.SetValueMust(elemType, elements)
+}
+
+// emptyStringSet is the prior a data source passes to stringSetFromAPI. A data source has no
+// plan to match, so it reports an empty API value as [].
+func emptyStringSet() types.Set {
+	return types.SetValueMust(types.StringType, []attr.Value{})
+}
+
+// stringSetFromAPI is setFromAPIElements for a set of strings, such as labels_group_ids.
+func stringSetFromAPI(prior types.Set, values []string) types.Set {
+	elements := make([]attr.Value, 0, len(values))
+	for _, v := range values {
+		elements = append(elements, types.StringValue(v))
+	}
+	return setFromAPIElements(types.StringType, prior, elements)
+}
+
+// stringListFromAPI is the list version of stringSetFromAPI, for an Optional (not Computed)
+// list of strings such as arguments: the API value always wins, and an empty one takes the
+// shape of prior.
+func stringListFromAPI(prior types.List, values []string) types.List {
+	if len(values) == 0 && prior.IsNull() {
+		return types.ListNull(types.StringType)
+	}
+	elements := make([]attr.Value, 0, len(values))
+	for _, v := range values {
+		elements = append(elements, types.StringValue(v))
+	}
+	return types.ListValueMust(types.StringType, elements)
+}
+
+// emptyStringList is the prior a data source passes to stringListFromAPI. A data source has no
+// plan to match, so it reports an empty API value as [].
+func emptyStringList() types.List {
+	return types.ListValueMust(types.StringType, []attr.Value{})
+}
+
+// emptyStringMap is the prior a data source passes for a map of strings, such as the
+// values_override maps of qovery_helm. A data source has no plan to match, so it reports an empty
+// API value as {}.
+func emptyStringMap() types.Map {
+	return types.MapValueMust(types.StringType, map[string]attr.Value{})
 }
 
 func FromStringSet(array []string) types.Set {

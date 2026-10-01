@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
@@ -58,10 +58,19 @@ func TestAcc_AWSCredentials(t *testing.T) {
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
-				ImportStateVerifyIgnore: []string{"access_key_id", "secret_access_key"},
+				ImportStateVerifyIgnore: []string{"secret_access_key"},
 			},
 		},
 	})
+}
+
+func TestAcc_AWSCredentialsUpgradeFrom0x(t *testing.T) {
+	t.Parallel()
+	testAccServiceContractUpgradeFrom0x(t, testAccAWSCredentialsDefaultConfig(
+		"aws-credentials-upgrade",
+		getTestAWSCredentialsAccessKeyID(),
+		getTestAWSCredentialsSecretAccessKey(),
+	), testAccQoveryAWSCredentialsDestroy("qovery_aws_credentials.test"))
 }
 
 func testAccQoveryAWSCredentialsExists(resourceName string) resource.TestCheckFunc {

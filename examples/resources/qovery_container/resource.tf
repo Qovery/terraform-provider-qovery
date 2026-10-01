@@ -1,115 +1,39 @@
 resource "qovery_container" "my_container" {
-  # Required
   environment_id = qovery_environment.my_environment.id
   registry_id    = qovery_container_registry.my_container_registry.id
-  name           = "MyContainer"
+  name           = "my-container"
   image_name     = "nginx"
-  tag            = "1.25-alpine"
+  tag            = "1.27-alpine"
 
-  # Optional
-  entrypoint        = "/docker-entrypoint.sh"
-  auto_preview      = true
-  auto_deploy       = true
-  cpu               = 500
-  memory            = 512
-  ephemeral_storage = 4
-  # min_running_instances = 0 enables scale-to-zero. Only allowed when an
-  # `autoscaling` (KEDA) block is set below, otherwise the minimum is 1.
-  min_running_instances = 0
-  max_running_instances = 3
-
-  # Event-driven autoscaling (KEDA). Additive to the CPU/memory HPA above.
-  # Requires KEDA enabled on the cluster (see qovery_cluster `keda`).
-  autoscaling = {
-    polling_interval_seconds = 30
-    cooldown_period_seconds  = 300
-
-    scalers = [
-      # PRIMARY scaler driving scale-up/down from a Prometheus metric.
-      {
-        scaler_type = "prometheus"
-        role        = "PRIMARY"
-        enabled     = true
-        config_json = jsonencode({
-          serverAddress = "http://prometheus.cluster.local:9090"
-          query         = "sum(rate(http_requests_total[1m]))"
-          threshold     = "100"
-        })
-      },
-      # SAFETY scaler defined as raw YAML, with inline trigger authentication.
-      {
-        scaler_type = "cron"
-        role        = "SAFETY"
-        config_yaml = <<-EOT
-          timezone: Europe/Paris
-          start: 0 8 * * 1-5
-          end: 0 20 * * 1-5
-          desiredReplicas: "2"
-        EOT
-        trigger_authentication = {
-          name        = "my-trigger-auth"
-          config_yaml = <<-EOT
-            secretTargetRef:
-              - parameter: connectionString
-                name: my-secret
-                key: connection
-          EOT
-        }
-      }
-    ]
-  }
-
-  # Port configuration
   ports = [
     {
       internal_port       = 80
       external_port       = 443
       publicly_accessible = true
-      protocol            = "HTTP"
-      is_default          = true
-      name                = "http"
-    },
-    {
-      internal_port       = 9090
-      publicly_accessible = false
-      protocol            = "HTTP"
-      name                = "metrics"
     }
   ]
 
-  # Persistent storage
-  storage = [
-    {
-      type        = "FAST_SSD"
-      size        = 10
-      mount_point = "/data"
-    }
-  ]
-
-  # Healthchecks
   healthchecks = {
     readiness_probe = {
       type = {
         http = {
           port   = 80
-          path   = "/health"
           scheme = "HTTP"
         }
       }
-      initial_delay_seconds = 30
+      initial_delay_seconds = 10
       period_seconds        = 10
       timeout_seconds       = 5
       success_threshold     = 1
       failure_threshold     = 3
     }
-
     liveness_probe = {
       type = {
         tcp = {
           port = 80
         }
       }
-      initial_delay_seconds = 30
+      initial_delay_seconds = 10
       period_seconds        = 10
       timeout_seconds       = 5
       success_threshold     = 1
@@ -117,86 +41,10 @@ resource "qovery_container" "my_container" {
     }
   }
 
-  # Environment variables
   environment_variables = [
     {
-      key   = "NGINX_PORT"
-      value = "80"
+      key   = "NGINX_ENTRYPOINT_QUIET_LOGS"
+      value = "1"
     }
-  ]
-  environment_variable_aliases = [
-    {
-      key = "PORT"
-      # The value of the alias must be the name of the aliased variable.
-      # Here it creates an alias "PORT" pointing to the "NGINX_PORT" variable above.
-      value = "NGINX_PORT"
-    }
-  ]
-  environment_variable_overrides = [
-    {
-      # The key must match a variable defined at a higher scope (project or environment).
-      key   = "SOME_PROJECT_VARIABLE"
-      value = "OVERRIDDEN_VALUE"
-    }
-  ]
-
-  # Environment variable files (mounted as files in the container)
-  environment_variable_files = [
-    {
-      key        = "APP_CONFIG"
-      value      = "config-content"
-      mount_path = "/etc/app/config.yaml"
-    }
-  ]
-
-  # Secrets
-  secrets = [
-    {
-      key   = "SECRET_KEY"
-      value = "SECRET_VALUE"
-    }
-  ]
-  secret_aliases = [
-    {
-      key = "SECRET_KEY_ALIAS"
-      # The value of the alias must be the name of the aliased secret.
-      value = "SECRET_KEY"
-    }
-  ]
-  secret_overrides = [
-    {
-      # The key must match a secret defined at a higher scope (project or environment).
-      key   = "SOME_PROJECT_SECRET"
-      value = "OVERRIDDEN_VALUE"
-    }
-  ]
-
-  # Secret files (mounted as files, value is encrypted)
-  secret_files = [
-    {
-      key        = "API_KEY"
-      value      = "secret-value"
-      mount_path = "/usr/local/secrets/api-key"
-    }
-  ]
-
-  # Custom domains
-  custom_domains = [
-    {
-      domain               = "app.example.com"
-      generate_certificate = true
-    }
-  ]
-
-  # Advanced settings (JSON)
-  advanced_settings_json = jsonencode({
-    # Non-exhaustive list. Full list: https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings
-    "network.ingress.proxy_send_timeout_seconds" : 80,
-    "network.ingress.proxy_body_size_mb" : 200,
-  })
-
-  depends_on = [
-    qovery_environment.my_environment,
-    qovery_container_registry.my_container_registry
   ]
 }

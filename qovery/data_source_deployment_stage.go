@@ -46,39 +46,32 @@ func (d *deploymentStageDataSource) Configure(_ context.Context, req datasource.
 
 func (r deploymentStageDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "Use this data source to retrieve information about an existing Qovery deployment stage.",
-		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery deployment stage.",
+		MarkdownDescription: "Reads an existing Qovery deployment stage.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the deployment stage (UUID format).",
-				MarkdownDescription: "Unique identifier of the deployment stage (UUID format).",
+				MarkdownDescription: idDescription("deployment stage"),
 				Required:            true,
 			},
 			"environment_id": schema.StringAttribute{
-				Description:         "Identifier of the environment for this deployment stage.",
-				MarkdownDescription: "Identifier of the environment for this deployment stage.",
+				MarkdownDescription: environmentIDDescription,
 				Computed:            true,
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the deployment stage.",
-				MarkdownDescription: "Name of the deployment stage.",
+				MarkdownDescription: nameDescription("deployment stage"),
 				Computed:            true,
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the deployment stage.",
-				MarkdownDescription: "Description of the deployment stage.",
+				MarkdownDescription: descriptionDescription("deployment stage"),
 				Optional:            true,
 				Computed:            true,
 			},
 			"is_after": schema.StringAttribute{
-				Description:         "Identifier (UUID) of the deployment stage that this stage is positioned after.",
-				MarkdownDescription: "Identifier (UUID) of the deployment stage that this stage is positioned after.",
+				MarkdownDescription: deploymentStageIsAfterDescription + " The API does not return it, so this data source echoes the configured value.",
 				Optional:            true,
 				Computed:            true,
 			},
 			"is_before": schema.StringAttribute{
-				Description:         "Identifier (UUID) of the deployment stage that this stage is positioned before.",
-				MarkdownDescription: "Identifier (UUID) of the deployment stage that this stage is positioned before.",
+				MarkdownDescription: deploymentStageIsBeforeDescription + " The API does not return it, so this data source echoes the configured value.",
 				Optional:            true,
 				Computed:            true,
 			},
@@ -105,7 +98,8 @@ func (d deploymentStageDataSource) Read(ctx context.Context, req datasource.Read
 	newState := convertDomainDeploymentStageToDeploymentStage(deploymentStageDomain, data.Description)
 	tflog.Trace(ctx, "read deployment stage", map[string]any{"deployment_stage_id": data.Id.ValueString()})
 
-	// We need to keep the 'IsAfter' and 'IsBefore' properties
+	// is_after and is_before echo the configuration: they are write-only move instructions, and
+	// the API only returns the stage's deployment_order, not its neighbours.
 	newState = DeploymentStage{
 		Id:            newState.Id,
 		EnvironmentId: newState.EnvironmentId,

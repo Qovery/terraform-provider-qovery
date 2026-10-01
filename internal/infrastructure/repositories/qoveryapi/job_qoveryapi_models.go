@@ -271,7 +271,9 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 }
 
 // newQoveryJobRequestFromDomain takes the domain request job.UpsertRequest and turns it into a qovery.JobRequest to make the api call.
-func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery.JobRequest, error) {
+// cronTimezone is the timezone the cron job runs at in Qovery: nil on create, and the value read
+// from the API on update, because q-core resets an omitted timezone to Etc/UTC.
+func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest, cronTimezone *string) (*qovery.JobRequest, error) {
 	var docker *qovery.JobRequestAllOfSourceDocker = nil
 	if request.Source.Docker != nil {
 		provider, err := detectGitProviderFromURL(request.Source.Docker.GitRepository.Url)
@@ -332,6 +334,7 @@ func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest) (*qovery
 		scheduleCron = &qovery.JobRequestAllOfScheduleCronjob{
 			Arguments:   request.Schedule.CronJob.Command.Arguments,
 			Entrypoint:  request.Schedule.CronJob.Command.Entrypoint,
+			Timezone:    cronTimezone,
 			ScheduledAt: request.Schedule.CronJob.Schedule,
 		}
 	}

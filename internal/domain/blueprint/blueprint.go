@@ -76,16 +76,9 @@ type Blueprint struct {
 	ServiceID        *string
 	LatestDeployment *Dispatch
 	Variables        []Variable
-	ServiceStatus    *ServiceStatus
-}
-
-// LastApplyFailed reports whether the persisted settings may not be what runs.
-func (b Blueprint) LastApplyFailed() bool {
-	// A dispatch being canceled will not apply the saved settings, even though it has not settled yet
-	if b.LatestDeployment != nil && (b.LatestDeployment.Status.IsFailure() || b.LatestDeployment.Status == DispatchStatusCanceling) {
-		return true
-	}
-	return b.ServiceStatus != nil && strings.HasSuffix(b.ServiceStatus.State, "_ERROR")
+	// IconURI is the icon of the service the blueprint materialized, which holds it: the blueprint
+	// does not. Nil while there is no such service.
+	IconURI *string
 }
 
 // CatalogVersion is a blueprint major version in the catalog, e.g. AWS/postgres/17.

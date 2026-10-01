@@ -3,10 +3,12 @@
 [![Tests](https://github.com/qovery/terraform-provider-qovery/actions/workflows/tests.yml/badge.svg)](https://github.com/qovery/terraform-provider-qovery/actions/workflows/tests.yml)
 
 - Documentation: https://registry.terraform.io/providers/qovery/qovery/latest
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
+- Upgrading from 0.x: [1.0 upgrade guide](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/upgrade-to-1.0)
 
 ## Requirements
 
-- [Terraform](https://www.terraform.io/downloads.html) >= 1.0 (tested against Terraform 1.15)
+- [Terraform](https://www.terraform.io/downloads.html): tested against Terraform 1.15. Earlier versions are expected to work but are not tested.
 - [Go](https://golang.org/doc/install) >= 1.26 (to build the provider)
 - [Task](https://taskfile.dev) v3 (to run Taskfile commands)
 - [jq](https://stedolan.github.io/jq/download/) (to parse json from curl api calls)

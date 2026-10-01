@@ -9,7 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/registry"
-	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -47,45 +46,30 @@ func (d *containerRegistryDataSource) Configure(_ context.Context, req datasourc
 
 func (r containerRegistryDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "Use this data source to retrieve information about an existing Qovery container registry.",
-		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery container registry.",
+		MarkdownDescription: "Reads an existing Qovery container registry.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the container registry.",
-				MarkdownDescription: "Id of the container registry.",
+				MarkdownDescription: idDescription("container registry"),
 				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization.",
-				MarkdownDescription: "Id of the organization.",
+				MarkdownDescription: organizationIDDescription,
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the container registry.",
-				MarkdownDescription: "Name of the container registry.",
+				MarkdownDescription: nameDescription("container registry"),
 				Computed:            true,
 			},
 			"kind": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Kind of the container registry.",
-					registryKinds,
-					nil,
-				),
-				MarkdownDescription: descriptions.NewStringEnumDescription(
-					"Kind of the container registry.",
-					registryKinds,
-					nil,
-				),
-				Computed: true,
+				MarkdownDescription: registryKindDescription,
+				Computed:            true,
 			},
 			"url": schema.StringAttribute{
-				Description:         "URL of the container registry.",
-				MarkdownDescription: "URL of the container registry.",
+				MarkdownDescription: registryURLDescription,
 				Computed:            true,
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the container registry.",
-				MarkdownDescription: "Description of the container registry.",
+				MarkdownDescription: descriptionDescription("container registry"),
 				Optional:            true,
 				Computed:            true,
 			},

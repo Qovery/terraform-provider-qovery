@@ -1,41 +1,19 @@
 # qovery_git_token (Resource)
 
-Provides a Qovery git token resource. This can be used to create and manage Qovery git tokens for accessing private git repositories.
+Manages a Qovery git token: a token of a git provider that Qovery uses to access private repositories.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
 
 ```terraform
-# Example: GitHub personal access token
-resource "qovery_git_token" "github_token" {
+resource "qovery_git_token" "my_git_token" {
   organization_id = qovery_organization.my_organization.id
   name            = "my-github-token"
   type            = "GITHUB"
   token           = var.github_token
-  description     = "GitHub token for accessing private repositories"
-}
-
-# Example: GitLab token
-resource "qovery_git_token" "gitlab_token" {
-  organization_id = qovery_organization.my_organization.id
-  name            = "my-gitlab-token"
-  type            = "GITLAB"
-  token           = var.gitlab_token
-  description     = "GitLab token for CI/CD pipelines"
-}
-
-# Example: Bitbucket token (requires bitbucket_workspace)
-resource "qovery_git_token" "bitbucket_token" {
-  organization_id     = qovery_organization.my_organization.id
-  name                = "my-bitbucket-token"
-  type                = "BITBUCKET"
-  token               = var.bitbucket_token
-  description         = "Bitbucket token for workspace access"
-  bitbucket_workspace = "my-workspace"
+  description     = "Access to the private repositories of my-org"
 }
 ```
 
@@ -45,19 +23,19 @@ resource "qovery_git_token" "bitbucket_token" {
 ### Required
 
 - `name` (String) Name of the git token.
-- `organization_id` (String) Id of the organization. **Cannot be changed after creation** (forces resource replacement).
-- `token` (String, Sensitive) Value of the git token (personal access token or app token from the git provider). Sensitive.
-- `type` (String) Type of the git token.
+- `organization_id` (String) ID of the organization. Changing it recreates the git token.
+- `token` (String, Sensitive) Value of the token: a personal access token or an app token of the git provider.
+- `type` (String) Git provider of the token.
 	- Can be: `BITBUCKET`, `GITHUB`, `GITLAB`.
 
 ### Optional
 
-- `bitbucket_workspace` (String) Bitbucket workspace where the token has permissions. Required only when `type` is `BITBUCKET`.
+- `bitbucket_workspace` (String) Bitbucket workspace the token has access to. Required when `type` is `BITBUCKET`: omitting it fails at plan time.
 - `description` (String) Description of the git token.
 
 ### Read-Only
 
-- `id` (String) Id of the git token.
+- `id` (String) ID of the git token.
 ## Import
 ```shell
 # Import requires both the organization ID and git token ID, separated by a comma

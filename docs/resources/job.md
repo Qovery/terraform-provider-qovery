@@ -1,35 +1,20 @@
 # qovery_job (Resource)
 
-Provides a Qovery job resource. This can be used to create and manage Qovery jobs (cron jobs and lifecycle jobs).
+Manages a Qovery job: a cron job that runs on a schedule, or a lifecycle job that runs when its environment starts, stops or is deleted.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
 
 ```terraform
-# Example: Cron Job using a container image
-resource "qovery_job" "my_cron_job" {
-  # Required
+resource "qovery_job" "my_job" {
   environment_id = qovery_environment.my_environment.id
   name           = "my-cron-job"
 
-  # Optional
-  auto_preview         = true
-  auto_deploy          = true
-  cpu                  = 500
-  memory               = 512
-  ephemeral_storage    = 4
-  max_duration_seconds = 300
-  max_nb_restart       = 1
-  port                 = 5432
-
-  # Cron job schedule (runs every 2 minutes)
   schedule = {
     cronjob = {
-      schedule = "*/2 * * * *"
+      schedule = "0 3 * * *"
       command = {
         entrypoint = "/bin/sh"
         arguments  = ["-c", "echo 'Job completed'"]
@@ -37,7 +22,6 @@ resource "qovery_job" "my_cron_job" {
     }
   }
 
-  # Source: pre-built image from a container registry
   source = {
     image = {
       registry_id = qovery_container_registry.my_container_registry.id
@@ -47,112 +31,6 @@ resource "qovery_job" "my_cron_job" {
   }
 
   healthchecks = {}
-
-  environment_variables = [
-    {
-      key   = "MY_VARIABLE"
-      value = "my_value"
-    }
-  ]
-
-  # Environment variable files (mounted as files in the container)
-  environment_variable_files = [
-    {
-      key        = "APP_CONFIG"
-      value      = "config-content"
-      mount_path = "/etc/app/config.yaml"
-    }
-  ]
-
-  secrets = [
-    {
-      key   = "MY_SECRET"
-      value = "my_secret_value"
-    }
-  ]
-
-  # Secret files (mounted as files, value is encrypted)
-  secret_files = [
-    {
-      key        = "API_KEY"
-      value      = "secret-value"
-      mount_path = "/usr/local/secrets/api-key"
-    }
-  ]
-
-  advanced_settings_json = jsonencode({
-    # Non-exhaustive list. Full list: https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings
-    "deployment.termination_grace_period_seconds" : 120,
-    "build.timeout_max_sec" : 120
-  })
-
-  depends_on = [
-    qovery_environment.my_environment,
-  ]
-}
-
-# Example: Lifecycle Job using a Docker source (runs on environment start/stop/delete)
-resource "qovery_job" "my_lifecycle_job" {
-  # Required
-  environment_id = qovery_environment.my_environment.id
-  name           = "my-lifecycle-job"
-
-  # Optional
-  cpu                  = 1000
-  memory               = 1024
-  max_duration_seconds = 600
-  max_nb_restart       = 0
-
-  # Lifecycle schedule: triggers on environment events
-  schedule = {
-    on_start = {
-      entrypoint = "/bin/sh"
-      arguments  = ["-c", "echo 'Environment starting'"]
-    }
-    on_stop = {
-      entrypoint = "/bin/sh"
-      arguments  = ["-c", "echo 'Environment stopping'"]
-    }
-    on_delete = {
-      entrypoint = "/bin/sh"
-      arguments  = ["-c", "echo 'Environment deleting'"]
-    }
-  }
-
-  # Source: build from a Dockerfile in a git repository
-  source = {
-    docker = {
-      dockerfile_path = "Dockerfile"
-      git_repository = {
-        url       = "https://github.com/my-org/my-repo.git"
-        branch    = "main"
-        root_path = "/"
-        # git_token_id = qovery_git_token.my_git_token.id  # For private repos
-      }
-    }
-  }
-
-  healthchecks = {}
-
-  # Optional: control deployment order
-  # deployment_stage_id = qovery_deployment_stage.my_stage.id
-
-  # Optional: restrict deployments to specific file changes
-  deployment_restrictions = [
-    {
-      mode  = "MATCH"
-      type  = "PATH"
-      value = "src/jobs/**"
-    }
-  ]
-
-  # Optional: attach Kubernetes annotations and labels
-  # annotations_group_ids = [qovery_annotations_group.my_annotations.id]
-  # labels_group_ids      = [qovery_labels_group.my_labels.id]
-
-  depends_on = [
-    qovery_environment.my_environment,
-  ]
 }
 ```
 
@@ -164,93 +42,96 @@ You can find complete examples within these repositories:
 
 ### Required
 
-- `environment_id` (String) Id of the environment. Changing this forces the job to be re-created.
-- `healthchecks` (Attributes) Configuration for the healthchecks that are going to be executed against your service. At least one of `readiness_probe` or `liveness_probe` should be configured for production workloads. (see [below for nested schema](#nestedatt--healthchecks))
+- `environment_id` (String) ID of the environment. Changing it recreates the job.
+- `healthchecks` (Attributes) Readiness and liveness probes of the service. `healthchecks = {}` sets none; production workloads should set at least one. (see [below for nested schema](#nestedatt--healthchecks))
 - `name` (String) Name of the job.
-- `schedule` (Attributes) Job's schedule configuration. Use `on_start`, `on_stop`, and `on_delete` for lifecycle jobs, or `cronjob` for cron jobs. (see [below for nested schema](#nestedatt--schedule))
+- `schedule` (Attributes) Schedule of the job: a cron schedule, or the environment events that run it. Set either `cronjob`, or at least one of `on_start`, `on_stop` and `on_delete`. (see [below for nested schema](#nestedatt--schedule))
 
 ### Optional
 
-- `advanced_settings_json` (String) Advanced settings in JSON format. See the Qovery API documentation for the full list of available settings: https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings
-- `annotations_group_ids` (Set of String) List of annotations group IDs to associate with this job. Annotations groups are defined using the `qovery_annotations_group` resource.
-- `auto_deploy` (Boolean) Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.
-- `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this job.
-- `build_settings` (Attributes) Build configuration settings for the service. When set, all six properties are sent to the API — omitted properties use their defaults. Removing the block resets the build settings to their defaults. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both. Those keys remain supported when this block is not set. (see [below for nested schema](#nestedatt--build_settings))
-- `cpu` (Number) CPU of the job in millicores (m) [1000m = 1 CPU].
+- `advanced_settings_json` (String) Advanced settings to override, as a JSON string built with `jsonencode()`. The [Qovery API documentation](https://api-doc.qovery.com/#tag/Jobs/operation/getDefaultJobAdvancedSettings) lists them with their defaults. Terraform manages only the keys you set, and removing a key keeps its current value: see [Advanced settings](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes#advanced-settings).
+- `annotations_group_ids` (Set of String) IDs of the annotations groups applied to the job's pods. Omitting it detaches every annotations group.
+- `auto_deploy` (Boolean) Whether Qovery redeploys the job on every new commit to its branch, or on every new image tag for an `image` source.
+	- Default: `true`.
+- `auto_preview` (Boolean) Whether Qovery creates a preview environment with the job for each pull request.
+	- Default: `false`.
+- `build_settings` (Attributes) Build limits and options of the service. Terraform manages them only while the block is set: omitted settings plan their default, and removing the block resets them all. It conflicts with `build.*` keys in `advanced_settings_json`. (see [below for nested schema](#nestedatt--build_settings))
+- `cpu` (Number) CPU of the job, in millicores (1000 = 1 vCPU).
 	- Must be: `>= 10`.
 	- Default: `500`.
-- `deployment_restrictions` (Attributes Set) List of deployment restrictions. Deployment restrictions allow you to control which changes trigger a deployment based on file path patterns. (see [below for nested schema](#nestedatt--deployment_restrictions))
-- `deployment_stage_id` (String) Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.
-- `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this job. (see [below for nested schema](#nestedatt--environment_variable_aliases))
-- `environment_variable_files` (Attributes Set) List of environment variable files linked to this job. (see [below for nested schema](#nestedatt--environment_variable_files))
-- `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this job. (see [below for nested schema](#nestedatt--environment_variable_overrides))
-- `environment_variables` (Attributes Set) List of environment variables linked to this job. (see [below for nested schema](#nestedatt--environment_variables))
-- `ephemeral_storage` (Number) Ephemeral storage of the job in GiB. When unset, the platform default is used.
-- `external_secret_files` (Attributes Set) List of external secret files linked to this job. External secret files reference upstream secrets (e.g. from AWS Secrets Manager) and are mounted as files at a given path inside the container. (see [below for nested schema](#nestedatt--external_secret_files))
-- `external_secrets` (Attributes Set) List of external secrets linked to this job. External secrets reference upstream secrets (e.g. from AWS Secrets Manager) via a secret manager access configuration. (see [below for nested schema](#nestedatt--external_secrets))
-- `icon_uri` (String) Icon URI representing the job.
-- `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
-- `labels_group_ids` (Set of String) List of labels group IDs to associate with this job. Labels groups are defined using the `qovery_labels_group` resource.
-- `max_duration_seconds` (Number) Job's max duration in seconds.
+- `deployment_restrictions` (Attributes Set) Deployment restrictions of the job: a new commit deploys it only if the files it changes pass them. (see [below for nested schema](#nestedatt--deployment_restrictions))
+- `deployment_stage_id` (String) ID of the deployment stage of the service. Stages set the order in which the services of an environment deploy. Removing it keeps the service in its current stage, because Qovery cannot detach a service from its stage.
+- `environment_variable_aliases` (Attributes Set) Environment variable aliases of the job. An alias gives an existing variable another name. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variable_files` (Attributes Set) Environment variable files of the job, each mounted as a file. (see [below for nested schema](#nestedatt--environment_variable_files))
+- `environment_variable_overrides` (Attributes Set) Environment variable overrides of the job. An override replaces the value of a variable inherited from a broader scope. (see [below for nested schema](#nestedatt--environment_variable_overrides))
+- `environment_variables` (Attributes Set) Environment variables of the job. (see [below for nested schema](#nestedatt--environment_variables))
+- `ephemeral_storage` (Number) Ephemeral storage of the job, in GiB. `0` sets none, so the platform default applies.
+	- Default: `0`.
+- `external_secret_files` (Attributes Set) External secret files of the job, read from an external secret manager and mounted as files. (see [below for nested schema](#nestedatt--external_secret_files))
+- `external_secrets` (Attributes Set) External secrets of the job, read from an external secret manager such as AWS Secrets Manager. (see [below for nested schema](#nestedatt--external_secrets))
+- `icon_uri` (String) Icon of the job in the Qovery Console.
+	- Default: `app://qovery-console/cron-job` for a cron job, `app://qovery-console/lifecycle-job` for a lifecycle job.
+- `is_skipped` (Boolean) Whether environment-wide deployments skip the service. It stays in its deployment stage.
+	- Default: `false`.
+- `labels_group_ids` (Set of String) IDs of the labels groups applied to the job's pods. Omitting it detaches every labels group.
+- `max_duration_seconds` (Number) Maximum run time of the job, in seconds: a job that runs longer is stopped and marked failed.
 	- Must be: `>= 0`.
 	- Default: `300`.
-- `max_nb_restart` (Number) Job's max number of restarts.
+- `max_nb_restart` (Number) Number of restarts allowed before the job is marked failed. `0` allows none.
 	- Must be: `>= 0`.
 	- Default: `0`.
-- `memory` (Number) RAM of the job in MB [1024MB = 1GB].
+- `memory` (Number) Memory of the job, in MB.
 	- Must be: `>= 1`.
 	- Default: `512`.
-- `port` (Number) Job's probes port.
+- `port` (Number) Port the health checks probe. It is not exposed outside the cluster.
 	- Must be: `>= 1` and `<= 65535`.
-- `secret_aliases` (Attributes Set) List of secret aliases linked to this job. (see [below for nested schema](#nestedatt--secret_aliases))
-- `secret_files` (Attributes Set) List of secret files linked to this job. (see [below for nested schema](#nestedatt--secret_files))
-- `secret_overrides` (Attributes Set) List of secret overrides linked to this job. (see [below for nested schema](#nestedatt--secret_overrides))
-- `secrets` (Attributes Set) List of secrets linked to this job. (see [below for nested schema](#nestedatt--secrets))
-- `source` (Attributes) Job's source configuration. Use `image` to deploy from a container registry, or `docker` to build from a Dockerfile in a git repository. (see [below for nested schema](#nestedatt--source))
+- `secret_aliases` (Attributes Set) Secret aliases of the job. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secret_files` (Attributes Set) Secret files of the job, each mounted as a file. (see [below for nested schema](#nestedatt--secret_files))
+- `secret_overrides` (Attributes Set) Secret overrides of the job. An override replaces the value of a secret inherited from a broader scope. (see [below for nested schema](#nestedatt--secret_overrides))
+- `secrets` (Attributes Set) Secrets of the job. (see [below for nested schema](#nestedatt--secrets))
+- `source` (Attributes) Source of the job image: an image from a container registry, or a Dockerfile to build. Set exactly one of `image` and `docker`. (see [below for nested schema](#nestedatt--source))
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this job. (see [below for nested schema](#nestedatt--built_in_environment_variables))
-- `external_host` (String) The job external FQDN host [NOTE: only if your job is using a publicly accessible port].
-- `id` (String) Id of the job.
-- `internal_host` (String) The job internal host.
+- `built_in_environment_variables` (Attributes List) Environment variables Qovery defines for the job. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `id` (String) ID of the job.
 
 <a id="nestedatt--healthchecks"></a>
 ### Nested Schema for `healthchecks`
 
 Optional:
 
-- `liveness_probe` (Attributes) Configuration for the liveness probe, used to determine when your service is working correctly. If the liveness probe fails, the service container is killed and restarted. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe))
-- `readiness_probe` (Attributes) Configuration for the readiness probe, used to determine when your service is ready to receive traffic. If the readiness probe fails, the service is temporarily removed from the load balancer until it passes again. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe))
+- `liveness_probe` (Attributes) Probe that decides whether the service works: when it fails, the container restarts. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe))
+- `readiness_probe` (Attributes) Probe that decides when the service receives traffic: while it fails, the service is out of the load balancer. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe))
 
 <a id="nestedatt--healthchecks--liveness_probe"></a>
 ### Nested Schema for `healthchecks.liveness_probe`
 
 Required:
 
-- `failure_threshold` (Number) Number of consecutive failures required to declare the probe as failed.
-- `initial_delay_seconds` (Number) Number of seconds to wait after the container starts before the first probe is executed. Use this to give your application time to initialize.
-- `period_seconds` (Number) How often (in seconds) to perform the probe after the initial delay.
-- `success_threshold` (Number) Minimum consecutive successes for the probe to be considered successful after a failure.
-- `timeout_seconds` (Number) Number of seconds after which the probe times out. If the probe does not respond within this time, it is considered failed.
-- `type` (Attributes) Kind of check to run for this probe. Exactly one of `tcp`, `http`, `grpc`, or `exec` must be configured. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type))
+- `failure_threshold` (Number) Consecutive failures for the probe to fail.
+- `initial_delay_seconds` (Number) Seconds to wait after the container starts before the first probe.
+- `period_seconds` (Number) Seconds between two probes.
+- `success_threshold` (Number) Consecutive successes after a failure for the probe to pass.
+- `timeout_seconds` (Number) Seconds after which a probe that has not answered fails.
+- `type` (Attributes) Check the probe runs: set exactly one of `tcp`, `http`, `grpc` and `exec`. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type))
 
 <a id="nestedatt--healthchecks--liveness_probe--type"></a>
 ### Nested Schema for `healthchecks.liveness_probe.type`
 
 Optional:
 
-- `exec` (Attributes) Exec probe: runs a command inside the container. The probe succeeds if the command exits with status code 0. The command binary must be present in the container image. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--exec))
-- `grpc` (Attributes) gRPC probe: checks that the given port responds to gRPC health check requests. The service must implement the [gRPC Health Checking Protocol](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe). (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--grpc))
-- `http` (Attributes) HTTP probe: sends an HTTP GET request and expects a 2xx response code. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--http))
-- `tcp` (Attributes) TCP probe: checks that a TCP connection can be established on the given port. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--tcp))
+- `exec` (Attributes) Runs a command in the container, and passes when it exits with `0`. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--exec))
+- `grpc` (Attributes) Calls the [gRPC health checking protocol](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe) on `port`. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--grpc))
+- `http` (Attributes) Sends an HTTP GET request to `port` and passes on a status code from 200 to 399. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--http))
+- `tcp` (Attributes) Opens a TCP connection to `port`. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe--type--tcp))
 
 <a id="nestedatt--healthchecks--liveness_probe--type--exec"></a>
 ### Nested Schema for `healthchecks.liveness_probe.type.exec`
 
 Required:
 
-- `command` (List of String) The command and its arguments to execute (e.g. `["cat", "/tmp/healthy"]`).
+- `command` (List of String) Command and its arguments, for example `["cat", "/tmp/healthy"]`.
 
 
 <a id="nestedatt--healthchecks--liveness_probe--type--grpc"></a>
@@ -258,11 +139,11 @@ Required:
 
 Required:
 
-- `port` (Number) The port number to try to connect to.
+- `port` (Number) Port to check.
 
 Optional:
 
-- `service` (String) The gRPC service name to health-check. If not specified, the overall server health is checked.
+- `service` (String) gRPC service to check. Defaults to the health of the whole server.
 
 
 <a id="nestedatt--healthchecks--liveness_probe--type--http"></a>
@@ -270,12 +151,12 @@ Optional:
 
 Required:
 
-- `port` (Number) The port number to try to connect to.
-- `scheme` (String) Scheme to use for the HTTP request. Must be `HTTP` or `HTTPS`.
+- `port` (Number) Port to check.
+- `scheme` (String) Scheme of the request: `HTTP` or `HTTPS`.
 
 Optional:
 
-- `path` (String) The path for the HTTP GET request (e.g. `/health`, `/ready`). Defaults to `/`.
+- `path` (String) Path of the request, for example `/health`. Defaults to `/`.
 
 
 <a id="nestedatt--healthchecks--liveness_probe--type--tcp"></a>
@@ -283,11 +164,11 @@ Optional:
 
 Required:
 
-- `port` (Number) The port number to try to connect to.
+- `port` (Number) Port to check.
 
 Optional:
 
-- `host` (String) Optional host to connect to. Defaults to the pod IP if not specified.
+- `host` (String) Host to connect to. Defaults to the pod IP.
 
 
 
@@ -297,29 +178,29 @@ Optional:
 
 Required:
 
-- `failure_threshold` (Number) Number of consecutive failures required to declare the probe as failed.
-- `initial_delay_seconds` (Number) Number of seconds to wait after the container starts before the first probe is executed. Use this to give your application time to initialize.
-- `period_seconds` (Number) How often (in seconds) to perform the probe after the initial delay.
-- `success_threshold` (Number) Minimum consecutive successes for the probe to be considered successful after a failure.
-- `timeout_seconds` (Number) Number of seconds after which the probe times out. If the probe does not respond within this time, it is considered failed.
-- `type` (Attributes) Kind of check to run for this probe. Exactly one of `tcp`, `http`, `grpc`, or `exec` must be configured. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type))
+- `failure_threshold` (Number) Consecutive failures for the probe to fail.
+- `initial_delay_seconds` (Number) Seconds to wait after the container starts before the first probe.
+- `period_seconds` (Number) Seconds between two probes.
+- `success_threshold` (Number) Consecutive successes after a failure for the probe to pass.
+- `timeout_seconds` (Number) Seconds after which a probe that has not answered fails.
+- `type` (Attributes) Check the probe runs: set exactly one of `tcp`, `http`, `grpc` and `exec`. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type))
 
 <a id="nestedatt--healthchecks--readiness_probe--type"></a>
 ### Nested Schema for `healthchecks.readiness_probe.type`
 
 Optional:
 
-- `exec` (Attributes) Exec probe: runs a command inside the container. The probe succeeds if the command exits with status code 0. The command binary must be present in the container image. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--exec))
-- `grpc` (Attributes) gRPC probe: checks that the given port responds to gRPC health check requests. The service must implement the [gRPC Health Checking Protocol](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe). (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--grpc))
-- `http` (Attributes) HTTP probe: sends an HTTP GET request and expects a 2xx response code. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--http))
-- `tcp` (Attributes) TCP probe: checks that a TCP connection can be established on the given port. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--tcp))
+- `exec` (Attributes) Runs a command in the container, and passes when it exits with `0`. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--exec))
+- `grpc` (Attributes) Calls the [gRPC health checking protocol](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe) on `port`. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--grpc))
+- `http` (Attributes) Sends an HTTP GET request to `port` and passes on a status code from 200 to 399. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--http))
+- `tcp` (Attributes) Opens a TCP connection to `port`. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe--type--tcp))
 
 <a id="nestedatt--healthchecks--readiness_probe--type--exec"></a>
 ### Nested Schema for `healthchecks.readiness_probe.type.exec`
 
 Required:
 
-- `command` (List of String) The command and its arguments to execute (e.g. `["cat", "/tmp/healthy"]`).
+- `command` (List of String) Command and its arguments, for example `["cat", "/tmp/healthy"]`.
 
 
 <a id="nestedatt--healthchecks--readiness_probe--type--grpc"></a>
@@ -327,11 +208,11 @@ Required:
 
 Required:
 
-- `port` (Number) The port number to try to connect to.
+- `port` (Number) Port to check.
 
 Optional:
 
-- `service` (String) The gRPC service name to health-check. If not specified, the overall server health is checked.
+- `service` (String) gRPC service to check. Defaults to the health of the whole server.
 
 
 <a id="nestedatt--healthchecks--readiness_probe--type--http"></a>
@@ -339,12 +220,12 @@ Optional:
 
 Required:
 
-- `port` (Number) The port number to try to connect to.
-- `scheme` (String) Scheme to use for the HTTP request. Must be `HTTP` or `HTTPS`.
+- `port` (Number) Port to check.
+- `scheme` (String) Scheme of the request: `HTTP` or `HTTPS`.
 
 Optional:
 
-- `path` (String) The path for the HTTP GET request (e.g. `/health`, `/ready`). Defaults to `/`.
+- `path` (String) Path of the request, for example `/health`. Defaults to `/`.
 
 
 <a id="nestedatt--healthchecks--readiness_probe--type--tcp"></a>
@@ -352,11 +233,11 @@ Optional:
 
 Required:
 
-- `port` (Number) The port number to try to connect to.
+- `port` (Number) Port to check.
 
 Optional:
 
-- `host` (String) Optional host to connect to. Defaults to the pod IP if not specified.
+- `host` (String) Host to connect to. Defaults to the pod IP.
 
 
 
@@ -367,28 +248,29 @@ Optional:
 
 Optional:
 
-- `cronjob` (Attributes) Cron job configuration. Use this to run the job on a recurring schedule. (see [below for nested schema](#nestedatt--schedule--cronjob))
-- `lifecycle_type` (String) Type of the lifecycle job.
+- `cronjob` (Attributes) Cron job settings: the job runs `command` on `schedule`. (see [below for nested schema](#nestedatt--schedule--cronjob))
+- `lifecycle_type` (String) Type of the lifecycle job. A cron job has none. It can only be set at creation: changing it fails at plan time.
 	- Can be: `CLOUDFORMATION`, `GENERIC`, `TERRAFORM`.
-- `on_delete` (Attributes) Lifecycle job event: executed when the environment is deleted. Define the entrypoint and arguments for this event. (see [below for nested schema](#nestedatt--schedule--on_delete))
-- `on_start` (Attributes) Lifecycle job event: executed when the environment starts. Define the entrypoint and arguments for this event. (see [below for nested schema](#nestedatt--schedule--on_start))
-- `on_stop` (Attributes) Lifecycle job event: executed when the environment stops. Define the entrypoint and arguments for this event. (see [below for nested schema](#nestedatt--schedule--on_stop))
+	- Default: `GENERIC` for a lifecycle job, none for a cron job.
+- `on_delete` (Attributes) Command the lifecycle job runs when the environment is deleted. (see [below for nested schema](#nestedatt--schedule--on_delete))
+- `on_start` (Attributes) Command the lifecycle job runs when the environment starts. (see [below for nested schema](#nestedatt--schedule--on_start))
+- `on_stop` (Attributes) Command the lifecycle job runs when the environment stops. (see [below for nested schema](#nestedatt--schedule--on_stop))
 
 <a id="nestedatt--schedule--cronjob"></a>
 ### Nested Schema for `schedule.cronjob`
 
 Required:
 
-- `command` (Attributes) Command to execute when the cron job triggers. (see [below for nested schema](#nestedatt--schedule--cronjob--command))
-- `schedule` (String) Cron expression defining the job schedule (5-field format, e.g. `*/5 * * * *` for every 5 minutes). See https://crontab.guru/ for help.
+- `command` (Attributes) Command the cron job runs. (see [below for nested schema](#nestedatt--schedule--cronjob--command))
+- `schedule` (String) Cron expression of the schedule, for example `*/5 * * * *` for every 5 minutes.
 
 <a id="nestedatt--schedule--cronjob--command"></a>
 ### Nested Schema for `schedule.cronjob.command`
 
 Optional:
 
-- `arguments` (List of String) List of arguments passed to the entrypoint.
-- `entrypoint` (String) Entrypoint of the job (e.g. the command to execute).
+- `arguments` (List of String) Arguments that replace the `CMD` of the image. Omitting it sets none.
+- `entrypoint` (String) Command that replaces the `ENTRYPOINT` of the image.
 
 
 
@@ -397,8 +279,8 @@ Optional:
 
 Optional:
 
-- `arguments` (List of String) List of arguments passed to the entrypoint.
-- `entrypoint` (String) Entrypoint of the job (e.g. the command to execute).
+- `arguments` (List of String) Arguments that replace the `CMD` of the image. Omitting it sets none.
+- `entrypoint` (String) Command that replaces the `ENTRYPOINT` of the image.
 
 
 <a id="nestedatt--schedule--on_start"></a>
@@ -406,8 +288,8 @@ Optional:
 
 Optional:
 
-- `arguments` (List of String) List of arguments passed to the entrypoint.
-- `entrypoint` (String) Entrypoint of the job (e.g. the command to execute).
+- `arguments` (List of String) Arguments that replace the `CMD` of the image. Omitting it sets none.
+- `entrypoint` (String) Command that replaces the `ENTRYPOINT` of the image.
 
 
 <a id="nestedatt--schedule--on_stop"></a>
@@ -415,8 +297,8 @@ Optional:
 
 Optional:
 
-- `arguments` (List of String) List of arguments passed to the entrypoint.
-- `entrypoint` (String) Entrypoint of the job (e.g. the command to execute).
+- `arguments` (List of String) Arguments that replace the `CMD` of the image. Omitting it sets none.
+- `entrypoint` (String) Command that replaces the `ENTRYPOINT` of the image.
 
 
 
@@ -425,12 +307,17 @@ Optional:
 
 Optional:
 
-- `cpu_max_in_milli` (Number) Maximum CPU resources for the build in millicores. Default: 4000.
-- `disable_buildkit_cache` (Boolean) Disable buildkit registry cache during build. Default: false.
-- `ephemeral_storage_in_gib` (Number) Ephemeral storage for the build in GiB. When not set, the platform default is used.
-- `ram_max_in_gib` (Number) Maximum RAM resources for the build in GiB. Default: 8.
-- `skip_git_submodules` (Boolean) Skip git submodules update when cloning the repository. Default: false.
-- `timeout_max_sec` (Number) Maximum build timeout in seconds. Default: 1800.
+- `cpu_max_in_milli` (Number) Maximum CPU of a build, in millicores (1000 = 1 vCPU).
+	- Default: `4000`.
+- `disable_buildkit_cache` (Boolean) Whether builds skip the BuildKit registry cache.
+	- Default: `false`.
+- `ephemeral_storage_in_gib` (Number) Ephemeral storage of a build, in GiB. Omitting it uses the platform default.
+- `ram_max_in_gib` (Number) Maximum memory of a build, in GiB.
+	- Default: `8`.
+- `skip_git_submodules` (Boolean) Whether builds skip the update of the git submodules.
+	- Default: `false`.
+- `timeout_max_sec` (Number) Maximum duration of a build, in seconds.
+	- Default: `1800`.
 
 
 <a id="nestedatt--deployment_restrictions"></a>
@@ -438,15 +325,13 @@ Optional:
 
 Required:
 
-- `mode` (String) Deployment restriction mode.
-	- Can be: `EXCLUDE`, `MATCH`.
-- `type` (String) Deployment restriction type.
-	- Can be: `PATH`.
-- `value` (String) Value of the deployment restriction (e.g. a file path pattern like `src/backend/**`).
+- `mode` (String) `MATCH` deploys only when a changed file matches `value`; `EXCLUDE` ignores the changed files that match it.
+- `type` (String) Type of the restriction. Only `PATH` is supported.
+- `value` (String) Path the changed files are compared with, for example `src/`.
 
 Read-Only:
 
-- `id` (String) Id of the deployment restriction.
+- `id` (String) ID of the deployment restriction.
 
 
 <a id="nestedatt--environment_variable_aliases"></a>
@@ -454,16 +339,16 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the environment variable alias.
+- `key` (String) Name of the alias.
 - `value` (String) Name of the variable to alias.
 
 Optional:
 
-- `description` (String) Description of the environment variable alias.
+- `description` (String) Description of the alias.
 
 Read-Only:
 
-- `id` (String) Id of the environment variable alias.
+- `id` (String) ID of the alias.
 
 
 <a id="nestedatt--environment_variable_files"></a>
@@ -471,17 +356,17 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the environment variable file.
-- `mount_path` (String) Mount path of the environment variable file.
-- `value` (String) Value of the environment variable file.
+- `key` (String) Name of the variable.
+- `mount_path` (String) Path where the file is mounted.
+- `value` (String) Content of the file.
 
 Optional:
 
-- `description` (String) Description of the environment variable file.
+- `description` (String) Description of the variable.
 
 Read-Only:
 
-- `id` (String) Id of the environment variable file.
+- `id` (String) ID of the variable.
 
 
 <a id="nestedatt--environment_variable_overrides"></a>
@@ -489,16 +374,16 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the environment variable override.
-- `value` (String) Value of the environment variable override.
+- `key` (String) Name of the variable to override.
+- `value` (String) Value that replaces the inherited one.
 
 Optional:
 
-- `description` (String) Description of the environment variable override.
+- `description` (String) Description of the override.
 
 Read-Only:
 
-- `id` (String) Id of the environment variable override.
+- `id` (String) ID of the override.
 
 
 <a id="nestedatt--environment_variables"></a>
@@ -506,7 +391,7 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the environment variable.
+- `key` (String) Name of the environment variable.
 - `value` (String) Value of the environment variable.
 
 Optional:
@@ -515,7 +400,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the environment variable.
+- `id` (String) ID of the environment variable.
 
 
 <a id="nestedatt--external_secret_files"></a>
@@ -524,9 +409,9 @@ Read-Only:
 Required:
 
 - `key` (String) Name of the external secret file.
-- `mount_path` (String) Absolute path where the secret file will be mounted inside the container.
-- `reference` (String) Reference to the upstream secret (e.g. the secret name or ARN in AWS Secrets Manager).
-- `secret_manager_access_id` (String) Id of the secret manager access to use for this external secret file.
+- `mount_path` (String) Absolute path where the file is mounted.
+- `reference` (String) Reference of the secret in the secret manager, such as its name or ARN.
+- `secret_manager_access_id` (String) ID of the cluster's secret manager access that reads the secret.
 
 Optional:
 
@@ -534,7 +419,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the external secret file.
+- `id` (String) ID of the external secret file.
 
 
 <a id="nestedatt--external_secrets"></a>
@@ -543,8 +428,8 @@ Read-Only:
 Required:
 
 - `key` (String) Name of the external secret.
-- `reference` (String) Reference to the upstream secret (e.g. the secret name or ARN in AWS Secrets Manager).
-- `secret_manager_access_id` (String) Id of the secret manager access to use for this external secret.
+- `reference` (String) Reference of the secret in the secret manager, such as its name or ARN.
+- `secret_manager_access_id` (String) ID of the cluster's secret manager access that reads the secret.
 
 Optional:
 
@@ -552,7 +437,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the external secret.
+- `id` (String) ID of the external secret.
 
 
 <a id="nestedatt--secret_aliases"></a>
@@ -560,16 +445,16 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the secret alias.
+- `key` (String) Name of the alias.
 - `value` (String) Name of the secret to alias.
 
 Optional:
 
-- `description` (String) Description of the secret alias.
+- `description` (String) Description of the alias.
 
 Read-Only:
 
-- `id` (String) Id of the secret alias.
+- `id` (String) ID of the alias.
 
 
 <a id="nestedatt--secret_files"></a>
@@ -577,17 +462,17 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the secret file.
-- `mount_path` (String) Mount path of the secret file.
-- `value` (String, Sensitive) Value of the secret file.
+- `key` (String) Name of the secret.
+- `mount_path` (String) Path where the file is mounted.
+- `value` (String, Sensitive) Content of the file.
 
 Optional:
 
-- `description` (String) Description of the secret file.
+- `description` (String) Description of the secret.
 
 Read-Only:
 
-- `id` (String) Id of the secret file.
+- `id` (String) ID of the secret.
 
 
 <a id="nestedatt--secret_overrides"></a>
@@ -595,16 +480,16 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the secret override.
-- `value` (String, Sensitive) Value of the secret override.
+- `key` (String) Name of the secret to override.
+- `value` (String, Sensitive) Value that replaces the inherited one.
 
 Optional:
 
-- `description` (String) Description of the secret override.
+- `description` (String) Description of the override.
 
 Read-Only:
 
-- `id` (String) Id of the secret override.
+- `id` (String) ID of the override.
 
 
 <a id="nestedatt--secrets"></a>
@@ -612,7 +497,7 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the secret.
+- `key` (String) Name of the secret.
 - `value` (String, Sensitive) Value of the secret.
 
 Optional:
@@ -621,7 +506,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the secret.
+- `id` (String) ID of the secret.
 
 
 <a id="nestedatt--source"></a>
@@ -629,34 +514,35 @@ Read-Only:
 
 Optional:
 
-- `docker` (Attributes) Job's Docker source. Use this to build the job image from a Dockerfile in a git repository. (see [below for nested schema](#nestedatt--source--docker))
-- `image` (Attributes) Job's image source. Use this to deploy a pre-built image from a container registry. (see [below for nested schema](#nestedatt--source--image))
+- `docker` (Attributes) Image Qovery builds from a Dockerfile in a git repository. (see [below for nested schema](#nestedatt--source--docker))
+- `image` (Attributes) Prebuilt image from a container registry. (see [below for nested schema](#nestedatt--source--image))
 
 <a id="nestedatt--source--docker"></a>
 ### Nested Schema for `source.docker`
 
 Required:
 
-- `git_repository` (Attributes) Git repository containing the Dockerfile for the job. (see [below for nested schema](#nestedatt--source--docker--git_repository))
+- `git_repository` (Attributes) Git repository the job is built from. (see [below for nested schema](#nestedatt--source--docker--git_repository))
 
 Optional:
 
-- `docker_target_build_stage` (String) Target build stage in a multi-stage Dockerfile (e.g. `production` or `builder`).
-- `dockerfile_path` (String) Path to the Dockerfile relative to the git repository root path (e.g. `Dockerfile` or `build/Dockerfile`).
-- `dockerfile_raw` (String) Inline Dockerfile content to inject for building the image. Use this instead of `dockerfile_path` to define the Dockerfile directly in Terraform.
+- `docker_target_build_stage` (String) Stage of a multi-stage Dockerfile to build.
+- `dockerfile_path` (String) Path of the Dockerfile, relative to `root_path`, for example `Dockerfile`.
+- `dockerfile_raw` (String) Content of the Dockerfile, for a Dockerfile that is not in the repository.
 
 <a id="nestedatt--source--docker--git_repository"></a>
 ### Nested Schema for `source.docker.git_repository`
 
 Required:
 
-- `branch` (String) Git branch to use for the Docker source.
-- `url` (String) Git repository URL (e.g. `https://github.com/org/repo.git`).
+- `branch` (String) Branch to build.
+- `url` (String) URL of the git repository, for example `https://github.com/my-org/my-app.git`.
 
 Optional:
 
-- `git_token_id` (String) Git token ID for accessing a private repository (refers to a `qovery_git_token` resource).
-- `root_path` (String) Root path in the git repository where the Dockerfile is located.
+- `git_token_id` (String) ID of the `qovery_git_token` used to access a private repository.
+- `root_path` (String) Directory of the repository to build from, for monorepos. Use `/`, not an empty string, for the repository root.
+	- Default: `/`.
 
 
 
@@ -665,9 +551,9 @@ Optional:
 
 Required:
 
-- `name` (String) Job's image source name.
-- `registry_id` (String) Job's image source registry ID (refers to a `qovery_container_registry` resource).
-- `tag` (String) Job's image source tag.
+- `name` (String) Name of the image, without the tag, for example `nginx` or `my-org/my-app`.
+- `registry_id` (String) ID of the `qovery_container_registry` the image is pulled from.
+- `tag` (String) Tag of the image, for example `v1.2.3`.
 
 
 
@@ -677,8 +563,8 @@ Required:
 Read-Only:
 
 - `description` (String) Description of the environment variable.
-- `id` (String) Id of the environment variable.
-- `key` (String) Key of the environment variable.
+- `id` (String) ID of the environment variable.
+- `key` (String) Name of the environment variable.
 - `value` (String) Value of the environment variable.
 ## Import
 ```shell

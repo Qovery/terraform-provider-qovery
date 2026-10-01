@@ -19,7 +19,27 @@ func newDomainRegistryFromQovery(v *qovery.ContainerRegistryResponse, organizati
 		Kind:           string(v.GetKind()),
 		URL:            v.GetUrl(),
 		Description:    v.Description,
+		Config:         newDomainRegistryConfigFromQovery(v.Config),
 	})
+}
+
+// newDomainRegistryConfigFromQovery keeps the keys of the response config that the provider manages.
+func newDomainRegistryConfigFromQovery(config *qovery.ContainerRegistryResponseAllOfConfig) registry.Config {
+	if config == nil {
+		return registry.Config{}
+	}
+	return registry.Config{
+		AccessKeyID:                      config.AccessKeyId,
+		Region:                           config.Region,
+		ScalewayAccessKey:                config.ScalewayAccessKey,
+		ScalewayProjectID:                config.ScalewayProjectId,
+		GcpCredentialsType:               config.GcpCredentialsType,
+		ProjectID:                        config.ProjectId,
+		ServiceAccountEmail:              config.ServiceAccountEmail,
+		WorkloadIdentityProviderResource: config.WorkloadIdentityProviderResource,
+		TokenLifetimeSeconds:             config.TokenLifetimeSeconds,
+		Username:                         config.Username,
+	}
 }
 
 // newQoveryContainerRegistryRequestFromDomain takes the domain request registry.UpsertRequest and turns it into a qovery.ContainerRegistryRequest to make the api call.

@@ -85,12 +85,27 @@ func (s blueprintService) Get(ctx context.Context, blueprintID string) (*bluepri
 		return nil, errors.Wrap(err, blueprint.ErrFailedToGetBlueprint.Error())
 	}
 	if bp.ServiceID != nil {
-		bp.ServiceStatus, err = s.blueprintRepository.GetServiceStatus(ctx, bp.EnvironmentID.String(), bp.ServiceType, *bp.ServiceID)
+		bp.IconURI, err = s.blueprintRepository.GetServiceIconURI(ctx, bp.ServiceType, *bp.ServiceID)
 		if err != nil {
 			return nil, errors.Wrap(err, blueprint.ErrFailedToGetBlueprint.Error())
 		}
 	}
 	return bp, nil
+}
+
+func (s blueprintService) GetVariableDefaults(ctx context.Context, environmentID string, version blueprint.CatalogVersion) (map[string]string, error) {
+	if err := validateUUIDParam(environmentID, blueprint.ErrInvalidEnvironmentIDParam); err != nil {
+		return nil, errors.Wrap(err, blueprint.ErrFailedToGetDefaults.Error())
+	}
+	organizationID, err := s.blueprintRepository.GetOrganizationID(ctx, environmentID)
+	if err != nil {
+		return nil, errors.Wrap(err, blueprint.ErrFailedToGetDefaults.Error())
+	}
+	defaults, err := s.blueprintRepository.GetVariableDefaults(ctx, organizationID, environmentID, version)
+	if err != nil {
+		return nil, errors.Wrap(err, blueprint.ErrFailedToGetDefaults.Error())
+	}
+	return defaults, nil
 }
 
 func (s blueprintService) ResolveLatestTag(ctx context.Context, environmentID string, version blueprint.CatalogVersion) (string, error) {
@@ -247,8 +262,6 @@ func (s blueprintService) serviceDeployedFunc(bp *blueprint.Blueprint) waitFunc 
 		if err != nil {
 			return false, err
 		}
-		// Callers read LastApplyFailed off the returned blueprint, so it must see this status
-		bp.ServiceStatus = serviceStatus
 		if serviceStatus == nil || serviceStatus.LastDeploymentDate == nil || !serviceStatus.LastDeploymentDate.After(dispatchStartedAt) {
 			return false, nil
 		}

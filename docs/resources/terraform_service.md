@@ -1,93 +1,47 @@
 # qovery_terraform_service (Resource)
 
-Provides a Qovery Terraform service resource. This can be used to create and manage Qovery terraform services.
+Manages a Qovery Terraform service: Terraform or OpenTofu code from a git repository that Qovery plans and applies in its environment.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
 
 ```terraform
 resource "qovery_terraform_service" "my_terraform_service" {
-  # Required
   environment_id = qovery_environment.my_environment.id
   name           = "my-terraform-service"
-  description    = "Terraform service managed by Qovery"
   auto_deploy    = true
 
-  # Git repository containing Terraform files
   git_repository = {
     url       = "https://github.com/my-org/terraform-infra.git"
     branch    = "main"
     root_path = "/environments/production"
-    # git_token_id = qovery_git_token.my_git_token.id  # For private repos
   }
 
-  # List of .tfvars files relative to the root path
-  tfvars_files = ["terraform.tfvars"]
+  engine = "TERRAFORM"
+  engine_version = {
+    explicit_version = "1.14"
+  }
 
-  # Terraform input variables
+  # State stored by Qovery in the cluster. Use user_provided = {} to keep the backend declared in the Terraform code.
+  backend = {
+    kubernetes = {}
+  }
+
+  tfvars_files  = []
+  job_resources = {}
+
   variables = [
     {
-      key       = "AWS_REGION"
-      value     = "us-east-1"
-      is_secret = false
+      key   = "region"
+      value = "us-east-1"
     },
     {
-      key       = "DATABASE_PASSWORD"
-      value     = "supersecret"
+      key       = "database_password"
+      value     = var.database_password
       is_secret = true
     }
-  ]
-
-  # Backend configuration - choose exactly one
-  backend = {
-    kubernetes = {} # Qovery-managed Kubernetes backend
-    # user_provided = {}   # Use backend configured in your Terraform code
-  }
-
-  # Engine configuration
-  engine = "TERRAFORM" # Can be "TERRAFORM" or "OPEN_TOFU"
-
-  engine_version = {
-    explicit_version          = "1.5.0"
-    read_from_terraform_block = false
-  }
-
-  # Job resources (compute allocation for Terraform runs)
-  job_resources = {
-    cpu_milli   = 1000 # 1 CPU
-    ram_mib     = 1024 # 1 GiB
-    gpu         = 0
-    storage_gib = 20 # WARNING: Cannot be reduced after creation
-  }
-
-  # Optional settings
-  timeout_seconds         = 1800 # 30 minutes
-  icon_uri                = "app://qovery-console/terraform"
-  use_cluster_credentials = false
-
-  # Optional: Extra CLI arguments for Terraform actions
-  # action_extra_arguments = {
-  #   plan    = ["-parallelism=10"]
-  #   apply   = ["-parallelism=10", "-auto-approve"]
-  #   destroy = ["-auto-approve"]
-  # }
-
-  # Optional: control deployment order
-  # deployment_stage_id = qovery_deployment_stage.my_stage.id
-
-  # Optional: Advanced settings
-  advanced_settings_json = jsonencode({
-    # Non-exhaustive list. See Qovery API documentation for all available settings.
-    "deployment.termination_grace_period_seconds" : 120,
-    "build.timeout_max_sec" : 1800
-  })
-
-  depends_on = [
-    qovery_environment.my_environment,
   ]
 }
 ```
@@ -97,62 +51,66 @@ resource "qovery_terraform_service" "my_terraform_service" {
 
 ### Required
 
-- `auto_deploy` (Boolean) Specify if the terraform service will be automatically updated on every new commit.
-- `backend` (Attributes) Terraform backend configuration. Exactly one backend type must be specified. (see [below for nested schema](#nestedatt--backend))
-- `engine` (String) Terraform engine to use (TERRAFORM or OPEN_TOFU).
-- `engine_version` (Attributes) Terraform/OpenTofu engine version configuration. (see [below for nested schema](#nestedatt--engine_version))
-- `environment_id` (String) Id of the environment. Changing this forces the terraform service to be re-created.
-- `git_repository` (Attributes) Terraform service git repository configuration. (see [below for nested schema](#nestedatt--git_repository))
-- `job_resources` (Attributes) Resource allocation for the Terraform job. (see [below for nested schema](#nestedatt--job_resources))
-- `name` (String) Name of the terraform service.
-- `tfvars_files` (List of String) List of .tfvars file paths relative to the root path.
+- `auto_deploy` (Boolean) Whether Qovery redeploys the Terraform service on every new commit to its branch.
+- `backend` (Attributes) Backend that stores the Terraform state. Set exactly one of `kubernetes`, `user_provided` and `blueprint`. (see [below for nested schema](#nestedatt--backend))
+- `engine` (String) Engine that runs the Terraform code.
+	- Can be: `OPEN_TOFU`, `TERRAFORM`.
+- `engine_version` (Attributes) Version of the engine. (see [below for nested schema](#nestedatt--engine_version))
+- `environment_id` (String) ID of the environment. Changing it recreates the Terraform service.
+- `git_repository` (Attributes) Git repository that holds the Terraform code. (see [below for nested schema](#nestedatt--git_repository))
+- `job_resources` (Attributes) Resources of the Terraform job, which runs the Terraform commands. (see [below for nested schema](#nestedatt--job_resources))
+- `name` (String) Name of the Terraform service.
+- `tfvars_files` (List of String) Paths of the `.tfvars` files to load, for example `/environments/production/prod.tfvars`. Each path must start with `git_repository.root_path`.
 
 ### Optional
 
-- `action_extra_arguments` (Map of List of String) Extra CLI arguments for specific Terraform actions (plan, apply, destroy).
-- `advanced_settings_json` (String) Advanced settings in JSON format. See the Qovery API documentation for available settings.
-- `blueprint_id` (String) The blueprint ID the terraform service has been created from.
-- `build_settings` (Attributes) Build configuration settings for the service. When set, all six properties are sent to the API — omitted properties use their defaults. Removing the block resets the build settings to their defaults. Mutually exclusive with build.* keys in advanced_settings_json — Terraform will reject a plan that uses both. Those keys remain supported when this block is not set. (see [below for nested schema](#nestedatt--build_settings))
-- `deployment_stage_id` (String) Id of the deployment stage.
-- `description` (String) Description of the terraform service.
-- `external_secret_files` (Attributes Set) List of external secret files linked to this terraform service. External secret files reference upstream secrets (e.g. from AWS Secrets Manager) and are mounted as files at a given path inside the container. (see [below for nested schema](#nestedatt--external_secret_files))
-- `external_secrets` (Attributes Set) List of external secrets linked to this terraform service. External secrets reference upstream secrets (e.g. from AWS Secrets Manager) via a secret manager access configuration. (see [below for nested schema](#nestedatt--external_secrets))
-- `icon_uri` (String) Icon URI representing the terraform service.
-- `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
-- `terraform_action` (String) Action to force a specific Terraform behavior on autodeploy.
+- `action_extra_arguments` (Map of List of String) Extra arguments of each Terraform command, keyed by command, for example `{ apply = ["-lock=false"] }`.
+- `advanced_settings_json` (String) Advanced settings to override, as a JSON string built with `jsonencode()`. The [Qovery API documentation](https://api-doc.qovery.com/#tag/Terraforms/operation/getDefaultTerraformAdvancedSettings) lists them with their defaults. Terraform manages only the keys you set, and removing a key keeps its current value: see [Advanced settings](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes#advanced-settings).
+- `blueprint_id` (String) ID of the blueprint the Terraform service is created from. It can only be set at creation: changing it fails at plan time, and removing it keeps the recorded value.
+- `build_settings` (Attributes) Build limits and options of the service. Terraform manages them only while the block is set: omitted settings plan their default, and removing the block resets them all. It conflicts with `build.*` keys in `advanced_settings_json`. (see [below for nested schema](#nestedatt--build_settings))
+- `deployment_stage_id` (String) ID of the deployment stage of the service. Stages set the order in which the services of an environment deploy. Removing it keeps the service in its current stage, because Qovery cannot detach a service from its stage.
+- `description` (String) Description of the Terraform service.
+- `external_secret_files` (Attributes Set) External secret files of the Terraform service, read from an external secret manager and mounted as files. (see [below for nested schema](#nestedatt--external_secret_files))
+- `external_secrets` (Attributes Set) External secrets of the Terraform service, read from an external secret manager such as AWS Secrets Manager. (see [below for nested schema](#nestedatt--external_secrets))
+- `icon_uri` (String) Icon of the Terraform service in the Qovery Console.
+	- Default: `app://qovery-console/terraform`.
+- `is_skipped` (Boolean) Whether environment-wide deployments skip the service. It stays in its deployment stage.
+	- Default: `false`.
+- `terraform_action` (String) Terraform command an auto-deployment runs. `DEFAULT` follows the deployment: plan and apply on start or restart, destroy on delete, plan only on pause.
 	- Can be: `DEFAULT`, `NOOP`, `PLAN`.
 	- Default: `DEFAULT`.
-- `timeout_seconds` (Number) Timeout in seconds for Terraform operations.
-	- Must be: `>= 0`.
+- `timeout_seconds` (Number) Maximum duration of the Terraform operations, in seconds.
+	- Must be: `>= 60`.
 	- Default: `1800`.
-- `use_cluster_credentials` (Boolean) Use cluster credentials for cloud provider authentication.
-- `variables` (Attributes Set) Terraform input variables. Values can be marked as secret. (see [below for nested schema](#nestedatt--variables))
+- `use_cluster_credentials` (Boolean) Whether the Terraform job authenticates to the cloud provider with the credentials of the cluster.
+	- Default: `false`.
+- `variables` (Attributes Set) Input variables of the Terraform code. (see [below for nested schema](#nestedatt--variables))
 
 ### Read-Only
 
-- `created_at` (String) Creation date of the terraform service.
-- `id` (String) Id of the terraform service.
-- `updated_at` (String) Last update date of the terraform service.
+- `created_at` (String) Creation date of the Terraform service.
+- `id` (String) ID of the Terraform service.
+- `updated_at` (String) Date of the last update of the Terraform service.
 
 <a id="nestedatt--backend"></a>
 ### Nested Schema for `backend`
 
 Optional:
 
-- `blueprint` (Attributes) Blueprint-managed backend. The user provides backend type and config at creation time. The platform generates and injects backend.tf for the created service. (see [below for nested schema](#nestedatt--backend--blueprint))
-- `kubernetes` (Attributes) Use Kubernetes backend for state management. (see [below for nested schema](#nestedatt--backend--kubernetes))
-- `user_provided` (Attributes) Use user-provided backend configuration (configured in Terraform code). (see [below for nested schema](#nestedatt--backend--user_provided))
+- `blueprint` (Attributes) Qovery generates the `backend.tf` file of the service from `type` and `config`. (see [below for nested schema](#nestedatt--backend--blueprint))
+- `kubernetes` (Attributes) Stores the state in the Kubernetes cluster. Set it to `{}`. (see [below for nested schema](#nestedatt--backend--kubernetes))
+- `user_provided` (Attributes) Uses the backend configured in the Terraform code. Set it to `{}`. (see [below for nested schema](#nestedatt--backend--user_provided))
 
 <a id="nestedatt--backend--blueprint"></a>
 ### Nested Schema for `backend.blueprint`
 
 Required:
 
-- `type` (String) Terraform backend type (e.g. `s3`, `gcs`, `azurerm`).
+- `type` (String) Type of the Terraform backend, for example `s3`, `gcs` or `azurerm`.
 
 Optional:
 
-- `config` (Map of String) Static backend configuration (bucket, region, etc.). Credentials should be provided via environment variables, not here.
+- `config` (Map of String) Static settings of the backend, such as its bucket and region, without credentials.
 
 
 <a id="nestedatt--backend--kubernetes"></a>
@@ -169,11 +127,12 @@ Optional:
 
 Required:
 
-- `explicit_version` (String) Explicit version to use for the Terraform/OpenTofu binary.
+- `explicit_version` (String) Version of the engine binary, for example `1.9.0`.
 
 Optional:
 
-- `read_from_terraform_block` (Boolean) Whether to read the version from the terraform block in the code.
+- `read_from_terraform_block` (Boolean) Whether Qovery reads the engine version from the `terraform` block of the code.
+	- Default: `false`.
 
 
 <a id="nestedatt--git_repository"></a>
@@ -181,13 +140,14 @@ Optional:
 
 Required:
 
-- `url` (String) Git repository URL.
+- `url` (String) URL of the git repository, for example `https://github.com/my-org/my-app.git`.
 
 Optional:
 
-- `branch` (String) Git branch.
-- `git_token_id` (String) Git token ID for private repositories.
-- `root_path` (String) Root path in the git repository where Terraform files are located.
+- `branch` (String) Branch to deploy.
+- `git_token_id` (String) ID of the `qovery_git_token` used to access a private repository.
+- `root_path` (String) Directory of the repository that holds the Terraform code.
+	- Default: `/`.
 
 
 <a id="nestedatt--job_resources"></a>
@@ -195,16 +155,16 @@ Optional:
 
 Optional:
 
-- `cpu_milli` (Number) CPU of the terraform job in millicores (m) [1000m = 1 CPU].
+- `cpu_milli` (Number) CPU of the Terraform job, in millicores (1000 = 1 vCPU).
 	- Must be: `>= 10`.
 	- Default: `1000`.
-- `gpu` (Number) Number of GPUs for the terraform job.
+- `gpu` (Number) Number of GPUs of the Terraform job.
 	- Must be: `>= 0`.
 	- Default: `0`.
-- `ram_mib` (Number) RAM of the terraform job in MiB [1024 MiB = 1GiB].
+- `ram_mib` (Number) Memory of the Terraform job, in MiB.
 	- Must be: `>= 1`.
 	- Default: `1024`.
-- `storage_gib` (Number) Storage of the terraform job in GiB [1 GiB = 1024 MiB]. WARNING: Cannot be reduced after creation.
+- `storage_gib` (Number) Storage of the Terraform job, in GiB. Reducing it fails at plan time.
 	- Must be: `>= 1`.
 	- Default: `20`.
 
@@ -214,12 +174,17 @@ Optional:
 
 Optional:
 
-- `cpu_max_in_milli` (Number) Maximum CPU resources for the build in millicores. Default: 4000.
-- `disable_buildkit_cache` (Boolean) Disable buildkit registry cache during build. Default: false.
-- `ephemeral_storage_in_gib` (Number) Ephemeral storage for the build in GiB. When not set, the platform default is used.
-- `ram_max_in_gib` (Number) Maximum RAM resources for the build in GiB. Default: 8.
-- `skip_git_submodules` (Boolean) Skip git submodules update when cloning the repository. Default: false.
-- `timeout_max_sec` (Number) Maximum build timeout in seconds. Default: 1800.
+- `cpu_max_in_milli` (Number) Maximum CPU of a build, in millicores (1000 = 1 vCPU).
+	- Default: `4000`.
+- `disable_buildkit_cache` (Boolean) Whether builds skip the BuildKit registry cache.
+	- Default: `false`.
+- `ephemeral_storage_in_gib` (Number) Ephemeral storage of a build, in GiB. Omitting it uses the platform default.
+- `ram_max_in_gib` (Number) Maximum memory of a build, in GiB.
+	- Default: `8`.
+- `skip_git_submodules` (Boolean) Whether builds skip the update of the git submodules.
+	- Default: `false`.
+- `timeout_max_sec` (Number) Maximum duration of a build, in seconds.
+	- Default: `1800`.
 
 
 <a id="nestedatt--external_secret_files"></a>
@@ -228,9 +193,9 @@ Optional:
 Required:
 
 - `key` (String) Name of the external secret file.
-- `mount_path` (String) Absolute path where the secret file will be mounted inside the container.
-- `reference` (String) Reference to the upstream secret (e.g. the secret name or ARN in AWS Secrets Manager).
-- `secret_manager_access_id` (String) Id of the secret manager access to use for this external secret file.
+- `mount_path` (String) Absolute path where the file is mounted.
+- `reference` (String) Reference of the secret in the secret manager, such as its name or ARN.
+- `secret_manager_access_id` (String) ID of the cluster's secret manager access that reads the secret.
 
 Optional:
 
@@ -238,7 +203,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the external secret file.
+- `id` (String) ID of the external secret file.
 
 
 <a id="nestedatt--external_secrets"></a>
@@ -247,8 +212,8 @@ Read-Only:
 Required:
 
 - `key` (String) Name of the external secret.
-- `reference` (String) Reference to the upstream secret (e.g. the secret name or ARN in AWS Secrets Manager).
-- `secret_manager_access_id` (String) Id of the secret manager access to use for this external secret.
+- `reference` (String) Reference of the secret in the secret manager, such as its name or ARN.
+- `secret_manager_access_id` (String) ID of the cluster's secret manager access that reads the secret.
 
 Optional:
 
@@ -256,7 +221,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the external secret.
+- `id` (String) ID of the external secret.
 
 
 <a id="nestedatt--variables"></a>
@@ -264,12 +229,13 @@ Read-Only:
 
 Required:
 
-- `key` (String) Terraform variable name.
-- `value` (String) Terraform variable value.
+- `key` (String) Name of the variable.
+- `value` (String) Value of the variable.
 
 Optional:
 
-- `is_secret` (Boolean) Whether this variable is a secret. Secret values are encrypted and not displayed in logs.
+- `is_secret` (Boolean) Whether the variable is a secret.
+	- Default: `false`.
 ## Import
 ```shell
 terraform import qovery_terraform_service.my_terraform_service "<terraform_service_id>"

@@ -1,34 +1,19 @@
 # qovery_gcp_credentials (Resource)
 
-Provides a Qovery GCP credentials resource. This is used to create and manage GCP credentials that Qovery uses to provision and manage GKE clusters in your Google Cloud project.
-
-Supports two authentication modes:
-- **Service account key** (`gcp_credentials`): a GCP service account key in JSON format.
-- **Workload Identity Federation** (`service_account_email` + `workload_identity_provider_resource`): keyless authentication via WIF.
-
-Exactly one mode must be configured.
+Manages Qovery GCP credentials: the service account Qovery uses to create and manage clusters in a Google Cloud project. Set either `gcp_credentials`, a JSON key, or `service_account_email` and `workload_identity_provider_resource`, for Workload Identity Federation.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
 
 ```terraform
-# Authenticate with a GCP service account key (JSON)
+# Service account JSON key. For Workload Identity Federation (keyless), set service_account_email and
+# workload_identity_provider_resource instead.
 resource "qovery_gcp_credentials" "my_gcp_credentials" {
   organization_id = qovery_organization.my_organization.id
   name            = "my-gcp-credentials"
   gcp_credentials = file("${path.module}/service-account.json")
-}
-
-# Authenticate with Workload Identity Federation (keyless)
-resource "qovery_gcp_credentials" "my_gcp_wif_credentials" {
-  organization_id                     = qovery_organization.my_organization.id
-  name                                = "my-gcp-wif-credentials"
-  service_account_email               = "qovery@my-project.iam.gserviceaccount.com"
-  workload_identity_provider_resource = "projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider"
 }
 ```
 
@@ -37,18 +22,18 @@ resource "qovery_gcp_credentials" "my_gcp_wif_credentials" {
 
 ### Required
 
-- `name` (String) Name of the GCP credentials. Used for display purposes in the Qovery console.
-- `organization_id` (String) ID of the Qovery organization in which to create the credentials. **Cannot be changed after creation** (forces resource replacement).
+- `name` (String) Name of the GCP credentials.
+- `organization_id` (String) ID of the organization. Changing it recreates the GCP credentials.
 
 ### Optional
 
-- `gcp_credentials` (String, Sensitive) GCP service account key in JSON format. Mutually exclusive with `service_account_email`/`workload_identity_provider_resource`. This is a sensitive value and will not be displayed in plan output. Use `file()` to load from a file: `file("${path.module}/service-account.json")`.
-- `service_account_email` (String) GCP service account email to impersonate (e.g. `qovery@my-project.iam.gserviceaccount.com`). Required together with `workload_identity_provider_resource` when using Workload Identity Federation. Mutually exclusive with `gcp_credentials`.
-- `workload_identity_provider_resource` (String) Full Workload Identity Provider resource path (e.g. `projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider`). Required together with `service_account_email`. Mutually exclusive with `gcp_credentials`.
+- `gcp_credentials` (String, Sensitive) JSON key of the GCP service account. Load it with `file()`, for example `file("${path.module}/service-account.json")`.
+- `service_account_email` (String) Email of the GCP service account Qovery impersonates through Workload Identity Federation, for example `qovery@my-project.iam.gserviceaccount.com`. Requires `workload_identity_provider_resource`.
+- `workload_identity_provider_resource` (String) Full resource name of the Workload Identity Federation provider, for example `projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider`. Requires `service_account_email`.
 
 ### Read-Only
 
-- `id` (String) Unique identifier of the GCP credentials (UUID format).
+- `id` (String) ID of the GCP credentials.
 ## Import
 ```shell
 terraform import qovery_gcp_credentials.my_gcp_credentials "<organization_id>,<gcp_credentials_id>"

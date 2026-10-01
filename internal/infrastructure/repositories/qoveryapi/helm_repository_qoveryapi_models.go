@@ -19,8 +19,23 @@ func newDomainHelmRepositoryFromQovery(v *qovery.HelmRepositoryResponse, organiz
 		Kind:               string(v.GetKind()),
 		URL:                v.GetUrl(),
 		Description:        v.Description,
+		Config:             newDomainHelmRepositoryConfigFromQovery(v.Config),
 		SkiTlsVerification: v.SkipTlsVerification,
 	})
+}
+
+// newDomainHelmRepositoryConfigFromQovery keeps the keys of the response config that the provider manages.
+func newDomainHelmRepositoryConfigFromQovery(config *qovery.HelmRepositoryResponseAllOfConfig) registry.Config {
+	if config == nil {
+		return registry.Config{}
+	}
+	return registry.Config{
+		AccessKeyID:       config.AccessKeyId,
+		Region:            config.Region,
+		ScalewayAccessKey: config.ScalewayAccessKey,
+		ScalewayProjectID: config.ScalewayProjectId,
+		Username:          config.Username,
+	}
 }
 
 func newQoveryHelmRepositoryRequestFromDomain(request helmRepository.UpsertRequest) (*qovery.HelmRepositoryRequest, error) {

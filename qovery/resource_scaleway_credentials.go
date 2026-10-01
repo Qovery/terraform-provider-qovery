@@ -53,53 +53,43 @@ func (r *scalewayCredentialsResource) Configure(_ context.Context, req resource.
 
 func (r scalewayCredentialsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery SCALEWAY credentials resource. This can be used to create and manage Qovery SCALEWAY credentials.",
-		MarkdownDescription: "Provides a Qovery Scaleway credentials resource. This is used to create and manage Scaleway credentials that Qovery uses to provision and manage Kapsule clusters in your Scaleway account.\n\n" +
-			"All four Scaleway authentication parameters are required: access key, secret key, project ID, and organization ID. " +
-			"You can find these values in your [Scaleway console](https://console.scaleway.com/iam/api-keys).",
+		MarkdownDescription: "Manages Qovery Scaleway credentials: the API key Qovery uses to create and manage Kapsule clusters in a Scaleway project.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the SCALEWAY credentials.",
-				MarkdownDescription: "Unique identifier of the Scaleway credentials (UUID format).",
+				MarkdownDescription: idDescription("Scaleway credentials"),
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "ID of the Qovery organization in which to create the credentials. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: organizationIDDescription + recreatesOnChange("Scaleway credentials"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the scaleway credentials.",
-				MarkdownDescription: "Name of the Scaleway credentials. Used for display purposes in the Qovery console.",
+				MarkdownDescription: nameDescription("Scaleway credentials"),
 				Required:            true,
 			},
 			"scaleway_access_key": schema.StringAttribute{
-				Description:         "Your SCALEWAY access key id.",
-				MarkdownDescription: "Scaleway API access key (e.g., `SCWxxxxxxxxxxxxxxxxx`). Found in the Scaleway console under IAM > API Keys. Use a variable reference instead of hardcoding this value.",
+				MarkdownDescription: credentialsScalewayAccessKeyDescription,
 				Required:            true,
 				Sensitive:           false,
 			},
 			"scaleway_secret_key": schema.StringAttribute{
-				Description:         "Your SCALEWAY secret key.",
-				MarkdownDescription: "Scaleway API secret key. This is a sensitive value and will not be displayed in plan output. Use a variable reference instead of hardcoding this value.",
+				MarkdownDescription: credentialsScalewaySecretKeyDescription,
 				Required:            true,
 				Sensitive:           true,
 			},
 			"scaleway_project_id": schema.StringAttribute{
-				Description:         "Your SCALEWAY project ID.",
-				MarkdownDescription: "Scaleway project ID (UUID format). Resources will be created in this project. Found in the Scaleway console under Project Settings.",
+				MarkdownDescription: credentialsScalewayProjectIDDescription + " Qovery creates the cluster resources in it.",
 				Required:            true,
 				Sensitive:           false,
 			},
 			"scaleway_organization_id": schema.StringAttribute{
-				Description:         "Your SCALEWAY organization ID.",
-				MarkdownDescription: "Scaleway organization ID (UUID format). Found in the Scaleway console under Organization Settings.",
+				MarkdownDescription: "ID of the Scaleway organization.",
 				Required:            true,
 				Sensitive:           false,
 			},
@@ -207,7 +197,7 @@ func (r scalewayCredentialsResource) ImportState(ctx context.Context, req resour
 	if len(idParts) != 2 || idParts[0] == "" || idParts[1] == "" {
 		resp.Diagnostics.AddError(
 			"Unexpected Import Identifier",
-			fmt.Sprintf("Expected import identifier with format: scaleway_credentials_id,organization_id. Got: %q", req.ID),
+			fmt.Sprintf("Expected import identifier with format: organization_id,scaleway_credentials_id. Got: %q", req.ID),
 		)
 		return
 	}

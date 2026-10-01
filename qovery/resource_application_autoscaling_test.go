@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAcc_ApplicationWithAutoscaling(t *testing.T) {
@@ -36,6 +36,9 @@ func TestAcc_ApplicationWithAutoscaling(t *testing.T) {
 				ResourceName:      "qovery_application.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				// Create stores "" when unset while Read returns "{}"; state is not refreshed
+				// before import.
+				ImportStateVerifyIgnore: []string{"advanced_settings_json"},
 			},
 		},
 	})

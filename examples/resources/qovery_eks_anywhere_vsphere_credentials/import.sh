@@ -1,1 +1,1 @@
-terraform import qovery_eks_anywhere_vsphere_credentials.my_eks_anywhere_vsphere_creds "<organization_id>,<eks_anywhere_vsphere_credentials_id>"
+terraform import qovery_eks_anywhere_vsphere_credentials.my_eks_anywhere_vsphere_credentials "<organization_id>,<eks_anywhere_vsphere_credentials_id>"

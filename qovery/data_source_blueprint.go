@@ -18,13 +18,14 @@ type blueprintDataSource struct {
 	service blueprint.Service
 }
 
-// BlueprintData holds what the API returns: icon, spec overrides and secret values are not readable.
+// BlueprintData holds what the API returns: spec overrides and secret values are not readable.
 type BlueprintData struct {
 	ID                  types.String `tfsdk:"id"`
 	EnvironmentID       types.String `tfsdk:"environment_id"`
 	Blueprint           types.String `tfsdk:"blueprint"`
 	Name                types.String `tfsdk:"name"`
 	Tag                 types.String `tfsdk:"tag"`
+	IconURI             types.String `tfsdk:"icon_uri"`
 	Variables           types.Map    `tfsdk:"variables"`
 	SecretVariableNames types.Set    `tfsdk:"secret_variable_names"`
 	ServiceID           types.String `tfsdk:"service_id"`
@@ -57,49 +58,53 @@ func (d *blueprintDataSource) Configure(_ context.Context, req datasource.Config
 
 func (d blueprintDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery blueprint.",
+		MarkdownDescription: "Reads an existing Qovery blueprint.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the blueprint.",
-				Required:    true,
+				MarkdownDescription: idDescription("blueprint"),
+				Required:            true,
 			},
 			"environment_id": schema.StringAttribute{
-				Description: "Id of the environment.",
-				Computed:    true,
+				MarkdownDescription: environmentIDDescription,
+				Computed:            true,
 			},
 			"blueprint": schema.StringAttribute{
-				Description: "Catalog entry of the blueprint, as `<provider>/<service_family>/<service_version>`.",
-				Computed:    true,
+				MarkdownDescription: blueprintCatalogEntryDescription,
+				Computed:            true,
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the blueprint service.",
-				Computed:    true,
+				MarkdownDescription: nameDescription("blueprint"),
+				Computed:            true,
 			},
 			"tag": schema.StringAttribute{
-				Description: "Catalog tag identifying the blueprint and its version.",
-				Computed:    true,
+				MarkdownDescription: blueprintTagDescription,
+				Computed:            true,
+			},
+			"icon_uri": schema.StringAttribute{
+				MarkdownDescription: iconURIDescription("blueprint") + " `null` until the blueprint has a service.",
+				Computed:            true,
 			},
 			"variables": schema.MapAttribute{
-				Description: "Non-secret blueprint variables, catalog defaults included.",
-				Computed:    true,
-				ElementType: types.StringType,
+				MarkdownDescription: blueprintVariablesDescription + " Includes the catalog defaults, not the secret variables.",
+				Computed:            true,
+				ElementType:         types.StringType,
 			},
 			"secret_variable_names": schema.SetAttribute{
-				Description: "Names of the secret blueprint variables. The API never returns their values.",
-				Computed:    true,
-				ElementType: types.StringType,
+				MarkdownDescription: "Names of the secret variables of the blueprint.",
+				Computed:            true,
+				ElementType:         types.StringType,
 			},
 			"service_id": schema.StringAttribute{
-				Description: "Id of the terraform or helm service the blueprint materialized.",
-				Computed:    true,
+				MarkdownDescription: blueprintServiceIDDescription,
+				Computed:            true,
 			},
 			"service_type": schema.StringAttribute{
-				Description: "Type of the service the blueprint materialized: `TERRAFORM` or `HELM`.",
-				Computed:    true,
+				MarkdownDescription: blueprintServiceTypeDescription,
+				Computed:            true,
 			},
 			"catalog_url": schema.StringAttribute{
-				Description: "URL of the blueprint catalog entry.",
-				Computed:    true,
+				MarkdownDescription: blueprintCatalogURLDescription,
+				Computed:            true,
 			},
 		},
 	}
@@ -147,6 +152,7 @@ func convertDomainBlueprintToBlueprintData(ctx context.Context, bp *blueprint.Bl
 		Blueprint:           blueprintVersionValue(types.StringNull(), bp.Tag),
 		Name:                FromString(bp.Name),
 		Tag:                 FromString(bp.Tag),
+		IconURI:             FromStringPointer(bp.IconURI),
 		Variables:           variablesValue,
 		SecretVariableNames: secretVariableNamesValue,
 		ServiceID:           FromStringPointer(bp.ServiceID),

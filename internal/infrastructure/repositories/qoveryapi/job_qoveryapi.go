@@ -35,7 +35,7 @@ func newJobQoveryAPI(client *qovery.APIClient) (job.Repository, error) {
 
 // Create calls Qovery's API to create a job for an organization using the given organizationID and request.
 func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request job.UpsertRepositoryRequest) (*job.Job, error) {
-	req, err := newQoveryJobRequestFromDomain(request)
+	req, err := newQoveryJobRequestFromDomain(request, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrInvalidJobUpsertRequest.Error())
 	}
@@ -126,7 +126,22 @@ func (c jobQoveryAPI) Get(ctx context.Context, jobID string, advancedSettingsJso
 
 // Update calls Qovery's API to update a job using the given jobID and request.
 func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.UpsertRepositoryRequest) (*job.Job, error) {
-	req, err := newQoveryJobRequestFromDomain(request)
+	var cronTimezone *string
+	if request.Schedule.CronJob != nil {
+		// The provider does not manage the cron timezone, and q-core resets an omitted one to
+		// Etc/UTC: resend the timezone the job runs at.
+		current, resp, err := c.client.JobMainCallsAPI.
+			GetJob(ctx, jobID).
+			Execute()
+		if err != nil || resp.StatusCode >= 400 {
+			return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceJob, jobID, resp, err)
+		}
+		if current.CronJobResponse != nil {
+			cronTimezone = &current.CronJobResponse.Schedule.Cronjob.Timezone
+		}
+	}
+
+	req, err := newQoveryJobRequestFromDomain(request, cronTimezone)
 	if err != nil {
 		return nil, errors.Wrap(err, job.ErrInvalidJobUpsertRequest.Error())
 	}

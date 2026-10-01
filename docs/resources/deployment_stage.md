@@ -1,32 +1,17 @@
 # qovery_deployment_stage (Resource)
 
-Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.
-
-Deployment stages control the order in which services within an environment are deployed. Services assigned to earlier stages are deployed before those in later stages.
+Manages a Qovery deployment stage: a step of the deployment order of an environment. Qovery deploys the services of a stage after those of the stages before it.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
 
 ```terraform
 resource "qovery_deployment_stage" "my_deployment_stage" {
-  # Required
   environment_id = qovery_environment.my_environment.id
-  name           = "MyDeploymentStage"
-
-  # Optional
-  description = "Deploy backend services after databases are ready"
-
-  # Position this stage relative to other stages using is_after / is_before
-  is_after  = qovery_deployment_stage.first_deployment_stage.id
-  is_before = qovery_deployment_stage.third_deployment_stage.id
-
-  depends_on = [
-    qovery_environment.my_environment
-  ]
+  name           = "backend"
+  description    = "Deploy backend services after databases are ready"
 }
 ```
 
@@ -37,18 +22,18 @@ You can find complete examples within these repositories:
 
 ### Required
 
-- `environment_id` (String) Identifier of the environment for this deployment stage (UUID format). **Cannot be changed after creation** (forces resource replacement).
+- `environment_id` (String) ID of the environment. Changing it recreates the deployment stage.
 - `name` (String) Name of the deployment stage.
 
 ### Optional
 
 - `description` (String) Description of the deployment stage.
-- `is_after` (String) Identifier (UUID) of another deployment stage. Positions this stage immediately after the specified stage in the deployment order.
-- `is_before` (String) Identifier (UUID) of another deployment stage. Positions this stage immediately before the specified stage in the deployment order.
+- `is_after` (String) ID of the deployment stage this stage moves right after. The API does not return it, so a reorder made outside Terraform does not show up in the plan.
+- `is_before` (String) ID of the deployment stage this stage moves right before. The API does not return it, so a reorder made outside Terraform does not show up in the plan.
 
 ### Read-Only
 
-- `id` (String) Unique identifier of the deployment stage (UUID format).
+- `id` (String) ID of the deployment stage.
 ## Import
 ```shell
 # Import uses the format: environment_id,deployment_stage_name

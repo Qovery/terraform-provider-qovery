@@ -37,7 +37,25 @@ type Registry struct {
 	URL            url.URL   `validate:"required"`
 
 	Description *string
-	Config      map[string]string
+	Config      Config
+}
+
+// Config holds the non-secret keys the API returns for the credentials of a registry: a key the
+// registry does not use is nil. The API never returns secrets (secret access key, Scaleway
+// secret key, JSON key, password).
+type Config struct {
+	AccessKeyID       *string
+	Region            *string
+	ScalewayAccessKey *string
+	ScalewayProjectID *string
+
+	GcpCredentialsType               *string
+	ProjectID                        *string
+	ServiceAccountEmail              *string
+	WorkloadIdentityProviderResource *string
+	TokenLifetimeSeconds             *int32
+
+	Username *string
 }
 
 // Validate returns an error to tell whether the Registry domain model is valid or not.
@@ -58,6 +76,7 @@ type NewRegistryParams struct {
 	Kind           string
 	URL            string
 	Description    *string
+	Config         Config
 }
 
 // NewRegistry returns a new instance of a Registry domain model.
@@ -93,6 +112,7 @@ func NewRegistry(params NewRegistryParams) (*Registry, error) {
 		Kind:           *kind,
 		URL:            *registryURL,
 		Description:    params.Description,
+		Config:         params.Config,
 	}
 
 	if err := v.Validate(); err != nil {

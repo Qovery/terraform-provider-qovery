@@ -4,16 +4,10 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/qovery/qovery-client-go"
-
-	"github.com/AlekSi/pointer"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
-	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
-	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 )
@@ -52,173 +46,122 @@ func (d *jobDataSource) Configure(_ context.Context, req datasource.ConfigureReq
 }
 
 func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	envVars := variableListDescriptions("environment_variables", "job")
+	builtInEnvVars := variableListDescriptions("built_in_environment_variables", "job")
+	envVarAliases := variableListDescriptions("environment_variable_aliases", "job")
+	envVarOverrides := variableListDescriptions("environment_variable_overrides", "job")
+	secrets := variableListDescriptions("secrets", "job")
+	secretAliases := variableListDescriptions("secret_aliases", "job")
+	secretOverrides := variableListDescriptions("secret_overrides", "job")
+	envVarFiles := variableListDescriptions("environment_variable_files", "job")
+	secretFiles := variableListDescriptions("secret_files", "job")
+	externalSecrets := variableListDescriptions("external_secrets", "job")
+	externalSecretFiles := variableListDescriptions("external_secret_files", "job")
+	restrictions := deploymentRestrictionDescriptions("job")
+
 	resp.Schema = schema.Schema{
-		Description:         "Provides a Qovery job data source. This can be used to read existing Qovery jobs (cron jobs and lifecycle jobs).",
-		MarkdownDescription: "Provides a Qovery job data source. This can be used to read existing Qovery jobs (cron jobs and lifecycle jobs).",
+		MarkdownDescription: "Reads an existing Qovery job.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the job.",
-				MarkdownDescription: "Id of the job.",
+				MarkdownDescription: idDescription("job"),
 				Required:            true,
 			},
 			"environment_id": schema.StringAttribute{
-				Description:         "Id of the environment.",
-				MarkdownDescription: "Id of the environment.",
+				MarkdownDescription: environmentIDDescription,
 				Computed:            true,
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the job.",
-				MarkdownDescription: "Name of the job.",
+				MarkdownDescription: nameDescription("job"),
 				Computed:            true,
 			},
 			"icon_uri": schema.StringAttribute{
-				Description:         "Icon URI representing the job.",
-				MarkdownDescription: "Icon URI representing the job.",
+				MarkdownDescription: iconURIDescription("job"),
 				Optional:            true,
 				Computed:            true,
 			},
 			"cpu": schema.Int64Attribute{
-				Description: descriptions.NewInt64MinDescription(
-					"CPU of the job in millicores (m) [1000m = 1 CPU].",
-					job.MinCPU,
-					pointer.ToInt64(job.DefaultCPU),
-				),
-				MarkdownDescription: descriptions.NewInt64MinDescription(
-					"CPU of the job in millicores (m) [1000m = 1 CPU].",
-					job.MinCPU,
-					pointer.ToInt64(job.DefaultCPU),
-				),
-				Optional: true,
+				MarkdownDescription: cpuDescription("job"),
+				Optional:            true,
 			},
 			"memory": schema.Int64Attribute{
-				Description: descriptions.NewInt64MinDescription(
-					"RAM of the job in MB [1024MB = 1GB].",
-					job.MinMemory,
-					pointer.ToInt64(job.DefaultMemory),
-				),
-				MarkdownDescription: descriptions.NewInt64MinDescription(
-					"RAM of the job in MB [1024MB = 1GB].",
-					job.MinMemory,
-					pointer.ToInt64(job.DefaultMemory),
-				),
-				Optional: true,
+				MarkdownDescription: memoryDescription("job"),
+				Optional:            true,
 			},
 			"ephemeral_storage": schema.Int64Attribute{
-				Description:         "Ephemeral storage of the job in GiB. When unset, the platform default is used.",
-				MarkdownDescription: "Ephemeral storage of the job in GiB. When unset, the platform default is used.",
+				MarkdownDescription: ephemeralStorageDescription("job"),
 				Computed:            true,
 			},
 			"max_duration_seconds": schema.Int64Attribute{
-				Description: descriptions.NewInt64MinDescription(
-					"Job's max duration in seconds.",
-					job.MinDurationSeconds,
-					pointer.ToInt64(job.DefaultMaxDurationSeconds),
-				),
-				MarkdownDescription: descriptions.NewInt64MinDescription(
-					"Job's max duration in seconds.",
-					job.MinDurationSeconds,
-					pointer.ToInt64(job.DefaultMaxDurationSeconds),
-				),
-				Optional: true,
-				Computed: true,
+				MarkdownDescription: jobMaxDurationSecondsDescription,
+				Optional:            true,
+				Computed:            true,
 			},
 			"max_nb_restart": schema.Int64Attribute{
-				Description: descriptions.NewInt64MinDescription(
-					"Job's max number of restarts.",
-					job.MinNbRestart,
-					pointer.ToInt64(job.DefaultMaxNbRestart),
-				),
-				MarkdownDescription: descriptions.NewInt64MinDescription(
-					"Job's max number of restarts.",
-					job.MinNbRestart,
-					pointer.ToInt64(job.DefaultMaxNbRestart),
-				),
-				Optional: true,
-				Computed: true,
+				MarkdownDescription: jobMaxNbRestartDescription,
+				Optional:            true,
+				Computed:            true,
 			},
 			"port": schema.Int64Attribute{
-				Description: descriptions.NewInt64MinMaxDescription(
-					"Job's probes port.",
-					port.MinPort,
-					port.MaxPort,
-					nil,
-				),
-				MarkdownDescription: descriptions.NewInt64MinMaxDescription(
-					"Job's probes port.",
-					port.MinPort,
-					port.MaxPort,
-					nil,
-				),
-				Computed: true,
-				Optional: true,
+				MarkdownDescription: jobPortDescription,
+				Computed:            true,
+				Optional:            true,
 			},
 			"auto_preview": schema.BoolAttribute{
-				Description:         "Specify if the environment preview option is activated or not for this job.",
-				MarkdownDescription: "Specify if the environment preview option is activated or not for this job.",
+				MarkdownDescription: autoPreviewDescription("job"),
 				Optional:            true,
 				Computed:            true,
 			},
 			"healthchecks": healthchecksSchemaAttributes(false),
 			"schedule": schema.SingleNestedAttribute{
-				Description:         "Job's schedule configuration. Use on_start, on_stop, and on_delete for lifecycle jobs, or cronjob for cron jobs.",
-				MarkdownDescription: "Job's schedule configuration. Use `on_start`, `on_stop`, and `on_delete` for lifecycle jobs, or `cronjob` for cron jobs.",
+				MarkdownDescription: jobScheduleDescription,
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"on_start": schema.SingleNestedAttribute{
-						Description:         "Lifecycle job event: executed when the environment starts.",
-						MarkdownDescription: "Lifecycle job event: executed when the environment starts.",
+						MarkdownDescription: jobOnStartDescription,
 						Optional:            true,
 						Computed:            true,
 						Attributes: map[string]schema.Attribute{
 							"entrypoint": schema.StringAttribute{
-								Description:         "Entrypoint of the job (e.g. the command to execute).",
-								MarkdownDescription: "Entrypoint of the job (e.g. the command to execute).",
+								MarkdownDescription: entrypointDescription,
 								Optional:            true,
 								Computed:            true,
 							},
 							"arguments": schema.ListAttribute{
-								Description:         "List of arguments passed to the entrypoint.",
-								MarkdownDescription: "List of arguments passed to the entrypoint.",
+								MarkdownDescription: argumentsDescription,
 								Optional:            true,
 								ElementType:         types.StringType,
 							},
 						},
 					},
 					"on_stop": schema.SingleNestedAttribute{
-						Description:         "Lifecycle job event: executed when the environment stops.",
-						MarkdownDescription: "Lifecycle job event: executed when the environment stops.",
+						MarkdownDescription: jobOnStopDescription,
 						Optional:            true,
 						Computed:            true,
 						Attributes: map[string]schema.Attribute{
 							"entrypoint": schema.StringAttribute{
-								Description:         "Entrypoint of the job (e.g. the command to execute).",
-								MarkdownDescription: "Entrypoint of the job (e.g. the command to execute).",
+								MarkdownDescription: entrypointDescription,
 								Optional:            true,
 								Computed:            true,
 							},
 							"arguments": schema.ListAttribute{
-								Description:         "List of arguments passed to the entrypoint.",
-								MarkdownDescription: "List of arguments passed to the entrypoint.",
+								MarkdownDescription: argumentsDescription,
 								Optional:            true,
 								ElementType:         types.StringType,
 							},
 						},
 					},
 					"on_delete": schema.SingleNestedAttribute{
-						Description:         "Lifecycle job event: executed when the environment is deleted.",
-						MarkdownDescription: "Lifecycle job event: executed when the environment is deleted.",
+						MarkdownDescription: jobOnDeleteDescription,
 						Optional:            true,
 						Computed:            true,
 						Attributes: map[string]schema.Attribute{
 							"entrypoint": schema.StringAttribute{
-								Description:         "Entrypoint of the job (e.g. the command to execute).",
-								MarkdownDescription: "Entrypoint of the job (e.g. the command to execute).",
+								MarkdownDescription: entrypointDescription,
 								Optional:            true,
 								Computed:            true,
 							},
 							"arguments": schema.ListAttribute{
-								Description:         "List of arguments passed to the entrypoint.",
-								MarkdownDescription: "List of arguments passed to the entrypoint.",
+								MarkdownDescription: argumentsDescription,
 								Optional:            true,
 								Computed:            true,
 								ElementType:         types.StringType,
@@ -226,45 +169,31 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 						},
 					},
 					"lifecycle_type": schema.StringAttribute{
-						Description: descriptions.NewStringEnumDescription(
-							"Type of the lifecycle job.",
-							clientEnumToStringArray(qovery.AllowedJobLifecycleTypeEnumEnumValues),
-							nil,
-						),
-						MarkdownDescription: descriptions.NewStringEnumDescription(
-							"Type of the lifecycle job.",
-							clientEnumToStringArray(qovery.AllowedJobLifecycleTypeEnumEnumValues),
-							nil,
-						),
-						Optional: true,
-						Computed: true,
+						MarkdownDescription: jobLifecycleTypeDescription,
+						Optional:            true,
+						Computed:            true,
 					},
 					"cronjob": schema.SingleNestedAttribute{
-						Description:         "Cron job configuration.",
-						MarkdownDescription: "Cron job configuration.",
+						MarkdownDescription: jobCronJobDescription,
 						Optional:            true,
 						Computed:            true,
 						Attributes: map[string]schema.Attribute{
 							"schedule": schema.StringAttribute{
-								Description:         "Cron expression defining the job schedule (5-field format, e.g. */5 * * * *).",
-								MarkdownDescription: "Cron expression defining the job schedule (5-field format, e.g. `*/5 * * * *`).",
+								MarkdownDescription: jobCronJobScheduleDescription,
 								Computed:            true,
 								// TODO(benjaminch): introduce a cron string validator
 							},
 							"command": schema.SingleNestedAttribute{
-								Description:         "Command to execute when the cron job triggers.",
-								MarkdownDescription: "Command to execute when the cron job triggers.",
+								MarkdownDescription: jobCronJobCommandDescription,
 								Computed:            true,
 								Attributes: map[string]schema.Attribute{
 									"entrypoint": schema.StringAttribute{
-										Description:         "Entrypoint of the job (e.g. the command to execute).",
-										MarkdownDescription: "Entrypoint of the job (e.g. the command to execute).",
+										MarkdownDescription: entrypointDescription,
 										Optional:            true,
 										Computed:            true,
 									},
 									"arguments": schema.ListAttribute{
-										Description:         "List of arguments passed to the entrypoint.",
-										MarkdownDescription: "List of arguments passed to the entrypoint.",
+										MarkdownDescription: argumentsDescription,
 										Optional:            true,
 										Computed:            true,
 										ElementType:         types.StringType,
@@ -276,82 +205,68 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 				},
 			},
 			"source": schema.SingleNestedAttribute{
-				Description:         "Job's source configuration. Use image for container registry, or docker for building from a Dockerfile.",
-				MarkdownDescription: "Job's source configuration. Use `image` for container registry, or `docker` for building from a Dockerfile.",
+				MarkdownDescription: jobSourceDescription,
 				Optional:            true,
 				Computed:            true,
 				Attributes: map[string]schema.Attribute{
 					"image": schema.SingleNestedAttribute{
-						Description:         "Job's image source from a container registry.",
-						MarkdownDescription: "Job's image source from a container registry.",
+						MarkdownDescription: jobSourceImageDescription,
 						Optional:            true,
 						Computed:            true,
 						Attributes: map[string]schema.Attribute{
 							"registry_id": schema.StringAttribute{
-								Description:         "Job's image source registry ID.",
-								MarkdownDescription: "Job's image source registry ID.",
+								MarkdownDescription: containerImageRegistryIDDescription,
 								Computed:            true,
 							},
 							"name": schema.StringAttribute{
-								Description:         "Job's image source name.",
-								MarkdownDescription: "Job's image source name.",
+								MarkdownDescription: containerImageNameDescription,
 								Computed:            true,
 							},
 							"tag": schema.StringAttribute{
-								Description:         "Job's image source tag.",
-								MarkdownDescription: "Job's image source tag.",
+								MarkdownDescription: containerImageTagDescription,
 								Computed:            true,
 							},
 						},
 					},
 					"docker": schema.SingleNestedAttribute{
-						Description:         "Job's Docker source. Build the image from a Dockerfile in a git repository.",
-						MarkdownDescription: "Job's Docker source. Build the image from a Dockerfile in a git repository.",
+						MarkdownDescription: jobSourceDockerDescription,
 						Optional:            true,
 						Computed:            true,
 						Attributes: map[string]schema.Attribute{
 							"dockerfile_path": schema.StringAttribute{
-								Description:         "Path to the Dockerfile relative to the git repository root path.",
-								MarkdownDescription: "Path to the Dockerfile relative to the git repository root path.",
+								MarkdownDescription: dockerfilePathDescription,
 								Optional:            true,
 							},
 							"dockerfile_raw": schema.StringAttribute{
-								Description:         "Inline Dockerfile content for building the image.",
-								MarkdownDescription: "Inline Dockerfile content for building the image.",
+								MarkdownDescription: jobDockerfileRawDescription,
 								Optional:            true,
 							},
 							"git_repository": schema.SingleNestedAttribute{
-								Description:         "Git repository containing the Dockerfile.",
-								MarkdownDescription: "Git repository containing the Dockerfile.",
+								MarkdownDescription: jobGitRepositoryDescription,
 								Computed:            true,
 								Attributes: map[string]schema.Attribute{
 									"url": schema.StringAttribute{
-										Description:         "Git repository URL.",
-										MarkdownDescription: "Git repository URL.",
+										MarkdownDescription: gitRepositoryURLDescription,
 										Computed:            true,
 									},
 									"branch": schema.StringAttribute{
-										Description:         "Git branch to use.",
-										MarkdownDescription: "Git branch to use.",
+										MarkdownDescription: jobGitRepositoryBranchDescription,
 										Computed:            true,
 									},
 									"root_path": schema.StringAttribute{
-										Description:         "Root path in the git repository.",
-										MarkdownDescription: "Root path in the git repository.",
+										MarkdownDescription: gitRepositoryRootPathDescription,
 										Optional:            true,
 										Computed:            true,
 									},
 									"git_token_id": schema.StringAttribute{
-										Description:         "Git token ID for accessing a private repository.",
-										MarkdownDescription: "Git token ID for accessing a private repository.",
+										MarkdownDescription: gitRepositoryTokenIDDescription,
 										Optional:            true,
 										Computed:            false,
 									},
 								},
 							},
 							"docker_target_build_stage": schema.StringAttribute{
-								Description:         "Target build stage in a multi-stage Dockerfile.",
-								MarkdownDescription: "Target build stage in a multi-stage Dockerfile.",
+								MarkdownDescription: dockerTargetBuildStageDescription,
 								Optional:            true,
 							},
 						},
@@ -359,29 +274,24 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 				},
 			},
 			"built_in_environment_variables": schema.ListNestedAttribute{
-				Description:         "List of built-in environment variables linked to this job.",
-				MarkdownDescription: "List of built-in environment variables linked to this job.",
+				MarkdownDescription: builtInEnvVars.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the environment variable.",
-							MarkdownDescription: "Id of the environment variable.",
+							MarkdownDescription: builtInEnvVars.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the environment variable.",
-							MarkdownDescription: "Key of the environment variable.",
+							MarkdownDescription: builtInEnvVars.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the environment variable.",
-							MarkdownDescription: "Value of the environment variable.",
+							MarkdownDescription: builtInEnvVars.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable.",
-							MarkdownDescription: "Description of the environment variable.",
+							MarkdownDescription: builtInEnvVars.Description,
 							Computed:            true,
 						},
 					},
@@ -389,354 +299,289 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 			},
 			// TODO (framework-migration) Extract environment variables + secrets attributes to avoid repetition everywhere (project / env / services)
 			"environment_variables": schema.SetNestedAttribute{
-				Description:         "List of environment variables linked to this job.",
-				MarkdownDescription: "List of environment variables linked to this job.",
+				MarkdownDescription: envVars.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the environment variable.",
-							MarkdownDescription: "Id of the environment variable.",
+							MarkdownDescription: envVars.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the environment variable.",
-							MarkdownDescription: "Key of the environment variable.",
+							MarkdownDescription: envVars.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the environment variable.",
-							MarkdownDescription: "Value of the environment variable.",
+							MarkdownDescription: envVars.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable.",
-							MarkdownDescription: "Description of the environment variable.",
+							MarkdownDescription: envVars.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"environment_variable_aliases": schema.SetNestedAttribute{
-				Description:         "List of environment variable aliases linked to this job.",
-				MarkdownDescription: "List of environment variable aliases linked to this job.",
+				MarkdownDescription: envVarAliases.List,
 				Optional:            true,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the environment variable alias.",
-							MarkdownDescription: "Id of the environment variable alias.",
+							MarkdownDescription: envVarAliases.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Name of the environment variable alias.",
-							MarkdownDescription: "Name of the environment variable alias.",
+							MarkdownDescription: envVarAliases.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Name of the variable to alias.",
-							MarkdownDescription: "Name of the variable to alias.",
+							MarkdownDescription: envVarAliases.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable alias.",
-							MarkdownDescription: "Description of the environment variable alias.",
+							MarkdownDescription: envVarAliases.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"environment_variable_overrides": schema.SetNestedAttribute{
-				Description:         "List of environment variable overrides linked to this job.",
-				MarkdownDescription: "List of environment variable overrides linked to this job.",
+				MarkdownDescription: envVarOverrides.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the environment variable override.",
-							MarkdownDescription: "Id of the environment variable override.",
+							MarkdownDescription: envVarOverrides.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Name of the environment variable override.",
-							MarkdownDescription: "Name of the environment variable override.",
+							MarkdownDescription: envVarOverrides.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the environment variable override.",
-							MarkdownDescription: "Value of the environment variable override.",
+							MarkdownDescription: envVarOverrides.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable override.",
-							MarkdownDescription: "Description of the environment variable override.",
+							MarkdownDescription: envVarOverrides.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"secrets": schema.SetNestedAttribute{
-				Description:         "List of secrets linked to this job.",
-				MarkdownDescription: "List of secrets linked to this job.",
+				MarkdownDescription: secrets.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the secret.",
-							MarkdownDescription: "Id of the secret.",
+							MarkdownDescription: secrets.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the secret.",
-							MarkdownDescription: "Key of the secret.",
+							MarkdownDescription: secrets.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the secret.",
-							MarkdownDescription: "Value of the secret.",
+							MarkdownDescription: secrets.Value,
 							Computed:            true,
 							Sensitive:           true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the secret.",
-							MarkdownDescription: "Description of the secret.",
+							MarkdownDescription: secrets.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"secret_aliases": schema.SetNestedAttribute{
-				Description:         "List of secret aliases linked to this job.",
-				MarkdownDescription: "List of secret aliases linked to this job.",
+				MarkdownDescription: secretAliases.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the secret alias.",
-							MarkdownDescription: "Id of the secret alias.",
+							MarkdownDescription: secretAliases.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Name of the secret alias.",
-							MarkdownDescription: "Name of the secret alias.",
+							MarkdownDescription: secretAliases.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Name of the secret to alias.",
-							MarkdownDescription: "Name of the secret to alias.",
+							MarkdownDescription: secretAliases.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the secret alias.",
-							MarkdownDescription: "Description of the secret alias.",
+							MarkdownDescription: secretAliases.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"secret_overrides": schema.SetNestedAttribute{
-				Description:         "List of secret overrides linked to this job.",
-				MarkdownDescription: "List of secret overrides linked to this job.",
+				MarkdownDescription: secretOverrides.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the secret override.",
-							MarkdownDescription: "Id of the secret override.",
+							MarkdownDescription: secretOverrides.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Name of the secret override.",
-							MarkdownDescription: "Name of the secret override.",
+							MarkdownDescription: secretOverrides.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the secret override.",
-							MarkdownDescription: "Value of the secret override.",
+							MarkdownDescription: secretOverrides.Value,
 							Computed:            true,
 							Sensitive:           true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the secret override.",
-							MarkdownDescription: "Description of the secret override.",
+							MarkdownDescription: secretOverrides.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"environment_variable_files": schema.SetNestedAttribute{
-				Description:         "List of environment variable files linked to this job.",
-				MarkdownDescription: "List of environment variable files linked to this job.",
+				MarkdownDescription: envVarFiles.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the environment variable file.",
-							MarkdownDescription: "Id of the environment variable file.",
+							MarkdownDescription: envVarFiles.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the environment variable file.",
-							MarkdownDescription: "Key of the environment variable file.",
+							MarkdownDescription: envVarFiles.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the environment variable file.",
-							MarkdownDescription: "Value of the environment variable file.",
+							MarkdownDescription: envVarFiles.Value,
 							Computed:            true,
 						},
 						"mount_path": schema.StringAttribute{
-							Description:         "Mount path of the environment variable file.",
-							MarkdownDescription: "Mount path of the environment variable file.",
+							MarkdownDescription: envVarFiles.MountPath,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable file.",
-							MarkdownDescription: "Description of the environment variable file.",
+							MarkdownDescription: envVarFiles.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"secret_files": schema.SetNestedAttribute{
-				Description:         "List of secret files linked to this job.",
-				MarkdownDescription: "List of secret files linked to this job.",
+				MarkdownDescription: secretFiles.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the secret file.",
-							MarkdownDescription: "Id of the secret file.",
+							MarkdownDescription: secretFiles.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the secret file.",
-							MarkdownDescription: "Key of the secret file.",
+							MarkdownDescription: secretFiles.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the secret file.",
-							MarkdownDescription: "Value of the secret file.",
+							MarkdownDescription: secretFiles.Value,
 							Computed:            true,
 							Sensitive:           true,
 						},
 						"mount_path": schema.StringAttribute{
-							Description:         "Mount path of the secret file.",
-							MarkdownDescription: "Mount path of the secret file.",
+							MarkdownDescription: secretFiles.MountPath,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the secret file.",
-							MarkdownDescription: "Description of the secret file.",
+							MarkdownDescription: secretFiles.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"external_secrets": schema.SetNestedAttribute{
-				Description:         "List of external secrets linked to this job.",
-				MarkdownDescription: "List of external secrets linked to this job.",
+				MarkdownDescription: externalSecrets.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"id":                       schema.StringAttribute{Computed: true},
-						"key":                      schema.StringAttribute{Computed: true},
-						"description":              schema.StringAttribute{Computed: true},
-						"reference":                schema.StringAttribute{Computed: true},
-						"secret_manager_access_id": schema.StringAttribute{Computed: true},
+						"id":                       schema.StringAttribute{MarkdownDescription: externalSecrets.ID, Computed: true},
+						"key":                      schema.StringAttribute{MarkdownDescription: externalSecrets.Key, Computed: true},
+						"description":              schema.StringAttribute{MarkdownDescription: externalSecrets.Description, Computed: true},
+						"reference":                schema.StringAttribute{MarkdownDescription: externalSecrets.Reference, Computed: true},
+						"secret_manager_access_id": schema.StringAttribute{MarkdownDescription: externalSecrets.SecretManagerAccessID, Computed: true},
 					},
 				},
 			},
 			"external_secret_files": schema.SetNestedAttribute{
-				Description:         "List of external secret files linked to this job.",
-				MarkdownDescription: "List of external secret files linked to this job.",
+				MarkdownDescription: externalSecretFiles.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
-						"id":                       schema.StringAttribute{Computed: true},
-						"key":                      schema.StringAttribute{Computed: true},
-						"description":              schema.StringAttribute{Computed: true},
-						"mount_path":               schema.StringAttribute{Computed: true},
-						"reference":                schema.StringAttribute{Computed: true},
-						"secret_manager_access_id": schema.StringAttribute{Computed: true},
+						"id":                       schema.StringAttribute{MarkdownDescription: externalSecretFiles.ID, Computed: true},
+						"key":                      schema.StringAttribute{MarkdownDescription: externalSecretFiles.Key, Computed: true},
+						"description":              schema.StringAttribute{MarkdownDescription: externalSecretFiles.Description, Computed: true},
+						"mount_path":               schema.StringAttribute{MarkdownDescription: externalSecretFiles.MountPath, Computed: true},
+						"reference":                schema.StringAttribute{MarkdownDescription: externalSecretFiles.Reference, Computed: true},
+						"secret_manager_access_id": schema.StringAttribute{MarkdownDescription: externalSecretFiles.SecretManagerAccessID, Computed: true},
 					},
 				},
 			},
-			"external_host": schema.StringAttribute{
-				Description:         "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",
-				MarkdownDescription: "The job external FQDN host [NOTE: only if your job is using a publicly accessible port].",
-				Computed:            true,
-			},
-			"internal_host": schema.StringAttribute{
-				Description:         "The job internal host.",
-				MarkdownDescription: "The job internal host.",
-				Computed:            true,
-			},
 			"deployment_stage_id": schema.StringAttribute{
-				Description:         "Id of the deployment stage. Controls the order of service deployment.",
-				MarkdownDescription: "Id of the deployment stage. Controls the order of service deployment.",
+				MarkdownDescription: deploymentStageIDDescription,
 				Optional:            true,
 				Computed:            true,
 			},
 			"is_skipped": schema.BoolAttribute{
-				Description:         "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
-				MarkdownDescription: "If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.",
+				MarkdownDescription: isSkippedDescription,
 				Optional:            true,
 				Computed:            true,
 			},
 			"advanced_settings_json": schema.StringAttribute{
-				Description:         "Advanced settings in JSON format.",
-				MarkdownDescription: "Advanced settings in JSON format.",
+				MarkdownDescription: dataSourceAdvancedSettingsJSONDescription("job"),
 				Optional:            true,
 				Computed:            true,
 			},
 			"build_settings": buildSettingsDataSourceSchemaAttributes(),
 			"auto_deploy": schema.BoolAttribute{
-				Description:         "Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.",
-				MarkdownDescription: "Specify if the job will be automatically updated after receiving a new image tag or a new commit on the branch.",
+				MarkdownDescription: jobAutoDeployDescription,
 				Optional:            true,
 				Computed:            true,
 			},
 			"deployment_restrictions": schema.SetNestedAttribute{
-				Description:         "List of deployment restrictions.",
-				MarkdownDescription: "List of deployment restrictions.",
+				MarkdownDescription: restrictions.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the deployment restriction.",
-							MarkdownDescription: "Id of the deployment restriction",
+							MarkdownDescription: restrictions.ID,
 							Computed:            true,
 						},
 						"mode": schema.StringAttribute{
-							Description:         "Deployment restriction mode. Can be: EXCLUDE, MATCH.",
-							MarkdownDescription: "Deployment restriction mode.\n\t- Can be: `EXCLUDE`, `MATCH`.",
+							MarkdownDescription: restrictions.Mode,
 							Computed:            true,
 						},
 						"type": schema.StringAttribute{
-							Description:         "Deployment restriction type. Can be: PATH.",
-							MarkdownDescription: "Deployment restriction type.\n\t- Can be: `PATH`.",
+							MarkdownDescription: restrictions.Type,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the deployment restriction (e.g. a file path pattern).",
-							MarkdownDescription: "Value of the deployment restriction (e.g. a file path pattern).",
+							MarkdownDescription: restrictions.Value,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"annotations_group_ids": schema.SetAttribute{
-				Description:         "List of annotations group IDs.",
-				MarkdownDescription: "List of annotations group IDs.",
-				Optional:            true,
+				MarkdownDescription: dataSourceGroupIDsDescription("annotations", "job"),
+				Computed:            true,
 				ElementType:         types.StringType,
 			},
 			"labels_group_ids": schema.SetAttribute{
-				Description:         "List of labels group IDs.",
-				MarkdownDescription: "List of labels group IDs.",
-				Optional:            true,
+				MarkdownDescription: dataSourceGroupIDsDescription("labels", "job"),
+				Computed:            true,
 				ElementType:         types.StringType,
 			},
 		},
@@ -759,10 +604,29 @@ func (d jobDataSource) Read(ctx context.Context, req datasource.ReadRequest, res
 		return
 	}
 
+	// Group ids and entrypoints report the API value; a data source has no plan to match, so none
+	// reads as [] and an empty entrypoint as "".
+	data.AnnotationsGroupIds = emptyStringSet()
+	data.LabelssGroupIds = emptyStringSet()
+	data.Schedule = dataSourceJobSchedulePrior()
 	state := convertDomainJobToJob(ctx, data, cont)
 	state.BuildSettings = buildSettingsFromQovery(cont.BuildSettings)
 	tflog.Trace(ctx, "read job", map[string]any{"job_id": state.ID.ValueString()})
 
 	// Set state
 	resp.Diagnostics.Append(resp.State.Set(ctx, &state)...)
+}
+
+// dataSourceJobSchedulePrior is the schedule a data source passes as the prior of
+// JobScheduleFromDomainJobSchedule: every entrypoint is "", so an empty API entrypoint reads as
+// "". The arguments stay unset, as without a prior.
+func dataSourceJobSchedulePrior() *JobSchedule {
+	command := func() ExecutionCommand { return ExecutionCommand{Entrypoint: types.StringValue("")} }
+	onStart, onStop, onDelete := command(), command(), command()
+	return &JobSchedule{
+		OnStart:  &onStart,
+		OnStop:   &onStop,
+		OnDelete: &onDelete,
+		CronJob:  &JobScheduleCron{Command: command()},
+	}
 }

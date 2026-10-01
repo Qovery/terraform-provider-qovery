@@ -128,34 +128,12 @@ func fromLabelList(labels []qovery.Label) LabelList {
 	return list
 }
 
-func fromLabelsGroupResponseList(ctx context.Context, initialState types.Set, labelsGroup []qovery.OrganizationLabelsGroupResponse) types.Set {
-	if initialState.IsNull() {
-		return types.SetNull(types.StringType)
+// fromLabelsGroupResponseList reads a service's labels_group_ids from the API (see
+// setFromAPIElements), so groups attached or detached outside Terraform show in the plan.
+func fromLabelsGroupResponseList(prior types.Set, labelsGroups []qovery.OrganizationLabelsGroupResponse) types.Set {
+	ids := make([]string, 0, len(labelsGroups))
+	for _, v := range labelsGroups {
+		ids = append(ids, v.Id)
 	}
-
-	elements := make([]string, 0, len(labelsGroup))
-	for _, v := range labelsGroup {
-		elements = append(elements, v.Id)
-	}
-	set, diagnostics := types.SetValueFrom(ctx, types.StringType, elements)
-	if diagnostics.HasError() {
-		panic("TODO")
-	}
-	return set
-}
-
-func fromLabelsGroupList(ctx context.Context, initialState types.Set, labelsGroup []string) types.Set {
-	if initialState.IsNull() {
-		return types.SetNull(types.StringType)
-	}
-
-	elements := make([]string, 0, len(labelsGroup))
-	for _, v := range labelsGroup {
-		elements = append(elements, v)
-	}
-	set, diagnostics := types.SetValueFrom(ctx, types.StringType, elements)
-	if diagnostics.HasError() {
-		panic("TODO")
-	}
-	return set
+	return stringSetFromAPI(prior, ids)
 }

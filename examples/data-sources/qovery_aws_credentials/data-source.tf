@@ -1,4 +1,4 @@
-data "qovery_aws_credentials" "my_aws_creds" {
-  id              = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-  organization_id = qovery_organization.my_organization.id
+data "qovery_aws_credentials" "my_aws_credentials" {
+  id              = "<aws_credentials_id>"
+  organization_id = "<organization_id>"
 }

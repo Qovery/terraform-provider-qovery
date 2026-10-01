@@ -9,8 +9,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-
-	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -48,54 +46,38 @@ func (d *helmRepositoryDataSource) Configure(_ context.Context, req datasource.C
 
 func (r helmRepositoryDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "Use this data source to retrieve information about an existing Qovery helm repository.",
-		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery helm repository.",
+		MarkdownDescription: "Reads an existing Qovery helm repository.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the helm repository (UUID format).",
-				MarkdownDescription: "Unique identifier of the helm repository (UUID format).",
+				MarkdownDescription: idDescription("helm repository"),
 				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization.",
-				MarkdownDescription: "Id of the organization.",
+				MarkdownDescription: organizationIDDescription,
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the helm repository.",
-				MarkdownDescription: "Name of the helm repository.",
+				MarkdownDescription: nameDescription("helm repository"),
 				Optional:            true,
 				Computed:            true,
 			},
 			"kind": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Kind of the helm repository.",
-					helmRepositoryKinds,
-					nil,
-				),
-				MarkdownDescription: descriptions.NewStringEnumDescription(
-					"Kind of the helm repository.",
-					helmRepositoryKinds,
-					nil,
-				),
-				Optional: true,
-				Computed: true,
+				MarkdownDescription: helmRepositoryKindDescription,
+				Optional:            true,
+				Computed:            true,
 			},
 			"url": schema.StringAttribute{
-				Description:         "URL of the helm repository.",
-				MarkdownDescription: "URL of the helm repository.",
+				MarkdownDescription: helmRepositoryURLDescription,
 				Optional:            true,
 				Computed:            true,
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the helm repository.",
-				MarkdownDescription: "Description of the helm repository.",
+				MarkdownDescription: descriptionDescription("helm repository"),
 				Optional:            true,
 				Computed:            true,
 			},
 			"skip_tls_verification": schema.BoolAttribute{
-				Description:         "Whether TLS certificate verification is bypassed when connecting to the repository.",
-				MarkdownDescription: "Whether TLS certificate verification is bypassed when connecting to the repository.",
+				MarkdownDescription: helmRepositorySkipTLSVerificationDescription,
 				Optional:            true,
 				Computed:            true,
 			},

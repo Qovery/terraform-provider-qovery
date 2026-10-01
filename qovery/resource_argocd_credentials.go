@@ -50,30 +50,30 @@ func (r *argoCdCredentialsResource) Configure(_ context.Context, req resource.Co
 
 func (r argoCdCredentialsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery ArgoCD credentials resource. This can be used to configure ArgoCD integration for a cluster.",
+		MarkdownDescription: "Manages the ArgoCD credentials of a Qovery cluster: the URL and API token of the ArgoCD instance Qovery connects to.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Unique identifier of the ArgoCD credentials.",
-				Computed:    true,
+				MarkdownDescription: idDescription("ArgoCD credentials"),
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"cluster_id": schema.StringAttribute{
-				Description: "Id of the cluster.",
-				Required:    true,
+				MarkdownDescription: "ID of the cluster." + recreatesOnChange("ArgoCD credentials"),
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"argocd_url": schema.StringAttribute{
-				Description: "URL of the ArgoCD instance (e.g. https://argocd.example.com).",
-				Required:    true,
+				MarkdownDescription: "URL of the ArgoCD instance, for example `https://argocd.example.com`.",
+				Required:            true,
 			},
 			"argocd_token": schema.StringAttribute{
-				Description: "ArgoCD API authentication token.",
-				Required:    true,
-				Sensitive:   true,
+				MarkdownDescription: "API token of the ArgoCD instance.",
+				Required:            true,
+				Sensitive:           true,
 			},
 		},
 	}

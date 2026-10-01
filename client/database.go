@@ -139,12 +139,9 @@ func (c *Client) GetDatabaseCredentials(ctx context.Context, databaseID string) 
 }
 
 func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *DatabaseUpdateParams) (*DatabaseResponse, *apierrors.APIError) {
-	database, res, err := c.api.DatabaseMainCallsAPI.
-		EditDatabase(ctx, databaseID).
-		DatabaseEditRequest(params.DatabaseEditRequest).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		return nil, apierrors.NewUpdateError(apierrors.APIResourceDatabase, databaseID, res, err)
+	database, apiErr := c.editDatabase(ctx, databaseID, params.DatabaseEditRequest)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 	// Attach database to deployment stage
 	if len(params.DeploymentStageID) > 0 {
@@ -161,6 +158,28 @@ func (c *Client) UpdateDatabase(ctx context.Context, databaseID string, params *
 	}
 
 	return c.updateDatabase(ctx, database, deploymentStage.Id, getServiceIsSkipped(deploymentStage, database.Id))
+}
+
+// editDatabase sends request with the current description of the database. The provider does not
+// manage the description, and q-core clears it when an edit omits it, which wiped the description
+// set in the Console on every update.
+func (c *Client) editDatabase(ctx context.Context, databaseID string, request qovery.DatabaseEditRequest) (*qovery.Database, *apierrors.APIError) {
+	current, res, err := c.api.DatabaseMainCallsAPI.
+		GetDatabase(ctx, databaseID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return nil, apierrors.NewReadError(apierrors.APIResourceDatabase, databaseID, res, err)
+	}
+	request.Description = current.Description
+
+	database, res, err := c.api.DatabaseMainCallsAPI.
+		EditDatabase(ctx, databaseID).
+		DatabaseEditRequest(request).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return nil, apierrors.NewUpdateError(apierrors.APIResourceDatabase, databaseID, res, err)
+	}
+	return database, nil
 }
 
 func (c *Client) DeleteDatabase(ctx context.Context, databaseID string) *apierrors.APIError {

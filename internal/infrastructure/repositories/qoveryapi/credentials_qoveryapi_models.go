@@ -6,63 +6,44 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
 )
 
-// newDomainCredentialsFromQovery takes a qovery.ClusterCredentials returned by the API client and turns it into the domain model credentials.Credentials.
+// newDomainCredentialsFromQovery takes a qovery.ClusterCredentials returned by the API client and turns it into the domain model credentials.Credentials,
+// with the identifiers the API returns for its type.
 func newDomainCredentialsFromQovery(organizationID string, creds *qovery.ClusterCredentials) (*credentials.Credentials, error) {
 	if creds == nil {
 		return nil, credentials.ErrNilCredentials
 	}
+	params := credentials.NewCredentialsParams{OrganizationID: organizationID}
 	switch castedCreds := creds.GetActualInstance().(type) {
 	case *qovery.AwsStaticClusterCredentials:
-		return credentials.NewCredentials(credentials.NewCredentialsParams{
-			CredentialsID:  castedCreds.GetId(),
-			OrganizationID: organizationID,
-			Name:           castedCreds.GetName(),
-		})
+		params.CredentialsID, params.Name = castedCreds.GetId(), castedCreds.GetName()
+		params.Identifiers.AccessKeyID = new(castedCreds.GetAccessKeyId())
 	case *qovery.AwsRoleClusterCredentials:
-		return credentials.NewCredentials(credentials.NewCredentialsParams{
-			CredentialsID:  castedCreds.GetId(),
-			OrganizationID: organizationID,
-			Name:           castedCreds.GetName(),
-		})
+		params.CredentialsID, params.Name = castedCreds.GetId(), castedCreds.GetName()
+		params.Identifiers.RoleArn = new(castedCreds.GetRoleArn())
 	case *qovery.ScalewayClusterCredentials:
-		return credentials.NewCredentials(credentials.NewCredentialsParams{
-			CredentialsID:  castedCreds.GetId(),
-			OrganizationID: organizationID,
-			Name:           castedCreds.GetName(),
-		})
+		params.CredentialsID, params.Name = castedCreds.GetId(), castedCreds.GetName()
+		params.Identifiers.ScalewayAccessKey = new(castedCreds.GetScalewayAccessKey())
+		params.Identifiers.ScalewayProjectID = new(castedCreds.GetScalewayProjectId())
+		params.Identifiers.ScalewayOrganizationID = new(castedCreds.GetScalewayOrganizationId())
 	case *qovery.GcpStaticClusterCredentials:
-		return credentials.NewCredentials(credentials.NewCredentialsParams{
-			CredentialsID:  castedCreds.GetId(),
-			OrganizationID: organizationID,
-			Name:           castedCreds.GetName(),
-		})
+		params.CredentialsID, params.Name = castedCreds.GetId(), castedCreds.GetName()
 	case *qovery.GcpWorkloadIdentityFederationClusterCredentials:
-		return credentials.NewCredentials(credentials.NewCredentialsParams{
-			CredentialsID:  castedCreds.GetId(),
-			OrganizationID: organizationID,
-			Name:           castedCreds.GetName(),
-		})
+		params.CredentialsID, params.Name = castedCreds.GetId(), castedCreds.GetName()
+		params.Identifiers.ServiceAccountEmail = new(castedCreds.GetServiceAccountEmail())
+		params.Identifiers.WorkloadIdentityProviderResource = new(castedCreds.GetWorkloadIdentityProviderResource())
 	case *qovery.AzureStaticClusterCredentials:
-		return credentials.NewCredentials(credentials.NewCredentialsParams{
-			CredentialsID:  castedCreds.GetId(),
-			OrganizationID: organizationID,
-			Name:           castedCreds.GetName(),
-		})
+		params.CredentialsID, params.Name = castedCreds.GetId(), castedCreds.GetName()
 	case *qovery.GenericClusterCredentials:
-		return credentials.NewCredentials(credentials.NewCredentialsParams{
-			CredentialsID:  castedCreds.GetId(),
-			OrganizationID: organizationID,
-			Name:           castedCreds.GetName(),
-		})
+		params.CredentialsID, params.Name = castedCreds.GetId(), castedCreds.GetName()
 	case *qovery.EksAnywhereVsphereClusterCredentials:
-		return credentials.NewCredentials(credentials.NewCredentialsParams{
-			CredentialsID:  castedCreds.GetId(),
-			OrganizationID: organizationID,
-			Name:           castedCreds.GetName(),
-		})
+		params.CredentialsID, params.Name = castedCreds.GetId(), castedCreds.GetName()
+		params.Identifiers.VsphereUser = new(castedCreds.GetVsphereUser())
+		params.Identifiers.AccessKeyID = castedCreds.AccessKeyId.Get()
+		params.Identifiers.RoleArn = castedCreds.RoleArn.Get()
 	default:
 		return nil, errors.New("unknown credentials type")
 	}
+	return credentials.NewCredentials(params)
 }
 
 // newQoveryAwsCredentialsRequestFromDomain takes the domain request credentials.UpsertAwsRequest and turns it into a qovery.AwsCredentialsRequest to make the api call.

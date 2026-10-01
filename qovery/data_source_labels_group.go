@@ -46,43 +46,35 @@ func (d *labelsGroupDataSource) Configure(_ context.Context, req datasource.Conf
 
 func (d labelsGroupDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description:         "Use this data source to retrieve information about an existing Qovery labels group.",
-		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery labels group.",
+		MarkdownDescription: "Reads an existing Qovery labels group.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the labels group (UUID format).",
-				MarkdownDescription: "Unique identifier of the labels group (UUID format).",
+				MarkdownDescription: idDescription("labels group"),
 				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization.",
-				MarkdownDescription: "Id of the organization.",
+				MarkdownDescription: organizationIDDescription,
 				Required:            true,
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the labels group.",
-				MarkdownDescription: "Name of the labels group.",
+				MarkdownDescription: nameDescription("labels group"),
 				Optional:            true,
 			},
 			"labels": schema.SetNestedAttribute{
-				Description:         "Set of labels included in this group.",
-				MarkdownDescription: "Set of labels included in this group.",
+				MarkdownDescription: labelsGroupLabelsDescription,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"key": schema.StringAttribute{
-							Description:         "Key of the label.",
-							MarkdownDescription: "Key of the label.",
+							MarkdownDescription: labelsGroupLabelKeyDescription,
 							Required:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the label.",
-							MarkdownDescription: "Value of the label.",
+							MarkdownDescription: labelsGroupLabelValueDescription,
 							Required:            true,
 						},
 						"propagate_to_cloud_provider": schema.BoolAttribute{
-							Description:         "Whether this label is propagated to the underlying cloud provider resources.",
-							MarkdownDescription: "Whether this label is propagated to the underlying cloud provider resources.",
+							MarkdownDescription: labelsGroupLabelPropagateDescription,
 							Required:            true,
 						},
 					},

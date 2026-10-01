@@ -39,14 +39,17 @@ func (creds AWSCredentials) toUpsertAwsRequest() credentials.UpsertAwsRequest {
 	}
 }
 
-func convertDomainCredentialsToAWSCredentials(creds *credentials.Credentials, plan AWSCredentials) AWSCredentials {
+// convertDomainCredentialsToAWSCredentials reads access_key_id and role_arn from the API, so an
+// identifier changed outside Terraform shows up in the plan. The API never returns the secret
+// access key, so it is kept from prior, the plan on apply and the state on refresh.
+func convertDomainCredentialsToAWSCredentials(creds *credentials.Credentials, prior AWSCredentials) AWSCredentials {
 	return AWSCredentials{
 		Id:              FromString(creds.ID.String()),
 		OrganizationId:  FromString(creds.OrganizationID.String()),
 		Name:            FromString(creds.Name),
-		AccessKeyId:     plan.AccessKeyId,
-		SecretAccessKey: plan.SecretAccessKey,
-		RoleArn:         plan.RoleArn,
+		AccessKeyId:     credentialIdentifierFromAPI(prior.AccessKeyId, creds.Identifiers.AccessKeyID),
+		SecretAccessKey: prior.SecretAccessKey,
+		RoleArn:         credentialIdentifierFromAPI(prior.RoleArn, creds.Identifiers.RoleArn),
 	}
 }
 

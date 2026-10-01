@@ -1,19 +1,19 @@
 # qovery_custom_role (Resource)
 
-Provides a Qovery organization custom role resource. Declare only the clusters and projects this role should have non-default access to: any cluster not listed keeps the VIEWER permission and any project not listed keeps NO_ACCESS. Permissions granted outside Terraform on undeclared clusters/projects are reset to those defaults on the next apply. Declaring an entry equal to the defaults (cluster VIEWER / project all-NO_ACCESS) is a no-op and will not survive an import round-trip.
+Manages a Qovery custom role: an organization role with its own permissions on each cluster and project.
+
+~> **Note:** Declare only the clusters and projects that need a permission other than the default. An import records only those, so a declared default permission shows up as a change after an import.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
 
 ```terraform
-resource "qovery_custom_role" "project_admin" {
+resource "qovery_custom_role" "my_custom_role" {
   organization_id = qovery_organization.my_organization.id
-  name            = "project-admin"
-  description     = "Admin on the main project, can create environments on the main cluster"
+  name            = "developer"
+  description     = "Manages the non-production environments of the main project"
 
   cluster_permissions = [
     {
@@ -22,13 +22,10 @@ resource "qovery_custom_role" "project_admin" {
     }
   ]
 
+  # List every environment type, or set is_admin = true instead of permissions.
   project_permissions = [
     {
       project_id = qovery_project.my_project.id
-      is_admin   = true
-    },
-    {
-      project_id = qovery_project.my_other_project.id
       permissions = [
         { environment_type = "DEVELOPMENT", permission = "MANAGER" },
         { environment_type = "PREVIEW", permission = "MANAGER" },
@@ -45,26 +42,28 @@ resource "qovery_custom_role" "project_admin" {
 
 ### Required
 
-- `name` (String) Name of the custom role. `owner`, `admin`, `devops`, `billing` and `viewer` are reserved built-in role names (case-insensitive).
-- `organization_id` (String) Id of the organization.
+- `name` (String) Name of the custom role. Using a built-in role name, `owner`, `admin`, `devops`, `billing` or `viewer` in any case, fails at plan time.
+- `organization_id` (String) ID of the organization. Changing it recreates the custom role.
 
 ### Optional
 
-- `cluster_permissions` (Attributes Set) Cluster permissions of the custom role. Clusters not listed default to VIEWER. (see [below for nested schema](#nestedatt--cluster_permissions))
+- `cluster_permissions` (Attributes Set) Permissions of the role on clusters. A cluster not listed gets `VIEWER`. (see [below for nested schema](#nestedatt--cluster_permissions))
 - `description` (String) Description of the custom role.
-- `project_permissions` (Attributes Set) Project permissions of the custom role. Projects not listed default to NO_ACCESS. (see [below for nested schema](#nestedatt--project_permissions))
+	- Default: `""`.
+- `project_permissions` (Attributes Set) Permissions of the role on projects. A project not listed gets `NO_ACCESS` on every environment type. (see [below for nested schema](#nestedatt--project_permissions))
 
 ### Read-Only
 
-- `id` (String) Id of the custom role.
+- `id` (String) ID of the custom role.
 
 <a id="nestedatt--cluster_permissions"></a>
 ### Nested Schema for `cluster_permissions`
 
 Required:
 
-- `cluster_id` (String) Id of the cluster.
-- `permission` (String) Permission of the role on the cluster. Can be: `VIEWER`, `ENV_CREATOR`, `ADMIN`.
+- `cluster_id` (String) ID of the cluster.
+- `permission` (String) Permission of the role on the cluster.
+	- Can be: `ADMIN`, `ENV_CREATOR`, `VIEWER`.
 
 
 <a id="nestedatt--project_permissions"></a>
@@ -72,21 +71,24 @@ Required:
 
 Required:
 
-- `project_id` (String) Id of the project.
+- `project_id` (String) ID of the project.
 
 Optional:
 
-- `is_admin` (Boolean) Give full admin rights on the project (MANAGER on every environment type + manage deployment rules + delete project). When true, `permissions` must not be set, not even as an empty set. Defaults to `false`.
-- `permissions` (Attributes Set) Per-environment-type permissions. Required when `is_admin` is not true; must contain exactly one entry for each environment type (DEVELOPMENT, PREVIEW, STAGING, PRODUCTION). (see [below for nested schema](#nestedatt--project_permissions--permissions))
+- `is_admin` (Boolean) Whether the role has admin rights on the whole project. When `true`, `permissions` must be omitted: even an empty set fails at plan time.
+	- Default: `false`.
+- `permissions` (Attributes Set) Permissions of the role on each environment type of the project. Required when `is_admin` is `false`, with exactly one entry per environment type. (see [below for nested schema](#nestedatt--project_permissions--permissions))
 
 <a id="nestedatt--project_permissions--permissions"></a>
 ### Nested Schema for `project_permissions.permissions`
 
 Required:
 
-- `environment_type` (String) Environment type. Can be: `DEVELOPMENT`, `PREVIEW`, `STAGING`, `PRODUCTION`.
-- `permission` (String) Permission of the role on the project for this environment type. Can be: `NO_ACCESS`, `VIEWER`, `DEPLOYER`, `MANAGER`.
+- `environment_type` (String) Environment type.
+	- Can be: `DEVELOPMENT`, `PREVIEW`, `PRODUCTION`, `STAGING`.
+- `permission` (String) Permission of the role on the environments of this type.
+	- Can be: `DEPLOYER`, `MANAGER`, `NO_ACCESS`, `VIEWER`.
 ## Import
 ```shell
-terraform import qovery_custom_role.project_admin "<organization_id>,<custom_role_id>"
+terraform import qovery_custom_role.my_custom_role "<organization_id>,<custom_role_id>"
 ```

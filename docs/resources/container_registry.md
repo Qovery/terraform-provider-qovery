@@ -1,104 +1,23 @@
 # qovery_container_registry (Resource)
 
-Provides a Qovery container registry resource. This can be used to create and manage Qovery container registries.
-
-A container registry stores Docker images that can be deployed as Qovery container services. Container registries are configured at the organization level and can be referenced by containers across all projects.
+Manages a Qovery container registry: an organization-wide connection to a registry that containers pull their images from.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
 
 ```terraform
-# Docker Hub registry
-resource "qovery_container_registry" "docker_hub" {
+resource "qovery_container_registry" "my_container_registry" {
   organization_id = qovery_organization.my_organization.id
-  name            = "My Docker Hub"
+  name            = "my-docker-hub"
   kind            = "DOCKER_HUB"
   url             = "https://docker.io"
+
   config = {
-    username = "<my_username>"
-    password = "<my_password_or_access_token>"
+    username = "my-docker-hub-user"
+    password = var.docker_hub_access_token
   }
-  description = "Docker Hub Registry"
-
-  depends_on = [
-    qovery_organization.my_organization
-  ]
-}
-
-# AWS ECR (Elastic Container Registry)
-resource "qovery_container_registry" "ecr" {
-  organization_id = qovery_organization.my_organization.id
-  name            = "My AWS ECR"
-  kind            = "ECR"
-  url             = "https://<account_id>.dkr.ecr.<region>.amazonaws.com"
-  config = {
-    access_key_id     = "<aws_access_key_id>"
-    secret_access_key = "<aws_secret_access_key>"
-    region            = "us-east-1"
-  }
-  description = "AWS ECR Registry"
-
-  depends_on = [
-    qovery_organization.my_organization
-  ]
-}
-
-# GitHub Container Registry
-resource "qovery_container_registry" "github_cr" {
-  organization_id = qovery_organization.my_organization.id
-  name            = "My GitHub CR"
-  kind            = "GITHUB_CR"
-  url             = "https://ghcr.io"
-  config = {
-    username = "<github_username>"
-    password = "<github_personal_access_token>"
-  }
-  description = "GitHub Container Registry"
-
-  depends_on = [
-    qovery_organization.my_organization
-  ]
-}
-
-# GCP Artifact Registry
-resource "qovery_container_registry" "gcp_artifact_registry" {
-  organization_id = qovery_organization.my_organization.id
-  name            = "My GCP Artifact Registry"
-  kind            = "GCP_ARTIFACT_REGISTRY"
-  url             = "https://<region>-docker.pkg.dev"
-  config = {
-    region           = "<region>"
-    json_credentials = "<gcp_service_account_json_key>"
-  }
-  description = "GCP Artifact Registry"
-
-  depends_on = [
-    qovery_organization.my_organization
-  ]
-}
-
-# GCP Artifact Registry using Workload Identity Federation (keyless)
-resource "qovery_container_registry" "gcp_artifact_registry_wif" {
-  organization_id = qovery_organization.my_organization.id
-  name            = "My GCP Artifact Registry (WIF)"
-  kind            = "GCP_ARTIFACT_REGISTRY"
-  url             = "https://<region>-docker.pkg.dev"
-  config = {
-    region                              = "<region>"
-    gcp_credentials_type                = "workload_identity_federation"
-    project_id                          = "<gcp_project_id>"
-    service_account_email               = "<service_account>@<gcp_project_id>.iam.gserviceaccount.com"
-    workload_identity_provider_resource = "projects/<project_number>/locations/global/workloadIdentityPools/<pool>/providers/<provider>"
-  }
-  description = "GCP Artifact Registry (Workload Identity Federation)"
-
-  depends_on = [
-    qovery_organization.my_organization
-  ]
 }
 ```
 
@@ -107,50 +26,42 @@ resource "qovery_container_registry" "gcp_artifact_registry_wif" {
 
 ### Required
 
-- `kind` (String) Kind of the container registry. Supported values:
-  - `ECR`: Amazon Elastic Container Registry (private).
-  - `PUBLIC_ECR`: Amazon Elastic Container Registry (public).
-  - `DOCR`: DigitalOcean Container Registry.
-  - `SCALEWAY_CR`: Scaleway Container Registry.
-  - `DOCKER_HUB`: Docker Hub.
-  - `GITHUB_CR`: GitHub Container Registry.
-  - `GITHUB_ENTERPRISE_CR`: GitHub Enterprise Container Registry.
-  - `GITLAB_CR`: GitLab Container Registry.
-  - `GCP_ARTIFACT_REGISTRY`: Google Cloud Artifact Registry.
-  - `AZURE_CR`: Azure Container Registry.
-  - `GENERIC_CR`: Any OCI-compatible container registry.
+- `kind` (String) Kind of the container registry.
+	- Can be: `AZURE_CR`, `DOCKER_HUB`, `DOCR`, `ECR`, `GCP_ARTIFACT_REGISTRY`, `GENERIC_CR`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, `PUBLIC_ECR`, `SCALEWAY_CR`.
 - `name` (String) Name of the container registry.
-- `organization_id` (String) Id of the organization. **Cannot be changed after creation** (forces resource replacement).
-- `url` (String) URL of the container registry (e.g. `https://docker.io` for Docker Hub, `https://<account_id>.dkr.ecr.<region>.amazonaws.com` for ECR).
+- `organization_id` (String) ID of the organization. Changing it recreates the container registry.
+- `url` (String) URL of the container registry, for example `https://docker.io` for Docker Hub.
 
 ### Optional
 
-- `config` (Attributes) Configuration needed to authenticate with the container registry. Required fields depend on the `kind` of registry. (see [below for nested schema](#nestedatt--config))
+- `config` (Attributes) Credentials of the container registry. The keys to set depend on `kind`. (see [below for nested schema](#nestedatt--config))
 - `description` (String) Description of the container registry.
+	- Default: `""`.
 
 ### Read-Only
 
-- `id` (String) Id of the container registry.
+- `id` (String) ID of the container registry.
 
 <a id="nestedatt--config"></a>
 ### Nested Schema for `config`
 
 Optional:
 
-- `access_key_id` (String) AWS Access Key ID. Required if `kind` is `ECR` or `PUBLIC_ECR`.
-- `gcp_credentials_type` (String) For `GCP_ARTIFACT_REGISTRY`, set to `workload_identity_federation` to authenticate via Workload Identity Federation instead of `json_credentials`. Requires `project_id`, `service_account_email`, and `workload_identity_provider_resource`.
-- `json_credentials` (String, Sensitive) GCP service account JSON key used to authenticate with the registry. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is not set. Mutually exclusive with the Workload Identity Federation fields (`gcp_credentials_type`, `service_account_email`, `workload_identity_provider_resource`). This is a sensitive value and will not be displayed in plan output.
-- `password` (String, Sensitive) Password or access token for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`. This is a sensitive value and will not be displayed in plan output.
-- `project_id` (String) GCP project ID. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is `workload_identity_federation`.
-- `region` (String) Region of the registry. Required if `kind` is `ECR`, `SCALEWAY_CR` or `GCP_ARTIFACT_REGISTRY` (e.g. `us-east-1`, `fr-par`).
-- `scaleway_access_key` (String) Scaleway Access Key. Required if `kind` is `SCALEWAY_CR`.
-- `scaleway_project_id` (String) Scaleway Project ID. Required if `kind` is `SCALEWAY_CR`.
-- `scaleway_secret_key` (String, Sensitive) Scaleway Secret Key. Required if `kind` is `SCALEWAY_CR`. This is a sensitive value and will not be displayed in plan output.
-- `secret_access_key` (String, Sensitive) AWS Secret Access Key. Required if `kind` is `ECR` or `PUBLIC_ECR`. This is a sensitive value and will not be displayed in plan output.
-- `service_account_email` (String) GCP service account email to impersonate via Workload Identity Federation. Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is `workload_identity_federation`.
-- `token_lifetime_seconds` (Number) Lifetime in seconds of the token generated via Workload Identity Federation (e.g. `14400`). Optional if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is `workload_identity_federation`.
-- `username` (String) Username for authentication. Required if `kind` is `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR`, or `GENERIC_CR`.
-- `workload_identity_provider_resource` (String) Full Workload Identity Provider resource path (e.g. `projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider`). Required if `kind` is `GCP_ARTIFACT_REGISTRY` and `gcp_credentials_type` is `workload_identity_federation`.
+- `access_key_id` (String) AWS access key ID. Used by `ECR` and `PUBLIC_ECR`.
+- `gcp_credentials_type` (String) Set to `workload_identity_federation` to authenticate a `GCP_ARTIFACT_REGISTRY` registry through Workload Identity Federation instead of `json_credentials`. It requires `project_id`, `service_account_email` and `workload_identity_provider_resource`.
+- `json_credentials` (String, Sensitive) JSON key of the GCP service account. Used by `GCP_ARTIFACT_REGISTRY`. Omit it when `gcp_credentials_type` is set.
+- `password` (String, Sensitive) Password or access token of `username`. Used by `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR` and `GENERIC_CR`.
+- `project_id` (String) ID of the GCP project. Used by `GCP_ARTIFACT_REGISTRY` with `gcp_credentials_type`.
+- `region` (String) Region of the registry, for example `us-east-1` or `fr-par`. Used by `ECR`, `SCALEWAY_CR` and `GCP_ARTIFACT_REGISTRY`.
+- `scaleway_access_key` (String) Scaleway API access key. Used by `SCALEWAY_CR`.
+- `scaleway_project_id` (String) ID of the Scaleway project. Used by `SCALEWAY_CR`.
+- `scaleway_secret_key` (String, Sensitive) Scaleway API secret key. Used by `SCALEWAY_CR`.
+- `secret_access_key` (String, Sensitive) AWS secret access key. Used by `ECR` and `PUBLIC_ECR`.
+- `service_account_email` (String) Email of the GCP service account Qovery impersonates through Workload Identity Federation, for example `qovery@my-project.iam.gserviceaccount.com`. Used by `GCP_ARTIFACT_REGISTRY` with `gcp_credentials_type`.
+- `token_lifetime_seconds` (Number) Lifetime of the tokens Workload Identity Federation issues, in seconds. Used by `GCP_ARTIFACT_REGISTRY` with `gcp_credentials_type`.
+	- Default: `14400`.
+- `username` (String) Username Qovery authenticates with. Used by `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR` and `GENERIC_CR`.
+- `workload_identity_provider_resource` (String) Full resource name of the Workload Identity Federation provider, for example `projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider`. Used by `GCP_ARTIFACT_REGISTRY` with `gcp_credentials_type`.
 ## Import
 ```shell
 terraform import qovery_container_registry.my_container_registry "<organization_id>,<container_registry_id>"

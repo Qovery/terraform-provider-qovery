@@ -12,7 +12,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/newdeployment"
-	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
@@ -22,6 +21,10 @@ var (
 	_ resource.ResourceWithImportState = deploymentResource{}
 )
 
+// deploymentResource is an exception to the config-is-source-of-truth rule (AGENTS.md): Qovery
+// stores no deployment object, since a deployment is an action on an environment. The resource
+// sends that action on create and update and its refresh keeps the state, so a deploy or a stop
+// made from the Console does not show up in the plan.
 type deploymentResource struct {
 	deploymentService newdeployment.Service
 }
@@ -82,14 +85,15 @@ func (r *deploymentResource) Configure(_ context.Context, req resource.Configure
 
 func (r deploymentResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery deployment resource. This is used to trigger and manage the deployment state of an environment and all its services. " +
-			"Note: This resource does not support import. When destroying this resource, all services in the environment will be stopped.",
-		MarkdownDescription: "Provides a Qovery deployment resource. This is used to trigger and manage the deployment state of an environment and all its services.\n\n" +
-			"~> **Note:** This resource does not support import. When destroying this resource, all services in the environment will be stopped.",
+		MarkdownDescription: "Manages the deployment of a Qovery environment: Terraform deploys, stops or redeploys all its services. " +
+			"Qovery stores no deployment, so a deploy or a stop made outside Terraform does not show up in the plan.\n\n" +
+			"~> **Note:** Destroying this resource deletes the environment and all its services.",
 		Attributes: map[string]schema.Attribute{
+			// id is a value only the provider sets: with no deployment object in Qovery, the
+			// provider generates the UUID when the configuration omits it, and UseStateForUnknown
+			// keeps it for the life of the resource.
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the deployment (UUID format). If not provided, a random UUID will be generated.",
-				MarkdownDescription: "Unique identifier of the deployment (UUID format). If not provided, a random UUID will be generated.",
+				MarkdownDescription: deploymentIDDescription + " A random UUID is generated when omitted.",
 				Optional:            true,
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
@@ -98,28 +102,17 @@ func (r deploymentResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			},
 			// environment_id deliberately does not force replacement: its Delete deletes the target environment.
 			"environment_id": schema.StringAttribute{
-				Description:         "Identifier of the environment to deploy (UUID format).",
-				MarkdownDescription: "Identifier of the environment to deploy (UUID format).",
+				MarkdownDescription: deploymentEnvironmentIDDescription,
 				Required:            true,
 			},
 			"version": schema.StringAttribute{
-				Description: "Version identifier to force a redeployment when desired_state hasn't changed. " +
-					"Use a random UUID (e.g., via uuid()) to force Terraform to trigger a new deployment on every apply.",
-				MarkdownDescription: "Version identifier to force a redeployment when `desired_state` hasn't changed. " +
-					"Use a random UUID (e.g., via `uuid()`) to force Terraform to trigger a new deployment on every apply.",
-				Optional: true,
-				Computed: false,
+				MarkdownDescription: deploymentVersionDescription + " Changing it runs the `desired_state` action again: set it to `uuid()` to redeploy on every apply.",
+				Optional:            true,
+				Computed:            false,
 			},
 			"desired_state": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Desired state of the deployment. Setting this to RUNNING starts all services, STOPPED stops all services, and RESTARTED triggers a restart of all running services.",
-					deploymentStates,
-					nil),
-				MarkdownDescription: descriptions.NewStringEnumDescription(
-					"Desired state of the deployment. Setting this to `RUNNING` starts all services, `STOPPED` stops all services, and `RESTARTED` triggers a restart of all running services.",
-					deploymentStates,
-					nil),
-				Required: true,
+				MarkdownDescription: deploymentDesiredStateDescription + " `RUNNING` deploys all its services, `STOPPED` stops them, and `RESTARTED` redeploys them but fails at creation.",
+				Required:            true,
 				Validators: []validator.String{
 					validators.NewStringEnumValidator(deploymentStates),
 				},
@@ -164,6 +157,7 @@ func (r deploymentResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
+	// Get calls no API: it rebuilds the deployment from the state (see deploymentResource).
 	deployment, err := r.deploymentService.Get(ctx, newdeployment.NewDeploymentParams{
 		ID:            ToStringPointer(state.Id),
 		EnvironmentID: ToString(state.EnvironmentId),

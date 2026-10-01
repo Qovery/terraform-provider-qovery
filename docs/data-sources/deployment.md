@@ -1,11 +1,11 @@
 # qovery_deployment (Data Source)
 
-Use this data source to retrieve information about an existing Qovery deployment.
+Reads a Qovery deployment. Qovery stores no deployment, so this data source only echoes its arguments.
 
 ## Example Usage
 
 ```terraform
-# Retrieve an existing deployment by its ID
+# Reads nothing from Qovery: the data source only echoes the arguments it is given.
 data "qovery_deployment" "my_deployment" {
   id = "<deployment_id>"
 }
@@ -16,14 +16,13 @@ data "qovery_deployment" "my_deployment" {
 
 ### Required
 
-- `id` (String) Unique identifier of the deployment (UUID format).
+- `id` (String) ID of the deployment, as a UUID. Echoed as configured.
 
 ### Optional
 
-- `version` (String) Version identifier of the deployment.
+- `version` (String) Version of the deployment, as a UUID. Echoed as configured.
 
 ### Read-Only
 
-- `desired_state` (String) Desired state of the deployment.
-	- Can be: `RESTARTED`, `RUNNING`, `STOPPED`.
-- `environment_id` (String) Identifier of the environment associated with this deployment.
+- `desired_state` (String) Desired state of the environment. Always `null`: this data source reads nothing from Qovery.
+- `environment_id` (String) ID of the environment to deploy. Always `null`: this data source reads nothing from Qovery.

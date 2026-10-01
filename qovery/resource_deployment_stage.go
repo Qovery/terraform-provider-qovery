@@ -54,47 +54,36 @@ func (r *deploymentStageResource) Configure(_ context.Context, req resource.Conf
 
 func (r deploymentStageResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages. " +
-			"Deployment stages control the order in which services within an environment are deployed. " +
-			"Services assigned to earlier stages are deployed before those in later stages.",
-		MarkdownDescription: "Provides a Qovery deployment stage resource. This can be used to create and manage Qovery deployment stages.\n\n" +
-			"Deployment stages control the order in which services within an environment are deployed. " +
-			"Services assigned to earlier stages are deployed before those in later stages.",
+		MarkdownDescription: "Manages a Qovery deployment stage: a step of the deployment order of an environment. Qovery deploys the services of a stage after those of the stages before it.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the deployment stage (UUID format).",
-				MarkdownDescription: "Unique identifier of the deployment stage (UUID format).",
+				MarkdownDescription: idDescription("deployment stage"),
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"environment_id": schema.StringAttribute{
-				Description:         "Identifier of the environment for this deployment stage (UUID format). Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "Identifier of the environment for this deployment stage (UUID format). **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: environmentIDDescription + recreatesOnChange("deployment stage"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the deployment stage.",
-				MarkdownDescription: "Name of the deployment stage.",
+				MarkdownDescription: nameDescription("deployment stage"),
 				Required:            true,
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the deployment stage.",
-				MarkdownDescription: "Description of the deployment stage.",
+				MarkdownDescription: descriptionDescription("deployment stage"),
 				Optional:            true,
 			},
 			"is_after": schema.StringAttribute{
-				Description:         "Identifier (UUID) of another deployment stage. Positions this stage immediately after the specified stage in the deployment order.",
-				MarkdownDescription: "Identifier (UUID) of another deployment stage. Positions this stage immediately after the specified stage in the deployment order.",
+				MarkdownDescription: deploymentStageIsAfterDescription + deploymentStageOrderNotReturnedNote,
 				Optional:            true,
 			},
 			"is_before": schema.StringAttribute{
-				Description:         "Identifier (UUID) of another deployment stage. Positions this stage immediately before the specified stage in the deployment order.",
-				MarkdownDescription: "Identifier (UUID) of another deployment stage. Positions this stage immediately before the specified stage in the deployment order.",
+				MarkdownDescription: deploymentStageIsBeforeDescription + deploymentStageOrderNotReturnedNote,
 				Optional:            true,
 			},
 		},
@@ -150,7 +139,9 @@ func (r deploymentStageResource) Read(ctx context.Context, req resource.ReadRequ
 	newState := convertDomainDeploymentStageToDeploymentStage(deploymentStage, state.Description)
 	tflog.Trace(ctx, "read deployment stage", map[string]any{"deployment_stage_id": state.Id.ValueString()})
 
-	// We need to keep the 'IsAfter' and 'IsBefore' properties
+	// is_after and is_before are kept from the state: they are write-only move instructions sent
+	// on create and update, and the API only returns the stage's deployment_order, not its
+	// neighbours, so a reorder made from the Console does not show up in the plan.
 	newState = DeploymentStage{
 		Id:            newState.Id,
 		EnvironmentId: newState.EnvironmentId,

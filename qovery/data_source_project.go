@@ -45,245 +45,211 @@ func (d *projectDataSource) Configure(_ context.Context, req datasource.Configur
 }
 
 func (r projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, resp *datasource.SchemaResponse) {
+	envVars := variableListDescriptions("environment_variables", "project")
+	builtInEnvVars := variableListDescriptions("built_in_environment_variables", "project")
+	envVarAliases := variableListDescriptions("environment_variable_aliases", "project")
+	secrets := variableListDescriptions("secrets", "project")
+	secretAliases := variableListDescriptions("secret_aliases", "project")
+	envVarFiles := variableListDescriptions("environment_variable_files", "project")
+	secretFiles := variableListDescriptions("secret_files", "project")
+
 	resp.Schema = schema.Schema{
-		Description:         "Use this data source to retrieve information about an existing Qovery project.",
-		MarkdownDescription: "Use this data source to retrieve information about an existing Qovery project.",
+		MarkdownDescription: "Reads an existing Qovery project.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the project (UUID format).",
-				MarkdownDescription: "Unique identifier of the project (UUID format).",
+				MarkdownDescription: idDescription("project"),
 				Required:            true,
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Identifier of the organization containing this project.",
-				MarkdownDescription: "Identifier of the organization containing this project.",
+				MarkdownDescription: organizationIDDescription,
 				Computed:            true,
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the project.",
-				MarkdownDescription: "Name of the project.",
+				MarkdownDescription: nameDescription("project"),
 				Computed:            true,
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the project.",
-				MarkdownDescription: "Description of the project.",
+				MarkdownDescription: descriptionDescription("project"),
 				Optional:            true,
 				Computed:            true,
 			},
 			"built_in_environment_variables": schema.ListNestedAttribute{
-				Description:         "List of built-in environment variables linked to this project.",
-				MarkdownDescription: "List of built-in environment variables linked to this project.",
+				MarkdownDescription: builtInEnvVars.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Identifier of the environment variable.",
-							MarkdownDescription: "Identifier of the environment variable.",
+							MarkdownDescription: builtInEnvVars.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the environment variable.",
-							MarkdownDescription: "Key of the environment variable.",
+							MarkdownDescription: builtInEnvVars.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the environment variable.",
-							MarkdownDescription: "Value of the environment variable.",
+							MarkdownDescription: builtInEnvVars.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable.",
-							MarkdownDescription: "Description of the environment variable.",
+							MarkdownDescription: builtInEnvVars.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"environment_variables": schema.SetNestedAttribute{
-				Description:         "Set of environment variables linked to this project.",
-				MarkdownDescription: "Set of environment variables linked to this project.",
+				MarkdownDescription: envVars.List,
 				Optional:            true,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Identifier of the environment variable.",
-							MarkdownDescription: "Identifier of the environment variable.",
+							MarkdownDescription: envVars.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the environment variable.",
-							MarkdownDescription: "Key of the environment variable.",
+							MarkdownDescription: envVars.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the environment variable.",
-							MarkdownDescription: "Value of the environment variable.",
+							MarkdownDescription: envVars.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable.",
-							MarkdownDescription: "Description of the environment variable.",
+							MarkdownDescription: envVars.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"environment_variable_aliases": schema.SetNestedAttribute{
-				Description:         "Set of environment variable aliases linked to this project.",
-				MarkdownDescription: "Set of environment variable aliases linked to this project.",
+				MarkdownDescription: envVarAliases.List,
 				Optional:            true,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Identifier of the environment variable alias.",
-							MarkdownDescription: "Identifier of the environment variable alias.",
+							MarkdownDescription: envVarAliases.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Name of the environment variable alias.",
-							MarkdownDescription: "Name of the environment variable alias.",
+							MarkdownDescription: envVarAliases.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Name of the variable being aliased.",
-							MarkdownDescription: "Name of the variable being aliased.",
+							MarkdownDescription: envVarAliases.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable alias.",
-							MarkdownDescription: "Description of the environment variable alias.",
+							MarkdownDescription: envVarAliases.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"secrets": schema.SetNestedAttribute{
-				Description:         "Set of secrets linked to this project.",
-				MarkdownDescription: "Set of secrets linked to this project.",
+				MarkdownDescription: secrets.List,
 				Optional:            true,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Identifier of the secret.",
-							MarkdownDescription: "Identifier of the secret.",
+							MarkdownDescription: secrets.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the secret.",
-							MarkdownDescription: "Key of the secret.",
+							MarkdownDescription: secrets.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the secret.",
-							MarkdownDescription: "Value of the secret.",
+							MarkdownDescription: secrets.Value,
 							Computed:            true,
 							Sensitive:           true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the secret.",
-							MarkdownDescription: "Description of the secret.",
+							MarkdownDescription: secrets.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"secret_aliases": schema.SetNestedAttribute{
-				Description:         "Set of secret aliases linked to this project.",
-				MarkdownDescription: "Set of secret aliases linked to this project.",
+				MarkdownDescription: secretAliases.List,
 				Optional:            true,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Identifier of the secret alias.",
-							MarkdownDescription: "Identifier of the secret alias.",
+							MarkdownDescription: secretAliases.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Name of the secret alias.",
-							MarkdownDescription: "Name of the secret alias.",
+							MarkdownDescription: secretAliases.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Name of the secret being aliased.",
-							MarkdownDescription: "Name of the secret being aliased.",
+							MarkdownDescription: secretAliases.Value,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the secret alias.",
-							MarkdownDescription: "Description of the secret alias.",
+							MarkdownDescription: secretAliases.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"environment_variable_files": schema.SetNestedAttribute{
-				Description:         "List of environment variable files linked to this project.",
-				MarkdownDescription: "List of environment variable files linked to this project.",
+				MarkdownDescription: envVarFiles.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the environment variable file.",
-							MarkdownDescription: "Id of the environment variable file.",
+							MarkdownDescription: envVarFiles.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the environment variable file.",
-							MarkdownDescription: "Key of the environment variable file.",
+							MarkdownDescription: envVarFiles.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the environment variable file.",
-							MarkdownDescription: "Value of the environment variable file.",
+							MarkdownDescription: envVarFiles.Value,
 							Computed:            true,
 						},
 						"mount_path": schema.StringAttribute{
-							Description:         "Mount path of the environment variable file.",
-							MarkdownDescription: "Mount path of the environment variable file.",
+							MarkdownDescription: envVarFiles.MountPath,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the environment variable file.",
-							MarkdownDescription: "Description of the environment variable file.",
+							MarkdownDescription: envVarFiles.Description,
 							Computed:            true,
 						},
 					},
 				},
 			},
 			"secret_files": schema.SetNestedAttribute{
-				Description:         "List of secret files linked to this project.",
-				MarkdownDescription: "List of secret files linked to this project.",
+				MarkdownDescription: secretFiles.List,
 				Computed:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"id": schema.StringAttribute{
-							Description:         "Id of the secret file.",
-							MarkdownDescription: "Id of the secret file.",
+							MarkdownDescription: secretFiles.ID,
 							Computed:            true,
 						},
 						"key": schema.StringAttribute{
-							Description:         "Key of the secret file.",
-							MarkdownDescription: "Key of the secret file.",
+							MarkdownDescription: secretFiles.Key,
 							Computed:            true,
 						},
 						"value": schema.StringAttribute{
-							Description:         "Value of the secret file.",
-							MarkdownDescription: "Value of the secret file.",
+							MarkdownDescription: secretFiles.Value,
 							Computed:            true,
 							Sensitive:           true,
 						},
 						"mount_path": schema.StringAttribute{
-							Description:         "Mount path of the secret file.",
-							MarkdownDescription: "Mount path of the secret file.",
+							MarkdownDescription: secretFiles.MountPath,
 							Computed:            true,
 						},
 						"description": schema.StringAttribute{
-							Description:         "Description of the secret file.",
-							MarkdownDescription: "Description of the secret file.",
+							MarkdownDescription: secretFiles.Description,
 							Computed:            true,
 						},
 					},

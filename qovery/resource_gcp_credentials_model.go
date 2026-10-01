@@ -44,15 +44,18 @@ func (creds GCPCredentials) toUpsertGcpRequest() credentials.UpsertGcpRequest {
 }
 
 // convertDomainCredentialsToGCPCredentials converts domain credentials to Terraform model.
-// Note: gcp_credentials and WIF config values are not returned by the API, so they are preserved from the plan.
-func convertDomainCredentialsToGCPCredentials(creds *credentials.Credentials, plan GCPCredentials) GCPCredentials {
+// The Workload Identity Federation fields are read from the API, so a value changed outside
+// Terraform shows up in the plan; the API reports none for service account key credentials. The
+// API never returns the service account key, so gcp_credentials is kept from prior, the plan on
+// apply and the state on refresh.
+func convertDomainCredentialsToGCPCredentials(creds *credentials.Credentials, prior GCPCredentials) GCPCredentials {
 	return GCPCredentials{
 		Id:                               FromString(creds.ID.String()),
 		OrganizationId:                   FromString(creds.OrganizationID.String()),
 		Name:                             FromString(creds.Name),
-		GcpCredentials:                   plan.GcpCredentials,
-		ServiceAccountEmail:              plan.ServiceAccountEmail,
-		WorkloadIdentityProviderResource: plan.WorkloadIdentityProviderResource,
+		GcpCredentials:                   prior.GcpCredentials,
+		ServiceAccountEmail:              credentialIdentifierFromAPI(prior.ServiceAccountEmail, creds.Identifiers.ServiceAccountEmail),
+		WorkloadIdentityProviderResource: credentialIdentifierFromAPI(prior.WorkloadIdentityProviderResource, creds.Identifiers.WorkloadIdentityProviderResource),
 	}
 }
 

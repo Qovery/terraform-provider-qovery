@@ -20,12 +20,18 @@ import (
 
 type stubBlueprintService struct {
 	blueprint.Service
-	latestTag string
-	err       error
+	latestTag   string
+	err         error
+	defaults    map[string]string
+	defaultsErr error
 }
 
 func (s stubBlueprintService) ResolveLatestTag(context.Context, string, blueprint.CatalogVersion) (string, error) {
 	return s.latestTag, s.err
+}
+
+func (s stubBlueprintService) GetVariableDefaults(context.Context, string, blueprint.CatalogVersion) (map[string]string, error) {
+	return s.defaults, s.defaultsErr
 }
 
 func blueprintObjectValue(t *testing.T, objectType tftypes.Object, values map[string]tftypes.Value) tftypes.Value {

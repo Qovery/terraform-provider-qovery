@@ -349,3 +349,106 @@ func TestComputeOverriddenSettingsPreservesStateScalarForm(t *testing.T) {
 		})
 	}
 }
+
+// TestComputeOverriddenSettingsTrackedKeyResetToDefault reproduces QOV-2028: a
+// key tracked in state whose remote value was reset to the API default outside
+// Terraform (e.g. from the Qovery Console) must surface that default on refresh
+// instead of keeping the stale state value, which hid the drift and made the
+// plan claim "no change" while the remote ran the default.
+func TestComputeOverriddenSettingsTrackedKeyResetToDefault(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		testName string
+		current  map[string]any
+		defaults map[string]any
+		state    map[string]any
+		expected map[string]any
+	}{
+		{
+			testName: "bool_reset_to_default_reflects_default",
+			current:  map[string]any{"static_ip": false},
+			defaults: map[string]any{"static_ip": false},
+			state:    map[string]any{"static_ip": true},
+			expected: map[string]any{"static_ip": false},
+		},
+		{
+			testName: "number_reset_to_default_reflects_default",
+			current:  map[string]any{"build.timeout_max_sec": float64(1800)},
+			defaults: map[string]any{"build.timeout_max_sec": float64(1800)},
+			state:    map[string]any{"build.timeout_max_sec": float64(1700)},
+			expected: map[string]any{"build.timeout_max_sec": float64(1800)},
+		},
+		{
+			// The state string "true" does not match the remote default, so this
+			// is real drift: surface the (normalized) remote default, not the
+			// stale string.
+			testName: "string_state_reset_to_default_reflects_default",
+			current:  map[string]any{"k8s.deploy_api_gateway": false},
+			defaults: map[string]any{"k8s.deploy_api_gateway": false},
+			state:    map[string]any{"k8s.deploy_api_gateway": "true"},
+			expected: map[string]any{"k8s.deploy_api_gateway": false},
+		},
+		{
+			// API reports the default as a string: still detected as a reset.
+			testName: "string_current_reset_to_default_reflects_default",
+			current:  map[string]any{"static_ip": "false"},
+			defaults: map[string]any{"static_ip": false},
+			state:    map[string]any{"static_ip": true},
+			expected: map[string]any{"static_ip": false},
+		},
+		{
+			// Only the reset key changes; other tracked keys are untouched.
+			testName: "reset_key_does_not_affect_other_tracked_keys",
+			current:  map[string]any{"a": false, "b": "custom", "c": float64(5)},
+			defaults: map[string]any{"a": false, "b": "default", "c": float64(5)},
+			state:    map[string]any{"a": true, "b": "custom", "c": "5"},
+			expected: map[string]any{"a": false, "b": "custom", "c": "5"},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.testName, func(t *testing.T) {
+			t.Parallel()
+			result := computeOverriddenSettings(tc.current, tc.defaults, tc.state, false)
+			if !reflect.DeepEqual(result, tc.expected) {
+				t.Errorf("computeOverriddenSettings() = %v, want %v", result, tc.expected)
+			}
+		})
+	}
+}
+
+// TestComputeOverriddenSettingsResetKeepsKeyTracked chains two refreshes: after
+// an out-of-band reset to the default, the key must remain in state (with the
+// default value) so that a later out-of-band change is still visible. Dropping
+// the key instead would make the `!inState` filter skip it forever.
+func TestComputeOverriddenSettingsResetKeepsKeyTracked(t *testing.T) {
+	t.Parallel()
+
+	defaults := map[string]any{"build.timeout_max_sec": float64(1800)}
+
+	// Refresh 1: remote reset to default while state holds the applied override.
+	afterReset := computeOverriddenSettings(
+		map[string]any{"build.timeout_max_sec": float64(1800)},
+		defaults,
+		map[string]any{"build.timeout_max_sec": float64(1700)},
+		false,
+	)
+	wantAfterReset := map[string]any{"build.timeout_max_sec": float64(1800)}
+	if !reflect.DeepEqual(afterReset, wantAfterReset) {
+		t.Fatalf("refresh after reset = %v, want %v", afterReset, wantAfterReset)
+	}
+
+	// Refresh 2: remote changed again out of band; the key is still tracked.
+	afterChange := computeOverriddenSettings(
+		map[string]any{"build.timeout_max_sec": float64(1600)},
+		defaults,
+		afterReset,
+		false,
+	)
+	wantAfterChange := map[string]any{"build.timeout_max_sec": float64(1600)}
+	if !reflect.DeepEqual(afterChange, wantAfterChange) {
+		t.Fatalf("refresh after second change = %v, want %v", afterChange, wantAfterChange)
+	}
+}

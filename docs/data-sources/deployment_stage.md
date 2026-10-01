@@ -1,11 +1,10 @@
 # qovery_deployment_stage (Data Source)
 
-Use this data source to retrieve information about an existing Qovery deployment stage.
+Reads an existing Qovery deployment stage.
 
 ## Example Usage
 
 ```terraform
-# Retrieve an existing deployment stage by its ID
 data "qovery_deployment_stage" "my_deployment_stage" {
   id = "<deployment_stage_id>"
 }
@@ -16,15 +15,15 @@ data "qovery_deployment_stage" "my_deployment_stage" {
 
 ### Required
 
-- `id` (String) Unique identifier of the deployment stage (UUID format).
+- `id` (String) ID of the deployment stage.
 
 ### Optional
 
 - `description` (String) Description of the deployment stage.
-- `is_after` (String) Identifier (UUID) of the deployment stage that this stage is positioned after.
-- `is_before` (String) Identifier (UUID) of the deployment stage that this stage is positioned before.
+- `is_after` (String) ID of the deployment stage this stage moves right after. The API does not return it, so this data source echoes the configured value.
+- `is_before` (String) ID of the deployment stage this stage moves right before. The API does not return it, so this data source echoes the configured value.
 
 ### Read-Only
 
-- `environment_id` (String) Identifier of the environment for this deployment stage.
+- `environment_id` (String) ID of the environment.
 - `name` (String) Name of the deployment stage.

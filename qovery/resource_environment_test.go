@@ -8,8 +8,8 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
@@ -28,6 +28,7 @@ func TestAcc_Environment(t *testing.T) {
 				Config: testAccEnvironmentDefaultConfig(
 					testName,
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),

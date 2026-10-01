@@ -52,6 +52,7 @@ func (p HelmRepository) toUpsertRequest() helmRepository.UpsertRequest {
 			Region:            ToStringPointer(p.Config.Region),
 			ScalewayAccessKey: ToStringPointer(p.Config.ScalewayAccessKey),
 			ScalewaySecretKey: ToStringPointer(p.Config.ScalewaySecretKey),
+			ScalewayProjectId: ToStringPointer(p.Config.ScalewayProjectId),
 			Username:          ToStringPointer(p.Config.Username),
 			Password:          ToStringPointer(p.Config.Password),
 		}
@@ -73,8 +74,8 @@ func convertDomainHelmRepositoryToHelmRepository(state HelmRepository, res *helm
 		Name:                FromString(res.Name),
 		Kind:                FromString(res.Kind.String()),
 		URL:                 FromString(res.URL.String()),
-		Description:         FromStringPointer(res.Description),
-		Config:              state.Config,
+		Description:         storedDescriptionFromAPI(res.Description),
+		Config:              helmRepositoryConfigFromAPI(res.Kind, state.Config, res.Config),
 		SkipTlsVerification: FromBoolPointer(res.SkiTlsVerification),
 	}
 }
@@ -89,4 +90,38 @@ func convertDomainHelmRepositoryToHelmRepositoryDataSource(res *helmRepository.H
 		Description:         FromStringPointer(res.Description),
 		SkipTlsVerification: FromBoolPointer(res.SkiTlsVerification),
 	}
+}
+
+// helmRepositoryConfigFromAPI builds the config block of a helm repository of the given kind. The
+// API returns the non-secret keys the kind stores, so such a key changed or removed outside
+// Terraform shows up in the plan. Everything else is kept from prior, the plan on apply and the
+// state on refresh:
+//   - the secrets (secret_access_key, scaleway_secret_key, password), which the API never returns;
+//   - the keys the kind does not store, which the API ignores, such as region on HTTPS;
+//   - every key of OCI_PUBLIC_ECR and OCI_DOCR repositories, which store none;
+//   - scaleway_project_id on OCI_SCALEWAY_CR, which q-core requires but does not store.
+//
+// The block stays null when prior has none and the API returns no key the provider manages.
+func helmRepositoryConfigFromAPI(kind helmRepository.Kind, prior *HelmRepositoryConfig, api registry.Config) *HelmRepositoryConfig {
+	var config HelmRepositoryConfig
+	if prior != nil {
+		config = *prior
+	}
+
+	switch kind {
+	case helmRepository.KindECR:
+		config.Region = optionalStringFromAPI(config.Region, api.Region)
+		config.AccessKeyID = optionalStringFromAPI(config.AccessKeyID, api.AccessKeyID)
+	case helmRepository.KindScalewayCR:
+		config.Region = scalewayRegionFromAPI(config.Region, api.Region)
+		config.ScalewayAccessKey = optionalStringFromAPI(config.ScalewayAccessKey, api.ScalewayAccessKey)
+	case helmRepository.KindHttps, helmRepository.KindDockerHub, helmRepository.KindGithubCr, helmRepository.KindGitlabCr, helmRepository.KindGenericCR:
+		config.Username = optionalStringFromAPI(config.Username, api.Username)
+	}
+
+	// All the attributes are null: the zero value of every types.* value is null.
+	if prior == nil && config == (HelmRepositoryConfig{}) {
+		return nil
+	}
+	return &config
 }

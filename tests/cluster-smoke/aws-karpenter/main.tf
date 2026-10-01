@@ -36,7 +36,6 @@ resource "qovery_cluster" "smoke" {
   features = {
     vpc_subnet = "10.0.0.0/16"
     karpenter = {
-      spot_enabled                 = true
       disk_size_in_gib             = 50
       default_service_architecture = "AMD64"
       qovery_node_pools = {
@@ -45,6 +44,12 @@ resource "qovery_cluster" "smoke" {
           { key = "InstanceFamily", operator = "In", values = ["t3", "t3a"] },
           { key = "Arch", operator = "In", values = ["AMD64"] },
         ]
+        stable_override = {
+          spot_enabled = true
+        }
+        default_override = {
+          spot_enabled = true
+        }
       }
     }
   }

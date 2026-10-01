@@ -10,11 +10,13 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/customrole"
+	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
 	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
@@ -77,54 +79,47 @@ func environmentTypeValues() []string {
 
 func (r customRoleResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery organization custom role resource. Declare only the clusters and projects this role should have non-default access to: " +
-			"any cluster not listed keeps the VIEWER permission and any project not listed keeps NO_ACCESS. " +
-			"Permissions granted outside Terraform on undeclared clusters/projects are reset to those defaults on the next apply. " +
-			"Declaring an entry equal to the defaults (cluster VIEWER / project all-NO_ACCESS) is a no-op and will not survive an import round-trip.",
+		MarkdownDescription: "Manages a Qovery custom role: an organization role with its own permissions on each cluster and project.\n\n" +
+			"~> **Note:** Declare only the clusters and projects that need a permission other than the default. An import records only those, so a declared default permission shows up as a change after an import.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description: "Id of the custom role.",
-				Computed:    true,
+				MarkdownDescription: idDescription("custom role"),
+				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description: "Id of the organization.",
-				Required:    true,
+				MarkdownDescription: organizationIDDescription + recreatesOnChange("custom role"),
+				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description: "Name of the custom role. `owner`, `admin`, `devops`, `billing` and `viewer` are reserved built-in role names (case-insensitive).",
-				Required:    true,
+				MarkdownDescription: nameDescription("custom role") + " Using a built-in role name, `owner`, `admin`, `devops`, `billing` or `viewer` in any case, fails at plan time.",
+				Required:            true,
 			},
 			"description": schema.StringAttribute{
-				// Optional+Computed: the server stores an omitted description as an empty
-				// string rather than keeping it null, so a plain Optional attribute would
-				// fail with "inconsistent result after apply" (null in config, "" from API).
-				// UseStateForUnknown keeps the prior value when the practitioner drops the
-				// attribute from config, matching the standard provider pattern.
-				Description: "Description of the custom role.",
-				Optional:    true,
-				Computed:    true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
+				// q-core stores an omitted description as "", so the Default is "": removing the
+				// description from the configuration plans its reset.
+				MarkdownDescription: storedDescriptionDescription("custom role"),
+				Optional:            true,
+				Computed:            true,
+				Default:             stringdefault.StaticString(storedDescriptionDefault),
 			},
 			"cluster_permissions": schema.SetNestedAttribute{
-				Description: "Cluster permissions of the custom role. Clusters not listed default to VIEWER.",
-				Optional:    true,
+				MarkdownDescription: customRoleClusterPermissionsDescription + " A cluster not listed gets `VIEWER`.",
+				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"cluster_id": schema.StringAttribute{
-							Description: "Id of the cluster.",
-							Required:    true,
+							MarkdownDescription: customRoleClusterIDDescription,
+							Required:            true,
 						},
 						"permission": schema.StringAttribute{
-							Description: "Permission of the role on the cluster. Can be: `VIEWER`, `ENV_CREATOR`, `ADMIN`.",
-							Required:    true,
+							MarkdownDescription: descriptions.NewStringEnumDescription(customRoleClusterPermissionDescription, clusterPermissionValues(), nil),
+							Required:            true,
 							Validators: []validator.String{
 								validators.NewStringEnumValidator(clusterPermissionValues()),
 							},
@@ -133,35 +128,35 @@ func (r customRoleResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				},
 			},
 			"project_permissions": schema.SetNestedAttribute{
-				Description: "Project permissions of the custom role. Projects not listed default to NO_ACCESS.",
-				Optional:    true,
+				MarkdownDescription: customRoleProjectPermissionsDescription + " A project not listed gets `NO_ACCESS` on every environment type.",
+				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
 						"project_id": schema.StringAttribute{
-							Description: "Id of the project.",
-							Required:    true,
+							MarkdownDescription: customRoleProjectIDDescription,
+							Required:            true,
 						},
 						"is_admin": schema.BoolAttribute{
-							Description: "Give full admin rights on the project (MANAGER on every environment type + manage deployment rules + delete project). When true, `permissions` must not be set, not even as an empty set. Defaults to `false`.",
-							Optional:    true,
-							Computed:    true,
-							Default:     booldefault.StaticBool(false),
+							MarkdownDescription: descriptions.NewBoolDefaultDescription(customRoleIsAdminDescription+" When `true`, `permissions` must be omitted: even an empty set fails at plan time.", false),
+							Optional:            true,
+							Computed:            true,
+							Default:             booldefault.StaticBool(false),
 						},
 						"permissions": schema.SetNestedAttribute{
-							Description: "Per-environment-type permissions. Required when `is_admin` is not true; must contain exactly one entry for each environment type (DEVELOPMENT, PREVIEW, STAGING, PRODUCTION).",
-							Optional:    true,
+							MarkdownDescription: customRoleEnvironmentPermissionsDescription + " Required when `is_admin` is `false`, with exactly one entry per environment type.",
+							Optional:            true,
 							NestedObject: schema.NestedAttributeObject{
 								Attributes: map[string]schema.Attribute{
 									"environment_type": schema.StringAttribute{
-										Description: "Environment type. Can be: `DEVELOPMENT`, `PREVIEW`, `STAGING`, `PRODUCTION`.",
-										Required:    true,
+										MarkdownDescription: descriptions.NewStringEnumDescription(customRoleEnvironmentTypeDescription, environmentTypeValues(), nil),
+										Required:            true,
 										Validators: []validator.String{
 											validators.NewStringEnumValidator(environmentTypeValues()),
 										},
 									},
 									"permission": schema.StringAttribute{
-										Description: "Permission of the role on the project for this environment type. Can be: `NO_ACCESS`, `VIEWER`, `DEPLOYER`, `MANAGER`.",
-										Required:    true,
+										MarkdownDescription: descriptions.NewStringEnumDescription(customRoleEnvironmentPermissionDescription, projectPermissionValues(), nil),
+										Required:            true,
 										Validators: []validator.String{
 											validators.NewStringEnumValidator(projectPermissionValues()),
 										},
@@ -240,7 +235,7 @@ func (r customRoleResource) Create(ctx context.Context, req resource.CreateReque
 		return
 	}
 
-	state := convertDomainCustomRoleToCustomRole(role, &plan, customRoleReadModeFilterDeclared)
+	state := convertDomainCustomRoleToCustomRole(role, &plan, customRoleReadModeDeclaredOrNonDefault)
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 
@@ -256,16 +251,8 @@ func (r customRoleResource) Read(ctx context.Context, req resource.ReadRequest, 
 		return
 	}
 
-	// After `terraform import` only id + organization_id are set (name is null): keep
-	// non-default entries so the user sees what the role actually grants.
-	mode := customRoleReadModeFilterDeclared
-	declared := &state
-	if state.Name.IsNull() {
-		mode = customRoleReadModeKeepNonDefault
-		declared = nil
-	}
-
-	newState := convertDomainCustomRoleToCustomRole(role, declared, mode)
+	// After `terraform import` nothing is declared yet, so the state records the non-default entries.
+	newState := convertDomainCustomRoleToCustomRole(role, &state, customRoleReadModeDeclaredOrNonDefault)
 	resp.Diagnostics.Append(resp.State.Set(ctx, newState)...)
 }
 
@@ -284,7 +271,7 @@ func (r customRoleResource) Update(ctx context.Context, req resource.UpdateReque
 		return
 	}
 
-	state := convertDomainCustomRoleToCustomRole(role, &plan, customRoleReadModeFilterDeclared)
+	state := convertDomainCustomRoleToCustomRole(role, &plan, customRoleReadModeDeclaredOrNonDefault)
 	resp.Diagnostics.Append(resp.State.Set(ctx, state)...)
 }
 

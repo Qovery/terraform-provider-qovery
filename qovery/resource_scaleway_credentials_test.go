@@ -7,8 +7,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/google/uuid"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
@@ -17,6 +18,9 @@ import (
 func TestAcc_ScalewayCredentials(t *testing.T) {
 	t.Parallel()
 	testName := "scaleway-credentials"
+	var credentialsID string
+	// q-core checks only the secret key of Scaleway credentials, so another project ID is accepted.
+	outOfBandProjectID := uuid.NewString()
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -58,18 +62,70 @@ func TestAcc_ScalewayCredentials(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_secret_key", getTestScalewayCredentialsSecretKey()),
 					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_project_id", getTestScalewayCredentialsProjectID()),
 					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_organization_id", getTestScalewayCredentialsOrganizationID()),
+					testAccCaptureResourceID("qovery_scaleway_credentials.test", &credentialsID),
 				),
 			},
-			// Check Import
+			// Import records the identifiers
 			{
 				ResourceName:            "qovery_scaleway_credentials.test",
 				ImportState:             true,
 				ImportStateVerify:       true,
 				ImportStateIdPrefix:     fmt.Sprintf("%s,", getTestOrganizationID()),
-				ImportStateVerifyIgnore: []string{"scaleway_access_key", "scaleway_secret_key", "scaleway_project_id", "scaleway_organization_id"},
+				ImportStateVerifyIgnore: []string{"scaleway_secret_key"},
+			},
+			// A project changed outside Terraform shows up in the plan...
+			{
+				Config: testAccScalewayCredentialsDefaultConfig(
+					fmt.Sprintf("%s-updated", testName),
+					getTestScalewayCredentialsAccessKey(),
+					getTestScalewayCredentialsSecretKey(),
+					getTestScalewayCredentialsProjectID(),
+					getTestScalewayCredentialsOrganizationID(),
+				),
+				Check: func(_ *terraform.State) error {
+					apiPath := fmt.Sprintf("/organization/%s/scaleway/credentials/%s", getTestOrganizationID(), credentialsID)
+					return testAccEditServiceOutOfBand(apiPath, nil, func(creds map[string]any) {
+						creds["scaleway_project_id"] = outOfBandProjectID
+						// The API never returns the secret key.
+						creds["scaleway_secret_key"] = getTestScalewayCredentialsSecretKey()
+					})
+				},
+				ExpectNonEmptyPlan: true,
+			},
+			// ... the refresh stores it, and the secret key stays in the state...
+			{
+				RefreshState: true,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_project_id", outOfBandProjectID),
+					resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_secret_key", getTestScalewayCredentialsSecretKey()),
+				),
+				ExpectNonEmptyPlan: true,
+			},
+			// ... and the next apply reverts it.
+			{
+				Config: testAccScalewayCredentialsDefaultConfig(
+					fmt.Sprintf("%s-updated", testName),
+					getTestScalewayCredentialsAccessKey(),
+					getTestScalewayCredentialsSecretKey(),
+					getTestScalewayCredentialsProjectID(),
+					getTestScalewayCredentialsOrganizationID(),
+				),
+				Check:            resource.TestCheckResourceAttr("qovery_scaleway_credentials.test", "scaleway_project_id", getTestScalewayCredentialsProjectID()),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 			},
 		},
 	})
+}
+
+func TestAcc_ScalewayCredentialsUpgradeFrom0x(t *testing.T) {
+	t.Parallel()
+	testAccServiceContractUpgradeFrom0x(t, testAccScalewayCredentialsDefaultConfig(
+		"scaleway-credentials-upgrade",
+		getTestScalewayCredentialsAccessKey(),
+		getTestScalewayCredentialsSecretKey(),
+		getTestScalewayCredentialsProjectID(),
+		getTestScalewayCredentialsOrganizationID(),
+	), testAccQoveryScalewayCredentialsDestroy("qovery_scaleway_credentials.test"))
 }
 
 func testAccQoveryScalewayCredentialsExists(resourceName string) resource.TestCheckFunc {

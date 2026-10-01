@@ -108,9 +108,12 @@ func (b Blueprint) configEqualIgnoringDeploy(other Blueprint) bool {
 		reflect.DeepEqual(b.SpecOverrides, other.SpecOverrides)
 }
 
-// API returns no icon, spec overrides or secret values: those come from prior (plan or state).
-// API also returns manifest defaults as variables, so only variables prior declares are tracked.
-func convertDomainBlueprintToBlueprint(ctx context.Context, bp *blueprint.Blueprint, prior Blueprint, pendingApply bool) (Blueprint, diag.Diagnostics) {
+// convertDomainBlueprintToBlueprint builds the state from the API. The API returns no spec overrides
+// nor secret values, so those come from prior (plan or state). It also returns the catalog default of
+// every variable left out, so variableDefaults tells user input apart: an undeclared variable is
+// tracked only when it differs from its default. A nil variableDefaults, when the caller just applied
+// prior or the defaults could not be read, tracks the variables prior declares.
+func convertDomainBlueprintToBlueprint(ctx context.Context, bp *blueprint.Blueprint, prior Blueprint, pendingApply bool, variableDefaults map[string]string) (Blueprint, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	priorVariables, d := stringMapFrom(ctx, prior.Variables)
 	diags.Append(d...)
@@ -126,10 +129,12 @@ func convertDomainBlueprintToBlueprint(ctx context.Context, bp *blueprint.Bluepr
 			}
 			continue
 		}
-		if v.Value == nil {
+		if v.Value == nil || v.Name == blueprintImportIdentifierVariable {
 			continue
 		}
-		if _, declared := priorVariables[v.Name]; declared {
+		_, declared := priorVariables[v.Name]
+		defaultValue, hasDefault := variableDefaults[v.Name]
+		if declared || (variableDefaults != nil && (!hasDefault || defaultValue != *v.Value)) {
 			variables[v.Name] = *v.Value
 		}
 	}
@@ -139,10 +144,14 @@ func convertDomainBlueprintToBlueprint(ctx context.Context, bp *blueprint.Bluepr
 	secretVariablesValue, d := stringMapValue(ctx, secretVariables, prior.SecretVariables.IsNull())
 	diags.Append(d...)
 
+	// The icon lives on the materialized service; until there is one, the icon sent on create stands
 	iconURI := prior.IconURI
-	if iconURI.IsNull() || iconURI.IsUnknown() {
+	if bp.IconURI != nil {
+		iconURI = FromString(*bp.IconURI)
+	} else if iconURI.IsNull() || iconURI.IsUnknown() {
 		iconURI = FromString(defaultBlueprintIconURI)
 	}
+	// deploy only acts on create: the API does not record it
 	deploy := prior.Deploy
 	if deploy.IsNull() || deploy.IsUnknown() {
 		deploy = types.BoolValue(true)
@@ -163,8 +172,10 @@ func convertDomainBlueprintToBlueprint(ctx context.Context, bp *blueprint.Bluepr
 		ServiceType:     FromString(string(bp.ServiceType)),
 		CatalogURL:      FromString(bp.CatalogURL),
 	}
-	// Failed apply: keep last applied values so the next plan retries instead of going empty
-	if (pendingApply || bp.LastApplyFailed()) && !prior.Tag.IsNull() && !prior.Tag.IsUnknown() {
+	// Our own apply failed: the API holds settings saved but not deployed, which would empty the plan
+	// and skip the retry. Keep the last applied values until an apply succeeds.
+	if pendingApply && !prior.Tag.IsNull() && !prior.Tag.IsUnknown() {
+		state.Blueprint = prior.Blueprint
 		state.Name = prior.Name
 		state.Tag = prior.Tag
 		state.Variables = prior.Variables
@@ -173,13 +184,20 @@ func convertDomainBlueprintToBlueprint(ctx context.Context, bp *blueprint.Bluepr
 	return state, diags
 }
 
+// blueprintVersionValue derives the catalog version from the tag. prior keeps its spelling when it
+// names the same version, so a version changed outside Terraform still shows in the plan.
 func blueprintVersionValue(prior types.String, tag string) types.String {
-	if !prior.IsNull() && !prior.IsUnknown() {
-		return prior
-	}
 	version, err := blueprint.CatalogVersionFromTag(tag)
 	if err != nil {
-		return types.StringNull()
+		if prior.IsUnknown() {
+			return types.StringNull()
+		}
+		return prior
+	}
+	if !prior.IsNull() && !prior.IsUnknown() {
+		if priorVersion, err := blueprint.ParseCatalogVersion(prior.ValueString()); err == nil && priorVersion.Equal(version) {
+			return prior
+		}
 	}
 	return FromString(version.String())
 }

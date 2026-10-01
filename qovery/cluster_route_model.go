@@ -1,8 +1,6 @@
 package qovery
 
 import (
-	"context"
-
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -17,29 +15,14 @@ var clusterRouteAttrTypes = map[string]attr.Type{
 
 type ClusterRouteList []ClusterRoute
 
-func (routes ClusterRouteList) toTerraformSet(ctx context.Context, initialPlanClusterRouteSet types.Set) types.Set {
-	clusterRouteObjectType := types.ObjectType{
-		AttrTypes: clusterRouteAttrTypes,
-	}
-
-	if len(initialPlanClusterRouteSet.Elements()) == 0 {
-		return types.SetValueMust(clusterRouteObjectType, []attr.Value{})
-	}
-
-	if routes == nil {
-		return types.SetNull(clusterRouteObjectType)
-	}
-
+// toTerraformSet reports the routes the API returned; prior only decides whether an empty
+// routing table is stored as null or [] (see setFromAPIElements).
+func (routes ClusterRouteList) toTerraformSet(prior types.Set) types.Set {
 	elements := make([]attr.Value, 0, len(routes))
 	for _, v := range routes {
 		elements = append(elements, v.toTerraformObject())
 	}
-	set, diagnostics := types.SetValueFrom(ctx, clusterRouteObjectType, elements)
-	if diagnostics.HasError() {
-		panic("TODO")
-	}
-
-	return set
+	return setFromAPIElements(types.ObjectType{AttrTypes: clusterRouteAttrTypes}, prior, elements)
 }
 
 func (routes ClusterRouteList) toUpsertRequest() client.ClusterRoutingTable {

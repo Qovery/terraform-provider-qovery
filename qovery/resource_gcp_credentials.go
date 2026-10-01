@@ -57,51 +57,40 @@ func (r *gcpCredentialsResource) Configure(_ context.Context, req resource.Confi
 
 func (r gcpCredentialsResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery GCP credentials resource. This can be used to create and manage Qovery GCP credentials. Supports both service account key and Workload Identity Federation authentication modes.",
-		MarkdownDescription: "Provides a Qovery GCP credentials resource. This is used to create and manage GCP credentials that Qovery uses to provision and manage GKE clusters in your Google Cloud project.\n\n" +
-			"Supports two authentication modes:\n" +
-			"- **Service account key** (`gcp_credentials`): a GCP service account key in JSON format.\n" +
-			"- **Workload Identity Federation** (`service_account_email` + `workload_identity_provider_resource`): keyless authentication via WIF.\n\n" +
-			"Exactly one mode must be configured.",
+		MarkdownDescription: "Manages Qovery GCP credentials: the service account Qovery uses to create and manage clusters in a Google Cloud project. Set either `gcp_credentials`, a JSON key, or `service_account_email` and `workload_identity_provider_resource`, for Workload Identity Federation.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Id of the GCP credentials.",
-				MarkdownDescription: "Unique identifier of the GCP credentials (UUID format).",
+				MarkdownDescription: idDescription("GCP credentials"),
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"organization_id": schema.StringAttribute{
-				Description:         "Id of the organization. Cannot be changed after creation (forces resource replacement).",
-				MarkdownDescription: "ID of the Qovery organization in which to create the credentials. **Cannot be changed after creation** (forces resource replacement).",
+				MarkdownDescription: organizationIDDescription + recreatesOnChange("GCP credentials"),
 				Required:            true,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the GCP credentials.",
-				MarkdownDescription: "Name of the GCP credentials. Used for display purposes in the Qovery console.",
+				MarkdownDescription: nameDescription("GCP credentials"),
 				Required:            true,
 			},
 			"gcp_credentials": schema.StringAttribute{
-				Description:         "Your GCP service account credentials JSON. Mutually exclusive with the Workload Identity Federation fields.",
-				MarkdownDescription: "GCP service account key in JSON format. Mutually exclusive with `service_account_email`/`workload_identity_provider_resource`. This is a sensitive value and will not be displayed in plan output. Use `file()` to load from a file: `file(\"${path.module}/service-account.json\")`.",
+				MarkdownDescription: credentialsGCPJSONKeyDescription + " Load it with `file()`, for example `file(\"${path.module}/service-account.json\")`.",
 				Optional:            true,
 				Sensitive:           true,
 			},
 			"service_account_email": schema.StringAttribute{
-				Description:         "GCP service account email to impersonate via Workload Identity Federation.",
-				MarkdownDescription: "GCP service account email to impersonate (e.g. `qovery@my-project.iam.gserviceaccount.com`). Required together with `workload_identity_provider_resource` when using Workload Identity Federation. Mutually exclusive with `gcp_credentials`.",
+				MarkdownDescription: credentialsGCPServiceAccountEmailDescription + " Requires `workload_identity_provider_resource`.",
 				Optional:            true,
 				Validators: []validator.String{
 					stringvalidator.AlsoRequires(path.MatchRoot("workload_identity_provider_resource")),
 				},
 			},
 			"workload_identity_provider_resource": schema.StringAttribute{
-				Description:         "Full GCP Workload Identity Provider resource.",
-				MarkdownDescription: "Full Workload Identity Provider resource path (e.g. `projects/123456789/locations/global/workloadIdentityPools/my-pool/providers/my-provider`). Required together with `service_account_email`. Mutually exclusive with `gcp_credentials`.",
+				MarkdownDescription: credentialsGCPWorkloadIdentityProviderDescription + " Requires `service_account_email`.",
 				Optional:            true,
 				Validators: []validator.String{
 					stringvalidator.AlsoRequires(path.MatchRoot("service_account_email")),

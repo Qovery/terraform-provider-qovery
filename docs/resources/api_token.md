@@ -1,13 +1,11 @@
 # qovery_api_token (Resource)
 
-Provides a Qovery API token resource. This can be used to create and manage Qovery organization API tokens. The token value is only returned at creation time and is **stored in the Terraform state**: use an encrypted remote state with restricted access. The API does not support updating a token, so every attribute change forces a replacement (rotation). Rotate a token explicitly with `terraform apply -replace=qovery_api_token.<name>`.
+Manages a Qovery API token: a token that authenticates to the Qovery API with the permissions of its role.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
 
 ```terraform
 # The token value is only returned at creation time and is stored in the Terraform state.
@@ -16,7 +14,7 @@ resource "qovery_api_token" "my_api_token" {
   organization_id = qovery_organization.my_organization.id
   name            = "my-api-token"
   description     = "API token for the delegated terraform workspace"
-  role_id         = var.role_id # built-in or custom role id
+  role_id         = qovery_custom_role.my_custom_role.id
 }
 
 # The API has no update endpoint: every attribute change forces a replacement.
@@ -29,18 +27,18 @@ resource "qovery_api_token" "my_api_token" {
 
 ### Required
 
-- `name` (String) Name of the API token. **Cannot be changed after creation** (forces resource replacement).
-- `organization_id` (String) Id of the organization. **Cannot be changed after creation** (forces resource replacement).
-- `role_id` (String) Id of the role to associate with the API token (built-in or custom role). **Cannot be changed after creation** (forces resource replacement).
+- `name` (String) Name of the API token. Changing it recreates the API token.
+- `organization_id` (String) ID of the organization. Changing it recreates the API token.
+- `role_id` (String) ID of the role that sets the permissions of the token, built-in or custom. Changing it recreates the API token.
 
 ### Optional
 
-- `description` (String) Description of the API token. **Cannot be changed after creation** (forces resource replacement).
+- `description` (String) Description of the API token. Changing it recreates the API token.
 
 ### Read-Only
 
-- `id` (String) Id of the API token.
-- `token` (String, Sensitive) Value of the API token. Only returned at creation time and stored in the Terraform state; it cannot be retrieved afterwards.
+- `id` (String) ID of the API token.
+- `token` (String, Sensitive) Value of the API token. Only known at creation, so an imported token has no value.
 ## Import
 ```shell
 # Import requires both the organization ID and api token ID, separated by a comma.

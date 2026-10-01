@@ -1,13 +1,13 @@
 # qovery_organization_member (Data Source)
 
-Use this data source to retrieve an existing member (or pending invitation) of a Qovery organization by email.
+Reads an existing member or pending invitation of a Qovery organization, found by `email`.
 
 ## Example Usage
 
 ```terraform
-data "qovery_organization_member" "dev" {
-  organization_id = qovery_organization.my_organization.id
-  email           = "dev@company.com"
+data "qovery_organization_member" "my_organization_member" {
+  organization_id = "<organization_id>"
+  email           = "dev@example.com"
 }
 ```
 
@@ -17,11 +17,11 @@ data "qovery_organization_member" "dev" {
 ### Required
 
 - `email` (String) Email of the member.
-- `organization_id` (String) Id of the organization.
+- `organization_id` (String) ID of the organization.
 
 ### Read-Only
 
-- `id` (String) Id of the member. Invitation id while the invitation is pending; user id once accepted.
+- `id` (String) ID of the member: the invitation ID while the invitation is pending, then the user ID.
 - `invitation_status` (String) Status of the invitation: `PENDING`, `EXPIRED` or `ACCEPTED`.
-- `role_id` (String) Id of the role assigned to the member.
-- `user_id` (String) User id of the member. Null until the invitation is accepted.
+- `role_id` (String) ID of the role of the member, built-in or custom.
+- `user_id` (String) User ID of the member, `null` until the invitation is accepted.

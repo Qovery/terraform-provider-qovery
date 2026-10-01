@@ -8,8 +8,11 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
+	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apierrors"
@@ -70,12 +73,37 @@ func TestAcc_TerraformService(t *testing.T) {
 					}),
 				),
 			},
+			// The data source reports the API value of each variable. The API returns a
+			// placeholder instead of a secret value, which the data source reports as null.
+			{
+				Config: testAccTerraformServiceWithVariablesConfig(testName) + `
+data "qovery_terraform_service" "test" {
+  id = qovery_terraform_service.test.id
+}
+`,
+				ConfigStateChecks: []statecheck.StateCheck{
+					statecheck.ExpectKnownValue("data.qovery_terraform_service.test", tfjsonpath.New("variables"), knownvalue.SetExact([]knownvalue.Check{
+						knownvalue.ObjectExact(map[string]knownvalue.Check{
+							"key":       knownvalue.StringExact("AWS_REGION"),
+							"value":     knownvalue.StringExact("us-east-1"),
+							"is_secret": knownvalue.Bool(false),
+						}),
+						knownvalue.ObjectExact(map[string]knownvalue.Check{
+							"key":       knownvalue.StringExact("DATABASE_PASSWORD"),
+							"value":     knownvalue.Null(),
+							"is_secret": knownvalue.Bool(true),
+						}),
+					})),
+				},
+			},
 			// ImportState testing
 			{
-				ResourceName:            "qovery_terraform_service.test",
-				ImportState:             true,
-				ImportStateVerify:       true,
-				ImportStateVerifyIgnore: []string{"variables"},
+				ResourceName:      "qovery_terraform_service.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				// updated_at is bumped by the API after create and the state is not refreshed
+				// before import.
+				ImportStateVerifyIgnore: []string{"variables", "updated_at"},
 			},
 		},
 	})
@@ -179,6 +207,23 @@ func TestAcc_TerraformServiceStorageImmutability(t *testing.T) {
 	})
 }
 
+func TestAcc_TerraformServiceTimeoutBelowMinimum(t *testing.T) {
+	t.Parallel()
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// q-core rejects a timeout below 60 seconds, so the config fails validation before any API call
+			{
+				Config:      testAccTerraformServiceWithTimeoutConfig(59),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`Number\s+value\s+must\s+be\s+at\s+least\s+60,\s+got:\s+59`),
+			},
+		},
+	})
+}
+
 func TestAcc_TerraformServiceWithDeploymentStage(t *testing.T) {
 	t.Parallel()
 	testName := "terraform-service-deploy-stage"
@@ -214,6 +259,9 @@ func TestAcc_TerraformServiceWithDeploymentStage(t *testing.T) {
 				ResourceName:      "qovery_terraform_service.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				// updated_at is bumped by the API after create and the state is not refreshed
+				// before import.
+				ImportStateVerifyIgnore: []string{"updated_at"},
 			},
 		},
 	})
@@ -250,6 +298,9 @@ func TestAcc_TerraformServiceTerraformAction(t *testing.T) {
 				ResourceName:      "qovery_terraform_service.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+				// updated_at is bumped by the API after create and the state is not refreshed
+				// before import.
+				ImportStateVerifyIgnore: []string{"updated_at"},
 			},
 		},
 	})
@@ -573,6 +624,37 @@ resource "qovery_terraform_service" "test" {
   use_cluster_credentials = false
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), getTestQoverySandboxGitTokenID())
+}
+
+func testAccTerraformServiceWithTimeoutConfig(timeoutSeconds int) string {
+	return fmt.Sprintf(`
+resource "qovery_terraform_service" "test" {
+  environment_id = "00000000-0000-0000-0000-000000000000"
+  name           = "terraform-service-timeout"
+  auto_deploy    = true
+
+  git_repository = {
+    url    = "https://github.com/Qovery/terraform-examples.git"
+    branch = "main"
+  }
+
+  tfvars_files = []
+
+  backend = {
+    kubernetes = {}
+  }
+
+  engine = "TERRAFORM"
+
+  engine_version = {
+    explicit_version = "1.5.0"
+  }
+
+  job_resources = {}
+
+  timeout_seconds = %d
+}
+`, timeoutSeconds)
 }
 
 func testAccTerraformServiceWithDeploymentStageConfig(testName string) string {

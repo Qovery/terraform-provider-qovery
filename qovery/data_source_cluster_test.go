@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 )
 
 func TestAcc_ClusterDataSource(t *testing.T) {
@@ -24,6 +24,10 @@ func TestAcc_ClusterDataSource(t *testing.T) {
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "id", getTestClusterID()),
 					resource.TestCheckResourceAttr("data.qovery_cluster.test", "organization_id", getTestOrganizationID()),
+					resource.TestCheckResourceAttrSet("data.qovery_cluster.test", "instance_type"),
+					resource.TestCheckResourceAttrSet("data.qovery_cluster.test", "max_running_nodes"),
+					// The shared test cluster is deployed, so the API returns its kubeconfig.
+					resource.TestCheckResourceAttrSet("data.qovery_cluster.test", "kubeconfig"),
 				),
 			},
 		},

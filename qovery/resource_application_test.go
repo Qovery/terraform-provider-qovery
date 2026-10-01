@@ -10,8 +10,8 @@ import (
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 	"github.com/qovery/terraform-provider-qovery/qovery"
@@ -83,6 +83,7 @@ func TestAcc_Application(t *testing.T) {
 				Config: testAccApplicationDefaultConfig(
 					testName,
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
@@ -116,6 +117,7 @@ func TestAcc_Application(t *testing.T) {
 				Config: testAccApplicationDefaultConfig(
 					fmt.Sprintf("%s-updated", testName),
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
@@ -154,6 +156,7 @@ func TestAcc_Application(t *testing.T) {
 					testName,
 					"true",
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
@@ -189,6 +192,7 @@ func TestAcc_Application(t *testing.T) {
 					"2",
 					"3",
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),
@@ -221,6 +225,7 @@ func TestAcc_Application(t *testing.T) {
 					testName,
 					"Builder",
 				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryProjectExists("qovery_project.test"),
 					testAccQoveryEnvironmentExists("qovery_environment.test"),

@@ -1,158 +1,32 @@
 # qovery_helm (Resource)
 
-Provides a Qovery helm resource. This can be used to create and manage Qovery Helm chart deployments.
+Manages a Qovery Helm service: a Helm chart that Qovery deploys to its environment, from a Helm repository or a git repository.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
 
 ```terraform
-# Example: Helm chart from a Helm repository
 resource "qovery_helm" "my_helm" {
-  # Required
   environment_id               = qovery_environment.my_environment.id
-  name                         = "my-helm-chart"
-  description                  = "Helm chart deployed via Terraform"
+  name                         = "podinfo"
+  description                  = "podinfo chart deployed from its Helm repository"
   allow_cluster_wide_resources = false
 
-  # Source: Helm chart from a Helm repository
   source = {
     helm_repository = {
-      helm_repository_id = qovery_helm_repository.my_helm_repo.id
-      chart_name         = "nginx"
-      chart_version      = "1.0.0"
-    }
-  }
-
-  # Helm values overrides
-  values_override = {
-    # Override values using --set syntax
-    "set" = {
-      "replicaCount"         = "3"
-      "service.type"         = "ClusterIP"
-      "resources.limits.cpu" = "500m"
-    }
-    # Override values using --set-string syntax (always treated as strings)
-    "set_string" = {
-      "image.tag" = "latest"
-    }
-    # Override values using --set-json syntax
-    "set_json" = {
-      "tolerations" = "[{\"key\": \"dedicated\", \"operator\": \"Equal\", \"value\": \"helm\", \"effect\": \"NoSchedule\"}]"
-    }
-    # Override values from YAML files
-    file = {
-      raw = {
-        "custom-values" = {
-          content = <<-EOT
-            ingress:
-              enabled: true
-              hosts:
-                - host: my-app.example.com
-                  paths:
-                    - path: /
-          EOT
-        }
-      }
-    }
-  }
-
-  # Optional
-  auto_preview = true
-  auto_deploy  = true
-  timeout_sec  = 600
-
-  # Optional: custom Helm CLI arguments
-  # arguments = ["--wait", "--atomic", "--debug"]
-
-  environment_variables = [
-    {
-      key   = "MY_HELM_VARIABLE"
-      value = "my_value"
-    }
-  ]
-
-  # Environment variable files (mounted as files in the container)
-  environment_variable_files = [
-    {
-      key        = "APP_CONFIG"
-      value      = "config-content"
-      mount_path = "/etc/app/config.yaml"
-    }
-  ]
-
-  secrets = [
-    {
-      key   = "MY_HELM_SECRET"
-      value = "my_secret_value"
-    }
-  ]
-
-  # Secret files (mounted as files, value is encrypted)
-  secret_files = [
-    {
-      key        = "API_KEY"
-      value      = "secret-value"
-      mount_path = "/usr/local/secrets/api-key"
-    }
-  ]
-
-  # Optional: custom domains
-  # custom_domains = [
-  #   {
-  #     domain               = "my-app.example.com"
-  #     generate_certificate = true
-  #   }
-  # ]
-
-  # Optional: control deployment order
-  # deployment_stage_id = qovery_deployment_stage.my_stage.id
-
-  deployment_restrictions = [
-    {
-      mode  = "MATCH"
-      type  = "PATH"
-      value = "helm/**"
-    }
-  ]
-
-  advanced_settings_json = jsonencode({
-    # Non-exhaustive list. Full list: https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings
-  })
-
-  depends_on = [
-    qovery_environment.my_environment,
-  ]
-}
-
-# Example: Helm chart from a git repository
-resource "qovery_helm" "my_helm_from_git" {
-  environment_id               = qovery_environment.my_environment.id
-  name                         = "my-helm-from-git"
-  description                  = "Helm chart from a git repository"
-  allow_cluster_wide_resources = false
-
-  source = {
-    git_repository = {
-      url       = "https://github.com/my-org/my-helm-charts.git"
-      branch    = "main"
-      root_path = "/charts/my-chart"
-      # git_token_id = qovery_git_token.my_git_token.id  # For private repos
+      helm_repository_id = qovery_helm_repository.my_helm_repository.id
+      chart_name         = "podinfo"
+      chart_version      = "6.15.0"
     }
   }
 
   values_override = {
-    "set" = {
+    set = {
       "replicaCount" = "2"
     }
   }
-
-  depends_on = [
-    qovery_environment.my_environment,
-  ]
 }
 ```
 
@@ -161,65 +35,72 @@ resource "qovery_helm" "my_helm_from_git" {
 
 ### Required
 
-- `allow_cluster_wide_resources` (Boolean) Allow this chart to deploy resources outside of this environment namespace (including CRDs or non-namespaced resources)
-- `description` (String) Description of the helm service.
-- `environment_id` (String) Id of the environment. Changing this forces the helm service to be re-created.
-- `name` (String) Name of the helm service.
-- `source` (Attributes) Helm chart source. Use `helm_repository` to deploy from a Helm repository, or `git_repository` to deploy from a git repository. (see [below for nested schema](#nestedatt--source))
-- `values_override` (Attributes) Define your own overrides to customize the helm chart behaviour. (see [below for nested schema](#nestedatt--values_override))
+- `allow_cluster_wide_resources` (Boolean) Whether the chart can deploy resources outside the namespace of the environment, such as CRDs and cluster-scoped resources.
+- `description` (String) Description of the Helm service.
+- `environment_id` (String) ID of the environment. Changing it recreates the Helm service.
+- `name` (String) Name of the Helm service.
+- `source` (Attributes) Source of the chart: a Helm repository (`helm_repository`) or a git repository (`git_repository`). (see [below for nested schema](#nestedatt--source))
+- `values_override` (Attributes) Values that override the defaults of the chart. (see [below for nested schema](#nestedatt--values_override))
 
 ### Optional
 
-- `advanced_settings_json` (String) Advanced settings in JSON format. See the Qovery API documentation for available settings: https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings
-- `arguments` (List of String) Helm CLI arguments passed to the helm command (e.g. `--wait`, `--atomic`, `--debug`).
-- `auto_deploy` (Boolean) Specify if the helm service will be automatically updated on every new commit on the branch.
-- `auto_preview` (Boolean) Specify if the environment preview option is activated or not for this helm.
-- `blueprint_id` (String) The blueprint ID the helm service has been created from.
-- `custom_domains` (Attributes Set) List of custom domains linked to this helm. (see [below for nested schema](#nestedatt--custom_domains))
-- `deployment_restrictions` (Attributes Set) List of deployment restrictions. (see [below for nested schema](#nestedatt--deployment_restrictions))
-- `deployment_stage_id` (String) Id of the deployment stage. Controls the order of service deployment within an environment.
-- `environment_variable_aliases` (Attributes Set) List of environment variable aliases linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_aliases))
-- `environment_variable_files` (Attributes Set) List of environment variable files linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_files))
-- `environment_variable_overrides` (Attributes Set) List of environment variable overrides linked to this helm. (see [below for nested schema](#nestedatt--environment_variable_overrides))
-- `environment_variables` (Attributes Set) List of environment variables linked to this helm. (see [below for nested schema](#nestedatt--environment_variables))
-- `external_secret_files` (Attributes Set) List of external secret files linked to this helm. External secret files reference upstream secrets (e.g. from AWS Secrets Manager) and are mounted as files at a given path inside the container. (see [below for nested schema](#nestedatt--external_secret_files))
-- `external_secrets` (Attributes Set) List of external secrets linked to this helm. External secrets reference upstream secrets (e.g. from AWS Secrets Manager) via a secret manager access configuration. (see [below for nested schema](#nestedatt--external_secrets))
-- `icon_uri` (String) Icon URI representing the helm service.
-- `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
-- `ports` (Attributes Map) List of ports linked to this helm. (see [below for nested schema](#nestedatt--ports))
-- `secret_aliases` (Attributes Set) List of secret aliases linked to this helm. (see [below for nested schema](#nestedatt--secret_aliases))
-- `secret_files` (Attributes Set) List of secret files linked to this helm. (see [below for nested schema](#nestedatt--secret_files))
-- `secret_overrides` (Attributes Set) List of secret overrides linked to this helm. (see [below for nested schema](#nestedatt--secret_overrides))
-- `secrets` (Attributes Set) List of secrets linked to this helm. (see [below for nested schema](#nestedatt--secrets))
-- `timeout_sec` (Number) Helm timeout in seconds. Maximum time allowed for the Helm operation to complete.
+- `advanced_settings_json` (String) Advanced settings to override, as a JSON string built with `jsonencode()`. The [Qovery API documentation](https://api-doc.qovery.com/#tag/Helms/operation/getDefaultHelmAdvancedSettings) lists them with their defaults. Terraform manages only the keys you set, and removing a key keeps its current value: see [Advanced settings](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes#advanced-settings).
+- `arguments` (List of String) Arguments passed to the Helm CLI.
+	- Default: `["--wait", "--atomic", "--debug"]`.
+- `auto_deploy` (Boolean) Whether Qovery redeploys the Helm service on every new commit to its branch.
+	- Default: `false`.
+- `auto_preview` (Boolean) Whether Qovery creates a preview environment with the Helm service for each pull request.
+	- Default: `false`.
+- `blueprint_id` (String) ID of the blueprint the Helm service is created from. It can only be set at creation: changing it fails at plan time, and removing it keeps the recorded value.
+- `custom_domains` (Attributes Set) Custom domains of the Helm service. Each one needs a CNAME record that points to its `validation_domain`. (see [below for nested schema](#nestedatt--custom_domains))
+- `deployment_restrictions` (Attributes Set) Deployment restrictions of the Helm service: a new commit deploys it only if the files it changes pass them. (see [below for nested schema](#nestedatt--deployment_restrictions))
+- `deployment_stage_id` (String) ID of the deployment stage of the service. Stages set the order in which the services of an environment deploy. Removing it keeps the service in its current stage, because Qovery cannot detach a service from its stage.
+- `environment_variable_aliases` (Attributes Set) Environment variable aliases of the Helm service. An alias gives an existing variable another name. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variable_files` (Attributes Set) Environment variable files of the Helm service, each mounted as a file. (see [below for nested schema](#nestedatt--environment_variable_files))
+- `environment_variable_overrides` (Attributes Set) Environment variable overrides of the Helm service. An override replaces the value of a variable inherited from a broader scope. (see [below for nested schema](#nestedatt--environment_variable_overrides))
+- `environment_variables` (Attributes Set) Environment variables of the Helm service. (see [below for nested schema](#nestedatt--environment_variables))
+- `external_secret_files` (Attributes Set) External secret files of the Helm service, read from an external secret manager and mounted as files. (see [below for nested schema](#nestedatt--external_secret_files))
+- `external_secrets` (Attributes Set) External secrets of the Helm service, read from an external secret manager such as AWS Secrets Manager. (see [below for nested schema](#nestedatt--external_secrets))
+- `icon_uri` (String) Icon of the Helm service in the Qovery Console.
+	- Default: `app://qovery-console/helm`.
+- `is_skipped` (Boolean) Whether environment-wide deployments skip the service. It stays in its deployment stage.
+	- Default: `false`.
+- `ports` (Attributes Map) Ports of the Helm service, keyed by port name. Each one exposes a Kubernetes service deployed by the chart. (see [below for nested schema](#nestedatt--ports))
+- `secret_aliases` (Attributes Set) Secret aliases of the Helm service. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secret_files` (Attributes Set) Secret files of the Helm service, each mounted as a file. (see [below for nested schema](#nestedatt--secret_files))
+- `secret_overrides` (Attributes Set) Secret overrides of the Helm service. An override replaces the value of a secret inherited from a broader scope. (see [below for nested schema](#nestedatt--secret_overrides))
+- `secrets` (Attributes Set) Secrets of the Helm service. (see [below for nested schema](#nestedatt--secrets))
+- `timeout_sec` (Number) Maximum duration of the Helm operations, in seconds.
+	- Default: `600`.
 
 ### Read-Only
 
-- `built_in_environment_variables` (Attributes List) List of built-in environment variables linked to this helm. (see [below for nested schema](#nestedatt--built_in_environment_variables))
-- `external_host` (String) The helm external FQDN host [NOTE: only if your helm is using a publicly accessible port].
-- `id` (String) Id of the helm service.
-- `internal_host` (String) The helm internal host.
+- `built_in_environment_variables` (Attributes List) Environment variables Qovery defines for the Helm service. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `external_host` (String) Public host of the Helm service. Set only when the Helm service has a publicly accessible port.
+- `id` (String) ID of the Helm service.
+- `internal_host` (String) Internal host of the Helm service, reachable from the other services of the environment.
 
 <a id="nestedatt--source"></a>
 ### Nested Schema for `source`
 
 Optional:
 
-- `git_repository` (Attributes) Helm chart from a git repository. The repository must contain valid Helm chart files. (see [below for nested schema](#nestedatt--source--git_repository))
-- `helm_repository` (Attributes) Helm chart from a Helm repository. Repositories can be HTTPS or OCI-based (ECR, Docker Hub, GHCR, etc.). (see [below for nested schema](#nestedatt--source--helm_repository))
+- `git_repository` (Attributes) Chart from a git repository. (see [below for nested schema](#nestedatt--source--git_repository))
+- `helm_repository` (Attributes) Chart from a Helm repository, over HTTPS or OCI. (see [below for nested schema](#nestedatt--source--helm_repository))
 
 <a id="nestedatt--source--git_repository"></a>
 ### Nested Schema for `source.git_repository`
 
 Required:
 
-- `url` (String) Git repository URL containing the Helm chart.
+- `url` (String) URL of the git repository, for example `https://github.com/my-org/my-app.git`.
 
 Optional:
 
-- `branch` (String) Git branch to use for the Helm chart source.
-- `git_token_id` (String) Git token ID for accessing a private repository (refers to a `qovery_git_token` resource).
-- `root_path` (String) Root path in the git repository where the Helm chart is located.
+- `branch` (String) Branch to deploy. When omitted, Qovery uses the repository's default branch, and removing it keeps the current branch.
+- `git_token_id` (String) ID of the `qovery_git_token` used to access a private repository.
+- `root_path` (String) Directory of the repository that holds the chart.
+	- Default: `/`.
 
 
 <a id="nestedatt--source--helm_repository"></a>
@@ -227,9 +108,9 @@ Optional:
 
 Required:
 
-- `chart_name` (String) Name of the Helm chart to deploy.
-- `chart_version` (String) Version of the Helm chart to deploy (e.g. `1.0.0`).
-- `helm_repository_id` (String) Id of the Helm repository (refers to a `qovery_helm_repository` resource).
+- `chart_name` (String) Name of the chart.
+- `chart_version` (String) Version of the chart, for example `1.2.3`.
+- `helm_repository_id` (String) ID of the `qovery_helm_repository` that hosts the chart.
 
 
 
@@ -238,31 +119,31 @@ Required:
 
 Optional:
 
-- `file` (Attributes) Define overrides by selecting a YAML file from a git repository (preferred) or by passing raw YAML files. (see [below for nested schema](#nestedatt--values_override--file))
-- `set` (Map of String) Override Helm values using `--set` flag syntax. Map of key-value pairs.
-- `set_json` (Map of String) Override Helm values using `--set-json` flag syntax. Values are treated as JSON.
-- `set_string` (Map of String) Override Helm values using `--set-string` flag syntax. Values are always treated as strings.
+- `file` (Attributes) Values files, given inline (`raw`) or read from a git repository (`git_repository`). (see [below for nested schema](#nestedatt--values_override--file))
+- `set` (Map of String) Values passed with `--set`, keyed by value path, for example `image.tag`.
+- `set_json` (Map of String) Values passed with `--set-json`, each one a JSON value.
+- `set_string` (Map of String) Values passed with `--set-string`, which keeps each value a string.
 
 <a id="nestedatt--values_override--file"></a>
 ### Nested Schema for `values_override.file`
 
 Optional:
 
-- `git_repository` (Attributes) YAML file from a git repository (see [below for nested schema](#nestedatt--values_override--file--git_repository))
-- `raw` (Attributes Map) Raw YAML files (see [below for nested schema](#nestedatt--values_override--file--raw))
+- `git_repository` (Attributes) Values files read from a git repository. (see [below for nested schema](#nestedatt--values_override--file--git_repository))
+- `raw` (Attributes Map) Values files given inline, keyed by file name. (see [below for nested schema](#nestedatt--values_override--file--raw))
 
 <a id="nestedatt--values_override--file--git_repository"></a>
 ### Nested Schema for `values_override.file.git_repository`
 
 Required:
 
-- `branch` (String) YAML file git repository branch
-- `paths` (Set of String) YAML files git repository paths
-- `url` (String) YAML file git repository URL
+- `branch` (String) Branch to read the files from.
+- `paths` (Set of String) Paths of the values files in the repository.
+- `url` (String) URL of the git repository, for example `https://github.com/my-org/my-app.git`.
 
 Optional:
 
-- `git_token_id` (String) Git token ID for accessing a private repository (refers to a `qovery_git_token` resource).
+- `git_token_id` (String) ID of the `qovery_git_token` used to access a private repository.
 
 
 <a id="nestedatt--values_override--file--raw"></a>
@@ -270,7 +151,7 @@ Optional:
 
 Required:
 
-- `content` (String) content of the file
+- `content` (String) YAML content of the file.
 
 
 
@@ -280,21 +161,19 @@ Required:
 
 Required:
 
-- `domain` (String) Your custom domain.
-- `generate_certificate` (Boolean) Qovery will generate and manage the certificate for this domain.
+- `domain` (String) Custom domain, for example `app.example.com`.
+- `generate_certificate` (Boolean) Whether Qovery issues and renews a Let's Encrypt TLS certificate for the domain.
 
 Optional:
 
-- `use_cdn` (Boolean) Indicates if the custom domain is behind a CDN (i.e Cloudflare).
-This will condition the way we are checking CNAME before & during a deployment:
- * If `true` then we only check the domain points to an IP
- * If `false` then we check that the domain resolves to the correct service Load Balancer
+- `use_cdn` (Boolean) Whether the domain is behind a CDN such as Cloudflare. Qovery then only checks that the domain resolves to an IP, not to the service's load balancer.
+	- Default: `false`.
 
 Read-Only:
 
-- `id` (String) Id of the custom domain.
+- `id` (String) ID of the custom domain.
 - `status` (String) Status of the custom domain.
-- `validation_domain` (String) URL provided by Qovery. You must create a CNAME on your DNS provider using that URL.
+- `validation_domain` (String) Domain the CNAME record must point to.
 
 
 <a id="nestedatt--deployment_restrictions"></a>
@@ -302,15 +181,13 @@ Read-Only:
 
 Required:
 
-- `mode` (String) Deployment restriction mode.
-	- Can be: `EXCLUDE`, `MATCH`.
-- `type` (String) Deployment restriction type.
-	- Can be: `PATH`.
-- `value` (String) Value of the deployment restriction (e.g. a file path pattern).
+- `mode` (String) `MATCH` deploys only when a changed file matches `value`; `EXCLUDE` ignores the changed files that match it.
+- `type` (String) Type of the restriction. Only `PATH` is supported.
+- `value` (String) Path the changed files are compared with, for example `src/`.
 
 Read-Only:
 
-- `id` (String) Id of the deployment restriction.
+- `id` (String) ID of the deployment restriction.
 
 
 <a id="nestedatt--environment_variable_aliases"></a>
@@ -318,16 +195,16 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the environment variable alias.
+- `key` (String) Name of the alias.
 - `value` (String) Name of the variable to alias.
 
 Optional:
 
-- `description` (String) Description of the environment variable alias.
+- `description` (String) Description of the alias.
 
 Read-Only:
 
-- `id` (String) Id of the environment variable alias.
+- `id` (String) ID of the alias.
 
 
 <a id="nestedatt--environment_variable_files"></a>
@@ -335,17 +212,17 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the environment variable file.
-- `mount_path` (String) Mount path of the environment variable file.
-- `value` (String) Value of the environment variable file.
+- `key` (String) Name of the variable.
+- `mount_path` (String) Path where the file is mounted.
+- `value` (String) Content of the file.
 
 Optional:
 
-- `description` (String) Description of the environment variable file.
+- `description` (String) Description of the variable.
 
 Read-Only:
 
-- `id` (String) Id of the environment variable file.
+- `id` (String) ID of the variable.
 
 
 <a id="nestedatt--environment_variable_overrides"></a>
@@ -353,16 +230,16 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the environment variable override.
-- `value` (String) Value of the environment variable override.
+- `key` (String) Name of the variable to override.
+- `value` (String) Value that replaces the inherited one.
 
 Optional:
 
-- `description` (String) Description of the environment variable override.
+- `description` (String) Description of the override.
 
 Read-Only:
 
-- `id` (String) Id of the environment variable override.
+- `id` (String) ID of the override.
 
 
 <a id="nestedatt--environment_variables"></a>
@@ -370,7 +247,7 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the environment variable.
+- `key` (String) Name of the environment variable.
 - `value` (String) Value of the environment variable.
 
 Optional:
@@ -379,7 +256,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the environment variable.
+- `id` (String) ID of the environment variable.
 
 
 <a id="nestedatt--external_secret_files"></a>
@@ -388,9 +265,9 @@ Read-Only:
 Required:
 
 - `key` (String) Name of the external secret file.
-- `mount_path` (String) Absolute path where the secret file will be mounted inside the container.
-- `reference` (String) Reference to the upstream secret (e.g. the secret name or ARN in AWS Secrets Manager).
-- `secret_manager_access_id` (String) Id of the secret manager access to use for this external secret file.
+- `mount_path` (String) Absolute path where the file is mounted.
+- `reference` (String) Reference of the secret in the secret manager, such as its name or ARN.
+- `secret_manager_access_id` (String) ID of the cluster's secret manager access that reads the secret.
 
 Optional:
 
@@ -398,7 +275,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the external secret file.
+- `id` (String) ID of the external secret file.
 
 
 <a id="nestedatt--external_secrets"></a>
@@ -407,8 +284,8 @@ Read-Only:
 Required:
 
 - `key` (String) Name of the external secret.
-- `reference` (String) Reference to the upstream secret (e.g. the secret name or ARN in AWS Secrets Manager).
-- `secret_manager_access_id` (String) Id of the secret manager access to use for this external secret.
+- `reference` (String) Reference of the secret in the secret manager, such as its name or ARN.
+- `secret_manager_access_id` (String) ID of the cluster's secret manager access that reads the secret.
 
 Optional:
 
@@ -416,7 +293,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the external secret.
+- `id` (String) ID of the external secret.
 
 
 <a id="nestedatt--ports"></a>
@@ -424,18 +301,17 @@ Read-Only:
 
 Required:
 
-- `external_port` (Number) External port of the container.
-	- Required if: `ports.publicly_accessible=true`.
+- `external_port` (Number) Port exposed to the internet.
 	- Must be: `>= 1` and `<= 65535`.
-- `internal_port` (Number) Internal port of the container.
+- `internal_port` (Number) Port the Kubernetes service listens on.
 	- Must be: `>= 1` and `<= 65535`.
 - `service_name` (String) Name of the Kubernetes service to expose.
 
 Optional:
 
-- `is_default` (Boolean) If this port will be used for the root domain. Note: the API may override this value based on port configuration (e.g., when only one publicly accessible port exists, it will be set as default).
-- `namespace` (String) Kubernetes namespace where the service is deployed.
-- `protocol` (String) Protocol used for the port of the container.
+- `is_default` (Boolean) Whether the root domain of the Helm service routes to this port. Qovery marks one port as the default, so an omitted value keeps the one Qovery chose.
+- `namespace` (String) Kubernetes namespace of the service.
+- `protocol` (String) Protocol of the port.
 	- Can be: `GRPC`, `HTTP`.
 	- Default: `HTTP`.
 
@@ -445,16 +321,16 @@ Optional:
 
 Required:
 
-- `key` (String) Name of the secret alias.
+- `key` (String) Name of the alias.
 - `value` (String) Name of the secret to alias.
 
 Optional:
 
-- `description` (String) Description of the secret alias.
+- `description` (String) Description of the alias.
 
 Read-Only:
 
-- `id` (String) Id of the secret alias.
+- `id` (String) ID of the alias.
 
 
 <a id="nestedatt--secret_files"></a>
@@ -462,17 +338,17 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the secret file.
-- `mount_path` (String) Mount path of the secret file.
-- `value` (String, Sensitive) Value of the secret file.
+- `key` (String) Name of the secret.
+- `mount_path` (String) Path where the file is mounted.
+- `value` (String, Sensitive) Content of the file.
 
 Optional:
 
-- `description` (String) Description of the secret file.
+- `description` (String) Description of the secret.
 
 Read-Only:
 
-- `id` (String) Id of the secret file.
+- `id` (String) ID of the secret.
 
 
 <a id="nestedatt--secret_overrides"></a>
@@ -480,16 +356,16 @@ Read-Only:
 
 Required:
 
-- `key` (String) Name of the secret override.
-- `value` (String, Sensitive) Value of the secret override.
+- `key` (String) Name of the secret to override.
+- `value` (String, Sensitive) Value that replaces the inherited one.
 
 Optional:
 
-- `description` (String) Description of the secret override.
+- `description` (String) Description of the override.
 
 Read-Only:
 
-- `id` (String) Id of the secret override.
+- `id` (String) ID of the override.
 
 
 <a id="nestedatt--secrets"></a>
@@ -497,7 +373,7 @@ Read-Only:
 
 Required:
 
-- `key` (String) Key of the secret.
+- `key` (String) Name of the secret.
 - `value` (String, Sensitive) Value of the secret.
 
 Optional:
@@ -506,7 +382,7 @@ Optional:
 
 Read-Only:
 
-- `id` (String) Id of the secret.
+- `id` (String) ID of the secret.
 
 
 <a id="nestedatt--built_in_environment_variables"></a>
@@ -515,8 +391,8 @@ Read-Only:
 Read-Only:
 
 - `description` (String) Description of the environment variable.
-- `id` (String) Id of the environment variable.
-- `key` (String) Key of the environment variable.
+- `id` (String) ID of the environment variable.
+- `key` (String) Name of the environment variable.
 - `value` (String) Value of the environment variable.
 ## Import
 ```shell

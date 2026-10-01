@@ -127,21 +127,13 @@ func (d CustomDomain) toDeleteRequest() client.CustomDomainDeleteRequest {
 	}
 }
 
-func fromCustomDomain(plan *CustomDomain, domain *qovery.CustomDomain) CustomDomain {
-	var generateCertificate *bool
-	if plan != nil && (plan.GenerateCertificate.IsNull() || plan.GenerateCertificate.IsUnknown()) {
-		// as GenerateCertificate is optional, terraform expect to receive null if GenerateCertificate is not defined in the plan
-		generateCertificate = nil
-	} else {
-		generateCertificate = &domain.GenerateCertificate
-	}
-
-	var useCdn *bool
-	if plan != nil && (plan.UseCdn.IsNull() || plan.UseCdn.IsUnknown()) {
-		// as UseCdn is optional, terraform expect to receive null if UseCdn is not defined in the plan
-		useCdn = nil
-	} else {
-		useCdn = domain.UseCdn
+// fromCustomDomain converts an API custom domain. generate_certificate and use_cdn report the
+// API value, so a change made in the Console shows up in the plan. q-core stores use_cdn false
+// when a request omits it, which is also the value the schema plans when it is omitted.
+func fromCustomDomain(domain *qovery.CustomDomain) CustomDomain {
+	useCdn := false
+	if domain.UseCdn != nil {
+		useCdn = *domain.UseCdn
 	}
 
 	return CustomDomain{
@@ -149,26 +141,17 @@ func fromCustomDomain(plan *CustomDomain, domain *qovery.CustomDomain) CustomDom
 		Domain:              FromString(domain.Domain),
 		ValidationDomain:    FromStringPointer(domain.ValidationDomain),
 		Status:              fromClientEnumPointer(domain.Status),
-		GenerateCertificate: FromBoolPointer(generateCertificate),
-		UseCdn:              FromBoolPointer(useCdn),
+		GenerateCertificate: FromBool(domain.GenerateCertificate),
+		UseCdn:              FromBool(useCdn),
 	}
 }
 
-func findCustomDomainByDomain(initialState types.Set, domain string) *CustomDomain {
-	for _, elem := range initialState.Elements() {
-		customDomain := toCustomDomain(elem.(types.Object))
-		if customDomain.Domain.ValueString() == domain {
-			return &customDomain
-		}
-	}
-	return nil
-}
-
+// fromCustomDomainList converts the API custom domains. No domain keeps the shape of
+// initialState: null stays null and [] stays [].
 func fromCustomDomainList(initialState types.Set, customDomains []*qovery.CustomDomain) CustomDomainList {
 	list := make([]CustomDomain, 0, len(customDomains))
 	for _, customDomain := range customDomains {
-		found := findCustomDomainByDomain(initialState, customDomain.Domain)
-		list = append(list, fromCustomDomain(found, customDomain))
+		list = append(list, fromCustomDomain(customDomain))
 	}
 
 	if len(list) == 0 && initialState.IsNull() {

@@ -313,6 +313,66 @@ func (_c *BlueprintRepository_GetOrganizationID_Call) RunAndReturn(run func(cont
 	return _c
 }
 
+// GetServiceIconURI provides a mock function with given fields: ctx, serviceType, serviceID
+func (_m *BlueprintRepository) GetServiceIconURI(ctx context.Context, serviceType blueprint.ServiceType, serviceID string) (*string, error) {
+	ret := _m.Called(ctx, serviceType, serviceID)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetServiceIconURI")
+	}
+
+	var r0 *string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, blueprint.ServiceType, string) (*string, error)); ok {
+		return rf(ctx, serviceType, serviceID)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, blueprint.ServiceType, string) *string); ok {
+		r0 = rf(ctx, serviceType, serviceID)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, blueprint.ServiceType, string) error); ok {
+		r1 = rf(ctx, serviceType, serviceID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// BlueprintRepository_GetServiceIconURI_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetServiceIconURI'
+type BlueprintRepository_GetServiceIconURI_Call struct {
+	*mock.Call
+}
+
+// GetServiceIconURI is a helper method to define mock.On call
+//   - ctx context.Context
+//   - serviceType blueprint.ServiceType
+//   - serviceID string
+func (_e *BlueprintRepository_Expecter) GetServiceIconURI(ctx interface{}, serviceType interface{}, serviceID interface{}) *BlueprintRepository_GetServiceIconURI_Call {
+	return &BlueprintRepository_GetServiceIconURI_Call{Call: _e.mock.On("GetServiceIconURI", ctx, serviceType, serviceID)}
+}
+
+func (_c *BlueprintRepository_GetServiceIconURI_Call) Run(run func(ctx context.Context, serviceType blueprint.ServiceType, serviceID string)) *BlueprintRepository_GetServiceIconURI_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(blueprint.ServiceType), args[2].(string))
+	})
+	return _c
+}
+
+func (_c *BlueprintRepository_GetServiceIconURI_Call) Return(_a0 *string, _a1 error) *BlueprintRepository_GetServiceIconURI_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *BlueprintRepository_GetServiceIconURI_Call) RunAndReturn(run func(context.Context, blueprint.ServiceType, string) (*string, error)) *BlueprintRepository_GetServiceIconURI_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
 // GetServiceStatus provides a mock function with given fields: ctx, environmentID, serviceType, serviceID
 func (_m *BlueprintRepository) GetServiceStatus(ctx context.Context, environmentID string, serviceType blueprint.ServiceType, serviceID string) (*blueprint.ServiceStatus, error) {
 	ret := _m.Called(ctx, environmentID, serviceType, serviceID)
@@ -370,6 +430,67 @@ func (_c *BlueprintRepository_GetServiceStatus_Call) Return(_a0 *blueprint.Servi
 }
 
 func (_c *BlueprintRepository_GetServiceStatus_Call) RunAndReturn(run func(context.Context, string, blueprint.ServiceType, string) (*blueprint.ServiceStatus, error)) *BlueprintRepository_GetServiceStatus_Call {
+	_c.Call.Return(run)
+	return _c
+}
+
+// GetVariableDefaults provides a mock function with given fields: ctx, organizationID, environmentID, version
+func (_m *BlueprintRepository) GetVariableDefaults(ctx context.Context, organizationID string, environmentID string, version blueprint.CatalogVersion) (map[string]string, error) {
+	ret := _m.Called(ctx, organizationID, environmentID, version)
+
+	if len(ret) == 0 {
+		panic("no return value specified for GetVariableDefaults")
+	}
+
+	var r0 map[string]string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, blueprint.CatalogVersion) (map[string]string, error)); ok {
+		return rf(ctx, organizationID, environmentID, version)
+	}
+	if rf, ok := ret.Get(0).(func(context.Context, string, string, blueprint.CatalogVersion) map[string]string); ok {
+		r0 = rf(ctx, organizationID, environmentID, version)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(map[string]string)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(context.Context, string, string, blueprint.CatalogVersion) error); ok {
+		r1 = rf(ctx, organizationID, environmentID, version)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// BlueprintRepository_GetVariableDefaults_Call is a *mock.Call that shadows Run/Return methods with type explicit version for method 'GetVariableDefaults'
+type BlueprintRepository_GetVariableDefaults_Call struct {
+	*mock.Call
+}
+
+// GetVariableDefaults is a helper method to define mock.On call
+//   - ctx context.Context
+//   - organizationID string
+//   - environmentID string
+//   - version blueprint.CatalogVersion
+func (_e *BlueprintRepository_Expecter) GetVariableDefaults(ctx interface{}, organizationID interface{}, environmentID interface{}, version interface{}) *BlueprintRepository_GetVariableDefaults_Call {
+	return &BlueprintRepository_GetVariableDefaults_Call{Call: _e.mock.On("GetVariableDefaults", ctx, organizationID, environmentID, version)}
+}
+
+func (_c *BlueprintRepository_GetVariableDefaults_Call) Run(run func(ctx context.Context, organizationID string, environmentID string, version blueprint.CatalogVersion)) *BlueprintRepository_GetVariableDefaults_Call {
+	_c.Call.Run(func(args mock.Arguments) {
+		run(args[0].(context.Context), args[1].(string), args[2].(string), args[3].(blueprint.CatalogVersion))
+	})
+	return _c
+}
+
+func (_c *BlueprintRepository_GetVariableDefaults_Call) Return(_a0 map[string]string, _a1 error) *BlueprintRepository_GetVariableDefaults_Call {
+	_c.Call.Return(_a0, _a1)
+	return _c
+}
+
+func (_c *BlueprintRepository_GetVariableDefaults_Call) RunAndReturn(run func(context.Context, string, string, blueprint.CatalogVersion) (map[string]string, error)) *BlueprintRepository_GetVariableDefaults_Call {
 	_c.Call.Return(run)
 	return _c
 }

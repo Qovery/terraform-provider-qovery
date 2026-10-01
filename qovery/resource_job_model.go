@@ -43,7 +43,7 @@ func JobSourceFromDomainJobSource(j job.Source) JobSource {
 			GitRepository: GitRepository{
 				Url:        FromString(j.Docker.GitRepository.Url),
 				Branch:     FromStringPointer(j.Docker.GitRepository.Branch),
-				RootPath:   FromStringPointer(j.Docker.GitRepository.RootPath),
+				RootPath:   jobRootPathFromAPI(j.Docker.GitRepository.RootPath),
 				GitTokenId: FromStringPointer(j.Docker.GitRepository.GitTokenId),
 			},
 			DockerFilePath:         FromStringPointer(j.Docker.DockerFilePath),
@@ -65,6 +65,18 @@ func JobSourceFromDomainJobSource(j job.Source) JobSource {
 		Docker: dkr,
 		Image:  img,
 	}
+}
+
+// jobRootPathFromAPI reads source.docker.git_repository.root_path. The engine builds "" and "/"
+// from the same context with the same image tag (engine lib-engine/src/io_models/mod.rs), so an
+// API "" reads as "/", the schema default, without depending on the state: writing "/" back to
+// q-core would only mark the job out of date. The schema rejects "" in the configuration, which
+// this mapping would otherwise report as an inconsistent result after apply.
+func jobRootPathFromAPI(v *string) types.String {
+	if v == nil || *v == "" {
+		return types.StringValue(jobRootPathDefault)
+	}
+	return FromString(*v)
 }
 
 type JobSchedule struct {
@@ -156,36 +168,42 @@ func argumentsFromDomain(domainArgs []string, priorArgs []types.String) []types.
 func JobScheduleFromDomainJobSchedule(s job.JobSchedule, state *JobSchedule) JobSchedule {
 	var onStart *ExecutionCommand = nil
 	if s.OnStart != nil {
+		priorEntrypoint := types.StringNull()
 		var priorArgs []types.String
 		if state != nil && state.OnStart != nil {
+			priorEntrypoint = state.OnStart.Entrypoint
 			priorArgs = state.OnStart.Arguments
 		}
 		onStart = &ExecutionCommand{
-			Entrypoint: FromStringPointer(s.OnStart.Entrypoint),
+			Entrypoint: optionalStringFromAPI(priorEntrypoint, s.OnStart.Entrypoint),
 			Arguments:  argumentsFromDomain(s.OnStart.Arguments, priorArgs),
 		}
 	}
 
 	var onStop *ExecutionCommand = nil
 	if s.OnStop != nil {
+		priorEntrypoint := types.StringNull()
 		var priorArgs []types.String
 		if state != nil && state.OnStop != nil {
+			priorEntrypoint = state.OnStop.Entrypoint
 			priorArgs = state.OnStop.Arguments
 		}
 		onStop = &ExecutionCommand{
-			Entrypoint: FromStringPointer(s.OnStop.Entrypoint),
+			Entrypoint: optionalStringFromAPI(priorEntrypoint, s.OnStop.Entrypoint),
 			Arguments:  argumentsFromDomain(s.OnStop.Arguments, priorArgs),
 		}
 	}
 
 	var onDelete *ExecutionCommand = nil
 	if s.OnDelete != nil {
+		priorEntrypoint := types.StringNull()
 		var priorArgs []types.String
 		if state != nil && state.OnDelete != nil {
+			priorEntrypoint = state.OnDelete.Entrypoint
 			priorArgs = state.OnDelete.Arguments
 		}
 		onDelete = &ExecutionCommand{
-			Entrypoint: FromStringPointer(s.OnDelete.Entrypoint),
+			Entrypoint: optionalStringFromAPI(priorEntrypoint, s.OnDelete.Entrypoint),
 			Arguments:  argumentsFromDomain(s.OnDelete.Arguments, priorArgs),
 		}
 	}
@@ -236,15 +254,17 @@ func (s JobScheduleCron) toUpsertRequest() job.JobScheduleCron {
 }
 
 func JobScheduleCronFromDomainJobScheduleCron(s job.JobScheduleCron, state *JobScheduleCron) JobScheduleCron {
+	priorEntrypoint := types.StringNull()
 	var priorArgs []types.String
 	if state != nil {
+		priorEntrypoint = state.Command.Entrypoint
 		priorArgs = state.Command.Arguments
 	}
 
 	return JobScheduleCron{
 		Schedule: FromString(s.Schedule),
 		Command: ExecutionCommand{
-			Entrypoint: FromStringPointer(s.Command.Entrypoint),
+			Entrypoint: optionalStringFromAPI(priorEntrypoint, s.Command.Entrypoint),
 			Arguments:  argumentsFromDomain(s.Command.Arguments, priorArgs),
 		},
 	}
@@ -276,8 +296,6 @@ type Job struct {
 	ExternalSecrets              types.Set     `tfsdk:"external_secrets"`
 	ExternalSecretFiles          types.Set     `tfsdk:"external_secret_files"`
 	Port                         types.Int64   `tfsdk:"port"`
-	ExternalHost                 types.String  `tfsdk:"external_host"`
-	InternalHost                 types.String  `tfsdk:"internal_host"`
 	DeploymentStageId            types.String  `tfsdk:"deployment_stage_id"`
 	IsSkipped                    types.Bool    `tfsdk:"is_skipped"`
 	AdvancedSettingsJson         types.String  `tfsdk:"advanced_settings_json"`
@@ -441,7 +459,7 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		IconUri:                      FromString(job.IconUri),
 		CPU:                          FromInt32(job.CPU),
 		Memory:                       FromInt32(job.Memory),
-		EphemeralStorage:             FromInt32Pointer(job.EphemeralStorage),
+		EphemeralStorage:             ephemeralStorageFromAPI(job.EphemeralStorage),
 		MaxNbRestart:                 FromInt32(job.MaxNbRestart),
 		MaxDurationSeconds:           FromInt32(job.MaxDurationSeconds),
 		AutoPreview:                  FromBool(job.AutoPreview),
@@ -457,16 +475,14 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, job.Secrets, variable.ScopeJob, "OVERRIDE").toTerraformSet(ctx),
 		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, job.EnvironmentVariables, variable.ScopeJob).toTerraformSet(ctx),
 		SecretFiles:                  convertDomainSecretsToSecretFileList(state.SecretFiles, job.Secrets, variable.ScopeJob).toTerraformSet(ctx),
-		InternalHost:                 FromStringPointer(job.InternalHost),
-		ExternalHost:                 FromStringPointer(job.ExternalHost),
 		DeploymentStageId:            FromString(job.DeploymentStageID),
 		IsSkipped:                    FromBool(job.IsSkipped),
 		HealthChecks:                 &healthchecks,
 		AdvancedSettingsJson:         FromString(job.AdvancedSettingsJson),
 		AutoDeploy:                   FromBoolPointer(job.AutoDeploy),
 		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, job.JobDeploymentRestrictions),
-		AnnotationsGroupIds:          fromAnnotationsGroupList(ctx, state.AnnotationsGroupIds, job.AnnotationsGroupIds),
-		LabelssGroupIds:              fromLabelsGroupList(ctx, state.LabelssGroupIds, job.LabelsGroupIds),
+		AnnotationsGroupIds:          stringSetFromAPI(state.AnnotationsGroupIds, job.AnnotationsGroupIds),
+		LabelssGroupIds:              stringSetFromAPI(state.LabelssGroupIds, job.LabelsGroupIds),
 		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(job.ExternalSecrets, state.ExternalSecrets, variable.ScopeJob).toTerraformSet(ctx),
 		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(job.ExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeJob).toTerraformSet(ctx),
 		BuildSettings:                buildSettingsToState(state.BuildSettings, job.BuildSettings),

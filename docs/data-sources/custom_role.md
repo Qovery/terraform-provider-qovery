@@ -1,13 +1,13 @@
 # qovery_custom_role (Data Source)
 
-Provides a Qovery organization custom role. Returns the full permission matrix (every cluster and project of the organization).
+Reads an existing Qovery custom role, with its permissions on every cluster and project of the organization.
 
 ## Example Usage
 
 ```terraform
-data "qovery_custom_role" "project_admin" {
-  organization_id = qovery_organization.my_organization.id
-  id              = qovery_custom_role.project_admin.id
+data "qovery_custom_role" "my_custom_role" {
+  id              = "<custom_role_id>"
+  organization_id = "<organization_id>"
 }
 ```
 
@@ -16,23 +16,23 @@ data "qovery_custom_role" "project_admin" {
 
 ### Required
 
-- `id` (String) Id of the custom role.
-- `organization_id` (String) Id of the organization.
+- `id` (String) ID of the custom role.
+- `organization_id` (String) ID of the organization.
 
 ### Read-Only
 
-- `cluster_permissions` (Attributes Set) Cluster permissions of the custom role (every cluster of the organization). (see [below for nested schema](#nestedatt--cluster_permissions))
+- `cluster_permissions` (Attributes Set) Permissions of the role on clusters. Lists every cluster of the organization. (see [below for nested schema](#nestedatt--cluster_permissions))
 - `description` (String) Description of the custom role.
 - `name` (String) Name of the custom role.
-- `project_permissions` (Attributes Set) Project permissions of the custom role (every project of the organization). (see [below for nested schema](#nestedatt--project_permissions))
+- `project_permissions` (Attributes Set) Permissions of the role on projects. Lists every project of the organization. (see [below for nested schema](#nestedatt--project_permissions))
 
 <a id="nestedatt--cluster_permissions"></a>
 ### Nested Schema for `cluster_permissions`
 
 Read-Only:
 
-- `cluster_id` (String)
-- `permission` (String)
+- `cluster_id` (String) ID of the cluster.
+- `permission` (String) Permission of the role on the cluster.
 
 
 <a id="nestedatt--project_permissions"></a>
@@ -40,14 +40,14 @@ Read-Only:
 
 Read-Only:
 
-- `is_admin` (Boolean)
-- `permissions` (Attributes Set) (see [below for nested schema](#nestedatt--project_permissions--permissions))
-- `project_id` (String)
+- `is_admin` (Boolean) Whether the role has admin rights on the whole project.
+- `permissions` (Attributes Set) Permissions of the role on each environment type of the project. `null` when `is_admin` is `true`. (see [below for nested schema](#nestedatt--project_permissions--permissions))
+- `project_id` (String) ID of the project.
 
 <a id="nestedatt--project_permissions--permissions"></a>
 ### Nested Schema for `project_permissions.permissions`
 
 Read-Only:
 
-- `environment_type` (String)
-- `permission` (String)
+- `environment_type` (String) Environment type.
+- `permission` (String) Permission of the role on the environments of this type.

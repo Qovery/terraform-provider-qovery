@@ -20,8 +20,9 @@ import (
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
 var (
-	_ resource.ResourceWithConfigure   = &organizationResource{}
-	_ resource.ResourceWithImportState = organizationResource{}
+	_ resource.ResourceWithConfigure    = &organizationResource{}
+	_ resource.ResourceWithImportState  = organizationResource{}
+	_ resource.ResourceWithUpgradeState = organizationResource{}
 )
 
 var organizationPlans = clientEnumToStringArray(organization.AllowedPlanValues)
@@ -58,32 +59,24 @@ func (r *organizationResource) Configure(_ context.Context, req resource.Configu
 
 func (r organizationResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		Description: "Provides a Qovery organization resource. This can be used to manage Qovery organizations. " +
-			"Important: Organizations cannot be created or deleted via Terraform. Use terraform import to bring an existing organization under management.",
-		MarkdownDescription: "Provides a Qovery organization resource. This can be used to manage Qovery organizations.\n\n" +
-			"~> **Important:** Organizations cannot be created or deleted via Terraform. Use `terraform import` to bring an existing organization under management.",
+		Version: 1,
+		MarkdownDescription: "Manages a Qovery organization.\n\n" +
+			"~> **Note:** Terraform cannot create or delete an organization. Import an existing one, and stop managing it with a `removed` block instead of destroying it.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
-				Description:         "Unique identifier of the organization (UUID format).",
-				MarkdownDescription: "Unique identifier of the organization (UUID format).",
+				MarkdownDescription: idDescription("organization"),
 				Computed:            true,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
 			},
 			"name": schema.StringAttribute{
-				Description:         "Name of the organization. Must be unique across your Qovery account.",
-				MarkdownDescription: "Name of the organization. Must be unique across your Qovery account.",
+				MarkdownDescription: nameDescription("organization"),
 				Required:            true,
 			},
 			"plan": schema.StringAttribute{
-				Description: descriptions.NewStringEnumDescription(
-					"Subscription plan of the organization. Determines available features, resource limits, and pricing tier.",
-					organizationPlans,
-					nil,
-				),
 				MarkdownDescription: descriptions.NewStringEnumDescription(
-					"Subscription plan of the organization. Determines available features, resource limits, and pricing tier.",
+					organizationPlanDescription,
 					organizationPlans,
 					nil,
 				),
@@ -93,13 +86,10 @@ func (r organizationResource) Schema(_ context.Context, _ resource.SchemaRequest
 				},
 			},
 			"description": schema.StringAttribute{
-				Description:         "Description of the organization.",
-				MarkdownDescription: "Description of the organization.",
+				// Optional only: q-core stores no description when the request omits it, and an
+				// update replaces every field, so omitting it clears the description.
+				MarkdownDescription: descriptionDescription("organization"),
 				Optional:            true,
-				Computed:            true,
-				PlanModifiers: []planmodifier.String{
-					stringplanmodifier.UseStateForUnknown(),
-				},
 			},
 		},
 	}
@@ -127,7 +117,7 @@ func (r organizationResource) Read(ctx context.Context, req resource.ReadRequest
 	}
 
 	// Refresh state values
-	state = convertDomainOrganizationToTerraform(orga)
+	state = organizationStateFromAPI(orga, state)
 	tflog.Trace(ctx, "read organization", map[string]any{"organization_id": state.Id.ValueString()})
 
 	// Set state
@@ -152,7 +142,7 @@ func (r organizationResource) Update(ctx context.Context, req resource.UpdateReq
 	}
 
 	// Update state values
-	state = convertDomainOrganizationToTerraform(orga)
+	state = organizationStateFromAPI(orga, plan)
 	tflog.Trace(ctx, "updated organization", map[string]any{"organization_id": state.Id.ValueString()})
 
 	// Set state
@@ -167,4 +157,27 @@ func (r organizationResource) Delete(_ context.Context, _ resource.DeleteRequest
 // ImportState imports a qovery organization resource using its id
 func (r organizationResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
+}
+
+// UpgradeState migrates organization states written by 0.x (schema version 0).
+func (r organizationResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
+	// Version 0 has the same attribute types as the current schema.
+	var schemaResp resource.SchemaResponse
+	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
+	priorSchema := schemaResp.Schema
+
+	return map[int64]resource.StateUpgrader{
+		0: {
+			PriorSchema: &priorSchema,
+			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+				var orga Organization
+				resp.Diagnostics.Append(req.State.Get(ctx, &orga)...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+				orga.Description = upgradeOptionalDescriptionFrom0x(orga.Description)
+				resp.Diagnostics.Append(resp.State.Set(ctx, orga)...)
+			},
+		},
+	}
 }

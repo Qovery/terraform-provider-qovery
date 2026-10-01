@@ -5,7 +5,6 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
-	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/qovery/qovery-client-go"
 
 	"github.com/qovery/terraform-provider-qovery/client"
@@ -243,17 +242,19 @@ func convertDomainSecretsToSecretFileList(initialState types.Set, secrets secret
 }
 
 func convertDomainSecretToSecretFile(s secret.Secret, state *SecretFile) SecretFile {
+	priorDescription := types.StringNull()
+	if state != nil {
+		priorDescription = state.Description
+	}
 	sec := SecretFile{
-		Id:          FromString(s.ID.String()),
-		Key:         FromString(s.Key),
-		Description: FromString(s.Description),
+		Id:  FromString(s.ID.String()),
+		Key: FromString(s.Key),
+		// The API description always wins, so a description set in the Console shows in the plan.
+		Description: planAwareOptionalString(s.Description, priorDescription),
 	}
 	if state != nil {
 		// Preserve Value from state (Secret API doesn't return values)
 		sec.Value = state.Value
-		if state.Description.IsNull() {
-			sec.Description = basetypes.NewStringNull()
-		}
 		// CRITICAL: Preserve MountPath from state when domain model has empty MountPath
 		// The legacy Secret API used by Container/Job/Environment/Project doesn't return mount_path
 		if s.MountPath != "" {
@@ -276,17 +277,19 @@ func fromSecretFileList(initialState types.Set, secrets []*qovery.Secret, scope 
 			continue
 		}
 		state := stateList.find(s.GetKey())
+		priorDescription := types.StringNull()
+		if state != nil {
+			priorDescription = state.Description
+		}
 		sec := SecretFile{
-			Id:          FromString(s.Id),
-			Key:         FromString(s.Key),
-			Description: FromNullableString(s.Description),
+			Id:  FromString(s.Id),
+			Key: FromString(s.Key),
+			// The API description always wins, so a description set in the Console shows in the plan.
+			Description: planAwareOptionalString(s.GetDescription(), priorDescription),
 		}
 		if state != nil {
 			// Preserve Value from state (Secret API doesn't return values)
 			sec.Value = state.Value
-			if state.Description.IsNull() && !initialState.IsNull() {
-				sec.Description = basetypes.NewStringNull()
-			}
 			// CRITICAL: qovery.Secret does NOT have MountPath — must come from state
 			sec.MountPath = state.MountPath
 		} else {

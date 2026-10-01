@@ -3,6 +3,12 @@
 The [Qovery](https://www.qovery.com/) provider is used to interact with the resources supported by Qovery.
 The provider needs to be configured with the proper credentials before it can be used.
 
+## Requirements
+
+The provider is tested against Terraform 1.15. Earlier versions are expected to work but are not tested.
+
+Upgrading from an earlier version? Read the [upgrade guide](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/upgrade-to-1.0) first. The [Managing changes](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes) guide explains how the provider plans changes.
+
 ## Authentication
 
 The Qovery provider offers the following methods for providing credentials:
@@ -24,33 +30,47 @@ export QOVERY_API_TOKEN="your-api-token"
 ## Example Usage
 
 ```terraform
-# Terraform 1.0.3+ uses the Terraform Registry:
-
 terraform {
   required_providers {
     qovery = {
-      source = "qovery/qovery"
+      source  = "qovery/qovery"
+      version = "~> 1.0"
     }
   }
 }
 
-# Configure the Qovery provider
-provider "qovery" {
-  token = "<your-qovery-token>"
-}
+# The provider reads the API token from the QOVERY_API_TOKEN environment variable.
+provider "qovery" {}
 ```
 
 ## Resource Categories
+
+### Organization & Access
+
+| Resource | Description |
+|----------|-------------|
+| `qovery_organization` | Manages a Qovery organization |
+| `qovery_organization_member` | Invites members to an organization and manages their role |
+| `qovery_custom_role` | Manages custom organization roles and their cluster and project permissions |
+| `qovery_api_token` | Manages organization API tokens |
 
 ### Infrastructure
 
 | Resource | Description |
 |----------|-------------|
-| `qovery_organization` | Manages a Qovery organization |
-| `qovery_cluster` | Manages Kubernetes clusters (AWS EKS, GCP GKE, Scaleway Kapsule) |
+| `qovery_cluster` | Manages Kubernetes clusters (AWS EKS, GCP GKE, Scaleway Kapsule, Azure AKS, on-premise) |
+| `qovery_cluster_dns_provider` | Manages the DNS provider of a cluster |
 | `qovery_aws_credentials` | Manages AWS credentials for cluster provisioning |
 | `qovery_gcp_credentials` | Manages GCP credentials for cluster provisioning |
 | `qovery_scaleway_credentials` | Manages Scaleway credentials for cluster provisioning |
+| `qovery_eks_anywhere_vsphere_credentials` | Manages EKS Anywhere vSphere credentials for on-premise clusters |
+
+### GitOps
+
+| Resource | Description |
+|----------|-------------|
+| `qovery_argocd_credentials` | Configures the ArgoCD integration of a cluster |
+| `qovery_argocd_destination_cluster_mapping` | Maps an ArgoCD destination cluster URL to a Qovery cluster |
 
 ### Projects & Environments
 
@@ -69,6 +89,7 @@ provider "qovery" {
 | `qovery_helm` | Manages Helm chart deployments |
 | `qovery_terraform_service` | Manages Terraform service deployments |
 | `qovery_database` | Manages databases |
+| `qovery_blueprint` | Manages services instantiated from the Qovery service catalog |
 
 ### Configuration
 
@@ -87,4 +108,4 @@ provider "qovery" {
 
 ### Optional
 
-- `token` (String, Sensitive) The Qovery API Token to use. This can also be specified with the `QOVERY_API_TOKEN` environment variable. To generate a token, navigate to your [Qovery Console](https://console.qovery.com) > Settings > API Tokens.
+- `token` (String, Sensitive) Qovery API token, read from the `QOVERY_API_TOKEN` environment variable when omitted. Create one in the [Qovery Console](https://console.qovery.com), under Settings > API Tokens.

@@ -15,7 +15,7 @@ import (
 )
 
 // Asserts that every Computed attribute on every resource has a state-preserving
-// plan modifier, a Default, or an explicit allowlist entry — preventing false
+// plan modifier, a Default (or a modifier that plans one), or an explicit allowlist entry — preventing false
 // "(known after apply)" flicker that cascades into "will be read during apply"
 // noise on dependent data sources. Custom state-preserving modifiers must be
 // added to preservesState() to be recognised.
@@ -28,12 +28,15 @@ func preservesState(m planmodifier.Describer) bool {
 	switch m.(type) {
 	case useStateUnlessNameChangesModifier,
 		useStateUnlessPortsChangeModifier,
-		smartAllowApiOverrideModifier,
-		// Preserves state for every configuration that does not opt into per node pool
-		// spot_enabled — i.e. exactly the ones this test protects from flicker. It plans unknown
-		// only when the configuration carries per node pool values, where the attribute is a value
-		// the API derives and re-reading it is the point (see the modifier's own comment).
-		deprecatedGlobalSpotEnabledModifier:
+		useStateUnlessRepositoryChangesModifier,
+		smartAllowApiOverrideModifier:
+		return true
+	// These plan the q-core default when the attribute is omitted, which keeps the plan
+	// known like a schema Default does.
+	case portNameDefaultModifier,
+		jobIconUriDefaultModifier,
+		jobLifecycleTypeDefaultModifier,
+		clusterNodeSizingDefaultModifier:
 		return true
 	}
 	return m.Description(context.Background()) == useStateForUnknownDescription
@@ -56,22 +59,10 @@ func anyPreservesState[M planmodifier.Describer](mods []M) bool {
 // should explain why the flicker is correct.
 var flickerAllowlist = map[string]string{
 	"qovery_database.external_host": "TODO: add UseStateForUnknown (consider UseStateUnlessAccessibilityChanges custom modifier)",
-	"qovery_database.icon_uri":      "TODO: add UseStateForUnknown",
-	"qovery_database.instance_type": "TODO: add UseStateForUnknown",
 	"qovery_database.internal_host": "TODO: add UseStateForUnknown",
 	"qovery_database.login":         "TODO: add UseStateForUnknown",
 	"qovery_database.password":      "TODO: add UseStateForUnknown",
 	"qovery_database.port":          "TODO: add UseStateForUnknown",
-
-	"qovery_application.git_repository.branch":                     "TODO: add UseStateForUnknown",
-	"qovery_helm.source.git_repository.branch":                     "TODO: add UseStateForUnknown",
-	"qovery_helm.source.git_repository.git_token_id":               "TODO: add UseStateForUnknown",
-	"qovery_helm.values_override.file.git_repository.git_token_id": "TODO: add UseStateForUnknown",
-	"qovery_job.schedule.cronjob.command.entrypoint":               "TODO: add UseStateForUnknown",
-	"qovery_job.schedule.on_delete.entrypoint":                     "TODO: add UseStateForUnknown",
-	"qovery_job.schedule.on_start.entrypoint":                      "TODO: add UseStateForUnknown",
-	"qovery_job.schedule.on_stop.entrypoint":                       "TODO: add UseStateForUnknown",
-	"qovery_job.source.docker.git_repository.root_path":            "TODO: add UseStateForUnknown",
 
 	"qovery_application.built_in_environment_variables.description": "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_application.built_in_environment_variables.id":          "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
@@ -105,7 +96,6 @@ var flickerAllowlist = map[string]string{
 	"qovery_container.environment_variables.id":                     "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_container.external_secrets.id":                          "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_container.external_secret_files.id":                     "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
-	"qovery_container.ports.protocol":                               "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_container.secret_aliases.id":                            "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_container.secret_files.id":                              "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_container.secret_overrides.id":                          "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
@@ -139,7 +129,6 @@ var flickerAllowlist = map[string]string{
 	"qovery_helm.environment_variables.id":                          "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_helm.external_secrets.id":                               "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_helm.external_secret_files.id":                          "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
-	"qovery_helm.ports.protocol":                                    "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_helm.secret_aliases.id":                                 "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_helm.secret_files.id":                                   "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_helm.secret_overrides.id":                               "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
@@ -170,21 +159,11 @@ var flickerAllowlist = map[string]string{
 	"qovery_project.secret_files.id":                                "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_project.secrets.id":                                     "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 
-	"qovery_cluster.features.existing_vpc.documentdb_subnets_zone_a_ids":      "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.documentdb_subnets_zone_b_ids":      "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.documentdb_subnets_zone_c_ids":      "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.eks_create_nodes_in_private_subnet": "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.elasticache_subnets_zone_a_ids":     "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.elasticache_subnets_zone_b_ids":     "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.elasticache_subnets_zone_c_ids":     "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.rds_subnets_zone_a_ids":             "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.rds_subnets_zone_b_ids":             "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.features.existing_vpc.rds_subnets_zone_c_ids":             "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_cluster.secret_manager_accesses.id":                               "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
-	"qovery_terraform_service.created_at":                                     "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
-	"qovery_terraform_service.updated_at":                                     "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
-	"qovery_terraform_service.external_secrets.id":                            "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
-	"qovery_terraform_service.external_secret_files.id":                       "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_cluster.secret_manager_accesses.id":         "TODO: legitimate volatility? — verify with cluster owner; if VPC swap recomputes, document; else add UseStateForUnknown",
+	"qovery_terraform_service.created_at":               "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
+	"qovery_terraform_service.updated_at":               "TODO: legitimate volatility? — if API restamps on every write, replace with permanent reason (no TODO prefix); else add UseStateForUnknown",
+	"qovery_terraform_service.external_secrets.id":      "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_terraform_service.external_secret_files.id": "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 
 	// Organization member lifecycle attributes are legitimately volatile: they track
 	// invitation state that transitions out-of-band (the invitee accepts or the invite
@@ -264,6 +243,27 @@ func walkAttributes(prefix string, attrs map[string]schema.Attribute, visit func
 	}
 }
 
+// setPlannedDefaults returns the paths of the nested attributes whose default a set-level plan
+// modifier plans, such as custom_domains.use_cdn: a Default nested in a set breaks the matching
+// of planned and applied elements, so CustomDomainsBoolDefaults plans it on the whole set.
+func setPlannedDefaults(attrs map[string]schema.Attribute) map[string]bool {
+	defaulted := make(map[string]bool)
+	walkAttributes("", attrs, func(path string, attr schema.Attribute) {
+		set, ok := attr.(schema.SetNestedAttribute)
+		if !ok {
+			return
+		}
+		for _, m := range set.PlanModifiers {
+			if d, ok := m.(customDomainsBoolDefaultsModifier); ok {
+				for _, name := range d.attributes {
+					defaulted[path+"."+name] = true
+				}
+			}
+		}
+	})
+	return defaulted
+}
+
 type resourceCase struct {
 	typeName string
 	resource resource.Resource
@@ -309,6 +309,7 @@ func TestRegression_PlanNoise_NoComputedFlicker(t *testing.T) {
 
 			sch := schemaFor(t, tc.resource)
 
+			defaultedBySet := setPlannedDefaults(sch.Attributes)
 			var problems []string
 			walkAttributes("", sch.Attributes, func(path string, attr schema.Attribute) {
 				status, ok := inspectAttribute(attr)
@@ -319,7 +320,7 @@ func TestRegression_PlanNoise_NoComputedFlicker(t *testing.T) {
 				if !status.computed {
 					return
 				}
-				if status.preservesState || status.hasDefault {
+				if status.preservesState || status.hasDefault || defaultedBySet[path] {
 					return
 				}
 				if _, allowed := flickerAllowlist[tc.typeName+"."+path]; allowed {

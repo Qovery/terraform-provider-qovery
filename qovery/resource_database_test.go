@@ -6,11 +6,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 	"text/template"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
-	"github.com/hashicorp/terraform-plugin-sdk/v2/terraform"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
 	"github.com/qovery/terraform-provider-qovery/qovery"
@@ -215,6 +216,44 @@ func TestAcc_DatabaseContainer(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_database.test", "storage", "10"),
 					resource.TestCheckResourceAttr("qovery_database.test", "instance_type", "aws-ebs-gp3-0"),
 				),
+			},
+			// The API cannot change the type of an existing database
+			{
+				Config: GetDatabaseConfigFromModel(
+					testName,
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName)),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
+						Type:          qovery.FromString("MYSQL"),
+						Version:       qovery.FromString("8.0"),
+						Mode:          qovery.FromString("CONTAINER"),
+						Accessibility: qovery.FromString("PUBLIC"),
+						CPU:           qovery.FromInt32(500),
+						Memory:        qovery.FromInt32(512),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromStringPointer(nil),
+					},
+				),
+				ExpectError: regexp.MustCompile(`Cannot change type after creation`),
+			},
+			// The API cannot change the mode of an existing database
+			{
+				Config: GetDatabaseConfigFromModel(
+					testName,
+					qovery.Database{
+						Name:          qovery.FromString(generateTestName(testName)),
+						IconUri:       qovery.FromString(fmt.Sprintf("app://qovery-console/%s", generateTestName(testName)+"-updated")),
+						Type:          qovery.FromString("REDIS"),
+						Version:       qovery.FromString("7.0"),
+						Mode:          qovery.FromString("MANAGED"),
+						Accessibility: qovery.FromString("PUBLIC"),
+						CPU:           qovery.FromInt32(500),
+						Memory:        qovery.FromInt32(512),
+						Storage:       qovery.FromInt32(10),
+						InstanceType:  qovery.FromString("cache.t3.micro"),
+					},
+				),
+				ExpectError: regexp.MustCompile(`Cannot change mode after creation`),
 			},
 		},
 	})

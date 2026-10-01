@@ -9,7 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
-	"github.com/hashicorp/terraform-plugin-sdk/v2/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
 
 	"github.com/qovery/terraform-provider-qovery/qovery"
 )
@@ -96,8 +96,6 @@ func TestAcc_JobGitToken(t *testing.T) {
 						"key":   "secretkey1",
 						"value": "",
 					}),
-					resource.TestCheckNoResourceAttr("qovery_job.test", "external_host"),
-					resource.TestCheckNoResourceAttr("qovery_job.test", "internal_host"),
 					resource.TestCheckResourceAttr("qovery_job.test", "advanced_settings_json", "{\"deployment.termination_grace_period_seconds\":61}"),
 				),
 			},

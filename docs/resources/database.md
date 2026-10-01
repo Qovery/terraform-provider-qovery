@@ -1,105 +1,22 @@
 # qovery_database (Resource)
 
-Provides a Qovery database resource. This can be used to create and manage Qovery databases.
-
-Databases can run in two modes:
-  - `CONTAINER`: Runs the database engine in a container on your cluster (suitable for development/staging).
-  - `MANAGED`: Uses your cloud provider's managed database service (e.g. AWS RDS, recommended for production).
+Manages a Qovery database: PostgreSQL, MySQL, MongoDB or Redis, run as a container on the cluster or as a managed service of the cloud provider.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
 
 ```terraform
-# Container mode database (runs in a container on your cluster)
-# Suitable for development and staging environments
-resource "qovery_database" "my_container_database" {
-  # Required
+# mode = "MANAGED" uses the managed database service of the cloud provider, such as AWS RDS, and requires instance_type.
+resource "qovery_database" "my_database" {
   environment_id = qovery_environment.my_environment.id
-  name           = "MyContainerPostgres"
+  name           = "my-database"
   type           = "POSTGRESQL"
-  version        = "16"
-  mode           = "CONTAINER"
-
-  # Optional (only applicable for CONTAINER mode)
-  accessibility = "PRIVATE"
-  cpu           = 500
-  memory        = 512
-  storage       = 20
-
-  depends_on = [
-    qovery_environment.my_environment
-  ]
-}
-
-# Managed mode database (uses cloud provider's managed service, e.g. AWS RDS)
-# Recommended for production environments
-resource "qovery_database" "my_managed_database" {
-  # Required
-  environment_id = qovery_environment.my_environment.id
-  name           = "MyManagedPostgres"
-  type           = "POSTGRESQL"
-  version        = "16"
-  mode           = "MANAGED"
-
-  # Instance type is required for MANAGED mode (cpu/memory are ignored)
-  instance_type = "db.t3.micro"
-
-  # Optional
-  accessibility = "PRIVATE"
-  storage       = 20
-
-  depends_on = [
-    qovery_environment.my_environment
-  ]
-}
-
-# MySQL container database
-resource "qovery_database" "my_mysql" {
-  environment_id = qovery_environment.my_environment.id
-  name           = "MyMySQLDatabase"
-  type           = "MYSQL"
-  version        = "8.0"
-  mode           = "CONTAINER"
-  accessibility  = "PRIVATE"
-  storage        = 10
-
-  depends_on = [
-    qovery_environment.my_environment
-  ]
-}
-
-# Redis container database (in-memory data store)
-resource "qovery_database" "my_redis" {
-  environment_id = qovery_environment.my_environment.id
-  name           = "MyRedis"
-  type           = "REDIS"
-  version        = "7.0"
-  mode           = "CONTAINER"
-  accessibility  = "PRIVATE"
-  storage        = 10
-
-  depends_on = [
-    qovery_environment.my_environment
-  ]
-}
-
-# MongoDB container database
-resource "qovery_database" "my_mongodb" {
-  environment_id = qovery_environment.my_environment.id
-  name           = "MyMongoDB"
-  type           = "MONGODB"
-  version        = "6.0"
+  version        = "17"
   mode           = "CONTAINER"
   accessibility  = "PRIVATE"
   storage        = 20
-
-  depends_on = [
-    qovery_environment.my_environment
-  ]
 }
 ```
 
@@ -108,43 +25,43 @@ resource "qovery_database" "my_mongodb" {
 
 ### Required
 
-- `environment_id` (String) Id of the environment. Changing this forces the database to be re-created.
-- `mode` (String) Mode of the database. Cannot be updated after creation.
-  - `CONTAINER`: Runs the database in a container on your cluster. You can configure `cpu` and `memory`. Suitable for development and staging.
-  - `MANAGED`: Uses your cloud provider's managed database service (e.g. AWS RDS). You must configure `instance_type` instead of `cpu`/`memory`. Recommended for production.
+- `environment_id` (String) ID of the environment. Changing it recreates the database.
+- `mode` (String) How Qovery runs the database: `CONTAINER` as a container on the cluster, `MANAGED` as a managed service of the cloud provider, such as Amazon RDS. It can only be set at creation: changing it fails at plan time.
 - `name` (String) Name of the database.
-- `type` (String) Type of the database engine. Cannot be updated after creation.
-  - `POSTGRESQL`: PostgreSQL relational database.
-  - `MYSQL`: MySQL relational database.
-  - `MONGODB`: MongoDB document database.
-  - `REDIS`: Redis in-memory data store.
-- `version` (String) Version of the database engine (e.g. `14` for PostgreSQL 14, `8.0` for MySQL 8.0). Available versions depend on the `type` and `mode` chosen. Refer to Qovery documentation for supported versions per database type.
+- `type` (String) Engine of the database. It can only be set at creation: changing it fails at plan time.
+	- Can be: `MONGODB`, `MYSQL`, `POSTGRESQL`, `REDIS`.
+- `version` (String) Version of the engine, for example `16` for PostgreSQL. The available versions depend on `type` and `mode`.
 
 ### Optional
 
-- `accessibility` (String) Accessibility of the database.
-  - `PUBLIC`: Database is accessible from outside the cluster.
-  - `PRIVATE`: Database is only accessible from services within the same environment.
-
-Default: `PUBLIC`.
-- `annotations_group_ids` (Set of String) List of annotations group ids. Annotations groups allow you to add Kubernetes annotations to the database pods (only for `CONTAINER` mode).
-- `cpu` (Number) CPU of the database in millicores (m) [1000m = 1 CPU]. Only applicable when `mode = "CONTAINER"`. Ignored for `MANAGED` mode (use `instance_type` instead).
-- `deployment_stage_id` (String) Id of the deployment stage. Deployment stages allow you to control the order in which services are deployed within an environment.
-- `icon_uri` (String) Icon URI representing the database. Used in the Qovery console UI.
-- `instance_type` (String) Instance type of the database. Required when `mode = "MANAGED"`. Not applicable for `CONTAINER` mode. The available instance types depend on your cloud provider (e.g. `db.t3.micro` for AWS RDS).
-- `is_skipped` (Boolean) If true, the service is excluded from environment-level bulk deployments while remaining assigned to its deployment stage.
-- `labels_group_ids` (Set of String) List of labels group ids. Labels groups allow you to add Kubernetes labels to the database pods (only for `CONTAINER` mode).
-- `memory` (Number) RAM of the database in MB [1024MB = 1GB]. Only applicable when `mode = "CONTAINER"`. Ignored for `MANAGED` mode (use `instance_type` instead).
-- `storage` (Number) Storage of the database in GB [1024MB = 1GB]. Cannot be updated after creation.
+- `accessibility` (String) Network exposure of the database: `PUBLIC` makes it reachable from the internet, `PRIVATE` only from the services of its environment.
+	- Default: `PUBLIC`.
+- `annotations_group_ids` (Set of String) IDs of the annotations groups applied to the pods of a `CONTAINER` database. Omitting it detaches every annotations group.
+- `cpu` (Number) CPU of the database, in millicores (1000 = 1 vCPU). Only for a `CONTAINER` database: a `MANAGED` database uses `instance_type`.
+	- Must be: `>= 250`.
+	- Default: `250`.
+- `deployment_stage_id` (String) ID of the deployment stage of the service. Stages set the order in which the services of an environment deploy. Removing it keeps the service in its current stage, because Qovery cannot detach a service from its stage.
+- `icon_uri` (String) Icon of the database in the Qovery Console.
+	- Default: `app://qovery-console/database`.
+- `instance_type` (String) Instance type of the database, for example `db.t3.micro` on AWS. Required when `mode` is `MANAGED`; setting it when `mode` is `CONTAINER` raises a warning.
+- `is_skipped` (Boolean) Whether environment-wide deployments skip the service. It stays in its deployment stage.
+	- Default: `false`.
+- `labels_group_ids` (Set of String) IDs of the labels groups applied to the pods of a `CONTAINER` database. Omitting it detaches every labels group.
+- `memory` (Number) Memory of the database, in MB. Only for a `CONTAINER` database: a `MANAGED` database uses `instance_type`.
+	- Must be: `>= 100`.
+	- Default: `256`.
+- `storage` (Number) Storage of the database, in GB.
+	- Must be: `>= 10`.
+	- Default: `10`.
 
 ### Read-Only
 
-- `external_host` (String) The database external FQDN host. Only available when `accessibility = "PUBLIC"`.
-- `id` (String) Id of the database.
-- `internal_host` (String) The database internal host. Use this to connect from services within the same environment (recommended over external host).
-- `login` (String) The login (username) to connect to your database. Automatically generated by Qovery.
-- `password` (String, Sensitive) The password to connect to your database. Automatically generated by Qovery. This is a sensitive value and will not be displayed in plan output.
-- `port` (Number) The port number to connect to your database. Automatically assigned by Qovery based on the database type.
+- `external_host` (String) External host of the database, reachable from the internet when `accessibility` is `PUBLIC`.
+- `id` (String) ID of the database.
+- `internal_host` (String) Internal host of the database, reachable from the other services of the environment.
+- `login` (String) Username of the master user of the database, generated by Qovery.
+- `password` (String, Sensitive) Password of the master user of the database, generated by Qovery.
+- `port` (Number) Port the database listens on.
 ## Import
 ```shell
 terraform import qovery_database.my_database "<database_id>"

@@ -11,6 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
+	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/sethvargo/go-envconfig"
 
 	"github.com/qovery/terraform-provider-qovery/internal/application/services"
@@ -65,6 +67,15 @@ var (
 
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){
 	"qovery": providerserver.NewProtocol6WithError(qovery.New("test")()),
+}
+
+// testAccEmptyPlanAfterApply asserts that the plan run after each apply (with refresh) is
+// empty: no resource or output action is planned. The harness already fails a step on a
+// non-empty post-apply plan; this check names the offending addresses and their actions.
+var testAccEmptyPlanAfterApply = resource.ConfigPlanChecks{
+	PostApplyPostRefresh: []plancheck.PlanCheck{
+		plancheck.ExpectEmptyPlan(),
+	},
 }
 
 func testAccPreCheck(t *testing.T) {

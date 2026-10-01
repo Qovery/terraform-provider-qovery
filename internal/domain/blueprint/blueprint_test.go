@@ -89,19 +89,3 @@ func TestCatalogVersion(t *testing.T) {
 	assert.True(t, version.Equal(blueprint.CatalogVersion{Provider: "aws", ServiceFamily: "Postgres", ServiceVersion: "17"}))
 	assert.False(t, version.Equal(blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "18"}))
 }
-
-func TestBlueprintLastApplyFailed(t *testing.T) {
-	t.Parallel()
-	assert.False(t, blueprint.Blueprint{}.LastApplyFailed())
-	assert.False(t, blueprint.Blueprint{
-		LatestDeployment: &blueprint.Dispatch{Status: blueprint.DispatchStatusRunning},
-		ServiceStatus:    &blueprint.ServiceStatus{State: "DEPLOYED"},
-	}.LastApplyFailed())
-	assert.True(t, blueprint.Blueprint{LatestDeployment: &blueprint.Dispatch{Status: blueprint.DispatchStatusFailed}}.LastApplyFailed())
-	assert.True(t, blueprint.Blueprint{LatestDeployment: &blueprint.Dispatch{Status: blueprint.DispatchStatusCanceling}}.LastApplyFailed())
-	assert.False(t, blueprint.Blueprint{LatestDeployment: &blueprint.Dispatch{Status: blueprint.DispatchStatusDeploying}}.LastApplyFailed())
-	assert.True(t, blueprint.Blueprint{
-		LatestDeployment: &blueprint.Dispatch{Status: blueprint.DispatchStatusRunning},
-		ServiceStatus:    &blueprint.ServiceStatus{State: "DEPLOYMENT_ERROR"},
-	}.LastApplyFailed())
-}

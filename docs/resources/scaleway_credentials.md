@@ -1,18 +1,14 @@
 # qovery_scaleway_credentials (Resource)
 
-Provides a Qovery Scaleway credentials resource. This is used to create and manage Scaleway credentials that Qovery uses to provision and manage Kapsule clusters in your Scaleway account.
-
-All four Scaleway authentication parameters are required: access key, secret key, project ID, and organization ID. You can find these values in your [Scaleway console](https://console.scaleway.com/iam/api-keys).
+Manages Qovery Scaleway credentials: the API key Qovery uses to create and manage Kapsule clusters in a Scaleway project.
 
 
 ## Example
 
-<div class="alert alert-info">
-  <i style="font-size:24px" class="fa">&#xf05a;</i> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the <a href="https://console.qovery.com">Qovery console</a>. Then, use our <a href="https://www.qovery.com/docs/terraform-provider/exporter">Terraform exporter</a> feature to generate the corresponding Terraform code.
-</div><br />
+-> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
 
 ```terraform
-resource "qovery_scaleway_credentials" "my_scaleway_creds" {
+resource "qovery_scaleway_credentials" "my_scaleway_credentials" {
   organization_id          = qovery_organization.my_organization.id
   name                     = "my-scaleway-credentials"
   scaleway_access_key      = var.scaleway_access_key
@@ -27,17 +23,17 @@ resource "qovery_scaleway_credentials" "my_scaleway_creds" {
 
 ### Required
 
-- `name` (String) Name of the Scaleway credentials. Used for display purposes in the Qovery console.
-- `organization_id` (String) ID of the Qovery organization in which to create the credentials. **Cannot be changed after creation** (forces resource replacement).
-- `scaleway_access_key` (String) Scaleway API access key (e.g., `SCWxxxxxxxxxxxxxxxxx`). Found in the Scaleway console under IAM > API Keys. Use a variable reference instead of hardcoding this value.
-- `scaleway_organization_id` (String) Scaleway organization ID (UUID format). Found in the Scaleway console under Organization Settings.
-- `scaleway_project_id` (String) Scaleway project ID (UUID format). Resources will be created in this project. Found in the Scaleway console under Project Settings.
-- `scaleway_secret_key` (String, Sensitive) Scaleway API secret key. This is a sensitive value and will not be displayed in plan output. Use a variable reference instead of hardcoding this value.
+- `name` (String) Name of the Scaleway credentials.
+- `organization_id` (String) ID of the organization. Changing it recreates the Scaleway credentials.
+- `scaleway_access_key` (String) Scaleway API access key.
+- `scaleway_organization_id` (String) ID of the Scaleway organization.
+- `scaleway_project_id` (String) ID of the Scaleway project. Qovery creates the cluster resources in it.
+- `scaleway_secret_key` (String, Sensitive) Scaleway API secret key.
 
 ### Read-Only
 
-- `id` (String) Unique identifier of the Scaleway credentials (UUID format).
+- `id` (String) ID of the Scaleway credentials.
 ## Import
 ```shell
-terraform import qovery_scaleway_credentials.my_scaleway_creds "<organization_id>,<scaleway_credentials_id>"
+terraform import qovery_scaleway_credentials.my_scaleway_credentials "<organization_id>,<scaleway_credentials_id>"
 ```
