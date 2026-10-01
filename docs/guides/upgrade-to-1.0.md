@@ -34,6 +34,8 @@ terraform {
 
 Then run `terraform init -upgrade` and `terraform plan`, and do not apply until the plan shows only the changes you want. The sections below describe each difference the first plan on 1.0 can show, and how to keep the current value.
 
+A state written by 0.x can also show two one-time differences that are not changes: the Karpenter node pool `requirements` listed in a different order, and a job `entrypoint = "" -> null`. Both are the same value in the 1.0 form. The first apply on 1.0 records them without touching the cluster or the job, and they do not come back.
+
 ## Breaking changes
 
 ### `qovery_cluster`: the global `features.karpenter.spot_enabled` is removed
