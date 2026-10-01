@@ -41,6 +41,15 @@ task docs
 
 For every user-visible change, add an entry under `## [Unreleased]` in `CHANGELOG.md` (breaking changes go under **Breaking changes**).
 
+### Releasing
+
+Cut the CHANGELOG section of a final release `vX.Y.Z` in the last PR merged before its tag: the GitHub release links to `CHANGELOG.md` at the tag, and `main` only takes PRs. Release candidates (`-rc.N`) get no section.
+
+- **Version**: semver from the `[Unreleased]` entries — **Breaking changes** → major, **Added** or **Changed** → minor, only **Fixed** or **Security** → patch.
+- **Heading**: turn the entries into `## [X.Y.Z] - YYYY-MM-DD` (the release date) under an empty `## [Unreleased]`.
+- **Links** at the bottom: `[Unreleased]` compares `vX.Y.Z...HEAD`; add `[X.Y.Z]` comparing the previous final release `...vX.Y.Z`.
+- **Commit**: `docs(QOV-XXXX): release the X.Y.Z section of the CHANGELOG`.
+
 ### Commit Message Format
 
 - **One-liner only** - No multi-line commit messages
