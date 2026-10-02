@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/qovery/qovery-client-go"
 
@@ -141,12 +142,24 @@ func (c *Client) DeleteCluster(ctx context.Context, organizationID string, clust
 	return nil
 }
 
+// getClusterByID lists the organization clusters and picks the one with the given ID: the API has
+// no single-cluster GET. The list call is retried on transient errors because it intermittently
+// returns 500 (QOV-2356).
 func (c *Client) getClusterByID(ctx context.Context, organizationID string, clusterID string) (*qovery.Cluster, *apierrors.APIError) {
-	clusters, res, err := c.api.ClustersAPI.
-		ListOrganizationCluster(ctx, organizationID).
-		Execute()
-	if err != nil || res.StatusCode >= 400 {
-		return nil, apierrors.NewReadError(apierrors.APIResourceCluster, clusterID, res, err)
+	var clusters *qovery.ClusterResponseList
+	var res *http.Response
+	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
+		var err error
+		clusters, res, err = c.api.ClustersAPI.
+			ListOrganizationCluster(ctx, organizationID).
+			Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return apierrors.NewReadError(apierrors.APIResourceCluster, clusterID, res, err)
+		}
+		return nil
+	})
+	if apiErr != nil {
+		return nil, apiErr
 	}
 
 	for _, cluster := range clusters.GetResults() {
@@ -155,10 +168,10 @@ func (c *Client) getClusterByID(ctx context.Context, organizationID string, clus
 		}
 	}
 
-	// NOTE: Force status 404 since we didn't find the credential.
+	// NOTE: Force status 404 since we didn't find the cluster.
 	// The status is used to generate the proper error return by the provider.
 	res.StatusCode = 404
-	return nil, apierrors.NewReadError(apierrors.APIResourceCluster, clusterID, res, err)
+	return nil, apierrors.NewReadError(apierrors.APIResourceCluster, clusterID, res, nil)
 }
 
 func (c *Client) updateCluster(ctx context.Context, organizationID string, cluster *qovery.Cluster, params *ClusterUpsertParams) (*ClusterResponse, *apierrors.APIError) {

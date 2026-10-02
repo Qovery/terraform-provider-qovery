@@ -14,6 +14,12 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Fixed
+
+- `qovery_cluster`: a transient 5xx from the API while reading a cluster is now retried with
+  backoff, instead of failing the `terraform plan` or `apply` with `Could not read cluster ...
+  500 Internal Server Error`. (QOV-2356)
+
 ## [1.0.1] - 2026-10-01
 
 ### Fixed
