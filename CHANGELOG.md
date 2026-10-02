@@ -14,6 +14,14 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.0.2] - 2026-10-02
+
+### Fixed
+
+- `qovery_cluster`: a transient 5xx from the API while reading a cluster is now retried with
+  backoff, instead of failing the `terraform plan` or `apply` with `Could not read cluster ...
+  500 Internal Server Error`. (QOV-2356)
+
 ## [1.0.1] - 2026-10-01
 
 ### Fixed
@@ -379,7 +387,8 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.1...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.2...HEAD
+[1.0.2]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/qovery/terraform-provider-qovery/compare/v0.91.0...v1.0.0
 [0.91.0]: https://github.com/qovery/terraform-provider-qovery/compare/v0.90.0...v0.91.0
