@@ -14,6 +14,12 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Fixed
+
+- `qovery_database`: the documentation recommended `mode = "MANAGED"` for a managed database
+  such as Amazon RDS. It now recommends a `qovery_blueprint`, as the Qovery Console does;
+  `mode = "MANAGED"` keeps working. (QOV-2319)
+
 ## [1.0.2] - 2026-10-02
 
 ### Fixed

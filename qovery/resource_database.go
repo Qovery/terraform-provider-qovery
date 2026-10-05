@@ -88,7 +88,8 @@ func (r *databaseResource) Configure(_ context.Context, req resource.ConfigureRe
 
 func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
 	resp.Schema = schema.Schema{
-		MarkdownDescription: "Manages a Qovery database: PostgreSQL, MySQL, MongoDB or Redis, run as a container on the cluster or as a managed service of the cloud provider.",
+		MarkdownDescription: "Manages a Qovery database: PostgreSQL, MySQL, MongoDB or Redis, run as a container on the cluster or as a managed service of the cloud provider. " +
+			"For a new managed database, such as Amazon RDS, Qovery recommends a [`qovery_blueprint`](https://registry.terraform.io/providers/qovery/qovery/latest/docs/resources/blueprint), as the Qovery Console does; `mode = \"MANAGED\"` keeps working.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
 				MarkdownDescription: idDescription("database"),
