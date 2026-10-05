@@ -14,6 +14,8 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-10-05
+
 ### Fixed
 
 - `qovery_database`: the documentation recommended `mode = "MANAGED"` for a managed database
@@ -393,7 +395,8 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/qovery/terraform-provider-qovery/compare/v0.91.0...v1.0.0
