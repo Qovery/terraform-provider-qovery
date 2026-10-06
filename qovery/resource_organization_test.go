@@ -243,7 +243,6 @@ func testAccCheckOrganizationUnmanagedFieldsKept(organizationID string, before *
 			{name: "logo_url", before: before.GetLogoUrl(), after: after.GetLogoUrl()},
 			{name: "website_url", before: before.GetWebsiteUrl(), after: after.GetWebsiteUrl()},
 			{name: "icon_url", before: before.GetIconUrl(), after: after.GetIconUrl()},
-			{name: "repository", before: before.GetRepository(), after: after.GetRepository()},
 		}
 		for _, field := range fields {
 			if field.before != field.after {

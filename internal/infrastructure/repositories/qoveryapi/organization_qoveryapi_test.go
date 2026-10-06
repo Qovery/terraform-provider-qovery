@@ -82,14 +82,14 @@ func TestOrganizationQoveryAPIUpdate(t *testing.T) {
 	}{
 		{
 			name:      "resends the unmanaged fields of the current organization",
-			unmanaged: `"website_url":"https://www.example.com","repository":"https://github.com/example/repo","logo_url":"https://example.com/logo.png","icon_url":"https://example.com/icon.png","admin_emails":["admin@example.com"]`,
+			unmanaged: `"website_url":"https://www.example.com","logo_url":"https://example.com/logo.png","icon_url":"https://example.com/icon.png","admin_emails":["admin@example.com"]`,
 			wantEditBody: `{"name":"new name","description":"new description",` +
-				`"website_url":"https://www.example.com","repository":"https://github.com/example/repo","logo_url":"https://example.com/logo.png","icon_url":"https://example.com/icon.png","admin_emails":["admin@example.com"]}`,
+				`"website_url":"https://www.example.com","logo_url":"https://example.com/logo.png","icon_url":"https://example.com/icon.png","admin_emails":["admin@example.com"]}`,
 		},
 		{
 			name:         "resends null unmanaged fields as null",
-			unmanaged:    `"website_url":null,"repository":null,"logo_url":null,"icon_url":null,"admin_emails":[]`,
-			wantEditBody: `{"name":"new name","description":"new description","website_url":null,"repository":null,"logo_url":null,"icon_url":null,"admin_emails":[]}`,
+			unmanaged:    `"website_url":null,"logo_url":null,"icon_url":null,"admin_emails":[]`,
+			wantEditBody: `{"name":"new name","description":"new description","website_url":null,"logo_url":null,"icon_url":null,"admin_emails":[]}`,
 		},
 	}
 

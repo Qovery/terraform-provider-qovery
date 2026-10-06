@@ -45,7 +45,7 @@ func (c newNewDeploymentQoveryAPI) Stop(ctx context.Context, newDeployment newde
 }
 
 func (c newNewDeploymentQoveryAPI) Restart(ctx context.Context, newDeployment newdeployment.Deployment) (*newdeployment.Deployment, error) {
-	_, resp, err := c.client.EnvironmentActionsAPI.RedeployEnvironment(ctx, newDeployment.EnvironmentID.String()).Execute()
+	resp, err := c.client.EnvironmentActionsAPI.RedeployEnvironment(ctx, newDeployment.EnvironmentID.String()).Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceDeployment, newDeployment.EnvironmentID.String(), resp, err)
 	}
