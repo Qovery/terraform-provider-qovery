@@ -187,7 +187,7 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 			EphemeralStorageInGib:  ToInt32Pointer(app.EphemeralStorage),
 			MinRunningInstances:    ToInt32Pointer(app.MinRunningInstances),
 			MaxRunningInstances:    ToInt32Pointer(app.MaxRunningInstances),
-			AutoPreview:            ToBoolPointer(app.AutoPreview),
+			AutoPreview:            *qovery.NewNullableBool(ToBoolPointer(app.AutoPreview)),
 			GitRepository:          gitRepository,
 			Storage:                storage,
 			Ports:                  ports,

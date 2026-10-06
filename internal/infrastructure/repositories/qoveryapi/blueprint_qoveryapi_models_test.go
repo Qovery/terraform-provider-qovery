@@ -19,28 +19,57 @@ func blueprintPtr[T any](v T) *T { return &v }
 
 func TestNewQoveryBlueprintCreateRequest(t *testing.T) {
 	t.Parallel()
-	request := blueprint.CreateRequest{UpsertRequest: blueprint.UpsertRequest{
-		Name:            "my-db",
-		Tag:             "aws/postgres/17/1.0.0",
-		IconURI:         "app://qovery-console/terraform",
-		Variables:       map[string]string{"instance_type": "db.t3.micro", "allocated_storage": "20"},
-		SecretVariables: map[string]string{"api_key": "test-value-1"},
-		SpecOverrides:   &blueprint.SpecOverrides{CPU: blueprintPtr("500m"), Timeout: blueprintPtr(int32(600))},
-	}}
+	testCases := []struct {
+		name     string
+		request  blueprint.CreateRequest
+		expected string
+	}{
+		{
+			name: "variables and overrides",
+			request: blueprint.CreateRequest{UpsertRequest: blueprint.UpsertRequest{
+				Name:            "my-db",
+				Tag:             "aws/postgres/17/1.0.0",
+				IconURI:         "app://qovery-console/terraform",
+				Variables:       map[string]string{"instance_type": "db.t3.micro", "allocated_storage": "20"},
+				SecretVariables: map[string]string{"api_key": "test-value-1"},
+				SpecOverrides:   &blueprint.SpecOverrides{CPU: blueprintPtr("500m"), Timeout: blueprintPtr(int32(600))},
+			}},
+			expected: `{
+				"name": "my-db",
+				"tag": "aws/postgres/17/1.0.0",
+				"icon": "app://qovery-console/terraform",
+				"variables": [
+					{"name": "allocated_storage", "value": "20", "is_secret": false},
+					{"name": "instance_type", "value": "db.t3.micro", "is_secret": false},
+					{"name": "api_key", "value": "test-value-1", "is_secret": true}
+				],
+				"spec_overrides": {"cpu": "500m", "timeout": 600}
+			}`,
+		},
+		{
+			name: "no overrides omits spec_overrides",
+			request: blueprint.CreateRequest{UpsertRequest: blueprint.UpsertRequest{
+				Name:    "my-db",
+				Tag:     "aws/postgres/17/1.0.0",
+				IconURI: "app://qovery-console/terraform",
+			}},
+			expected: `{
+				"name": "my-db",
+				"tag": "aws/postgres/17/1.0.0",
+				"icon": "app://qovery-console/terraform",
+				"variables": []
+			}`,
+		},
+	}
 
-	body, err := json.Marshal(newQoveryBlueprintCreateRequest(request))
-	require.NoError(t, err)
-	assert.JSONEq(t, `{
-		"name": "my-db",
-		"tag": "aws/postgres/17/1.0.0",
-		"icon": "app://qovery-console/terraform",
-		"variables": [
-			{"name": "allocated_storage", "value": "20", "is_secret": false},
-			{"name": "instance_type", "value": "db.t3.micro", "is_secret": false},
-			{"name": "api_key", "value": "test-value-1", "is_secret": true}
-		],
-		"spec_overrides": {"cpu": "500m", "timeout": 600}
-	}`, string(body))
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			body, err := json.Marshal(newQoveryBlueprintCreateRequest(tc.request))
+			require.NoError(t, err)
+			assert.JSONEq(t, tc.expected, string(body))
+		})
+	}
 }
 
 func TestNewQoveryBlueprintUpdateRequest(t *testing.T) {

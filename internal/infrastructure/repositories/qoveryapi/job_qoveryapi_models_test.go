@@ -4,10 +4,14 @@
 package qoveryapi
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
 )
@@ -136,6 +140,52 @@ func TestNewQoveryJobRequestFromDomain_CronTimezone(t *testing.T) {
 			if assert.NotNil(t, req.Schedule.Cronjob) {
 				assert.Equal(t, tc.Expected, req.Schedule.Cronjob.Timezone)
 			}
+		})
+	}
+}
+
+// TestNewDomainJobFromQovery_ImageRegistryID guards that the registry of an image source is read
+// from source.image.registry.id: the client no longer has a source.image.registry_id field.
+func TestNewDomainJobFromQovery_ImageRegistryID(t *testing.T) {
+	t.Parallel()
+
+	registryID := uuid.NewString()
+	testCases := []struct {
+		TestName string
+		Image    string
+	}{
+		{
+			TestName: "registry_id_and_registry",
+			Image:    fmt.Sprintf(`{"image_name":"busybox","tag":"1.36","registry_id":%q,"registry":{"id":%q,"name":"Docker Hub","url":"https://docker.io","kind":"DOCKER_HUB"}}`, registryID, registryID),
+		},
+		{
+			TestName: "registry_only",
+			Image:    fmt.Sprintf(`{"image_name":"busybox","tag":"1.36","registry":{"id":%q,"name":"Docker Hub","url":"https://docker.io","kind":"DOCKER_HUB"}}`, registryID),
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+
+			body := fmt.Sprintf(`{
+				"id": %q, "created_at": "2026-01-01T00:00:00Z", "environment": {"id": %q},
+				"maximum_cpu": 4000, "maximum_memory": 8192, "maximum_gpu": 0,
+				"name": "test-job", "cpu": 500, "memory": 512, "gpu": 0, "auto_preview": false,
+				"source": {"image": %s},
+				"healthchecks": {}, "icon_uri": "app://qovery-console/cron-job", "service_type": "JOB", "job_type": "CRON",
+				"schedule": {"cronjob": {"timezone": "Etc/UTC", "scheduled_at": "*/5 * * * *", "arguments": []}}
+			}`, uuid.NewString(), uuid.NewString(), tc.Image)
+			var response qovery.JobResponse
+			require.NoError(t, json.Unmarshal([]byte(body), &response))
+
+			j, err := newDomainJobFromQovery(&response, "", false, "")
+			require.NoError(t, err)
+			require.NotNil(t, j.Source.Image)
+			assert.Equal(t, registryID, j.Source.Image.RegistryID)
+			assert.Equal(t, "busybox", j.Source.Image.Name)
+			assert.Equal(t, "1.36", j.Source.Image.Tag)
 		})
 	}
 }

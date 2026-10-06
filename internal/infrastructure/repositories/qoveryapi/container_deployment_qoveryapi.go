@@ -46,7 +46,7 @@ func (c containerDeploymentQoveryAPI) Deploy(ctx context.Context, containerID st
 	containerStatus, resp, err := c.client.ContainerActionsAPI.
 		DeployContainer(ctx, containerID).
 		ContainerDeployRequest(qovery.ContainerDeployRequest{
-			ImageTag: imageTag,
+			ImageTag: *qovery.NewNullableString(&imageTag),
 		}).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {

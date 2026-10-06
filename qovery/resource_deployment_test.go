@@ -44,6 +44,16 @@ func TestAcc_Deployment(t *testing.T) {
 					testAccQoveryDatabaseHasState("DEPLOYED"),
 				),
 			},
+			// Apply deployment with RESTARTED state, which redeploys the environment
+			{
+				Config: testAccDeploymentDefaultConfigWithDesiredState("RESTARTED"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("qovery_deployment.deployment_test", "desired_state", "RESTARTED"),
+					testAccQoveryApplicationHasState("DEPLOYED"),
+					testAccQoveryContainerHasState("DEPLOYED"),
+					testAccQoveryDatabaseHasState("DEPLOYED"),
+				),
+			},
 		},
 	})
 }

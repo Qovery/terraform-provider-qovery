@@ -27,7 +27,6 @@ func newQoveryOrganizationEditRequestFromDomain(request organization.UpdateReque
 		Name:        request.Name,
 		Description: request.Description,
 		WebsiteUrl:  current.WebsiteUrl,
-		Repository:  current.Repository,
 		LogoUrl:     current.LogoUrl,
 		IconUrl:     current.IconUrl,
 		AdminEmails: current.AdminEmails,

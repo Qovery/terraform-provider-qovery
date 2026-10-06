@@ -83,7 +83,6 @@ func TestNewQoveryOrganizationEditRequestFromDomain(t *testing.T) {
 				Name:        gofakeit.Name(),
 				Description: *qovery.NewNullableString(new(gofakeit.Word())),
 				WebsiteUrl:  *qovery.NewNullableString(new(gofakeit.URL())),
-				Repository:  *qovery.NewNullableString(new(gofakeit.URL())),
 				LogoUrl:     *qovery.NewNullableString(new(gofakeit.URL())),
 				IconUrl:     *qovery.NewNullableString(new(gofakeit.URL())),
 				AdminEmails: []string{gofakeit.Email(), gofakeit.Email()},
@@ -96,7 +95,6 @@ func TestNewQoveryOrganizationEditRequestFromDomain(t *testing.T) {
 			},
 			Current: qovery.Organization{
 				WebsiteUrl:  *qovery.NewNullableString(nil),
-				Repository:  *qovery.NewNullableString(nil),
 				LogoUrl:     *qovery.NewNullableString(nil),
 				IconUrl:     *qovery.NewNullableString(nil),
 				AdminEmails: []string{},
@@ -111,7 +109,6 @@ func TestNewQoveryOrganizationEditRequestFromDomain(t *testing.T) {
 			assert.Equal(t, tc.Request.Name, req.Name)
 			assert.Equal(t, tc.Request.Description, req.Description)
 			assert.Equal(t, tc.Current.WebsiteUrl, req.WebsiteUrl)
-			assert.Equal(t, tc.Current.Repository, req.Repository)
 			assert.Equal(t, tc.Current.LogoUrl, req.LogoUrl)
 			assert.Equal(t, tc.Current.IconUrl, req.IconUrl)
 			assert.Equal(t, tc.Current.AdminEmails, req.AdminEmails)

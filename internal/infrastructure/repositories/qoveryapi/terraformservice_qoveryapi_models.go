@@ -100,15 +100,15 @@ func newQoveryTerraformRequestFromDomain(request terraformservice.UpsertReposito
 	// Build the main request
 	req := qovery.NewTerraformRequest(
 		request.Name,
-		description,
-		autoDeployConfig,
 		filesSource,
 		*variablesSource,
-		backend,
-		engine,
 		*engineVersion,
 		*jobResources,
 	)
+	req.Description = &description
+	req.AutoDeployConfig = &autoDeployConfig
+	req.Backend = &backend
+	req.Engine = &engine
 
 	// Optional fields
 	if request.TimeoutSec != nil {

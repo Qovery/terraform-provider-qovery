@@ -27,7 +27,7 @@ func newQoveryBlueprintCreateRequest(request blueprint.CreateRequest) qovery.Blu
 		Variables: variables,
 	}
 	if o := request.SpecOverrides; o != nil {
-		createRequest.SpecOverrides = &qovery.BlueprintSpecOverrides{
+		createRequest.SpecOverrides = *qovery.NewNullableBlueprintSpecOverrides(&qovery.BlueprintSpecOverrides{
 			EngineVersion: o.EngineVersion,
 			Credentials:   o.Credentials,
 			Backend:       o.Backend,
@@ -35,7 +35,7 @@ func newQoveryBlueprintCreateRequest(request blueprint.CreateRequest) qovery.Blu
 			Cpu:           o.CPU,
 			Ram:           o.RAM,
 			Storage:       o.Storage,
-		}
+		})
 	}
 	return createRequest
 }

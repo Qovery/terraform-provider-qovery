@@ -157,12 +157,8 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 
 	var sourceImage *image.NewImageParams
 	if j.Source.Image != nil {
-		registryID := ""
-		if j.Source.Image.RegistryId != nil {
-			registryID = *j.Source.Image.RegistryId
-		}
 		sourceImage = &image.NewImageParams{
-			RegistryID: registryID,
+			RegistryID: j.Source.Image.Registry.Id,
 			Name:       j.Source.Image.ImageName,
 			Tag:        j.Source.Image.Tag,
 		}
