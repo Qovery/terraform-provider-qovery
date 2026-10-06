@@ -1,6 +1,6 @@
 # qovery_database (Resource)
 
-Manages a Qovery database: PostgreSQL, MySQL, MongoDB or Redis, run as a container on the cluster or as a managed service of the cloud provider.
+Manages a Qovery database: PostgreSQL, MySQL, MongoDB or Redis, run as a container on the cluster or as a managed service of the cloud provider. For a new managed database, such as Amazon RDS, Qovery recommends a [`qovery_blueprint`](https://registry.terraform.io/providers/qovery/qovery/latest/docs/resources/blueprint), as the Qovery Console does; `mode = "MANAGED"` keeps working.
 
 
 ## Example
@@ -8,7 +8,8 @@ Manages a Qovery database: PostgreSQL, MySQL, MongoDB or Redis, run as a contain
 -> If you're not familiar with Terraform or just want more examples, you can configure everything you need directly from the [Qovery console](https://console.qovery.com). Then, use our [Terraform exporter](https://www.qovery.com/docs/terraform-provider/exporter) feature to generate the corresponding Terraform code.
 
 ```terraform
-# mode = "MANAGED" uses the managed database service of the cloud provider, such as AWS RDS, and requires instance_type.
+# A CONTAINER database, which runs on the cluster. For a managed database, such as Amazon RDS,
+# declare a separate qovery_blueprint resource instead, for example with blueprint = "AWS/postgres/17".
 resource "qovery_database" "my_database" {
   environment_id = qovery_environment.my_environment.id
   name           = "my-database"
