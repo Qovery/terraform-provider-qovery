@@ -94,10 +94,12 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"registry_id": schema.StringAttribute{
 				MarkdownDescription: containerImageRegistryIDDescription,
 				Required:            true,
+				Validators:          []validator.String{validators.NewUUIDValidator()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: nameDescription("container"),
@@ -511,6 +513,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"is_skipped": schema.BoolAttribute{
 				MarkdownDescription: descriptions.NewBoolDefaultDescription(isSkippedDescription, false),
@@ -538,11 +541,13 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: groupIDsDescription("annotations", "the container's pods"),
 				Optional:            true,
 				ElementType:         types.StringType,
+				Validators:          []validator.Set{validators.NewUUIDValidator()},
 			},
 			"labels_group_ids": schema.SetAttribute{
 				MarkdownDescription: groupIDsDescription("labels", "the container's pods"),
 				Optional:            true,
 				ElementType:         types.StringType,
+				Validators:          []validator.Set{validators.NewUUIDValidator()},
 			},
 		},
 	}

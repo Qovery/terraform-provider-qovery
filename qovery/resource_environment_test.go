@@ -51,6 +51,28 @@ func TestAcc_Environment(t *testing.T) {
 	})
 }
 
+// A malformed reference to a Qovery entity fails at plan time, before any API call.
+func TestAcc_EnvironmentInvalidClusterID(t *testing.T) {
+	t.Parallel()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "qovery_environment" "test" {
+  cluster_id = "my-cluster"
+  project_id = "%s"
+  name       = "%s"
+}
+`, getTestProjectID(), generateTestName("environment-invalid-cluster-id")),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`cluster_id\s+must\s+be\s+the\s+UUID\s+of\s+a\s+Qovery\s+entity`),
+			},
+		},
+	})
+}
+
 func TestAcc_EnvironmentWithEnvironmentVariables(t *testing.T) {
 	t.Parallel()
 	testName := "environment-with-environment-variables"

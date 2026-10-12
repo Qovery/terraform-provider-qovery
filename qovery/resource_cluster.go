@@ -244,6 +244,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 			"credentials_id": schema.StringAttribute{
 				MarkdownDescription: clusterCredentialsIDDescription,
 				Required:            true,
+				Validators:          []validator.String{validators.NewUUIDValidator()},
 			},
 			"organization_id": schema.StringAttribute{
 				MarkdownDescription: organizationIDDescription + recreatesOnChange("cluster"),
@@ -251,6 +252,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: nameDescription("cluster"),
@@ -911,6 +913,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 				MarkdownDescription: groupIDsDescription("labels", "the cluster's resources") + clusterLabelsGroupIDsNote,
 				Optional:            true,
 				ElementType:         types.StringType,
+				Validators:          []validator.Set{validators.NewUUIDValidator()},
 			},
 			"kubeconfig": schema.StringAttribute{
 				MarkdownDescription: clusterKubeconfigDescription + clusterPartiallyManagedRequiredNote,
@@ -1031,6 +1034,7 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 									"git_token_id": schema.StringAttribute{
 										MarkdownDescription: gitRepositoryTokenIDDescription,
 										Required:            true,
+										Validators:          []validator.String{validators.NewUUIDValidator()},
 									},
 									"commit_id": schema.StringAttribute{
 										MarkdownDescription: clusterEksAnywhereCommitIDDescription,

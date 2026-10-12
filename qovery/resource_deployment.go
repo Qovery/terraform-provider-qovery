@@ -104,6 +104,7 @@ func (r deploymentResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 			"environment_id": schema.StringAttribute{
 				MarkdownDescription: deploymentEnvironmentIDDescription,
 				Required:            true,
+				Validators:          []validator.String{validators.NewUUIDValidator()},
 			},
 			"version": schema.StringAttribute{
 				MarkdownDescription: deploymentVersionDescription + " Changing it runs the `desired_state` action again: set it to `uuid()` to redeploy on every apply.",

@@ -16,6 +16,23 @@ explained in the matching upgrade guide.
 
 ### Added
 
+- `terraform plan` now rejects a malformed reference to a Qovery entity, which before failed
+  only at `apply`. The attributes that hold the id of a Qovery organization, cluster, project,
+  environment, deployment stage, credentials, registry, helm repository, git token, blueprint,
+  role, secret manager access, or labels and annotations group must be UUIDs: for example
+  `cluster_id`, `environment_id`, `labels_group_ids`, and the `is_after` / `is_before` of a
+  `qovery_deployment_stage`. Ids of other systems, such as AWS subnets or GCP projects, are not
+  checked. (QOV-2305)
+- `qovery_container_registry` and `qovery_helm_repository`: `terraform plan` now checks that
+  `config` sets the credentials the `kind` requires, which before failed only at `apply`:
+  `region`, `access_key_id` and `secret_access_key` for `ECR` and `OCI_ECR`; `region`,
+  `scaleway_access_key`, `scaleway_secret_key` and `scaleway_project_id` for `SCALEWAY_CR` and
+  `OCI_SCALEWAY_CR`; `region` and either `json_credentials` or the Workload Identity Federation
+  keys for `GCP_ARTIFACT_REGISTRY`; a `username` with a `password` for `GITHUB_CR` and
+  `OCI_GITHUB_CR`; and `username` and `password` together for the `HTTPS` and other `OCI_*` helm
+  repository kinds that take them. A kind that allows anonymous access still needs no `config`.
+  (QOV-2305)
+
 ### Fixed
 
 

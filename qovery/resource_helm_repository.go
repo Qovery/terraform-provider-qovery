@@ -8,6 +8,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helmRepository"
 
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -22,8 +23,9 @@ import (
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
 var (
-	_ resource.ResourceWithConfigure   = &helmRepositoryResource{}
-	_ resource.ResourceWithImportState = helmRepositoryResource{}
+	_ resource.ResourceWithConfigure      = &helmRepositoryResource{}
+	_ resource.ResourceWithImportState    = helmRepositoryResource{}
+	_ resource.ResourceWithValidateConfig = helmRepositoryResource{}
 )
 
 var helmRepositoryKinds = clientEnumToStringArray(helmRepository.AllowedKindValues)
@@ -75,6 +77,7 @@ func (r helmRepositoryResource) Schema(_ context.Context, _ resource.SchemaReque
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: nameDescription("helm repository"),
@@ -242,6 +245,17 @@ func (r helmRepositoryResource) Delete(ctx context.Context, req resource.DeleteR
 
 	// Remove helmRepository from state
 	resp.State.RemoveResource(ctx)
+}
+
+// ValidateConfig checks at plan time that config sets the credentials the kind requires, which
+// the Qovery API otherwise rejects on apply.
+func (r helmRepositoryResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var config HelmRepositoryConfig
+	kind, ok := readCredentialsConfig(ctx, req.Config, &config, &resp.Diagnostics)
+	if !ok {
+		return
+	}
+	resp.Diagnostics.Append(validateHelmRepositoryConfig(kind, config)...)
 }
 
 // ImportState imports a qovery helm repository resource using its id

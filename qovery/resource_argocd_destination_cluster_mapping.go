@@ -11,9 +11,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdDestinationClusterMapping"
+	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
 var (
@@ -67,6 +69,7 @@ func (r argoCdDestinationClusterMappingResource) Schema(_ context.Context, _ res
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"agent_cluster_id": schema.StringAttribute{
 				MarkdownDescription: "ID of the Qovery cluster that runs the ArgoCD instance." + recreatesOnChange("mapping"),
@@ -74,6 +77,7 @@ func (r argoCdDestinationClusterMappingResource) Schema(_ context.Context, _ res
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"argocd_cluster_url": schema.StringAttribute{
 				MarkdownDescription: "URL of the ArgoCD destination cluster, for example `https://kubernetes.default.svc`." + recreatesOnChange("mapping"),
@@ -85,6 +89,7 @@ func (r argoCdDestinationClusterMappingResource) Schema(_ context.Context, _ res
 			"cluster_id": schema.StringAttribute{
 				MarkdownDescription: "ID of the Qovery cluster mapped to the ArgoCD destination.",
 				Required:            true,
+				Validators:          []validator.String{validators.NewUUIDValidator()},
 			},
 		},
 	}
