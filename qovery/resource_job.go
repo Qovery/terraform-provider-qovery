@@ -328,7 +328,7 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 										Computed:            false,
 									},
 									"provider": schema.StringAttribute{
-										MarkdownDescription: gitRepositoryProviderDescription,
+										MarkdownDescription: gitRepositoryProviderDescription + gitRepositoryProviderConfigNote,
 										Optional:            true,
 										Validators: []validator.String{
 											validators.NewStringEnumValidator(gitProviderValues),

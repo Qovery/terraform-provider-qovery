@@ -171,7 +171,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 						Computed:            false,
 					},
 					"provider": schema.StringAttribute{
-						MarkdownDescription: gitRepositoryProviderDescription,
+						MarkdownDescription: gitRepositoryProviderDescription + gitRepositoryProviderConfigNote,
 						Optional:            true,
 						Validators: []validator.String{
 							validators.NewStringEnumValidator(gitProviderValues),

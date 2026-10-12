@@ -289,7 +289,7 @@ Optional:
 
 Read-Only:
 
-- `provider` (String) Git provider of the repository: `GITHUB`, `GITLAB` or `BITBUCKET`. Set it for a self-hosted instance (GitLab self-managed, GitHub Enterprise); when omitted, the provider is detected from a `github.com`, `gitlab.com` or `bitbucket.org` URL. On those hosts it must match the host.
+- `provider` (String) Git provider of the repository: `GITHUB`, `GITLAB` or `BITBUCKET`.
 
 
 <a id="nestedatt--values_override--file--raw"></a>

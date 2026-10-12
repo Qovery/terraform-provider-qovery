@@ -632,7 +632,9 @@ func (d applicationDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	state.BuildSettings = buildSettingsFromQovery(application.ApplicationBuildSettings)
 	// The git provider reports the API value, also when it matches the URL.
 	if state.GitRepository != nil && application.ApplicationResponse.GitRepository != nil {
-		state.GitRepository.Provider = FromString(string(application.ApplicationResponse.GitRepository.Provider))
+		if provider := application.ApplicationResponse.GitRepository.Provider; provider != "" {
+			state.GitRepository.Provider = FromString(string(provider))
+		}
 	}
 	tflog.Trace(ctx, "read application", map[string]any{"application_id": state.Id.ValueString()})
 

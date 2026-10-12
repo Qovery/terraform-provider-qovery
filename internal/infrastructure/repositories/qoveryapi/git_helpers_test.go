@@ -33,6 +33,7 @@ func TestResolveGitProvider(t *testing.T) {
 		{TestName: "provider_conflicting_with_bitbucket_host", URL: "https://bitbucket.org/qovery/app.git", Provider: strPtr("GITLAB"), ErrorContains: "conflicts with the repository URL"},
 		{TestName: "provider_matching_public_host", URL: "https://github.com/qovery/app.git", Provider: strPtr("GITHUB"), Expected: qovery.GITPROVIDERENUM_GITHUB},
 		{TestName: "public_domain_in_path_only_is_self_hosted", URL: "https://git.example.com/mirrors/github.com/app.git", Provider: strPtr("GITLAB"), Expected: qovery.GITPROVIDERENUM_GITLAB},
+		{TestName: "provider_conflicting_with_ssh_url", URL: "ssh://git@github.com/qovery/app.git", Provider: strPtr("GITLAB"), ErrorContains: "conflicts with the repository URL"},
 		{TestName: "public_domain_subdomain_counts_as_public", URL: "https://www.github.com/qovery/app.git", Provider: strPtr("GITLAB"), ErrorContains: "conflicts with the repository URL"},
 		{TestName: "invalid_provider", URL: "https://git.example.com/org/app.git", Provider: strPtr("GITEA"), ErrorContains: "GITEA"},
 	}

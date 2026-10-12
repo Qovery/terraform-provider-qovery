@@ -97,10 +97,12 @@ const applicationAutoDeployDescription = "Whether Qovery redeploys the applicati
 
 // Git repository and Docker build attributes of application, job, helm and terraform_service.
 const (
-	gitRepositoryURLDescription       = "URL of the git repository, for example `https://github.com/my-org/my-app.git`."
-	gitRepositoryRootPathDescription  = "Directory of the repository to build from, for monorepos."
-	gitRepositoryTokenIDDescription   = "ID of the `qovery_git_token` used to access a private repository."
-	gitRepositoryProviderDescription  = "Git provider of the repository: `GITHUB`, `GITLAB` or `BITBUCKET`. Set it for a self-hosted instance (GitLab self-managed, GitHub Enterprise); when omitted, the provider is detected from a `github.com`, `gitlab.com` or `bitbucket.org` URL. On those hosts it must match the host."
+	gitRepositoryURLDescription      = "URL of the git repository, for example `https://github.com/my-org/my-app.git`."
+	gitRepositoryRootPathDescription = "Directory of the repository to build from, for monorepos."
+	gitRepositoryTokenIDDescription  = "ID of the `qovery_git_token` used to access a private repository."
+	gitRepositoryProviderDescription = "Git provider of the repository: `GITHUB`, `GITLAB` or `BITBUCKET`."
+	// gitRepositoryProviderConfigNote is appended on resources only: a data source reports the provider.
+	gitRepositoryProviderConfigNote   = " Set it for a self-hosted instance (GitLab self-managed, GitHub Enterprise); when omitted, the provider is detected from a `github.com`, `gitlab.com` or `bitbucket.org` URL. On those hosts it must match the host."
 	dockerfilePathDescription         = "Path of the Dockerfile, relative to `root_path`, for example `Dockerfile`."
 	dockerTargetBuildStageDescription = "Stage of a multi-stage Dockerfile to build."
 )
