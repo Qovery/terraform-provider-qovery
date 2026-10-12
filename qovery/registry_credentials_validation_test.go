@@ -42,7 +42,25 @@ func TestValidateContainerRegistryConfig(t *testing.T) {
 		{
 			TestName:       "error_ecr_without_config",
 			Kind:           "ECR",
-			ExpectedErrors: []string{"config.access_key_id", "config.region", "config.secret_access_key"},
+			ExpectedErrors: []string{"config.region"},
+		},
+		{
+			// A registry that uses a role is imported with its region only: the provider cannot
+			// send role_arn.
+			TestName: "success_ecr_region_only",
+			Kind:     "ECR",
+			Config:   ContainerRegistryConfig{Region: set},
+		},
+		{
+			TestName:       "error_ecr_without_access_key_id",
+			Kind:           "ECR",
+			Config:         ContainerRegistryConfig{Region: set, SecretAccessKey: set},
+			ExpectedErrors: []string{"config.access_key_id"},
+		},
+		{
+			TestName: "success_ecr_unknown_secret_access_key",
+			Kind:     "ECR",
+			Config:   ContainerRegistryConfig{Region: set, AccessKeyID: set, SecretAccessKey: unknown},
 		},
 		{
 			TestName:       "error_ecr_without_secret_access_key",
@@ -247,7 +265,7 @@ func TestValidateHelmRepositoryConfig(t *testing.T) {
 		{
 			TestName:       "error_oci_ecr_without_config",
 			Kind:           "OCI_ECR",
-			ExpectedErrors: []string{"config.access_key_id", "config.region", "config.secret_access_key"},
+			ExpectedErrors: []string{"config.region"},
 		},
 		{
 			TestName:       "error_oci_scaleway_cr_without_project_id",
@@ -314,13 +332,12 @@ func TestContainerRegistryResource_ValidateConfig(t *testing.T) {
 			TestName:       "error_ecr_null_config",
 			Kind:           tftypes.NewValue(tftypes.String, "ECR"),
 			Config:         nullBlock,
-			ExpectedErrors: []string{"config.access_key_id", "config.region", "config.secret_access_key"},
+			ExpectedErrors: []string{"config.region"},
 		},
 		{
-			TestName:       "error_ecr_region_only",
-			Kind:           tftypes.NewValue(tftypes.String, "ECR"),
-			Config:         regionOnly,
-			ExpectedErrors: []string{"config.access_key_id", "config.secret_access_key"},
+			TestName: "success_ecr_region_only",
+			Kind:     tftypes.NewValue(tftypes.String, "ECR"),
+			Config:   regionOnly,
 		},
 		{
 			TestName: "success_ecr_unknown_config",
@@ -359,5 +376,5 @@ func TestHelmRepositoryResource_ValidateConfig(t *testing.T) {
 		return tftypes.NewValue(o, nil)
 	})
 	r.ValidateConfig(context.Background(), resource.ValidateConfigRequest{Config: config}, resp)
-	assert.Equal(t, []string{"config.access_key_id", "config.region", "config.secret_access_key"}, errorPaths(resp.Diagnostics))
+	assert.Equal(t, []string{"config.region"}, errorPaths(resp.Diagnostics))
 }

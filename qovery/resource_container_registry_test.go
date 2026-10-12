@@ -176,7 +176,7 @@ resource "qovery_container_registry" "test" {
 }
 `, getTestOrganizationID(), generateTestName("container-registry-missing-credentials"), getTestAwsEcrURL(), awsECRRegion, getTestAWSCredentialsAccessKeyID()),
 				PlanOnly:    true,
-				ExpectError: regexp.MustCompile(`config.secret_access_key\s+is\s+required\s+when\s+kind\s+is\s+ECR`),
+				ExpectError: regexp.MustCompile(`config.secret_access_key\s+is\s+required\s+when\s+config.access_key_id\s+is\s+set\s+and\s+kind\s+is\s+ECR`),
 			},
 		},
 	})

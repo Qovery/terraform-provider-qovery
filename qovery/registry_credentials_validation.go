@@ -48,7 +48,7 @@ func readCredentialsConfig(ctx context.Context, cfg tfsdk.Config, config any, di
 func validateContainerRegistryConfig(kind string, config ContainerRegistryConfig) diag.Diagnostics {
 	switch registry.Kind(kind) {
 	case registry.KindECR:
-		return requireCredentials(kind, awsCredentialKeys(config.Region, config.AccessKeyID, config.SecretAccessKey)...)
+		return validateECRConfig(kind, config.Region, config.AccessKeyID, config.SecretAccessKey)
 	case registry.KindScalewayCR:
 		return requireCredentials(kind, scalewayCredentialKeys(config.Region, config.ScalewayAccessKey, config.ScalewaySecretKey, config.ScalewayProjectId)...)
 	case registry.KindGithubCr:
@@ -63,13 +63,13 @@ func validateContainerRegistryConfig(kind string, config ContainerRegistryConfig
 func validateHelmRepositoryConfig(kind string, config HelmRepositoryConfig) diag.Diagnostics {
 	switch helmRepository.Kind(kind) {
 	case helmRepository.KindECR:
-		return requireCredentials(kind, awsCredentialKeys(config.Region, config.AccessKeyID, config.SecretAccessKey)...)
+		return validateECRConfig(kind, config.Region, config.AccessKeyID, config.SecretAccessKey)
 	case helmRepository.KindScalewayCR:
 		return requireCredentials(kind, scalewayCredentialKeys(config.Region, config.ScalewayAccessKey, config.ScalewaySecretKey, config.ScalewayProjectId)...)
 	case helmRepository.KindHttps, helmRepository.KindDockerHub, helmRepository.KindGitlabCr, helmRepository.KindGenericCR:
-		return requireUsernameAndPasswordTogether(kind, config.Username, config.Password)
+		return requireKeysTogether(kind, credentialKey{"username", config.Username}, credentialKey{"password", config.Password})
 	case helmRepository.KindGithubCr:
-		if diags := requireUsernameAndPasswordTogether(kind, config.Username, config.Password); diags.HasError() {
+		if diags := requireKeysTogether(kind, credentialKey{"username", config.Username}, credentialKey{"password", config.Password}); diags.HasError() {
 			return diags
 		}
 		return requireUsernameWithPassword(kind, config.Username, config.Password)
@@ -77,9 +77,13 @@ func validateHelmRepositoryConfig(kind string, config HelmRepositoryConfig) diag
 	return nil
 }
 
-// The provider never sends role_arn, so an ECR registry needs static keys.
-func awsCredentialKeys(region, accessKeyID, secretAccessKey types.String) []credentialKey {
-	return []credentialKey{{"region", region}, {"access_key_id", accessKeyID}, {"secret_access_key", secretAccessKey}}
+// validateECRConfig requires the region and checks the static keys as a pair. q-core accepts a role
+// in place of the keys: the provider cannot send role_arn, but a registry that uses one can be
+// imported with its region only, so the keys are not required.
+func validateECRConfig(kind string, region, accessKeyID, secretAccessKey types.String) diag.Diagnostics {
+	diags := requireCredentials(kind, credentialKey{"region", region})
+	diags.Append(requireKeysTogether(kind, credentialKey{"access_key_id", accessKeyID}, credentialKey{"secret_access_key", secretAccessKey})...)
+	return diags
 }
 
 func scalewayCredentialKeys(region, accessKey, secretKey, projectID types.String) []credentialKey {
@@ -124,19 +128,19 @@ func requireCredentials(kind string, keys ...credentialKey) diag.Diagnostics {
 	return diags
 }
 
-// requireUsernameAndPasswordTogether rejects a username without a password and the reverse: q-core
-// checks this for helm repositories, not for container registries. An unknown value may turn out
-// null, so the check waits until both are known.
-func requireUsernameAndPasswordTogether(kind string, username, password types.String) diag.Diagnostics {
+// requireKeysTogether rejects one key set without the other. q-core checks the username and the
+// password of a helm repository this way, not those of a container registry. An unknown value may
+// turn out null, so the check waits until both are known.
+func requireKeysTogether(kind string, first, second credentialKey) diag.Diagnostics {
 	var diags diag.Diagnostics
-	if username.IsUnknown() || password.IsUnknown() {
+	if first.value.IsUnknown() || second.value.IsUnknown() {
 		return diags
 	}
 	switch {
-	case !username.IsNull() && password.IsNull():
-		addMissingCredential(&diags, "password", "when config.username is set and kind is "+kind)
-	case username.IsNull() && !password.IsNull():
-		addMissingCredential(&diags, "username", "when config.password is set and kind is "+kind)
+	case !first.value.IsNull() && second.value.IsNull():
+		addMissingCredential(&diags, second.name, fmt.Sprintf("when config.%s is set and kind is %s", first.name, kind))
+	case first.value.IsNull() && !second.value.IsNull():
+		addMissingCredential(&diags, first.name, fmt.Sprintf("when config.%s is set and kind is %s", second.name, kind))
 	}
 	return diags
 }
