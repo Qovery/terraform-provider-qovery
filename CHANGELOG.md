@@ -14,6 +14,8 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-10-12
+
 ### Added
 
 - `terraform plan` now rejects a malformed reference to a Qovery entity, which before failed
@@ -32,8 +34,6 @@ explained in the matching upgrade guide.
   `OCI_GITHUB_CR`; and `username` and `password` together for the `HTTPS` and other `OCI_*` helm
   repository kinds that take them. A kind that allows anonymous access still needs no `config`.
   (QOV-2305)
-
-## [1.0.3] - 2026-10-12
 
 ### Fixed
 
