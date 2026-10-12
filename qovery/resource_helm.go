@@ -95,6 +95,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: nameDescription("Helm service"),
@@ -114,6 +115,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 					stringplanmodifier.UseStateForUnknown(),
 					RejectChangeAfterCreate(blueprintIDChangeReason),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"icon_uri": schema.StringAttribute{
 				MarkdownDescription: descriptions.NewStringDefaultDescription(iconURIDescription("Helm service"), helmIconURIDefault),
@@ -171,6 +173,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 							"helm_repository_id": schema.StringAttribute{
 								MarkdownDescription: helmSourceHelmRepositoryIDDesc,
 								Required:            true,
+								Validators:          []validator.String{validators.NewUUIDValidator()},
 							},
 							"chart_name": schema.StringAttribute{
 								MarkdownDescription: helmSourceChartNameDescription,
@@ -211,6 +214,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 							"git_token_id": schema.StringAttribute{
 								MarkdownDescription: gitRepositoryTokenIDDescription,
 								Optional:            true,
+								Validators:          []validator.String{validators.NewUUIDValidator()},
 							},
 						},
 					},
@@ -271,6 +275,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 									"git_token_id": schema.StringAttribute{
 										MarkdownDescription: gitRepositoryTokenIDDescription,
 										Optional:            true,
+										Validators:          []validator.String{validators.NewUUIDValidator()},
 									},
 								},
 							},
@@ -567,6 +572,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"is_skipped": schema.BoolAttribute{
 				MarkdownDescription: descriptions.NewBoolDefaultDescription(isSkippedDescription, false),

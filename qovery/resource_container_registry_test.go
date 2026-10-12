@@ -5,6 +5,7 @@ package qovery_test
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -152,6 +153,33 @@ func testAccQoveryContainerRegistryDestroy(resourceName string) resource.TestChe
 		}
 		return nil
 	}
+}
+
+// The credentials an ECR registry requires are checked at plan time, before any API call.
+func TestAcc_ContainerRegistryMissingCredentials(t *testing.T) {
+	t.Parallel()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: fmt.Sprintf(`
+resource "qovery_container_registry" "test" {
+  organization_id = "%s"
+  name = "%s"
+  kind = "ECR"
+  url = "%s"
+  config = {
+    region = "%s"
+    access_key_id = "%s"
+  }
+}
+`, getTestOrganizationID(), generateTestName("container-registry-missing-credentials"), getTestAwsEcrURL(), awsECRRegion, getTestAWSCredentialsAccessKeyID()),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`config.secret_access_key\s+is\s+required\s+when\s+kind\s+is\s+ECR`),
+			},
+		},
+	})
 }
 
 func testAccContainerRegistryDefaultConfig(testName string) string {

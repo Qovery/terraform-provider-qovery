@@ -10,9 +10,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/credentials"
+	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -68,6 +70,7 @@ func (r scalewayCredentialsResource) Schema(_ context.Context, _ resource.Schema
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: nameDescription("Scaleway credentials"),

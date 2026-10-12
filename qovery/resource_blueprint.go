@@ -22,6 +22,7 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/blueprint"
 	"github.com/qovery/terraform-provider-qovery/qovery/descriptions"
+	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
 var (
@@ -77,6 +78,7 @@ func (r blueprintResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: nameDescription("blueprint"),

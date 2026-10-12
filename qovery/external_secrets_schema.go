@@ -2,6 +2,9 @@ package qovery
 
 import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
+
+	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
 func externalSecretsSchemaAttribute(resourceType string) schema.SetNestedAttribute {
@@ -30,6 +33,7 @@ func externalSecretsSchemaAttribute(resourceType string) schema.SetNestedAttribu
 				"secret_manager_access_id": schema.StringAttribute{
 					MarkdownDescription: d.SecretManagerAccessID,
 					Required:            true,
+					Validators:          []validator.String{validators.NewUUIDValidator()},
 				},
 			},
 		},

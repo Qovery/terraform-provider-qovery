@@ -80,6 +80,7 @@ func (r environmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"cluster_id": schema.StringAttribute{
 				MarkdownDescription: environmentClusterIDDescription + recreatesOnChange("environment"),
@@ -87,6 +88,7 @@ func (r environmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: nameDescription("environment"),

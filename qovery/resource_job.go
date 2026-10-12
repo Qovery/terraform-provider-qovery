@@ -93,6 +93,7 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: nameDescription("job"),
@@ -276,6 +277,7 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 							"registry_id": schema.StringAttribute{
 								MarkdownDescription: containerImageRegistryIDDescription,
 								Required:            true,
+								Validators:          []validator.String{validators.NewUUIDValidator()},
 							},
 							"name": schema.StringAttribute{
 								MarkdownDescription: containerImageNameDescription,
@@ -326,6 +328,7 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 										MarkdownDescription: gitRepositoryTokenIDDescription,
 										Optional:            true,
 										Computed:            false,
+										Validators:          []validator.String{validators.NewUUIDValidator()},
 									},
 								},
 							},
@@ -524,6 +527,7 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"is_skipped": schema.BoolAttribute{
 				MarkdownDescription: descriptions.NewBoolDefaultDescription(isSkippedDescription, false),
@@ -576,11 +580,13 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 				MarkdownDescription: groupIDsDescription("annotations", "the job's pods"),
 				Optional:            true,
 				ElementType:         types.StringType,
+				Validators:          []validator.Set{validators.NewUUIDValidator()},
 			},
 			"labels_group_ids": schema.SetAttribute{
 				MarkdownDescription: groupIDsDescription("labels", "the job's pods"),
 				Optional:            true,
 				ElementType:         types.StringType,
+				Validators:          []validator.Set{validators.NewUUIDValidator()},
 			},
 		},
 	}
