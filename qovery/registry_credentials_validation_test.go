@@ -217,6 +217,22 @@ func TestValidateHelmRepositoryConfig(t *testing.T) {
 			Config:   HelmRepositoryConfig{Username: set, Password: types.StringUnknown()},
 		},
 		{
+			// The unknown username may turn out null, which is anonymous access.
+			TestName: "success_https_unknown_username_without_password",
+			Kind:     "HTTPS",
+			Config:   HelmRepositoryConfig{Username: types.StringUnknown()},
+		},
+		{
+			TestName: "success_https_unknown_password_without_username",
+			Kind:     "HTTPS",
+			Config:   HelmRepositoryConfig{Password: types.StringUnknown()},
+		},
+		{
+			TestName: "success_oci_github_cr_unknown_username_without_password",
+			Kind:     "OCI_GITHUB_CR",
+			Config:   HelmRepositoryConfig{Username: types.StringUnknown()},
+		},
+		{
 			TestName:       "error_oci_github_cr_password_without_username",
 			Kind:           "OCI_GITHUB_CR",
 			Config:         HelmRepositoryConfig{Password: set},
