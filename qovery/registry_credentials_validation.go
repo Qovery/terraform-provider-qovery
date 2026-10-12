@@ -125,9 +125,13 @@ func requireCredentials(kind string, keys ...credentialKey) diag.Diagnostics {
 }
 
 // requireUsernameAndPasswordTogether rejects a username without a password and the reverse: q-core
-// checks this for helm repositories, not for container registries.
+// checks this for helm repositories, not for container registries. An unknown value may turn out
+// null, so the check waits until both are known.
 func requireUsernameAndPasswordTogether(kind string, username, password types.String) diag.Diagnostics {
 	var diags diag.Diagnostics
+	if username.IsUnknown() || password.IsUnknown() {
+		return diags
+	}
 	switch {
 	case !username.IsNull() && password.IsNull():
 		addMissingCredential(&diags, "password", "when config.username is set and kind is "+kind)
