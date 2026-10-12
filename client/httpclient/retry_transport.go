@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"math"
 	"math/rand"
 	"net"
 	"net/http"
@@ -68,12 +69,8 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 	maxBackoff := valueOrDefault(t.MaxBackoff, DefaultMaxBackoff)
 	maxRetryAfter := valueOrDefault(t.MaxRetryAfter, DefaultMaxRetryAfter)
 
+	attemptReq := req
 	for attempt := 1; ; attempt++ {
-		attemptReq, err := requestForAttempt(req, attempt)
-		if err != nil {
-			return nil, err
-		}
-
 		resp, err := t.base().RoundTrip(attemptReq)
 		retry, failure := evaluateAttempt(req.Method, resp, err)
 		if !retry || attempt >= maxAttempts || ctx.Err() != nil || !canReplay(req) {
@@ -105,9 +102,21 @@ func (t *RetryTransport) RoundTrip(req *http.Request) (*http.Response, error) {
 		case <-timer.C:
 		}
 
+		// Rewind the body only once the retry is certain, so an abandoned retry leaves no
+		// body open. If the rewind fails, the last outcome is still returned.
+		nextReq, rewindErr := retryRequest(req)
+		if rewindErr != nil {
+			tflog.Warn(ctx, "Not retrying a Qovery API request: its body cannot be rewound", map[string]any{
+				"method": req.Method,
+				"path":   req.URL.Path,
+				"error":  rewindErr.Error(),
+			})
+			return resp, err
+		}
 		if resp != nil {
 			_ = resp.Body.Close()
 		}
+		attemptReq = nextReq
 		backoff = min(backoff*2, maxBackoff)
 	}
 }
@@ -126,13 +135,9 @@ func valueOrDefault[T int | time.Duration](value, defaultValue T) T {
 	return defaultValue
 }
 
-// requestForAttempt returns the request to send for the given attempt. The first attempt sends
-// req itself; a retry sends a clone with a fresh body, since the previous attempt consumed it.
-func requestForAttempt(req *http.Request, attempt int) (*http.Request, error) {
-	if attempt == 1 {
-		return req, nil
-	}
-
+// retryRequest returns the request a retry sends: a clone of req with a fresh body, since the
+// previous attempt consumed it.
+func retryRequest(req *http.Request) (*http.Request, error) {
 	retryReq := req.Clone(req.Context())
 	if req.GetBody != nil {
 		body, err := req.GetBody()
@@ -210,9 +215,16 @@ func parseRetryAfter(resp *http.Response, now time.Time) (time.Duration, bool) {
 		return 0, false
 	}
 
-	if seconds, err := strconv.Atoi(value); err == nil {
+	// ParseInt reports a number beyond int64 as ErrRange, with the value clamped to the int64
+	// limit of its sign.
+	if seconds, err := strconv.ParseInt(value, 10, 64); err == nil || errors.Is(err, strconv.ErrRange) {
 		if seconds < 0 {
 			return 0, false
+		}
+		// A wait too long for a time.Duration is clamped to the longest one, so it still
+		// exceeds the cap instead of overflowing into a short delay.
+		if seconds > int64(time.Duration(math.MaxInt64)/time.Second) {
+			return time.Duration(math.MaxInt64), true
 		}
 		return time.Duration(seconds) * time.Second, true
 	}

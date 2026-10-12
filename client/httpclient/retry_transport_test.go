@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -148,7 +149,9 @@ func TestRetryTransport_RetryAfter(t *testing.T) {
 			MaxRetryAfter: time.Second,
 			ExpectCalls:   1,
 			ExpectStatus:  429,
-			ExpectMaxWait: time.Second,
+			// Far below the 120s asked for: it proves the wait was skipped, with room for a
+			// slow test machine.
+			ExpectMaxWait: 30 * time.Second,
 		},
 	}
 
@@ -195,6 +198,9 @@ func TestParseRetryAfter(t *testing.T) {
 		{TestName: "http_date_in_the_future", Header: now.Add(10 * time.Second).Format(http.TimeFormat), ExpectWait: 10 * time.Second, ExpectFound: true},
 		{TestName: "http_date_in_the_past", Header: now.Add(-time.Minute).Format(http.TimeFormat), ExpectWait: 0, ExpectFound: true},
 		{TestName: "garbage", Header: "soon", ExpectFound: false},
+		{TestName: "seconds_beyond_a_duration_are_clamped", Header: "99999999999999", ExpectWait: time.Duration(math.MaxInt64), ExpectFound: true},
+		{TestName: "seconds_beyond_int64_are_clamped", Header: "99999999999999999999999", ExpectWait: time.Duration(math.MaxInt64), ExpectFound: true},
+		{TestName: "seconds_below_int64_are_ignored", Header: "-99999999999999999999999", ExpectFound: false},
 	}
 
 	for _, tc := range testCases {
@@ -269,6 +275,60 @@ func TestRetryTransport_RequestWithoutGetBodyIsNotRetried(t *testing.T) {
 
 	assert.Equal(t, http.StatusTooManyRequests, resp.StatusCode)
 	assert.Len(t, api.recordedBodies(), 1)
+}
+
+// TestRetryTransport_ReturnsTheLastResponseWhenTheBodyCannotBeRewound pins that a retry whose
+// request body cannot be rewound is not sent, and the last response is returned as is.
+func TestRetryTransport_ReturnsTheLastResponseWhenTheBodyCannotBeRewound(t *testing.T) {
+	t.Parallel()
+
+	base := &sequenceTransport{responses: []*http.Response{{
+		StatusCode: http.StatusTooManyRequests,
+		Status:     "429 Too Many Requests",
+		Header:     http.Header{},
+		Body:       io.NopCloser(strings.NewReader(`{"message":"slow down"}`)),
+	}}}
+	req := newRequest(t, context.Background(), http.MethodPut, "https://api.qovery.test/organization", `{"name":"org"}`)
+	req.GetBody = func() (io.ReadCloser, error) {
+		return nil, errors.New("rewind failed")
+	}
+
+	resp, err := fastTransport(base).RoundTrip(req)
+
+	require.NoError(t, err)
+	assert.Equal(t, 1, base.calls)
+	assert.Equal(t, http.StatusTooManyRequests, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t, `{"message":"slow down"}`, string(body))
+}
+
+// TestRetryTransport_AbandonedRetryDoesNotRewindTheBody pins that the request body is rewound
+// only for a retry that is sent, so an abandoned retry leaves no rewound body open.
+func TestRetryTransport_AbandonedRetryDoesNotRewindTheBody(t *testing.T) {
+	t.Parallel()
+
+	base := &sequenceTransport{responses: []*http.Response{{
+		StatusCode: http.StatusTooManyRequests,
+		Status:     "429 Too Many Requests",
+		Header:     http.Header{"Retry-After": []string{"120"}},
+		Body:       io.NopCloser(strings.NewReader(`{}`)),
+	}}}
+	req := newRequest(t, context.Background(), http.MethodPut, "https://api.qovery.test/organization", `{"name":"org"}`)
+	rewinds := 0
+	req.GetBody = func() (io.ReadCloser, error) {
+		rewinds++
+		return io.NopCloser(strings.NewReader(`{"name":"org"}`)), nil
+	}
+
+	transport := fastTransport(base)
+	transport.MaxRetryAfter = time.Second
+	resp, err := transport.RoundTrip(req)
+
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusTooManyRequests, resp.StatusCode)
+	assert.Equal(t, 1, base.calls)
+	assert.Zero(t, rewinds, "a retry abandoned over Retry-After must not rewind the body")
 }
 
 // scriptedTransport fails the first calls with errs, then answers 200.
