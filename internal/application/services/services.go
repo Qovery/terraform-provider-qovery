@@ -2,6 +2,7 @@ package services
 
 import (
 	"context"
+	"net/http"
 
 	"github.com/pkg/errors"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
@@ -368,9 +369,9 @@ func applyExternalSecretsDiff(ctx context.Context, repo variable.ExternalSecretR
 	return nil
 }
 
-func WithQoveryRepository(apiToken string, providerVersion string, host string) Configuration {
+func WithQoveryRepository(apiToken string, providerVersion string, host string, httpClient *http.Client) Configuration {
 	return func(services *Services) error {
-		repos, err := repositories.New(repositories.WithQoveryAPI(apiToken, providerVersion, host))
+		repos, err := repositories.New(repositories.WithQoveryAPI(apiToken, providerVersion, host, httpClient))
 		if err != nil {
 			return err
 		}

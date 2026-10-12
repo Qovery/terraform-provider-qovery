@@ -91,7 +91,7 @@ func TestClient_editDatabase(t *testing.T) {
 			server := httptest.NewServer(api)
 			t.Cleanup(server.Close)
 
-			c := New("token", "test", server.URL)
+			c := New("token", "test", server.URL, newTestHTTPClient())
 			request := qovery.DatabaseEditRequest{Name: qovery.PtrString("planned-name")}
 			database, apiErr := c.editDatabase(context.Background(), "db-1", request)
 

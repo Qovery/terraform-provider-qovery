@@ -75,7 +75,7 @@ func (c jobQoveryAPI) Create(ctx context.Context, environmentID string, request 
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.JOB, newJobId, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(ctx, domain.JOB, newJobId, request.AdvancedSettingsJson)
 	if err != nil {
 		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, nil, err)
 	}
@@ -111,7 +111,7 @@ func (c jobQoveryAPI) Get(ctx context.Context, jobID string, advancedSettingsJso
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
-	advancedSettingsAsJson, buildSettings, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettingsWithBuildSettings(domain.JOB, jobID, advancedSettingsJsonFromState, isTriggeredFromImport)
+	advancedSettingsAsJson, buildSettings, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettingsWithBuildSettings(ctx, domain.JOB, jobID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, nil, err)
 	}
@@ -163,7 +163,7 @@ func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.Upse
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.JOB, jobID, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(ctx, domain.JOB, jobID, request.AdvancedSettingsJson)
 	if err != nil {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceJob, request.Name, nil, err)
 	}

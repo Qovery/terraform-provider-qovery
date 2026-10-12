@@ -16,6 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
+	"github.com/qovery/terraform-provider-qovery/client/httpclient"
 )
 
 // TestPreserveUnmanagedClusterFields checks the edit request resends the current value of every
@@ -177,9 +178,9 @@ func TestClient_getClusterByID(t *testing.T) {
 		},
 		{
 			TestName:    "error_500_on_every_attempt",
-			Failures:    maxRetryAttempts,
+			Failures:    httpclient.DefaultMaxAttempts,
 			ClusterIDs:  []string{"cluster-1"},
-			ExpectCalls: maxRetryAttempts,
+			ExpectCalls: httpclient.DefaultMaxAttempts,
 			ExpectError: true,
 		},
 		{
@@ -199,7 +200,7 @@ func TestClient_getClusterByID(t *testing.T) {
 			server := httptest.NewServer(api)
 			t.Cleanup(server.Close)
 
-			c := New("token", "test", server.URL)
+			c := New("token", "test", server.URL, newTestHTTPClient())
 			cluster, apiErr := c.getClusterByID(context.Background(), "org-1", "cluster-1")
 
 			assert.Equal(t, tc.ExpectCalls, api.calls)

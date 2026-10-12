@@ -68,7 +68,7 @@ func (c terraformServiceQoveryAPI) Create(ctx context.Context, environmentID str
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.TERRAFORM, newTerraform.Id, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(ctx, domain.TERRAFORM, newTerraform.Id, request.AdvancedSettingsJson)
 	if err != nil {
 		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceTerraformService, request.Name, nil, err)
 	}
@@ -104,7 +104,7 @@ func (c terraformServiceQoveryAPI) Get(ctx context.Context, terraformServiceID s
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceTerraformService, terraform.Id, resp, err)
 	}
 
-	advancedSettingsAsJson, buildSettings, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettingsWithBuildSettings(domain.TERRAFORM, terraformServiceID, advancedSettingsJsonFromState, isTriggeredFromImport)
+	advancedSettingsAsJson, buildSettings, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettingsWithBuildSettings(ctx, domain.TERRAFORM, terraformServiceID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceTerraformService, terraformServiceID, nil, err)
 	}
@@ -141,7 +141,7 @@ func (c terraformServiceQoveryAPI) Update(ctx context.Context, terraformServiceI
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.TERRAFORM, terraformServiceID, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(ctx, domain.TERRAFORM, terraformServiceID, request.AdvancedSettingsJson)
 	if err != nil {
 		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceTerraformService, request.Name, nil, err)
 	}

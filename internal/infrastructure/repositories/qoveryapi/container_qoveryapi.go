@@ -86,7 +86,7 @@ func (c containerQoveryAPI) Create(ctx context.Context, environmentID string, re
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.CONTAINER, newContainer.Id, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(ctx, domain.CONTAINER, newContainer.Id, request.AdvancedSettingsJson)
 	if err != nil {
 		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceContainer, newContainer.Id, nil, err)
 	}
@@ -129,7 +129,7 @@ func (c containerQoveryAPI) Get(ctx context.Context, containerID string, advance
 	}
 
 	// Get advanced settings
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(domain.CONTAINER, container.Id, advancedSettingsJsonFromState, isTriggeredFromImport)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(ctx, domain.CONTAINER, container.Id, advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceContainer, containerID, nil, err)
 	}
@@ -206,7 +206,7 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.CONTAINER, container.Id, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(ctx, domain.CONTAINER, container.Id, request.AdvancedSettingsJson)
 	if err != nil {
 		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceContainer, container.Id, nil, err)
 	}

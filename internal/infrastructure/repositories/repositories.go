@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/apitoken"
@@ -117,9 +118,10 @@ func New(configs ...Configuration) (*Repositories, error) {
 	return repos, nil
 }
 
-func WithQoveryAPI(apiToken string, providerVersion string, host string) Configuration {
+func WithQoveryAPI(apiToken string, providerVersion string, host string, httpClient *http.Client) Configuration {
 	return func(repos *Repositories) error {
 		qoveryAPI, err := qoveryapi.New(
+			qoveryapi.WithHTTPClient(httpClient),
 			qoveryapi.WithQoveryAPIToken(apiToken),
 			qoveryapi.WithUserAgent(fmt.Sprintf("Terraform provider %s", providerVersion)),
 			qoveryapi.WithServerHost(host),

@@ -76,11 +76,10 @@ func (rt alwaysOKRoundTripper) RoundTrip(req *http.Request) (*http.Response, err
 	}, nil
 }
 
-// newAPIClientWithTransport routes the generated client through rt. It also points the
-// configured server URL at a local server that fails every request: the advanced settings
-// service (internal/domain/advanced_settings) ignores cfg.HTTPClient and issues its calls
-// with a bare http.Client against that URL, so without this a test whose first failing
-// follow-up call is the advanced settings update would reach the real Qovery API.
+// newAPIClientWithTransport routes the generated client, and the advanced settings calls that
+// share its cfg.HTTPClient, through rt. It also points the configured server URL at a local
+// server that fails every request, so a request that bypasses rt never reaches the real Qovery
+// API.
 func newAPIClientWithTransport(t *testing.T, rt http.RoundTripper) *qovery.APIClient {
 	t.Helper()
 

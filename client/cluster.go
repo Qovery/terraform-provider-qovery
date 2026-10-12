@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/qovery/qovery-client-go"
 
@@ -56,7 +55,7 @@ func (c *Client) GetCluster(ctx context.Context, organizationID string, clusterI
 		return nil, apiErr
 	}
 
-	advancedSettingsJson, err := advanced_settings.NewClusterAdvancedSettingsService(c.api.GetConfig()).ReadClusterAdvancedSettings(organizationID, clusterID, advancedSettingsFromState, isTriggeredFromImport)
+	advancedSettingsJson, err := advanced_settings.NewClusterAdvancedSettingsService(c.api.GetConfig()).ReadClusterAdvancedSettings(ctx, organizationID, clusterID, advancedSettingsFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadError(apierrors.APIResourceClusterAdvancedSettings, cluster.Id, nil, err)
 	}
@@ -143,23 +142,14 @@ func (c *Client) DeleteCluster(ctx context.Context, organizationID string, clust
 }
 
 // getClusterByID lists the organization clusters and picks the one with the given ID: the API has
-// no single-cluster GET. The list call is retried on transient errors because it intermittently
-// returns 500 (QOV-2356).
+// no single-cluster GET. The list call intermittently returns 500 (QOV-2356); the HTTP client
+// retries it like every transient API failure.
 func (c *Client) getClusterByID(ctx context.Context, organizationID string, clusterID string) (*qovery.Cluster, *apierrors.APIError) {
-	var clusters *qovery.ClusterResponseList
-	var res *http.Response
-	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
-		var err error
-		clusters, res, err = c.api.ClustersAPI.
-			ListOrganizationCluster(ctx, organizationID).
-			Execute()
-		if err != nil || res.StatusCode >= 400 {
-			return apierrors.NewReadError(apierrors.APIResourceCluster, clusterID, res, err)
-		}
-		return nil
-	})
-	if apiErr != nil {
-		return nil, apiErr
+	clusters, res, err := c.api.ClustersAPI.
+		ListOrganizationCluster(ctx, organizationID).
+		Execute()
+	if err != nil || res.StatusCode >= 400 {
+		return nil, apierrors.NewReadError(apierrors.APIResourceCluster, clusterID, res, err)
 	}
 
 	for _, cluster := range clusters.GetResults() {
@@ -197,7 +187,7 @@ func (c *Client) updateCluster(ctx context.Context, organizationID string, clust
 		return nil, apiErr
 	}
 
-	err = advanced_settings.NewClusterAdvancedSettingsService(c.api.GetConfig()).UpdateClusterAdvancedSettings(organizationID, cluster.Id, params.AdvancedSettingsJson)
+	err = advanced_settings.NewClusterAdvancedSettingsService(c.api.GetConfig()).UpdateClusterAdvancedSettings(ctx, organizationID, cluster.Id, params.AdvancedSettingsJson)
 	if err != nil {
 		return nil, apierrors.NewUpdateError(apierrors.APIResourceClusterAdvancedSettings, cluster.Id, nil, err)
 	}

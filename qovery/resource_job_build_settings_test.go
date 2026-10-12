@@ -57,7 +57,7 @@ func TestAcc_Job_BuildSettings(t *testing.T) {
 			{
 				PreConfig: func() {
 					err := advanced_settings.NewServiceAdvancedSettingsService(qoveryAPIClient.GetConfig()).
-						UpdateServiceAdvancedSettings(domain.JOB, jobID, `{"build.timeout_max_sec":5000}`)
+						UpdateServiceAdvancedSettings(context.Background(), domain.JOB, jobID, `{"build.timeout_max_sec":5000}`)
 					if err != nil {
 						t.Fatalf("failed to change the job build timeout out of band: %s", err)
 					}

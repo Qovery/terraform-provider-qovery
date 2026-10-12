@@ -173,7 +173,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string, advan
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, res, err)
 	}
 
-	advancedSettingsAsJson, buildSettings, err := advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).ReadServiceAdvancedSettingsWithBuildSettings(domain.APPLICATION, applicationID, advancedSettingsFromState, isTriggeredFromImport)
+	advancedSettingsAsJson, buildSettings, err := advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).ReadServiceAdvancedSettingsWithBuildSettings(ctx, domain.APPLICATION, applicationID, advancedSettingsFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadError(apierrors.APIResourceApplication, applicationID, nil, err)
 	}
@@ -405,7 +405,7 @@ func (c *Client) updateApplication(
 		}
 	}
 
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).UpdateServiceAdvancedSettings(domain.APPLICATION, application.Id, advancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).UpdateServiceAdvancedSettings(ctx, domain.APPLICATION, application.Id, advancedSettingsJson)
 	if err != nil {
 		return nil, apierrors.NewUpdateError(apierrors.APIResourceApplication, application.Id, nil, err)
 	}

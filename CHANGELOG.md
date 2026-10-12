@@ -14,6 +14,21 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-10-12
+
+### Fixed
+
+- Qovery API calls are now retried with backoff when a failure is transient and a retry is
+  safe. Reads and deletes are retried on a `429 Too Many Requests`, a 5xx, or a network error.
+  A create, an update or a deploy is retried only on a `429` or when the connection could not
+  be opened, so an action the API may already have performed is never sent twice. A
+  `Retry-After` header is honoured. Before, only a few cluster and database reads were retried,
+  and any other call failed the `terraform plan` or `apply` on the first transient error.
+  (QOV-2304)
+- `qovery_cluster`: when reading the cluster status failed after a stop, the error was
+  swallowed and the cluster `state` was saved as null. The apply now returns the error.
+  (QOV-2304)
+
 ## [1.0.2] - 2026-10-06
 
 ### Fixed
@@ -390,7 +405,8 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.2...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.3...HEAD
+[1.0.3]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/qovery/terraform-provider-qovery/compare/v0.91.0...v1.0.0

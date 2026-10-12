@@ -22,7 +22,7 @@ func (f roundTripFunc) RoundTrip(req *http.Request) (*http.Response, error) {
 }
 
 func TestGetClusterDNSProviderPropagatesForbidden(t *testing.T) {
-	c := New("token", "test", "https://api.qovery.test")
+	c := New("token", "test", "https://api.qovery.test", newTestHTTPClient())
 	c.api.GetConfig().HTTPClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		assert.Equal(t, http.MethodGet, r.Method)
 		assert.Equal(t, "/cluster/cluster-id/dnsProvider", r.URL.Path)
@@ -45,7 +45,7 @@ func TestGetClusterDNSProviderPropagatesForbidden(t *testing.T) {
 }
 
 func TestUpdateClusterDNSProviderUsesPutEndpoint(t *testing.T) {
-	c := New("token", "test", "https://api.qovery.test")
+	c := New("token", "test", "https://api.qovery.test", newTestHTTPClient())
 	c.api.GetConfig().HTTPClient = &http.Client{Transport: roundTripFunc(func(r *http.Request) (*http.Response, error) {
 		assert.Equal(t, http.MethodPut, r.Method)
 		assert.Equal(t, "/cluster/cluster-id/dnsProvider", r.URL.Path)

@@ -2,6 +2,7 @@ package client
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/qovery/qovery-client-go"
 )
@@ -10,15 +11,17 @@ type Client struct {
 	api *qovery.APIClient
 }
 
-func New(token string, version string, host string) *Client {
+// New returns a Client that sends its requests through httpClient, normally httpclient.New().
+func New(token string, version string, host string, httpClient *http.Client) *Client {
 	return &Client{
-		NewQoveryAPIClient(token, version, host),
+		NewQoveryAPIClient(token, version, host, httpClient),
 	}
 }
 
 // NewQoveryAPIClient used for tests only
-func NewQoveryAPIClient(token string, version string, host string) *qovery.APIClient {
+func NewQoveryAPIClient(token string, version string, host string, httpClient *http.Client) *qovery.APIClient {
 	cfg := qovery.NewConfiguration()
+	cfg.HTTPClient = httpClient
 	cfg.AddDefaultHeader("Authorization", fmt.Sprintf("Token %s", token))
 
 	cfg.UserAgent = fmt.Sprintf("Terraform provider %s", version)

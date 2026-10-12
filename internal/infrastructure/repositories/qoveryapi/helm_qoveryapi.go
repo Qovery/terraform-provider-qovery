@@ -87,7 +87,7 @@ func (c helmQoveryAPI) Create(ctx context.Context, environmentID string, request
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.HELM, newHelm.Id, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(ctx, domain.HELM, newHelm.Id, request.AdvancedSettingsJson)
 	if err != nil {
 		return partial, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, request.Name, nil, err)
 	}
@@ -129,7 +129,7 @@ func (c helmQoveryAPI) Get(ctx context.Context, helmID string, advancedSettingsJ
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceHelm, helmID, resp, err)
 	}
 
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(domain.HELM, helmID, advancedSettingsJsonFromState, isTriggeredFromImport)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(ctx, domain.HELM, helmID, advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceHelm, helmID, nil, err)
 	}
@@ -206,7 +206,7 @@ func (c helmQoveryAPI) Update(ctx context.Context, helmID string, request helm.U
 	}
 
 	// Update advanced settings
-	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(domain.HELM, helmID, request.AdvancedSettingsJson)
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).UpdateServiceAdvancedSettings(ctx, domain.HELM, helmID, request.AdvancedSettingsJson)
 	if err != nil {
 		return nil, apierrors.NewCreateAPIError(apierrors.APIResourceHelm, request.Name, nil, err)
 	}

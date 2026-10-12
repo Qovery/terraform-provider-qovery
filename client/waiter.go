@@ -2,7 +2,6 @@ package client
 
 import (
 	"context"
-	"math/rand"
 	"strings"
 	"time"
 
@@ -14,30 +13,9 @@ import (
 const (
 	defaultWaitTimeout      = 4 * time.Hour
 	defaultWaitPollInterval = 10 * time.Second
-	maxRetryAttempts        = 3
-	initialBackoff          = 2 * time.Second
-	maxBackoff              = 30 * time.Second
-	backoffMultiplier       = 2
 )
 
 type waitFunc func(ctx context.Context) (bool, *apierrors.APIError)
-
-// applyJitter applies equal jitter to the backoff duration to prevent thundering herd.
-// Equal jitter formula: (backoff / 2) + random(0, backoff / 2)
-// This provides a balance between predictability and distribution of retry attempts.
-func applyJitter(backoff time.Duration) time.Duration {
-	if backoff <= 0 {
-		return 0
-	}
-
-	half := backoff / 2
-	if half <= 0 {
-		return backoff
-	}
-
-	jitter := time.Duration(rand.Int63n(int64(half)))
-	return half + jitter
-}
 
 func wait(ctx context.Context, f waitFunc) *apierrors.APIError {
 	return waitWithTimeout(ctx, f, defaultWaitTimeout, defaultWaitPollInterval)
@@ -45,9 +23,10 @@ func wait(ctx context.Context, f waitFunc) *apierrors.APIError {
 
 // waitWithTimeout polls f every pollInterval until it reports ok, returns an error, the context
 // is done, or timeout elapses. Running out of time is a failure, never a silent success.
+// f is called once per poll: the HTTP client already retries transient API failures.
 func waitWithTimeout(ctx context.Context, f waitFunc, timeout, pollInterval time.Duration) *apierrors.APIError {
-	// Run the function once before waiting, with retry logic for transient errors
-	ok, apiErr := retryOnTransientError(ctx, f)
+	// Run the function once before waiting
+	ok, apiErr := f(ctx)
 	if apiErr != nil {
 		return apiErr
 	}
@@ -67,7 +46,7 @@ func waitWithTimeout(ctx context.Context, f waitFunc, timeout, pollInterval time
 		case <-timeoutTimer.C:
 			return apierrors.NewTimeoutError(timeout)
 		case <-ticker.C:
-			ok, apiErr := retryOnTransientError(ctx, f)
+			ok, apiErr := f(ctx)
 			if apiErr != nil {
 				return apiErr
 			}
@@ -76,45 +55,6 @@ func waitWithTimeout(ctx context.Context, f waitFunc, timeout, pollInterval time
 			}
 		}
 	}
-}
-
-// retryOnTransientError retries a waitFunc with exponential backoff if it encounters transient errors
-func retryOnTransientError(ctx context.Context, f waitFunc) (bool, *apierrors.APIError) {
-	var lastErr *apierrors.APIError
-	backoff := initialBackoff
-
-	for attempt := range maxRetryAttempts {
-		ok, apiErr := f(ctx)
-
-		// Success case
-		if apiErr == nil {
-			return ok, nil
-		}
-
-		// If error is not retryable, return immediately
-		if !apierrors.IsRetryable(apiErr) {
-			return false, apiErr
-		}
-
-		lastErr = apiErr
-
-		// Don't sleep after the last attempt
-		if attempt < maxRetryAttempts-1 {
-			// Apply jitter to prevent thundering herd problem
-			backoffWithJitter := applyJitter(backoff)
-
-			select {
-			case <-ctx.Done():
-				return false, apierrors.NewContextError(ctx.Err())
-			case <-time.After(backoffWithJitter):
-				// Calculate next backoff with exponential growth
-				backoff = min(backoff*backoffMultiplier, maxBackoff)
-			}
-		}
-	}
-
-	// All retries exhausted
-	return false, lastErr
 }
 
 func newApplicationStatusCheckerWaitFunc(client *Client, applicationID string, expected qovery.StateEnum) waitFunc {

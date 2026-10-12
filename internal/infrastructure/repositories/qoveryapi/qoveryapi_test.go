@@ -1,6 +1,7 @@
 package qoveryapi_test
 
 import (
+	"net/http"
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
@@ -102,6 +103,39 @@ func TestWithQoveryAPIToken(t *testing.T) {
 
 			assert.NoError(t, err)
 			assert.NotNil(t, qoveryAPI)
+		})
+	}
+}
+
+func TestWithHTTPClient(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		TestName      string
+		HTTPClient    *http.Client
+		ExpectedError error
+	}{
+		{
+			TestName:      "fail_with_nil_http_client",
+			ExpectedError: qoveryapi.ErrInvalidHTTPClient,
+		},
+		{
+			TestName:   "success_with_http_client",
+			HTTPClient: &http.Client{},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			qoveryAPI, err := qoveryapi.New(qoveryapi.WithHTTPClient(tc.HTTPClient))
+			if tc.ExpectedError != nil {
+				assert.ErrorContains(t, err, tc.ExpectedError.Error())
+				assert.Nil(t, qoveryAPI)
+				return
+			}
+
+			assert.NoError(t, err)
+			assert.Same(t, tc.HTTPClient, qoveryAPI.Client.GetConfig().HTTPClient)
 		})
 	}
 }
