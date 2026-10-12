@@ -4,6 +4,7 @@
 package advanced_settings
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -108,7 +109,7 @@ func TestClusterAdvancedSettingsService_UnknownSettingKeys(t *testing.T) {
 
 			svc, requestCount := newTestClusterService(t, tc.defaultsJSON, tc.statusCode)
 
-			result, err := svc.UnknownSettingKeys(tc.advancedSettingsJSON)
+			result, err := svc.UnknownSettingKeys(context.Background(), tc.advancedSettingsJSON)
 
 			if tc.expectError {
 				if err == nil {
@@ -135,7 +136,7 @@ func TestClusterAdvancedSettingsService_UnknownSettingKeys_CachesDefaults(t *tes
 	svc, requestCount := newTestClusterService(t, `{"aws.iam.enable_sso": false}`, http.StatusOK)
 
 	for i := 0; i < 3; i++ {
-		unknown, err := svc.UnknownSettingKeys(`{"bogus.key": 1}`)
+		unknown, err := svc.UnknownSettingKeys(context.Background(), `{"bogus.key": 1}`)
 		if err != nil {
 			t.Fatalf("unexpected error on call %d: %v", i, err)
 		}

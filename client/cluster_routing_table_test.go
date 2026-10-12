@@ -117,7 +117,7 @@ func TestClient_syncClusterRoutingTable(t *testing.T) {
 			server := httptest.NewServer(api)
 			t.Cleanup(server.Close)
 
-			c := New("token", "test", server.URL)
+			c := New("token", "test", server.URL, newTestHTTPClient())
 			got, apiErr := c.syncClusterRoutingTable(context.Background(), "org-1", "cluster-1", ClusterRoutingTable{Routes: tc.Desired})
 			require.Nil(t, apiErr)
 			require.NotNil(t, got)

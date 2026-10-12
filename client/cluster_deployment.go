@@ -22,27 +22,15 @@ func (c *Client) deployCluster(ctx context.Context, organizationID string, clust
 		return nil, apiErr
 	}
 
-	// Wrap final status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
-	var clusterStatus *qovery.ClusterStatus
-	apiError := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
-		var err *apierrors.APIError
-		clusterStatus, err = c.getClusterStatus(ctx, organizationID, cluster.Id)
-		return err
-	})
-	if apiError != nil {
-		return nil, apiError
+	clusterStatus, apiErr := c.getClusterStatus(ctx, organizationID, cluster.Id)
+	if apiErr != nil {
+		return nil, apiErr
 	}
 	return &clusterStatus.Status, nil
 }
 
 func (c *Client) stopCluster(ctx context.Context, organizationID string, cluster *qovery.Cluster) (*qovery.ClusterStateEnum, *apierrors.APIError) {
-	// Wrap initial status check with retry logic to handle transient errors (DNS failures, timeouts, etc.)
-	var status *qovery.ClusterStatus
-	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
-		var err *apierrors.APIError
-		status, err = c.getClusterStatus(ctx, organizationID, cluster.Id)
-		return err
-	})
+	status, apiErr := c.getClusterStatus(ctx, organizationID, cluster.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -65,14 +53,8 @@ func (c *Client) stopCluster(ctx context.Context, organizationID string, cluster
 		return nil, apiErr
 	}
 
-	// Wrap final status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
-	var clusterStatus *qovery.ClusterStatus
-	apiError := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
-		var err *apierrors.APIError
-		clusterStatus, err = c.getClusterStatus(ctx, organizationID, cluster.Id)
-		return err
-	})
-	if apiError != nil {
+	clusterStatus, apiErr := c.getClusterStatus(ctx, organizationID, cluster.Id)
+	if apiErr != nil {
 		return nil, apiErr
 	}
 	return &clusterStatus.Status, nil

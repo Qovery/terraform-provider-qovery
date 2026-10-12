@@ -2,6 +2,7 @@ package qoveryapi
 
 import (
 	"fmt"
+	"net/http"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/argoCdCredentials"
@@ -43,6 +44,8 @@ var (
 	ErrInvalidUserAgent = errors.New("invalid user-agent")
 	// ErrInvalidHost is returned when the host is invalid.
 	ErrInvalidHost = errors.New("invalid-host")
+	// ErrInvalidHTTPClient is returned when the http client is nil.
+	ErrInvalidHTTPClient = errors.New("invalid http client")
 )
 
 // Configuration represents a function that handle the QoveryAPI configuration.
@@ -435,6 +438,19 @@ func New(configs ...Configuration) (*QoveryAPI, error) {
 	}
 
 	return qoveryAPI, nil
+}
+
+// WithHTTPClient sets the http client the qovery api client sends its requests through.
+func WithHTTPClient(httpClient *http.Client) Configuration {
+	return func(qoveryAPI *QoveryAPI) error {
+		if httpClient == nil {
+			return ErrInvalidHTTPClient
+		}
+
+		qoveryAPI.Client.GetConfig().HTTPClient = httpClient
+
+		return nil
+	}
 }
 
 // WithQoveryAPIToken sets the api token on the qovery api client.

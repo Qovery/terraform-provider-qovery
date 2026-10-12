@@ -133,7 +133,7 @@ func testAccSetApplicationAdvancedSettingOutOfBand(applicationID string, key str
 		return err
 	}
 	svc := advanced_settings.NewServiceAdvancedSettingsService(qoveryAPIClient.GetConfig())
-	if err := svc.UpdateServiceAdvancedSettings(domain.APPLICATION, applicationID, string(body)); err != nil {
+	if err := svc.UpdateServiceAdvancedSettings(context.Background(), domain.APPLICATION, applicationID, string(body)); err != nil {
 		return fmt.Errorf("failed to set %s=%d out of band: %w", key, value, err)
 	}
 	return nil

@@ -85,7 +85,7 @@ func TestClient_updateClusterStatus(t *testing.T) {
 			server := httptest.NewServer(api)
 			t.Cleanup(server.Close)
 
-			c := New("token", "test", server.URL)
+			c := New("token", "test", server.URL, newTestHTTPClient())
 			got, apiErr := c.updateClusterStatus(context.Background(), "org-1", &qovery.Cluster{Id: "cluster-1"}, qovery.CLUSTERSTATEENUM_DEPLOYED, tc.ForceUpdate)
 			require.Nil(t, apiErr)
 			require.NotNil(t, got)

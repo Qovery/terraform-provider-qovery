@@ -11,6 +11,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/client/httpclient"
 	"github.com/qovery/terraform-provider-qovery/internal/application/services"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/advanced_settings"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/annotations_group"
@@ -194,8 +195,11 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 		host = "https://api.qovery.com"
 	}
 
+	// One HTTP client carries every Qovery API call, so all of them get the same retry policy.
+	httpClient := httpclient.New()
+
 	// Initialize qovery client
-	domainServices, err := services.New(services.WithQoveryRepository(token, p.version, host))
+	domainServices, err := services.New(services.WithQoveryRepository(token, p.version, host, httpClient))
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to initialize domain services",
@@ -206,7 +210,7 @@ func (p *qProvider) Configure(ctx context.Context, req provider.ConfigureRequest
 
 	// Create a new Qovery client and set it to the provider client
 	p.configured = true
-	p.client = client.New(token, p.version, host)
+	p.client = client.New(token, p.version, host, httpClient)
 	p.advancedSettingsService = advanced_settings.NewServiceAdvancedSettingsService(p.client.GetConfig())
 	p.clusterAdvancedSettingsService = advanced_settings.NewClusterAdvancedSettingsService(p.client.GetConfig())
 	p.organizationService = domainServices.Organization

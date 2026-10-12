@@ -18,6 +18,7 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/application/services"
 
 	"github.com/qovery/terraform-provider-qovery/client"
+	"github.com/qovery/terraform-provider-qovery/client/httpclient"
 	"github.com/qovery/terraform-provider-qovery/qovery"
 )
 
@@ -60,9 +61,10 @@ type testEnvironment struct {
 }
 
 var (
-	apiClient         = client.New(os.Getenv(qovery.APITokenEnvName), "test", getTestQoveryHost())
-	qoveryServices, _ = services.New(services.WithQoveryRepository(os.Getenv(qovery.APITokenEnvName), "test", getTestQoveryHost()))
-	qoveryAPIClient   = client.NewQoveryAPIClient(os.Getenv(qovery.APITokenEnvName), "test", getTestQoveryHost())
+	testHTTPClient    = httpclient.New()
+	apiClient         = client.New(os.Getenv(qovery.APITokenEnvName), "test", getTestQoveryHost(), testHTTPClient)
+	qoveryServices, _ = services.New(services.WithQoveryRepository(os.Getenv(qovery.APITokenEnvName), "test", getTestQoveryHost(), testHTTPClient))
+	qoveryAPIClient   = client.NewQoveryAPIClient(os.Getenv(qovery.APITokenEnvName), "test", getTestQoveryHost(), testHTTPClient)
 )
 
 var testAccProtoV6ProviderFactories = map[string]func() (tfprotov6.ProviderServer, error){

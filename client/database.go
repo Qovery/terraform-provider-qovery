@@ -66,13 +66,7 @@ func (c *Client) GetDatabase(ctx context.Context, databaseID string) (*DatabaseR
 		return nil, apierrors.NewReadError(apierrors.APIResourceDatabase, databaseID, res, err)
 	}
 
-	// Wrap status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
-	var status *qovery.Status
-	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
-		var err *apierrors.APIError
-		status, err = c.getDatabaseStatus(ctx, databaseID)
-		return err
-	})
+	status, apiErr := c.getDatabaseStatus(ctx, databaseID)
 	if apiErr != nil {
 		return nil, apiErr
 	}

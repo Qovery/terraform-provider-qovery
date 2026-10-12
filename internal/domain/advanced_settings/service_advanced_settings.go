@@ -2,6 +2,7 @@ package advanced_settings
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -79,15 +80,15 @@ func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl
 }
 
 // ReadServiceAdvancedSettings Get only overridden advanced settings
-func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, error) {
-	advancedSettingsJson, _, err := c.ReadServiceAdvancedSettingsWithBuildSettings(serviceType, serviceId, advancedSettingsJsonFromState, isTriggeredFromImport)
+func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(ctx context.Context, serviceType int, serviceId string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, error) {
+	advancedSettingsJson, _, err := c.ReadServiceAdvancedSettingsWithBuildSettings(ctx, serviceType, serviceId, advancedSettingsJsonFromState, isTriggeredFromImport)
 	return advancedSettingsJson, err
 }
 
 // ReadServiceAdvancedSettingsWithBuildSettings behaves like ReadServiceAdvancedSettings and also returns the
 // service's build settings, parsed from the unfiltered build.* keys of the same API response.
-func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSettings(serviceType int, serviceId string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, *qovery.BuildSettings, error) {
-	httpClient := &http.Client{}
+func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSettings(ctx context.Context, serviceType int, serviceId string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, *qovery.BuildSettings, error) {
+	httpClient := apiHTTPClient(c.apiConfig)
 	apiToken := c.apiConfig.DefaultHeader["Authorization"]
 
 	var serviceAdvancedSettingsState string
@@ -103,7 +104,7 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSett
 	if err != nil {
 		return nil, nil, err
 	}
-	getRequest, err := http.NewRequest("GET", *urlAdvancedSettings, nil)
+	getRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, *urlAdvancedSettings, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -140,7 +141,7 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSett
 		return nil, nil, err
 	}
 
-	defaultAdvancedSettingsHashMap, err := c.fetchDefaultAdvancedSettings(serviceType)
+	defaultAdvancedSettingsHashMap, err := c.fetchDefaultAdvancedSettings(ctx, serviceType)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -164,9 +165,9 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSett
 }
 
 // UpdateServiceAdvancedSettings Update advanced settings by computing the whole http body
-func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceType int, serviceId string, advancedSettingsJsonFromPlan string) error {
+func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(ctx context.Context, serviceType int, serviceId string, advancedSettingsJsonFromPlan string) error {
 	apiToken := c.apiConfig.DefaultHeader["Authorization"]
-	httpClient := &http.Client{}
+	httpClient := apiHTTPClient(c.apiConfig)
 
 	var advancedSettingsStrFromPlan string
 	if advancedSettingsJsonFromPlan == "" {
@@ -187,7 +188,7 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 		return err
 	}
 
-	getRequest, err := http.NewRequest("GET", *urlAdvancedSettings, nil)
+	getRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, *urlAdvancedSettings, nil)
 	if err != nil {
 		return err
 	}
@@ -232,7 +233,7 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 
 	//
 	// Update advanced settings
-	putRequest, err := http.NewRequest(http.MethodPut, *urlAdvancedSettings, bytes.NewBuffer(overriddenAdvancedSettingsJSON))
+	putRequest, err := http.NewRequestWithContext(ctx, http.MethodPut, *urlAdvancedSettings, bytes.NewBuffer(overriddenAdvancedSettingsJSON))
 	if err != nil {
 		return err
 	}
@@ -258,13 +259,13 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(serviceTyp
 
 // fetchDefaultAdvancedSettings fetches and parses the default advanced settings for a service
 // type. These represent the full set of valid keys for that service type.
-func (c ServiceAdvancedSettingsService) fetchDefaultAdvancedSettings(serviceType int) (map[string]any, error) {
+func (c ServiceAdvancedSettingsService) fetchDefaultAdvancedSettings(ctx context.Context, serviceType int) (map[string]any, error) {
 	defaultAdvancedSettingsUrl, err := c.computeDefaultServiceAdvancedSettingsUrl(serviceType)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("GET", *defaultAdvancedSettingsUrl, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, *defaultAdvancedSettingsUrl, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -272,7 +273,7 @@ func (c ServiceAdvancedSettingsService) fetchDefaultAdvancedSettings(serviceType
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
-	resp, err := (&http.Client{}).Do(req)
+	resp, err := apiHTTPClient(c.apiConfig).Do(req)
 	if err != nil {
 		return nil, err
 	}
@@ -298,7 +299,7 @@ func (c ServiceAdvancedSettingsService) fetchDefaultAdvancedSettings(serviceType
 // caching the result per service type. The cache lock is released during the HTTP fetch so
 // concurrent plan-time validations for other service types are not serialized behind it; a
 // double-check on re-lock avoids storing a redundant result if another goroutine raced us.
-func (c ServiceAdvancedSettingsService) defaultSettingKeys(serviceType int) (map[string]struct{}, error) {
+func (c ServiceAdvancedSettingsService) defaultSettingKeys(ctx context.Context, serviceType int) (map[string]struct{}, error) {
 	c.cacheMu.Lock()
 	cached, ok := c.defaultKeysCache[serviceType]
 	c.cacheMu.Unlock()
@@ -306,7 +307,7 @@ func (c ServiceAdvancedSettingsService) defaultSettingKeys(serviceType int) (map
 		return cached, nil
 	}
 
-	defaults, err := c.fetchDefaultAdvancedSettings(serviceType)
+	defaults, err := c.fetchDefaultAdvancedSettings(ctx, serviceType)
 	if err != nil {
 		return nil, err
 	}
@@ -341,12 +342,12 @@ func computeUnknownKeys(validKeys map[string]struct{}, advancedSettings map[stri
 // UnknownSettingKeys returns the advanced setting keys present in advancedSettingsJson that are
 // not valid for the given service type (absent from that type's default settings). It returns
 // nil for an empty input.
-func (c ServiceAdvancedSettingsService) UnknownSettingKeys(serviceType int, advancedSettingsJson string) ([]string, error) {
+func (c ServiceAdvancedSettingsService) UnknownSettingKeys(ctx context.Context, serviceType int, advancedSettingsJson string) ([]string, error) {
 	if advancedSettingsJson == "" || advancedSettingsJson == "{}" {
 		return nil, nil
 	}
 
-	validKeys, err := c.defaultSettingKeys(serviceType)
+	validKeys, err := c.defaultSettingKeys(ctx, serviceType)
 	if err != nil {
 		return nil, err
 	}

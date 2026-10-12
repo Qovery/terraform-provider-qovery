@@ -14,6 +14,18 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Fixed
+
+- Every Qovery API call is now retried with backoff on a transient failure: a `429 Too Many
+  Requests`, which honours its `Retry-After` header, a 5xx, or a network error. Reads and
+  deletes are retried on all three. A create, an update or a deploy is retried only on a `429`
+  or when the connection could not be opened, so an action the API may already have performed
+  is never sent twice. Before, only a few cluster and database reads were retried, and any
+  other call failed the `terraform plan` or `apply` on the first transient error. (QOV-2304)
+- `qovery_cluster`: when reading the cluster status failed after a stop, the error was
+  swallowed and the cluster `state` was saved as null. The apply now returns the error.
+  (QOV-2304)
+
 ## [1.0.2] - 2026-10-06
 
 ### Fixed

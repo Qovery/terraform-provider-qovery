@@ -2,6 +2,7 @@ package advanced_settings
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -26,6 +27,15 @@ type clusterDefaultKeysCache struct {
 	keys map[string]struct{}
 }
 
+// apiHTTPClient returns the http client of the Qovery API configuration, so the advanced settings
+// calls get the same retry policy as the generated client.
+func apiHTTPClient(apiConfig *qovery.Configuration) *http.Client {
+	if apiConfig.HTTPClient != nil {
+		return apiConfig.HTTPClient
+	}
+	return http.DefaultClient
+}
+
 func NewClusterAdvancedSettingsService(apiConfig *qovery.Configuration) *ClusterAdvancedSettingsService {
 	return &ClusterAdvancedSettingsService{
 		apiConfig:        apiConfig,
@@ -35,13 +45,13 @@ func NewClusterAdvancedSettingsService(apiConfig *qovery.Configuration) *Cluster
 
 // fetchDefaultClusterAdvancedSettings fetches and parses the default cluster advanced
 // settings, whose keys form the set of valid cluster advanced setting keys.
-func (c ClusterAdvancedSettingsService) fetchDefaultClusterAdvancedSettings() (map[string]any, error) {
-	httpClient := &http.Client{}
+func (c ClusterAdvancedSettingsService) fetchDefaultClusterAdvancedSettings(ctx context.Context) (map[string]any, error) {
+	httpClient := apiHTTPClient(c.apiConfig)
 	apiToken := c.apiConfig.DefaultHeader["Authorization"]
 	host := c.apiConfig.Servers[0].URL
 
 	defaultAdvancedSettingsUrl := host + "/defaultClusterAdvancedSettings"
-	getDefaultAdvancedSettingsRequest, err := http.NewRequest("GET", defaultAdvancedSettingsUrl, nil)
+	getDefaultAdvancedSettingsRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, defaultAdvancedSettingsUrl, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -74,7 +84,7 @@ func (c ClusterAdvancedSettingsService) fetchDefaultClusterAdvancedSettings() (m
 
 // defaultSettingKeys returns the set of valid cluster advanced setting keys, fetched once
 // and cached for the lifetime of the service.
-func (c ClusterAdvancedSettingsService) defaultSettingKeys() (map[string]struct{}, error) {
+func (c ClusterAdvancedSettingsService) defaultSettingKeys(ctx context.Context) (map[string]struct{}, error) {
 	cache := c.defaultKeysCache
 
 	cache.mu.Lock()
@@ -85,7 +95,7 @@ func (c ClusterAdvancedSettingsService) defaultSettingKeys() (map[string]struct{
 	}
 	cache.mu.Unlock()
 
-	defaults, err := c.fetchDefaultClusterAdvancedSettings()
+	defaults, err := c.fetchDefaultClusterAdvancedSettings(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -106,12 +116,12 @@ func (c ClusterAdvancedSettingsService) defaultSettingKeys() (map[string]struct{
 // UnknownSettingKeys returns the advanced setting keys present in advancedSettingsJson that
 // are not valid cluster advanced settings (absent from the default cluster settings). It
 // returns nil for an empty input.
-func (c ClusterAdvancedSettingsService) UnknownSettingKeys(advancedSettingsJson string) ([]string, error) {
+func (c ClusterAdvancedSettingsService) UnknownSettingKeys(ctx context.Context, advancedSettingsJson string) ([]string, error) {
 	if advancedSettingsJson == "" || advancedSettingsJson == "{}" {
 		return nil, nil
 	}
 
-	validKeys, err := c.defaultSettingKeys()
+	validKeys, err := c.defaultSettingKeys(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -126,12 +136,13 @@ func (c ClusterAdvancedSettingsService) UnknownSettingKeys(advancedSettingsJson 
 
 // ReadClusterAdvancedSettings returns only overridden advanced settings.
 func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(
+	ctx context.Context,
 	organizationId string,
 	clusterId string,
 	advancedSettingsJsonFromState string,
 	isTriggeredFromImport bool,
 ) (*string, error) {
-	httpClient := &http.Client{}
+	httpClient := apiHTTPClient(c.apiConfig)
 	apiToken := c.apiConfig.DefaultHeader["Authorization"]
 	host := c.apiConfig.Servers[0].URL
 
@@ -143,7 +154,7 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(
 	}
 	//
 	// Get default cluster advanced settings
-	defaultAdvancedSettingsHashMap, err := c.fetchDefaultClusterAdvancedSettings()
+	defaultAdvancedSettingsHashMap, err := c.fetchDefaultClusterAdvancedSettings(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -151,7 +162,7 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(
 	//
 	// Get cluster advanced settings
 	urlAdvancedSettings := host + "/organization/" + organizationId + "/cluster/" + clusterId + "/advancedSettings"
-	getRequest, err := http.NewRequest("GET", urlAdvancedSettings, nil)
+	getRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, urlAdvancedSettings, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -207,8 +218,8 @@ func (c ClusterAdvancedSettingsService) ReadClusterAdvancedSettings(
 }
 
 // UpdateClusterAdvancedSettings updates advanced settings by computing the whole HTTP body.
-func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizationId string, clusterId string, advancedSettingsJsonParam string) error {
-	httpClient := &http.Client{}
+func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(ctx context.Context, organizationId string, clusterId string, advancedSettingsJsonParam string) error {
+	httpClient := apiHTTPClient(c.apiConfig)
 	apiToken := c.apiConfig.DefaultHeader["Authorization"]
 	host := c.apiConfig.Servers[0].URL
 
@@ -227,7 +238,7 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 		return err
 	}
 
-	getRequest, err := http.NewRequest("GET", urlAdvancedSettings, nil)
+	getRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, urlAdvancedSettings, nil)
 	if err != nil {
 		return err
 	}
@@ -272,7 +283,7 @@ func (c ClusterAdvancedSettingsService) UpdateClusterAdvancedSettings(organizati
 
 	//
 	// Update advanced settings
-	putRequest, err := http.NewRequest(http.MethodPut, urlAdvancedSettings, bytes.NewBuffer(overriddenAdvancedSettingsJSON))
+	putRequest, err := http.NewRequestWithContext(ctx, http.MethodPut, urlAdvancedSettings, bytes.NewBuffer(overriddenAdvancedSettingsJSON))
 	if err != nil {
 		return err
 	}

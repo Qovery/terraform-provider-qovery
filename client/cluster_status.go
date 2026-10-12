@@ -25,13 +25,7 @@ func (c *Client) updateClusterStatus(ctx context.Context, organizationID string,
 		return nil, apiErr
 	}
 
-	// Wrap status call with retry logic to handle transient errors (DNS failures, timeouts, etc.)
-	var status *qovery.ClusterStatus
-	apiErr := retryAPICall(ctx, func(ctx context.Context) *apierrors.APIError {
-		var err *apierrors.APIError
-		status, err = c.getClusterStatus(ctx, organizationID, cluster.Id)
-		return err
-	})
+	status, apiErr := c.getClusterStatus(ctx, organizationID, cluster.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}

@@ -29,7 +29,7 @@ func warnUnknownAdvancedSettings(
 		return
 	}
 	warnUnknownAdvancedSettingsKeys(ctx, func(advancedSettingsJson string) ([]string, error) {
-		return svc.UnknownSettingKeys(serviceType, advancedSettingsJson)
+		return svc.UnknownSettingKeys(ctx, serviceType, advancedSettingsJson)
 	}, cfg, diags)
 }
 
@@ -44,7 +44,9 @@ func warnUnknownClusterAdvancedSettings(
 	if svc == nil {
 		return
 	}
-	warnUnknownAdvancedSettingsKeys(ctx, svc.UnknownSettingKeys, cfg, diags)
+	warnUnknownAdvancedSettingsKeys(ctx, func(advancedSettingsJson string) ([]string, error) {
+		return svc.UnknownSettingKeys(ctx, advancedSettingsJson)
+	}, cfg, diags)
 }
 
 // warnUnknownAdvancedSettingsKeys reads advanced_settings_json from the config, resolves the
