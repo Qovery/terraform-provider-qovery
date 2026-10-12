@@ -36,15 +36,21 @@ func (s JobSource) toUpsertRequest() job.Source {
 	}
 }
 
-func JobSourceFromDomainJobSource(j job.Source) JobSource {
+func JobSourceFromDomainJobSource(j job.Source, state *JobSource) JobSource {
 	var dkr *Docker = nil
 	if j.Docker != nil {
+		var priorProvider *string
+		if state != nil && state.Docker != nil {
+			priorProvider = ToStringPointer(state.Docker.GitRepository.Provider)
+		}
+
 		dkr = &Docker{
 			GitRepository: GitRepository{
 				Url:        FromString(j.Docker.GitRepository.Url),
 				Branch:     FromStringPointer(j.Docker.GitRepository.Branch),
 				RootPath:   jobRootPathFromAPI(j.Docker.GitRepository.RootPath),
 				GitTokenId: FromStringPointer(j.Docker.GitRepository.GitTokenId),
+				Provider:   FromStringPointer(gitProviderFromDomain(j.Docker.GitRepository.Url, j.Docker.GitRepository.Provider, priorProvider)),
 			},
 			DockerFilePath:         FromStringPointer(j.Docker.DockerFilePath),
 			DockerfileRaw:          FromStringPointer(j.Docker.DockerFileRaw),
@@ -448,7 +454,7 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		prt = &job.Port.InternalPort
 	}
 
-	source := JobSourceFromDomainJobSource(job.Source)
+	source := JobSourceFromDomainJobSource(job.Source, state.Source)
 	schedule := JobScheduleFromDomainJobSchedule(job.Schedule, state.Schedule)
 
 	healthchecks := convertHealthchecksResponseToDomain(job.HealthChecks)

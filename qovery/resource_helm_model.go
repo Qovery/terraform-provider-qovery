@@ -91,6 +91,7 @@ type HelmValuesGitRepository struct {
 	Branch     types.String `tfsdk:"branch"`
 	Paths      types.Set    `tfsdk:"paths"`
 	GitTokenId types.String `tfsdk:"git_token_id"`
+	Provider   types.String `tfsdk:"provider"`
 }
 
 type HelmPort struct {
@@ -320,6 +321,7 @@ func (f HelmValuesOverrideFile) toUpsertRequest() helm.ValuesOverrideFile {
 			Branch:   f.GitRepository.Branch.ValueString(),
 			Paths:    paths,
 			GitToken: gitTokenId,
+			Provider: ToStringPointer(f.GitRepository.Provider),
 		}
 	}
 
@@ -410,11 +412,17 @@ func HelmValuesOverrideFromDomainHelmValuesOverride(ctx context.Context, h helm.
 	// dereference it.
 	var gitRepository *HelmValuesGitRepository
 	if h.File != nil && h.File.GitRepository != nil {
+		var priorProvider *string
+		if state != nil && state.HelmValuesOverrideFile != nil && state.HelmValuesOverrideFile.GitRepository != nil {
+			priorProvider = ToStringPointer(state.HelmValuesOverrideFile.GitRepository.Provider)
+		}
+
 		gitRepository = &HelmValuesGitRepository{
 			Url:        FromString(h.File.GitRepository.Url),
 			Branch:     FromString(h.File.GitRepository.Branch),
 			Paths:      FromStringSet(h.File.GitRepository.Paths),
 			GitTokenId: FromStringPointer(h.File.GitRepository.GitToken),
+			Provider:   FromStringPointer(gitProviderFromDomain(h.File.GitRepository.Url, h.File.GitRepository.Provider, priorProvider)),
 		}
 	}
 

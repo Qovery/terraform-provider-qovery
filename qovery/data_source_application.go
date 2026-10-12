@@ -107,6 +107,10 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 						Optional:            true,
 						Computed:            true,
 					},
+					"provider": schema.StringAttribute{
+						MarkdownDescription: gitRepositoryProviderDescription,
+						Computed:            true,
+					},
 				},
 			},
 			"build_mode": schema.StringAttribute{
@@ -626,6 +630,12 @@ func (d applicationDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	data.Entrypoint = types.StringValue("")
 	state := convertResponseToApplication(ctx, data, application)
 	state.BuildSettings = buildSettingsFromQovery(application.ApplicationBuildSettings)
+	// The git provider reports the API value, also when it matches the URL.
+	if state.GitRepository != nil && application.ApplicationResponse.GitRepository != nil {
+		if provider := application.ApplicationResponse.GitRepository.Provider; provider != "" {
+			state.GitRepository.Provider = FromString(string(provider))
+		}
+	}
 	tflog.Trace(ctx, "read application", map[string]any{"application_id": state.Id.ValueString()})
 
 	// Set state

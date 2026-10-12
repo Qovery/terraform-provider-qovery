@@ -419,6 +419,7 @@ Optional:
 
 Read-Only:
 
+- `provider` (String) Git provider of the repository: `GITHUB`, `GITLAB` or `BITBUCKET`.
 - `url` (String) URL of the git repository, for example `https://github.com/my-org/my-app.git`.
 
 

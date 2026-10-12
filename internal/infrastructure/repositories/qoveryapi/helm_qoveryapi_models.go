@@ -119,6 +119,7 @@ func newDomainHelmFromQovery(helmResponse *qovery.HelmResponse, deploymentStageI
 				Branch:   *git.GitRepository.Branch,
 				Paths:    git.Paths,
 				GitToken: gitToken,
+				Provider: gitProviderPointer(git.GitRepository.Provider),
 			}
 		}
 
@@ -292,7 +293,7 @@ func newQoveryFileValuesOverrideRequestFromDomain(file *helm.ValuesOverrideFile)
 	f.Set(&v)
 
 	if file.GitRepository != nil {
-		provider, err := detectGitProviderFromURL(file.GitRepository.Url)
+		provider, err := ResolveGitProvider(file.GitRepository.Url, file.GitRepository.Provider)
 		if err != nil {
 			return nil, errors.Wrap(err, helm.ErrInvalidUpsertRequest.Error())
 		}

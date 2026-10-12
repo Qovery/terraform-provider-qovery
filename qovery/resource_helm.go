@@ -272,6 +272,13 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 										MarkdownDescription: gitRepositoryTokenIDDescription,
 										Optional:            true,
 									},
+									"provider": schema.StringAttribute{
+										MarkdownDescription: gitRepositoryProviderDescription + gitRepositoryProviderConfigNote,
+										Optional:            true,
+										Validators: []validator.String{
+											validators.NewStringEnumValidator(gitProviderValues),
+										},
+									},
 								},
 							},
 						},

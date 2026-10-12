@@ -13,6 +13,8 @@ type GitRepository struct {
 	CommitID   *string
 	RootPath   *string
 	GitTokenId *string
+	// Provider is the git provider set in the configuration, nil to detect it from Url.
+	Provider *string
 }
 
 func (i GitRepository) Validate() error {
@@ -29,6 +31,7 @@ type NewGitRepositoryParams struct {
 	CommitID   *string
 	RootPath   *string
 	GitTokenId *string
+	Provider   *string
 }
 
 func NewGitRepository(params NewGitRepositoryParams) (*GitRepository, error) {
@@ -38,6 +41,7 @@ func NewGitRepository(params NewGitRepositoryParams) (*GitRepository, error) {
 		CommitID:   params.CommitID,
 		RootPath:   params.RootPath,
 		GitTokenId: params.GitTokenId,
+		Provider:   params.Provider,
 	}
 
 	if err := gitRepository.Validate(); err != nil {

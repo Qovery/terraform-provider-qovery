@@ -359,7 +359,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		MinRunningInstances:          FromInt32Pointer(app.ApplicationResponse.MinRunningInstances),
 		MaxRunningInstances:          FromInt32Pointer(app.ApplicationResponse.MaxRunningInstances),
 		AutoPreview:                  FromBoolPointer(app.ApplicationResponse.AutoPreview),
-		GitRepository:                convertResponseToApplicationGitRepository(app.ApplicationResponse.GitRepository),
+		GitRepository:                convertResponseToApplicationGitRepository(state.GitRepository, app.ApplicationResponse.GitRepository),
 		Storage:                      convertResponseToApplicationStorage(state.Storage, app.ApplicationResponse.Storage),
 		Ports:                        convertResponseToApplicationPorts(state.Ports, app.ApplicationResponse.Ports),
 		BuiltInEnvironmentVariables:  fromEnvironmentVariableList(app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_BUILT_IN, "BUILT_IN").toTerraformList(ctx),
@@ -397,11 +397,12 @@ type ApplicationGitRepository struct {
 	RootPath   types.String `tfsdk:"root_path"`
 	Branch     types.String `tfsdk:"branch"`
 	GitTokenId types.String `tfsdk:"git_token_id"`
+	Provider   types.String `tfsdk:"provider"`
 }
 
 func (repo ApplicationGitRepository) toCreateRequest() (qovery.ApplicationGitRepositoryRequest, error) {
 	url := ToString(repo.URL)
-	provider, err := detectGitProviderFromURL(url)
+	provider, err := qoveryapi.ResolveGitProvider(url, ToStringPointer(repo.Provider))
 	if err != nil {
 		return qovery.ApplicationGitRepositoryRequest{}, err
 	}
@@ -423,9 +424,14 @@ func (repo ApplicationGitRepository) toUpdateRequest() (*qovery.ApplicationGitRe
 	return &req, nil
 }
 
-func convertResponseToApplicationGitRepository(gitRepository *qovery.ApplicationGitRepository) *ApplicationGitRepository {
+func convertResponseToApplicationGitRepository(state *ApplicationGitRepository, gitRepository *qovery.ApplicationGitRepository) *ApplicationGitRepository {
 	if gitRepository == nil {
 		return nil
+	}
+
+	var priorProvider *string
+	if state != nil {
+		priorProvider = ToStringPointer(state.Provider)
 	}
 
 	return &ApplicationGitRepository{
@@ -433,6 +439,7 @@ func convertResponseToApplicationGitRepository(gitRepository *qovery.Application
 		RootPath:   FromStringPointer(gitRepository.RootPath),
 		Branch:     FromStringPointer(gitRepository.Branch),
 		GitTokenId: FromStringPointer(gitRepository.GitTokenId.Get()),
+		Provider:   FromStringPointer(qoveryapi.GitProviderFromAPI(gitRepository.Url, gitRepository.Provider, priorProvider)),
 	}
 }
 

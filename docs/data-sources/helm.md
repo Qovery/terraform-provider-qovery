@@ -287,6 +287,10 @@ Optional:
 
 - `git_token_id` (String) ID of the `qovery_git_token` used to access a private repository.
 
+Read-Only:
+
+- `provider` (String) Git provider of the repository: `GITHUB`, `GITLAB` or `BITBUCKET`.
+
 
 <a id="nestedatt--values_override--file--raw"></a>
 ### Nested Schema for `values_override.file.raw`

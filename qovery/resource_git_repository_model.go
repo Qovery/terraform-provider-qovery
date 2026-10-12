@@ -11,6 +11,7 @@ type GitRepository struct {
 	Branch     types.String `tfsdk:"branch"`
 	RootPath   types.String `tfsdk:"root_path"`
 	GitTokenId types.String `tfsdk:"git_token_id"`
+	Provider   types.String `tfsdk:"provider"`
 }
 
 func (g GitRepository) toUpsertRequest() git_repository.GitRepository {
@@ -37,5 +38,6 @@ func (g GitRepository) toUpsertRequest() git_repository.GitRepository {
 		Branch:     branch,
 		RootPath:   rootPath,
 		GitTokenId: gitTokenId,
+		Provider:   ToStringPointer(g.Provider),
 	}
 }
