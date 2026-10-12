@@ -528,6 +528,10 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 										Optional:            true,
 										Computed:            true,
 									},
+									"provider": schema.StringAttribute{
+										MarkdownDescription: gitRepositoryProviderDescription,
+										Computed:            true,
+									},
 								},
 							},
 						},
@@ -636,6 +640,11 @@ func (d helmDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 		HelmValuesOverrideSetJson:   emptyStringMap(),
 	}
 	state := convertDomainHelmToHelm(ctx, data, h)
+	// The git provider reports the API value, also when it matches the URL.
+	if state.ValuesOverride != nil && state.ValuesOverride.HelmValuesOverrideFile != nil && state.ValuesOverride.HelmValuesOverrideFile.GitRepository != nil &&
+		h.ValuesOverride.File != nil && h.ValuesOverride.File.GitRepository != nil {
+		state.ValuesOverride.HelmValuesOverrideFile.GitRepository.Provider = FromStringPointer(h.ValuesOverride.File.GitRepository.Provider)
+	}
 	tflog.Trace(ctx, "read helm", map[string]any{"helm_id": state.ID.ValueString()})
 
 	// Set state

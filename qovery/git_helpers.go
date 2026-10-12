@@ -1,25 +1,16 @@
 package qovery
 
 import (
-	"fmt"
-	"strings"
-
 	"github.com/qovery/qovery-client-go"
+
+	"github.com/qovery/terraform-provider-qovery/internal/infrastructure/repositories/qoveryapi"
 )
 
-// detectGitProviderFromURL detects the git provider from a git repository URL.
-// It returns the corresponding GitProviderEnum or an error if the provider cannot be determined.
-func detectGitProviderFromURL(url string) (qovery.GitProviderEnum, error) {
-	urlLower := strings.ToLower(url)
-
-	switch {
-	case strings.Contains(urlLower, "github.com"):
-		return qovery.GITPROVIDERENUM_GITHUB, nil
-	case strings.Contains(urlLower, "gitlab.com"):
-		return qovery.GITPROVIDERENUM_GITLAB, nil
-	case strings.Contains(urlLower, "bitbucket.org"):
-		return qovery.GITPROVIDERENUM_BITBUCKET, nil
-	default:
-		return "", fmt.Errorf("unable to detect git provider from URL: %s. Supported providers are: github.com, gitlab.com, bitbucket.org", url)
+// gitProviderFromDomain maps the git provider a domain entity read from the API to the value to
+// store, following qoveryapi.GitProviderFromAPI.
+func gitProviderFromDomain(url string, provider *string, prior *string) *string {
+	if provider == nil {
+		return prior
 	}
+	return qoveryapi.GitProviderFromAPI(url, qovery.GitProviderEnum(*provider), prior)
 }

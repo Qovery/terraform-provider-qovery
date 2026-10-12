@@ -327,6 +327,13 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 										Optional:            true,
 										Computed:            false,
 									},
+									"provider": schema.StringAttribute{
+										MarkdownDescription: gitRepositoryProviderDescription,
+										Optional:            true,
+										Validators: []validator.String{
+											validators.NewStringEnumValidator(gitProviderValues),
+										},
+									},
 								},
 							},
 							"docker_target_build_stage": schema.StringAttribute{

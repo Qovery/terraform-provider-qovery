@@ -14,6 +14,8 @@ type ValuesOverrideGit struct {
 	Branch   string
 	Paths    []string
 	GitToken *string
+	// Provider is the git provider set in the configuration, nil to detect it from Url.
+	Provider *string
 }
 
 type ValuesOverrideFile struct {

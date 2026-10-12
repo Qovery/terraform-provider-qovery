@@ -173,6 +173,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 				CommitID:   j.Source.Docker.GitRepository.DeployedCommitId,
 				RootPath:   j.Source.Docker.GitRepository.RootPath,
 				GitTokenId: j.Source.Docker.GitRepository.GitTokenId.Get(),
+				Provider:   gitProviderPointer(j.Source.Docker.GitRepository.Provider),
 			},
 			DockerFilePath:         j.Source.Docker.DockerfilePath.Get(),
 			DockerFileRaw:          j.Source.Docker.DockerfileRaw.Get(),
@@ -272,7 +273,7 @@ func newDomainJobFromQovery(jobResponse *qovery.JobResponse, deploymentStageID s
 func newQoveryJobRequestFromDomain(request job.UpsertRepositoryRequest, cronTimezone *string) (*qovery.JobRequest, error) {
 	var docker *qovery.JobRequestAllOfSourceDocker = nil
 	if request.Source.Docker != nil {
-		provider, err := detectGitProviderFromURL(request.Source.Docker.GitRepository.Url)
+		provider, err := ResolveGitProvider(request.Source.Docker.GitRepository.Url, request.Source.Docker.GitRepository.Provider)
 		if err != nil {
 			return nil, errors.Wrap(err, job.ErrInvalidJobUpsertRequest.Error())
 		}

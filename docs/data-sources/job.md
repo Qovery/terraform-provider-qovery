@@ -311,6 +311,7 @@ Optional:
 Read-Only:
 
 - `branch` (String) Branch to build.
+- `provider` (String) Git provider of the repository: `GITHUB`, `GITLAB` or `BITBUCKET`. Set it for a self-hosted instance (GitLab self-managed, GitHub Enterprise); when omitted, the provider is detected from a `github.com`, `gitlab.com` or `bitbucket.org` URL. On those hosts it must match the host.
 - `url` (String) URL of the git repository, for example `https://github.com/my-org/my-app.git`.
 
 

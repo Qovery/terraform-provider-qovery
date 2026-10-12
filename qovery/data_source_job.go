@@ -263,6 +263,10 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 										Optional:            true,
 										Computed:            false,
 									},
+									"provider": schema.StringAttribute{
+										MarkdownDescription: gitRepositoryProviderDescription,
+										Computed:            true,
+									},
 								},
 							},
 							"docker_target_build_stage": schema.StringAttribute{
@@ -611,6 +615,10 @@ func (d jobDataSource) Read(ctx context.Context, req datasource.ReadRequest, res
 	data.Schedule = dataSourceJobSchedulePrior()
 	state := convertDomainJobToJob(ctx, data, cont)
 	state.BuildSettings = buildSettingsFromQovery(cont.BuildSettings)
+	// The git provider reports the API value, also when it matches the URL.
+	if state.Source != nil && state.Source.Docker != nil && cont.Source.Docker != nil {
+		state.Source.Docker.GitRepository.Provider = FromStringPointer(cont.Source.Docker.GitRepository.Provider)
+	}
 	tflog.Trace(ctx, "read job", map[string]any{"job_id": state.ID.ValueString()})
 
 	// Set state

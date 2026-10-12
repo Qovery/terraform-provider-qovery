@@ -11,6 +11,7 @@ import (
 
 	"github.com/brianvoe/gofakeit/v6"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/terraform"
 
 	"github.com/qovery/terraform-provider-qovery/client/apierrors"
@@ -297,6 +298,58 @@ func TestAcc_ApplicationWithEphemeralStorage(t *testing.T) {
 				ResourceName:      "qovery_application.test",
 				ImportState:       true,
 				ImportStateVerify: true,
+			},
+		},
+	})
+}
+
+func TestAcc_ApplicationGitProvider(t *testing.T) {
+	t.Parallel()
+	testName := "application-git-provider"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
+		Steps: []resource.TestStep{
+			// Create with an explicit provider matching the public host
+			{
+				Config:           testAccApplicationDefaultConfigWithGitProvider(testName, `"GITHUB"`),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr("qovery_application.test", "git_repository.provider", "GITHUB"),
+				),
+			},
+			// Refresh keeps the explicit provider
+			{
+				RefreshState: true,
+				RefreshPlanChecks: resource.RefreshPlanChecks{
+					PostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.TestCheckResourceAttr("qovery_application.test", "git_repository.provider", "GITHUB"),
+			},
+			// Check Import: a provider the URL already implies reads as null, like a configuration
+			// relying on detection, so it is the only attribute import cannot restore.
+			{
+				ResourceName:            "qovery_application.test",
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"git_repository.provider"},
+			},
+			// A provider conflicting with the public host is rejected before calling the API
+			{
+				Config:      testAccApplicationDefaultConfigWithGitProvider(testName, `"GITLAB"`),
+				ExpectError: regexp.MustCompile(`conflicts with the repository URL`),
+			},
+			// Remove the provider: it is detected from the URL again and the state goes back to null
+			{
+				Config:           testAccApplicationDefaultConfigWithGitProvider(testName, "null"),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "git_repository.provider"),
+				),
 			},
 		},
 	})
@@ -1470,6 +1523,26 @@ resource "qovery_application" "test" {
   advanced_settings_json = jsonencode({"build.timeout_max_sec": 1700})
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(),
+	)
+}
+
+func testAccApplicationDefaultConfigWithGitProvider(testName string, provider string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_application" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  build_mode = "DOCKER"
+  dockerfile_path = "Dockerfile"
+  git_repository = {
+    url = "%s"
+    git_token_id = "%s"
+    provider = %s
+  }
+  healthchecks = {}
+}
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(), provider,
 	)
 }
 

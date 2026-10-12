@@ -100,6 +100,7 @@ const (
 	gitRepositoryURLDescription       = "URL of the git repository, for example `https://github.com/my-org/my-app.git`."
 	gitRepositoryRootPathDescription  = "Directory of the repository to build from, for monorepos."
 	gitRepositoryTokenIDDescription   = "ID of the `qovery_git_token` used to access a private repository."
+	gitRepositoryProviderDescription  = "Git provider of the repository: `GITHUB`, `GITLAB` or `BITBUCKET`. Set it for a self-hosted instance (GitLab self-managed, GitHub Enterprise); when omitted, the provider is detected from a `github.com`, `gitlab.com` or `bitbucket.org` URL. On those hosts it must match the host."
 	dockerfilePathDescription         = "Path of the Dockerfile, relative to `root_path`, for example `Dockerfile`."
 	dockerTargetBuildStageDescription = "Stage of a multi-stage Dockerfile to build."
 )
@@ -326,3 +327,6 @@ func deploymentRestrictionDescriptions(kind string) deploymentRestrictionDescrip
 		Value: "Path the changed files are compared with, for example `src/`.",
 	}
 }
+
+// gitProviderValues are the values of the git_repository `provider` attribute.
+var gitProviderValues = []string{"BITBUCKET", "GITHUB", "GITLAB"}
