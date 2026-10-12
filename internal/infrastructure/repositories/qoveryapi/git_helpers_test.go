@@ -24,6 +24,9 @@ func TestResolveGitProvider(t *testing.T) {
 		{TestName: "detects_github", URL: "https://github.com/qovery/app.git", Expected: qovery.GITPROVIDERENUM_GITHUB},
 		{TestName: "detects_gitlab", URL: "https://gitlab.com/qovery/app.git", Expected: qovery.GITPROVIDERENUM_GITLAB},
 		{TestName: "detects_bitbucket", URL: "https://bitbucket.org/qovery/app.git", Expected: qovery.GITPROVIDERENUM_BITBUCKET},
+		{TestName: "detects_ssh_url", URL: "ssh://git@github.com/qovery/app.git", Expected: qovery.GITPROVIDERENUM_GITHUB},
+		{TestName: "detects_from_host_not_path", URL: "https://gitlab.com/acme/github.com.git", Expected: qovery.GITPROVIDERENUM_GITLAB},
+		{TestName: "public_domain_in_path_only_without_provider_fails", URL: "https://git.example.com/mirrors/github.com/app.git", ErrorContains: "Set `provider`"},
 		{TestName: "empty_provider_detects", URL: "https://github.com/qovery/app.git", Provider: strPtr(""), Expected: qovery.GITPROVIDERENUM_GITHUB},
 		{TestName: "self_hosted_without_provider_fails", URL: "https://gitlab.example.com/group/app.git", ErrorContains: "Set `provider`"},
 		{TestName: "self_hosted_gitlab", URL: "https://gitlab.example.com/group/app.git", Provider: strPtr("GITLAB"), Expected: qovery.GITPROVIDERENUM_GITLAB},
@@ -64,6 +67,7 @@ func TestGitProviderFromAPI(t *testing.T) {
 		Expected *string
 	}{
 		{TestName: "detected_and_unset_stays_null", URL: "https://github.com/qovery/app.git", API: qovery.GITPROVIDERENUM_GITHUB},
+		{TestName: "detected_from_host_not_path_stays_null", URL: "https://gitlab.com/acme/github.com.git", API: qovery.GITPROVIDERENUM_GITLAB},
 		{TestName: "detected_and_set_keeps_value", URL: "https://github.com/qovery/app.git", API: qovery.GITPROVIDERENUM_GITHUB, Prior: strPtr("GITHUB"), Expected: strPtr("GITHUB")},
 		{TestName: "self_hosted_import_reads_api", URL: "https://gitlab.example.com/group/app.git", API: qovery.GITPROVIDERENUM_GITLAB, Expected: strPtr("GITLAB")},
 		{TestName: "changed_outside_terraform_shows", URL: "https://github.com/qovery/app.git", API: qovery.GITPROVIDERENUM_GITLAB, Expected: strPtr("GITLAB")},

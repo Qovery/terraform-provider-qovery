@@ -20,9 +20,9 @@ explained in the matching upgrade guide.
   `provider` (`GITHUB`, `GITLAB` or `BITBUCKET`), so a service can build from a self-hosted
   instance such as GitLab self-managed or GitHub Enterprise. Before, the provider was detected
   from the URL only, and any host other than `github.com`, `gitlab.com` or `bitbucket.org` failed
-  with `unable to detect git provider from URL`. Omitting `provider` keeps the URL detection,
-  and a `provider` that conflicts with a `github.com`, `gitlab.com` or `bitbucket.org` URL is
-  rejected before the API call.
+  with `unable to detect git provider from URL`. Omitting `provider` keeps the detection, which
+  now reads the host of the URL as the API does, and a `provider` that conflicts with a `github.com`,
+  `gitlab.com` or `bitbucket.org` host is rejected before the API call.
   The data sources report the provider. (QOV-2384)
 
 ## [1.0.3] - 2026-10-12

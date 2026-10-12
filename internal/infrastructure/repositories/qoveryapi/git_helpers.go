@@ -8,21 +8,14 @@ import (
 	"github.com/qovery/qovery-client-go"
 )
 
-// DetectGitProviderFromURL detects the git provider from a git repository URL.
-// It returns the corresponding GitProviderEnum or an error if the provider cannot be determined.
+// DetectGitProviderFromURL detects the git provider from the host of a git repository URL, as
+// q-core does: a public domain in the path only, as in https://gitlab.com/acme/github.com.git,
+// does not count. It returns an error when the host is not a public one.
 func DetectGitProviderFromURL(repositoryURL string) (qovery.GitProviderEnum, error) {
-	urlLower := strings.ToLower(repositoryURL)
-
-	switch {
-	case strings.Contains(urlLower, "github.com"):
-		return qovery.GITPROVIDERENUM_GITHUB, nil
-	case strings.Contains(urlLower, "gitlab.com"):
-		return qovery.GITPROVIDERENUM_GITLAB, nil
-	case strings.Contains(urlLower, "bitbucket.org"):
-		return qovery.GITPROVIDERENUM_BITBUCKET, nil
-	default:
-		return "", fmt.Errorf("unable to detect git provider from URL: %s. Set `provider` in `git_repository` for a self-hosted instance (GitLab self-managed, GitHub Enterprise)", repositoryURL)
+	if provider, ok := gitProviderFromHost(repositoryURL); ok {
+		return provider, nil
 	}
+	return "", fmt.Errorf("unable to detect git provider from URL: %s. Set `provider` in `git_repository` for a self-hosted instance (GitLab self-managed, GitHub Enterprise)", repositoryURL)
 }
 
 // ResolveGitProvider returns the configured provider when set, and otherwise detects it from the URL.

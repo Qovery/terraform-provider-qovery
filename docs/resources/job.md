@@ -541,7 +541,7 @@ Required:
 Optional:
 
 - `git_token_id` (String) ID of the `qovery_git_token` used to access a private repository.
-- `provider` (String) Git provider of the repository: `GITHUB`, `GITLAB` or `BITBUCKET`. Set it for a self-hosted instance (GitLab self-managed, GitHub Enterprise); when omitted, the provider is detected from a `github.com`, `gitlab.com` or `bitbucket.org` URL. On those hosts it must match the host.
+- `provider` (String) Git provider of the repository: `GITHUB`, `GITLAB` or `BITBUCKET`. Set it for a self-hosted instance (GitLab self-managed, GitHub Enterprise); when omitted, the provider is detected from a `github.com`, `gitlab.com` or `bitbucket.org` host. On those hosts it must match the host.
 - `root_path` (String) Directory of the repository to build from, for monorepos. Use `/`, not an empty string, for the repository root.
 	- Default: `/`.
 
