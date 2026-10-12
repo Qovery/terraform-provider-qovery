@@ -14,6 +14,8 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.0.3] - 2026-10-12
+
 ### Added
 
 - `qovery_application`, `qovery_job` and `qovery_helm`: the git repository takes an optional
@@ -24,8 +26,6 @@ explained in the matching upgrade guide.
   now reads the host of the URL as the API does, and a `provider` that conflicts with a `github.com`,
   `gitlab.com` or `bitbucket.org` host is rejected before the API call.
   The data sources report the provider. (QOV-2384)
-
-## [1.0.3] - 2026-10-12
 
 ### Fixed
 
