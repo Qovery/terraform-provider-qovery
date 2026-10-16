@@ -14,6 +14,14 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Fixed
+
+- `qovery_application`, `qovery_job` and `qovery_terraform_service`: advanced settings are compared
+  with the defaults of the service's cluster, which can differ from the generic defaults (for
+  example build resources). A value equal to its cluster's default no longer shows as an override
+  in plans or on import. Resources imported earlier may keep such a value in their configuration;
+  removing it is safe (QOV-2424).
+
 ## [1.0.3] - 2026-10-12
 
 ### Added
