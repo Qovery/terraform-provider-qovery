@@ -14,6 +14,8 @@ import (
 )
 
 func TestComputeDefaultServiceAdvancedSettingsUrl(t *testing.T) {
+	t.Parallel()
+
 	cfg := qovery.NewConfiguration()
 	cfg.Servers = qovery.ServerConfigurations{{URL: "https://api.qovery.com"}}
 	service := NewServiceAdvancedSettingsService(cfg)
