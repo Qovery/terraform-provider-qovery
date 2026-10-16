@@ -111,7 +111,7 @@ func (c jobQoveryAPI) Get(ctx context.Context, jobID string, advancedSettingsJso
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
-	advancedSettingsAsJson, buildSettings, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettingsWithBuildSettings(ctx, domain.JOB, jobID, advancedSettingsJsonFromState, isTriggeredFromImport)
+	advancedSettingsAsJson, buildSettings, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettingsWithBuildSettings(ctx, domain.JOB, jobID, jobEnvironmentID(job), advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, nil, err)
 	}
@@ -198,6 +198,19 @@ func (c jobQoveryAPI) Delete(ctx context.Context, jobID string) error {
 	}
 
 	return nil
+}
+
+func jobEnvironmentID(j *qovery.JobResponse) string {
+	switch {
+	case j == nil:
+		return ""
+	case j.CronJobResponse != nil:
+		return j.CronJobResponse.Environment.Id
+	case j.LifecycleJobResponse != nil:
+		return j.LifecycleJobResponse.Environment.Id
+	default:
+		return ""
+	}
 }
 
 // identityOnlyJob is the last resort when a freshly created job cannot be converted from

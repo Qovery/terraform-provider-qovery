@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"sort"
 	"sync"
 
@@ -57,7 +58,7 @@ func (c ServiceAdvancedSettingsService) computeServiceAdvancedSettingsUrl(servic
 }
 
 // Compute the URL to GET default advanced settings for any service type
-func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl(serviceType int) (*string, error) {
+func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl(serviceType int, environmentID string) (*string, error) {
 	host := c.apiConfig.Servers[0].URL
 	var urlAdvancedSettings string
 
@@ -76,18 +77,23 @@ func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl
 		return nil, errors.New("serviceType must be one of APPLICATION / CONTAINER / JOB / HELM / TERRAFORM")
 	}
 
+	// The API then returns the defaults of the environment's cluster, which can differ from the generic ones.
+	if environmentID != "" {
+		urlAdvancedSettings += "?environmentId=" + url.QueryEscape(environmentID)
+	}
+
 	return &urlAdvancedSettings, nil
 }
 
 // ReadServiceAdvancedSettings Get only overridden advanced settings
 func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(ctx context.Context, serviceType int, serviceId string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, error) {
-	advancedSettingsJson, _, err := c.ReadServiceAdvancedSettingsWithBuildSettings(ctx, serviceType, serviceId, advancedSettingsJsonFromState, isTriggeredFromImport)
+	advancedSettingsJson, _, err := c.ReadServiceAdvancedSettingsWithBuildSettings(ctx, serviceType, serviceId, "", advancedSettingsJsonFromState, isTriggeredFromImport)
 	return advancedSettingsJson, err
 }
 
 // ReadServiceAdvancedSettingsWithBuildSettings behaves like ReadServiceAdvancedSettings and also returns the
 // service's build settings, parsed from the unfiltered build.* keys of the same API response.
-func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSettings(ctx context.Context, serviceType int, serviceId string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, *qovery.BuildSettings, error) {
+func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSettings(ctx context.Context, serviceType int, serviceId string, environmentID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, *qovery.BuildSettings, error) {
 	httpClient := apiHTTPClient(c.apiConfig)
 	apiToken := c.apiConfig.DefaultHeader["Authorization"]
 
@@ -141,7 +147,7 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSett
 		return nil, nil, err
 	}
 
-	defaultAdvancedSettingsHashMap, err := c.fetchDefaultAdvancedSettings(ctx, serviceType)
+	defaultAdvancedSettingsHashMap, err := c.fetchDefaultAdvancedSettings(ctx, serviceType, environmentID)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -259,8 +265,8 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(ctx contex
 
 // fetchDefaultAdvancedSettings fetches and parses the default advanced settings for a service
 // type. These represent the full set of valid keys for that service type.
-func (c ServiceAdvancedSettingsService) fetchDefaultAdvancedSettings(ctx context.Context, serviceType int) (map[string]any, error) {
-	defaultAdvancedSettingsUrl, err := c.computeDefaultServiceAdvancedSettingsUrl(serviceType)
+func (c ServiceAdvancedSettingsService) fetchDefaultAdvancedSettings(ctx context.Context, serviceType int, environmentID string) (map[string]any, error) {
+	defaultAdvancedSettingsUrl, err := c.computeDefaultServiceAdvancedSettingsUrl(serviceType, environmentID)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +313,7 @@ func (c ServiceAdvancedSettingsService) defaultSettingKeys(ctx context.Context, 
 		return cached, nil
 	}
 
-	defaults, err := c.fetchDefaultAdvancedSettings(ctx, serviceType)
+	defaults, err := c.fetchDefaultAdvancedSettings(ctx, serviceType, "")
 	if err != nil {
 		return nil, err
 	}
