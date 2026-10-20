@@ -16,6 +16,13 @@ explained in the matching upgrade guide.
 
 ### Added
 
+### Fixed
+
+
+## [1.1.0] - 2026-10-20
+
+### Added
+
 - `qovery_cluster`: with the `AWS_ROLE_ARN` type, `secret_manager_accesses[].authentication`
   accepts `assume_role_arn` and `assume_role_external_id`. The External Secrets Operator then
   assumes that role after authenticating with `role_arn`, for example to read secrets stored in
