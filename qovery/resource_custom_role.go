@@ -222,6 +222,7 @@ func (r customRoleResource) ValidateConfig(ctx context.Context, req resource.Val
 	}
 
 	// the NO_ACCESS check does not depend on the ids, so it also runs when they are unknown
+	remoteAccessUnset := false
 	if !config.ProjectPermissions.IsNull() {
 		for _, elem := range config.ProjectPermissions.Elements() {
 			project, ok := elem.(types.Object)
@@ -245,6 +246,9 @@ func (r customRoleResource) ValidateConfig(ctx context.Context, req resource.Val
 				if level.IsUnknown() || level.IsNull() {
 					continue
 				}
+				if level.ValueString() != string(customrole.ProjectPermissionNoAccess) && (shell.IsNull() || portForward.IsNull()) {
+					remoteAccessUnset = true
+				}
 				if !customrole.RemoteAccessAllowed(customrole.ProjectPermission(level.ValueString()), knownBoolPointer(shell), knownBoolPointer(portForward)) {
 					envType, _ := attrs["environment_type"].(types.String)
 					resp.Diagnostics.AddAttributeError(
@@ -256,6 +260,15 @@ func (r customRoleResource) ValidateConfig(ctx context.Context, req resource.Val
 				}
 			}
 		}
+	}
+
+	if remoteAccessUnset {
+		resp.Diagnostics.AddAttributeWarning(
+			path.Root("project_permissions"),
+			"shell and port_forward will become required",
+			"Some environment types give access without setting shell and port_forward. Set both explicitly: "+
+				"they will be required in the next major version of the provider.",
+		)
 	}
 
 	request := config.toUpsertRequest()

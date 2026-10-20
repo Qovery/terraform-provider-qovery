@@ -100,3 +100,53 @@ func TestCustomRoleValidateConfig_RemoteAccessWithNoAccess(t *testing.T) {
 		})
 	}
 }
+
+func TestCustomRoleValidateConfig_WarnsWhenRemoteAccessIsNotSet(t *testing.T) {
+	on, null := types.BoolValue(true), types.BoolNull()
+	viewer, noAccess := types.StringValue("VIEWER"), types.StringValue("NO_ACCESS")
+
+	// the three other environment types of the helper never set the flags, so they always warn
+	resp := validateCustomRoleConfig(t, customRoleWithProduction(types.StringValue("p"), viewer, on, on))
+	assert.False(t, resp.Diagnostics.HasError(), resp.Diagnostics)
+	assert.Equal(t, 1, resp.Diagnostics.WarningsCount())
+
+	resp = validateCustomRoleConfig(t, customRoleWithProduction(types.StringValue("p"), noAccess, null, null))
+	assert.Equal(t, 1, resp.Diagnostics.WarningsCount())
+}
+
+func TestCustomRoleValidateConfig_NoWarningWhenRemoteAccessIsSet(t *testing.T) {
+	resp := validateCustomRoleConfig(t, customRoleAllSet(types.StringValue("p")))
+	assert.False(t, resp.Diagnostics.HasError(), resp.Diagnostics)
+	assert.Equal(t, 0, resp.Diagnostics.WarningsCount())
+}
+
+// customRoleAllSet sets both flags on every environment type, NO_ACCESS ones included.
+func customRoleAllSet(projectID types.String) CustomRole {
+	env := func(envType, permission string, shell bool) attr.Value {
+		return types.ObjectValueMust(customRoleEnvPermissionAttrTypes, map[string]attr.Value{
+			"environment_type": types.StringValue(envType),
+			"permission":       types.StringValue(permission),
+			"shell":            types.BoolValue(shell),
+			"port_forward":     types.BoolValue(shell),
+		})
+	}
+	return CustomRole{
+		Id:                 types.StringUnknown(),
+		OrganizationId:     types.StringValue("00000000-0000-0000-0000-000000000001"),
+		Name:               types.StringValue("my-role"),
+		Description:        types.StringNull(),
+		ClusterPermissions: types.SetNull(customRoleClusterObjectType),
+		ProjectPermissions: types.SetValueMust(customRoleProjectObjectType, []attr.Value{
+			types.ObjectValueMust(customRoleProjectPermissionAttrTypes, map[string]attr.Value{
+				"project_id": projectID,
+				"is_admin":   types.BoolValue(false),
+				"permissions": types.SetValueMust(types.ObjectType{AttrTypes: customRoleEnvPermissionAttrTypes}, []attr.Value{
+					env("DEVELOPMENT", "MANAGER", true),
+					env("PREVIEW", "VIEWER", false),
+					env("STAGING", "DEPLOYER", true),
+					env("PRODUCTION", "NO_ACCESS", false),
+				}),
+			}),
+		}),
+	}
+}

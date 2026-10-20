@@ -55,9 +55,10 @@ explained in the matching upgrade guide.
   added to the Qovery API.
 - `qovery_custom_role`: `project_permissions[].permissions[]` accepts `shell` and `port_forward`,
   the permissions to open a shell (`qovery shell`, Cloud Shell) and to port-forward on the services
-  of that environment type. Neither can be `true` with `NO_ACCESS`. When not set, Terraform keeps
-  their current value, so a change made from the Console stays; an environment type granted access
-  for the first time gets both from `DEPLOYER` up. The `qovery_custom_role` data source reports them.
+  of that environment type. Neither can be `true` with `NO_ACCESS`. When not set, a value set on
+  purpose (for example revoked from the Console) is kept, otherwise it follows the level: on from
+  `DEPLOYER` up. Not setting them gives a warning: they will be required in the next major version.
+  The `qovery_custom_role` data source reports them.
 
 ### Fixed
 
