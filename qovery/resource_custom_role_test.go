@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
@@ -352,10 +353,43 @@ data "qovery_custom_role" "test" {
   id              = qovery_custom_role.test.id
 }
 `,
-				Check: resource.TestMatchResourceAttr("data.qovery_custom_role.test", "project_permissions.#", regexp.MustCompile(`^[1-9][0-9]*$`)),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckCustomRoleDataSourceRemoteAccess("data.qovery_custom_role.test", "DEVELOPMENT", "false", "true"),
+					testAccCheckCustomRoleDataSourceRemoteAccess("data.qovery_custom_role.test", "PREVIEW", "false", "true"),
+					testAccCheckCustomRoleDataSourceRemoteAccess("data.qovery_custom_role.test", "STAGING", "true", "false"),
+					testAccCheckCustomRoleDataSourceRemoteAccess("data.qovery_custom_role.test", "PRODUCTION", "true", "true"),
+				),
 			},
 		},
 	})
+}
+
+// testAccCheckCustomRoleDataSourceRemoteAccess checks shell and port_forward the data source reports for an
+// environment type of the test project. The nested sets are keyed by hash, so the entry is found by its values.
+func testAccCheckCustomRoleDataSourceRemoteAccess(resourceName, envType, shell, portForward string) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[resourceName]
+		if !ok {
+			return fmt.Errorf("data source not found: %s", resourceName)
+		}
+		attrs := rs.Primary.Attributes
+		for key, value := range attrs {
+			if !strings.HasSuffix(key, ".environment_type") || value != envType {
+				continue
+			}
+			entry := strings.TrimSuffix(key, ".environment_type")
+			projectKey := entry[:strings.Index(entry, ".permissions.")]
+			if attrs[projectKey+".project_id"] != getTestProjectID() {
+				continue
+			}
+			if attrs[entry+".shell"] != shell || attrs[entry+".port_forward"] != portForward {
+				return fmt.Errorf("%s: shell=%s port_forward=%s, expected shell=%s port_forward=%s",
+					envType, attrs[entry+".shell"], attrs[entry+".port_forward"], shell, portForward)
+			}
+			return nil
+		}
+		return fmt.Errorf("%s of the test project is not in %s", envType, resourceName)
+	}
 }
 
 // testAccCustomRoleConfigRemoteAccess has DEVELOPMENT with shell off and port_forward on, PREVIEW at

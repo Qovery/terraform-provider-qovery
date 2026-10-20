@@ -228,6 +228,10 @@ func (r customRoleResource) ValidateConfig(ctx context.Context, req resource.Val
 			if !ok {
 				continue
 			}
+			projectID := "unknown project"
+			if id, ok := project.Attributes()["project_id"].(types.String); ok && !id.IsUnknown() && !id.IsNull() {
+				projectID = id.ValueString()
+			}
 			permissions, _ := project.Attributes()["permissions"].(types.Set)
 			for _, permElem := range permissions.Elements() {
 				env, ok := permElem.(types.Object)
@@ -242,10 +246,11 @@ func (r customRoleResource) ValidateConfig(ctx context.Context, req resource.Val
 					continue
 				}
 				if !customrole.RemoteAccessAllowed(customrole.ProjectPermission(level.ValueString()), knownBoolPointer(shell), knownBoolPointer(portForward)) {
+					envType, _ := attrs["environment_type"].(types.String)
 					resp.Diagnostics.AddAttributeError(
 						path.Root("project_permissions"),
 						"Invalid custom role configuration",
-						customrole.ErrRemoteAccessWithNoAccess.Error(),
+						fmt.Sprintf("%s (project %s, environment type %s)", customrole.ErrRemoteAccessWithNoAccess.Error(), projectID, envType.ValueString()),
 					)
 					return
 				}
