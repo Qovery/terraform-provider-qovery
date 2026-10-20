@@ -249,24 +249,32 @@ const (
 
 // Secret manager accesses.
 const (
-	clusterSecretManagerAccessesDescription     = "Secret managers the cluster reads external secrets from: AWS Parameter Store, AWS Secrets Manager or GCP Secret Manager."
-	secretManagerAccessIDDescription            = "ID of the secret manager access."
-	secretManagerAccessNameDescription          = "Name of the secret manager access."
-	secretManagerEndpointDescription            = "Endpoint of the secret manager."
-	secretManagerEndpointTypeDescription        = "Type of the secret manager: `AWS_PARAMETER_STORE`, `AWS_SECRET_MANAGER` or `GCP_SECRET_MANAGER`."
-	secretManagerEndpointRegionDescription      = "Region of the secret manager."
-	secretManagerEndpointProjectIDDescription   = "ID of the GCP project of the secret manager."
-	secretManagerAuthenticationDescription      = "How the cluster authenticates to the secret manager."
-	secretManagerAuthTypeDescription            = "Authentication mode: `AUTOMATICALLY_CONFIGURED`, `AWS_ROLE_ARN`, `AWS_STATIC_CREDENTIALS` or `GCP_JSON_CREDENTIALS`."
-	secretManagerAuthRoleARNDescription         = "ARN of the IAM role the cluster assumes."
-	secretManagerAuthRegionDescription          = "AWS region of the static credentials."
-	secretManagerAuthAccessKeyDescription       = "AWS access key ID."
-	secretManagerAuthSecretKeyDescription       = "AWS secret access key."
-	secretManagerAuthJSONCredentialsDescription = "JSON key of the GCP service account."
+	clusterSecretManagerAccessesDescription          = "Secret managers the cluster reads external secrets from: AWS Parameter Store, AWS Secrets Manager or GCP Secret Manager."
+	secretManagerAccessIDDescription                 = "ID of the secret manager access."
+	secretManagerAccessNameDescription               = "Name of the secret manager access."
+	secretManagerEndpointDescription                 = "Endpoint of the secret manager."
+	secretManagerEndpointTypeDescription             = "Type of the secret manager: `AWS_PARAMETER_STORE`, `AWS_SECRET_MANAGER` or `GCP_SECRET_MANAGER`."
+	secretManagerEndpointRegionDescription           = "Region of the secret manager."
+	secretManagerEndpointProjectIDDescription        = "ID of the GCP project of the secret manager."
+	secretManagerAuthenticationDescription           = "How the cluster authenticates to the secret manager."
+	secretManagerAuthTypeDescription                 = "Authentication mode: `AUTOMATICALLY_CONFIGURED`, `AWS_ROLE_ARN`, `AWS_STATIC_CREDENTIALS` or `GCP_JSON_CREDENTIALS`."
+	secretManagerAuthRoleARNDescription              = "ARN of the IAM role the cluster assumes."
+	secretManagerAuthAssumeRoleARNDescription        = "ARN of an IAM role that the External Secrets Operator assumes with `sts:AssumeRole` after authenticating with `role_arn`, for example to read secrets stored in another AWS account. Its trust policy must allow `role_arn`, and `role_arn` needs `sts:AssumeRole` on it."
+	secretManagerAuthAssumeRoleExternalIDDescription = "STS external ID sent when assuming `assume_role_arn`, if its trust policy requires one. Requires `assume_role_arn`."
+	secretManagerAuthRegionDescription               = "AWS region of the static credentials."
+	secretManagerAuthAccessKeyDescription            = "AWS access key ID."
+	secretManagerAuthSecretKeyDescription            = "AWS secret access key."
+	secretManagerAuthJSONCredentialsDescription      = "JSON key of the GCP service account."
 )
 
 // requiredWhenType documents an attribute of a secret manager access that
 // toQoverySecretManagerEndpoint or toQoverySecretManagerAuth requires for one type.
 func requiredWhenType(value string) string {
 	return " Required when `type` is `" + value + "`."
+}
+
+// onlyWhenType documents an attribute of a secret manager access that
+// toQoverySecretManagerAuth rejects for any other type.
+func onlyWhenType(value string) string {
+	return " Only allowed when `type` is `" + value + "`."
 }

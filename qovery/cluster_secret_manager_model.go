@@ -16,12 +16,14 @@ var secretManagerEndpointAttrTypes = map[string]attr.Type{
 }
 
 var secretManagerAuthAttrTypes = map[string]attr.Type{
-	"type":             types.StringType,
-	"role_arn":         types.StringType,
-	"region":           types.StringType,
-	"access_key":       types.StringType,
-	"secret_key":       types.StringType,
-	"json_credentials": types.StringType,
+	"type":                    types.StringType,
+	"role_arn":                types.StringType,
+	"assume_role_arn":         types.StringType,
+	"assume_role_external_id": types.StringType,
+	"region":                  types.StringType,
+	"access_key":              types.StringType,
+	"secret_key":              types.StringType,
+	"json_credentials":        types.StringType,
 }
 
 var secretManagerAccessAttrTypes = map[string]attr.Type{
@@ -128,6 +130,16 @@ func toQoverySecretManagerAuth(obj types.Object) (qovery.SecretManagerAuthentica
 	}
 	authType := typeAttr.ValueString()
 
+	assumeRoleArn, hasAssumeRoleArn := nonEmptyStringAttr(attrs, "assume_role_arn")
+	assumeRoleExternalID, hasAssumeRoleExternalID := nonEmptyStringAttr(attrs, "assume_role_external_id")
+	// Only the manual role ARN integration can chain into another role: q-core rejects it elsewhere.
+	if authType != "AWS_ROLE_ARN" && (hasAssumeRoleArn || hasAssumeRoleExternalID) {
+		return qovery.SecretManagerAuthenticationDto{}, errors.New("authentication.assume_role_arn and authentication.assume_role_external_id are only supported when authentication.type is AWS_ROLE_ARN")
+	}
+	if hasAssumeRoleExternalID && !hasAssumeRoleArn {
+		return qovery.SecretManagerAuthenticationDto{}, errors.New("authentication.assume_role_external_id requires authentication.assume_role_arn")
+	}
+
 	switch authType {
 	case "AUTOMATICALLY_CONFIGURED":
 		return qovery.AutomaticallyConfiguredAuthDtoAsSecretManagerAuthenticationDto(&qovery.AutomaticallyConfiguredAuthDto{
@@ -138,10 +150,18 @@ func toQoverySecretManagerAuth(obj types.Object) (qovery.SecretManagerAuthentica
 		if roleArnAttr.IsNull() || roleArnAttr.IsUnknown() || roleArnAttr.ValueString() == "" {
 			return qovery.SecretManagerAuthenticationDto{}, errors.New("authentication.role_arn is required when authentication.type is AWS_ROLE_ARN")
 		}
-		return qovery.AwsRoleArnAuthDtoAsSecretManagerAuthenticationDto(&qovery.AwsRoleArnAuthDto{
+		dto := &qovery.AwsRoleArnAuthDto{
 			Mode:    authType,
 			RoleArn: roleArnAttr.ValueString(),
-		}), nil
+		}
+		if hasAssumeRoleArn {
+			assumeRole := qovery.NewAwsRoleArnAuthDtoAssumeRole(assumeRoleArn)
+			if hasAssumeRoleExternalID {
+				assumeRole.SetExternalId(assumeRoleExternalID)
+			}
+			dto.SetAssumeRole(*assumeRole)
+		}
+		return qovery.AwsRoleArnAuthDtoAsSecretManagerAuthenticationDto(dto), nil
 	case "AWS_STATIC_CREDENTIALS":
 		regionAttr := attrs["region"].(types.String)
 		if regionAttr.IsNull() || regionAttr.IsUnknown() || regionAttr.ValueString() == "" {
@@ -248,12 +268,14 @@ func fromQoverySecretManagerEndpoint(endpoint qovery.SecretManagerEndpointConfig
 
 func fromQoverySecretManagerAuth(auth qovery.SecretManagerAuthenticationDto, planObj types.Object) types.Object {
 	vals := map[string]attr.Value{
-		"type":             types.StringNull(),
-		"role_arn":         types.StringNull(),
-		"region":           types.StringNull(),
-		"access_key":       types.StringNull(),
-		"secret_key":       types.StringNull(),
-		"json_credentials": types.StringNull(),
+		"type":                    types.StringNull(),
+		"role_arn":                types.StringNull(),
+		"assume_role_arn":         types.StringNull(),
+		"assume_role_external_id": types.StringNull(),
+		"region":                  types.StringNull(),
+		"access_key":              types.StringNull(),
+		"secret_key":              types.StringNull(),
+		"json_credentials":        types.StringNull(),
 	}
 
 	// Sensitive fields may be redacted by the API; fall back to plan values.
@@ -280,6 +302,12 @@ func fromQoverySecretManagerAuth(auth qovery.SecretManagerAuthenticationDto, pla
 		dto := auth.AwsRoleArnAuthDto
 		vals["type"] = types.StringValue(dto.Mode)
 		vals["role_arn"] = types.StringValue(dto.RoleArn)
+		if assumeRole, ok := dto.GetAssumeRoleOk(); ok && assumeRole != nil {
+			vals["assume_role_arn"] = types.StringValue(assumeRole.RoleArn)
+			if externalID, ok := assumeRole.GetExternalIdOk(); ok && externalID != nil && *externalID != "" {
+				vals["assume_role_external_id"] = types.StringValue(*externalID)
+			}
+		}
 	case auth.AwsStaticCredentialsAuthDto != nil:
 		dto := auth.AwsStaticCredentialsAuthDto
 		vals["type"] = types.StringValue(dto.Mode)
@@ -301,4 +329,13 @@ func fromQoverySecretManagerAuth(auth qovery.SecretManagerAuthenticationDto, pla
 	}
 
 	return types.ObjectValueMust(secretManagerAuthAttrTypes, vals)
+}
+
+// nonEmptyStringAttr returns the value of a string attribute when it is set to a non-empty value.
+func nonEmptyStringAttr(attrs map[string]attr.Value, key string) (string, bool) {
+	value, ok := attrs[key].(types.String)
+	if !ok || value.IsNull() || value.IsUnknown() || value.ValueString() == "" {
+		return "", false
+	}
+	return value.ValueString(), true
 }

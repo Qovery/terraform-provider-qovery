@@ -7,6 +7,7 @@ import (
 	"maps"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectdefault"
@@ -1132,6 +1133,22 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 								"role_arn": schema.StringAttribute{
 									MarkdownDescription: secretManagerAuthRoleARNDescription + requiredWhenType("AWS_ROLE_ARN"),
 									Optional:            true,
+								},
+								// An empty value is sent as unset and read back as null, which Terraform reports as an
+								// inconsistent result after apply: reject it at plan time.
+								"assume_role_arn": schema.StringAttribute{
+									MarkdownDescription: secretManagerAuthAssumeRoleARNDescription + onlyWhenType("AWS_ROLE_ARN"),
+									Optional:            true,
+									Validators: []validator.String{
+										stringvalidator.LengthAtLeast(1),
+									},
+								},
+								"assume_role_external_id": schema.StringAttribute{
+									MarkdownDescription: secretManagerAuthAssumeRoleExternalIDDescription + onlyWhenType("AWS_ROLE_ARN"),
+									Optional:            true,
+									Validators: []validator.String{
+										stringvalidator.LengthAtLeast(1),
+									},
 								},
 								"region": schema.StringAttribute{
 									MarkdownDescription: secretManagerAuthRegionDescription + requiredWhenType("AWS_STATIC_CREDENTIALS"),
