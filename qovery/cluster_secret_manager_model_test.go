@@ -4,6 +4,7 @@ package qovery
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -26,13 +27,19 @@ func makeEndpointObj(typ, region, projectID string) types.Object {
 }
 
 func makeAuthObj(typ, roleArn, region, accessKey, secretKey, jsonCreds string) types.Object {
+	return makeAuthObjWithAssumeRole(typ, roleArn, "", "", region, accessKey, secretKey, jsonCreds)
+}
+
+func makeAuthObjWithAssumeRole(typ, roleArn, assumeRoleArn, assumeRoleExternalID, region, accessKey, secretKey, jsonCreds string) types.Object {
 	vals := map[string]attr.Value{
-		"type":             strOrNull(typ),
-		"role_arn":         strOrNull(roleArn),
-		"region":           strOrNull(region),
-		"access_key":       strOrNull(accessKey),
-		"secret_key":       strOrNull(secretKey),
-		"json_credentials": strOrNull(jsonCreds),
+		"type":                    strOrNull(typ),
+		"role_arn":                strOrNull(roleArn),
+		"assume_role_arn":         strOrNull(assumeRoleArn),
+		"assume_role_external_id": strOrNull(assumeRoleExternalID),
+		"region":                  strOrNull(region),
+		"access_key":              strOrNull(accessKey),
+		"secret_key":              strOrNull(secretKey),
+		"json_credentials":        strOrNull(jsonCreds),
 	}
 	return types.ObjectValueMust(secretManagerAuthAttrTypes, vals)
 }
@@ -79,6 +86,13 @@ func autoAuthObj() types.Object {
 
 func roleArnAuthObj(roleArn string) types.Object {
 	return makeAuthObj("AWS_ROLE_ARN", roleArn, "", "", "", "")
+}
+
+// testBaseRoleArn is the role ARN that the assume role cases chain from.
+const testBaseRoleArn = "arn:aws:iam::111111111111:role/base"
+
+func roleArnWithAssumeRoleAuthObj(assumeRoleArn, assumeRoleExternalID string) types.Object {
+	return makeAuthObjWithAssumeRole("AWS_ROLE_ARN", testBaseRoleArn, assumeRoleArn, assumeRoleExternalID, "", "", "", "")
 }
 
 func staticCredsAuthObj(region, accessKey, secretKey string) types.Object {
@@ -133,6 +147,19 @@ func roleArnAPIAuth(roleArn string) qovery.SecretManagerAuthenticationDto {
 		Mode:    "AWS_ROLE_ARN",
 		RoleArn: roleArn,
 	})
+}
+
+func roleArnWithAssumeRoleAPIAuth(assumeRoleArn string, assumeRoleExternalID *string) qovery.SecretManagerAuthenticationDto {
+	assumeRole := qovery.NewAwsRoleArnAuthDtoAssumeRole(assumeRoleArn)
+	if assumeRoleExternalID != nil {
+		assumeRole.SetExternalId(*assumeRoleExternalID)
+	}
+	dto := &qovery.AwsRoleArnAuthDto{
+		Mode:    "AWS_ROLE_ARN",
+		RoleArn: testBaseRoleArn,
+	}
+	dto.SetAssumeRole(*assumeRole)
+	return qovery.AwsRoleArnAuthDtoAsSecretManagerAuthenticationDto(dto)
 }
 
 func staticCredsAPIAuth(region, accessKey, secretKey string) qovery.SecretManagerAuthenticationDto {
@@ -357,6 +384,81 @@ func TestAcc_ToQoverySecretManagerAccessRequests(t *testing.T) {
 			)),
 			wantError:     true,
 			errorContains: "json_credentials is required",
+		},
+		{
+			name: "aws_role_arn_auth_with_assume_role_and_external_id",
+			secretManagerAccesses: createSecretManagerAccesses(makeAccessObj("", "cross-account",
+				awsParamEndpointObj("eu-west-1"),
+				roleArnWithAssumeRoleAuthObj("arn:aws:iam::222222222222:role/reader", "prod-eu-1"),
+			)),
+			wantLen: 1,
+			check: func(t *testing.T, reqs []qovery.SecretManagerAccessRequest) {
+				dto := reqs[0].Authentication.AwsRoleArnAuthDto
+				require.NotNil(t, dto)
+				assert.Equal(t, "arn:aws:iam::111111111111:role/base", dto.RoleArn)
+				assumeRole, ok := dto.GetAssumeRoleOk()
+				require.True(t, ok)
+				require.NotNil(t, assumeRole)
+				assert.Equal(t, "arn:aws:iam::222222222222:role/reader", assumeRole.RoleArn)
+				assert.Equal(t, "prod-eu-1", assumeRole.GetExternalId())
+
+				body, err := json.Marshal(reqs[0])
+				require.NoError(t, err)
+				assert.Contains(t, string(body), `"assume_role":{"external_id":"prod-eu-1","role_arn":"arn:aws:iam::222222222222:role/reader"}`)
+			},
+		},
+		{
+			name: "aws_role_arn_auth_with_assume_role_without_external_id",
+			secretManagerAccesses: createSecretManagerAccesses(makeAccessObj("", "cross-account",
+				awsParamEndpointObj("eu-west-1"),
+				roleArnWithAssumeRoleAuthObj("arn:aws:iam::222222222222:role/reader", ""),
+			)),
+			wantLen: 1,
+			check: func(t *testing.T, reqs []qovery.SecretManagerAccessRequest) {
+				body, err := json.Marshal(reqs[0])
+				require.NoError(t, err)
+				assert.Contains(t, string(body), `"assume_role":{"role_arn":"arn:aws:iam::222222222222:role/reader"}`)
+			},
+		},
+		{
+			name: "aws_role_arn_auth_without_assume_role_omits_it",
+			secretManagerAccesses: createSecretManagerAccesses(makeAccessObj("", "same-account",
+				awsParamEndpointObj("eu-west-1"),
+				roleArnAuthObj("arn:aws:iam::111111111111:role/base"),
+			)),
+			wantLen: 1,
+			check: func(t *testing.T, reqs []qovery.SecretManagerAccessRequest) {
+				body, err := json.Marshal(reqs[0])
+				require.NoError(t, err)
+				assert.NotContains(t, string(body), "assume_role")
+			},
+		},
+		{
+			name: "assume_role_arn_on_static_credentials_returns_error",
+			secretManagerAccesses: createSecretManagerAccesses(makeAccessObj("", "x",
+				awsParamEndpointObj("us-east-1"),
+				makeAuthObjWithAssumeRole("AWS_STATIC_CREDENTIALS", "", "arn:aws:iam::222222222222:role/reader", "", "us-east-1", "AK", "SK", ""),
+			)),
+			wantError:     true,
+			errorContains: "only supported when authentication.type is AWS_ROLE_ARN",
+		},
+		{
+			name: "assume_role_external_id_on_automatic_returns_error",
+			secretManagerAccesses: createSecretManagerAccesses(makeAccessObj("", "x",
+				awsParamEndpointObj("us-east-1"),
+				makeAuthObjWithAssumeRole("AUTOMATICALLY_CONFIGURED", "", "", "prod-eu-1", "", "", "", ""),
+			)),
+			wantError:     true,
+			errorContains: "only supported when authentication.type is AWS_ROLE_ARN",
+		},
+		{
+			name: "assume_role_external_id_without_assume_role_arn_returns_error",
+			secretManagerAccesses: createSecretManagerAccesses(makeAccessObj("", "x",
+				awsParamEndpointObj("us-east-1"),
+				roleArnWithAssumeRoleAuthObj("", "prod-eu-1"),
+			)),
+			wantError:     true,
+			errorContains: "assume_role_external_id requires authentication.assume_role_arn",
 		},
 		{
 			name: "unsupported_endpoint_type_returns_error",
@@ -672,6 +774,48 @@ func TestAcc_FromQoverySecretManagerAccesses(t *testing.T) {
 			planSet:  types.SetNull(setType),
 			checkList: func(t *testing.T, result types.Set) {
 				assert.True(t, result.IsNull())
+			},
+		},
+		{
+			name: "aws_role_arn_auth_with_assume_role_reads_both_fields",
+			accesses: []qovery.SecretManagerAccess{
+				makeAPIAccess("id-x", "cross-account", awsParamAPIEndpoint("eu-west-1"),
+					roleArnWithAssumeRoleAPIAuth("arn:aws:iam::222222222222:role/reader", qovery.PtrString("prod-eu-1"))),
+			},
+			planSet: types.SetNull(setType),
+			checkList: func(t *testing.T, result types.Set) {
+				require.Len(t, result.Elements(), 1)
+				authObj := result.Elements()[0].(types.Object).Attributes()["authentication"].(types.Object)
+				assert.Equal(t, "arn:aws:iam::111111111111:role/base", authObj.Attributes()["role_arn"].(types.String).ValueString())
+				assert.Equal(t, "arn:aws:iam::222222222222:role/reader", authObj.Attributes()["assume_role_arn"].(types.String).ValueString())
+				assert.Equal(t, "prod-eu-1", authObj.Attributes()["assume_role_external_id"].(types.String).ValueString())
+			},
+		},
+		{
+			name: "aws_role_arn_auth_with_assume_role_without_external_id_reads_null_external_id",
+			accesses: []qovery.SecretManagerAccess{
+				makeAPIAccess("id-x", "cross-account", awsParamAPIEndpoint("eu-west-1"),
+					roleArnWithAssumeRoleAPIAuth("arn:aws:iam::222222222222:role/reader", nil)),
+			},
+			planSet: types.SetNull(setType),
+			checkList: func(t *testing.T, result types.Set) {
+				authObj := result.Elements()[0].(types.Object).Attributes()["authentication"].(types.Object)
+				assert.Equal(t, "arn:aws:iam::222222222222:role/reader", authObj.Attributes()["assume_role_arn"].(types.String).ValueString())
+				assert.True(t, authObj.Attributes()["assume_role_external_id"].(types.String).IsNull())
+			},
+		},
+		{
+			name: "aws_role_arn_auth_without_assume_role_reads_null_fields",
+			accesses: []qovery.SecretManagerAccess{
+				makeAPIAccess("id-x", "same-account", awsParamAPIEndpoint("eu-west-1"), roleArnAPIAuth("arn:aws:iam::111111111111:role/base")),
+			},
+			// A plan still holding an assume role must not mask its removal outside Terraform
+			planSet: createSecretManagerAccesses(makeAccessObj("id-x", "same-account", awsParamEndpointObj("eu-west-1"),
+				roleArnWithAssumeRoleAuthObj("arn:aws:iam::222222222222:role/reader", "prod-eu-1"))),
+			checkList: func(t *testing.T, result types.Set) {
+				authObj := result.Elements()[0].(types.Object).Attributes()["authentication"].(types.Object)
+				assert.True(t, authObj.Attributes()["assume_role_arn"].(types.String).IsNull())
+				assert.True(t, authObj.Attributes()["assume_role_external_id"].(types.String).IsNull())
 			},
 		},
 	}

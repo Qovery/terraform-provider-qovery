@@ -14,6 +14,16 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Added
+
+- `qovery_cluster`: with the `AWS_ROLE_ARN` type, `secret_manager_accesses[].authentication`
+  accepts `assume_role_arn` and `assume_role_external_id`. The External Secrets Operator then
+  assumes that role after authenticating with `role_arn`, for example to read secrets stored in
+  another AWS account. Setting them with any other type is an error. The `qovery_cluster` data
+  source reports them.
+- `qovery_organization`: `plan` accepts `STARTER_2026`, `GROWTH_2026` and `SCALE_2026`, the plans
+  added to the Qovery API.
+
 ### Fixed
 
 - `qovery_application`, `qovery_job` and `qovery_terraform_service`: advanced settings are compared

@@ -871,6 +871,14 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 									MarkdownDescription: secretManagerAuthRoleARNDescription,
 									Optional:            true,
 								},
+								"assume_role_arn": schema.StringAttribute{
+									MarkdownDescription: secretManagerAuthAssumeRoleARNDescription,
+									Optional:            true,
+								},
+								"assume_role_external_id": schema.StringAttribute{
+									MarkdownDescription: secretManagerAuthAssumeRoleExternalIDDescription,
+									Optional:            true,
+								},
 								"region": schema.StringAttribute{
 									MarkdownDescription: secretManagerAuthRegionDescription,
 									Optional:            true,

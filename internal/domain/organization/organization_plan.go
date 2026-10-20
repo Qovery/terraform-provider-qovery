@@ -21,6 +21,9 @@ const (
 	PlanTeam2025         Plan = "TEAM_2025"
 	PlanBusiness2025     Plan = "BUSINESS_2025"
 	PlanEnterprise2025   Plan = "ENTERPRISE_2025"
+	PlanStarter2026      Plan = "STARTER_2026"
+	PlanGrowth2026       Plan = "GROWTH_2026"
+	PlanScale2026        Plan = "SCALE_2026"
 )
 
 // AllowedPlanValues contains all the valid values of a Plan.
@@ -36,6 +39,9 @@ var AllowedPlanValues = []Plan{
 	PlanTeam2025,
 	PlanBusiness2025,
 	PlanEnterprise2025,
+	PlanStarter2026,
+	PlanGrowth2026,
+	PlanScale2026,
 }
 
 // String returns the string value of a Plan.

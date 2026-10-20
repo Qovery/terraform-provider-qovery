@@ -346,6 +346,8 @@ Required:
 Optional:
 
 - `access_key` (String) AWS access key ID.
+- `assume_role_arn` (String) ARN of an IAM role that the External Secrets Operator assumes with `sts:AssumeRole` after authenticating with `role_arn`, for example to read secrets stored in another AWS account. Its trust policy must allow `role_arn`, and `role_arn` needs `sts:AssumeRole` on it.
+- `assume_role_external_id` (String) STS external ID sent when assuming `assume_role_arn`, if its trust policy requires one. Requires `assume_role_arn`.
 - `json_credentials` (String, Sensitive) JSON key of the GCP service account.
 - `region` (String) AWS region of the static credentials.
 - `role_arn` (String) ARN of the IAM role the cluster assumes.
