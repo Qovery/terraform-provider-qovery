@@ -184,13 +184,19 @@ func (r UpsertRequest) Validate() error {
 			if seenEnvTypes[ep.EnvironmentType] {
 				return errors.Wrap(ErrDuplicateEnvironmentType, string(ep.EnvironmentType))
 			}
-			if ep.Permission == ProjectPermissionNoAccess && (isTrue(ep.Shell) || isTrue(ep.PortForward)) {
+			if !RemoteAccessAllowed(ep.Permission, ep.Shell, ep.PortForward) {
 				return errors.Wrapf(ErrRemoteAccessWithNoAccess, "%s %s", pp.ProjectID, ep.EnvironmentType)
 			}
 			seenEnvTypes[ep.EnvironmentType] = true
 		}
 	}
 	return nil
+}
+
+// RemoteAccessAllowed tells whether shell and port_forward, when set, are compatible with the permission:
+// neither can be true with NO_ACCESS.
+func RemoteAccessAllowed(permission ProjectPermission, shell, portForward *bool) bool {
+	return permission != ProjectPermissionNoAccess || (!isTrue(shell) && !isTrue(portForward))
 }
 
 func isTrue(b *bool) bool {

@@ -222,16 +222,13 @@ func (r customRoleResource) ValidateConfig(ctx context.Context, req resource.Val
 	}
 
 	// the NO_ACCESS check does not depend on the ids, so it also runs when they are unknown
-	if !config.ProjectPermissions.IsNull() && !config.ProjectPermissions.IsUnknown() {
+	if !config.ProjectPermissions.IsNull() {
 		for _, elem := range config.ProjectPermissions.Elements() {
 			project, ok := elem.(types.Object)
 			if !ok {
 				continue
 			}
 			permissions, _ := project.Attributes()["permissions"].(types.Set)
-			if permissions.IsNull() || permissions.IsUnknown() {
-				continue
-			}
 			for _, permElem := range permissions.Elements() {
 				env, ok := permElem.(types.Object)
 				if !ok {
@@ -241,9 +238,10 @@ func (r customRoleResource) ValidateConfig(ctx context.Context, req resource.Val
 				level, _ := attrs["permission"].(types.String)
 				shell, _ := attrs["shell"].(types.Bool)
 				portForward, _ := attrs["port_forward"].(types.Bool)
-				if !level.IsUnknown() && level.ValueString() == string(customrole.ProjectPermissionNoAccess) &&
-					((!shell.IsNull() && !shell.IsUnknown() && shell.ValueBool()) ||
-						(!portForward.IsNull() && !portForward.IsUnknown() && portForward.ValueBool())) {
+				if level.IsUnknown() || level.IsNull() {
+					continue
+				}
+				if !customrole.RemoteAccessAllowed(customrole.ProjectPermission(level.ValueString()), knownBoolPointer(shell), knownBoolPointer(portForward)) {
 					resp.Diagnostics.AddAttributeError(
 						path.Root("project_permissions"),
 						"Invalid custom role configuration",
