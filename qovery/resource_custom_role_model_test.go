@@ -237,7 +237,7 @@ func TestConvertDomainCustomRoleToCustomRoleRemoteAccess(t *testing.T) {
 				"project_id": types.StringValue(declaredProject),
 				"is_admin":   types.BoolValue(false),
 				"permissions": types.SetValueMust(types.ObjectType{AttrTypes: customRoleEnvPermissionAttrTypes}, []attr.Value{
-					declaredEnv(customrole.EnvironmentTypeDevelopment, customrole.ProjectPermissionDeployer, types.BoolValue(false), types.BoolNull()),
+					declaredEnv(customrole.EnvironmentTypeDevelopment, customrole.ProjectPermissionDeployer, types.BoolValue(true), types.BoolNull()),
 					declaredEnv(customrole.EnvironmentTypePreview, customrole.ProjectPermissionViewer, types.BoolNull(), types.BoolValue(false)),
 					declaredEnv(customrole.EnvironmentTypeStaging, customrole.ProjectPermissionNoAccess, types.BoolNull(), types.BoolNull()),
 					declaredEnv(customrole.EnvironmentTypeProduction, customrole.ProjectPermissionManager, types.BoolNull(), types.BoolNull()),

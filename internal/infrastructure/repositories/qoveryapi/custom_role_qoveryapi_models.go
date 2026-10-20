@@ -202,16 +202,18 @@ func storedRemoteAccessByEnvType(current qovery.OrganizationCustomRoleProjectPer
 }
 
 // resolveRemoteAccess decides the shell or port_forward value sent for an environment type: the declared value when
-// set, otherwise false with NO_ACCESS, the current value when the environment type already had access, so an
-// attribute Terraform doesn't manage is never overwritten, and the former rule (DEPLOYER and above) for a newly
-// granted environment type.
+// set, otherwise false with NO_ACCESS, the current value when it was set on purpose (it differs from what the stored
+// level grants by default), so an attribute Terraform doesn't manage is never overwritten, and otherwise the former
+// rule (DEPLOYER and above) for the new level. So raising VIEWER to DEPLOYER turns it on and lowering DEPLOYER to
+// VIEWER turns it off, unless an admin changed it by hand.
 func resolveRemoteAccess(declared *bool, permission customrole.ProjectPermission, storedPermission customrole.ProjectPermission, storedValue bool, hasStored bool) bool {
 	switch {
 	case declared != nil:
 		return *declared
 	case permission == customrole.ProjectPermissionNoAccess:
 		return false
-	case hasStored && storedPermission != customrole.ProjectPermissionNoAccess:
+	case hasStored && storedPermission != customrole.ProjectPermissionNoAccess &&
+		storedValue != storedPermission.GrantsRemoteAccessByDefault():
 		return storedValue
 	default:
 		return permission.GrantsRemoteAccessByDefault()

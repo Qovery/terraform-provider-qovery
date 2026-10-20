@@ -92,8 +92,8 @@ Required:
 
 Optional:
 
-- `port_forward` (Boolean) Whether the role can port-forward to the services of this environment type, with `qovery port-forward`. Cannot be `true` with `NO_ACCESS`. When not set, Terraform doesn't manage it: the current value is kept, and an environment type granted access for the first time gets `true` from `DEPLOYER` upward, `false` below.
-- `shell` (Boolean) Whether the role can open a shell on the services of this environment type, with `qovery shell` or from the console. Cannot be `true` with `NO_ACCESS`. When not set, Terraform doesn't manage it: the current value is kept, and an environment type granted access for the first time gets `true` from `DEPLOYER` upward, `false` below.
+- `port_forward` (Boolean) Whether the role can port-forward to the services of this environment type, with `qovery port-forward`. Cannot be `true` with `NO_ACCESS`. When not set, Terraform doesn't manage it: a value set on purpose (for example revoked from the console) is kept, otherwise it follows the level: `true` from `DEPLOYER` upward, `false` below.
+- `shell` (Boolean) Whether the role can open a shell on the services of this environment type, with `qovery shell` or from the console. Cannot be `true` with `NO_ACCESS`. When not set, Terraform doesn't manage it: a value set on purpose (for example revoked from the console) is kept, otherwise it follows the level: `true` from `DEPLOYER` upward, `false` below.
 ## Import
 ```shell
 terraform import qovery_custom_role.my_custom_role "<organization_id>,<custom_role_id>"

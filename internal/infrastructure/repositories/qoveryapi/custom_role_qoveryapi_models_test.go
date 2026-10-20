@@ -163,6 +163,51 @@ func TestNewQoveryCustomRoleEditRequestFromRemoteAccess(t *testing.T) {
 		assert.Equal(t, flags{false, true}, flagsByEnvType(req, testCustomRoleProjectA)[qovery.ENVIRONMENTMODEENUM_DEVELOPMENT])
 	})
 
+	t.Run("a level change applies the default of the new level when the stored value is the default of the old one", func(t *testing.T) {
+		// VIEWER with both off, DEPLOYER with both on: the stored values were never set on purpose
+		server := customRoleServerRole()
+		server.ProjectPermissions[0].Permissions[0].Permission = customRolePtr(qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_VIEWER)
+		server.ProjectPermissions[0].Permissions[1].Permission = customRolePtr(qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_DEPLOYER)
+		server.ProjectPermissions[0].Permissions[1].Shell = true
+		server.ProjectPermissions[0].Permissions[1].PortForward = true
+
+		req, err := newQoveryCustomRoleEditRequestFrom(server, customrole.UpsertRequest{
+			Name: "my-role",
+			ProjectPermissions: []customrole.ProjectRolePermission{
+				{ProjectID: testCustomRoleProjectA, Permissions: []customrole.EnvironmentPermission{
+					{EnvironmentType: customrole.EnvironmentTypeDevelopment, Permission: customrole.ProjectPermissionDeployer},
+					{EnvironmentType: customrole.EnvironmentTypePreview, Permission: customrole.ProjectPermissionViewer},
+					{EnvironmentType: customrole.EnvironmentTypeStaging, Permission: customrole.ProjectPermissionNoAccess},
+					{EnvironmentType: customrole.EnvironmentTypeProduction, Permission: customrole.ProjectPermissionNoAccess},
+				}},
+			},
+		})
+		require.NoError(t, err)
+		byEnvType := flagsByEnvType(req, testCustomRoleProjectA)
+		assert.Equal(t, flags{true, true}, byEnvType[qovery.ENVIRONMENTMODEENUM_DEVELOPMENT], "VIEWER to DEPLOYER turns them on")
+		assert.Equal(t, flags{false, false}, byEnvType[qovery.ENVIRONMENTMODEENUM_PREVIEW], "DEPLOYER to VIEWER turns them off")
+	})
+
+	t.Run("a shell granted on purpose on a VIEWER survives a level change", func(t *testing.T) {
+		server := customRoleServerRole()
+		server.ProjectPermissions[0].Permissions[0].Permission = customRolePtr(qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_VIEWER)
+		server.ProjectPermissions[0].Permissions[0].Shell = true
+
+		req, err := newQoveryCustomRoleEditRequestFrom(server, customrole.UpsertRequest{
+			Name: "my-role",
+			ProjectPermissions: []customrole.ProjectRolePermission{
+				{ProjectID: testCustomRoleProjectA, Permissions: []customrole.EnvironmentPermission{
+					{EnvironmentType: customrole.EnvironmentTypeDevelopment, Permission: customrole.ProjectPermissionDeployer},
+					{EnvironmentType: customrole.EnvironmentTypePreview, Permission: customrole.ProjectPermissionNoAccess},
+					{EnvironmentType: customrole.EnvironmentTypeStaging, Permission: customrole.ProjectPermissionNoAccess},
+					{EnvironmentType: customrole.EnvironmentTypeProduction, Permission: customrole.ProjectPermissionNoAccess},
+				}},
+			},
+		})
+		require.NoError(t, err)
+		assert.Equal(t, flags{true, true}, flagsByEnvType(req, testCustomRoleProjectA)[qovery.ENVIRONMENTMODEENUM_DEVELOPMENT])
+	})
+
 	t.Run("demoting an admin project keeps shell and port_forward when not set", func(t *testing.T) {
 		server := customRoleServerRole()
 		server.ProjectPermissions[0].IsAdmin = customRolePtr(true)
@@ -172,7 +217,7 @@ func TestNewQoveryCustomRoleEditRequestFromRemoteAccess(t *testing.T) {
 			Name: "my-role",
 			ProjectPermissions: []customrole.ProjectRolePermission{
 				{ProjectID: testCustomRoleProjectA, Permissions: []customrole.EnvironmentPermission{
-					{EnvironmentType: customrole.EnvironmentTypeDevelopment, Permission: customrole.ProjectPermissionViewer},
+					{EnvironmentType: customrole.EnvironmentTypeDevelopment, Permission: customrole.ProjectPermissionManager},
 					{EnvironmentType: customrole.EnvironmentTypePreview, Permission: customrole.ProjectPermissionNoAccess},
 					{EnvironmentType: customrole.EnvironmentTypeStaging, Permission: customrole.ProjectPermissionNoAccess},
 					{EnvironmentType: customrole.EnvironmentTypeProduction, Permission: customrole.ProjectPermissionNoAccess},
