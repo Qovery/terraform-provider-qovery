@@ -24,6 +24,8 @@ var customRoleClusterPermissionAttrTypes = map[string]attr.Type{
 var customRoleEnvPermissionAttrTypes = map[string]attr.Type{
 	"environment_type": types.StringType,
 	"permission":       types.StringType,
+	"shell":            types.BoolType,
+	"port_forward":     types.BoolType,
 }
 
 var customRoleProjectPermissionAttrTypes = map[string]attr.Type{
@@ -75,6 +77,8 @@ func (r CustomRole) toUpsertRequest() *customrole.UpsertRequest {
 					project.Permissions = append(project.Permissions, customrole.EnvironmentPermission{
 						EnvironmentType: customrole.EnvironmentType(ToString(permAttrs["environment_type"].(types.String))),
 						Permission:      customrole.ProjectPermission(ToString(permAttrs["permission"].(types.String))),
+						Shell:           knownBoolPointer(permAttrs["shell"].(types.Bool)),
+						PortForward:     knownBoolPointer(permAttrs["port_forward"].(types.Bool)),
 					})
 				}
 			}
@@ -106,6 +110,70 @@ func isDefaultProjectPermission(p customrole.ProjectRolePermission) bool {
 	return true
 }
 
+// knownBoolPointer returns nil for a null or unknown value: the flag is then left to q-core.
+func knownBoolPointer(value types.Bool) *bool {
+	if value.IsNull() || value.IsUnknown() {
+		return nil
+	}
+	b := value.ValueBool()
+	return &b
+}
+
+type customRoleEnvKey struct {
+	projectID       string
+	environmentType string
+}
+
+// declaredRemoteAccess records, per project and environment type, which of shell and port_forward
+// the prior plan or state sets.
+type declaredRemoteAccess struct {
+	shell       bool
+	portForward bool
+}
+
+func declaredRemoteAccessByEnv(set types.Set) map[customRoleEnvKey]declaredRemoteAccess {
+	declared := make(map[customRoleEnvKey]declaredRemoteAccess)
+	if set.IsNull() || set.IsUnknown() {
+		return declared
+	}
+	for _, elem := range set.Elements() {
+		attrs := elem.(types.Object).Attributes()
+		projectID := ToString(attrs["project_id"].(types.String))
+		permissions, _ := attrs["permissions"].(types.Set)
+		if permissions.IsNull() || permissions.IsUnknown() {
+			continue
+		}
+		for _, permElem := range permissions.Elements() {
+			permAttrs := permElem.(types.Object).Attributes()
+			declared[customRoleEnvKey{projectID, ToString(permAttrs["environment_type"].(types.String))}] = declaredRemoteAccess{
+				shell:       !permAttrs["shell"].(types.Bool).IsNull(),
+				portForward: !permAttrs["port_forward"].(types.Bool).IsNull(),
+			}
+		}
+	}
+	return declared
+}
+
+// remoteAccessStateValue decides what the state records for a shell or port_forward flag: the server
+// value when the flag is declared (or for the data source), null when it is not, so q-core keeps
+// managing it. With nothing declared on the environment type (an undeclared project, or an import),
+// the server value is recorded only when it differs from the q-core default for the permission.
+func remoteAccessStateValue(value *bool, permission customrole.ProjectPermission, declaredFlag bool, envDeclared bool, mode customRoleReadMode) types.Bool {
+	if value == nil {
+		return types.BoolNull()
+	}
+	switch {
+	case mode == customRoleReadModeKeepAll, declaredFlag:
+		return types.BoolValue(*value)
+	case envDeclared:
+		return types.BoolNull()
+	case *value != permission.GrantsRemoteAccessByDefault():
+		return types.BoolValue(*value)
+	default:
+		return types.BoolNull()
+	}
+}
+
 func declaredIDSet(set types.Set, idAttr string) map[string]bool {
 	ids := make(map[string]bool)
 	if set.IsNull() || set.IsUnknown() {
@@ -130,10 +198,12 @@ func declaredIDSet(set types.Set, idAttr string) map[string]bool {
 func convertDomainCustomRoleToCustomRole(role *customrole.CustomRole, declared *CustomRole, mode customRoleReadMode) CustomRole {
 	declaredClusters := map[string]bool{}
 	declaredProjects := map[string]bool{}
+	declaredRemoteAccesses := map[customRoleEnvKey]declaredRemoteAccess{}
 	declaredClustersNull, declaredProjectsNull := true, true
 	if declared != nil {
 		declaredClusters = declaredIDSet(declared.ClusterPermissions, "cluster_id")
 		declaredProjects = declaredIDSet(declared.ProjectPermissions, "project_id")
+		declaredRemoteAccesses = declaredRemoteAccessByEnv(declared.ProjectPermissions)
 		declaredClustersNull = declared.ClusterPermissions.IsNull()
 		declaredProjectsNull = declared.ProjectPermissions.IsNull()
 	}
@@ -158,9 +228,12 @@ func convertDomainCustomRoleToCustomRole(role *customrole.CustomRole, declared *
 		if !pp.IsAdmin {
 			permObjects := make([]attr.Value, 0, len(pp.Permissions))
 			for _, ep := range pp.Permissions {
+				declaredFlags, envDeclared := declaredRemoteAccesses[customRoleEnvKey{pp.ProjectID, string(ep.EnvironmentType)}]
 				permObjects = append(permObjects, types.ObjectValueMust(customRoleEnvPermissionAttrTypes, map[string]attr.Value{
 					"environment_type": FromString(string(ep.EnvironmentType)),
 					"permission":       FromString(string(ep.Permission)),
+					"shell":            remoteAccessStateValue(ep.Shell, ep.Permission, declaredFlags.shell, envDeclared, mode),
+					"port_forward":     remoteAccessStateValue(ep.PortForward, ep.Permission, declaredFlags.portForward, envDeclared, mode),
 				}))
 			}
 			permissionsValue = types.SetValueMust(types.ObjectType{AttrTypes: customRoleEnvPermissionAttrTypes}, permObjects)

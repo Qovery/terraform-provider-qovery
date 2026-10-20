@@ -24,16 +24,16 @@ func customRolePtr[T any](v T) *T { return &v }
 
 // full server matrix: 1 cluster (VIEWER), 2 projects (NO_ACCESS everywhere)
 func customRoleServerRole() *qovery.OrganizationCustomRole {
-	noAccess := func() []qovery.OrganizationCustomRoleUpdateRequestProjectPermissionsInnerPermissionsInner {
-		perms := make([]qovery.OrganizationCustomRoleUpdateRequestProjectPermissionsInnerPermissionsInner, 0, 4)
+	noAccess := func() []qovery.OrganizationCustomRoleProjectPermissionsInnerPermissionsInner {
+		perms := make([]qovery.OrganizationCustomRoleProjectPermissionsInnerPermissionsInner, 0, 4)
 		for _, et := range []qovery.EnvironmentModeEnum{
 			qovery.ENVIRONMENTMODEENUM_DEVELOPMENT, qovery.ENVIRONMENTMODEENUM_PREVIEW,
 			qovery.ENVIRONMENTMODEENUM_STAGING, qovery.ENVIRONMENTMODEENUM_PRODUCTION,
 		} {
 			et := et
-			perms = append(perms, qovery.OrganizationCustomRoleUpdateRequestProjectPermissionsInnerPermissionsInner{
-				EnvironmentType: &et,
-				Permission:      customRolePtr(qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_NO_ACCESS),
+			perms = append(perms, qovery.OrganizationCustomRoleProjectPermissionsInnerPermissionsInner{
+				EnvironmentType: et,
+				Permission:      qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_NO_ACCESS,
 			})
 		}
 		return perms
@@ -63,7 +63,7 @@ func TestNewDomainCustomRoleFromQovery(t *testing.T) {
 	t.Run("full matrix converts, is_admin project keeps nil permissions", func(t *testing.T) {
 		server := customRoleServerRole()
 		server.ProjectPermissions[0].IsAdmin = customRolePtr(true)
-		server.ProjectPermissions[0].Permissions = []qovery.OrganizationCustomRoleUpdateRequestProjectPermissionsInnerPermissionsInner{}
+		server.ProjectPermissions[0].Permissions = []qovery.OrganizationCustomRoleProjectPermissionsInnerPermissionsInner{}
 
 		role, err := newDomainCustomRoleFromQovery(testCustomRoleOrgID, server)
 		require.NoError(t, err)
@@ -78,6 +78,60 @@ func TestNewDomainCustomRoleFromQovery(t *testing.T) {
 		assert.False(t, role.ProjectPermissions[1].IsAdmin)
 		assert.Len(t, role.ProjectPermissions[1].Permissions, 4)
 	})
+}
+
+func TestNewDomainCustomRoleFromQoveryRemoteAccess(t *testing.T) {
+	t.Parallel()
+
+	server := customRoleServerRole()
+	server.ProjectPermissions[1].Permissions[3].Permission = qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_DEPLOYER
+	server.ProjectPermissions[1].Permissions[3].Shell = false
+	server.ProjectPermissions[1].Permissions[3].PortForward = true
+
+	role, err := newDomainCustomRoleFromQovery(testCustomRoleOrgID, server)
+	require.NoError(t, err)
+	assert.Equal(t, customrole.EnvironmentPermission{
+		EnvironmentType: customrole.EnvironmentTypeProduction,
+		Permission:      customrole.ProjectPermissionDeployer,
+		Shell:           customRolePtr(false),
+		PortForward:     customRolePtr(true),
+	}, role.ProjectPermissions[1].Permissions[3])
+}
+
+func TestNewQoveryCustomRoleEditRequestFromRemoteAccess(t *testing.T) {
+	t.Parallel()
+
+	req, err := newQoveryCustomRoleEditRequestFrom(customRoleServerRole(), customrole.UpsertRequest{
+		Name: "my-role",
+		ProjectPermissions: []customrole.ProjectRolePermission{
+			{ProjectID: testCustomRoleProjectA, Permissions: []customrole.EnvironmentPermission{
+				{EnvironmentType: customrole.EnvironmentTypeDevelopment, Permission: customrole.ProjectPermissionDeployer, Shell: customRolePtr(true), PortForward: customRolePtr(false)},
+				{EnvironmentType: customrole.EnvironmentTypePreview, Permission: customrole.ProjectPermissionDeployer},
+				{EnvironmentType: customrole.EnvironmentTypeStaging, Permission: customrole.ProjectPermissionViewer, Shell: customRolePtr(true)},
+				{EnvironmentType: customrole.EnvironmentTypeProduction, Permission: customrole.ProjectPermissionNoAccess},
+			}},
+		},
+	})
+	require.NoError(t, err)
+
+	type flags struct{ shell, portForward *bool }
+	byProjectAndEnv := map[string]map[qovery.EnvironmentModeEnum]flags{}
+	for _, pp := range req.ProjectPermissions {
+		byProjectAndEnv[*pp.ProjectId] = map[qovery.EnvironmentModeEnum]flags{}
+		for _, p := range pp.Permissions {
+			byProjectAndEnv[*pp.ProjectId][*p.EnvironmentType] = flags{p.Shell, p.PortForward}
+		}
+	}
+	// declared flags are sent, the others are left to q-core
+	assert.Equal(t, map[qovery.EnvironmentModeEnum]flags{
+		qovery.ENVIRONMENTMODEENUM_DEVELOPMENT: {customRolePtr(true), customRolePtr(false)},
+		qovery.ENVIRONMENTMODEENUM_PREVIEW:     {nil, nil},
+		qovery.ENVIRONMENTMODEENUM_STAGING:     {customRolePtr(true), nil},
+		qovery.ENVIRONMENTMODEENUM_PRODUCTION:  {nil, nil},
+	}, byProjectAndEnv[testCustomRoleProjectA])
+	for _, f := range byProjectAndEnv[testCustomRoleProjectB] {
+		assert.Equal(t, flags{nil, nil}, f, "undeclared project")
+	}
 }
 
 func TestNewQoveryCustomRoleEditRequestFrom(t *testing.T) {

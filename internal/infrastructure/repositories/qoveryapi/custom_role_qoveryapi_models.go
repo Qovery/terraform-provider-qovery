@@ -43,9 +43,12 @@ func newDomainCustomRoleFromQovery(organizationID string, role *qovery.Organizat
 		if !project.IsAdmin {
 			project.Permissions = make([]customrole.EnvironmentPermission, 0, len(pp.Permissions))
 			for _, ep := range pp.Permissions {
+				shell, portForward := ep.GetShell(), ep.GetPortForward()
 				project.Permissions = append(project.Permissions, customrole.EnvironmentPermission{
 					EnvironmentType: customrole.EnvironmentType(string(ep.GetEnvironmentType())),
 					Permission:      customrole.ProjectPermission(string(ep.GetPermission())),
+					Shell:           &shell,
+					PortForward:     &portForward,
 				})
 			}
 		}
@@ -124,14 +127,17 @@ func newQoveryCustomRoleEditRequestFrom(current *qovery.OrganizationCustomRole, 
 		}
 		if !isAdmin {
 			perms := make([]qovery.OrganizationCustomRoleUpdateRequestProjectPermissionsInnerPermissionsInner, 0, len(customrole.AllowedEnvironmentTypes))
-			declaredByEnvType := make(map[customrole.EnvironmentType]customrole.ProjectPermission, len(envPermissions))
+			declaredByEnvType := make(map[customrole.EnvironmentType]customrole.EnvironmentPermission, len(envPermissions))
 			for _, ep := range envPermissions {
-				declaredByEnvType[ep.EnvironmentType] = ep.Permission
+				declaredByEnvType[ep.EnvironmentType] = ep
 			}
 			for _, envType := range customrole.AllowedEnvironmentTypes {
 				permissionValue := customrole.ProjectPermissionNoAccess
+				// shell and port_forward are only sent when declared: q-core resolves the others
+				var shell, portForward *bool
 				if declared, ok := declaredByEnvType[envType]; ok {
-					permissionValue = declared
+					permissionValue = declared.Permission
+					shell, portForward = declared.Shell, declared.PortForward
 				}
 				et, err := qovery.NewEnvironmentModeEnumFromValue(string(envType))
 				if err != nil {
@@ -144,6 +150,8 @@ func newQoveryCustomRoleEditRequestFrom(current *qovery.OrganizationCustomRole, 
 				perms = append(perms, qovery.OrganizationCustomRoleUpdateRequestProjectPermissionsInnerPermissionsInner{
 					EnvironmentType: et,
 					Permission:      p,
+					Shell:           shell,
+					PortForward:     portForward,
 				})
 			}
 			inner.Permissions = perms

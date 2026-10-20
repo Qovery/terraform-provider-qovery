@@ -30,7 +30,8 @@ resource "qovery_custom_role" "my_custom_role" {
         { environment_type = "DEVELOPMENT", permission = "MANAGER" },
         { environment_type = "PREVIEW", permission = "MANAGER" },
         { environment_type = "STAGING", permission = "DEPLOYER" },
-        { environment_type = "PRODUCTION", permission = "VIEWER" },
+        # shell and port_forward are optional: without them, Qovery grants both from DEPLOYER upward
+        { environment_type = "PRODUCTION", permission = "VIEWER", shell = false, port_forward = true },
       ]
     }
   ]
@@ -88,6 +89,11 @@ Required:
 	- Can be: `DEVELOPMENT`, `PREVIEW`, `PRODUCTION`, `STAGING`.
 - `permission` (String) Permission of the role on the environments of this type.
 	- Can be: `DEPLOYER`, `MANAGER`, `NO_ACCESS`, `VIEWER`.
+
+Optional:
+
+- `port_forward` (Boolean) Whether the role can port-forward to the services of this environment type, with `qovery port-forward`. Cannot be `true` with `NO_ACCESS`. When not set, every apply resets it to the former rule: `true` from `DEPLOYER` upward, `false` below, even after a revocation from the console. Set it to manage it.
+- `shell` (Boolean) Whether the role can open a shell on the services of this environment type, with `qovery shell` or from the console. Cannot be `true` with `NO_ACCESS`. When not set, every apply resets it to the former rule: `true` from `DEPLOYER` upward, `false` below, even after a revocation from the console. Set it to manage it.
 ## Import
 ```shell
 terraform import qovery_custom_role.my_custom_role "<organization_id>,<custom_role_id>"
