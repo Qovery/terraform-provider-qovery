@@ -53,6 +53,11 @@ explained in the matching upgrade guide.
   source reports them.
 - `qovery_organization`: `plan` accepts `STARTER_2026`, `GROWTH_2026` and `SCALE_2026`, the plans
   added to the Qovery API.
+- `qovery_custom_role`: `project_permissions[].permissions[]` accepts `shell` and `port_forward`,
+  the permissions to open a shell (`qovery shell`, Cloud Shell) and to port-forward on the services
+  of that environment type. Neither can be `true` with `NO_ACCESS`. When not set, Terraform keeps
+  their current value, so a change made from the Console stays; an environment type granted access
+  for the first time gets both from `DEPLOYER` up. The `qovery_custom_role` data source reports them.
 
 ### Fixed
 
