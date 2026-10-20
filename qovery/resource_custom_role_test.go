@@ -291,3 +291,150 @@ func testAccQoveryCustomRoleDestroy(resourceName string) resource.TestCheckFunc 
 		return nil
 	}
 }
+
+// Serial like TestAcc_CustomRole (see the comment there).
+func TestAcc_CustomRoleRemoteAccess(t *testing.T) {
+	roleName := generateTestName("custom-role-ra")
+	var roleID string
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryCustomRoleDestroy("qovery_custom_role.test"),
+		Steps: []resource.TestStep{
+			// shell or port_forward cannot be true with NO_ACCESS, rejected at plan time
+			{
+				Config:      testAccCustomRoleConfigRemoteAccess(roleName, `{ environment_type = "PRODUCTION", permission = "NO_ACCESS", shell = true }`, "DEPLOYER"),
+				ExpectError: regexp.MustCompile(`NO_ACCESS`),
+			},
+			// declared flags are sent, the others follow the level
+			{
+				Config: testAccCustomRoleConfigRemoteAccess(roleName, `{ environment_type = "PRODUCTION", permission = "NO_ACCESS" }`, "DEPLOYER"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryCustomRoleExists("qovery_custom_role.test"),
+					testAccCaptureResourceID("qovery_custom_role.test", &roleID),
+					testAccCheckCustomRoleRemoteAccess(&roleID, "DEVELOPMENT", false, true),
+					testAccCheckCustomRoleRemoteAccess(&roleID, "PREVIEW", true, true),
+					testAccCheckCustomRoleRemoteAccess(&roleID, "STAGING", true, false),
+					testAccCheckCustomRoleRemoteAccess(&roleID, "PRODUCTION", false, false),
+				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
+			},
+			// a shell revoked from the console on an environment type where the flag is not set
+			// is not drift: Terraform doesn't manage it
+			{
+				Config: testAccCustomRoleConfigRemoteAccess(roleName, `{ environment_type = "PRODUCTION", permission = "NO_ACCESS" }`, "DEPLOYER"),
+				Check: func(_ *terraform.State) error {
+					return testAccSetCustomRoleShellOutOfBand(roleID, "PREVIEW", false)
+				},
+			},
+			// ... and it survives a change of the level, as the revocation was deliberate
+			{
+				Config: testAccCustomRoleConfigRemoteAccess(roleName, `{ environment_type = "PRODUCTION", permission = "NO_ACCESS" }`, "MANAGER"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckCustomRoleRemoteAccess(&roleID, "PREVIEW", false, true),
+				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
+			},
+			// raising an environment type that was never customised follows the level
+			{
+				Config: testAccCustomRoleConfigRemoteAccess(roleName, `{ environment_type = "PRODUCTION", permission = "DEPLOYER" }`, "MANAGER"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccCheckCustomRoleRemoteAccess(&roleID, "PRODUCTION", true, true),
+				),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
+			},
+			// the data source reports the flags
+			{
+				Config: testAccCustomRoleConfigRemoteAccess(roleName, `{ environment_type = "PRODUCTION", permission = "DEPLOYER" }`, "MANAGER") + `
+data "qovery_custom_role" "test" {
+  organization_id = qovery_custom_role.test.organization_id
+  id              = qovery_custom_role.test.id
+}
+`,
+				Check: resource.TestMatchResourceAttr("data.qovery_custom_role.test", "project_permissions.#", regexp.MustCompile(`^[1-9][0-9]*$`)),
+			},
+		},
+	})
+}
+
+// testAccCustomRoleConfigRemoteAccess has DEVELOPMENT with shell off and port_forward on, PREVIEW at
+// previewPermission with the flags not set, STAGING with shell on, and the given PRODUCTION entry.
+func testAccCustomRoleConfigRemoteAccess(roleName, productionEntry, previewPermission string) string {
+	return fmt.Sprintf(`
+resource "qovery_custom_role" "test" {
+  organization_id = "%s"
+  name            = "%s"
+
+  project_permissions = [
+    {
+      project_id = "%s"
+      permissions = [
+        { environment_type = "DEVELOPMENT", permission = "MANAGER", shell = false, port_forward = true },
+        { environment_type = "PREVIEW", permission = "%s" },
+        { environment_type = "STAGING", permission = "VIEWER", shell = true },
+        %s,
+      ]
+    }
+  ]
+}
+`, getTestOrganizationID(), roleName, getTestProjectID(), previewPermission, productionEntry)
+}
+
+// testAccCheckCustomRoleRemoteAccess checks shell and port_forward of the role on the test project.
+func testAccCheckCustomRoleRemoteAccess(roleID *string, envType string, shell, portForward bool) resource.TestCheckFunc {
+	return func(_ *terraform.State) error {
+		role, err := qoveryServices.CustomRole.Get(context.TODO(), getTestOrganizationID(), *roleID)
+		if err != nil {
+			return err
+		}
+		for _, pp := range role.ProjectPermissions {
+			if pp.ProjectID != getTestProjectID() {
+				continue
+			}
+			for _, ep := range pp.Permissions {
+				if string(ep.EnvironmentType) != envType {
+					continue
+				}
+				gotShell, gotPortForward := ep.Shell != nil && *ep.Shell, ep.PortForward != nil && *ep.PortForward
+				if gotShell != shell || gotPortForward != portForward {
+					return fmt.Errorf("custom role %s on %s: shell=%t port_forward=%t, expected shell=%t port_forward=%t",
+						*roleID, envType, gotShell, gotPortForward, shell, portForward)
+				}
+				return nil
+			}
+		}
+		return fmt.Errorf("%s is not in the matrix of custom role %s", envType, *roleID)
+	}
+}
+
+// testAccSetCustomRoleShellOutOfBand sets shell of the role on an environment type of the test
+// project, bypassing Terraform. The edit resends the whole matrix, as q-core requires.
+func testAccSetCustomRoleShellOutOfBand(roleID, envType string, shell bool) error {
+	apiPath := fmt.Sprintf("/organization/%s/customRole/%s", getTestOrganizationID(), roleID)
+	found := false
+	err := testAccEditServiceOutOfBand(apiPath, nil, func(role map[string]any) {
+		projects, _ := role["project_permissions"].([]any)
+		for _, p := range projects {
+			project, ok := p.(map[string]any)
+			if !ok || project["project_id"] != getTestProjectID() {
+				continue
+			}
+			permissions, _ := project["permissions"].([]any)
+			for _, e := range permissions {
+				entry, ok := e.(map[string]any)
+				if ok && entry["environment_type"] == envType {
+					entry["shell"] = shell
+					found = true
+				}
+			}
+		}
+	})
+	if err != nil {
+		return err
+	}
+	if !found {
+		return fmt.Errorf("custom role %s: %s is not in the matrix", roleID, envType)
+	}
+	return nil
+}
