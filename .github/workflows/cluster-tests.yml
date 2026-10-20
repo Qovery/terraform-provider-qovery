@@ -34,7 +34,8 @@ on:
         required: false
         default: false
   schedule:
-    - cron: "0 3 * * 1-5" # Mon–Fri 03:00 UTC
+    - cron: "0 3 * * 1"   # Monday 03:00 UTC: AWS, Azure, GCP
+    - cron: "0 3 * * 2-5" # Tuesday–Friday 03:00 UTC: AWS, GCP
 
 concurrency:
   group: cluster-tests
@@ -56,7 +57,9 @@ jobs:
       - name: Compute cloud list from trigger
         id: compute
         run: |
-          if [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.cloud }}" = "all" ]; then
+          if [ "${{ github.event_name }}" = "schedule" ] && [ "${{ github.event.schedule }}" = "0 3 * * 2-5" ]; then
+            echo 'clouds=["aws-karpenter","gcp-gke"]' >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "schedule" ] || [ "${{ github.event.inputs.cloud }}" = "all" ]; then
             echo 'clouds=["aws-karpenter","azure-aks","gcp-gke"]' >> "$GITHUB_OUTPUT"
           else
             echo "clouds=[\"${{ github.event.inputs.cloud }}\"]" >> "$GITHUB_OUTPUT"
@@ -182,7 +185,7 @@ jobs:
         run: |
           set -euo pipefail
           if [ "${{ github.event_name }}" = "schedule" ]; then
-            title="Daily Cluster Smoke Tests"
+            title="Scheduled Cluster Smoke Tests"
           else
             title="Cluster Smoke Tests (manual run)"
           fi
