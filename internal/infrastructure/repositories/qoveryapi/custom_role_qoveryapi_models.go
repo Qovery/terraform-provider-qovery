@@ -125,6 +125,7 @@ func newQoveryCustomRoleEditRequestFrom(current *qovery.OrganizationCustomRole, 
 			ProjectId: &projectIDValue,
 			IsAdmin:   &isAdmin,
 		}
+		storedByEnvType := storedRemoteAccessByEnvType(cur)
 		if !isAdmin {
 			perms := make([]qovery.OrganizationCustomRoleUpdateRequestProjectPermissionsInnerPermissionsInner, 0, len(customrole.AllowedEnvironmentTypes))
 			declaredByEnvType := make(map[customrole.EnvironmentType]customrole.EnvironmentPermission, len(envPermissions))
@@ -133,12 +134,14 @@ func newQoveryCustomRoleEditRequestFrom(current *qovery.OrganizationCustomRole, 
 			}
 			for _, envType := range customrole.AllowedEnvironmentTypes {
 				permissionValue := customrole.ProjectPermissionNoAccess
-				// shell and port_forward are only sent when declared: q-core resolves the others
-				var shell, portForward *bool
+				var declaredShell, declaredPortForward *bool
 				if declared, ok := declaredByEnvType[envType]; ok {
 					permissionValue = declared.Permission
-					shell, portForward = declared.Shell, declared.PortForward
+					declaredShell, declaredPortForward = declared.Shell, declared.PortForward
 				}
+				stored, hasStored := storedByEnvType[envType]
+				shell := resolveRemoteAccess(declaredShell, permissionValue, stored.permission, stored.shell, hasStored)
+				portForward := resolveRemoteAccess(declaredPortForward, permissionValue, stored.permission, stored.portForward, hasStored)
 				et, err := qovery.NewEnvironmentModeEnumFromValue(string(envType))
 				if err != nil {
 					return nil, err
@@ -170,4 +173,47 @@ func newQoveryCustomRoleEditRequestFrom(current *qovery.OrganizationCustomRole, 
 		ClusterPermissions: clusterPermissions,
 		ProjectPermissions: projectPermissions,
 	}, nil
+}
+
+type storedRemoteAccess struct {
+	permission  customrole.ProjectPermission
+	shell       bool
+	portForward bool
+}
+
+// storedRemoteAccessByEnvType returns the current shell and port_forward of a project, per environment type.
+// An admin project has both on every environment type.
+func storedRemoteAccessByEnvType(current qovery.OrganizationCustomRoleProjectPermissionsInner) map[customrole.EnvironmentType]storedRemoteAccess {
+	stored := make(map[customrole.EnvironmentType]storedRemoteAccess, len(customrole.AllowedEnvironmentTypes))
+	if current.GetIsAdmin() {
+		for _, envType := range customrole.AllowedEnvironmentTypes {
+			stored[envType] = storedRemoteAccess{permission: customrole.ProjectPermissionManager, shell: true, portForward: true}
+		}
+		return stored
+	}
+	for _, ep := range current.Permissions {
+		stored[customrole.EnvironmentType(string(ep.GetEnvironmentType()))] = storedRemoteAccess{
+			permission:  customrole.ProjectPermission(string(ep.GetPermission())),
+			shell:       ep.GetShell(),
+			portForward: ep.GetPortForward(),
+		}
+	}
+	return stored
+}
+
+// resolveRemoteAccess decides the shell or port_forward value sent for an environment type: the declared value when
+// set, otherwise false with NO_ACCESS, the current value when the environment type already had access, so an
+// attribute Terraform doesn't manage is never overwritten, and the former rule (DEPLOYER and above) for a newly
+// granted environment type.
+func resolveRemoteAccess(declared *bool, permission customrole.ProjectPermission, storedPermission customrole.ProjectPermission, storedValue bool, hasStored bool) bool {
+	switch {
+	case declared != nil:
+		return *declared
+	case permission == customrole.ProjectPermissionNoAccess:
+		return false
+	case hasStored && storedPermission != customrole.ProjectPermissionNoAccess:
+		return storedValue
+	default:
+		return permission.GrantsRemoteAccessByDefault()
+	}
 }

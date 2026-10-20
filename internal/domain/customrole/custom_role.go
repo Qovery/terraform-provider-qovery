@@ -95,8 +95,8 @@ type ClusterRolePermission struct {
 type EnvironmentPermission struct {
 	EnvironmentType EnvironmentType
 	Permission      ProjectPermission
-	// Shell and PortForward are nil when not managed: q-core then applies the former rule, granting
-	// them from DEPLOYER upward.
+	// Shell and PortForward are nil when not managed by Terraform: the current value is then kept, or
+	// granted from DEPLOYER upward on an environment type granted access for the first time.
 	Shell       *bool
 	PortForward *bool
 }

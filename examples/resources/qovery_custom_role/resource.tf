@@ -18,7 +18,7 @@ resource "qovery_custom_role" "my_custom_role" {
         { environment_type = "DEVELOPMENT", permission = "MANAGER" },
         { environment_type = "PREVIEW", permission = "MANAGER" },
         { environment_type = "STAGING", permission = "DEPLOYER" },
-        # shell and port_forward are optional: without them, Qovery grants both from DEPLOYER upward
+        # shell and port_forward are optional: when not set, Terraform keeps their current value
         { environment_type = "PRODUCTION", permission = "VIEWER", shell = false, port_forward = true },
       ]
     }

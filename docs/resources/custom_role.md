@@ -30,7 +30,7 @@ resource "qovery_custom_role" "my_custom_role" {
         { environment_type = "DEVELOPMENT", permission = "MANAGER" },
         { environment_type = "PREVIEW", permission = "MANAGER" },
         { environment_type = "STAGING", permission = "DEPLOYER" },
-        # shell and port_forward are optional: without them, Qovery grants both from DEPLOYER upward
+        # shell and port_forward are optional: when not set, Terraform keeps their current value
         { environment_type = "PRODUCTION", permission = "VIEWER", shell = false, port_forward = true },
       ]
     }
@@ -92,8 +92,8 @@ Required:
 
 Optional:
 
-- `port_forward` (Boolean) Whether the role can port-forward to the services of this environment type, with `qovery port-forward`. Cannot be `true` with `NO_ACCESS`. When not set, every apply resets it to the former rule: `true` from `DEPLOYER` upward, `false` below, even after a revocation from the console. Set it to manage it.
-- `shell` (Boolean) Whether the role can open a shell on the services of this environment type, with `qovery shell` or from the console. Cannot be `true` with `NO_ACCESS`. When not set, every apply resets it to the former rule: `true` from `DEPLOYER` upward, `false` below, even after a revocation from the console. Set it to manage it.
+- `port_forward` (Boolean) Whether the role can port-forward to the services of this environment type, with `qovery port-forward`. Cannot be `true` with `NO_ACCESS`. When not set, Terraform doesn't manage it: the current value is kept, and an environment type granted access for the first time gets `true` from `DEPLOYER` upward, `false` below.
+- `shell` (Boolean) Whether the role can open a shell on the services of this environment type, with `qovery shell` or from the console. Cannot be `true` with `NO_ACCESS`. When not set, Terraform doesn't manage it: the current value is kept, and an environment type granted access for the first time gets `true` from `DEPLOYER` upward, `false` below.
 ## Import
 ```shell
 terraform import qovery_custom_role.my_custom_role "<organization_id>,<custom_role_id>"

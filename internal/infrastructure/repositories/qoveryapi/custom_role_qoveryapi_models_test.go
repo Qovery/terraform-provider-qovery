@@ -32,8 +32,8 @@ func customRoleServerRole() *qovery.OrganizationCustomRole {
 		} {
 			et := et
 			perms = append(perms, qovery.OrganizationCustomRoleProjectPermissionsInnerPermissionsInner{
-				EnvironmentType: et,
-				Permission:      qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_NO_ACCESS,
+				EnvironmentType: &et,
+				Permission:      customRolePtr(qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_NO_ACCESS),
 			})
 		}
 		return perms
@@ -84,7 +84,7 @@ func TestNewDomainCustomRoleFromQoveryRemoteAccess(t *testing.T) {
 	t.Parallel()
 
 	server := customRoleServerRole()
-	server.ProjectPermissions[1].Permissions[3].Permission = qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_DEPLOYER
+	server.ProjectPermissions[1].Permissions[3].Permission = customRolePtr(qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_DEPLOYER)
 	server.ProjectPermissions[1].Permissions[3].Shell = false
 	server.ProjectPermissions[1].Permissions[3].PortForward = true
 
@@ -101,37 +101,88 @@ func TestNewDomainCustomRoleFromQoveryRemoteAccess(t *testing.T) {
 func TestNewQoveryCustomRoleEditRequestFromRemoteAccess(t *testing.T) {
 	t.Parallel()
 
-	req, err := newQoveryCustomRoleEditRequestFrom(customRoleServerRole(), customrole.UpsertRequest{
-		Name: "my-role",
-		ProjectPermissions: []customrole.ProjectRolePermission{
-			{ProjectID: testCustomRoleProjectA, Permissions: []customrole.EnvironmentPermission{
-				{EnvironmentType: customrole.EnvironmentTypeDevelopment, Permission: customrole.ProjectPermissionDeployer, Shell: customRolePtr(true), PortForward: customRolePtr(false)},
-				{EnvironmentType: customrole.EnvironmentTypePreview, Permission: customrole.ProjectPermissionDeployer},
-				{EnvironmentType: customrole.EnvironmentTypeStaging, Permission: customrole.ProjectPermissionViewer, Shell: customRolePtr(true)},
-				{EnvironmentType: customrole.EnvironmentTypeProduction, Permission: customrole.ProjectPermissionNoAccess},
-			}},
-		},
-	})
-	require.NoError(t, err)
-
-	type flags struct{ shell, portForward *bool }
-	byProjectAndEnv := map[string]map[qovery.EnvironmentModeEnum]flags{}
-	for _, pp := range req.ProjectPermissions {
-		byProjectAndEnv[*pp.ProjectId] = map[qovery.EnvironmentModeEnum]flags{}
-		for _, p := range pp.Permissions {
-			byProjectAndEnv[*pp.ProjectId][*p.EnvironmentType] = flags{p.Shell, p.PortForward}
+	type flags struct{ shell, portForward bool }
+	flagsByEnvType := func(req *qovery.OrganizationCustomRoleUpdateRequest, projectID string) map[qovery.EnvironmentModeEnum]flags {
+		byEnvType := map[qovery.EnvironmentModeEnum]flags{}
+		for _, pp := range req.ProjectPermissions {
+			if *pp.ProjectId != projectID {
+				continue
+			}
+			for _, p := range pp.Permissions {
+				byEnvType[*p.EnvironmentType] = flags{p.Shell, p.PortForward}
+			}
 		}
+		return byEnvType
 	}
-	// declared flags are sent, the others are left to q-core
-	assert.Equal(t, map[qovery.EnvironmentModeEnum]flags{
-		qovery.ENVIRONMENTMODEENUM_DEVELOPMENT: {customRolePtr(true), customRolePtr(false)},
-		qovery.ENVIRONMENTMODEENUM_PREVIEW:     {nil, nil},
-		qovery.ENVIRONMENTMODEENUM_STAGING:     {customRolePtr(true), nil},
-		qovery.ENVIRONMENTMODEENUM_PRODUCTION:  {nil, nil},
-	}, byProjectAndEnv[testCustomRoleProjectA])
-	for _, f := range byProjectAndEnv[testCustomRoleProjectB] {
-		assert.Equal(t, flags{nil, nil}, f, "undeclared project")
-	}
+
+	t.Run("declared values are sent, the others follow the level on a newly granted environment type", func(t *testing.T) {
+		// the server role has NO_ACCESS everywhere, so nothing is granted yet
+		req, err := newQoveryCustomRoleEditRequestFrom(customRoleServerRole(), customrole.UpsertRequest{
+			Name: "my-role",
+			ProjectPermissions: []customrole.ProjectRolePermission{
+				{ProjectID: testCustomRoleProjectA, Permissions: []customrole.EnvironmentPermission{
+					{EnvironmentType: customrole.EnvironmentTypeDevelopment, Permission: customrole.ProjectPermissionDeployer, Shell: customRolePtr(false), PortForward: customRolePtr(true)},
+					{EnvironmentType: customrole.EnvironmentTypePreview, Permission: customrole.ProjectPermissionDeployer},
+					{EnvironmentType: customrole.EnvironmentTypeStaging, Permission: customrole.ProjectPermissionViewer, Shell: customRolePtr(true)},
+					{EnvironmentType: customrole.EnvironmentTypeProduction, Permission: customrole.ProjectPermissionNoAccess},
+				}},
+			},
+		})
+		require.NoError(t, err)
+		assert.Equal(t, map[qovery.EnvironmentModeEnum]flags{
+			qovery.ENVIRONMENTMODEENUM_DEVELOPMENT: {false, true},
+			qovery.ENVIRONMENTMODEENUM_PREVIEW:     {true, true},
+			qovery.ENVIRONMENTMODEENUM_STAGING:     {true, false},
+			qovery.ENVIRONMENTMODEENUM_PRODUCTION:  {false, false},
+		}, flagsByEnvType(req, testCustomRoleProjectA))
+		for _, f := range flagsByEnvType(req, testCustomRoleProjectB) {
+			assert.Equal(t, flags{false, false}, f, "undeclared project is NO_ACCESS")
+		}
+	})
+
+	t.Run("an attribute not set keeps the current value, so a revocation made in the console survives", func(t *testing.T) {
+		// given shell revoked from the console on a DEPLOYER environment type
+		server := customRoleServerRole()
+		server.ProjectPermissions[0].Permissions[0].Permission = customRolePtr(qovery.ORGANIZATIONCUSTOMROLEPROJECTPERMISSION_DEPLOYER)
+		server.ProjectPermissions[0].Permissions[0].Shell = false
+		server.ProjectPermissions[0].Permissions[0].PortForward = true
+
+		// when the level changes without shell nor port_forward in the configuration
+		req, err := newQoveryCustomRoleEditRequestFrom(server, customrole.UpsertRequest{
+			Name: "my-role",
+			ProjectPermissions: []customrole.ProjectRolePermission{
+				{ProjectID: testCustomRoleProjectA, Permissions: []customrole.EnvironmentPermission{
+					{EnvironmentType: customrole.EnvironmentTypeDevelopment, Permission: customrole.ProjectPermissionManager},
+					{EnvironmentType: customrole.EnvironmentTypePreview, Permission: customrole.ProjectPermissionNoAccess},
+					{EnvironmentType: customrole.EnvironmentTypeStaging, Permission: customrole.ProjectPermissionNoAccess},
+					{EnvironmentType: customrole.EnvironmentTypeProduction, Permission: customrole.ProjectPermissionNoAccess},
+				}},
+			},
+		})
+		require.NoError(t, err)
+		assert.Equal(t, flags{false, true}, flagsByEnvType(req, testCustomRoleProjectA)[qovery.ENVIRONMENTMODEENUM_DEVELOPMENT])
+	})
+
+	t.Run("demoting an admin project keeps shell and port_forward when not set", func(t *testing.T) {
+		server := customRoleServerRole()
+		server.ProjectPermissions[0].IsAdmin = customRolePtr(true)
+		server.ProjectPermissions[0].Permissions = nil
+
+		req, err := newQoveryCustomRoleEditRequestFrom(server, customrole.UpsertRequest{
+			Name: "my-role",
+			ProjectPermissions: []customrole.ProjectRolePermission{
+				{ProjectID: testCustomRoleProjectA, Permissions: []customrole.EnvironmentPermission{
+					{EnvironmentType: customrole.EnvironmentTypeDevelopment, Permission: customrole.ProjectPermissionViewer},
+					{EnvironmentType: customrole.EnvironmentTypePreview, Permission: customrole.ProjectPermissionNoAccess},
+					{EnvironmentType: customrole.EnvironmentTypeStaging, Permission: customrole.ProjectPermissionNoAccess},
+					{EnvironmentType: customrole.EnvironmentTypeProduction, Permission: customrole.ProjectPermissionNoAccess},
+				}},
+			},
+		})
+		require.NoError(t, err)
+		assert.Equal(t, flags{true, true}, flagsByEnvType(req, testCustomRoleProjectA)[qovery.ENVIRONMENTMODEENUM_DEVELOPMENT])
+		assert.Equal(t, flags{false, false}, flagsByEnvType(req, testCustomRoleProjectA)[qovery.ENVIRONMENTMODEENUM_PREVIEW])
+	})
 }
 
 func TestNewQoveryCustomRoleEditRequestFrom(t *testing.T) {
