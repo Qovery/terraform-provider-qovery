@@ -16,12 +16,15 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-// errorPaths returns the attribute paths of the errors in diags, sorted.
+// errorPaths returns the attribute paths of the errors in diags, sorted. An error without a path
+// counts as "<unscoped>", so a test cannot pass while one is reported.
 func errorPaths(diags diag.Diagnostics) []string {
 	paths := []string{}
 	for _, d := range diags.Errors() {
 		if withPath, ok := d.(diag.DiagnosticWithPath); ok {
 			paths = append(paths, withPath.Path().String())
+		} else {
+			paths = append(paths, "<unscoped>")
 		}
 	}
 	sort.Strings(paths)

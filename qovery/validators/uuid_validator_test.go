@@ -23,7 +23,6 @@ func TestUUIDValidator_ValidateString(t *testing.T) {
 		ExpectError bool
 	}{
 		{TestName: "success_uuid", ConfigValue: types.StringValue("6e2c3b8f-3d1a-4f0b-9a7e-2c5d8e1f4a6b")},
-		{TestName: "success_uppercase_uuid", ConfigValue: types.StringValue("6E2C3B8F-3D1A-4F0B-9A7E-2C5D8E1F4A6B")},
 		// Built-in organization roles have placeholder ids that are not RFC 4122 UUIDs.
 		{TestName: "success_builtin_role_placeholder_id", ConfigValue: types.StringValue("11111111-1111-1111-1111-111111111111")},
 		{TestName: "success_null", ConfigValue: types.StringNull()},
@@ -32,6 +31,12 @@ func TestUUIDValidator_ValidateString(t *testing.T) {
 		{TestName: "error_empty", ConfigValue: types.StringValue(""), ExpectError: true},
 		{TestName: "error_truncated_uuid", ConfigValue: types.StringValue("6e2c3b8f-3d1a-4f0b-9a7e-2c5d8e1f4a6"), ExpectError: true},
 		{TestName: "error_surrounding_space", ConfigValue: types.StringValue(" 6e2c3b8f-3d1a-4f0b-9a7e-2c5d8e1f4a6b"), ExpectError: true},
+		// uuid.Parse accepts these spellings, but the API returns the lowercase form with dashes,
+		// so they fail at apply.
+		{TestName: "error_uppercase_uuid", ConfigValue: types.StringValue("6E2C3B8F-3D1A-4F0B-9A7E-2C5D8E1F4A6B"), ExpectError: true},
+		{TestName: "error_braced_uuid", ConfigValue: types.StringValue("{6e2c3b8f-3d1a-4f0b-9a7e-2c5d8e1f4a6b}"), ExpectError: true},
+		{TestName: "error_urn_uuid", ConfigValue: types.StringValue("urn:uuid:6e2c3b8f-3d1a-4f0b-9a7e-2c5d8e1f4a6b"), ExpectError: true},
+		{TestName: "error_uuid_without_dashes", ConfigValue: types.StringValue("6e2c3b8f3d1a4f0b9a7e2c5d8e1f4a6b"), ExpectError: true},
 	}
 
 	for _, tc := range testCases {

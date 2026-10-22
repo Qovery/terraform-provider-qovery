@@ -16,9 +16,11 @@ var (
 	_ validator.Set    = UUIDValidator{}
 )
 
-// UUIDValidator validates that a string, or every string of a set, is a UUID. It is meant for the
-// attributes that reference a Qovery entity (organization_id, cluster_id, ...): it parses with
-// uuid.Parse, as the services do before calling the API, so plan rejects only what apply rejects.
+// UUIDValidator validates that a string, or every string of a set, is a UUID in its canonical form:
+// lowercase, with dashes. It is meant for the attributes that reference a Qovery entity
+// (organization_id, cluster_id, ...). The provider reads these ids back from the API in that form,
+// and some services check it, so any other spelling that uuid.Parse accepts (uppercase, braces,
+// urn:uuid:, no dashes) fails at apply: plan rejects only what apply rejects.
 // Null and unknown values pass: a reference to another resource is unknown until it is created.
 type UUIDValidator struct{}
 
@@ -60,11 +62,11 @@ func validateUUID(valuePath, attributePath path.Path, str types.String) diag.Dia
 	if str.IsNull() || str.IsUnknown() {
 		return diags
 	}
-	if _, err := uuid.Parse(str.ValueString()); err != nil {
+	if parsed, err := uuid.Parse(str.ValueString()); err != nil || parsed.String() != str.ValueString() {
 		diags.AddAttributeError(
 			valuePath,
 			"Invalid UUID",
-			fmt.Sprintf("%s must be the UUID of a Qovery entity, such as the id attribute of the resource it references, got: %q.", attributePath, str.ValueString()),
+			fmt.Sprintf("%s must be the UUID of a Qovery entity, in lowercase with dashes, such as the id attribute of the resource it references, got: %q.", attributePath, str.ValueString()),
 		)
 	}
 	return diags
