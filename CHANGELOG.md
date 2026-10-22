@@ -14,6 +14,8 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-10-22
+
 ### Added
 
 - `terraform plan` now rejects a malformed reference to a Qovery entity, which before failed
@@ -39,9 +41,6 @@ explained in the matching upgrade guide.
   and the API rejected it. The configuration of such a registry that sets only `region` must now
   add its `role_arn`. Setting `role_arn` with `access_key_id` or `secret_access_key` fails at
   `terraform plan`, since the API keeps only one of them. (QOV-2383)
-
-### Fixed
-
 
 ## [1.1.0] - 2026-10-20
 
@@ -465,7 +464,9 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.3...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.1.0...v1.2.0
+[1.1.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.2...v1.0.3
 [1.0.2]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.1...v1.0.2
 [1.0.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.0...v1.0.1
