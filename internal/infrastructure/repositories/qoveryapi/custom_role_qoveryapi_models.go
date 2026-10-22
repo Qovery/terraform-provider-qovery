@@ -43,9 +43,12 @@ func newDomainCustomRoleFromQovery(organizationID string, role *qovery.Organizat
 		if !project.IsAdmin {
 			project.Permissions = make([]customrole.EnvironmentPermission, 0, len(pp.Permissions))
 			for _, ep := range pp.Permissions {
+				shell, portForward := ep.GetShell(), ep.GetPortForward()
 				project.Permissions = append(project.Permissions, customrole.EnvironmentPermission{
 					EnvironmentType: customrole.EnvironmentType(string(ep.GetEnvironmentType())),
 					Permission:      customrole.ProjectPermission(string(ep.GetPermission())),
+					Shell:           &shell,
+					PortForward:     &portForward,
 				})
 			}
 		}
@@ -124,15 +127,19 @@ func newQoveryCustomRoleEditRequestFrom(current *qovery.OrganizationCustomRole, 
 		}
 		if !isAdmin {
 			perms := make([]qovery.OrganizationCustomRoleUpdateRequestProjectPermissionsInnerPermissionsInner, 0, len(customrole.AllowedEnvironmentTypes))
-			declaredByEnvType := make(map[customrole.EnvironmentType]customrole.ProjectPermission, len(envPermissions))
+			declaredByEnvType := make(map[customrole.EnvironmentType]customrole.EnvironmentPermission, len(envPermissions))
 			for _, ep := range envPermissions {
-				declaredByEnvType[ep.EnvironmentType] = ep.Permission
+				declaredByEnvType[ep.EnvironmentType] = ep
 			}
 			for _, envType := range customrole.AllowedEnvironmentTypes {
 				permissionValue := customrole.ProjectPermissionNoAccess
+				var declaredShell, declaredPortForward *bool
 				if declared, ok := declaredByEnvType[envType]; ok {
-					permissionValue = declared
+					permissionValue = declared.Permission
+					declaredShell, declaredPortForward = declared.Shell, declared.PortForward
 				}
+				shell := resolveRemoteAccess(declaredShell, permissionValue)
+				portForward := resolveRemoteAccess(declaredPortForward, permissionValue)
 				et, err := qovery.NewEnvironmentModeEnumFromValue(string(envType))
 				if err != nil {
 					return nil, err
@@ -144,6 +151,8 @@ func newQoveryCustomRoleEditRequestFrom(current *qovery.OrganizationCustomRole, 
 				perms = append(perms, qovery.OrganizationCustomRoleUpdateRequestProjectPermissionsInnerPermissionsInner{
 					EnvironmentType: et,
 					Permission:      p,
+					Shell:           shell,
+					PortForward:     portForward,
 				})
 			}
 			inner.Permissions = perms
@@ -162,4 +171,13 @@ func newQoveryCustomRoleEditRequestFrom(current *qovery.OrganizationCustomRole, 
 		ClusterPermissions: clusterPermissions,
 		ProjectPermissions: projectPermissions,
 	}, nil
+}
+
+// resolveRemoteAccess decides the shell or port_forward value sent for an environment type: the declared value when
+// set, otherwise the one the level grants by default (DEPLOYER and above, never with NO_ACCESS).
+func resolveRemoteAccess(declared *bool, permission customrole.ProjectPermission) bool {
+	if declared != nil {
+		return *declared
+	}
+	return permission.GrantsRemoteAccessByDefault()
 }

@@ -71,6 +71,26 @@ func TestUpsertRequestValidate(t *testing.T) {
 		{description: "invalid project permission", mutate: func(r *customrole.UpsertRequest) {
 			r.ProjectPermissions[1].Permissions[0].Permission = "GOD"
 		}, expectedErr: customrole.ErrInvalidProjectPermission},
+		{description: "shell with NO_ACCESS", mutate: func(r *customrole.UpsertRequest) {
+			shell := true
+			r.ProjectPermissions[1].Permissions[3].Permission = customrole.ProjectPermissionNoAccess
+			r.ProjectPermissions[1].Permissions[3].Shell = &shell
+		}, expectedErr: customrole.ErrRemoteAccessWithNoAccess},
+		{description: "port_forward with NO_ACCESS", mutate: func(r *customrole.UpsertRequest) {
+			portForward := true
+			r.ProjectPermissions[1].Permissions[3].Permission = customrole.ProjectPermissionNoAccess
+			r.ProjectPermissions[1].Permissions[3].PortForward = &portForward
+		}, expectedErr: customrole.ErrRemoteAccessWithNoAccess},
+		{description: "shell and port_forward revoked with NO_ACCESS is valid", mutate: func(r *customrole.UpsertRequest) {
+			revoked := false
+			r.ProjectPermissions[1].Permissions[3].Permission = customrole.ProjectPermissionNoAccess
+			r.ProjectPermissions[1].Permissions[3].Shell = &revoked
+			r.ProjectPermissions[1].Permissions[3].PortForward = &revoked
+		}, expectedErr: nil},
+		{description: "shell with read-only access is valid", mutate: func(r *customrole.UpsertRequest) {
+			shell := true
+			r.ProjectPermissions[1].Permissions[3].Shell = &shell
+		}, expectedErr: nil},
 	}
 
 	for _, tc := range testCases {

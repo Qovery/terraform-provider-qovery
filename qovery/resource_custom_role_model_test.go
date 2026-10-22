@@ -197,3 +197,119 @@ func TestConvertDomainCustomRoleToCustomRole(t *testing.T) {
 		})
 	}
 }
+
+func TestConvertDomainCustomRoleToCustomRoleRemoteAccess(t *testing.T) {
+	t.Parallel()
+
+	declaredProject, consoleProject := uuid.NewString(), uuid.NewString()
+	envPermission := func(envType customrole.EnvironmentType, permission customrole.ProjectPermission, shell, portForward bool) customrole.EnvironmentPermission {
+		return customrole.EnvironmentPermission{EnvironmentType: envType, Permission: permission, Shell: &shell, PortForward: &portForward}
+	}
+	// what the API returns for both projects: a DEPLOYER whose shell was revoked, and the defaults elsewhere
+	serverPermissions := []customrole.EnvironmentPermission{
+		envPermission(customrole.EnvironmentTypeDevelopment, customrole.ProjectPermissionDeployer, false, true),
+		envPermission(customrole.EnvironmentTypePreview, customrole.ProjectPermissionViewer, false, false),
+		envPermission(customrole.EnvironmentTypeStaging, customrole.ProjectPermissionNoAccess, false, false),
+		envPermission(customrole.EnvironmentTypeProduction, customrole.ProjectPermissionManager, true, true),
+	}
+	role := &customrole.CustomRole{
+		ID:             uuid.New(),
+		OrganizationID: uuid.New(),
+		Name:           "role",
+		ProjectPermissions: []customrole.ProjectRolePermission{
+			{ProjectID: declaredProject, Permissions: serverPermissions},
+			{ProjectID: consoleProject, Permissions: serverPermissions},
+		},
+	}
+	// declared in the configuration: shell on DEVELOPMENT, port_forward on PREVIEW, nothing elsewhere
+	declaredEnv := func(envType customrole.EnvironmentType, permission customrole.ProjectPermission, shell, portForward types.Bool) attr.Value {
+		return types.ObjectValueMust(customRoleEnvPermissionAttrTypes, map[string]attr.Value{
+			"environment_type": types.StringValue(string(envType)),
+			"permission":       types.StringValue(string(permission)),
+			"shell":            shell,
+			"port_forward":     portForward,
+		})
+	}
+	declared := &CustomRole{
+		ClusterPermissions: types.SetNull(customRoleClusterObjectType),
+		ProjectPermissions: types.SetValueMust(customRoleProjectObjectType, []attr.Value{
+			types.ObjectValueMust(customRoleProjectPermissionAttrTypes, map[string]attr.Value{
+				"project_id": types.StringValue(declaredProject),
+				"is_admin":   types.BoolValue(false),
+				"permissions": types.SetValueMust(types.ObjectType{AttrTypes: customRoleEnvPermissionAttrTypes}, []attr.Value{
+					declaredEnv(customrole.EnvironmentTypeDevelopment, customrole.ProjectPermissionDeployer, types.BoolValue(true), types.BoolNull()),
+					declaredEnv(customrole.EnvironmentTypePreview, customrole.ProjectPermissionViewer, types.BoolNull(), types.BoolValue(false)),
+					declaredEnv(customrole.EnvironmentTypeStaging, customrole.ProjectPermissionNoAccess, types.BoolNull(), types.BoolNull()),
+					declaredEnv(customrole.EnvironmentTypeProduction, customrole.ProjectPermissionManager, types.BoolNull(), types.BoolNull()),
+				}),
+			}),
+		}),
+	}
+
+	type flags struct{ shell, portForward types.Bool }
+	null, on, off := types.BoolNull(), types.BoolValue(true), types.BoolValue(false)
+
+	testCases := []struct {
+		TestName string
+		Declared *CustomRole
+		Mode     customRoleReadMode
+		Expect   map[string]map[string]flags
+	}{
+		{
+			TestName: "declared_flags_track_the_server_and_undeclared_ones_stay_null",
+			Declared: declared,
+			Mode:     customRoleReadModeDeclaredOrNonDefault,
+			Expect: map[string]map[string]flags{
+				declaredProject: {
+					"DEVELOPMENT": {off, null},
+					"PREVIEW":     {null, off},
+					"STAGING":     {null, null},
+					"PRODUCTION":  {null, null},
+				},
+				// not declared: only what differs from the q-core default shows up
+				consoleProject: {
+					"DEVELOPMENT": {off, null},
+					"PREVIEW":     {null, null},
+					"STAGING":     {null, null},
+					"PRODUCTION":  {null, null},
+				},
+			},
+		},
+		{
+			TestName: "import_records_the_non_default_flags",
+			Declared: &CustomRole{},
+			Mode:     customRoleReadModeDeclaredOrNonDefault,
+			Expect: map[string]map[string]flags{
+				declaredProject: {"DEVELOPMENT": {off, null}, "PREVIEW": {null, null}, "STAGING": {null, null}, "PRODUCTION": {null, null}},
+				consoleProject:  {"DEVELOPMENT": {off, null}, "PREVIEW": {null, null}, "STAGING": {null, null}, "PRODUCTION": {null, null}},
+			},
+		},
+		{
+			TestName: "data_source_keeps_every_flag",
+			Mode:     customRoleReadModeKeepAll,
+			Expect: map[string]map[string]flags{
+				declaredProject: {"DEVELOPMENT": {off, on}, "PREVIEW": {off, off}, "STAGING": {off, off}, "PRODUCTION": {on, on}},
+				consoleProject:  {"DEVELOPMENT": {off, on}, "PREVIEW": {off, off}, "STAGING": {off, off}, "PRODUCTION": {on, on}},
+			},
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+			got := convertDomainCustomRoleToCustomRole(role, tc.Declared, tc.Mode)
+
+			gotFlags := map[string]map[string]flags{}
+			for _, elem := range got.ProjectPermissions.Elements() {
+				attrs := elem.(types.Object).Attributes()
+				byEnv := map[string]flags{}
+				for _, permElem := range attrs["permissions"].(types.Set).Elements() {
+					permAttrs := permElem.(types.Object).Attributes()
+					byEnv[permAttrs["environment_type"].(types.String).ValueString()] = flags{permAttrs["shell"].(types.Bool), permAttrs["port_forward"].(types.Bool)}
+				}
+				gotFlags[attrs["project_id"].(types.String).ValueString()] = byEnv
+			}
+			assert.Equal(t, tc.Expect, gotFlags)
+		})
+	}
+}

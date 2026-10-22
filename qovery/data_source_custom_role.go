@@ -86,6 +86,8 @@ func (d customRoleDataSource) Schema(_ context.Context, _ datasource.SchemaReque
 								Attributes: map[string]schema.Attribute{
 									"environment_type": schema.StringAttribute{MarkdownDescription: customRoleEnvironmentTypeDescription, Computed: true},
 									"permission":       schema.StringAttribute{MarkdownDescription: customRoleEnvironmentPermissionDescription, Computed: true},
+									"shell":            schema.BoolAttribute{MarkdownDescription: customRoleShellDescription, Computed: true},
+									"port_forward":     schema.BoolAttribute{MarkdownDescription: customRolePortForwardDescription, Computed: true},
 								},
 							},
 						},

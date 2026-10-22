@@ -18,7 +18,8 @@ resource "qovery_custom_role" "my_custom_role" {
         { environment_type = "DEVELOPMENT", permission = "MANAGER" },
         { environment_type = "PREVIEW", permission = "MANAGER" },
         { environment_type = "STAGING", permission = "DEPLOYER" },
-        { environment_type = "PRODUCTION", permission = "VIEWER" },
+        # shell and port_forward are optional: when not set, they follow the level on each apply (on from DEPLOYER upward)
+        { environment_type = "PRODUCTION", permission = "VIEWER", shell = false, port_forward = true },
       ]
     }
   ]
