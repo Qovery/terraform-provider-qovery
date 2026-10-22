@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"slices"
 	"sort"
 	"sync"
 
@@ -226,6 +227,9 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(ctx contex
 	}
 
 	for k, v := range currentAdvancedSettingsHashMap {
+		if slices.Contains(BuildSettingsKeys, k) {
+			continue
+		}
 		_, exists := overriddenAdvancedSettingsHashMap[k]
 		if !exists {
 			overriddenAdvancedSettingsHashMap[k] = v
