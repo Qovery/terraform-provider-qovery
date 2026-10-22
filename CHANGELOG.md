@@ -14,6 +14,16 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-10-22
+
+### Added
+
+- `qovery_custom_role`: `project_permissions[].permissions[]` accepts `shell` and `port_forward`,
+  the permissions to open a shell (`qovery shell`, Cloud Shell) and to port-forward on the services
+  of that environment type. Neither can be `true` with `NO_ACCESS`. When not set, they follow
+  the level on each apply: on from `DEPLOYER` up, off below. The `qovery_custom_role` data source
+  reports them.
+
 ## [1.2.0] - 2026-10-22
 
 ### Added
@@ -53,11 +63,6 @@ explained in the matching upgrade guide.
   source reports them.
 - `qovery_organization`: `plan` accepts `STARTER_2026`, `GROWTH_2026` and `SCALE_2026`, the plans
   added to the Qovery API.
-- `qovery_custom_role`: `project_permissions[].permissions[]` accepts `shell` and `port_forward`,
-  the permissions to open a shell (`qovery shell`, Cloud Shell) and to port-forward on the services
-  of that environment type. Neither can be `true` with `NO_ACCESS`. When not set, they follow
-  the level on each apply: on from `DEPLOYER` up, off below. The `qovery_custom_role` data source
-  reports them.
 
 ### Fixed
 
@@ -469,7 +474,8 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.3...v1.1.0
 [1.0.3]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.2...v1.0.3
