@@ -355,7 +355,7 @@ data "qovery_custom_role" "test" {
 `,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccCheckCustomRoleDataSourceRemoteAccess("data.qovery_custom_role.test", "DEVELOPMENT", "false", "true"),
-					testAccCheckCustomRoleDataSourceRemoteAccess("data.qovery_custom_role.test", "PREVIEW", "false", "true"),
+					testAccCheckCustomRoleDataSourceRemoteAccess("data.qovery_custom_role.test", "PREVIEW", "true", "true"),
 					testAccCheckCustomRoleDataSourceRemoteAccess("data.qovery_custom_role.test", "STAGING", "true", "false"),
 					testAccCheckCustomRoleDataSourceRemoteAccess("data.qovery_custom_role.test", "PRODUCTION", "true", "true"),
 				),
