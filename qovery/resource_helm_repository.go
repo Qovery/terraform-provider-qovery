@@ -121,6 +121,10 @@ func (r helmRepositoryResource) Schema(_ context.Context, _ resource.SchemaReque
 						Optional:            true,
 						Sensitive:           true,
 					},
+					"role_arn": schema.StringAttribute{
+						MarkdownDescription: usedByKinds(credentialsAWSRoleARNDescription, helmRepository.KindECR) + " Set it instead of `access_key_id` and `secret_access_key`.",
+						Optional:            true,
+					},
 					"region": schema.StringAttribute{
 						MarkdownDescription: usedByKinds(registryRegionDescription, helmRepository.KindECR, helmRepository.KindScalewayCR),
 						Optional:            true,

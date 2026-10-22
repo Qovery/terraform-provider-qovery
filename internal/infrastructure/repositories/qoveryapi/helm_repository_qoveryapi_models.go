@@ -31,6 +31,7 @@ func newDomainHelmRepositoryConfigFromQovery(config *qovery.HelmRepositoryRespon
 	}
 	return registry.Config{
 		AccessKeyID:       config.AccessKeyId,
+		RoleArn:           config.RoleArn,
 		Region:            config.Region,
 		ScalewayAccessKey: config.ScalewayAccessKey,
 		ScalewayProjectID: config.ScalewayProjectId,
@@ -53,6 +54,7 @@ func newQoveryHelmRepositoryRequestFromDomain(request helmRepository.UpsertReque
 		Config: qovery.HelmRepositoryRequestConfig{
 			AccessKeyId:       request.Config.AccessKeyID,
 			SecretAccessKey:   request.Config.SecretAccessKey,
+			RoleArn:           request.Config.RoleArn,
 			Region:            request.Config.Region,
 			ScalewayAccessKey: request.Config.ScalewayAccessKey,
 			ScalewaySecretKey: request.Config.ScalewaySecretKey,

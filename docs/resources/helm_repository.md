@@ -47,6 +47,7 @@ Optional:
 - `access_key_id` (String) AWS access key ID. Used by `OCI_ECR` and `OCI_PUBLIC_ECR`.
 - `password` (String, Sensitive) Password or access token of `username`. Used by `HTTPS`, `OCI_DOCKER_HUB`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR` and `OCI_GENERIC_CR`.
 - `region` (String) Region of the registry, for example `us-east-1` or `fr-par`. Used by `OCI_ECR` and `OCI_SCALEWAY_CR`.
+- `role_arn` (String) ARN of the AWS IAM role Qovery assumes, for example `arn:aws:iam::123456789012:role/QoveryRole`. Used by `OCI_ECR`. Set it instead of `access_key_id` and `secret_access_key`.
 - `scaleway_access_key` (String) Scaleway API access key. Used by `OCI_SCALEWAY_CR`.
 - `scaleway_project_id` (String) ID of the Scaleway project. Used by `OCI_SCALEWAY_CR`.
 - `scaleway_secret_key` (String, Sensitive) Scaleway API secret key. Used by `OCI_SCALEWAY_CR`.

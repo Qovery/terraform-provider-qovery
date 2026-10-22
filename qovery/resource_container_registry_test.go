@@ -182,6 +182,59 @@ resource "qovery_container_registry" "test" {
 	})
 }
 
+// The ECR authentication method is checked at plan time: role_arn, or the static keys, but not
+// both. No step applies, as q-core assumes the role on every write and the sandbox has no role
+// Qovery can assume.
+func TestAcc_ContainerRegistryECRAuthenticationMethod(t *testing.T) {
+	t.Parallel()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:             testAccContainerRegistryECRConfig("container-registry-ecr-role", fmt.Sprintf(`role_arn = "%s"`, testAccECRRoleARN)),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: testAccContainerRegistryECRConfig("container-registry-ecr-role-and-keys", fmt.Sprintf(`
+    role_arn = "%s"
+    access_key_id = "%s"
+    secret_access_key = "%s"`, testAccECRRoleARN, getTestAWSCredentialsAccessKeyID(), getTestAWSCredentialsSecretAccessKey())),
+				PlanOnly:    true,
+				ExpectError: testAccECRConflictingCredentialsError,
+			},
+			{
+				Config:      testAccContainerRegistryECRConfig("container-registry-ecr-no-credentials", ""),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`Either\s+config.role_arn\s+or\s+both\s+config.access_key_id\s+and\s+config.secret_access_key\s+are\s+required\s+when\s+kind\s+is\s+ECR`),
+			},
+		},
+	})
+}
+
+// testAccECRRoleARN is a role ARN the plan-only steps never send to the API.
+const testAccECRRoleARN = "arn:aws:iam::123456789012:role/qovery-terraform-provider-test"
+
+var testAccECRConflictingCredentialsError = regexp.MustCompile(`config.role_arn\s+cannot\s+be\s+set\s+with\s+config.access_key_id\s+or\s+config.secret_access_key`)
+
+// testAccContainerRegistryECRConfig declares an ECR registry whose config holds the region and
+// credentials, a list of HCL attributes.
+func testAccContainerRegistryECRConfig(testName string, credentials string) string {
+	return fmt.Sprintf(`
+resource "qovery_container_registry" "test" {
+  organization_id = "%s"
+  name = "%s"
+  kind = "ECR"
+  url = "%s"
+  config = {
+    region = "%s"
+    %s
+  }
+}
+`, getTestOrganizationID(), generateTestName(testName), getTestAwsEcrURL(), awsECRRegion, credentials)
+}
+
 func testAccContainerRegistryDefaultConfig(testName string) string {
 	return fmt.Sprintf(`
 resource "qovery_container_registry" "test" {

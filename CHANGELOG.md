@@ -25,14 +25,20 @@ explained in the matching upgrade guide.
   checked. (QOV-2305)
 - `qovery_container_registry` and `qovery_helm_repository`: `terraform plan` now checks that
   `config` sets the credentials the `kind` requires, which before failed only at `apply`:
-  `region` for `ECR` and `OCI_ECR`, with `access_key_id` and `secret_access_key` set together
-  (an imported registry that uses an IAM role, which the provider cannot set, needs only
-  `region`); `region`, `scaleway_access_key`, `scaleway_secret_key` and `scaleway_project_id`
+  `region` and either `role_arn` or both `access_key_id` and `secret_access_key` for `ECR` and
+  `OCI_ECR`; `region`, `scaleway_access_key`, `scaleway_secret_key` and `scaleway_project_id`
   for `SCALEWAY_CR` and `OCI_SCALEWAY_CR`; `region` and either `json_credentials` or the
   Workload Identity Federation keys for `GCP_ARTIFACT_REGISTRY`; a `username` with a `password`
   for `GITHUB_CR` and `OCI_GITHUB_CR`; and `username` and `password` together for the `HTTPS`
   and other `OCI_*` helm repository kinds that take them. A kind that allows anonymous access
   still needs no `config`. (QOV-2305)
+- `qovery_container_registry` with the `ECR` kind and `qovery_helm_repository` with the
+  `OCI_ECR` kind: `config` accepts `role_arn`, an AWS IAM role Qovery assumes instead of using
+  static keys. A registry that uses a role can now be created from Terraform, and one created in
+  the Console can be imported and updated. Before, an update sent the config without the role
+  and the API rejected it. The configuration of such a registry that sets only `region` must now
+  add its `role_arn`. Setting `role_arn` with `access_key_id` or `secret_access_key` fails at
+  `terraform plan`, since the API keeps only one of them. (QOV-2383)
 
 ### Fixed
 

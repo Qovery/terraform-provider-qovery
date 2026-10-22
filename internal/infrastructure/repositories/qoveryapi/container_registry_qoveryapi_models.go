@@ -30,6 +30,7 @@ func newDomainRegistryConfigFromQovery(config *qovery.ContainerRegistryResponseA
 	}
 	return registry.Config{
 		AccessKeyID:                      config.AccessKeyId,
+		RoleArn:                          config.RoleArn,
 		Region:                           config.Region,
 		ScalewayAccessKey:                config.ScalewayAccessKey,
 		ScalewayProjectID:                config.ScalewayProjectId,
@@ -57,6 +58,7 @@ func newQoveryContainerRegistryRequestFromDomain(request registry.UpsertRequest)
 		Config: qovery.ContainerRegistryRequestConfig{
 			AccessKeyId:                      request.Config.AccessKeyID,
 			SecretAccessKey:                  request.Config.SecretAccessKey,
+			RoleArn:                          request.Config.RoleArn,
 			Region:                           request.Config.Region,
 			ScalewayAccessKey:                request.Config.ScalewayAccessKey,
 			ScalewaySecretKey:                request.Config.ScalewaySecretKey,

@@ -42,14 +42,46 @@ func TestValidateContainerRegistryConfig(t *testing.T) {
 		{
 			TestName:       "error_ecr_without_config",
 			Kind:           "ECR",
-			ExpectedErrors: []string{"config.region"},
+			ExpectedErrors: []string{"config.region", "config.role_arn"},
 		},
 		{
-			// A registry that uses a role is imported with its region only: the provider cannot
-			// send role_arn.
-			TestName: "success_ecr_region_only",
+			TestName:       "error_ecr_region_only",
+			Kind:           "ECR",
+			Config:         ContainerRegistryConfig{Region: set},
+			ExpectedErrors: []string{"config.role_arn"},
+		},
+		{
+			TestName: "success_ecr_with_role_arn",
 			Kind:     "ECR",
-			Config:   ContainerRegistryConfig{Region: set},
+			Config:   ContainerRegistryConfig{Region: set, RoleArn: set},
+		},
+		{
+			TestName:       "error_ecr_role_arn_with_static_keys",
+			Kind:           "ECR",
+			Config:         ContainerRegistryConfig{Region: set, AccessKeyID: set, SecretAccessKey: set, RoleArn: set},
+			ExpectedErrors: []string{"config.role_arn"},
+		},
+		{
+			TestName:       "error_ecr_role_arn_with_access_key_id",
+			Kind:           "ECR",
+			Config:         ContainerRegistryConfig{Region: set, AccessKeyID: set, RoleArn: set},
+			ExpectedErrors: []string{"config.role_arn", "config.secret_access_key"},
+		},
+		{
+			// The unknown role_arn may turn out null.
+			TestName: "success_ecr_unknown_role_arn_with_static_keys",
+			Kind:     "ECR",
+			Config:   ContainerRegistryConfig{Region: set, AccessKeyID: set, SecretAccessKey: set, RoleArn: unknown},
+		},
+		{
+			TestName: "success_ecr_unknown_role_arn",
+			Kind:     "ECR",
+			Config:   ContainerRegistryConfig{Region: set, RoleArn: unknown},
+		},
+		{
+			TestName: "success_ecr_role_arn_with_unknown_access_key_id",
+			Kind:     "ECR",
+			Config:   ContainerRegistryConfig{Region: set, AccessKeyID: unknown, RoleArn: set},
 		},
 		{
 			TestName:       "error_ecr_without_access_key_id",
@@ -202,6 +234,7 @@ func TestValidateHelmRepositoryConfig(t *testing.T) {
 	t.Parallel()
 
 	set := types.StringValue("value")
+	unknown := types.StringUnknown()
 	testCases := []struct {
 		TestName       string
 		Kind           string
@@ -265,7 +298,34 @@ func TestValidateHelmRepositoryConfig(t *testing.T) {
 		{
 			TestName:       "error_oci_ecr_without_config",
 			Kind:           "OCI_ECR",
-			ExpectedErrors: []string{"config.region"},
+			ExpectedErrors: []string{"config.region", "config.role_arn"},
+		},
+		{
+			TestName:       "error_oci_ecr_region_only",
+			Kind:           "OCI_ECR",
+			Config:         HelmRepositoryConfig{Region: set},
+			ExpectedErrors: []string{"config.role_arn"},
+		},
+		{
+			TestName: "success_oci_ecr_with_static_keys",
+			Kind:     "OCI_ECR",
+			Config:   HelmRepositoryConfig{Region: set, AccessKeyID: set, SecretAccessKey: set},
+		},
+		{
+			TestName: "success_oci_ecr_with_role_arn",
+			Kind:     "OCI_ECR",
+			Config:   HelmRepositoryConfig{Region: set, RoleArn: set},
+		},
+		{
+			TestName:       "error_oci_ecr_role_arn_with_static_keys",
+			Kind:           "OCI_ECR",
+			Config:         HelmRepositoryConfig{Region: set, AccessKeyID: set, SecretAccessKey: set, RoleArn: set},
+			ExpectedErrors: []string{"config.role_arn"},
+		},
+		{
+			TestName: "success_oci_ecr_unknown_role_arn",
+			Kind:     "OCI_ECR",
+			Config:   HelmRepositoryConfig{Region: set, RoleArn: unknown},
 		},
 		{
 			TestName:       "error_oci_scaleway_cr_without_project_id",
@@ -313,13 +373,17 @@ func TestContainerRegistryResource_ValidateConfig(t *testing.T) {
 
 	nullBlock := func(o tftypes.Object) tftypes.Value { return tftypes.NewValue(o, nil) }
 	unknownBlock := func(o tftypes.Object) tftypes.Value { return tftypes.NewValue(o, tftypes.UnknownValue) }
-	regionOnly := func(o tftypes.Object) tftypes.Value {
-		values := map[string]tftypes.Value{}
-		for name, attrType := range o.AttributeTypes {
-			values[name] = tftypes.NewValue(attrType, nil)
+	ecrConfig := func(keys map[string]string) func(tftypes.Object) tftypes.Value {
+		return func(o tftypes.Object) tftypes.Value {
+			values := map[string]tftypes.Value{}
+			for name, attrType := range o.AttributeTypes {
+				values[name] = tftypes.NewValue(attrType, nil)
+			}
+			for name, value := range keys {
+				values[name] = tftypes.NewValue(tftypes.String, value)
+			}
+			return tftypes.NewValue(o, values)
 		}
-		values["region"] = tftypes.NewValue(tftypes.String, "eu-west-3")
-		return tftypes.NewValue(o, values)
 	}
 
 	testCases := []struct {
@@ -332,12 +396,18 @@ func TestContainerRegistryResource_ValidateConfig(t *testing.T) {
 			TestName:       "error_ecr_null_config",
 			Kind:           tftypes.NewValue(tftypes.String, "ECR"),
 			Config:         nullBlock,
-			ExpectedErrors: []string{"config.region"},
+			ExpectedErrors: []string{"config.region", "config.role_arn"},
 		},
 		{
-			TestName: "success_ecr_region_only",
+			TestName:       "error_ecr_region_only",
+			Kind:           tftypes.NewValue(tftypes.String, "ECR"),
+			Config:         ecrConfig(map[string]string{"region": "eu-west-3"}),
+			ExpectedErrors: []string{"config.role_arn"},
+		},
+		{
+			TestName: "success_ecr_role_arn",
 			Kind:     tftypes.NewValue(tftypes.String, "ECR"),
-			Config:   regionOnly,
+			Config:   ecrConfig(map[string]string{"region": "eu-west-3", "role_arn": "arn:aws:iam::123456789012:role/qovery"}),
 		},
 		{
 			TestName: "success_ecr_unknown_config",
@@ -376,5 +446,5 @@ func TestHelmRepositoryResource_ValidateConfig(t *testing.T) {
 		return tftypes.NewValue(o, nil)
 	})
 	r.ValidateConfig(context.Background(), resource.ValidateConfigRequest{Config: config}, resp)
-	assert.Equal(t, []string{"config.region"}, errorPaths(resp.Diagnostics))
+	assert.Equal(t, []string{"config.region", "config.role_arn"}, errorPaths(resp.Diagnostics))
 }

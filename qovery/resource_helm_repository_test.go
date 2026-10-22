@@ -5,6 +5,7 @@ package qovery_test
 import (
 	"context"
 	"fmt"
+	"regexp"
 	"strings"
 	"testing"
 
@@ -138,6 +139,53 @@ func testAccQoveryHelmRepositoryDestroy(resourceName string) resource.TestCheckF
 		}
 		return nil
 	}
+}
+
+// The OCI_ECR authentication method is checked at plan time, as for an ECR container registry.
+func TestAcc_HelmRepositoryECRAuthenticationMethod(t *testing.T) {
+	t.Parallel()
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config:             testAccHelmRepositoryECRConfig("helm-repository-ecr-role", fmt.Sprintf(`role_arn = "%s"`, testAccECRRoleARN)),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: testAccHelmRepositoryECRConfig("helm-repository-ecr-role-and-keys", fmt.Sprintf(`
+    role_arn = "%s"
+    access_key_id = "%s"
+    secret_access_key = "%s"`, testAccECRRoleARN, getTestAWSCredentialsAccessKeyID(), getTestAWSCredentialsSecretAccessKey())),
+				PlanOnly:    true,
+				ExpectError: testAccECRConflictingCredentialsError,
+			},
+			{
+				Config:      testAccHelmRepositoryECRConfig("helm-repository-ecr-no-credentials", ""),
+				PlanOnly:    true,
+				ExpectError: regexp.MustCompile(`Either\s+config.role_arn\s+or\s+both\s+config.access_key_id\s+and\s+config.secret_access_key\s+are\s+required\s+when\s+kind\s+is\s+OCI_ECR`),
+			},
+		},
+	})
+}
+
+// testAccHelmRepositoryECRConfig declares an OCI_ECR helm repository whose config holds the region
+// and credentials, a list of HCL attributes.
+func testAccHelmRepositoryECRConfig(testName string, credentials string) string {
+	return fmt.Sprintf(`
+resource "qovery_helm_repository" "test" {
+  organization_id = "%s"
+  name = "%s"
+  kind = "OCI_ECR"
+  url = "%s"
+  config = {
+    region = "%s"
+    %s
+  }
+  skip_tls_verification = false
+}
+`, getTestOrganizationID(), generateTestName(testName), strings.Replace(getTestAwsEcrURL(), "https://", "oci://", 1), awsECRRegion, credentials)
 }
 
 func testAccHelmRepositoryDefaultConfig(testName string) string {

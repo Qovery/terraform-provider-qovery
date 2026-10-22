@@ -16,8 +16,9 @@ import (
 )
 
 // The checks below mirror the config checks q-core runs before it tries the credentials, on create
-// and on edit, so plan rejects only a config that apply rejects. A key the kind does not use is
-// ignored, as q-core does, and an unknown key counts as set.
+// and on edit, so plan rejects only a config that apply rejects, except an ECR config that sets
+// two authentication methods (see validateECRConfig). A key the kind does not use is ignored, as
+// q-core does, and a check passes while a key it reads is unknown.
 
 const gcpWorkloadIdentityFederation = "workload_identity_federation"
 
@@ -48,7 +49,7 @@ func readCredentialsConfig(ctx context.Context, cfg tfsdk.Config, config any, di
 func validateContainerRegistryConfig(kind string, config ContainerRegistryConfig) diag.Diagnostics {
 	switch registry.Kind(kind) {
 	case registry.KindECR:
-		return validateECRConfig(kind, config.Region, config.AccessKeyID, config.SecretAccessKey)
+		return validateECRConfig(kind, config.Region, config.AccessKeyID, config.SecretAccessKey, config.RoleArn)
 	case registry.KindScalewayCR:
 		return requireCredentials(kind, scalewayCredentialKeys(config.Region, config.ScalewayAccessKey, config.ScalewaySecretKey, config.ScalewayProjectId)...)
 	case registry.KindGithubCr:
@@ -63,7 +64,7 @@ func validateContainerRegistryConfig(kind string, config ContainerRegistryConfig
 func validateHelmRepositoryConfig(kind string, config HelmRepositoryConfig) diag.Diagnostics {
 	switch helmRepository.Kind(kind) {
 	case helmRepository.KindECR:
-		return validateECRConfig(kind, config.Region, config.AccessKeyID, config.SecretAccessKey)
+		return validateECRConfig(kind, config.Region, config.AccessKeyID, config.SecretAccessKey, config.RoleArn)
 	case helmRepository.KindScalewayCR:
 		return requireCredentials(kind, scalewayCredentialKeys(config.Region, config.ScalewayAccessKey, config.ScalewaySecretKey, config.ScalewayProjectId)...)
 	case helmRepository.KindHttps, helmRepository.KindDockerHub, helmRepository.KindGitlabCr, helmRepository.KindGenericCR:
@@ -77,12 +78,31 @@ func validateHelmRepositoryConfig(kind string, config HelmRepositoryConfig) diag
 	return nil
 }
 
-// validateECRConfig requires the region and checks the static keys as a pair. q-core accepts a role
-// in place of the keys: the provider cannot send role_arn, but a registry that uses one can be
-// imported with its region only, so the keys are not required.
-func validateECRConfig(kind string, region, accessKeyID, secretAccessKey types.String) diag.Diagnostics {
+// validateECRConfig requires the region and one authentication method: role_arn, or the static
+// keys as a pair. q-core accepts both methods at once, but keeps one: the role on a container
+// registry, the keys on a helm repository. The API then returns no value for the key of the other
+// method, which would not match the config after apply, so both methods are rejected.
+func validateECRConfig(kind string, region, accessKeyID, secretAccessKey, roleArn types.String) diag.Diagnostics {
 	diags := requireCredentials(kind, credentialKey{"region", region})
 	diags.Append(requireKeysTogether(kind, credentialKey{"access_key_id", accessKeyID}, credentialKey{"secret_access_key", secretAccessKey})...)
+	// An unknown value may turn out null, so these checks wait until the values are known.
+	if roleArn.IsUnknown() || accessKeyID.IsUnknown() || secretAccessKey.IsUnknown() {
+		return diags
+	}
+	switch hasStaticKeys := !accessKeyID.IsNull() || !secretAccessKey.IsNull(); {
+	case !roleArn.IsNull() && hasStaticKeys:
+		diags.AddAttributeError(
+			path.Root("config").AtName("role_arn"),
+			"Conflicting credentials",
+			fmt.Sprintf("config.role_arn cannot be set with config.access_key_id or config.secret_access_key when kind is %s: set one authentication method.", kind),
+		)
+	case roleArn.IsNull() && !hasStaticKeys:
+		diags.AddAttributeError(
+			path.Root("config").AtName("role_arn"),
+			"Missing credentials",
+			fmt.Sprintf("Either config.role_arn or both config.access_key_id and config.secret_access_key are required when kind is %s.", kind),
+		)
+	}
 	return diags
 }
 
