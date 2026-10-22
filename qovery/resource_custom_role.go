@@ -95,6 +95,7 @@ func (r customRoleResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: nameDescription("custom role") + " Using a built-in role name, `owner`, `admin`, `devops`, `billing` or `viewer` in any case, fails at plan time.",
@@ -116,6 +117,7 @@ func (r customRoleResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 						"cluster_id": schema.StringAttribute{
 							MarkdownDescription: customRoleClusterIDDescription,
 							Required:            true,
+							Validators:          []validator.String{validators.NewUUIDValidator()},
 						},
 						"permission": schema.StringAttribute{
 							MarkdownDescription: descriptions.NewStringEnumDescription(customRoleClusterPermissionDescription, clusterPermissionValues(), nil),
@@ -135,6 +137,7 @@ func (r customRoleResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 						"project_id": schema.StringAttribute{
 							MarkdownDescription: customRoleProjectIDDescription,
 							Required:            true,
+							Validators:          []validator.String{validators.NewUUIDValidator()},
 						},
 						"is_admin": schema.BoolAttribute{
 							MarkdownDescription: descriptions.NewBoolDefaultDescription(customRoleIsAdminDescription+" When `true`, `permissions` must be omitted: even an empty set fails at plan time.", false),

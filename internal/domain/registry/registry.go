@@ -45,6 +45,7 @@ type Registry struct {
 // secret key, JSON key, password).
 type Config struct {
 	AccessKeyID       *string
+	RoleArn           *string
 	Region            *string
 	ScalewayAccessKey *string
 	ScalewayProjectID *string
@@ -135,6 +136,7 @@ type UpsertRequest struct {
 type UpsertRequestConfig struct {
 	AccessKeyID       *string
 	SecretAccessKey   *string
+	RoleArn           *string
 	Region            *string
 	ScalewayAccessKey *string
 	ScalewaySecretKey *string

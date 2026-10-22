@@ -86,6 +86,7 @@ func TestNewDomainRegistryFromQovery_Config(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, registry.Config{
 		AccessKeyID:                      new("AKIA"),
+		RoleArn:                          new("arn:aws:iam::123456789012:role/qovery"),
 		Region:                           new("europe-west1"),
 		ScalewayAccessKey:                new("SCW"),
 		ScalewayProjectID:                new("scaleway-project"),
@@ -195,4 +196,27 @@ func TestNewQoveryRegistryRequestFromDomain_Config_GcpWorkloadIdentityFederation
 	assert.Equal(t, &workloadIdentityProviderResource, req.Config.WorkloadIdentityProviderResource)
 	assert.Equal(t, &tokenLifetimeSeconds, req.Config.TokenLifetimeSeconds)
 	assert.Nil(t, req.Config.JsonCredentials)
+}
+
+func TestNewQoveryRegistryRequestFromDomain_Config_ECRRole(t *testing.T) {
+	t.Parallel()
+
+	region := "eu-west-3"
+	roleArn := "arn:aws:iam::123456789012:role/qovery"
+
+	req, err := newQoveryContainerRegistryRequestFromDomain(registry.UpsertRequest{
+		Name: gofakeit.Name(),
+		Kind: registry.KindECR.String(),
+		URL:  "https://123456789012.dkr.ecr.eu-west-3.amazonaws.com",
+		Config: registry.UpsertRequestConfig{
+			Region:  &region,
+			RoleArn: &roleArn,
+		},
+	})
+	require.NoError(t, err)
+
+	assert.Equal(t, &region, req.Config.Region)
+	assert.Equal(t, &roleArn, req.Config.RoleArn)
+	assert.Nil(t, req.Config.AccessKeyId)
+	assert.Nil(t, req.Config.SecretAccessKey)
 }

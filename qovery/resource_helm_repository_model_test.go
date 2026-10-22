@@ -18,6 +18,7 @@ func nullHelmRepositoryConfig() HelmRepositoryConfig {
 	return HelmRepositoryConfig{
 		AccessKeyID:       types.StringNull(),
 		SecretAccessKey:   types.StringNull(),
+		RoleArn:           types.StringNull(),
 		Region:            types.StringNull(),
 		ScalewayAccessKey: types.StringNull(),
 		ScalewaySecretKey: types.StringNull(),
@@ -56,6 +57,28 @@ func TestHelmRepositoryConfigFromAPI(t *testing.T) {
 				c.Region = types.StringValue("eu-west-1")
 				c.AccessKeyID = types.StringValue("AKIA_CONSOLE")
 				c.SecretAccessKey = types.StringValue("secret")
+			}),
+		},
+		{
+			TestName: "ecr_reads_a_role_changed_from_the_console",
+			Kind:     helmRepository.KindECR,
+			Prior: withHelmRepositoryConfig(func(c *HelmRepositoryConfig) {
+				c.Region = types.StringValue("eu-west-3")
+				c.RoleArn = types.StringValue("arn:aws:iam::123456789012:role/state")
+			}),
+			API: registry.Config{Region: new("eu-west-3"), RoleArn: new("arn:aws:iam::123456789012:role/console")},
+			Expect: withHelmRepositoryConfig(func(c *HelmRepositoryConfig) {
+				c.Region = types.StringValue("eu-west-3")
+				c.RoleArn = types.StringValue("arn:aws:iam::123456789012:role/console")
+			}),
+		},
+		{
+			TestName: "ecr_import_reads_the_region_and_the_role",
+			Kind:     helmRepository.KindECR,
+			API:      registry.Config{Region: new("eu-west-3"), RoleArn: new("arn:aws:iam::123456789012:role/qovery")},
+			Expect: withHelmRepositoryConfig(func(c *HelmRepositoryConfig) {
+				c.Region = types.StringValue("eu-west-3")
+				c.RoleArn = types.StringValue("arn:aws:iam::123456789012:role/qovery")
 			}),
 		},
 		{
@@ -158,4 +181,25 @@ func TestHelmRepositoryToUpsertRequest_SendsTheScalewayProject(t *testing.T) {
 	request := repository.toUpsertRequest()
 
 	assert.Equal(t, new("project"), request.Config.ScalewayProjectId, "q-core requires the project for OCI_SCALEWAY_CR")
+}
+
+func TestHelmRepositoryToUpsertRequest_SendsTheRole(t *testing.T) {
+	t.Parallel()
+
+	repository := HelmRepository{
+		Name: types.StringValue("repository"),
+		Kind: types.StringValue(string(helmRepository.KindECR)),
+		URL:  types.StringValue("oci://123456789012.dkr.ecr.eu-west-3.amazonaws.com"),
+		Config: withHelmRepositoryConfig(func(c *HelmRepositoryConfig) {
+			c.Region = types.StringValue("eu-west-3")
+			c.RoleArn = types.StringValue("arn:aws:iam::123456789012:role/qovery")
+		}),
+		SkipTlsVerification: types.BoolValue(false),
+	}
+
+	request := repository.toUpsertRequest()
+
+	assert.Equal(t, new("arn:aws:iam::123456789012:role/qovery"), request.Config.RoleArn)
+	assert.Nil(t, request.Config.AccessKeyID)
+	assert.Nil(t, request.Config.SecretAccessKey)
 }

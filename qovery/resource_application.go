@@ -129,6 +129,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: nameDescription("application"),
@@ -169,6 +170,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 						MarkdownDescription: gitRepositoryTokenIDDescription,
 						Optional:            true,
 						Computed:            false,
+						Validators:          []validator.String{validators.NewUUIDValidator()},
 					},
 					"provider": schema.StringAttribute{
 						MarkdownDescription: gitRepositoryProviderDescription + gitRepositoryProviderConfigNote,
@@ -590,6 +592,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"is_skipped": schema.BoolAttribute{
 				MarkdownDescription: descriptions.NewBoolDefaultDescription(isSkippedDescription, false),
@@ -641,11 +644,13 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				MarkdownDescription: groupIDsDescription("annotations", "the application's pods"),
 				Optional:            true,
 				ElementType:         types.StringType,
+				Validators:          []validator.Set{validators.NewUUIDValidator()},
 			},
 			"labels_group_ids": schema.SetAttribute{
 				MarkdownDescription: groupIDsDescription("labels", "the application's pods"),
 				Optional:            true,
 				ElementType:         types.StringType,
+				Validators:          []validator.Set{validators.NewUUIDValidator()},
 			},
 			"docker_target_build_stage": schema.StringAttribute{
 				MarkdownDescription: dockerTargetBuildStageDescription,

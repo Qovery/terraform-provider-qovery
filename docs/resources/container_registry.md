@@ -53,6 +53,7 @@ Optional:
 - `password` (String, Sensitive) Password or access token of `username`. Used by `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR` and `GENERIC_CR`.
 - `project_id` (String) ID of the GCP project. Used by `GCP_ARTIFACT_REGISTRY` with `gcp_credentials_type`.
 - `region` (String) Region of the registry, for example `us-east-1` or `fr-par`. Used by `ECR`, `SCALEWAY_CR` and `GCP_ARTIFACT_REGISTRY`.
+- `role_arn` (String) ARN of the AWS IAM role Qovery assumes, for example `arn:aws:iam::123456789012:role/QoveryRole`. Used by `ECR`. Set it instead of `access_key_id` and `secret_access_key`.
 - `scaleway_access_key` (String) Scaleway API access key. Used by `SCALEWAY_CR`.
 - `scaleway_project_id` (String) ID of the Scaleway project. Used by `SCALEWAY_CR`.
 - `scaleway_secret_key` (String, Sensitive) Scaleway API secret key. Used by `SCALEWAY_CR`.

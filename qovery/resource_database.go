@@ -104,6 +104,7 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: nameDescription("database"),
@@ -205,6 +206,7 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"is_skipped": schema.BoolAttribute{
 				MarkdownDescription: descriptions.NewBoolDefaultDescription(isSkippedDescription, false),
@@ -229,11 +231,13 @@ func (r databaseResource) Schema(_ context.Context, _ resource.SchemaRequest, re
 				MarkdownDescription: groupIDsDescription("annotations", "the pods of a `CONTAINER` database"),
 				Optional:            true,
 				ElementType:         types.StringType,
+				Validators:          []validator.Set{validators.NewUUIDValidator()},
 			},
 			"labels_group_ids": schema.SetAttribute{
 				MarkdownDescription: groupIDsDescription("labels", "the pods of a `CONTAINER` database"),
 				Optional:            true,
 				ElementType:         types.StringType,
+				Validators:          []validator.Set{validators.NewUUIDValidator()},
 			},
 		},
 	}

@@ -9,9 +9,11 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/member"
+	"github.com/qovery/terraform-provider-qovery/qovery/validators"
 )
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
@@ -65,6 +67,7 @@ func (r organizationMemberResource) Schema(_ context.Context, _ resource.SchemaR
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"email": schema.StringAttribute{
 				MarkdownDescription: organizationMemberEmailDescription + recreatesOnChange("member"),
@@ -76,6 +79,7 @@ func (r organizationMemberResource) Schema(_ context.Context, _ resource.SchemaR
 			"role_id": schema.StringAttribute{
 				MarkdownDescription: organizationMemberRoleIDDescription + " Changing it on a pending invitation re-sends the invitation, which changes `id`.",
 				Required:            true,
+				Validators:          []validator.String{validators.NewUUIDValidator()},
 			},
 			"user_id": schema.StringAttribute{
 				MarkdownDescription: organizationMemberUserIDDescription,

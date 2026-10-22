@@ -22,8 +22,9 @@ import (
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
 var (
-	_ resource.ResourceWithConfigure   = &containerRegistryResource{}
-	_ resource.ResourceWithImportState = containerRegistryResource{}
+	_ resource.ResourceWithConfigure      = &containerRegistryResource{}
+	_ resource.ResourceWithImportState    = containerRegistryResource{}
+	_ resource.ResourceWithValidateConfig = containerRegistryResource{}
 )
 
 var registryKinds = clientEnumToStringArray(registry.AllowedKindValues)
@@ -75,6 +76,7 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: nameDescription("container registry"),
@@ -109,6 +111,10 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 						MarkdownDescription: usedByKinds(credentialsAWSSecretAccessKeyDescription, registry.KindECR, registry.KindPublicECR),
 						Optional:            true,
 						Sensitive:           true,
+					},
+					"role_arn": schema.StringAttribute{
+						MarkdownDescription: usedByKinds(credentialsAWSRoleARNDescription, registry.KindECR) + " Set it instead of `access_key_id` and `secret_access_key`.",
+						Optional:            true,
 					},
 					"region": schema.StringAttribute{
 						MarkdownDescription: usedByKinds(registryRegionDescription, registry.KindECR, registry.KindScalewayCR, registry.KindGcpArtifactRegistry),
@@ -262,6 +268,17 @@ func (r containerRegistryResource) Delete(ctx context.Context, req resource.Dele
 
 	// Remove containerRegistry from state
 	resp.State.RemoveResource(ctx)
+}
+
+// ValidateConfig checks at plan time that config sets the credentials the kind requires, which
+// the Qovery API otherwise rejects on apply.
+func (r containerRegistryResource) ValidateConfig(ctx context.Context, req resource.ValidateConfigRequest, resp *resource.ValidateConfigResponse) {
+	var config ContainerRegistryConfig
+	kind, ok := readCredentialsConfig(ctx, req.Config, &config, &resp.Diagnostics)
+	if !ok {
+		return
+	}
+	resp.Diagnostics.Append(validateContainerRegistryConfig(kind, config)...)
 }
 
 // ImportState imports a qovery container registry resource using its id

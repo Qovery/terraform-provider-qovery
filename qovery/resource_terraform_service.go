@@ -84,6 +84,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"deployment_stage_id": schema.StringAttribute{
 				MarkdownDescription: deploymentStageIDDescription + deploymentStageIDRemovalNote,
@@ -94,6 +95,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 				PlanModifiers: []planmodifier.String{
 					stringplanmodifier.UseStateForUnknown(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"is_skipped": schema.BoolAttribute{
 				MarkdownDescription: descriptions.NewBoolDefaultDescription(isSkippedDescription, false),
@@ -119,6 +121,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 					stringplanmodifier.UseStateForUnknown(),
 					RejectChangeAfterCreate(blueprintIDChangeReason),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"auto_deploy": schema.BoolAttribute{
 				MarkdownDescription: terraformServiceAutoDeployDescription,
@@ -158,6 +161,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 					"git_token_id": schema.StringAttribute{
 						MarkdownDescription: gitRepositoryTokenIDDescription,
 						Optional:            true,
+						Validators:          []validator.String{validators.NewUUIDValidator()},
 					},
 				},
 			},

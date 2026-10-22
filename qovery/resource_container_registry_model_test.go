@@ -19,6 +19,7 @@ func nullContainerRegistryConfig() ContainerRegistryConfig {
 	return ContainerRegistryConfig{
 		AccessKeyID:                      types.StringNull(),
 		SecretAccessKey:                  types.StringNull(),
+		RoleArn:                          types.StringNull(),
 		Region:                           types.StringNull(),
 		ScalewayAccessKey:                types.StringNull(),
 		ScalewaySecretKey:                types.StringNull(),
@@ -66,17 +67,53 @@ func TestContainerRegistryConfigFromAPI(t *testing.T) {
 			}),
 		},
 		{
-			TestName: "ecr_switched_to_a_role_from_the_console_reports_no_access_key",
+			TestName: "ecr_switched_to_a_role_from_the_console_reads_the_role",
 			Kind:     registry.KindECR,
 			Prior: withContainerRegistryConfig(func(c *ContainerRegistryConfig) {
 				c.Region = types.StringValue("eu-west-3")
 				c.AccessKeyID = types.StringValue("AKIA_STATE")
 				c.SecretAccessKey = types.StringValue("secret")
 			}),
-			API: registry.Config{Region: new("eu-west-3")},
+			API: registry.Config{Region: new("eu-west-3"), RoleArn: new("arn:aws:iam::123456789012:role/console")},
 			Expect: withContainerRegistryConfig(func(c *ContainerRegistryConfig) {
 				c.Region = types.StringValue("eu-west-3")
 				c.SecretAccessKey = types.StringValue("secret")
+				c.RoleArn = types.StringValue("arn:aws:iam::123456789012:role/console")
+			}),
+		},
+		{
+			TestName: "ecr_reads_a_role_changed_from_the_console",
+			Kind:     registry.KindECR,
+			Prior: withContainerRegistryConfig(func(c *ContainerRegistryConfig) {
+				c.Region = types.StringValue("eu-west-3")
+				c.RoleArn = types.StringValue("arn:aws:iam::123456789012:role/state")
+			}),
+			API: registry.Config{Region: new("eu-west-3"), RoleArn: new("arn:aws:iam::123456789012:role/console")},
+			Expect: withContainerRegistryConfig(func(c *ContainerRegistryConfig) {
+				c.Region = types.StringValue("eu-west-3")
+				c.RoleArn = types.StringValue("arn:aws:iam::123456789012:role/console")
+			}),
+		},
+		{
+			TestName: "ecr_switched_to_static_keys_from_the_console_reports_no_role",
+			Kind:     registry.KindECR,
+			Prior: withContainerRegistryConfig(func(c *ContainerRegistryConfig) {
+				c.Region = types.StringValue("eu-west-3")
+				c.RoleArn = types.StringValue("arn:aws:iam::123456789012:role/state")
+			}),
+			API: registry.Config{Region: new("eu-west-3"), AccessKeyID: new("AKIA_CONSOLE")},
+			Expect: withContainerRegistryConfig(func(c *ContainerRegistryConfig) {
+				c.Region = types.StringValue("eu-west-3")
+				c.AccessKeyID = types.StringValue("AKIA_CONSOLE")
+			}),
+		},
+		{
+			TestName: "ecr_import_reads_the_region_and_the_role",
+			Kind:     registry.KindECR,
+			API:      registry.Config{Region: new("eu-west-3"), RoleArn: new("arn:aws:iam::123456789012:role/qovery")},
+			Expect: withContainerRegistryConfig(func(c *ContainerRegistryConfig) {
+				c.Region = types.StringValue("eu-west-3")
+				c.RoleArn = types.StringValue("arn:aws:iam::123456789012:role/qovery")
 			}),
 		},
 		{
@@ -275,4 +312,24 @@ func TestConvertDomainRegistryToContainerRegistry(t *testing.T) {
 	res.Description = new("set from the Console")
 	got = convertDomainRegistryToContainerRegistry(prior, res)
 	assert.Equal(t, types.StringValue("set from the Console"), got.Description)
+}
+
+func TestContainerRegistryToUpsertRequest_SendsTheRole(t *testing.T) {
+	t.Parallel()
+
+	containerRegistry := ContainerRegistry{
+		Name: types.StringValue("registry"),
+		Kind: types.StringValue(string(registry.KindECR)),
+		URL:  types.StringValue("https://123456789012.dkr.ecr.eu-west-3.amazonaws.com"),
+		Config: withContainerRegistryConfig(func(c *ContainerRegistryConfig) {
+			c.Region = types.StringValue("eu-west-3")
+			c.RoleArn = types.StringValue("arn:aws:iam::123456789012:role/qovery")
+		}),
+	}
+
+	request := containerRegistry.toUpsertRequest()
+
+	assert.Equal(t, new("arn:aws:iam::123456789012:role/qovery"), request.Config.RoleArn)
+	assert.Nil(t, request.Config.AccessKeyID)
+	assert.Nil(t, request.Config.SecretAccessKey)
 }

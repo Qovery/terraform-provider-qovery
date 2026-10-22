@@ -78,6 +78,7 @@ func (r clusterDNSProviderResource) Schema(_ context.Context, _ resource.SchemaR
 				PlanModifiers: []planmodifier.String{
 					RequiresReplaceIfKnownChange(),
 				},
+				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
 			"provider_type": schema.StringAttribute{
 				MarkdownDescription: "DNS provider of the cluster: `" + clusterDNSProviderTypeQovery + "` for the DNS Qovery manages, or `" +

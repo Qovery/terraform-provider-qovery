@@ -23,6 +23,7 @@ type HelmRepository struct {
 type HelmRepositoryConfig struct {
 	AccessKeyID       types.String `tfsdk:"access_key_id"`
 	SecretAccessKey   types.String `tfsdk:"secret_access_key"`
+	RoleArn           types.String `tfsdk:"role_arn"`
 	Region            types.String `tfsdk:"region"`
 	ScalewayAccessKey types.String `tfsdk:"scaleway_access_key"`
 	ScalewaySecretKey types.String `tfsdk:"scaleway_secret_key"`
@@ -49,6 +50,7 @@ func (p HelmRepository) toUpsertRequest() helmRepository.UpsertRequest {
 		configRequest = registry.UpsertRequestConfig{
 			AccessKeyID:       ToStringPointer(p.Config.AccessKeyID),
 			SecretAccessKey:   ToStringPointer(p.Config.SecretAccessKey),
+			RoleArn:           ToStringPointer(p.Config.RoleArn),
 			Region:            ToStringPointer(p.Config.Region),
 			ScalewayAccessKey: ToStringPointer(p.Config.ScalewayAccessKey),
 			ScalewaySecretKey: ToStringPointer(p.Config.ScalewaySecretKey),
@@ -112,6 +114,7 @@ func helmRepositoryConfigFromAPI(kind helmRepository.Kind, prior *HelmRepository
 	case helmRepository.KindECR:
 		config.Region = optionalStringFromAPI(config.Region, api.Region)
 		config.AccessKeyID = optionalStringFromAPI(config.AccessKeyID, api.AccessKeyID)
+		config.RoleArn = optionalStringFromAPI(config.RoleArn, api.RoleArn)
 	case helmRepository.KindScalewayCR:
 		config.Region = scalewayRegionFromAPI(config.Region, api.Region)
 		config.ScalewayAccessKey = optionalStringFromAPI(config.ScalewayAccessKey, api.ScalewayAccessKey)
