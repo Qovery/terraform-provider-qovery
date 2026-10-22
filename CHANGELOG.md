@@ -14,14 +14,6 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
-### Fixed
-
-- `qovery_application`, `qovery_job` and `qovery_terraform_service`: updating the advanced
-  settings no longer sends the deprecated `build.*` keys unless `advanced_settings_json` sets
-  them. The provider used to copy them from the current settings into every update. The API
-  keeps the stored build settings when the keys are omitted, so plans and build settings are
-  unchanged. (QOV-2233)
-
 ## [1.2.1] - 2026-10-22
 
 ### Added
@@ -31,6 +23,14 @@ explained in the matching upgrade guide.
   of that environment type. Neither can be `true` with `NO_ACCESS`. When not set, they follow
   the level on each apply: on from `DEPLOYER` up, off below. The `qovery_custom_role` data source
   reports them.
+
+### Fixed
+
+- `qovery_application`, `qovery_job` and `qovery_terraform_service`: updating the advanced
+  settings no longer sends the deprecated `build.*` keys unless `advanced_settings_json` sets
+  them. The provider used to copy them from the current settings into every update. The API
+  keeps the stored build settings when the keys are omitted, so plans and build settings are
+  unchanged. (QOV-2233)
 
 ## [1.2.0] - 2026-10-22
 
