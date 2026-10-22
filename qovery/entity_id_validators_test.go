@@ -47,6 +47,7 @@ var nonUUIDIDAttributes = map[string]string{
 	"qovery_cluster.features.existing_vpc.rds_subnets_zone_c_ids":                                      awsSubnetIDs,
 	"qovery_cluster.features.gcp_existing_vpc.vpc_project_id":                                          gcpProjectID,
 	"qovery_cluster.secret_manager_accesses.endpoint.project_id":                                       gcpProjectID,
+	"qovery_cluster.secret_manager_accesses.authentication.assume_role_external_id":                    "AWS STS external id",
 	"qovery_container_registry.config.project_id":                                                      gcpProjectID,
 	"qovery_cluster.infrastructure_charts_parameters.eks_anywhere_parameters.git_repository.commit_id": "git commit SHA",
 	"qovery_container_registry.config.scaleway_project_id":                                             scalewayID,
