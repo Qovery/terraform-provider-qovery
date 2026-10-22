@@ -23,6 +23,7 @@ var (
 	ErrInvalidClusterPermission   = errors.New("invalid cluster permission: must be one of VIEWER, ENV_CREATOR, ADMIN")
 	ErrInvalidProjectPermission   = errors.New("invalid project permission: must be one of NO_ACCESS, VIEWER, DEPLOYER, MANAGER")
 	ErrInvalidEnvironmentType     = errors.New("invalid environment type: must be one of DEVELOPMENT, PREVIEW, STAGING, PRODUCTION")
+	ErrRemoteAccessWithNoAccess   = errors.New("shell and port_forward cannot be true when permission is NO_ACCESS")
 )
 
 var reservedRoleNames = []string{"owner", "admin", "devops", "billing", "viewer"}
@@ -94,6 +95,16 @@ type ClusterRolePermission struct {
 type EnvironmentPermission struct {
 	EnvironmentType EnvironmentType
 	Permission      ProjectPermission
+	// Shell and PortForward are nil when not set in the configuration: the permission level then decides, with
+	// both granted from DEPLOYER upward.
+	Shell       *bool
+	PortForward *bool
+}
+
+// GrantsRemoteAccessByDefault mirrors q-core: shell and port-forward come with DEPLOYER and above
+// unless set otherwise.
+func (p ProjectPermission) GrantsRemoteAccessByDefault() bool {
+	return p == ProjectPermissionDeployer || p == ProjectPermissionManager
 }
 
 type ProjectRolePermission struct {
@@ -173,8 +184,21 @@ func (r UpsertRequest) Validate() error {
 			if seenEnvTypes[ep.EnvironmentType] {
 				return errors.Wrap(ErrDuplicateEnvironmentType, string(ep.EnvironmentType))
 			}
+			if !RemoteAccessAllowed(ep.Permission, ep.Shell, ep.PortForward) {
+				return errors.Wrapf(ErrRemoteAccessWithNoAccess, "%s %s", pp.ProjectID, ep.EnvironmentType)
+			}
 			seenEnvTypes[ep.EnvironmentType] = true
 		}
 	}
 	return nil
+}
+
+// RemoteAccessAllowed tells whether shell and port_forward, when set, are compatible with the permission:
+// neither can be true with NO_ACCESS.
+func RemoteAccessAllowed(permission ProjectPermission, shell, portForward *bool) bool {
+	return permission != ProjectPermissionNoAccess || (!isTrue(shell) && !isTrue(portForward))
+}
+
+func isTrue(b *bool) bool {
+	return b != nil && *b
 }

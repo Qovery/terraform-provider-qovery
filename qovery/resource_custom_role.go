@@ -164,6 +164,14 @@ func (r customRoleResource) Schema(_ context.Context, _ resource.SchemaRequest, 
 											validators.NewStringEnumValidator(projectPermissionValues()),
 										},
 									},
+									"shell": schema.BoolAttribute{
+										MarkdownDescription: customRoleShellDescription + customRoleRemoteAccessUnsetDescription,
+										Optional:            true,
+									},
+									"port_forward": schema.BoolAttribute{
+										MarkdownDescription: customRolePortForwardDescription + customRoleRemoteAccessUnsetDescription,
+										Optional:            true,
+									},
 								},
 							},
 						},
@@ -209,6 +217,43 @@ func (r customRoleResource) ValidateConfig(ctx context.Context, req resource.Val
 					"Invalid custom role configuration",
 					"permissions must not be set when is_admin is true, not even as an empty set",
 				)
+			}
+		}
+	}
+
+	// the NO_ACCESS check does not depend on the ids, so it also runs when they are unknown
+	if !config.ProjectPermissions.IsNull() {
+		for _, elem := range config.ProjectPermissions.Elements() {
+			project, ok := elem.(types.Object)
+			if !ok {
+				continue
+			}
+			projectID := "unknown project"
+			if id, ok := project.Attributes()["project_id"].(types.String); ok && !id.IsUnknown() && !id.IsNull() {
+				projectID = id.ValueString()
+			}
+			permissions, _ := project.Attributes()["permissions"].(types.Set)
+			for _, permElem := range permissions.Elements() {
+				env, ok := permElem.(types.Object)
+				if !ok {
+					continue
+				}
+				attrs := env.Attributes()
+				level, _ := attrs["permission"].(types.String)
+				shell, _ := attrs["shell"].(types.Bool)
+				portForward, _ := attrs["port_forward"].(types.Bool)
+				if level.IsUnknown() || level.IsNull() {
+					continue
+				}
+				if !customrole.RemoteAccessAllowed(customrole.ProjectPermission(level.ValueString()), knownBoolPointer(shell), knownBoolPointer(portForward)) {
+					envType, _ := attrs["environment_type"].(types.String)
+					resp.Diagnostics.AddAttributeError(
+						path.Root("project_permissions"),
+						"Invalid custom role configuration",
+						fmt.Sprintf("%s (project %s, environment type %s)", customrole.ErrRemoteAccessWithNoAccess.Error(), projectID, envType.ValueString()),
+					)
+					return
+				}
 			}
 		}
 	}

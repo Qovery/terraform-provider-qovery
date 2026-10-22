@@ -110,6 +110,9 @@ const (
 	customRoleEnvironmentPermissionsDescription = "Permissions of the role on each environment type of the project."
 	customRoleEnvironmentTypeDescription        = "Environment type."
 	customRoleEnvironmentPermissionDescription  = "Permission of the role on the environments of this type."
+	customRoleShellDescription                  = "Whether the role can open a shell on the services of this environment type, with `qovery shell` or from the console. Cannot be `true` with `NO_ACCESS`."
+	customRolePortForwardDescription            = "Whether the role can port-forward to the services of this environment type, with `qovery port-forward`. Cannot be `true` with `NO_ACCESS`."
+	customRoleRemoteAccessUnsetDescription      = " When not set, it follows the level on each apply: `true` from `DEPLOYER` upward, `false` below."
 )
 
 // Deployment and deployment stage.

@@ -51,3 +51,5 @@ Read-Only:
 
 - `environment_type` (String) Environment type.
 - `permission` (String) Permission of the role on the environments of this type.
+- `port_forward` (Boolean) Whether the role can port-forward to the services of this environment type, with `qovery port-forward`. Cannot be `true` with `NO_ACCESS`.
+- `shell` (Boolean) Whether the role can open a shell on the services of this environment type, with `qovery shell` or from the console. Cannot be `true` with `NO_ACCESS`.
