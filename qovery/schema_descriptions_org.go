@@ -112,7 +112,7 @@ const (
 	customRoleEnvironmentPermissionDescription  = "Permission of the role on the environments of this type."
 	customRoleShellDescription                  = "Whether the role can open a shell on the services of this environment type, with `qovery shell` or from the console. Cannot be `true` with `NO_ACCESS`."
 	customRolePortForwardDescription            = "Whether the role can port-forward to the services of this environment type, with `qovery port-forward`. Cannot be `true` with `NO_ACCESS`."
-	customRoleRemoteAccessUnsetDescription      = " When not set, Terraform doesn't manage it: a value set on purpose (for example revoked from the console) is kept, otherwise it follows the level: `true` from `DEPLOYER` upward, `false` below."
+	customRoleRemoteAccessUnsetDescription      = " When not set, it follows the level on each apply: `true` from `DEPLOYER` upward, `false` below."
 )
 
 // Deployment and deployment stage.

@@ -95,8 +95,8 @@ type ClusterRolePermission struct {
 type EnvironmentPermission struct {
 	EnvironmentType EnvironmentType
 	Permission      ProjectPermission
-	// Shell and PortForward are nil when not managed by Terraform: the current value is then kept, or
-	// granted from DEPLOYER upward on an environment type granted access for the first time.
+	// Shell and PortForward are nil when not set in the configuration: the permission level then decides, with
+	// both granted from DEPLOYER upward.
 	Shell       *bool
 	PortForward *bool
 }

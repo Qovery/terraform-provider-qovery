@@ -322,22 +322,22 @@ func TestAcc_CustomRoleRemoteAccess(t *testing.T) {
 				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 			},
 			// a shell revoked from the console on an environment type where the flag is not set
-			// is not drift: Terraform doesn't manage it
+			// is not drift: nothing in the configuration to compare it with
 			{
 				Config: testAccCustomRoleConfigRemoteAccess(roleName, `{ environment_type = "PRODUCTION", permission = "NO_ACCESS" }`, "DEPLOYER"),
 				Check: func(_ *terraform.State) error {
 					return testAccSetCustomRoleShellOutOfBand(roleID, "PREVIEW", false)
 				},
 			},
-			// ... and it survives a change of the level, as the revocation was deliberate
+			// ... and the next apply that changes the role sets it from the level again
 			{
 				Config: testAccCustomRoleConfigRemoteAccess(roleName, `{ environment_type = "PRODUCTION", permission = "NO_ACCESS" }`, "MANAGER"),
 				Check: resource.ComposeAggregateTestCheckFunc(
-					testAccCheckCustomRoleRemoteAccess(&roleID, "PREVIEW", false, true),
+					testAccCheckCustomRoleRemoteAccess(&roleID, "PREVIEW", true, true),
 				),
 				ConfigPlanChecks: testAccEmptyPlanAfterApply,
 			},
-			// raising an environment type that was never customised follows the level
+			// raising an environment type follows the level
 			{
 				Config: testAccCustomRoleConfigRemoteAccess(roleName, `{ environment_type = "PRODUCTION", permission = "DEPLOYER" }`, "MANAGER"),
 				Check: resource.ComposeAggregateTestCheckFunc(

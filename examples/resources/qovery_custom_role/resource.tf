@@ -18,7 +18,7 @@ resource "qovery_custom_role" "my_custom_role" {
         { environment_type = "DEVELOPMENT", permission = "MANAGER" },
         { environment_type = "PREVIEW", permission = "MANAGER" },
         { environment_type = "STAGING", permission = "DEPLOYER" },
-        # shell and port_forward are optional: when not set, Terraform keeps their current value if it was set on purpose, otherwise applies the default of the level (on from DEPLOYER upward)
+        # shell and port_forward are optional: when not set, they follow the level on each apply (on from DEPLOYER upward)
         { environment_type = "PRODUCTION", permission = "VIEWER", shell = false, port_forward = true },
       ]
     }
