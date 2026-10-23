@@ -85,7 +85,7 @@ You can find complete examples within these repositories:
 
 ### Optional
 
-- `advanced_settings_json` (String) Advanced settings to override, as a JSON string built with `jsonencode()`. The [Qovery API documentation](https://api-doc.qovery.com/#tag/Applications/operation/getDefaultApplicationAdvancedSettings) lists them with their defaults. Terraform manages only the keys you set, and removing a key keeps its current value: see [Advanced settings](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes#advanced-settings).
+- `advanced_settings_json` (String) Advanced settings to override, as a JSON string built with `jsonencode()`. The [Qovery API documentation](https://api-doc.qovery.com/#tag/Applications/operation/getDefaultApplicationAdvancedSettings) lists them with their defaults. Terraform manages only the keys you set, and removing a key keeps its current value: see [Advanced settings](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes#advanced-settings). The `build.*` keys are deprecated: setting one warns at plan time, and a future major release will reject them. Use the `build_settings` block instead, which cannot be combined with them.
 - `annotations_group_ids` (Set of String) IDs of the annotations groups applied to the application's pods. Omitting it detaches every annotations group.
 - `arguments` (List of String) Arguments that replace the `CMD` of the image. Omitting it sets none.
 - `auto_deploy` (Boolean) Whether Qovery redeploys the application on every new commit to its branch.

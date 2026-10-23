@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -216,35 +217,66 @@ func validateBuildSettingsConflict(buildSettings types.Object, advancedSettingsJ
 		return diags
 	}
 
-	if advancedSettingsJson.IsNull() || advancedSettingsJson.IsUnknown() {
-		return diags
-	}
-
-	jsonStr := advancedSettingsJson.ValueString()
-	if jsonStr == "" || jsonStr == "{}" {
-		return diags
-	}
-
-	var settings map[string]interface{}
-	if err := json.Unmarshal([]byte(jsonStr), &settings); err != nil {
-		return diags
-	}
-
-	for _, key := range advanced_settings.BuildSettingsKeys {
-		if _, ok := settings[key]; ok {
-			diags.AddError(
-				"Conflicting build configuration",
-				fmt.Sprintf(
-					"Cannot set both build_settings and %q in advanced_settings_json. "+
-						"Remove the build.* keys from advanced_settings_json and use the build_settings block instead.",
-					key,
-				),
-			)
-			return diags
-		}
+	if keys := buildSettingsKeysIn(advancedSettingsJson); len(keys) > 0 {
+		diags.AddError(
+			"Conflicting build configuration",
+			fmt.Sprintf(
+				"Cannot set both build_settings and %q in advanced_settings_json. "+
+					"Remove the build.* keys from advanced_settings_json and use the build_settings block instead.",
+				keys[0],
+			),
+		)
 	}
 
 	return diags
+}
+
+// warnDeprecatedBuildSettingsKeys warns about build.* keys written in advanced_settings_json.
+// It is given configuration values, so keys advanced_settings_json only carries over from state never warn.
+func warnDeprecatedBuildSettingsKeys(advancedSettingsJson types.String) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	keys := buildSettingsKeysIn(advancedSettingsJson)
+	if len(keys) == 0 {
+		return diags
+	}
+
+	attributes := make([]string, 0, len(keys))
+	for _, key := range keys {
+		attributes = append(attributes, strings.TrimPrefix(key, "build."))
+	}
+	diags.AddAttributeWarning(
+		path.Root("advanced_settings_json"),
+		"Deprecated build.* advanced settings",
+		fmt.Sprintf(
+			"The build.* keys of advanced_settings_json are deprecated and a future major release will reject them: %s. "+
+				"Remove them and set the build_settings block instead (%s).",
+			strings.Join(keys, ", "),
+			strings.Join(attributes, ", "),
+		),
+	)
+	return diags
+}
+
+// buildSettingsKeysIn returns the build.* keys set in an advanced settings JSON document, in BuildSettingsKeys order.
+// A null, unknown or invalid document has none.
+func buildSettingsKeysIn(advancedSettingsJson types.String) []string {
+	if advancedSettingsJson.IsNull() || advancedSettingsJson.IsUnknown() {
+		return nil
+	}
+
+	var settings map[string]any
+	if err := json.Unmarshal([]byte(advancedSettingsJson.ValueString()), &settings); err != nil {
+		return nil
+	}
+
+	var keys []string
+	for _, key := range advanced_settings.BuildSettingsKeys {
+		if _, ok := settings[key]; ok {
+			keys = append(keys, key)
+		}
+	}
+	return keys
 }
 
 // stripBuildSettingsKeys removes the build.* keys from an advanced settings JSON document.
@@ -273,7 +305,8 @@ func stripBuildSettingsKeys(advancedSettingsJson string) (string, bool) {
 	return string(stripped), true
 }
 
-// modifyBuildSettingsPlan lets build_settings own the build configuration when it is set:
+// modifyBuildSettingsPlan warns about build.* keys written in advanced_settings_json when build_settings is
+// not set, and lets build_settings own the build configuration when it is set:
 //   - build.* keys written in advanced_settings_json are rejected at plan time;
 //   - build.* keys that advanced_settings_json only carries over from state (e.g. after an import, or when
 //     migrating away from them) are removed from the plan, otherwise the advanced settings update, which
@@ -287,7 +320,11 @@ func modifyBuildSettingsPlan(ctx context.Context, req resource.ModifyPlanRequest
 	var configAdvancedSettings types.String
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("build_settings"), &configBuildSettings)...)
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("advanced_settings_json"), &configAdvancedSettings)...)
-	if resp.Diagnostics.HasError() || configBuildSettings.IsNull() {
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if configBuildSettings.IsNull() {
+		resp.Diagnostics.Append(warnDeprecatedBuildSettingsKeys(configAdvancedSettings)...)
 		return
 	}
 

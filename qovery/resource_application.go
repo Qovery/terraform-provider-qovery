@@ -601,7 +601,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Default:             booldefault.StaticBool(false),
 			},
 			"advanced_settings_json": schema.StringAttribute{
-				MarkdownDescription: advancedSettingsJSONDescription("Applications/operation/getDefaultApplicationAdvancedSettings"),
+				MarkdownDescription: advancedSettingsJSONDescription("Applications/operation/getDefaultApplicationAdvancedSettings") + buildSettingsKeysDeprecatedNote,
 				Optional:            true,
 				Computed:            true,
 				// Documented exception to the config-is-source-of-truth rule: the QOV-2028

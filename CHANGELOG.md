@@ -14,6 +14,15 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Changed
+
+- `qovery_application`, `qovery_job` and `qovery_terraform_service`: when the `build_settings`
+  block is not set, `terraform plan` warns about each deprecated `build.*` key that
+  `advanced_settings_json` sets, and names the `build_settings` attribute to use instead.
+  Setting such a key next to the block still fails, as before. Only keys written in the
+  configuration warn, not those read back from the API. A future major release will reject
+  them. (QOV-2233)
+
 ## [1.2.1] - 2026-10-22
 
 ### Added
