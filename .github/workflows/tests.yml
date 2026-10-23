@@ -13,9 +13,8 @@ on:
       - ".gitignore"
   schedule:
     # GitHub cron is UTC only and runs queued at :00 are the most delayed
-    # (peak load), so both crons sit at :38. Paris is UTC+2 in summer, UTC+1 in winter.
-    - cron: "38 7 * * 1-5"  # 07:38 UTC, Mon-Fri (09:38 Paris in summer, 08:38 in winter)
-    - cron: "38 14 * * 1-5" # 14:38 UTC, Mon-Fri (16:38 Paris in summer, 15:38 in winter)
+    # (peak load), so the cron sits at :38. Paris is UTC+2 in summer, UTC+1 in winter.
+    - cron: "38 7 * * 1-5" # 07:38 UTC, Mon-Fri (09:38 Paris in summer, 08:38 in winter)
 
 permissions:
   contents: read
@@ -222,7 +221,7 @@ jobs:
                     },
                     {
                       "type": "mrkdwn",
-                      "text": "*Trigger:*\nScheduled (${{ github.event.schedule == '38 7 * * 1-5' && 'morning run, 07:38 UTC' || 'afternoon run, 14:38 UTC' }})"
+                      "text": "*Trigger:*\nScheduled (07:38 UTC)"
                     }
                   ]
                 },
