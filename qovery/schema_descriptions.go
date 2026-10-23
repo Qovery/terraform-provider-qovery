@@ -114,6 +114,8 @@ const (
 	// only tracked while it is set, and removing it sends the defaults.
 	buildSettingsManagedNote = " Terraform manages them only while the block is set: omitted settings plan their default, and removing the block resets them all. " +
 		"It conflicts with `build.*` keys in `advanced_settings_json`."
+	// buildSettingsKeysDeprecatedNote documents warnDeprecatedBuildSettingsKeys on advanced_settings_json.
+	buildSettingsKeysDeprecatedNote              = " The `build.*` keys are deprecated: setting one warns at plan time, and a future major release will reject them. Use the `build_settings` block instead, which cannot be combined with them."
 	buildSettingsTimeoutMaxSecDescription        = "Maximum duration of a build, in seconds."
 	buildSettingsCPUMaxInMilliDescription        = "Maximum CPU of a build, in millicores (1000 = 1 vCPU)."
 	buildSettingsRAMMaxInGibDescription          = "Maximum memory of a build, in GiB."

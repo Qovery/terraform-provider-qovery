@@ -338,7 +338,7 @@ func (r terraformServiceResource) Schema(_ context.Context, _ resource.SchemaReq
 			"external_secret_files": externalSecretFilesSchemaAttribute("Terraform service"),
 			"build_settings":        buildSettingsResourceSchemaAttributes(),
 			"advanced_settings_json": schema.StringAttribute{
-				MarkdownDescription: advancedSettingsJSONDescription("Terraforms/operation/getDefaultTerraformAdvancedSettings"),
+				MarkdownDescription: advancedSettingsJSONDescription("Terraforms/operation/getDefaultTerraformAdvancedSettings") + buildSettingsKeysDeprecatedNote,
 				Optional:            true,
 				Computed:            true,
 				// Documented exception to the config-is-source-of-truth rule: the QOV-2028

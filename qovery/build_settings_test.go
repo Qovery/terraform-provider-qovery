@@ -246,6 +246,54 @@ func TestValidateBuildSettingsConflict(t *testing.T) {
 	}
 }
 
+func TestWarnDeprecatedBuildSettingsKeys(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		TestName         string
+		AdvancedSettings types.String
+		ExpectedDetail   string
+	}{
+		{
+			TestName:         "null",
+			AdvancedSettings: types.StringNull(),
+		},
+		{
+			TestName:         "unknown",
+			AdvancedSettings: types.StringUnknown(),
+		},
+		{
+			TestName:         "invalid_json",
+			AdvancedSettings: types.StringValue(`not json`),
+		},
+		{
+			TestName:         "no_build_keys",
+			AdvancedSettings: types.StringValue(`{"network.ingress.proxy_body_size_mb": 100}`),
+		},
+		{
+			TestName:         "build_keys",
+			AdvancedSettings: types.StringValue(`{"build.ram_max_in_gib": 16, "network.ingress.proxy_body_size_mb": 100, "build.timeout_max_sec": 3600}`),
+			ExpectedDetail: "The build.* keys of advanced_settings_json are deprecated and a future major release will reject them: " +
+				"build.timeout_max_sec, build.ram_max_in_gib. Remove them and set the build_settings block instead (timeout_max_sec, ram_max_in_gib).",
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+
+			diags := warnDeprecatedBuildSettingsKeys(tc.AdvancedSettings)
+			assert.False(t, diags.HasError())
+			if tc.ExpectedDetail == "" {
+				assert.Empty(t, diags)
+				return
+			}
+			require.Len(t, diags, 1)
+			assert.Equal(t, tc.ExpectedDetail, diags[0].Detail())
+		})
+	}
+}
+
 func TestStripBuildSettingsKeys(t *testing.T) {
 	t.Parallel()
 
@@ -330,14 +378,30 @@ func TestModifyBuildSettingsPlan(t *testing.T) {
 		ConfigJSON       tftypes.Value
 		PlanJSON         tftypes.Value
 		ExpectError      bool
+		ExpectWarning    bool
 		ExpectedPlanJSON types.String
 	}{
 		{
-			TestName:         "legacy_build_keys_without_block_are_kept",
+			TestName:         "legacy_build_keys_without_block_are_kept_with_a_warning",
 			ConfigBlock:      nullBlock,
 			ConfigJSON:       inheritedJSON,
 			PlanJSON:         inheritedJSON,
+			ExpectWarning:    true,
 			ExpectedPlanJSON: types.StringValue(`{"build.timeout_max_sec":1800,"network.ingress.proxy_body_size_mb":100}`),
+		},
+		{
+			TestName:         "configured_json_without_build_keys_and_without_block_does_not_warn",
+			ConfigBlock:      nullBlock,
+			ConfigJSON:       tftypes.NewValue(tftypes.String, `{"network.ingress.proxy_body_size_mb":100}`),
+			PlanJSON:         tftypes.NewValue(tftypes.String, `{"network.ingress.proxy_body_size_mb":100}`),
+			ExpectedPlanJSON: types.StringValue(`{"network.ingress.proxy_body_size_mb":100}`),
+		},
+		{
+			TestName:         "unknown_configured_json_without_block_does_not_warn",
+			ConfigBlock:      nullBlock,
+			ConfigJSON:       unknownJSON,
+			PlanJSON:         unknownJSON,
+			ExpectedPlanJSON: types.StringUnknown(),
 		},
 		{
 			TestName:         "inherited_build_keys_kept_without_block",
@@ -407,6 +471,7 @@ func TestModifyBuildSettingsPlan(t *testing.T) {
 			if tc.ExpectError {
 				return
 			}
+			assert.Equal(t, tc.ExpectWarning, resp.Diagnostics.WarningsCount() > 0)
 			var planJSON types.String
 			require.False(t, resp.Plan.GetAttribute(ctx, path.Root("advanced_settings_json"), &planJSON).HasError())
 			assert.Equal(t, tc.ExpectedPlanJSON, planJSON)

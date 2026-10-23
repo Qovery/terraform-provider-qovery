@@ -14,6 +14,17 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.2.2] - 2026-10-23
+
+### Changed
+
+- `qovery_application`, `qovery_job` and `qovery_terraform_service`: when the `build_settings`
+  block is not set, `terraform plan` warns about each deprecated `build.*` key that
+  `advanced_settings_json` sets, and names the `build_settings` attribute to use instead.
+  Setting such a key next to the block still fails, as before. Only keys written in the
+  configuration warn, not those read back from the API. A future major release will reject
+  them. (QOV-2233)
+
 ## [1.2.1] - 2026-10-22
 
 ### Added
@@ -482,7 +493,8 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.2...HEAD
+[1.2.2]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.0.3...v1.1.0
