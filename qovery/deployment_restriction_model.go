@@ -1,8 +1,6 @@
 package qovery
 
 import (
-	"fmt"
-
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
@@ -33,8 +31,8 @@ func FromDeploymentRestrictionList(initialState types.Set, deploymentRestriction
 	var list DeploymentRestrictionList
 	list = make([]DeploymentRestriction, 0, len(deploymentRestrictions))
 	for _, deploymentRestriction := range deploymentRestrictions {
-		modeStr := fmt.Sprintf("%s", deploymentRestriction.Mode)
-		typeStr := fmt.Sprintf("%s", deploymentRestriction.Type)
+		modeStr := string(deploymentRestriction.Mode)
+		typeStr := string(deploymentRestriction.Type)
 		list = append(list, DeploymentRestriction{
 			Id:    FromString(*deploymentRestriction.Id),
 			Mode:  FromString(modeStr),

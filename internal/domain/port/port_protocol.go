@@ -2,8 +2,7 @@ package port
 
 import (
 	"fmt"
-
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 // Protocol is an enum that contains all the valid values of a port protocol.

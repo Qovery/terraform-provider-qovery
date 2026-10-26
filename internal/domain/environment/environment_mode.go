@@ -2,8 +2,7 @@ package environment
 
 import (
 	"fmt"
-
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 // Mode is an enum that contains all the valid values of an environment plan.

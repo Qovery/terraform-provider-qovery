@@ -1241,10 +1241,7 @@ func (r clusterResource) Read(ctx context.Context, req resource.ReadRequest, res
 
 	// Hack to know if this method is triggered through an import
 	// CredentialsId is always present except when importing the resource
-	isTriggeredFromImport := false
-	if state.CredentialsId.IsNull() {
-		isTriggeredFromImport = true
-	}
+	isTriggeredFromImport := state.CredentialsId.IsNull()
 
 	// Get cluster from the API
 	cluster, apiErr := r.client.GetCluster(ctx, state.OrganizationId.ValueString(), state.Id.ValueString(), state.AdvancedSettingsJson.ValueString(), isTriggeredFromImport)

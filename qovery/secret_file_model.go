@@ -153,7 +153,7 @@ func (s SecretFile) toCreateRequest() client.SecretCreateRequest {
 	}
 	mountPath := ToString(s.MountPath)
 	if mountPath != "" {
-		req.SecretRequest.MountPath = *qovery.NewNullableString(&mountPath)
+		req.MountPath = *qovery.NewNullableString(&mountPath)
 	}
 	return req
 }

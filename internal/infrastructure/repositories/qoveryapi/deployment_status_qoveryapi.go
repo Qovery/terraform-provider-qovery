@@ -44,16 +44,16 @@ func (d deploymentStatusQoveryAPI) WaitForExpectedDesiredState(ctx context.Conte
 	return waitWithDefaultTimeout(ctx, checkEnvironmentStatus, subject)
 }
 
-func (d deploymentStatusQoveryAPI) CheckEnvironmentExists(ctx context.Context, environmentID uuid.UUID) (error, int) {
+func (d deploymentStatusQoveryAPI) CheckEnvironmentExists(ctx context.Context, environmentID uuid.UUID) (int, error) {
 	_, response, err := d.client.EnvironmentMainCallsAPI.GetEnvironment(ctx, environmentID.String()).Execute()
 	// The generated client returns a nil response on transport errors (context canceled, network failure)
 	if response == nil {
-		return err, 0
+		return 0, err
 	}
 	if err != nil || response.StatusCode >= 400 {
-		return err, response.StatusCode
+		return response.StatusCode, err
 	}
-	return nil, response.StatusCode
+	return response.StatusCode, nil
 }
 
 const (
@@ -124,7 +124,7 @@ func (d deploymentStatusQoveryAPI) newEnvironmentWaitForTerminalStateBeforeDeplo
 		}
 
 		// Unexpected status
-		return false, fmt.Errorf("Unexpected deployment status having status: %s", status.State)
+		return false, fmt.Errorf("unexpected deployment status having status: %s", status.State)
 	}
 }
 
@@ -147,13 +147,13 @@ func (d deploymentStatusQoveryAPI) newEnvironmentWaitForExpectedDesiredState(env
 			return false, nil
 		// Finished with error
 		case "BUILD_ERROR", "DEPLOYMENT_ERROR", "DELETE_ERROR", "STOP_ERROR", "RESTART_ERROR":
-			return false, fmt.Errorf("Environment deployment failed with final status: %s", status.State)
+			return false, fmt.Errorf("environment deployment failed with final status: %s", status.State)
 		// Finished with success
 		case "STOPPED", "DEPLOYED", "DELETED", "RESTARTED", "CANCELED":
 			return true, nil
 		}
 
 		// Unexpected status
-		return false, fmt.Errorf("Unexpected deployment status having status: %s", status.State)
+		return false, fmt.Errorf("unexpected deployment status having status: %s", status.State)
 	}
 }

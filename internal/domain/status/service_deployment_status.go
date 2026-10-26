@@ -2,8 +2,7 @@ package status
 
 import (
 	"fmt"
-
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 // ServiceDeploymentStatus is an enum that contains all the valid values of a status protocol.

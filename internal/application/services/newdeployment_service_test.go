@@ -53,8 +53,8 @@ func (s stubDeploymentStatusRepository) WaitForExpectedDesiredState(_ context.Co
 	return s.waitForExpectedDesiredStateErr
 }
 
-func (stubDeploymentStatusRepository) CheckEnvironmentExists(_ context.Context, _ uuid.UUID) (error, int) {
-	return nil, 200
+func (stubDeploymentStatusRepository) CheckEnvironmentExists(_ context.Context, _ uuid.UUID) (int, error) {
+	return 200, nil
 }
 
 // TestNewDeploymentService_WaitTimeoutFailsTheOperation checks that a timed-out status wait is

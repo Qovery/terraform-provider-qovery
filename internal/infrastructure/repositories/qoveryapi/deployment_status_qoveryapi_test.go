@@ -138,7 +138,7 @@ func TestDeploymentStatusQoveryAPI_CheckEnvironmentExists_TransportErrorDoesNotP
 
 	d := newFailingTransportDeploymentStatusAPI()
 
-	err, statusCode := d.CheckEnvironmentExists(context.Background(), uuid.New())
+	statusCode, err := d.CheckEnvironmentExists(context.Background(), uuid.New())
 	assert.Error(t, err)
 	assert.Equal(t, 0, statusCode, "no HTTP response was received, so there is no status code to report")
 }

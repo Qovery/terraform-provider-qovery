@@ -2,8 +2,7 @@ package helm
 
 import (
 	"fmt"
-
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 type Protocol string

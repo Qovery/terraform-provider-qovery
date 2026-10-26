@@ -2,8 +2,7 @@ package gittoken
 
 import (
 	"fmt"
-
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 type GitTokenType string
