@@ -29,13 +29,15 @@ func writeOnlyFromConfig(ctx context.Context, config tfsdk.Config, p path.Path, 
 	return value
 }
 
-// writeOnlyOrPlain returns the secret to send to the API: the write-only value when config sets
-// it, else the plain value from the plan.
-func writeOnlyOrPlain(plain, writeOnly types.String) *string {
-	if isKnownAndSet(writeOnly) {
-		return writeOnly.ValueStringPointer()
+// plannedOrWriteOnly returns the secret to send to the API: the plain value of the plan when set,
+// else the write-only value of the config. The validator rejects a config that sets both, but
+// ignore_changes can keep a plain value in the plan while the config moved to the write-only form.
+// The plan value is what the state records, so it wins.
+func plannedOrWriteOnly(planned, writeOnly types.String) *string {
+	if isKnownAndSet(planned) {
+		return planned.ValueStringPointer()
 	}
-	return ToStringPointer(plain)
+	return ToStringPointer(writeOnly)
 }
 
 // validateWriteOnly checks the attribute name under parent against its write-only form: the plain

@@ -46,12 +46,13 @@ type HelmRepositoryDataSource struct {
 	SkipTlsVerification types.Bool   `tfsdk:"skip_tls_verification"`
 }
 
-// passwordWoVersion returns config.password_wo_version, null without a config block.
-func (p HelmRepository) passwordWoVersion() types.String {
+// plannedPassword returns config.password and config.password_wo_version, null without a config
+// block.
+func (p HelmRepository) plannedPassword() (password, version types.String) {
 	if p.Config == nil {
-		return types.StringNull()
+		return types.StringNull(), types.StringNull()
 	}
-	return p.Config.PasswordWoVersion
+	return p.Config.Password, p.Config.PasswordWoVersion
 }
 
 // toUpsertRequest builds the request from the plan. passwordWo is config.password_wo read from the
@@ -70,7 +71,7 @@ func (p HelmRepository) toUpsertRequest(passwordWo types.String) helmRepository.
 			ScalewaySecretKey: ToStringPointer(p.Config.ScalewaySecretKey),
 			ScalewayProjectId: ToStringPointer(p.Config.ScalewayProjectId),
 			Username:          ToStringPointer(p.Config.Username),
-			Password:          writeOnlyOrPlain(p.Config.Password, passwordWo),
+			Password:          plannedOrWriteOnly(p.Config.Password, passwordWo),
 		}
 	}
 	return helmRepository.UpsertRequest{

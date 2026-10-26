@@ -293,7 +293,7 @@ func (s Secret) toCreateRequest(valueWo types.String) client.SecretCreateRequest
 	return client.SecretCreateRequest{
 		SecretRequest: qovery.SecretRequest{
 			Key:         ToString(s.Key),
-			Value:       writeOnlyOrPlain(s.Value, valueWo),
+			Value:       plannedOrWriteOnly(s.Value, valueWo),
 			Description: *qovery.NewNullableString(ToStringPointer(s.Description)),
 		},
 	}
@@ -317,7 +317,7 @@ func (s Secret) toUpdateRequest(new Secret, valueWo types.String) client.SecretU
 		Id: ToString(s.Id),
 		SecretEditRequest: qovery.SecretEditRequest{
 			Key:         ToString(s.Key),
-			Value:       writeOnlyOrPlain(new.Value, valueWo),
+			Value:       plannedOrWriteOnly(new.Value, valueWo),
 			Description: *qovery.NewNullableString(ToStringPointer(new.Description)),
 		},
 	}
@@ -336,10 +336,10 @@ func (s Secret) toDiffUpdateRequest(new Secret, valueWo types.String) secret.Dif
 	}
 }
 
-// secretValueToSend returns the value a domain request sends: the write-only value when config
-// sets it, else the plain one, empty when neither is set.
+// secretValueToSend returns the value a domain request sends: the plain value of the plan when
+// set, else the write-only value of the config, empty when neither is set.
 func secretValueToSend(plain, valueWo types.String) string {
-	if value := writeOnlyOrPlain(plain, valueWo); value != nil {
+	if value := plannedOrWriteOnly(plain, valueWo); value != nil {
 		return *value
 	}
 	return ""

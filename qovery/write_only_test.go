@@ -102,14 +102,17 @@ func TestValidateWriteOnly_NamesThePaths(t *testing.T) {
 	assert.Equal(t, "secrets[1].value_wo cannot be set with secrets[1].value: set one of them.", diags.Errors()[0].Detail())
 }
 
-func TestWriteOnlyOrPlain(t *testing.T) {
+func TestPlannedOrWriteOnly(t *testing.T) {
 	t.Parallel()
 
-	assert.Equal(t, new("write-only"), writeOnlyOrPlain(types.StringNull(), types.StringValue("write-only")))
-	assert.Equal(t, new("plain"), writeOnlyOrPlain(types.StringValue("plain"), types.StringNull()))
-	assert.Equal(t, new(""), writeOnlyOrPlain(types.StringNull(), types.StringValue("")), "an empty write-only value is sent")
-	assert.Nil(t, writeOnlyOrPlain(types.StringNull(), types.StringNull()))
-	assert.Nil(t, writeOnlyOrPlain(types.StringNull(), types.StringUnknown()))
+	assert.Equal(t, new("write-only"), plannedOrWriteOnly(types.StringNull(), types.StringValue("write-only")))
+	assert.Equal(t, new("plain"), plannedOrWriteOnly(types.StringValue("plain"), types.StringNull()))
+	assert.Equal(t, new(""), plannedOrWriteOnly(types.StringNull(), types.StringValue("")), "an empty write-only value is sent")
+	assert.Nil(t, plannedOrWriteOnly(types.StringNull(), types.StringNull()))
+	assert.Nil(t, plannedOrWriteOnly(types.StringNull(), types.StringUnknown()))
+	// ignore_changes can keep a plain value in the plan while the config sets the write-only form:
+	// the plan value is what the state records, so it is what the API receives.
+	assert.Equal(t, new("kept"), plannedOrWriteOnly(types.StringValue("kept"), types.StringValue("write-only")))
 }
 
 func TestWriteOnlyFromConfig(t *testing.T) {

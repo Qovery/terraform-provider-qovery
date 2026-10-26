@@ -330,6 +330,43 @@ func TestRegistryResources_RejectAnUpdateWithoutTheWriteOnlyPassword(t *testing.
 	}
 }
 
+// With ignore_changes = [config], the plan keeps the username and the plain password of the state
+// while the config moves to a new username and password_wo. The request sends the planned pair,
+// which the state records, not the planned username with the configured password.
+func TestRegistryResources_SendThePlannedCredentialsKeptByIgnoreChanges(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	registryID := uuid.NewString()
+	str := func(v string) tftypes.Value { return tftypes.NewValue(tftypes.String, v) }
+
+	containerRegistryService := &fakeRegistryService{}
+	r := containerRegistryResource{containerRegistryService: containerRegistryService}
+	s := schemaFor(t, r)
+	topLevel := func(description string) map[string]tftypes.Value {
+		return map[string]tftypes.Value{
+			"id":              str(registryID),
+			"organization_id": str(writeOnlyTestOrganizationID),
+			"name":            str("registry"),
+			"kind":            str("GENERIC_CR"),
+			"url":             str("https://registry.example.com"),
+			"description":     str(description),
+		}
+	}
+	kept := map[string]string{"username": "old-user", "password": "old-password"}
+	state := tfsdk.State{Schema: s, Raw: registryValue(t, s, topLevel("old"), kept)}
+	resp := &resource.UpdateResponse{State: state}
+	r.Update(ctx, resource.UpdateRequest{
+		Plan:   tfsdk.Plan{Schema: s, Raw: registryValue(t, s, topLevel("new"), kept)},
+		Config: tfsdk.Config{Schema: s, Raw: registryValue(t, s, topLevel("new"), map[string]string{"username": "new-user", "password_wo": "new-password", "password_wo_version": "1"})},
+		State:  state,
+	}, resp)
+
+	require.False(t, resp.Diagnostics.HasError(), "diagnostics: %v", resp.Diagnostics)
+	require.Len(t, containerRegistryService.requests, 1)
+	assert.Equal(t, new("old-user"), containerRegistryService.requests[0].Config.Username)
+	assert.Equal(t, new("old-password"), containerRegistryService.requests[0].Config.Password)
+}
+
 // plannedString returns the config key as the plan holds it: null when the config does not set it.
 func plannedString(config map[string]string, key string) types.String {
 	if value, ok := config[key]; ok {

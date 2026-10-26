@@ -53,12 +53,12 @@ func readCredentialsConfig(ctx context.Context, cfg tfsdk.Config, config any, di
 }
 
 // registryPasswordWoFromConfig reads config.password_wo from the config. It fails when the plan
-// holds a config.password_wo_version that the config no longer backs with a password, which
-// ignore_changes on config can cause: the API replaces the whole config on every write, so the
-// request would clear the password.
-func registryPasswordWoFromConfig(ctx context.Context, config tfsdk.Config, plannedVersion types.String, diags *diag.Diagnostics) types.String {
+// holds a config.password_wo_version but no password, and the config no longer backs it with
+// config.password_wo, which ignore_changes on config can cause: the API replaces the whole config
+// on every write, so the request would clear the password.
+func registryPasswordWoFromConfig(ctx context.Context, config tfsdk.Config, plannedPassword, plannedVersion types.String, diags *diag.Diagnostics) types.String {
 	passwordWo := writeOnlyFromConfig(ctx, config, registryPasswordWoPath, diags)
-	if isKnownAndSet(plannedVersion) && passwordWo.IsNull() {
+	if plannedPassword.IsNull() && isKnownAndSet(plannedVersion) && passwordWo.IsNull() {
 		diags.AddAttributeError(
 			registryPasswordWoPath,
 			"Missing write-only password",

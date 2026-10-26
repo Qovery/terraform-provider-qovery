@@ -317,6 +317,15 @@ func TestSecretListDiff_WriteOnly(t *testing.T) {
 			Expected: sentSecrets{Update: []sentSecret{{ID: "id-a", Key: "A", Value: "write-only"}}},
 		},
 		{
+			// ignore_changes kept the plain value while the config moved to value_wo: the plan
+			// value is what the state records, so it is what the API receives.
+			TestName: "plain_value_kept_by_ignore_changes_wins",
+			Old:      SecretList{secretEntry("id-a", "A", types.StringValue("kept"), noVersion, types.StringValue("old"))},
+			Planned:  SecretList{secretEntry("", "A", types.StringValue("kept"), v1, types.StringValue("new"))},
+			ValuesWo: writeOnlySecretValues{"A": types.StringValue("write-only")},
+			Expected: sentSecrets{Update: []sentSecret{{ID: "id-a", Key: "A", Value: "kept"}}},
+		},
+		{
 			TestName: "switch_to_plain_updates_in_place",
 			Old:      SecretList{secretEntry("id-a", "A", noValue, v1, noDescription)},
 			Planned:  SecretList{secretEntry("", "A", types.StringValue("plain"), noVersion, noDescription)},

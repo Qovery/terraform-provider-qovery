@@ -196,7 +196,8 @@ func (r containerRegistryResource) Create(ctx context.Context, req resource.Crea
 	}
 
 	// Create new container registry
-	passwordWo := registryPasswordWoFromConfig(ctx, req.Config, plan.passwordWoVersion(), &resp.Diagnostics)
+	plannedPassword, plannedVersion := plan.plannedPassword()
+	passwordWo := registryPasswordWoFromConfig(ctx, req.Config, plannedPassword, plannedVersion, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -248,7 +249,8 @@ func (r containerRegistryResource) Update(ctx context.Context, req resource.Upda
 	}
 
 	// Update container registry in the backend
-	passwordWo := registryPasswordWoFromConfig(ctx, req.Config, plan.passwordWoVersion(), &resp.Diagnostics)
+	plannedPassword, plannedVersion := plan.plannedPassword()
+	passwordWo := registryPasswordWoFromConfig(ctx, req.Config, plannedPassword, plannedVersion, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
