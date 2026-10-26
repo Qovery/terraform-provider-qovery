@@ -206,31 +206,7 @@ func (r environmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 					},
 				},
 			},
-			"secrets": schema.SetNestedAttribute{
-				MarkdownDescription: secrets.List,
-				Optional:            true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"id": schema.StringAttribute{
-							MarkdownDescription: secrets.ID,
-							Computed:            true,
-						},
-						"key": schema.StringAttribute{
-							MarkdownDescription: secrets.Key,
-							Required:            true,
-						},
-						"value": schema.StringAttribute{
-							MarkdownDescription: secrets.Value,
-							Required:            true,
-							Sensitive:           true,
-						},
-						"description": schema.StringAttribute{
-							MarkdownDescription: secrets.Description,
-							Optional:            true,
-						},
-					},
-				},
-			},
+			"secrets": secretsResourceAttribute(secrets),
 			"secret_aliases": schema.SetNestedAttribute{
 				MarkdownDescription: secretAliases.List,
 				Optional:            true,
@@ -298,7 +274,11 @@ func (r environmentResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Create new environment
-	request, err := plan.toCreateEnvironmentRequest()
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), nil, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	request, err := plan.toCreateEnvironmentRequest(secretValuesWo)
 	if err != nil {
 		resp.Diagnostics.AddError(err.Error(), err.Error())
 		return
@@ -351,7 +331,11 @@ func (r environmentResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	request, err := plan.toUpdateEnvironmentRequest(state)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), state.SecretList(), &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	request, err := plan.toUpdateEnvironmentRequest(state, secretValuesWo)
 	if err != nil {
 		resp.Diagnostics.AddError(err.Error(), err.Error())
 		return

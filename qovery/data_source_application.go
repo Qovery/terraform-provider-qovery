@@ -330,7 +330,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 					},
 				},
 			},
-			"secrets": schema.SetNestedAttribute{
+			"secrets": schema.ListNestedAttribute{
 				MarkdownDescription: secrets.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
@@ -629,6 +629,8 @@ func (d applicationDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	data.Arguments = emptyStringList()
 	data.Entrypoint = types.StringValue("")
 	state := convertResponseToApplication(ctx, data, application)
+	// The data source has no value_wo and value_wo_version.
+	state.Secrets = secretsForDataSource(state.Secrets)
 	state.BuildSettings = buildSettingsFromQovery(application.ApplicationBuildSettings)
 	// The git provider reports the API value, also when it matches the URL.
 	if state.GitRepository != nil && application.ApplicationResponse.GitRepository != nil {

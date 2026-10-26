@@ -375,7 +375,7 @@ func (d jobDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, res
 					},
 				},
 			},
-			"secrets": schema.SetNestedAttribute{
+			"secrets": schema.ListNestedAttribute{
 				MarkdownDescription: secrets.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
@@ -614,6 +614,8 @@ func (d jobDataSource) Read(ctx context.Context, req datasource.ReadRequest, res
 	data.LabelssGroupIds = emptyStringSet()
 	data.Schedule = dataSourceJobSchedulePrior()
 	state := convertDomainJobToJob(ctx, data, cont)
+	// The data source has no value_wo and value_wo_version.
+	state.Secrets = secretsForDataSource(state.Secrets)
 	state.BuildSettings = buildSettingsFromQovery(cont.BuildSettings)
 	// The git provider reports the API value, also when it matches the URL.
 	if state.Source != nil && state.Source.Docker != nil && cont.Source.Docker != nil {

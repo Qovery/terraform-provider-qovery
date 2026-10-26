@@ -35,7 +35,7 @@ type Helm struct {
 	EnvironmentVariables         types.Set            `tfsdk:"environment_variables"`
 	EnvironmentVariableAliases   types.Set            `tfsdk:"environment_variable_aliases"`
 	EnvironmentVariableOverrides types.Set            `tfsdk:"environment_variable_overrides"`
-	Secrets                      types.Set            `tfsdk:"secrets"`
+	Secrets                      types.List           `tfsdk:"secrets"`
 	SecretAliases                types.Set            `tfsdk:"secret_aliases"`
 	SecretOverrides              types.Set            `tfsdk:"secret_overrides"`
 	EnvironmentVariableFiles     types.Set            `tfsdk:"environment_variable_files"`
@@ -155,7 +155,9 @@ func (h Helm) CustomDomainsList() CustomDomainList {
 	return toCustomDomainList(h.CustomDomains)
 }
 
-func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, error) {
+// toUpsertServiceRequest builds the request from the plan, state is nil on create.
+// secretValuesWo holds the secrets[].value_wo read from the config.
+func (h Helm) toUpsertServiceRequest(state *Helm, secretValuesWo writeOnlySecretValues) (*helm.UpsertServiceRequest, error) {
 	var stateEnvironmentVariables EnvironmentVariableList
 	var stateEnvironmentVariableAliases EnvironmentVariableList
 	var stateEnvironmentVariableOverrides EnvironmentVariableList
@@ -200,9 +202,9 @@ func (h Helm) toUpsertServiceRequest(state *Helm) (*helm.UpsertServiceRequest, e
 		EnvironmentVariableAliases:   h.EnvironmentVariableAliasesList().diffRequest(stateEnvironmentVariableAliases),
 		EnvironmentVariableOverrides: h.EnvironmentVariableOverridesList().diffRequest(stateEnvironmentVariableOverrides),
 		EnvironmentVariableFiles:     h.EnvironmentVariableFileList().diffRequest(stateEnvironmentVariableFiles),
-		Secrets:                      h.SecretList().diffRequest(stateSecrets),
-		SecretAliases:                h.SecretAliasesList().diffRequest(stateSecretAliases),
-		SecretOverrides:              h.SecretOverridesList().diffRequest(stateSecretOverrides),
+		Secrets:                      h.SecretList().diffRequest(stateSecrets, secretValuesWo),
+		SecretAliases:                h.SecretAliasesList().diffRequest(stateSecretAliases, nil),
+		SecretOverrides:              h.SecretOverridesList().diffRequest(stateSecretOverrides, nil),
 		SecretFiles:                  h.SecretFileList().diffRequest(stateSecretFiles),
 		ExternalSecrets:              h.ExternalSecretList().diffRequest(stateExternalSecrets),
 		ExternalSecretFiles:          h.ExternalSecretFileList().diffRequest(stateExternalSecretFiles),
@@ -532,7 +534,7 @@ func convertDomainHelmToHelm(ctx context.Context, state Helm, helm *helm.Helm) H
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, helm.EnvironmentVariables, variable.ScopeHelm, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, helm.EnvironmentVariables, variable.ScopeHelm, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, helm.EnvironmentVariables, variable.ScopeHelm, "OVERRIDE").toTerraformSet(ctx),
-		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, helm.Secrets, variable.ScopeHelm, "VALUE").toTerraformSet(ctx),
+		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, helm.Secrets, variable.ScopeHelm, "VALUE").toTerraformList(),
 		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, helm.Secrets, variable.ScopeHelm, "ALIAS").toTerraformSet(ctx),
 		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, helm.Secrets, variable.ScopeHelm, "OVERRIDE").toTerraformSet(ctx),
 		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, helm.EnvironmentVariables, variable.ScopeHelm).toTerraformSet(ctx),

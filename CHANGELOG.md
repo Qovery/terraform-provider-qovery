@@ -14,6 +14,37 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-26
+
+### Added
+
+- `qovery_container_registry` and `qovery_helm_repository`: `config.password_wo` and
+  `config.password_wo_version`, a write-only form of `config.password`. Terraform 1.11 and
+  later send it to Qovery without storing it in the plan or the state. Changing the value alone
+  does not trigger an update, so change `config.password_wo_version` to send a new value.
+  `config.password` works as before, and switching to `config.password_wo` is an in-place
+  update. The new
+  [Keeping secrets out of the state](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/keeping-secrets-out-of-the-state)
+  guide lists the ways to keep secret values out of the state file. (QOV-2455)
+- `qovery_application`, `qovery_container`, `qovery_job`, `qovery_helm`, `qovery_environment`
+  and `qovery_project`: `secrets[].value_wo` and `secrets[].value_wo_version`, a write-only
+  form of `secrets[].value`. `value` becomes optional, and each entry sets `value` or
+  `value_wo`. Changing the value alone does not trigger an update, so change `value_wo_version`
+  or the `description` of the entry to send a new value. Switching an entry to `value_wo`
+  updates the secret in place and keeps its ID. `secret_aliases`, `secret_overrides` and
+  `secret_files` have no write-only form. (QOV-2455)
+
+### Changed
+
+- `qovery_application`, `qovery_container`, `qovery_job`, `qovery_helm`, `qovery_environment`
+  and `qovery_project`, resources and data sources: `secrets` is an ordered list instead of a
+  set, as Terraform does not allow a write-only attribute in a set. The configuration syntax is
+  the same and existing states read as they are. Entries are matched by key, so a
+  configuration that lists them in another order than the state plans one update. That update
+  sends no secret request, but it still calls the update of the resource with unchanged
+  settings, and the state then follows the configuration order. Two entries with the same key
+  fail. (QOV-2455)
+
 ## [1.2.2] - 2026-10-23
 
 ### Changed
@@ -493,7 +524,8 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.1.0...v1.2.0

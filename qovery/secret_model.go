@@ -2,8 +2,12 @@ package qovery
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
+	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/qovery/qovery-client-go"
 
@@ -12,12 +16,37 @@ import (
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
+// secretAttrTypes is the element type of secret_aliases, secret_overrides, and of secrets on the
+// data sources.
 var secretAttrTypes = map[string]attr.Type{
 	"id":          types.StringType,
 	"key":         types.StringType,
 	"value":       types.StringType,
 	"description": types.StringType,
 }
+
+// secretWithWriteOnlyAttrTypes is the element type of secrets on the resources, which can set the
+// value write-only (see write_only.go).
+var secretWithWriteOnlyAttrTypes = map[string]attr.Type{
+	"id":               types.StringType,
+	"key":              types.StringType,
+	"value":            types.StringType,
+	"value_wo":         types.StringType,
+	"value_wo_version": types.StringType,
+	"description":      types.StringType,
+}
+
+// secretCollection is the value of a secret attribute: the secrets list, or the secret_aliases
+// and secret_overrides sets.
+type secretCollection interface {
+	IsNull() bool
+	IsUnknown() bool
+	Elements() []attr.Value
+}
+
+// writeOnlySecretValues holds the value_wo of the secrets entries that set it, by key, read from
+// the config. The plan and the state never hold them.
+type writeOnlySecretValues map[string]types.String
 
 type SecretList []Secret
 
@@ -41,6 +70,106 @@ func (ss SecretList) toTerraformSet(ctx context.Context) types.Set {
 	return set
 }
 
+// toTerraformList builds the secrets attribute of a resource, in the order of ss.
+func (ss SecretList) toTerraformList() types.List {
+	secretObjectType := types.ObjectType{AttrTypes: secretWithWriteOnlyAttrTypes}
+	if ss == nil {
+		return types.ListNull(secretObjectType)
+	}
+
+	elements := make([]attr.Value, 0, len(ss))
+	for _, v := range ss {
+		elements = append(elements, v.toWriteOnlyTerraformObject())
+	}
+	return types.ListValueMust(secretObjectType, elements)
+}
+
+// secretsForDataSource drops value_wo and value_wo_version from the secrets the resource converters
+// build, which the data sources do not have.
+func secretsForDataSource(secrets types.List) types.List {
+	secretObjectType := types.ObjectType{AttrTypes: secretAttrTypes}
+	if secrets.IsNull() {
+		return types.ListNull(secretObjectType)
+	}
+	if secrets.IsUnknown() {
+		return types.ListUnknown(secretObjectType)
+	}
+
+	elements := make([]attr.Value, 0, len(secrets.Elements()))
+	for _, v := range ToSecretList(secrets) {
+		elements = append(elements, v.toTerraformObject())
+	}
+	return types.ListValueMust(secretObjectType, elements)
+}
+
+// secretValuesWoFromConfig reads the value_wo of every secrets entry that sets it from the config.
+//
+// It also fails for a planned entry that the diff with old would create or update while it has no
+// value: a null plan value and no value_wo under its key in the config. ignore_changes on secrets
+// can plan a key the config no longer has, and sending that entry would blank the secret. old is
+// nil on create. Two planned entries with the same key fail too: the validator skips the keys that
+// are unknown at plan time, and the values here are matched by key.
+func secretValuesWoFromConfig(ctx context.Context, config tfsdk.Config, planned, old SecretList, diags *diag.Diagnostics) writeOnlySecretValues {
+	var secrets types.List
+	diags.Append(config.GetAttribute(ctx, path.Root("secrets"), &secrets)...)
+	values := writeOnlySecretValues{}
+	for _, s := range ToSecretList(secrets) {
+		if !s.ValueWo.IsNull() {
+			values[ToString(s.Key)] = s.ValueWo
+		}
+	}
+
+	seen := make(map[string]bool, len(planned))
+	for _, s := range planned {
+		key := ToString(s.Key)
+		if seen[key] {
+			diags.AddAttributeError(
+				path.Root("secrets"),
+				"Duplicate secret key",
+				fmt.Sprintf("Two secrets entries have the key %q: each key can appear once.", key),
+			)
+			continue
+		}
+		seen[key] = true
+		if !s.Value.IsNull() || isKnownAndSet(values[key]) {
+			continue
+		}
+		if prior := old.find(key); prior != nil && !prior.changedIn(s) {
+			continue
+		}
+		diags.AddAttributeError(
+			path.Root("secrets"),
+			"Missing secret value",
+			fmt.Sprintf("The plan creates or updates the secret %q, but the configuration sets no value or value_wo under that key, so Qovery would store an empty value. "+
+				"An ignore_changes rule on secrets can keep a key the configuration no longer has.", key),
+		)
+	}
+	return values
+}
+
+// inPriorOrder returns the entries of ss whose key prior holds in the order of prior, then the
+// other entries in the order of ss. The secrets list keeps the order of the configuration this
+// way, and a key added outside Terraform comes last.
+func (ss SecretList) inPriorOrder(prior SecretList) SecretList {
+	if ss == nil {
+		return nil
+	}
+	ordered := make(SecretList, 0, len(ss))
+	placed := make(map[string]bool, len(ss))
+	for _, p := range prior {
+		if s := ss.find(ToString(p.Key)); s != nil && !placed[ToString(s.Key)] {
+			ordered = append(ordered, *s)
+			placed[ToString(s.Key)] = true
+		}
+	}
+	for _, s := range ss {
+		if !placed[ToString(s.Key)] {
+			ordered = append(ordered, s)
+		}
+	}
+	return ordered
+}
+
 func (ss SecretList) contains(e Secret) bool {
 	for _, v := range ss {
 		if e.Key == v.Key {
@@ -59,7 +188,9 @@ func (ss SecretList) find(key string) *Secret {
 	return nil
 }
 
-func (ss SecretList) diff(old SecretList) client.SecretsDiff {
+// diff compares the planned secrets ss with the state secrets old, by key. valuesWo holds the
+// value_wo of the planned entries that set it, nil for the attributes without a write-only form.
+func (ss SecretList) diff(old SecretList, valuesWo writeOnlySecretValues) client.SecretsDiff {
 	diff := client.SecretsDiff{
 		Create: []client.SecretCreateRequest{},
 		Update: []client.SecretUpdateRequest{},
@@ -68,8 +199,8 @@ func (ss SecretList) diff(old SecretList) client.SecretsDiff {
 
 	for _, s := range old {
 		if updatedVar := ss.find(ToString(s.Key)); updatedVar != nil {
-			if updatedVar.Value != s.Value || updatedVar.Description != s.Description {
-				diff.Update = append(diff.Update, s.toUpdateRequest(*updatedVar))
+			if s.changedIn(*updatedVar) {
+				diff.Update = append(diff.Update, s.toUpdateRequest(*updatedVar, valuesWo[ToString(s.Key)]))
 			}
 		} else {
 			diff.Delete = append(diff.Delete, s.toDeleteRequest())
@@ -78,14 +209,17 @@ func (ss SecretList) diff(old SecretList) client.SecretsDiff {
 
 	for _, s := range ss {
 		if !old.contains(s) {
-			diff.Create = append(diff.Create, s.toCreateRequest())
+			diff.Create = append(diff.Create, s.toCreateRequest(valuesWo[ToString(s.Key)]))
 		}
 	}
 
 	return diff
 }
 
-func (ss SecretList) diffRequest(old SecretList) secret.DiffRequest {
+// diffRequest compares the planned secrets ss with the state secrets old, by key. valuesWo holds
+// the value_wo of the planned entries that set it, nil for the attributes without a write-only
+// form.
+func (ss SecretList) diffRequest(old SecretList, valuesWo writeOnlySecretValues) secret.DiffRequest {
 	diff := secret.DiffRequest{
 		Create: []secret.DiffCreateRequest{},
 		Update: []secret.DiffUpdateRequest{},
@@ -94,8 +228,8 @@ func (ss SecretList) diffRequest(old SecretList) secret.DiffRequest {
 
 	for _, s := range old {
 		if updatedVar := ss.find(ToString(s.Key)); updatedVar != nil {
-			if updatedVar.Value != s.Value || updatedVar.Description != s.Description {
-				diff.Update = append(diff.Update, s.toDiffUpdateRequest(*updatedVar))
+			if s.changedIn(*updatedVar) {
+				diff.Update = append(diff.Update, s.toDiffUpdateRequest(*updatedVar, valuesWo[ToString(s.Key)]))
 			}
 		} else {
 			diff.Delete = append(diff.Delete, s.toDiffDeleteRequest())
@@ -104,7 +238,7 @@ func (ss SecretList) diffRequest(old SecretList) secret.DiffRequest {
 
 	for _, s := range ss {
 		if !old.contains(s) {
-			diff.Create = append(diff.Create, s.toDiffCreateRequest())
+			diff.Create = append(diff.Create, s.toDiffCreateRequest(valuesWo[ToString(s.Key)]))
 		}
 	}
 
@@ -112,10 +246,21 @@ func (ss SecretList) diffRequest(old SecretList) secret.DiffRequest {
 }
 
 type Secret struct {
-	Id          types.String `tfsdk:"id"`
-	Key         types.String `tfsdk:"key"`
-	Value       types.String `tfsdk:"value"`
-	Description types.String `tfsdk:"description"`
+	Id    types.String `tfsdk:"id"`
+	Key   types.String `tfsdk:"key"`
+	Value types.String `tfsdk:"value"`
+	// ValueWo is always null here: the framework nulls it in the plan and the state, and Create and
+	// Update read it from the config (see write_only.go).
+	ValueWo        types.String `tfsdk:"value_wo"`
+	ValueWoVersion types.String `tfsdk:"value_wo_version"`
+	Description    types.String `tfsdk:"description"`
+}
+
+// changedIn reports whether the planned entry differs from the state entry s in what the API
+// stores: the value, the version that stands for a write-only value, or the description. An entry
+// that only moved in the list is not changed.
+func (s Secret) changedIn(planned Secret) bool {
+	return planned.Value != s.Value || planned.ValueWoVersion != s.ValueWoVersion || planned.Description != s.Description
 }
 
 func (s Secret) toTerraformObject() types.Object {
@@ -132,46 +277,72 @@ func (s Secret) toTerraformObject() types.Object {
 	return terraformObjectValue
 }
 
-func (s Secret) toCreateRequest() client.SecretCreateRequest {
+func (s Secret) toWriteOnlyTerraformObject() types.Object {
+	return types.ObjectValueMust(secretWithWriteOnlyAttrTypes, map[string]attr.Value{
+		"id":               s.Id,
+		"key":              s.Key,
+		"value":            s.Value,
+		"value_wo":         s.ValueWo,
+		"value_wo_version": s.ValueWoVersion,
+		"description":      s.Description,
+	})
+}
+
+// toCreateRequest builds the request that creates s. valueWo is its value_wo from the config.
+func (s Secret) toCreateRequest(valueWo types.String) client.SecretCreateRequest {
 	return client.SecretCreateRequest{
 		SecretRequest: qovery.SecretRequest{
 			Key:         ToString(s.Key),
-			Value:       ToStringPointer(s.Value),
+			Value:       plannedOrWriteOnly(s.Value, valueWo),
 			Description: *qovery.NewNullableString(ToStringPointer(s.Description)),
 		},
 	}
 }
 
-func (s Secret) toDiffCreateRequest() secret.DiffCreateRequest {
+// toDiffCreateRequest builds the request that creates s. valueWo is its value_wo from the config.
+func (s Secret) toDiffCreateRequest(valueWo types.String) secret.DiffCreateRequest {
 	return secret.DiffCreateRequest{
 		UpsertRequest: secret.UpsertRequest{
 			Key:         ToString(s.Key),
-			Value:       ToString(s.Value),
+			Value:       secretValueToSend(s.Value, valueWo),
 			Description: ToString(s.Description),
 		},
 	}
 }
 
-func (s Secret) toUpdateRequest(new Secret) client.SecretUpdateRequest {
+// toUpdateRequest builds the request that updates the state entry s to new. valueWo is the
+// value_wo of new from the config.
+func (s Secret) toUpdateRequest(new Secret, valueWo types.String) client.SecretUpdateRequest {
 	return client.SecretUpdateRequest{
 		Id: ToString(s.Id),
 		SecretEditRequest: qovery.SecretEditRequest{
 			Key:         ToString(s.Key),
-			Value:       ToStringPointer(new.Value),
+			Value:       plannedOrWriteOnly(new.Value, valueWo),
 			Description: *qovery.NewNullableString(ToStringPointer(new.Description)),
 		},
 	}
 }
 
-func (s Secret) toDiffUpdateRequest(new Secret) secret.DiffUpdateRequest {
+// toDiffUpdateRequest builds the request that updates the state entry s to new. valueWo is the
+// value_wo of new from the config.
+func (s Secret) toDiffUpdateRequest(new Secret, valueWo types.String) secret.DiffUpdateRequest {
 	return secret.DiffUpdateRequest{
 		SecretID: ToString(s.Id),
 		UpsertRequest: secret.UpsertRequest{
 			Key:         ToString(s.Key),
-			Value:       ToString(new.Value),
+			Value:       secretValueToSend(new.Value, valueWo),
 			Description: ToString(new.Description),
 		},
 	}
+}
+
+// secretValueToSend returns the value a domain request sends: the plain value of the plan when
+// set, else the write-only value of the config, empty when neither is set.
+func secretValueToSend(plain, valueWo types.String) string {
+	if value := plannedOrWriteOnly(plain, valueWo); value != nil {
+		return *value
+	}
+	return ""
 }
 
 func (s Secret) toDeleteRequest() client.SecretDeleteRequest {
@@ -195,20 +366,20 @@ func fromSecret(v *qovery.Secret, state *Secret) Secret {
 	return Secret{
 		Id:  FromString(v.Id),
 		Key: FromString(v.Key),
-		// The API never returns secret values: keep the prior one (null on import).
-		Value: prior.Value,
+		// The API never returns secret values: keep the prior one and its write-only version
+		// (null on import).
+		Value:          prior.Value,
+		ValueWo:        types.StringNull(),
+		ValueWoVersion: prior.ValueWoVersion,
 		// The API description always wins, so a description set in the Console shows in the plan.
 		Description: planAwareOptionalString(v.GetDescription(), prior.Description),
 	}
 }
 
-func fromSecretList(initialState types.Set, secrets []*qovery.Secret, scope qovery.APIVariableScopeEnum, secretType string) SecretList {
-	stateByKey := make(map[string]Secret)
+// fromSecretList converts the API secrets of the given scope and type, in the order of
+// initialState, the plan on apply and the state on refresh.
+func fromSecretList(initialState secretCollection, secrets []*qovery.Secret, scope qovery.APIVariableScopeEnum, secretType string) SecretList {
 	state := ToSecretList(initialState)
-
-	for _, s := range state {
-		stateByKey[ToString(s.Key)] = s
-	}
 
 	list := make([]Secret, 0, len(secrets))
 	for _, s := range secrets {
@@ -223,16 +394,13 @@ func fromSecretList(initialState types.Set, secrets []*qovery.Secret, scope qove
 		return nil
 	}
 	// Otherwise return the list, even empty (`[]` in the terraform file)
-	return list
+	return SecretList(list).inPriorOrder(state)
 }
 
-func convertDomainSecretsToSecretList(initialState types.Set, secrets secret.Secrets, scope variable.Scope, variableType string) SecretList {
-	stateByKey := make(map[string]Secret)
+// convertDomainSecretsToSecretList converts the domain secrets of the given scope and type, in the
+// order of initialState, the plan on apply and the state on refresh.
+func convertDomainSecretsToSecretList(initialState secretCollection, secrets secret.Secrets, scope variable.Scope, variableType string) SecretList {
 	state := ToSecretList(initialState)
-
-	for _, s := range state {
-		stateByKey[ToString(s.Key)] = s
-	}
 
 	list := make([]Secret, 0, len(secrets))
 	for _, s := range secrets {
@@ -247,7 +415,7 @@ func convertDomainSecretsToSecretList(initialState types.Set, secrets secret.Sec
 		return nil
 	}
 	// Otherwise return the list, even empty (`[]` in the terraform file)
-	return list
+	return SecretList(list).inPriorOrder(state)
 }
 
 // convertDomainSecretToSecret converts a domain secret. state is the prior entry for this key, nil
@@ -260,23 +428,38 @@ func convertDomainSecretToSecret(s secret.Secret, state *Secret) Secret {
 	return Secret{
 		Id:  FromString(s.ID.String()),
 		Key: FromString(s.Key),
-		// The API never returns secret values: keep the prior one (null on import).
-		Value: prior.Value,
+		// The API never returns secret values: keep the prior one and its write-only version
+		// (null on import).
+		Value:          prior.Value,
+		ValueWo:        types.StringNull(),
+		ValueWoVersion: prior.ValueWoVersion,
 		// The API description always wins, so a description set in the Console shows in the plan.
 		Description: planAwareOptionalString(s.Description, prior.Description),
 	}
 }
 
+// toSecret reads an element of a secret attribute. The elements of secret_aliases,
+// secret_overrides and the data source secrets have no value_wo and value_wo_version, which read
+// as null. A missing base attribute still panics, as a schema mismatch must not pass silently.
 func toSecret(v types.Object) Secret {
+	attributes := v.Attributes()
+	writeOnlyAttribute := func(name string) types.String {
+		if value, ok := attributes[name].(types.String); ok {
+			return value
+		}
+		return types.StringNull()
+	}
 	return Secret{
-		Id:          v.Attributes()["id"].(types.String),
-		Key:         v.Attributes()["key"].(types.String),
-		Value:       v.Attributes()["value"].(types.String),
-		Description: v.Attributes()["description"].(types.String),
+		Id:             attributes["id"].(types.String),
+		Key:            attributes["key"].(types.String),
+		Value:          attributes["value"].(types.String),
+		ValueWo:        writeOnlyAttribute("value_wo"),
+		ValueWoVersion: writeOnlyAttribute("value_wo_version"),
+		Description:    attributes["description"].(types.String),
 	}
 }
 
-func ToSecretList(vars types.Set) SecretList {
+func ToSecretList(vars secretCollection) SecretList {
 	if vars.IsNull() || vars.IsUnknown() {
 		return []Secret{}
 	}

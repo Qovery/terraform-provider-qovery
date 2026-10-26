@@ -290,7 +290,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 					},
 				},
 			},
-			"secrets": schema.SetNestedAttribute{
+			"secrets": schema.ListNestedAttribute{
 				MarkdownDescription: secrets.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
@@ -551,6 +551,8 @@ func (d containerDataSource) Read(ctx context.Context, req datasource.ReadReques
 	data.Arguments = emptyStringList()
 	data.Entrypoint = types.StringValue("")
 	state := convertDomainContainerToContainer(ctx, data, cont)
+	// The data source has no value_wo and value_wo_version.
+	state.Secrets = secretsForDataSource(state.Secrets)
 	tflog.Trace(ctx, "read container", map[string]any{"container_id": state.ID.ValueString()})
 
 	// Set state

@@ -37,7 +37,7 @@ data "qovery_job" "my_job" {
 - `port` (Number) Port the health checks probe. It is not exposed outside the cluster.
 - `secret_aliases` (Attributes Set) Secret aliases of the job. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_overrides` (Attributes Set) Secret overrides of the job. An override replaces the value of a secret inherited from a broader scope. (see [below for nested schema](#nestedatt--secret_overrides))
-- `secrets` (Attributes Set) Secrets of the job. (see [below for nested schema](#nestedatt--secrets))
+- `secrets` (Attributes List) Secrets of the job. (see [below for nested schema](#nestedatt--secrets))
 - `source` (Attributes) Source of the job image: an image from a container registry, or a Dockerfile to build. (see [below for nested schema](#nestedatt--source))
 
 ### Read-Only

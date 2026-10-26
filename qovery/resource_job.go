@@ -447,31 +447,7 @@ func (r jobResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *r
 					},
 				},
 			},
-			"secrets": schema.SetNestedAttribute{
-				MarkdownDescription: secrets.List,
-				Optional:            true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"id": schema.StringAttribute{
-							MarkdownDescription: secrets.ID,
-							Computed:            true,
-						},
-						"key": schema.StringAttribute{
-							MarkdownDescription: secrets.Key,
-							Required:            true,
-						},
-						"value": schema.StringAttribute{
-							MarkdownDescription: secrets.Value,
-							Required:            true,
-							Sensitive:           true,
-						},
-						"description": schema.StringAttribute{
-							MarkdownDescription: secrets.Description,
-							Optional:            true,
-						},
-					},
-				},
-			},
+			"secrets": secretsResourceAttribute(secrets),
 			"secret_aliases": schema.SetNestedAttribute{
 				MarkdownDescription: secretAliases.List,
 				Optional:            true,
@@ -609,7 +585,11 @@ func (r jobResource) Create(ctx context.Context, req resource.CreateRequest, res
 	}
 
 	// Create new job
-	request, err := plan.toUpsertServiceRequest(nil)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), nil, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	request, err := plan.toUpsertServiceRequest(nil, secretValuesWo)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on job create", err.Error())
 		return
@@ -676,7 +656,11 @@ func (r jobResource) Update(ctx context.Context, req resource.UpdateRequest, res
 	}
 
 	// Update job in the backend
-	request, err := plan.toUpsertServiceRequest(&state)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), state.SecretList(), &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	request, err := plan.toUpsertServiceRequest(&state, secretValuesWo)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on job create", err.Error())
 		return

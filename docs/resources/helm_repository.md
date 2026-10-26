@@ -46,6 +46,8 @@ Optional:
 
 - `access_key_id` (String) AWS access key ID. Used by `OCI_ECR` and `OCI_PUBLIC_ECR`.
 - `password` (String, Sensitive) Password or access token of `username`. Used by `HTTPS`, `OCI_DOCKER_HUB`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR` and `OCI_GENERIC_CR`.
+- `password_wo` (String, Sensitive, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Write-only form of `password`, which Terraform 1.11 and later send to Qovery without storing it in the plan or the state. Changing the value alone does not trigger an update, so change `password_wo_version` to send a new value. Used by `HTTPS`, `OCI_DOCKER_HUB`, `OCI_GITHUB_CR`, `OCI_GITLAB_CR` and `OCI_GENERIC_CR`.
+- `password_wo_version` (String) Version of `password_wo`, required with it and stored in the state. Changing it sends the current value of `password_wo`, as does any other update of the resource.
 - `region` (String) Region of the registry, for example `us-east-1` or `fr-par`. Used by `OCI_ECR` and `OCI_SCALEWAY_CR`.
 - `role_arn` (String) ARN of the AWS IAM role Qovery assumes, for example `arn:aws:iam::123456789012:role/QoveryRole`. Used by `OCI_ECR`. Set it instead of `access_key_id` and `secret_access_key`.
 - `scaleway_access_key` (String) Scaleway API access key. Used by `OCI_SCALEWAY_CR`.

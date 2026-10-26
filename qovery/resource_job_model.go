@@ -294,7 +294,7 @@ type Job struct {
 	EnvironmentVariables         types.Set     `tfsdk:"environment_variables"`
 	EnvironmentVariableAliases   types.Set     `tfsdk:"environment_variable_aliases"`
 	EnvironmentVariableOverrides types.Set     `tfsdk:"environment_variable_overrides"`
-	Secrets                      types.Set     `tfsdk:"secrets"`
+	Secrets                      types.List    `tfsdk:"secrets"`
 	SecretAliases                types.Set     `tfsdk:"secret_aliases"`
 	SecretOverrides              types.Set     `tfsdk:"secret_overrides"`
 	EnvironmentVariableFiles     types.Set     `tfsdk:"environment_variable_files"`
@@ -360,7 +360,9 @@ func (j Job) DeploymentRestrictionDiff(deploymentRestrictionsState *types.Set) (
 	return deploymentrestriction.ToDeploymentRestrictionDiff(j.DeploymentRestrictions, deploymentRestrictionsState)
 }
 
-func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, error) {
+// toUpsertServiceRequest builds the request from the plan, state is nil on create.
+// secretValuesWo holds the secrets[].value_wo read from the config.
+func (j Job) toUpsertServiceRequest(state *Job, secretValuesWo writeOnlySecretValues) (*job.UpsertServiceRequest, error) {
 	var stateEnvironmentVariables EnvironmentVariableList
 	var stateEnvironmentVariableAliases EnvironmentVariableList
 	var stateEnvironmentVariableOverrides EnvironmentVariableList
@@ -403,9 +405,9 @@ func (j Job) toUpsertServiceRequest(state *Job) (*job.UpsertServiceRequest, erro
 		EnvironmentVariableAliases:   j.EnvironmentVariableAliasesList().diffRequest(stateEnvironmentVariableAliases),
 		EnvironmentVariableOverrides: j.EnvironmentVariableOverridesList().diffRequest(stateEnvironmentVariableOverrides),
 		EnvironmentVariableFiles:     j.EnvironmentVariableFileList().diffRequest(stateEnvironmentVariableFiles),
-		Secrets:                      j.SecretList().diffRequest(stateSecrets),
-		SecretAliases:                j.SecretAliasesList().diffRequest(stateSecretAliases),
-		SecretOverrides:              j.SecretOverridesList().diffRequest(stateSecretOverrides),
+		Secrets:                      j.SecretList().diffRequest(stateSecrets, secretValuesWo),
+		SecretAliases:                j.SecretAliasesList().diffRequest(stateSecretAliases, nil),
+		SecretOverrides:              j.SecretOverridesList().diffRequest(stateSecretOverrides, nil),
 		SecretFiles:                  j.SecretFileList().diffRequest(stateSecretFiles),
 		ExternalSecrets:              j.ExternalSecretList().diffRequest(stateExternalSecrets),
 		ExternalSecretFiles:          j.ExternalSecretFileList().diffRequest(stateExternalSecretFiles),
@@ -476,7 +478,7 @@ func convertDomainJobToJob(ctx context.Context, state Job, job *job.Job) Job {
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, job.EnvironmentVariables, variable.ScopeJob, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, job.EnvironmentVariables, variable.ScopeJob, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, job.EnvironmentVariables, variable.ScopeJob, "OVERRIDE").toTerraformSet(ctx),
-		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, job.Secrets, variable.ScopeJob, "VALUE").toTerraformSet(ctx),
+		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, job.Secrets, variable.ScopeJob, "VALUE").toTerraformList(),
 		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, job.Secrets, variable.ScopeJob, "ALIAS").toTerraformSet(ctx),
 		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, job.Secrets, variable.ScopeJob, "OVERRIDE").toTerraformSet(ctx),
 		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, job.EnvironmentVariables, variable.ScopeJob).toTerraformSet(ctx),

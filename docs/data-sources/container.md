@@ -39,7 +39,7 @@ data "qovery_container" "my_container" {
 - `ports` (Attributes List) Ports of the container. A publicly accessible port needs an `external_port`. (see [below for nested schema](#nestedatt--ports))
 - `secret_aliases` (Attributes Set) Secret aliases of the container. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_overrides` (Attributes Set) Secret overrides of the container. An override replaces the value of a secret inherited from a broader scope. (see [below for nested schema](#nestedatt--secret_overrides))
-- `secrets` (Attributes Set) Secrets of the container. (see [below for nested schema](#nestedatt--secrets))
+- `secrets` (Attributes List) Secrets of the container. (see [below for nested schema](#nestedatt--secrets))
 - `storage` (Attributes Set) Persistent volumes of the container. Their data survives restarts. (see [below for nested schema](#nestedatt--storage))
 
 ### Read-Only

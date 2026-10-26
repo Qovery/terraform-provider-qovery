@@ -23,7 +23,7 @@ data "qovery_project" "my_project" {
 - `environment_variable_aliases` (Attributes Set) Environment variable aliases of the project. An alias gives an existing variable another name. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variables` (Attributes Set) Environment variables of the project. (see [below for nested schema](#nestedatt--environment_variables))
 - `secret_aliases` (Attributes Set) Secret aliases of the project. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
-- `secrets` (Attributes Set) Secrets of the project. (see [below for nested schema](#nestedatt--secrets))
+- `secrets` (Attributes List) Secrets of the project. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
 

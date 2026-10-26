@@ -170,6 +170,16 @@ func (r containerRegistryResource) Schema(_ context.Context, _ resource.SchemaRe
 						Optional:            true,
 						Sensitive:           true,
 					},
+					"password_wo": schema.StringAttribute{
+						MarkdownDescription: usedByKinds(writeOnlyDescription("password"), registry.KindDockerHub, registry.KindGithubCr, registry.KindGithubEnterpriseCr, registry.KindGitlabCr, registry.KindGenericCR),
+						Optional:            true,
+						Sensitive:           true,
+						WriteOnly:           true,
+					},
+					"password_wo_version": schema.StringAttribute{
+						MarkdownDescription: writeOnlyVersionDescription("password", "as does any other update of the resource"),
+						Optional:            true,
+					},
 				},
 			},
 		},
@@ -186,7 +196,12 @@ func (r containerRegistryResource) Create(ctx context.Context, req resource.Crea
 	}
 
 	// Create new container registry
-	reg, err := r.containerRegistryService.Create(ctx, plan.OrganizationId.ValueString(), plan.toUpsertRequest())
+	plannedPassword, plannedVersion := plan.plannedPassword()
+	passwordWo := registryPasswordWoFromConfig(ctx, req.Config, plannedPassword, plannedVersion, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	reg, err := r.containerRegistryService.Create(ctx, plan.OrganizationId.ValueString(), plan.toUpsertRequest(passwordWo))
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container registry create", err.Error())
 		return
@@ -234,7 +249,12 @@ func (r containerRegistryResource) Update(ctx context.Context, req resource.Upda
 	}
 
 	// Update container registry in the backend
-	reg, err := r.containerRegistryService.Update(ctx, state.OrganizationId.ValueString(), state.Id.ValueString(), plan.toUpsertRequest())
+	plannedPassword, plannedVersion := plan.plannedPassword()
+	passwordWo := registryPasswordWoFromConfig(ctx, req.Config, plannedPassword, plannedVersion, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	reg, err := r.containerRegistryService.Update(ctx, state.OrganizationId.ValueString(), state.Id.ValueString(), plan.toUpsertRequest(passwordWo))
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container registry update", err.Error())
 		return

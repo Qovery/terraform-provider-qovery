@@ -35,7 +35,7 @@ type Application struct {
 	EnvironmentVariables         types.Set                 `tfsdk:"environment_variables"`
 	EnvironmentVariableAliases   types.Set                 `tfsdk:"environment_variable_aliases"`
 	EnvironmentVariableOverrides types.Set                 `tfsdk:"environment_variable_overrides"`
-	Secrets                      types.Set                 `tfsdk:"secrets"`
+	Secrets                      types.List                `tfsdk:"secrets"`
 	SecretVariableAliases        types.Set                 `tfsdk:"secret_aliases"`
 	SecretVariableOverrides      types.Set                 `tfsdk:"secret_overrides"`
 	EnvironmentVariableFiles     types.Set                 `tfsdk:"environment_variable_files"`
@@ -111,7 +111,9 @@ func (app Application) DeploymentRestrictionList(deploymentRestrictionsState *ty
 	return deploymentrestriction.ToDeploymentRestrictionDiff(app.DeploymentRestrictions, deploymentRestrictionsState)
 }
 
-func (app Application) toCreateApplicationRequest() (*client.ApplicationCreateParams, error) {
+// toCreateApplicationRequest builds the request from the plan. secretValuesWo holds the
+// secrets[].value_wo read from the config.
+func (app Application) toCreateApplicationRequest(secretValuesWo writeOnlySecretValues) (*client.ApplicationCreateParams, error) {
 	storage := make([]qovery.ServiceStorageRequestStorageInner, 0, len(app.Storage))
 	for _, store := range app.Storage {
 		s, err := store.toCreateRequest()
@@ -205,9 +207,9 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 		EnvironmentVariableAliasesDiff:   app.EnvironmentVariableAliasList().diff(nil),
 		EnvironmentVariableOverridesDiff: app.EnvironmentVariableOverrideList().diff(nil),
 		EnvironmentVariableFilesDiff:     app.EnvironmentVariableFileList().diff(nil),
-		SecretsDiff:                      app.SecretList().diff(nil),
-		SecretAliasesDiff:                app.SecretAliasList().diff(nil),
-		SecretOverridesDiff:              app.SecretOverrideList().diff(nil),
+		SecretsDiff:                      app.SecretList().diff(nil, secretValuesWo),
+		SecretAliasesDiff:                app.SecretAliasList().diff(nil, nil),
+		SecretOverridesDiff:              app.SecretOverrideList().diff(nil, nil),
 		SecretFilesDiff:                  app.SecretFileList().diff(nil),
 		CustomDomainsDiff:                app.CustomDomainsList().diff(nil),
 		DeploymentRestrictionsDiff:       *deploymentRestrictions,
@@ -219,7 +221,9 @@ func (app Application) toCreateApplicationRequest() (*client.ApplicationCreatePa
 	}, nil
 }
 
-func (app Application) toUpdateApplicationRequest(state Application) (*client.ApplicationUpdateParams, error) {
+// toUpdateApplicationRequest builds the request from the plan. secretValuesWo holds the
+// secrets[].value_wo read from the config.
+func (app Application) toUpdateApplicationRequest(state Application, secretValuesWo writeOnlySecretValues) (*client.ApplicationUpdateParams, error) {
 	// Create a hashmap containing current terraform state ApplicationStorage by MountPoint
 	// MountPoint is unique with an application
 	stateApplicationStoragesByMountPoint := make(map[string]ApplicationStorage)
@@ -330,9 +334,9 @@ func (app Application) toUpdateApplicationRequest(state Application) (*client.Ap
 		EnvironmentVariableAliasesDiff:   app.EnvironmentVariableAliasList().diff(state.EnvironmentVariableAliasList()),
 		EnvironmentVariableOverridesDiff: app.EnvironmentVariableOverrideList().diff(state.EnvironmentVariableOverrideList()),
 		EnvironmentVariableFilesDiff:     app.EnvironmentVariableFileList().diff(state.EnvironmentVariableFileList()),
-		SecretsDiff:                      app.SecretList().diff(state.SecretList()),
-		SecretAliasesDiff:                app.SecretAliasList().diff(state.SecretAliasList()),
-		SecretOverridesDiff:              app.SecretOverrideList().diff(state.SecretOverrideList()),
+		SecretsDiff:                      app.SecretList().diff(state.SecretList(), secretValuesWo),
+		SecretAliasesDiff:                app.SecretAliasList().diff(state.SecretAliasList(), nil),
+		SecretOverridesDiff:              app.SecretOverrideList().diff(state.SecretOverrideList(), nil),
 		SecretFilesDiff:                  app.SecretFileList().diff(state.SecretFileList()),
 		CustomDomainsDiff:                app.CustomDomainsList().diff(state.CustomDomainsList()),
 		DeploymentRestrictionsDiff:       *deploymentRestrictions,
@@ -366,7 +370,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		EnvironmentVariables:         fromEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, app.ApplicationEnvironmentVariables, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   fromEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, app.ApplicationEnvironmentVariableAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: fromEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, app.ApplicationEnvironmentVariableOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION, "OVERRIDE").toTerraformSet(ctx),
-		Secrets:                      fromSecretList(state.Secrets, app.ApplicationSecrets, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformSet(ctx),
+		Secrets:                      fromSecretList(state.Secrets, app.ApplicationSecrets, qovery.APIVARIABLESCOPEENUM_APPLICATION, "VALUE").toTerraformList(),
 		SecretVariableAliases:        fromSecretList(state.SecretVariableAliases, app.ApplicationSecretAliases, qovery.APIVARIABLESCOPEENUM_APPLICATION, "ALIAS").toTerraformSet(ctx),
 		SecretVariableOverrides:      fromSecretList(state.SecretVariableOverrides, app.ApplicationSecretOverrides, qovery.APIVARIABLESCOPEENUM_APPLICATION, "OVERRIDE").toTerraformSet(ctx),
 		EnvironmentVariableFiles:     fromEnvironmentVariableFileList(ctx, state.EnvironmentVariableFiles, app.ApplicationEnvironmentVariableFiles, qovery.APIVARIABLESCOPEENUM_APPLICATION, "FILE").toTerraformSet(ctx),

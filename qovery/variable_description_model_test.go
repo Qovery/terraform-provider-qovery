@@ -389,7 +389,7 @@ func TestVariableUpdateRequestsSendPlannedDescription(t *testing.T) {
 			clientDescriptions := map[string]qovery.NullableString{
 				"environment_variable":      EnvironmentVariable{Description: old}.toUpdateRequest(EnvironmentVariable{Description: tc.planned}).Description,
 				"environment_variable_file": EnvironmentVariableFile{Description: old}.toUpdateRequest(EnvironmentVariableFile{Description: tc.planned}).Description,
-				"secret":                    Secret{Description: old}.toUpdateRequest(Secret{Description: tc.planned}).Description,
+				"secret":                    Secret{Description: old}.toUpdateRequest(Secret{Description: tc.planned}, types.StringNull()).Description,
 				"secret_file":               SecretFile{Description: old}.toUpdateRequest(SecretFile{Description: tc.planned}).Description,
 			}
 			for name, description := range clientDescriptions {
@@ -400,7 +400,7 @@ func TestVariableUpdateRequestsSendPlannedDescription(t *testing.T) {
 			domainDescriptions := map[string]string{
 				"environment_variable":      EnvironmentVariable{Description: old}.toDiffUpdateRequest(EnvironmentVariable{Description: tc.planned}).Description,
 				"environment_variable_file": EnvironmentVariableFile{Description: old}.toDiffUpdateRequest(EnvironmentVariableFile{Description: tc.planned}).Description,
-				"secret":                    Secret{Description: old}.toDiffUpdateRequest(Secret{Description: tc.planned}).Description,
+				"secret":                    Secret{Description: old}.toDiffUpdateRequest(Secret{Description: tc.planned}, types.StringNull()).Description,
 				"secret_file":               SecretFile{Description: old}.toDiffUpdateRequest(SecretFile{Description: tc.planned}).Description,
 			}
 			for name, description := range domainDescriptions {
@@ -418,7 +418,7 @@ func TestSecretListDiff_descriptionOnlyChange(t *testing.T) {
 	old := SecretList{{Id: types.StringValue("secret-id"), Key: types.StringValue("KEY"), Value: types.StringValue("s3cr3t"), Description: types.StringValue("set in the Console")}}
 	planned := SecretList{{Key: types.StringValue("KEY"), Value: types.StringValue("s3cr3t"), Description: types.StringNull()}}
 
-	diff := planned.diff(old)
+	diff := planned.diff(old, nil)
 	require.Len(t, diff.Update, 1)
 	assert.Empty(t, diff.Create)
 	assert.Empty(t, diff.Delete)

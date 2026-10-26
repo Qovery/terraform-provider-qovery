@@ -36,6 +36,10 @@ type ContainerRegistryConfig struct {
 
 	Username types.String `tfsdk:"username"`
 	Password types.String `tfsdk:"password"`
+	// PasswordWo is always null here: the framework nulls it in the plan and the state, and
+	// Create and Update read it from the config (see write_only.go).
+	PasswordWo        types.String `tfsdk:"password_wo"`
+	PasswordWoVersion types.String `tfsdk:"password_wo_version"`
 }
 
 type ContainerRegistryDataSource struct {
@@ -47,7 +51,18 @@ type ContainerRegistryDataSource struct {
 	Description    types.String `tfsdk:"description"`
 }
 
-func (p ContainerRegistry) toUpsertRequest() registry.UpsertRequest {
+// plannedPassword returns config.password and config.password_wo_version, null without a config
+// block.
+func (p ContainerRegistry) plannedPassword() (password, version types.String) {
+	if p.Config == nil {
+		return types.StringNull(), types.StringNull()
+	}
+	return p.Config.Password, p.Config.PasswordWoVersion
+}
+
+// toUpsertRequest builds the request from the plan. passwordWo is config.password_wo read from the
+// config, which the request sends instead of config.password when it is set.
+func (p ContainerRegistry) toUpsertRequest(passwordWo types.String) registry.UpsertRequest {
 	var configRequest registry.UpsertRequestConfig
 	if p.Config == nil {
 		configRequest = registry.UpsertRequestConfig{}
@@ -69,7 +84,7 @@ func (p ContainerRegistry) toUpsertRequest() registry.UpsertRequest {
 			TokenLifetimeSeconds:             ToInt32Pointer(p.Config.TokenLifetimeSeconds),
 
 			Username: ToStringPointer(p.Config.Username),
-			Password: ToStringPointer(p.Config.Password),
+			Password: plannedOrWriteOnly(p.Config.Password, passwordWo),
 		}
 	}
 	return registry.UpsertRequest{
@@ -98,7 +113,7 @@ func convertDomainRegistryToContainerRegistry(state ContainerRegistry, res *regi
 // shows up in the plan. Everything else is kept from prior, the plan on apply and the state on
 // refresh:
 //   - the secrets (secret_access_key, scaleway_secret_key, json_credentials, password), which the
-//     API never returns;
+//     API never returns, and password_wo_version;
 //   - the keys the kind does not store, which the API ignores, such as region on PUBLIC_ECR;
 //   - every key of DOCR and AZURE_CR registries, which the provider cannot manage;
 //   - project_id on a GCP registry that uses a JSON key, which q-core reads from the key. The
