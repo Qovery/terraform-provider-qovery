@@ -14,6 +14,16 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Added
+
+- `qovery_container_registry` and `qovery_helm_repository`: `config.password_wo` and
+  `config.password_wo_version`, a write-only form of `config.password`. Terraform 1.11 and
+  later send it to Qovery without storing it in the plan or the state. Changing the value alone
+  does not trigger an update: change `config.password_wo_version` to send it. `config.password`
+  works as before, and switching to `config.password_wo` is an in-place update. The new
+  [Keeping secrets out of the state](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/keeping-secrets-out-of-the-state)
+  guide lists the ways to keep secret values out of the state file. (QOV-2455)
+
 ## [1.2.2] - 2026-10-23
 
 ### Changed

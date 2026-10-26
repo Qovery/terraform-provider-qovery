@@ -51,6 +51,8 @@ Optional:
 - `gcp_credentials_type` (String) Set to `workload_identity_federation` to authenticate a `GCP_ARTIFACT_REGISTRY` registry through Workload Identity Federation instead of `json_credentials`. It requires `project_id`, `service_account_email` and `workload_identity_provider_resource`.
 - `json_credentials` (String, Sensitive) JSON key of the GCP service account. Used by `GCP_ARTIFACT_REGISTRY`. Omit it when `gcp_credentials_type` is set.
 - `password` (String, Sensitive) Password or access token of `username`. Used by `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR` and `GENERIC_CR`.
+- `password_wo` (String, Sensitive, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Write-only form of `password`, which Terraform 1.11 and later send to Qovery without storing it in the plan or the state. Changing the value alone does not trigger an update: change `password_wo_version` to send it. Used by `DOCKER_HUB`, `GITHUB_CR`, `GITHUB_ENTERPRISE_CR`, `GITLAB_CR` and `GENERIC_CR`.
+- `password_wo_version` (String) Version of `password_wo`, any string, required with it and kept in the state. Changing it sends the current value of `password_wo`, as does any other update of the resource.
 - `project_id` (String) ID of the GCP project. Used by `GCP_ARTIFACT_REGISTRY` with `gcp_credentials_type`.
 - `region` (String) Region of the registry, for example `us-east-1` or `fr-par`. Used by `ECR`, `SCALEWAY_CR` and `GCP_ARTIFACT_REGISTRY`.
 - `role_arn` (String) ARN of the AWS IAM role Qovery assumes, for example `arn:aws:iam::123456789012:role/QoveryRole`. Used by `ECR`. Set it instead of `access_key_id` and `secret_access_key`.

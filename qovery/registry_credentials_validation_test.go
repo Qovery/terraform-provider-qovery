@@ -176,6 +176,52 @@ func TestValidateContainerRegistryConfig(t *testing.T) {
 			Config:   ContainerRegistryConfig{Password: set},
 		},
 		{
+			TestName: "success_generic_cr_write_only_password",
+			Kind:     "GENERIC_CR",
+			Config:   ContainerRegistryConfig{Username: set, PasswordWo: set, PasswordWoVersion: set},
+		},
+		{
+			TestName:       "error_generic_cr_password_and_write_only_password",
+			Kind:           "GENERIC_CR",
+			Config:         ContainerRegistryConfig{Username: set, Password: set, PasswordWo: set, PasswordWoVersion: set},
+			ExpectedErrors: []string{"config.password_wo"},
+		},
+		{
+			TestName:       "error_generic_cr_write_only_password_without_version",
+			Kind:           "GENERIC_CR",
+			Config:         ContainerRegistryConfig{Username: set, PasswordWo: set},
+			ExpectedErrors: []string{"config.password_wo_version"},
+		},
+		{
+			TestName:       "error_generic_cr_version_without_write_only_password",
+			Kind:           "GENERIC_CR",
+			Config:         ContainerRegistryConfig{Username: set, Password: set, PasswordWoVersion: set},
+			ExpectedErrors: []string{"config.password_wo_version"},
+		},
+		{
+			// The pair is checked whatever the kind: the version alone means nothing anywhere.
+			TestName:       "error_ecr_version_without_write_only_password",
+			Kind:           "ECR",
+			Config:         ContainerRegistryConfig{Region: set, RoleArn: set, PasswordWoVersion: set},
+			ExpectedErrors: []string{"config.password_wo_version"},
+		},
+		{
+			TestName:       "error_github_cr_write_only_password_without_username",
+			Kind:           "GITHUB_CR",
+			Config:         ContainerRegistryConfig{PasswordWo: set, PasswordWoVersion: set},
+			ExpectedErrors: []string{"config.username"},
+		},
+		{
+			TestName: "success_github_cr_write_only_password_with_username",
+			Kind:     "GITHUB_CR",
+			Config:   ContainerRegistryConfig{Username: set, PasswordWo: set, PasswordWoVersion: set},
+		},
+		{
+			TestName: "success_github_cr_unknown_write_only_password_without_username",
+			Kind:     "GITHUB_CR",
+			Config:   ContainerRegistryConfig{PasswordWo: unknown, PasswordWoVersion: set},
+		},
+		{
 			TestName:       "error_gcp_without_config",
 			Kind:           "GCP_ARTIFACT_REGISTRY",
 			ExpectedErrors: []string{"config.json_credentials", "config.region"},
@@ -337,6 +383,47 @@ func TestValidateHelmRepositoryConfig(t *testing.T) {
 			ExpectedErrors: []string{"config.scaleway_project_id"},
 		},
 		{
+			TestName: "success_https_username_and_write_only_password",
+			Kind:     "HTTPS",
+			Config:   HelmRepositoryConfig{Username: set, PasswordWo: set, PasswordWoVersion: set},
+		},
+		{
+			TestName:       "error_https_write_only_password_without_username",
+			Kind:           "HTTPS",
+			Config:         HelmRepositoryConfig{PasswordWo: set, PasswordWoVersion: set},
+			ExpectedErrors: []string{"config.username"},
+		},
+		{
+			TestName:       "error_https_username_with_version_only",
+			Kind:           "HTTPS",
+			Config:         HelmRepositoryConfig{Username: set, PasswordWoVersion: set},
+			ExpectedErrors: []string{"config.password", "config.password_wo_version"},
+		},
+		{
+			TestName:       "error_https_password_and_write_only_password",
+			Kind:           "HTTPS",
+			Config:         HelmRepositoryConfig{Username: set, Password: set, PasswordWo: set, PasswordWoVersion: set},
+			ExpectedErrors: []string{"config.password_wo"},
+		},
+		{
+			TestName:       "error_https_write_only_password_without_version",
+			Kind:           "HTTPS",
+			Config:         HelmRepositoryConfig{Username: set, PasswordWo: set},
+			ExpectedErrors: []string{"config.password_wo_version"},
+		},
+		{
+			// The ephemeral value is unknown until the ephemeral resource opens.
+			TestName: "success_https_username_and_unknown_write_only_password",
+			Kind:     "HTTPS",
+			Config:   HelmRepositoryConfig{Username: set, PasswordWo: unknown, PasswordWoVersion: set},
+		},
+		{
+			TestName:       "error_oci_github_cr_write_only_password_with_blank_username",
+			Kind:           "OCI_GITHUB_CR",
+			Config:         HelmRepositoryConfig{Username: types.StringValue(""), PasswordWo: set, PasswordWoVersion: set},
+			ExpectedErrors: []string{"config.username"},
+		},
+		{
 			TestName: "success_oci_public_ecr_ignores_config",
 			Kind:     "OCI_PUBLIC_ECR",
 			Config:   HelmRepositoryConfig{Username: set},
@@ -355,6 +442,14 @@ func TestValidateHelmRepositoryConfig(t *testing.T) {
 			assert.Equal(t, expected, errorPaths(diags), "diagnostics: %v", diags)
 		})
 	}
+}
+
+func TestRequireUsernameWithPassword_NamesTheWriteOnlyPassword(t *testing.T) {
+	t.Parallel()
+
+	diags := validateContainerRegistryConfig("GITHUB_CR", ContainerRegistryConfig{PasswordWo: types.StringValue("token"), PasswordWoVersion: types.StringValue("1")})
+
+	assert.Equal(t, "config.username is required when config.password_wo is set and kind is GITHUB_CR.", diags.Errors()[0].Detail())
 }
 
 // credentialsConfig builds the config of r with kind and config set and every other attribute null.

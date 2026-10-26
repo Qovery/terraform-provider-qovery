@@ -13,7 +13,7 @@ The configuration is the source of truth. `terraform plan` compares it with the 
 
 The refresh reads each attribute from the Qovery API. A change made from the Qovery Console, the CLI or the API shows up in `terraform plan`, and the next `terraform apply` reverts it. To keep the change, copy it into the configuration.
 
-The API never returns secrets, such as secret values, passwords, secret keys and JSON keys, nor the few other values their attribute description points out. Terraform keeps them as configured, so a change made to them outside Terraform does not show up in the plan.
+The API never returns secrets, such as secret values, passwords, secret keys and JSON keys, nor the few other values their attribute description points out. Terraform keeps them as configured, so a change made to them outside Terraform does not show up in the plan. [Keeping secrets out of the state](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/keeping-secrets-out-of-the-state) explains how to keep them out of the state file.
 
 ## Removing an attribute
 

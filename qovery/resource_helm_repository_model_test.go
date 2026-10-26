@@ -25,6 +25,8 @@ func nullHelmRepositoryConfig() HelmRepositoryConfig {
 		ScalewayProjectId: types.StringNull(),
 		Username:          types.StringNull(),
 		Password:          types.StringNull(),
+		PasswordWo:        types.StringNull(),
+		PasswordWoVersion: types.StringNull(),
 	}
 }
 
@@ -178,7 +180,7 @@ func TestHelmRepositoryToUpsertRequest_SendsTheScalewayProject(t *testing.T) {
 		SkipTlsVerification: types.BoolValue(false),
 	}
 
-	request := repository.toUpsertRequest()
+	request := repository.toUpsertRequest(types.StringNull())
 
 	assert.Equal(t, new("project"), request.Config.ScalewayProjectId, "q-core requires the project for OCI_SCALEWAY_CR")
 }
@@ -197,7 +199,7 @@ func TestHelmRepositoryToUpsertRequest_SendsTheRole(t *testing.T) {
 		SkipTlsVerification: types.BoolValue(false),
 	}
 
-	request := repository.toUpsertRequest()
+	request := repository.toUpsertRequest(types.StringNull())
 
 	assert.Equal(t, new("arn:aws:iam::123456789012:role/qovery"), request.Config.RoleArn)
 	assert.Nil(t, request.Config.AccessKeyID)

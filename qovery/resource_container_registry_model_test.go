@@ -32,6 +32,8 @@ func nullContainerRegistryConfig() ContainerRegistryConfig {
 		TokenLifetimeSeconds:             types.Int64Null(),
 		Username:                         types.StringNull(),
 		Password:                         types.StringNull(),
+		PasswordWo:                       types.StringNull(),
+		PasswordWoVersion:                types.StringNull(),
 	}
 }
 
@@ -327,7 +329,7 @@ func TestContainerRegistryToUpsertRequest_SendsTheRole(t *testing.T) {
 		}),
 	}
 
-	request := containerRegistry.toUpsertRequest()
+	request := containerRegistry.toUpsertRequest(types.StringNull())
 
 	assert.Equal(t, new("arn:aws:iam::123456789012:role/qovery"), request.Config.RoleArn)
 	assert.Nil(t, request.Config.AccessKeyID)

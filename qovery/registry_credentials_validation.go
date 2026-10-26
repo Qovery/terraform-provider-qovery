@@ -22,6 +22,9 @@ import (
 
 const gcpWorkloadIdentityFederation = "workload_identity_federation"
 
+// registryPasswordWoPath is the write-only password of a container registry or a helm repository.
+var registryPasswordWoPath = path.Root("config").AtName("password_wo")
+
 // credentialKey is a key of the config block of a container registry or a helm repository.
 type credentialKey struct {
 	name  string
@@ -45,37 +48,53 @@ func readCredentialsConfig(ctx context.Context, cfg tfsdk.Config, config any, di
 	return kind.ValueString(), !diags.HasError()
 }
 
-// validateContainerRegistryConfig checks that config sets the keys q-core requires for kind.
+// validateContainerRegistryConfig checks the password against its write-only form, and that
+// config sets the keys q-core requires for kind.
 func validateContainerRegistryConfig(kind string, config ContainerRegistryConfig) diag.Diagnostics {
+	diags := validateWriteOnly(path.Root("config"), "password", config.Password, config.PasswordWo, config.PasswordWoVersion)
+	password := passwordKey(config.Password, config.PasswordWo)
 	switch registry.Kind(kind) {
 	case registry.KindECR:
-		return validateECRConfig(kind, config.Region, config.AccessKeyID, config.SecretAccessKey, config.RoleArn)
+		diags.Append(validateECRConfig(kind, config.Region, config.AccessKeyID, config.SecretAccessKey, config.RoleArn)...)
 	case registry.KindScalewayCR:
-		return requireCredentials(kind, scalewayCredentialKeys(config.Region, config.ScalewayAccessKey, config.ScalewaySecretKey, config.ScalewayProjectId)...)
+		diags.Append(requireCredentials(kind, scalewayCredentialKeys(config.Region, config.ScalewayAccessKey, config.ScalewaySecretKey, config.ScalewayProjectId)...)...)
 	case registry.KindGithubCr:
-		return requireUsernameWithPassword(kind, config.Username, config.Password)
+		diags.Append(requireUsernameWithPassword(kind, config.Username, password)...)
 	case registry.KindGcpArtifactRegistry:
-		return validateGcpArtifactRegistryConfig(kind, config)
+		diags.Append(validateGcpArtifactRegistryConfig(kind, config)...)
 	}
-	return nil
+	return diags
 }
 
-// validateHelmRepositoryConfig checks that config sets the keys q-core requires for kind.
+// validateHelmRepositoryConfig checks the password against its write-only form, and that config
+// sets the keys q-core requires for kind.
 func validateHelmRepositoryConfig(kind string, config HelmRepositoryConfig) diag.Diagnostics {
+	diags := validateWriteOnly(path.Root("config"), "password", config.Password, config.PasswordWo, config.PasswordWoVersion)
+	password := passwordKey(config.Password, config.PasswordWo)
 	switch helmRepository.Kind(kind) {
 	case helmRepository.KindECR:
-		return validateECRConfig(kind, config.Region, config.AccessKeyID, config.SecretAccessKey, config.RoleArn)
+		diags.Append(validateECRConfig(kind, config.Region, config.AccessKeyID, config.SecretAccessKey, config.RoleArn)...)
 	case helmRepository.KindScalewayCR:
-		return requireCredentials(kind, scalewayCredentialKeys(config.Region, config.ScalewayAccessKey, config.ScalewaySecretKey, config.ScalewayProjectId)...)
+		diags.Append(requireCredentials(kind, scalewayCredentialKeys(config.Region, config.ScalewayAccessKey, config.ScalewaySecretKey, config.ScalewayProjectId)...)...)
 	case helmRepository.KindHttps, helmRepository.KindDockerHub, helmRepository.KindGitlabCr, helmRepository.KindGenericCR:
-		return requireKeysTogether(kind, credentialKey{"username", config.Username}, credentialKey{"password", config.Password})
+		diags.Append(requireKeysTogether(kind, credentialKey{"username", config.Username}, password)...)
 	case helmRepository.KindGithubCr:
-		if diags := requireKeysTogether(kind, credentialKey{"username", config.Username}, credentialKey{"password", config.Password}); diags.HasError() {
-			return diags
+		together := requireKeysTogether(kind, credentialKey{"username", config.Username}, password)
+		diags.Append(together...)
+		if !together.HasError() {
+			diags.Append(requireUsernameWithPassword(kind, config.Username, password)...)
 		}
-		return requireUsernameWithPassword(kind, config.Username, config.Password)
 	}
-	return nil
+	return diags
+}
+
+// passwordKey returns the password the config sets, in either form: password_wo when password is
+// null, so the kind checks see the write-only password too.
+func passwordKey(password, passwordWo types.String) credentialKey {
+	if password.IsNull() && !passwordWo.IsNull() {
+		return credentialKey{"password_wo", passwordWo}
+	}
+	return credentialKey{"password", password}
 }
 
 // validateECRConfig requires the region and one authentication method: role_arn, or the static
@@ -167,10 +186,10 @@ func requireKeysTogether(kind string, first, second credentialKey) diag.Diagnost
 
 // requireUsernameWithPassword rejects a non-blank password without a non-blank username, which
 // q-core checks for GitHub registries before it calls GitHub.
-func requireUsernameWithPassword(kind string, username, password types.String) diag.Diagnostics {
+func requireUsernameWithPassword(kind string, username types.String, password credentialKey) diag.Diagnostics {
 	var diags diag.Diagnostics
-	if !password.IsUnknown() && !isBlank(password) && isBlank(username) {
-		addMissingCredential(&diags, "username", "when config.password is set and kind is "+kind)
+	if !password.value.IsUnknown() && !isBlank(password.value) && isBlank(username) {
+		addMissingCredential(&diags, "username", fmt.Sprintf("when config.%s is set and kind is %s", password.name, kind))
 	}
 	return diags
 }

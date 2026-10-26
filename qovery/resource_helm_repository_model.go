@@ -30,6 +30,10 @@ type HelmRepositoryConfig struct {
 	ScalewayProjectId types.String `tfsdk:"scaleway_project_id"`
 	Username          types.String `tfsdk:"username"`
 	Password          types.String `tfsdk:"password"`
+	// PasswordWo is always null here: the framework nulls it in the plan and the state, and
+	// Create and Update read it from the config (see write_only.go).
+	PasswordWo        types.String `tfsdk:"password_wo"`
+	PasswordWoVersion types.String `tfsdk:"password_wo_version"`
 }
 
 type HelmRepositoryDataSource struct {
@@ -42,7 +46,9 @@ type HelmRepositoryDataSource struct {
 	SkipTlsVerification types.Bool   `tfsdk:"skip_tls_verification"`
 }
 
-func (p HelmRepository) toUpsertRequest() helmRepository.UpsertRequest {
+// toUpsertRequest builds the request from the plan. passwordWo is config.password_wo read from the
+// config, which the request sends instead of config.password when it is set.
+func (p HelmRepository) toUpsertRequest(passwordWo types.String) helmRepository.UpsertRequest {
 	var configRequest registry.UpsertRequestConfig
 	if p.Config == nil {
 		configRequest = registry.UpsertRequestConfig{}
@@ -56,7 +62,7 @@ func (p HelmRepository) toUpsertRequest() helmRepository.UpsertRequest {
 			ScalewaySecretKey: ToStringPointer(p.Config.ScalewaySecretKey),
 			ScalewayProjectId: ToStringPointer(p.Config.ScalewayProjectId),
 			Username:          ToStringPointer(p.Config.Username),
-			Password:          ToStringPointer(p.Config.Password),
+			Password:          writeOnlyOrPlain(p.Config.Password, passwordWo),
 		}
 	}
 	return helmRepository.UpsertRequest{
@@ -98,7 +104,8 @@ func convertDomainHelmRepositoryToHelmRepositoryDataSource(res *helmRepository.H
 // API returns the non-secret keys the kind stores, so such a key changed or removed outside
 // Terraform shows up in the plan. Everything else is kept from prior, the plan on apply and the
 // state on refresh:
-//   - the secrets (secret_access_key, scaleway_secret_key, password), which the API never returns;
+//   - the secrets (secret_access_key, scaleway_secret_key, password), which the API never returns,
+//     and password_wo_version;
 //   - the keys the kind does not store, which the API ignores, such as region on HTTPS;
 //   - every key of OCI_PUBLIC_ECR and OCI_DOCR repositories, which store none;
 //   - scaleway_project_id on OCI_SCALEWAY_CR, which q-core requires but does not store.

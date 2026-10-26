@@ -151,6 +151,16 @@ func (r helmRepositoryResource) Schema(_ context.Context, _ resource.SchemaReque
 						Optional:            true,
 						Sensitive:           true,
 					},
+					"password_wo": schema.StringAttribute{
+						MarkdownDescription: usedByKinds(writeOnlyDescription("password"), helmRepository.KindHttps, helmRepository.KindDockerHub, helmRepository.KindGithubCr, helmRepository.KindGitlabCr, helmRepository.KindGenericCR),
+						Optional:            true,
+						Sensitive:           true,
+						WriteOnly:           true,
+					},
+					"password_wo_version": schema.StringAttribute{
+						MarkdownDescription: writeOnlyVersionDescription("password"),
+						Optional:            true,
+					},
 				},
 			},
 		},
@@ -167,7 +177,11 @@ func (r helmRepositoryResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	// Create new helm repository
-	reg, err := r.helmRepositoryService.Create(ctx, plan.OrganizationId.ValueString(), plan.toUpsertRequest())
+	passwordWo := writeOnlyFromConfig(ctx, req.Config, registryPasswordWoPath, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	reg, err := r.helmRepositoryService.Create(ctx, plan.OrganizationId.ValueString(), plan.toUpsertRequest(passwordWo))
 	if err != nil {
 		resp.Diagnostics.AddError("Error on helm repository create", err.Error())
 		return
@@ -215,7 +229,11 @@ func (r helmRepositoryResource) Update(ctx context.Context, req resource.UpdateR
 	}
 
 	// Update helm repository in the backend
-	reg, err := r.helmRepositoryService.Update(ctx, state.OrganizationId.ValueString(), state.Id.ValueString(), plan.toUpsertRequest())
+	passwordWo := writeOnlyFromConfig(ctx, req.Config, registryPasswordWoPath, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	reg, err := r.helmRepositoryService.Update(ctx, state.OrganizationId.ValueString(), state.Id.ValueString(), plan.toUpsertRequest(passwordWo))
 	if err != nil {
 		resp.Diagnostics.AddError("Error on helm repository update", err.Error())
 		return
