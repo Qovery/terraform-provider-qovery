@@ -113,7 +113,7 @@ func (s newDeploymentService) Delete(ctx context.Context, params newdeployment.N
 		return err
 	}
 
-	err, statusCode := s.deploymentStatusRepository.CheckEnvironmentExists(ctx, *deployment.EnvironmentID)
+	statusCode, err := s.deploymentStatusRepository.CheckEnvironmentExists(ctx, *deployment.EnvironmentID)
 	if err != nil || statusCode >= 400 {
 		if statusCode == 404 {
 			message := fmt.Sprintf("The target environment %s doesn't exist anymore so the DELETE deployment cannot be triggered. You can ignore this warning if you have deleted previously your environment", *deployment.EnvironmentID)

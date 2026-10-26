@@ -5,8 +5,8 @@ version: "3"
 vars:
   BINARY_FOLDER: bin
   BINARY_NAME: terraform-provider-qovery
-  GOLANGCI_LINT_VERSION: v1.64.8
-  MOCKERY_VERSION: v2.53.5
+  GOLANGCI_LINT_VERSION: v2.15.0
+  MOCKERY_VERSION: v2.53.8
   GOTESTSUM_VERSION: v1.13.0
 
 dotenv: [".env"]
@@ -119,10 +119,10 @@ tasks:
   install-golangci-lint:
     desc: Install the golangci-lint tool
     cmds:
-      - go install github.com/golangci/golangci-lint/cmd/golangci-lint@{{.GOLANGCI_LINT_VERSION}}
+      - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@{{.GOLANGCI_LINT_VERSION}}
     status:
       - which golangci-lint
-      - golangci-lint version | grep {{.GOLANGCI_LINT_VERSION}}
+      - golangci-lint version --short | grep -Fx {{trimPrefix "v" .GOLANGCI_LINT_VERSION}}
 
   install-mockery:
     desc: Install the mockery tool

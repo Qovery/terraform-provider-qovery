@@ -1,6 +1,6 @@
 module github.com/qovery/terraform-provider-qovery
 
-go 1.26.6
+go 1.27.3
 
 require (
 	github.com/AlekSi/pointer v1.2.0
@@ -20,7 +20,6 @@ require (
 	github.com/schollz/progressbar/v3 v3.18.0
 	github.com/sethvargo/go-envconfig v1.1.0
 	github.com/stretchr/testify v1.12.1
-	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa
 )
 
 replace github.com/stretchr/testify v1.10.0 => github.com/stretchr/testify v1.9.0
@@ -91,6 +90,7 @@ require (
 	go.abhg.dev/goldmark/frontmatter v0.2.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 	golang.org/x/crypto v0.57.0 // indirect
+	golang.org/x/exp v0.0.0-20260218203240-3dfff04db8fa // indirect
 	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/net v0.59.0 // indirect
 	golang.org/x/sync v0.23.0 // indirect

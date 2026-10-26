@@ -89,5 +89,5 @@ func (c environmentQoveryAPI) Exists(ctx context.Context, environmentID string) 
 	_, resp, _ := c.client.EnvironmentMainCallsAPI.
 		GetEnvironment(ctx, environmentID).
 		Execute()
-	return !(resp.StatusCode >= 400)
+	return resp.StatusCode < 400
 }

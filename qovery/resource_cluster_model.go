@@ -1082,7 +1082,7 @@ func toQoveryClusterFeatures(f types.Object, mode string, cloudProvider string) 
 		if cv, ok := natAttrs["static_ips_count"]; ok && !cv.IsNull() && !cv.IsUnknown() {
 			blockCount = ToInt32(cv.(types.Int64))
 		}
-		if (blockEnabled || blockCount > 1) && !(cloudProvider == "GCP" && staticIPEnabled) {
+		if (blockEnabled || blockCount > 1) && (cloudProvider != "GCP" || !staticIPEnabled) {
 			return nil, errors.New("features.nat_gateways with static_ips_enabled or static_ips_count > 1 requires a GCP cluster with features.static_ip enabled")
 		}
 	}
@@ -1216,6 +1216,7 @@ func appendRemainingQoveryClusterFeatures(features []qovery.ClusterRequestFeatur
 			// that is exactly what the API recomputes and stores, which keeps request and stored
 			// state coherent.
 			feature := qovery.ClusterFeatureKarpenterParameters{
+				//nolint:staticcheck // SA1019: the API still requires the deprecated global flag
 				SpotEnabled:                karpenterGlobalSpotEnabled(qoveryNodePools),
 				DiskSizeInGib:              ToInt32(v.Attributes()["disk_size_in_gib"].(types.Int64)),
 				DiskIops:                   ToInt32Pointer(diskIops),

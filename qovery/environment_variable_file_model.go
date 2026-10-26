@@ -151,7 +151,7 @@ func (e EnvironmentVariableFile) toCreateRequest() client.EnvironmentVariableCre
 	}
 	mountPath := ToString(e.MountPath)
 	if mountPath != "" {
-		req.EnvironmentVariableRequest.MountPath = *qovery.NewNullableString(&mountPath)
+		req.MountPath = *qovery.NewNullableString(&mountPath)
 	}
 	return req
 }
@@ -178,7 +178,7 @@ func (e EnvironmentVariableFile) toUpdateRequest(new EnvironmentVariableFile) cl
 	}
 	mountPath := ToString(e.MountPath)
 	if mountPath != "" {
-		req.EnvironmentVariableEditRequest.MountPath = *qovery.NewNullableString(&mountPath)
+		req.MountPath = *qovery.NewNullableString(&mountPath)
 	}
 	return req
 }

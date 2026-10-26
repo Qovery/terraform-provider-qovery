@@ -2,8 +2,7 @@ package organization
 
 import (
 	"fmt"
-
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 // Plan is an enum that contains all the valid values of an organization plan.

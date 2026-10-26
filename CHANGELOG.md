@@ -44,6 +44,7 @@ explained in the matching upgrade guide.
   sends no secret request, but it still calls the update of the resource with unchanged
   settings, and the state then follows the configuration order. Two entries with the same key
   fail. (QOV-2455)
+- Go toolchain upgraded to 1.27.3, golangci-lint to v2.15.0 and mockery to v2.53.8. (QOV-2457)
 
 ## [1.2.2] - 2026-10-23
 

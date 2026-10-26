@@ -79,7 +79,7 @@ func (c *Client) updateApplicationEnvironmentVariableAliases(
 			return apierrors.NewDeleteError(apierrors.APIResourceApplicationEnvironmentAliasVariable, variable.Id, res, err)
 		}
 		// The alias variable value contains the name of the aliased variable
-		aliasedVariableId := environmentVariablesByName[*(variable.Value)].Id
+		aliasedVariableId := environmentVariablesByName[*variable.Value].Id
 		_, res, err = c.api.ApplicationEnvironmentVariableAPI.
 			CreateApplicationEnvironmentVariableAlias(ctx, applicationID, aliasedVariableId).
 			Key(qovery.Key{
@@ -95,7 +95,7 @@ func (c *Client) updateApplicationEnvironmentVariableAliases(
 	// Create
 	for _, variable := range request.Create {
 		// The alias variable value contains the name of the aliased variable
-		aliasedVariableId := environmentVariablesByName[*(variable.Value)].Id
+		aliasedVariableId := environmentVariablesByName[*variable.Value].Id
 		_, res, err := c.api.ApplicationEnvironmentVariableAPI.
 			CreateApplicationEnvironmentVariableAlias(ctx, applicationID, aliasedVariableId).
 			Key(qovery.Key{
@@ -200,7 +200,7 @@ func (c *Client) updateApplicationSecretAliases(
 	}
 	for _, secret := range request.Update {
 		// The alias secret value contains the name of the aliased secret
-		aliasedSecretId := secretsByName[*(secret.Value)].Id
+		aliasedSecretId := secretsByName[*secret.Value].Id
 		_, res, err := c.api.ApplicationSecretAPI.
 			CreateApplicationSecretAlias(ctx, applicationID, aliasedSecretId).
 			Key(qovery.Key{
@@ -216,7 +216,7 @@ func (c *Client) updateApplicationSecretAliases(
 	// Create new aliases
 	for _, secret := range request.Create {
 		// The alias secret value contains the name of the aliased secret
-		aliasedSecretId := secretsByName[*(secret.Value)].Id
+		aliasedSecretId := secretsByName[*secret.Value].Id
 		_, res, err := c.api.ApplicationSecretAPI.
 			CreateApplicationSecretAlias(ctx, applicationID, aliasedSecretId).
 			Key(qovery.Key{

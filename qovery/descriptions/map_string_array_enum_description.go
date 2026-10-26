@@ -8,24 +8,24 @@ import (
 
 func NewMapStringArrayEnumDescription(description string, enum map[string][]string, defaultValue *string) string {
 	var desc strings.Builder
-	desc.WriteString(fmt.Sprintf("%s", description))
+	desc.WriteString(description)
 
 	keys := sortedMapKeys(enum)
 	for _, key := range keys {
 		values := enum[key]
 		sort.Strings(values)
-		desc.WriteString(fmt.Sprintf(
+		fmt.Fprintf(&desc,
 			"\n\t- %s: `%s`.",
 			key,
 			strings.Join(values, "`, `"),
-		))
+		)
 	}
 
 	if defaultValue != nil {
-		desc.WriteString(fmt.Sprintf(
+		fmt.Fprintf(&desc,
 			"\n\t- Default: `%s`.",
 			*defaultValue,
-		))
+		)
 	}
 
 	return desc.String()

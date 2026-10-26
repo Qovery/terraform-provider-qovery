@@ -2,8 +2,7 @@ package helmRepository
 
 import (
 	"fmt"
-
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 // Kind is an enum that contains all the valid values of a registry kind.

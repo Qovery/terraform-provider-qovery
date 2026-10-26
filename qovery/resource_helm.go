@@ -652,10 +652,7 @@ func (r helmResource) Read(ctx context.Context, req resource.ReadRequest, resp *
 
 	// Hack to know if this method is triggered through an import
 	// EnvironmentID is always present except when importing the resource
-	isTriggeredFromImport := false
-	if state.EnvironmentID.IsNull() {
-		isTriggeredFromImport = true
-	}
+	isTriggeredFromImport := state.EnvironmentID.IsNull()
 
 	// Get helm from the API
 	newHelm, err := r.helmService.Get(ctx, state.ID.ValueString(), state.AdvancedSettingsJson.ValueString(), isTriggeredFromImport)

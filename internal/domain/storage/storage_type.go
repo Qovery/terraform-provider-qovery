@@ -2,8 +2,7 @@ package storage
 
 import (
 	"fmt"
-
-	"golang.org/x/exp/slices"
+	"slices"
 )
 
 // Type is an enum that contains all the valid values of a storage type.
