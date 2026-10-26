@@ -585,7 +585,7 @@ func (r jobResource) Create(ctx context.Context, req resource.CreateRequest, res
 	}
 
 	// Create new job
-	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), nil, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -656,7 +656,7 @@ func (r jobResource) Update(ctx context.Context, req resource.UpdateRequest, res
 	}
 
 	// Update job in the backend
-	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), state.SecretList(), &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}

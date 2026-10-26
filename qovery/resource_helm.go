@@ -611,7 +611,7 @@ func (r helmResource) Create(ctx context.Context, req resource.CreateRequest, re
 	}
 
 	// Create new helm
-	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), nil, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -682,7 +682,7 @@ func (r helmResource) Update(ctx context.Context, req resource.UpdateRequest, re
 	}
 
 	// Update helm in the backend
-	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), state.SecretList(), &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}

@@ -2,6 +2,7 @@ package qovery
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -102,7 +103,12 @@ func secretsForDataSource(secrets types.List) types.List {
 }
 
 // secretValuesWoFromConfig reads the value_wo of every secrets entry that sets it from the config.
-func secretValuesWoFromConfig(ctx context.Context, config tfsdk.Config, diags *diag.Diagnostics) writeOnlySecretValues {
+//
+// It also fails for a planned entry that the diff with old would create or update while it has no
+// value: a null plan value and no value_wo under its key in the config. ignore_changes on secrets
+// can plan a key the config no longer has, and sending that entry would blank the secret. old is
+// nil on create.
+func secretValuesWoFromConfig(ctx context.Context, config tfsdk.Config, planned, old SecretList, diags *diag.Diagnostics) writeOnlySecretValues {
 	var secrets types.List
 	diags.Append(config.GetAttribute(ctx, path.Root("secrets"), &secrets)...)
 	values := writeOnlySecretValues{}
@@ -110,6 +116,22 @@ func secretValuesWoFromConfig(ctx context.Context, config tfsdk.Config, diags *d
 		if !s.ValueWo.IsNull() {
 			values[ToString(s.Key)] = s.ValueWo
 		}
+	}
+
+	for _, s := range planned {
+		key := ToString(s.Key)
+		if !s.Value.IsNull() || isKnownAndSet(values[key]) {
+			continue
+		}
+		if prior := old.find(key); prior != nil && !prior.changedIn(s) {
+			continue
+		}
+		diags.AddAttributeError(
+			path.Root("secrets"),
+			"Missing secret value",
+			fmt.Sprintf("The plan creates or updates the secret %q, but the configuration sets no value or value_wo under that key, so Qovery would store an empty value. "+
+				"An ignore_changes rule on secrets can keep a key the configuration no longer has.", key),
+		)
 	}
 	return values
 }

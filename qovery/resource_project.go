@@ -206,7 +206,7 @@ func (r projectResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	// Create new project
 
-	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), nil, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -258,7 +258,7 @@ func (r projectResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	// Update project in the backend
-	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), state.SecretList(), &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}

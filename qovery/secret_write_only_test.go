@@ -489,11 +489,76 @@ func TestSecretValuesWoFromConfig(t *testing.T) {
 		{"key": str("WRITE_ONLY"), "value_wo": str("secret"), "value_wo_version": str("1")},
 	})}
 
+	planned := SecretList{
+		secretEntry("", "PLAIN", types.StringValue("plain"), noVersion, noDescription),
+		secretEntry("", "WRITE_ONLY", noValue, types.StringValue("1"), noDescription),
+	}
+
 	var diags diag.Diagnostics
-	got := secretValuesWoFromConfig(context.Background(), config, &diags)
+	got := secretValuesWoFromConfig(context.Background(), config, planned, nil, &diags)
 
 	require.False(t, diags.HasError(), "diagnostics: %v", diags)
 	assert.Equal(t, writeOnlySecretValues{"WRITE_ONLY": types.StringValue("secret")}, got)
+}
+
+// ignore_changes on secrets can plan a key the configuration no longer has. Sending that entry
+// would blank the secret, so the apply fails instead, unless the entry is left unchanged.
+func TestSecretValuesWoFromConfig_RejectsASecretSentWithoutValue(t *testing.T) {
+	t.Parallel()
+
+	str := func(s string) tftypes.Value { return tftypes.NewValue(tftypes.String, s) }
+	// The configuration renamed TOKEN to NEW_TOKEN, and ignore_changes kept TOKEN in the plan.
+	config := tfsdk.Config{Schema: schemaFor(t, projectResource{}), Raw: projectValue(t, tftypes.NewValue(tftypes.String, nil), []map[string]tftypes.Value{
+		{"key": str("NEW_TOKEN"), "value_wo": str("secret"), "value_wo_version": str("2")},
+	})}
+	v1, v2 := types.StringValue("1"), types.StringValue("2")
+
+	testCases := []struct {
+		TestName    string
+		Planned     SecretList
+		Old         SecretList
+		ExpectError bool
+	}{
+		{
+			TestName:    "error_update_without_value",
+			Planned:     SecretList{secretEntry("", "TOKEN", noValue, v2, noDescription)},
+			Old:         SecretList{secretEntry("id-token", "TOKEN", noValue, v1, noDescription)},
+			ExpectError: true,
+		},
+		{
+			TestName:    "error_create_without_value",
+			Planned:     SecretList{secretEntry("", "TOKEN", noValue, v2, noDescription)},
+			ExpectError: true,
+		},
+		{
+			TestName: "success_unchanged_entry_without_value",
+			Planned:  SecretList{secretEntry("", "TOKEN", noValue, v1, noDescription)},
+			Old:      SecretList{secretEntry("id-token", "TOKEN", noValue, v1, noDescription)},
+		},
+		{
+			TestName: "success_update_with_the_config_value",
+			Planned:  SecretList{secretEntry("", "NEW_TOKEN", noValue, v2, noDescription)},
+			Old:      SecretList{secretEntry("id-token", "NEW_TOKEN", noValue, v1, noDescription)},
+		},
+		{
+			TestName: "success_plain_value",
+			Planned:  SecretList{secretEntry("", "TOKEN", types.StringValue("plain"), noVersion, noDescription)},
+			Old:      SecretList{secretEntry("id-token", "TOKEN", noValue, v1, noDescription)},
+		},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+			var diags diag.Diagnostics
+			secretValuesWoFromConfig(context.Background(), config, tc.Planned, tc.Old, &diags)
+			assert.Equal(t, tc.ExpectError, diags.HasError(), "diagnostics: %v", diags)
+			if tc.ExpectError {
+				assert.Contains(t, diags.Errors()[0].Detail(), `"TOKEN"`)
+			}
+		})
+	}
 }
 
 // fakeProjectService applies the secret requests it receives to the secrets it holds, and records

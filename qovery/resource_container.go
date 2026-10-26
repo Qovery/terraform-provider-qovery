@@ -539,7 +539,7 @@ func (r containerResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	// Create new container
-	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), nil, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -606,7 +606,7 @@ func (r containerResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	// Update container in the backend
-	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), state.SecretList(), &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}

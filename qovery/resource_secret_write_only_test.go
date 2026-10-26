@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"regexp"
 	"sort"
 	"strings"
 	"testing"
@@ -148,6 +149,55 @@ removed {
 					resource.TestCheckResourceAttrPtr(addr, "secrets.1.id", &idA),
 					resource.TestCheckResourceAttr(addr, "secrets.0.value_wo_version", "2"),
 					resource.TestCheckResourceAttr(addr, "secrets.1.value_wo_version", "1"),
+				),
+			},
+		},
+	})
+}
+
+// ignore_changes on the key of a secrets entry keeps the old key in the plan while the configuration
+// sets value_wo under the new one. The apply fails instead of sending an empty value, and the
+// secret keeps its value.
+func TestAcc_ProjectSecretWriteOnlyIgnoredKey(t *testing.T) {
+	t.Parallel()
+	const addr = "qovery_project.test"
+	testName := "project-secret-wo-ignored-key"
+	var idToken string
+	config := func(key, version, lifecycle string) string {
+		return testAccEphemeralRandomPassword + fmt.Sprintf(`
+resource "qovery_project" "test" {
+  organization_id = "%s"
+  name = "%s"
+  secrets = [%s]
+  %s
+}
+`, getTestOrganizationID(), generateTestName(testName), testAccWriteOnlySecret(key, version, ""), lifecycle)
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		ExternalProviders:        testAccRandomProvider,
+		TerraformVersionChecks:   []tfversion.TerraformVersionCheck{tfversion.SkipBelow(tfversion.Version1_11_0)},
+		CheckDestroy:             testAccQoveryProjectDestroy(addr),
+		Steps: []resource.TestStep{
+			{
+				Config: config("TOKEN", "1", ""),
+				Check:  testAccCaptureAttribute(addr, "secrets.0.id", &idToken),
+			},
+			{
+				Config:      config("NEW_TOKEN", "2", "lifecycle {\n    ignore_changes = [secrets[0].key]\n  }"),
+				ExpectError: regexp.MustCompile(`The\s+plan\s+creates\s+or\s+updates\s+the\s+secret\s+"TOKEN"`),
+			},
+			// The failed apply sent nothing: the state still holds TOKEN at version 1, and the
+			// plan still holds the version bump.
+			{
+				RefreshState:       true,
+				ExpectNonEmptyPlan: true,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(addr, "secrets.0.key", "TOKEN"),
+					resource.TestCheckResourceAttrPtr(addr, "secrets.0.id", &idToken),
+					resource.TestCheckResourceAttr(addr, "secrets.0.value_wo_version", "1"),
 				),
 			},
 		},

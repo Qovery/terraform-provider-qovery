@@ -646,7 +646,7 @@ func (r applicationResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Create new application
-	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), nil, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -717,7 +717,7 @@ func (r applicationResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	// Update application in the backend
-	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), state.SecretList(), &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}

@@ -274,7 +274,7 @@ func (r environmentResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Create new environment
-	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), nil, &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -331,7 +331,7 @@ func (r environmentResource) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, plan.SecretList(), state.SecretList(), &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
