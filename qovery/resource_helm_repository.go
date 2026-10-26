@@ -158,7 +158,7 @@ func (r helmRepositoryResource) Schema(_ context.Context, _ resource.SchemaReque
 						WriteOnly:           true,
 					},
 					"password_wo_version": schema.StringAttribute{
-						MarkdownDescription: writeOnlyVersionDescription("password"),
+						MarkdownDescription: writeOnlyVersionDescription("password", "as does any other update of the resource"),
 						Optional:            true,
 					},
 				},

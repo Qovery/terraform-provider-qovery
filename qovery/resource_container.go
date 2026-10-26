@@ -366,31 +366,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 					},
 				},
 			},
-			"secrets": schema.SetNestedAttribute{
-				MarkdownDescription: secrets.List,
-				Optional:            true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"id": schema.StringAttribute{
-							MarkdownDescription: secrets.ID,
-							Computed:            true,
-						},
-						"key": schema.StringAttribute{
-							MarkdownDescription: secrets.Key,
-							Required:            true,
-						},
-						"value": schema.StringAttribute{
-							MarkdownDescription: secrets.Value,
-							Required:            true,
-							Sensitive:           true,
-						},
-						"description": schema.StringAttribute{
-							MarkdownDescription: secrets.Description,
-							Optional:            true,
-						},
-					},
-				},
-			},
+			"secrets": secretsResourceAttribute(secrets),
 			"secret_aliases": schema.SetNestedAttribute{
 				MarkdownDescription: secretAliases.List,
 				Optional:            true,
@@ -563,7 +539,11 @@ func (r containerResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	// Create new container
-	request := plan.toUpsertServiceRequest(nil)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	request := plan.toUpsertServiceRequest(nil, secretValuesWo)
 	cont, err := r.containerService.Create(ctx, plan.EnvironmentID.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container create", err.Error())
@@ -626,7 +606,11 @@ func (r containerResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	// Update container in the backend
-	request := plan.toUpsertServiceRequest(&state)
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	request := plan.toUpsertServiceRequest(&state, secretValuesWo)
 	cont, err := r.containerService.Update(ctx, state.ID.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container update", err.Error())

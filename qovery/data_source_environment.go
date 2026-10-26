@@ -185,7 +185,7 @@ func (r environmentDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 					},
 				},
 			},
-			"secrets": schema.SetNestedAttribute{
+			"secrets": schema.ListNestedAttribute{
 				MarkdownDescription: secrets.List,
 				Optional:            true,
 				Computed:            true,
@@ -366,6 +366,8 @@ func (d environmentDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	}
 
 	state := convertDomainEnvironmentToEnvironment(ctx, data, env)
+	// The data source has no value_wo and value_wo_version.
+	state.Secrets = secretsForDataSource(state.Secrets)
 	tflog.Trace(ctx, "read environment", map[string]any{"environment_id": state.Id.ValueString()})
 
 	// Set state

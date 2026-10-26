@@ -80,11 +80,13 @@ func isKnownAndSet(value types.String) bool {
 // writeOnlyDescription describes <name>_wo, the write-only form of the secret attribute name.
 func writeOnlyDescription(name string) string {
 	return fmt.Sprintf("Write-only form of `%[1]s`, which Terraform 1.11 and later send to Qovery without storing it in the plan or the state. "+
-		"Changing the value alone does not trigger an update: change `%[1]s_wo_version` to send it.", name)
+		"Changing the value alone does not trigger an update, so change `%[1]s_wo_version` to send a new value.", name)
 }
 
-// writeOnlyVersionDescription describes <name>_wo_version, the change token of <name>_wo.
-func writeOnlyVersionDescription(name string) string {
-	return fmt.Sprintf("Version of `%[1]s_wo`, any string, required with it and kept in the state. "+
-		"Changing it sends the current value of `%[1]s_wo`, as does any other update of the resource.", name)
+// writeOnlyVersionDescription describes <name>_wo_version, the change token of <name>_wo. resent
+// names the other changes that send the current value, such as "as does any other update of the
+// resource".
+func writeOnlyVersionDescription(name, resent string) string {
+	return fmt.Sprintf("Version of `%[1]s_wo`, required with it and stored in the state. "+
+		"Changing it sends the current value of `%[1]s_wo`, %[2]s.", name, resent)
 }

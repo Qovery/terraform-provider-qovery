@@ -48,6 +48,17 @@ func generateVariableSet(key string, value string) types.Set {
 	)
 }
 
+// generateVariableList builds a secrets list holding one entry, for the configs the tests render
+// from a model.
+func generateVariableList(key string, value string) types.List {
+	return types.ListValueMust(variableObjectType, []attr.Value{
+		types.ObjectValueMust(attributes, map[string]attr.Value{
+			"key":   qovery.FromString(key),
+			"value": qovery.FromString(value),
+		}),
+	})
+}
+
 func TestAcc_Job(t *testing.T) {
 	t.Parallel()
 	testName := "job"
@@ -86,7 +97,7 @@ func TestAcc_Job(t *testing.T) {
 							},
 						},
 						EnvironmentVariables: generateVariableSet("key1", ""),
-						Secrets:              generateVariableSet("secretkey1", ""),
+						Secrets:              generateVariableList("secretkey1", ""),
 						AdvancedSettingsJson: qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),
@@ -158,7 +169,7 @@ func TestAcc_Job(t *testing.T) {
 						EnvironmentVariables:         generateVariableSet("key1", "value1"),
 						EnvironmentVariableAliases:   generateVariableSet("key1_alias", "key1"),
 						EnvironmentVariableOverrides: generateVariableSet("environment_variable", "override value"),
-						Secrets:                      generateVariableSet("secretkey1", "secretvalue1"),
+						Secrets:                      generateVariableList("secretkey1", "secretvalue1"),
 						SecretAliases:                generateVariableSet("secretkey1_alias", "secretkey1"),
 						SecretOverrides:              generateVariableSet("environment_secret", "override value"),
 						AdvancedSettingsJson:         qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
@@ -248,7 +259,7 @@ func TestAcc_Job(t *testing.T) {
 						EnvironmentVariables:         generateVariableSet("key1", "value1"),
 						EnvironmentVariableAliases:   generateVariableSet("key1_alias", "key1"),
 						EnvironmentVariableOverrides: generateVariableSet("environment_variable", "override value"),
-						Secrets:                      generateVariableSet("secretkey1", "secretvalue1"),
+						Secrets:                      generateVariableList("secretkey1", "secretvalue1"),
 						SecretAliases:                generateVariableSet("secretkey1_alias", "secretkey1"),
 						SecretOverrides:              generateVariableSet("environment_secret", "override value"),
 						AdvancedSettingsJson:         qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
@@ -338,7 +349,7 @@ func TestAcc_Job(t *testing.T) {
 						EnvironmentVariables:         generateVariableSet("key1", "value1-updated"),
 						EnvironmentVariableAliases:   generateVariableSet("key1_alias_updated", "key1"),
 						EnvironmentVariableOverrides: generateVariableSet("environment_variable", "override value updated"),
-						Secrets:                      generateVariableSet("secretkey1", "secretvalue1-updated"),
+						Secrets:                      generateVariableList("secretkey1", "secretvalue1-updated"),
 						SecretAliases:                generateVariableSet("secretkey1_alias_updated", "secretkey1"),
 						SecretOverrides:              generateVariableSet("environment_secret", "override value updated"),
 						AdvancedSettingsJson:         qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
@@ -404,7 +415,7 @@ func TestAcc_Job(t *testing.T) {
 							},
 						},
 						EnvironmentVariables: generateVariableSet("key1", "value1"),
-						Secrets:              generateVariableSet("secretkey1", "secretvalue1"),
+						Secrets:              generateVariableList("secretkey1", "secretvalue1"),
 						AdvancedSettingsJson: qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),

@@ -192,7 +192,7 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 					},
 				},
 			},
-			"secrets": schema.SetNestedAttribute{
+			"secrets": schema.ListNestedAttribute{
 				MarkdownDescription: secrets.List,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
@@ -640,6 +640,8 @@ func (d helmDataSource) Read(ctx context.Context, req datasource.ReadRequest, re
 		HelmValuesOverrideSetJson:   emptyStringMap(),
 	}
 	state := convertDomainHelmToHelm(ctx, data, h)
+	// The data source has no value_wo and value_wo_version.
+	state.Secrets = secretsForDataSource(state.Secrets)
 	// The git provider reports the API value, also when it matches the URL.
 	if state.ValuesOverride != nil && state.ValuesOverride.HelmValuesOverrideFile != nil && state.ValuesOverride.HelmValuesOverrideFile.GitRepository != nil &&
 		h.ValuesOverride.File != nil && h.ValuesOverride.File.GitRepository != nil {

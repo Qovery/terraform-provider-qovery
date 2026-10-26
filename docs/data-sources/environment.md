@@ -25,7 +25,7 @@ data "qovery_environment" "my_environment" {
 - `mode` (String) Mode of the environment.
 - `secret_aliases` (Attributes Set) Secret aliases of the environment. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_overrides` (Attributes Set) Secret overrides of the environment. An override replaces the value of a secret inherited from a broader scope. (see [below for nested schema](#nestedatt--secret_overrides))
-- `secrets` (Attributes Set) Secrets of the environment. (see [below for nested schema](#nestedatt--secrets))
+- `secrets` (Attributes List) Secrets of the environment. (see [below for nested schema](#nestedatt--secrets))
 
 ### Read-Only
 

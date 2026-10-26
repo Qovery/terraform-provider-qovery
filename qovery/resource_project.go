@@ -164,31 +164,7 @@ func (r projectResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					},
 				},
 			},
-			"secrets": schema.SetNestedAttribute{
-				MarkdownDescription: secrets.List,
-				Optional:            true,
-				NestedObject: schema.NestedAttributeObject{
-					Attributes: map[string]schema.Attribute{
-						"id": schema.StringAttribute{
-							MarkdownDescription: secrets.ID,
-							Computed:            true,
-						},
-						"key": schema.StringAttribute{
-							MarkdownDescription: secrets.Key,
-							Required:            true,
-						},
-						"value": schema.StringAttribute{
-							MarkdownDescription: secrets.Value,
-							Required:            true,
-							Sensitive:           true,
-						},
-						"description": schema.StringAttribute{
-							MarkdownDescription: secrets.Description,
-							Optional:            true,
-						},
-					},
-				},
-			},
+			"secrets": secretsResourceAttribute(secrets),
 			"secret_aliases": schema.SetNestedAttribute{
 				MarkdownDescription: secretAliases.List,
 				Optional:            true,
@@ -230,7 +206,11 @@ func (r projectResource) Create(ctx context.Context, req resource.CreateRequest,
 
 	// Create new project
 
-	proj, err := r.projectService.Create(ctx, plan.OrganizationId.ValueString(), plan.toCreateServiceRequest())
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	proj, err := r.projectService.Create(ctx, plan.OrganizationId.ValueString(), plan.toCreateServiceRequest(secretValuesWo))
 	if err != nil {
 		resp.Diagnostics.AddError("Error on project create", err.Error())
 		return
@@ -278,7 +258,11 @@ func (r projectResource) Update(ctx context.Context, req resource.UpdateRequest,
 	}
 
 	// Update project in the backend
-	proj, err := r.projectService.Update(ctx, state.Id.ValueString(), plan.toUpdateServiceRequest(state))
+	secretValuesWo := secretValuesWoFromConfig(ctx, req.Config, &resp.Diagnostics)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	proj, err := r.projectService.Update(ctx, state.Id.ValueString(), plan.toUpdateServiceRequest(state, secretValuesWo))
 	if err != nil {
 		resp.Diagnostics.AddError("Error on project update", err.Error())
 		return

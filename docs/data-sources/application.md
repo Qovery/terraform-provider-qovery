@@ -41,7 +41,7 @@ data "qovery_application" "my_application" {
 - `min_running_instances` (Number) Minimum number of running instances of the application.
 - `secret_aliases` (Attributes Set) Secret aliases of the application. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_overrides` (Attributes Set) Secret overrides of the application. An override replaces the value of a secret inherited from a broader scope. (see [below for nested schema](#nestedatt--secret_overrides))
-- `secrets` (Attributes Set) Secrets of the application. (see [below for nested schema](#nestedatt--secrets))
+- `secrets` (Attributes List) Secrets of the application. (see [below for nested schema](#nestedatt--secrets))
 - `storage` (Attributes Set) Persistent volumes of the application. Their data survives restarts. (see [below for nested schema](#nestedatt--storage))
 
 ### Read-Only

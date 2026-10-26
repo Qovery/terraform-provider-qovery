@@ -17,8 +17,36 @@ Terraform 1.11 and later support write-only arguments. Terraform sends a write-o
 
 | Resource | Secret | Write-only form |
 |---|---|---|
+| `qovery_application`, `qovery_container`, `qovery_job`, `qovery_helm`, `qovery_environment` and `qovery_project` | `secrets[].value` | `secrets[].value_wo` and `secrets[].value_wo_version` |
 | `qovery_container_registry` | `config.password` | `config.password_wo` and `config.password_wo_version` |
 | `qovery_helm_repository` | `config.password` | `config.password_wo` and `config.password_wo_version` |
+
+Each entry of `secrets` sets either form, so a list can mix them:
+
+```terraform
+ephemeral "vault_kv_secret_v2" "db" {
+  mount = "kv"
+  name  = "prod/db"
+}
+
+resource "qovery_container" "api" {
+  # ...
+
+  secrets = [
+    {
+      key              = "DB_PASSWORD"
+      value_wo         = ephemeral.vault_kv_secret_v2.db.data["password"]
+      value_wo_version = "1"
+    },
+    {
+      key   = "LEGACY_TOKEN"
+      value = var.legacy_token
+    },
+  ]
+}
+```
+
+Container registries and helm repositories take `config.password_wo` and `config.password_wo_version`:
 
 ```terraform
 ephemeral "vault_kv_secret_v2" "docker_hub" {
@@ -40,13 +68,15 @@ resource "qovery_container_registry" "docker_hub" {
 }
 ```
 
-Terraform cannot compare a value it never stores, so changing the value alone does not trigger an update. To send a new value, change the version, any string. Any other update of the resource also sends the current value.
+Terraform cannot compare a value it never stores, so changing the value alone does not trigger an update. To send a new value, change the version, any string. Two other changes also send the current value: any update of a container registry or a helm repository, and a change of the `description` of a `secrets` entry.
 
 A write-only argument conflicts with its plain form and requires its version. Terraform 1.10 and earlier reject a configuration that sets one.
 
+`secret_aliases`, `secret_overrides` and `secret_files` have no write-only form.
+
 ### Migrating a resource
 
-Replace the plain argument with the write-only argument and its version in the same change. Terraform plans an in-place update, and the state no longer holds the secret once the apply completes.
+Replace the plain argument with the write-only argument and its version in the same change. Terraform plans an in-place update, and the state no longer holds the secret once the apply completes. A `secrets` entry keeps its key, so Qovery updates the secret and keeps its ID.
 
 Earlier versions of the state file, which some backends keep, still hold the secret. Rotate it if those versions are not protected.
 

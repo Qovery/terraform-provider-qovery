@@ -56,7 +56,7 @@ func TestAcc_JobGitToken(t *testing.T) {
 							},
 						},
 						EnvironmentVariables: generateVariableSet("key1", ""),
-						Secrets:              generateVariableSet("secretkey1", ""),
+						Secrets:              generateVariableList("secretkey1", ""),
 						AdvancedSettingsJson: qovery.FromString("{\"deployment.termination_grace_period_seconds\":61}"),
 					},
 				),

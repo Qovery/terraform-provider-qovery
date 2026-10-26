@@ -201,14 +201,14 @@ func TestAcc_RegistryPasswordWriteOnlyValidation(t *testing.T) {
 				ExpectNonEmptyPlan: true,
 			},
 			{
-				Config:      testAccContainerRegistryPasswordConfig("container-registry-password-wo-no-version", `password_wo = ephemeral.random_password.registry.result`),
+				Config:      testAccContainerRegistryPasswordConfig("container-registry-password-wo-no-version", `password_wo = ephemeral.random_password.secret.result`),
 				PlanOnly:    true,
 				ExpectError: regexp.MustCompile(`config.password_wo_version\s+is\s+required\s+when\s+config.password_wo\s+is\s+set`),
 			},
 			{
 				Config: testAccHelmRepositoryPasswordConfig("helm-repository-password-and-wo", "", `
     password = "plain"
-    password_wo = ephemeral.random_password.registry.result
+    password_wo = ephemeral.random_password.secret.result
     password_wo_version = "1"`),
 				PlanOnly:    true,
 				ExpectError: regexp.MustCompile(`config.password_wo\s+cannot\s+be\s+set\s+with\s+config.password`),
@@ -256,7 +256,7 @@ func (skipFromTerraform1_11) CheckTerraformVersion(_ context.Context, req tfvers
 // given version.
 func testAccHelmRepositoryPasswordWo(version string) string {
 	return fmt.Sprintf(`
-    password_wo = ephemeral.random_password.registry.result
+    password_wo = ephemeral.random_password.secret.result
     password_wo_version = %q`, version)
 }
 
@@ -302,7 +302,7 @@ resource "qovery_container_registry" "test" {
 }
 
 const testAccEphemeralRandomPassword = `
-ephemeral "random_password" "registry" {
+ephemeral "random_password" "secret" {
   length = 24
 }
 `

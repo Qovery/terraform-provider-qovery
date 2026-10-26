@@ -32,7 +32,7 @@ type Container struct {
 	EnvironmentVariables         types.Set     `tfsdk:"environment_variables"`
 	EnvironmentVariableAliases   types.Set     `tfsdk:"environment_variable_aliases"`
 	EnvironmentVariableOverrides types.Set     `tfsdk:"environment_variable_overrides"`
-	Secrets                      types.Set     `tfsdk:"secrets"`
+	Secrets                      types.List    `tfsdk:"secrets"`
 	SecretAliases                types.Set     `tfsdk:"secret_aliases"`
 	SecretOverrides              types.Set     `tfsdk:"secret_overrides"`
 	EnvironmentVariableFiles     types.Set     `tfsdk:"environment_variable_files"`
@@ -115,7 +115,9 @@ func (cont Container) CustomDomainsList() CustomDomainList {
 	return toCustomDomainList(cont.CustomDomains)
 }
 
-func (cont Container) toUpsertServiceRequest(state *Container) *container.UpsertServiceRequest {
+// toUpsertServiceRequest builds the request from the plan, state is nil on create.
+// secretValuesWo holds the secrets[].value_wo read from the config.
+func (cont Container) toUpsertServiceRequest(state *Container, secretValuesWo writeOnlySecretValues) *container.UpsertServiceRequest {
 	var stateEnvironmentVariables EnvironmentVariableList
 	var stateEnvironmentVariableAliases EnvironmentVariableList
 	var stateEnvironmentVariableOverrides EnvironmentVariableList
@@ -148,9 +150,9 @@ func (cont Container) toUpsertServiceRequest(state *Container) *container.Upsert
 		EnvironmentVariableAliases:   cont.EnvironmentVariableAliasList().diffRequest(stateEnvironmentVariableAliases),
 		EnvironmentVariableOverrides: cont.EnvironmentVariableOverrideList().diffRequest(stateEnvironmentVariableOverrides),
 		EnvironmentVariableFiles:     cont.EnvironmentVariableFileList().diffRequest(stateEnvironmentVariableFiles),
-		Secrets:                      cont.SecretList().diffRequest(stateSecrets),
-		SecretAliases:                cont.SecretAliasesList().diffRequest(stateSecretAliases),
-		SecretOverrides:              cont.SecretOverridesList().diffRequest(stateSecretOverrides),
+		Secrets:                      cont.SecretList().diffRequest(stateSecrets, secretValuesWo),
+		SecretAliases:                cont.SecretAliasesList().diffRequest(stateSecretAliases, nil),
+		SecretOverrides:              cont.SecretOverridesList().diffRequest(stateSecretOverrides, nil),
 		SecretFiles:                  cont.SecretFileList().diffRequest(stateSecretFiles),
 		ExternalSecrets:              cont.ExternalSecretList().diffRequest(stateExternalSecrets),
 		ExternalSecretFiles:          cont.ExternalSecretFileList().diffRequest(stateExternalSecretFiles),
@@ -234,7 +236,7 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		EnvironmentVariables:         convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, container.EnvironmentVariables, variable.ScopeContainer, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:   convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, container.EnvironmentVariables, variable.ScopeContainer, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableOverrides: convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableOverrides, container.EnvironmentVariables, variable.ScopeContainer, "OVERRIDE").toTerraformSet(ctx),
-		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, container.Secrets, variable.ScopeContainer, "VALUE").toTerraformSet(ctx),
+		Secrets:                      convertDomainSecretsToSecretList(state.Secrets, container.Secrets, variable.ScopeContainer, "VALUE").toTerraformList(),
 		SecretAliases:                convertDomainSecretsToSecretList(state.SecretAliases, container.Secrets, variable.ScopeContainer, "ALIAS").toTerraformSet(ctx),
 		SecretOverrides:              convertDomainSecretsToSecretList(state.SecretOverrides, container.Secrets, variable.ScopeContainer, "OVERRIDE").toTerraformSet(ctx),
 		EnvironmentVariableFiles:     convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, container.EnvironmentVariables, variable.ScopeContainer).toTerraformSet(ctx),

@@ -17,7 +17,7 @@ type Project struct {
 	BuiltInEnvironmentVariables types.List   `tfsdk:"built_in_environment_variables"`
 	EnvironmentVariables        types.Set    `tfsdk:"environment_variables"`
 	EnvironmentVariableAliases  types.Set    `tfsdk:"environment_variable_aliases"`
-	Secrets                     types.Set    `tfsdk:"secrets"`
+	Secrets                     types.List   `tfsdk:"secrets"`
 	SecretAliases               types.Set    `tfsdk:"secret_aliases"`
 	EnvironmentVariableFiles    types.Set    `tfsdk:"environment_variable_files"`
 	SecretFiles                 types.Set    `tfsdk:"secret_files"`
@@ -51,7 +51,9 @@ func (p Project) SecretFileList() SecretFileList {
 	return toSecretFileList(p.SecretFiles)
 }
 
-func (p Project) toCreateServiceRequest() project.UpsertServiceRequest {
+// toCreateServiceRequest builds the request from the plan. secretValuesWo holds the
+// secrets[].value_wo read from the config.
+func (p Project) toCreateServiceRequest(secretValuesWo writeOnlySecretValues) project.UpsertServiceRequest {
 	return project.UpsertServiceRequest{
 		ProjectUpsertRequest: project.UpsertRepositoryRequest{
 			Name:        ToString(p.Name),
@@ -60,13 +62,15 @@ func (p Project) toCreateServiceRequest() project.UpsertServiceRequest {
 		EnvironmentVariables:       p.EnvironmentVariableList().diffRequest(nil),
 		EnvironmentVariableAliases: p.EnvironmentVariableAliasesList().diffRequest(nil),
 		EnvironmentVariableFiles:   p.EnvironmentVariableFileList().diffRequest(nil),
-		Secrets:                    p.SecretList().diffRequest(nil),
-		SecretAliases:              p.SecretAliasesList().diffRequest(nil),
+		Secrets:                    p.SecretList().diffRequest(nil, secretValuesWo),
+		SecretAliases:              p.SecretAliasesList().diffRequest(nil, nil),
 		SecretFiles:                p.SecretFileList().diffRequest(nil),
 	}
 }
 
-func (p Project) toUpdateServiceRequest(state Project) project.UpsertServiceRequest {
+// toUpdateServiceRequest builds the request from the plan. secretValuesWo holds the
+// secrets[].value_wo read from the config.
+func (p Project) toUpdateServiceRequest(state Project, secretValuesWo writeOnlySecretValues) project.UpsertServiceRequest {
 	return project.UpsertServiceRequest{
 		ProjectUpsertRequest: project.UpsertRepositoryRequest{
 			Name:        ToString(p.Name),
@@ -75,8 +79,8 @@ func (p Project) toUpdateServiceRequest(state Project) project.UpsertServiceRequ
 		EnvironmentVariables:       p.EnvironmentVariableList().diffRequest(state.EnvironmentVariableList()),
 		EnvironmentVariableAliases: p.EnvironmentVariableAliasesList().diffRequest(state.EnvironmentVariableAliasesList()),
 		EnvironmentVariableFiles:   p.EnvironmentVariableFileList().diffRequest(state.EnvironmentVariableFileList()),
-		Secrets:                    p.SecretList().diffRequest(state.SecretList()),
-		SecretAliases:              p.SecretAliasesList().diffRequest(state.SecretAliasesList()),
+		Secrets:                    p.SecretList().diffRequest(state.SecretList(), secretValuesWo),
+		SecretAliases:              p.SecretAliasesList().diffRequest(state.SecretAliasesList(), nil),
 		SecretFiles:                p.SecretFileList().diffRequest(state.SecretFileList()),
 	}
 }
@@ -90,7 +94,7 @@ func convertDomainProjectToProject(ctx context.Context, state Project, res *proj
 		BuiltInEnvironmentVariables: convertDomainVariablesToEnvironmentVariableList(res.BuiltInEnvironmentVariables).toTerraformList(ctx),
 		EnvironmentVariables:        convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariables, res.EnvironmentVariables, variable.ScopeProject, "VALUE").toTerraformSet(ctx),
 		EnvironmentVariableAliases:  convertDomainVariablesToEnvironmentVariableListWithNullableInitialState(ctx, state.EnvironmentVariableAliases, res.EnvironmentVariables, variable.ScopeProject, "ALIAS").toTerraformSet(ctx),
-		Secrets:                     convertDomainSecretsToSecretList(state.Secrets, res.Secrets, variable.ScopeProject, "VALUE").toTerraformSet(ctx),
+		Secrets:                     convertDomainSecretsToSecretList(state.Secrets, res.Secrets, variable.ScopeProject, "VALUE").toTerraformList(),
 		SecretAliases:               convertDomainSecretsToSecretList(state.SecretAliases, res.Secrets, variable.ScopeProject, "ALIAS").toTerraformSet(ctx),
 		EnvironmentVariableFiles:    convertDomainVariablesToEnvironmentVariableFileListWithNullableInitialState(ctx, state.EnvironmentVariableFiles, res.EnvironmentVariables, variable.ScopeProject).toTerraformSet(ctx),
 		SecretFiles:                 convertDomainSecretsToSecretFileList(state.SecretFiles, res.Secrets, variable.ScopeProject).toTerraformSet(ctx),

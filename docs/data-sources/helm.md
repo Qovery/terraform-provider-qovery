@@ -33,7 +33,7 @@ data "qovery_helm" "my_helm" {
 - `is_skipped` (Boolean) Whether environment-wide deployments skip the service. It stays in its deployment stage.
 - `secret_aliases` (Attributes Set) Secret aliases of the Helm service. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_overrides` (Attributes Set) Secret overrides of the Helm service. An override replaces the value of a secret inherited from a broader scope. (see [below for nested schema](#nestedatt--secret_overrides))
-- `secrets` (Attributes Set) Secrets of the Helm service. (see [below for nested schema](#nestedatt--secrets))
+- `secrets` (Attributes List) Secrets of the Helm service. (see [below for nested schema](#nestedatt--secrets))
 - `timeout_sec` (Number) Maximum duration of the Helm operations, in seconds.
 
 ### Read-Only

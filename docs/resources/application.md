@@ -129,7 +129,7 @@ You can find complete examples within these repositories:
 - `secret_aliases` (Attributes Set) Secret aliases of the application. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_files` (Attributes Set) Secret files of the application, each mounted as a file. (see [below for nested schema](#nestedatt--secret_files))
 - `secret_overrides` (Attributes Set) Secret overrides of the application. An override replaces the value of a secret inherited from a broader scope. (see [below for nested schema](#nestedatt--secret_overrides))
-- `secrets` (Attributes Set) Secrets of the application. (see [below for nested schema](#nestedatt--secrets))
+- `secrets` (Attributes List, Sensitive) Secrets of the application. Each entry sets `value` or `value_wo`, and each key appears once. (see [below for nested schema](#nestedatt--secrets))
 - `storage` (Attributes Set) Persistent volumes of the application. Their data survives restarts. (see [below for nested schema](#nestedatt--storage))
 
 ### Read-Only
@@ -588,11 +588,13 @@ Read-Only:
 Required:
 
 - `key` (String) Name of the secret.
-- `value` (String, Sensitive) Value of the secret.
 
 Optional:
 
 - `description` (String) Description of the secret.
+- `value` (String, Sensitive) Value of the secret. Set it or `value_wo`.
+- `value_wo` (String, Sensitive, [Write-only](https://developer.hashicorp.com/terraform/language/resources/ephemeral#write-only-arguments)) Write-only form of `value`, which Terraform 1.11 and later send to Qovery without storing it in the plan or the state. Changing the value alone does not trigger an update, so change `value_wo_version` to send a new value.
+- `value_wo_version` (String) Version of `value_wo`, required with it and stored in the state. Changing it sends the current value of `value_wo`, as does a change of `description`.
 
 Read-Only:
 

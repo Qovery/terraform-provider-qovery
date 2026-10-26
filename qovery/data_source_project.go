@@ -147,7 +147,7 @@ func (r projectDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 					},
 				},
 			},
-			"secrets": schema.SetNestedAttribute{
+			"secrets": schema.ListNestedAttribute{
 				MarkdownDescription: secrets.List,
 				Optional:            true,
 				Computed:            true,
@@ -276,6 +276,8 @@ func (d projectDataSource) Read(ctx context.Context, req datasource.ReadRequest,
 	}
 
 	state := convertDomainProjectToProject(ctx, data, proj)
+	// The data source has no value_wo and value_wo_version.
+	state.Secrets = secretsForDataSource(state.Secrets)
 	tflog.Trace(ctx, "read project", map[string]any{"project_id": state.Id.ValueString()})
 
 	// Set state
