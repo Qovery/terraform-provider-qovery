@@ -46,6 +46,14 @@ type HelmRepositoryDataSource struct {
 	SkipTlsVerification types.Bool   `tfsdk:"skip_tls_verification"`
 }
 
+// passwordWoVersion returns config.password_wo_version, null without a config block.
+func (p HelmRepository) passwordWoVersion() types.String {
+	if p.Config == nil {
+		return types.StringNull()
+	}
+	return p.Config.PasswordWoVersion
+}
+
 // toUpsertRequest builds the request from the plan. passwordWo is config.password_wo read from the
 // config, which the request sends instead of config.password when it is set.
 func (p HelmRepository) toUpsertRequest(passwordWo types.String) helmRepository.UpsertRequest {

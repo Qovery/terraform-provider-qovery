@@ -40,9 +40,10 @@ explained in the matching upgrade guide.
   and `qovery_project`, resources and data sources: `secrets` is an ordered list instead of a
   set, as Terraform does not allow a write-only attribute in a set. The configuration syntax is
   the same and existing states read as they are. Entries are matched by key, so a
-  configuration that lists them in another order than the state plans one update that sends
-  nothing to Qovery, after which the state follows the configuration order. Two entries with
-  the same key fail at plan time. (QOV-2455)
+  configuration that lists them in another order than the state plans one update. That update
+  sends no secret request, but it still calls the update of the resource with unchanged
+  settings, and the state then follows the configuration order. Two entries with the same key
+  fail. (QOV-2455)
 
 ## [1.2.2] - 2026-10-23
 

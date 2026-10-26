@@ -51,6 +51,14 @@ type ContainerRegistryDataSource struct {
 	Description    types.String `tfsdk:"description"`
 }
 
+// passwordWoVersion returns config.password_wo_version, null without a config block.
+func (p ContainerRegistry) passwordWoVersion() types.String {
+	if p.Config == nil {
+		return types.StringNull()
+	}
+	return p.Config.PasswordWoVersion
+}
+
 // toUpsertRequest builds the request from the plan. passwordWo is config.password_wo read from the
 // config, which the request sends instead of config.password when it is set.
 func (p ContainerRegistry) toUpsertRequest(passwordWo types.String) registry.UpsertRequest {

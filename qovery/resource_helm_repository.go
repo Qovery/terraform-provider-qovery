@@ -177,7 +177,7 @@ func (r helmRepositoryResource) Create(ctx context.Context, req resource.CreateR
 	}
 
 	// Create new helm repository
-	passwordWo := writeOnlyFromConfig(ctx, req.Config, registryPasswordWoPath, &resp.Diagnostics)
+	passwordWo := registryPasswordWoFromConfig(ctx, req.Config, plan.passwordWoVersion(), &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}
@@ -229,7 +229,7 @@ func (r helmRepositoryResource) Update(ctx context.Context, req resource.UpdateR
 	}
 
 	// Update helm repository in the backend
-	passwordWo := writeOnlyFromConfig(ctx, req.Config, registryPasswordWoPath, &resp.Diagnostics)
+	passwordWo := registryPasswordWoFromConfig(ctx, req.Config, plan.passwordWoVersion(), &resp.Diagnostics)
 	if resp.Diagnostics.HasError() {
 		return
 	}

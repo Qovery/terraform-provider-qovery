@@ -517,6 +517,13 @@ func TestContainerRegistryResource_ValidateConfig(t *testing.T) {
 			Kind:     tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
 			Config:   nullBlock,
 		},
+		{
+			// The write-only rules do not depend on the kind.
+			TestName:       "error_unknown_kind_password_and_write_only_password",
+			Kind:           tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+			Config:         ecrConfig(map[string]string{"password": "plain", "password_wo": "secret", "password_wo_version": "1"}),
+			ExpectedErrors: []string{"config.password_wo"},
+		},
 	}
 
 	for _, tc := range testCases {

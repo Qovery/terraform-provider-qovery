@@ -545,6 +545,15 @@ func TestSecretValuesWoFromConfig_RejectsASecretSentWithoutValue(t *testing.T) {
 			Planned:  SecretList{secretEntry("", "TOKEN", types.StringValue("plain"), noVersion, noDescription)},
 			Old:      SecretList{secretEntry("id-token", "TOKEN", noValue, v1, noDescription)},
 		},
+		{
+			// Keys unknown at plan time skip the duplicate check of the validator.
+			TestName: "error_duplicate_key",
+			Planned: SecretList{
+				secretEntry("", "TOKEN", types.StringValue("one"), noVersion, noDescription),
+				secretEntry("", "TOKEN", types.StringValue("two"), noVersion, noDescription),
+			},
+			ExpectError: true,
+		},
 	}
 
 	for _, tc := range testCases {

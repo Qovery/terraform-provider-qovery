@@ -153,6 +153,44 @@ removed {
 	})
 }
 
+// With ignore_changes = [config], the plan keeps password_wo_version while the config no longer
+// sets password_wo. The API replaces the whole config on update, so the update fails instead of
+// clearing the password.
+func TestAcc_HelmRepositoryPasswordWriteOnlyIgnoredConfig(t *testing.T) {
+	t.Parallel()
+	const addr = "qovery_helm_repository.test"
+	testName := "helm-repository-password-wo-ignored-config"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		ExternalProviders:        testAccRandomProvider,
+		TerraformVersionChecks:   []tfversion.TerraformVersionCheck{tfversion.SkipBelow(tfversion.Version1_11_0)},
+		CheckDestroy:             testAccQoveryHelmRepositoryDestroy(addr),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccHelmRepositoryPasswordConfig(testName, "", testAccHelmRepositoryPasswordWo("1")),
+			},
+			{
+				Config: testAccEphemeralRandomPassword + fmt.Sprintf(`
+resource "qovery_helm_repository" "test" {
+  organization_id = "%s"
+  name = "%s"
+  kind = "HTTPS"
+  url = "%s"
+  description = "changed"
+  skip_tls_verification = false
+
+  lifecycle {
+    ignore_changes = [config]
+  }
+}
+`, getTestOrganizationID(), generateTestName(testName), testAccPublicHelmRepositoryURL),
+				ExpectError: regexp.MustCompile(`The\s+plan\s+keeps\s+config.password_wo_version`),
+			},
+		},
+	})
+}
+
 // testAccProvider1_2FromRegistry is the last release before the write-only passwords.
 var testAccProvider1_2FromRegistry = map[string]resource.ExternalProvider{
 	"qovery": {Source: "qovery/qovery", VersionConstraint: "1.2.2"},

@@ -32,20 +32,41 @@ type credentialKey struct {
 }
 
 // readCredentialsConfig reads the kind and the config block of a container registry or a helm
-// repository into config. It returns false when the kind or the block is not known yet.
+// repository into config. It returns false when the block is not known yet. The kind is empty
+// while it is not known, so only the checks that do not depend on it run.
 func readCredentialsConfig(ctx context.Context, cfg tfsdk.Config, config any, diags *diag.Diagnostics) (string, bool) {
 	var kind types.String
 	var block types.Object
 	diags.Append(cfg.GetAttribute(ctx, path.Root("kind"), &kind)...)
 	diags.Append(cfg.GetAttribute(ctx, path.Root("config"), &block)...)
-	if diags.HasError() || kind.IsNull() || kind.IsUnknown() || block.IsUnknown() {
+	if diags.HasError() || block.IsUnknown() {
 		return "", false
 	}
 	// A null block leaves config at its zero value, where every key is null.
 	if !block.IsNull() {
 		diags.Append(block.As(ctx, config, basetypes.ObjectAsOptions{})...)
 	}
+	if kind.IsNull() || kind.IsUnknown() {
+		return "", !diags.HasError()
+	}
 	return kind.ValueString(), !diags.HasError()
+}
+
+// registryPasswordWoFromConfig reads config.password_wo from the config. It fails when the plan
+// holds a config.password_wo_version that the config no longer backs with a password, which
+// ignore_changes on config can cause: the API replaces the whole config on every write, so the
+// request would clear the password.
+func registryPasswordWoFromConfig(ctx context.Context, config tfsdk.Config, plannedVersion types.String, diags *diag.Diagnostics) types.String {
+	passwordWo := writeOnlyFromConfig(ctx, config, registryPasswordWoPath, diags)
+	if isKnownAndSet(plannedVersion) && passwordWo.IsNull() {
+		diags.AddAttributeError(
+			registryPasswordWoPath,
+			"Missing write-only password",
+			"The plan keeps config.password_wo_version, but the configuration sets no config.password_wo, so Qovery would store the registry without its password. "+
+				"An ignore_changes rule on config can cause this.",
+		)
+	}
+	return passwordWo
 }
 
 // validateContainerRegistryConfig checks the password against its write-only form, and that

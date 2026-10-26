@@ -107,7 +107,8 @@ func secretsForDataSource(secrets types.List) types.List {
 // It also fails for a planned entry that the diff with old would create or update while it has no
 // value: a null plan value and no value_wo under its key in the config. ignore_changes on secrets
 // can plan a key the config no longer has, and sending that entry would blank the secret. old is
-// nil on create.
+// nil on create. Two planned entries with the same key fail too: the validator skips the keys that
+// are unknown at plan time, and the values here are matched by key.
 func secretValuesWoFromConfig(ctx context.Context, config tfsdk.Config, planned, old SecretList, diags *diag.Diagnostics) writeOnlySecretValues {
 	var secrets types.List
 	diags.Append(config.GetAttribute(ctx, path.Root("secrets"), &secrets)...)
@@ -118,8 +119,18 @@ func secretValuesWoFromConfig(ctx context.Context, config tfsdk.Config, planned,
 		}
 	}
 
+	seen := make(map[string]bool, len(planned))
 	for _, s := range planned {
 		key := ToString(s.Key)
+		if seen[key] {
+			diags.AddAttributeError(
+				path.Root("secrets"),
+				"Duplicate secret key",
+				fmt.Sprintf("Two secrets entries have the key %q: each key can appear once.", key),
+			)
+			continue
+		}
+		seen[key] = true
 		if !s.Value.IsNull() || isKnownAndSet(values[key]) {
 			continue
 		}
@@ -429,22 +440,22 @@ func convertDomainSecretToSecret(s secret.Secret, state *Secret) Secret {
 
 // toSecret reads an element of a secret attribute. The elements of secret_aliases,
 // secret_overrides and the data source secrets have no value_wo and value_wo_version, which read
-// as null.
+// as null. A missing base attribute still panics, as a schema mismatch must not pass silently.
 func toSecret(v types.Object) Secret {
 	attributes := v.Attributes()
-	stringAttribute := func(name string) types.String {
+	writeOnlyAttribute := func(name string) types.String {
 		if value, ok := attributes[name].(types.String); ok {
 			return value
 		}
 		return types.StringNull()
 	}
 	return Secret{
-		Id:             stringAttribute("id"),
-		Key:            stringAttribute("key"),
-		Value:          stringAttribute("value"),
-		ValueWo:        stringAttribute("value_wo"),
-		ValueWoVersion: stringAttribute("value_wo_version"),
-		Description:    stringAttribute("description"),
+		Id:             attributes["id"].(types.String),
+		Key:            attributes["key"].(types.String),
+		Value:          attributes["value"].(types.String),
+		ValueWo:        writeOnlyAttribute("value_wo"),
+		ValueWoVersion: writeOnlyAttribute("value_wo_version"),
+		Description:    attributes["description"].(types.String),
 	}
 }
 

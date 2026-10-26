@@ -266,6 +266,70 @@ func TestHelmRepositoryResource_WriteOnlyPassword(t *testing.T) {
 	assert.Len(t, service.requests, len(writeOnlyTestSteps))
 }
 
+// With ignore_changes = [config], the plan keeps password_wo_version while the config no longer
+// sets password_wo. The API replaces the whole config on update, so sending it would clear the
+// password: Update fails before any request instead.
+func TestRegistryResources_RejectAnUpdateWithoutTheWriteOnlyPassword(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	registryID := uuid.NewString()
+	str := func(v string) tftypes.Value { return tftypes.NewValue(tftypes.String, v) }
+
+	containerRegistryService := &fakeRegistryService{}
+	helmRepositoryService := &fakeHelmRepositoryService{}
+	testCases := []struct {
+		TestName string
+		Resource interface {
+			resource.Resource
+			Update(context.Context, resource.UpdateRequest, *resource.UpdateResponse)
+		}
+		TopLevel map[string]tftypes.Value
+		Requests func() int
+	}{
+		{
+			TestName: "container_registry",
+			Resource: containerRegistryResource{containerRegistryService: containerRegistryService},
+			TopLevel: map[string]tftypes.Value{"kind": str("GENERIC_CR"), "url": str("https://registry.example.com")},
+			Requests: func() int { return len(containerRegistryService.requests) },
+		},
+		{
+			TestName: "helm_repository",
+			Resource: helmRepositoryResource{helmRepositoryService: helmRepositoryService},
+			TopLevel: map[string]tftypes.Value{"kind": str("HTTPS"), "url": str("https://charts.example.com"), "skip_tls_verification": tftypes.NewValue(tftypes.Bool, false)},
+			Requests: func() int { return len(helmRepositoryService.requests) },
+		},
+	}
+
+	for _, tc := range testCases {
+		s := schemaFor(t, tc.Resource)
+		topLevel := func(description string) map[string]tftypes.Value {
+			attributes := map[string]tftypes.Value{
+				"id":              str(registryID),
+				"organization_id": str(writeOnlyTestOrganizationID),
+				"name":            str("registry"),
+				"description":     str(description),
+			}
+			for name, value := range tc.TopLevel {
+				attributes[name] = value
+			}
+			return attributes
+		}
+		kept := map[string]string{"username": "user", "password_wo_version": "1"}
+		state := tfsdk.State{Schema: s, Raw: registryValue(t, s, topLevel("old"), kept)}
+		resp := &resource.UpdateResponse{State: state}
+		tc.Resource.Update(ctx, resource.UpdateRequest{
+			// ignore_changes kept the config block of the state in the plan.
+			Plan:   tfsdk.Plan{Schema: s, Raw: registryValue(t, s, topLevel("new"), kept)},
+			Config: tfsdk.Config{Schema: s, Raw: registryValue(t, s, topLevel("new"), nil)},
+			State:  state,
+		}, resp)
+
+		require.True(t, resp.Diagnostics.HasError(), tc.TestName)
+		assert.Contains(t, resp.Diagnostics.Errors()[0].Detail(), "config.password_wo_version", tc.TestName)
+		assert.Equal(t, 0, tc.Requests(), "%s: no request reaches the API", tc.TestName)
+	}
+}
+
 // plannedString returns the config key as the plan holds it: null when the config does not set it.
 func plannedString(config map[string]string, key string) types.String {
 	if value, ok := config[key]; ok {
