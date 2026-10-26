@@ -14,6 +14,8 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-10-26
+
 ### Added
 
 - `qovery_container_registry` and `qovery_helm_repository`: `config.password_wo` and
@@ -503,7 +505,8 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.2...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.1.0...v1.2.0
