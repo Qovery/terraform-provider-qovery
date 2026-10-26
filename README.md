@@ -9,7 +9,7 @@
 ## Requirements
 
 - [Terraform](https://www.terraform.io/downloads.html): tested against Terraform 1.15. Earlier versions are expected to work but are not tested.
-- [Go](https://golang.org/doc/install) >= 1.26 (to build the provider)
+- [Go](https://golang.org/doc/install) >= 1.27 (to build the provider)
 - [Task](https://taskfile.dev) v3 (to run Taskfile commands)
 - [jq](https://stedolan.github.io/jq/download/) (to parse json from curl api calls)
 
