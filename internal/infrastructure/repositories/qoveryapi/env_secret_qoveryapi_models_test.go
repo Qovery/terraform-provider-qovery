@@ -130,6 +130,20 @@ func TestNewDomainEnvSecretFromQovery(t *testing.T) {
 				Description:  &description,
 			},
 		},
+		{
+			TestName: "success_created_by_qovery",
+			Variable: &qovery.VariableResponse{
+				Id:                gofakeit.UUID(),
+				Key:               "DB_PASSWORD",
+				Value:             *qovery.NewNullableString(qovery.PtrString("QOVERY_OUTPUT_JOB_ZABC1234_DB_PASSWORD")),
+				Scope:             qovery.APIVARIABLESCOPEENUM_ENVIRONMENT,
+				VariableType:      qovery.APIVARIABLETYPEENUM_ALIAS,
+				CreatedAt:         now,
+				IsSecret:          true,
+				Description:       &description,
+				IsCreatedByQovery: qovery.PtrBool(true),
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -149,6 +163,7 @@ func TestNewDomainEnvSecretFromQovery(t *testing.T) {
 			assert.Equal(t, tc.Variable.Key, v.Key)
 			assert.Equal(t, string(tc.Variable.Scope), v.Scope.String())
 			assert.Equal(t, string(tc.Variable.VariableType), v.Type)
+			assert.Equal(t, tc.Variable.GetIsCreatedByQovery(), v.IsCreatedByQovery)
 
 			expectedMountPath := ""
 			if tc.Variable.MountPath.IsSet() && tc.Variable.MountPath.Get() != nil {

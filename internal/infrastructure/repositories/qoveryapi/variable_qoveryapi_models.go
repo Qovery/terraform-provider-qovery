@@ -41,13 +41,14 @@ func newDomainVariableFromQovery(v *qovery.EnvironmentVariable) (*variable.Varia
 	}
 
 	return variable.NewVariable(variable.NewVariableParams{
-		VariableID:  v.GetId(),
-		Scope:       string(v.Scope),
-		Key:         v.Key,
-		Value:       value,
-		Type:        string(v.VariableType),
-		Description: description,
-		MountPath:   mountPath,
+		VariableID:        v.GetId(),
+		Scope:             string(v.Scope),
+		Key:               v.Key,
+		Value:             value,
+		Type:              string(v.VariableType),
+		Description:       description,
+		MountPath:         mountPath,
+		IsCreatedByQovery: v.GetIsCreatedByQovery(),
 	})
 }
 

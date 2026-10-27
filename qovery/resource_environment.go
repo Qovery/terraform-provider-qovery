@@ -291,7 +291,7 @@ func (r environmentResource) Create(ctx context.Context, req resource.CreateRequ
 	}
 
 	// Initialize state values
-	state := convertDomainEnvironmentToEnvironment(ctx, plan, env)
+	state := convertDomainEnvironmentToEnvironment(ctx, plan, withoutUndeclaredQoveryAliases(plan, env))
 	tflog.Trace(ctx, "created environment", map[string]any{"environment_id": state.Id.ValueString()})
 
 	// Set state
@@ -314,7 +314,7 @@ func (r environmentResource) Read(ctx context.Context, req resource.ReadRequest,
 	}
 
 	// Refresh state values
-	state = convertDomainEnvironmentToEnvironment(ctx, state, env)
+	state = convertDomainEnvironmentToEnvironment(ctx, state, withoutUndeclaredQoveryAliases(state, env))
 	tflog.Trace(ctx, "read environment", map[string]any{"environment_id": state.Id.ValueString()})
 
 	// Set state
@@ -349,7 +349,7 @@ func (r environmentResource) Update(ctx context.Context, req resource.UpdateRequ
 	}
 
 	// Update state values
-	state = convertDomainEnvironmentToEnvironment(ctx, plan, env)
+	state = convertDomainEnvironmentToEnvironment(ctx, plan, withoutUndeclaredQoveryAliases(plan, env))
 	tflog.Trace(ctx, "updated environment", map[string]any{"environment_id": state.Id.ValueString()})
 
 	// Set state

@@ -14,6 +14,14 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Fixed
+
+- `qovery_environment`: an apply no longer deletes the aliases Qovery creates for the outputs of
+  jobs, Terraform services and blueprints, which the next deploy then recreated. The provider now
+  leaves these aliases, in `environment_variable_aliases` and `secret_aliases`, out of the state
+  unless the configuration declares them. It reads them from the `is_created_by_qovery` field of
+  the Qovery API. (QOV-2464)
+
 ## [1.3.0] - 2026-10-26
 
 ### Added
