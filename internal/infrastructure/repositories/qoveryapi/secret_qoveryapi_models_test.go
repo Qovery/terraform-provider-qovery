@@ -41,6 +41,27 @@ func TestNewDomainSecretsFromQovery(t *testing.T) {
 				},
 			},
 		},
+		{
+			TestName: "success_created_by_qovery",
+			Secrets: &qovery.SecretResponseList{
+				Results: []qovery.Secret{
+					{
+						Id:                gofakeit.UUID(),
+						Scope:             qovery.APIVARIABLESCOPEENUM_ENVIRONMENT,
+						Key:               "DB_PASSWORD",
+						VariableType:      qovery.APIVARIABLETYPEENUM_ALIAS.Ptr(),
+						IsCreatedByQovery: qovery.PtrBool(true),
+					},
+					{
+						Id:                gofakeit.UUID(),
+						Scope:             qovery.APIVARIABLESCOPEENUM_ENVIRONMENT,
+						Key:               "MY_DB_PASSWORD",
+						VariableType:      qovery.APIVARIABLETYPEENUM_ALIAS.Ptr(),
+						IsCreatedByQovery: qovery.PtrBool(false),
+					},
+				},
+			},
+		},
 	}
 
 	for _, tc := range testCases {
@@ -54,7 +75,8 @@ func TestNewDomainSecretsFromQovery(t *testing.T) {
 				assert.Equal(t, tc.Secrets.GetResults()[idx].Id, v.ID.String())
 				assert.Equal(t, string(tc.Secrets.GetResults()[idx].Scope), v.Scope.String())
 				assert.Equal(t, tc.Secrets.GetResults()[idx].Key, v.Key)
-				assert.Equal(t, tc.Secrets.GetResults()[idx].VariableType, &variableType)
+				assert.Equal(t, string(tc.Secrets.GetResults()[idx].GetVariableType()), v.Type)
+				assert.Equal(t, tc.Secrets.GetResults()[idx].GetIsCreatedByQovery(), v.IsCreatedByQovery)
 			}
 		})
 	}

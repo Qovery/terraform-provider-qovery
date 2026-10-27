@@ -51,6 +51,29 @@ func TestNewDomainVariablesFromQovery(t *testing.T) {
 			},
 		},
 		{
+			TestName: "success_created_by_qovery",
+			Variables: &qovery.EnvironmentVariableResponseList{
+				Results: []qovery.EnvironmentVariable{
+					{
+						Id:                gofakeit.UUID(),
+						Scope:             qovery.APIVARIABLESCOPEENUM_ENVIRONMENT,
+						Key:               "DB_HOST",
+						Value:             qovery.PtrString("QOVERY_OUTPUT_JOB_ZABC1234_DB_HOST"),
+						VariableType:      qovery.APIVARIABLETYPEENUM_ALIAS,
+						IsCreatedByQovery: qovery.PtrBool(true),
+					},
+					{
+						Id:                gofakeit.UUID(),
+						Scope:             qovery.APIVARIABLESCOPEENUM_ENVIRONMENT,
+						Key:               "MY_DB_HOST",
+						Value:             qovery.PtrString("QOVERY_OUTPUT_JOB_ZABC1234_DB_HOST"),
+						VariableType:      qovery.APIVARIABLETYPEENUM_ALIAS,
+						IsCreatedByQovery: qovery.PtrBool(false),
+					},
+				},
+			},
+		},
+		{
 			TestName: "success_with_file_type",
 			Variables: &qovery.EnvironmentVariableResponseList{
 				Results: []qovery.EnvironmentVariable{
@@ -90,6 +113,7 @@ func TestNewDomainVariablesFromQovery(t *testing.T) {
 				}
 				assert.Equal(t, value, v.Value)
 				assert.Equal(t, string(tc.Variables.GetResults()[idx].VariableType), v.Type)
+				assert.Equal(t, tc.Variables.GetResults()[idx].GetIsCreatedByQovery(), v.IsCreatedByQovery)
 				mountPath := ""
 				if tc.Variables.GetResults()[idx].MountPath.IsSet() && tc.Variables.GetResults()[idx].MountPath.Get() != nil {
 					mountPath = *tc.Variables.GetResults()[idx].MountPath.Get()

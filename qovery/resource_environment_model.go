@@ -2,10 +2,12 @@ package qovery
 
 import (
 	"context"
+	"slices"
 
 	"github.com/hashicorp/terraform-plugin-framework/types"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/environment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
 
@@ -148,4 +150,20 @@ func convertDomainEnvironmentToEnvironment(ctx context.Context, state Environmen
 		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(env.ExternalSecrets, state.ExternalSecrets, variable.ScopeEnvironment).toTerraformSet(ctx),
 		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(env.ExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeEnvironment).toTerraformSet(ctx),
 	}
+}
+
+// withoutUndeclaredQoveryAliases drops aliases Qovery created itself, for service outputs, whose
+// key prior (plan on apply, state on refresh) does not hold. Kept in state, apply would delete them
+// and next deploy recreate them. Data source keeps them: it reports API as is.
+func withoutUndeclaredQoveryAliases(prior Environment, env *environment.Environment) *environment.Environment {
+	declaredAliases := prior.EnvironmentVariableAliasesList()
+	declaredSecretAliases := prior.SecretAliasesList()
+	filtered := *env
+	filtered.EnvironmentVariables = slices.DeleteFunc(slices.Clone(env.EnvironmentVariables), func(v variable.Variable) bool {
+		return v.Type == "ALIAS" && v.IsCreatedByQovery && declaredAliases.find(v.Key) == nil
+	})
+	filtered.Secrets = slices.DeleteFunc(slices.Clone(env.Secrets), func(s secret.Secret) bool {
+		return s.Type == "ALIAS" && s.IsCreatedByQovery && declaredSecretAliases.find(s.Key) == nil
+	})
+	return &filtered
 }

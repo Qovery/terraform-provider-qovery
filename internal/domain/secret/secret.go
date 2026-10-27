@@ -50,12 +50,13 @@ func (s Secrets) IsValid() bool {
 }
 
 type Secret struct {
-	ID          uuid.UUID      `validate:"required"`
-	Scope       variable.Scope `validate:"required"`
-	Key         string         `validate:"required"`
-	Type        string
-	Description string
-	MountPath   string
+	ID                uuid.UUID      `validate:"required"`
+	Scope             variable.Scope `validate:"required"`
+	Key               string         `validate:"required"`
+	Type              string
+	Description       string
+	MountPath         string
+	IsCreatedByQovery bool
 }
 
 // Validate returns an error to tell whether the Secret domain model is valid or not.
@@ -80,12 +81,13 @@ func (s Secret) IsValid() bool {
 type (
 	NewSecretsParams = []NewSecretParams
 	NewSecretParams  struct {
-		SecretID    string
-		Scope       string
-		Key         string
-		Type        string
-		Description string
-		MountPath   string
+		SecretID          string
+		Scope             string
+		Key               string
+		Type              string
+		Description       string
+		MountPath         string
+		IsCreatedByQovery bool
 	}
 )
 
@@ -106,12 +108,13 @@ func NewSecret(params NewSecretParams) (*Secret, error) {
 	}
 
 	v := &Secret{
-		ID:          secretsUUID,
-		Key:         params.Key,
-		Scope:       *scope,
-		Type:        params.Type,
-		Description: params.Description,
-		MountPath:   params.MountPath,
+		ID:                secretsUUID,
+		Key:               params.Key,
+		Scope:             *scope,
+		Type:              params.Type,
+		Description:       params.Description,
+		MountPath:         params.MountPath,
+		IsCreatedByQovery: params.IsCreatedByQovery,
 	}
 
 	if err := v.Validate(); err != nil {

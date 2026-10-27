@@ -50,13 +50,14 @@ func (vv Variables) IsValid() bool {
 }
 
 type Variable struct {
-	ID          uuid.UUID `validate:"required"`
-	Scope       Scope     `validate:"required"`
-	Key         string    `validate:"required"`
-	Value       string
-	Type        string
-	Description string
-	MountPath   string
+	ID                uuid.UUID `validate:"required"`
+	Scope             Scope     `validate:"required"`
+	Key               string    `validate:"required"`
+	Value             string
+	Type              string
+	Description       string
+	MountPath         string
+	IsCreatedByQovery bool
 }
 
 // Validate returns an error to tell whether the Variable domain model is valid or not.
@@ -73,13 +74,14 @@ func (v Variable) IsValid() bool {
 type (
 	NewVariablesParams = []NewVariableParams
 	NewVariableParams  struct {
-		VariableID  string
-		Scope       string
-		Key         string
-		Value       string
-		Type        string
-		Description string
-		MountPath   string
+		VariableID        string
+		Scope             string
+		Key               string
+		Value             string
+		Type              string
+		Description       string
+		MountPath         string
+		IsCreatedByQovery bool
 	}
 )
 
@@ -100,13 +102,14 @@ func NewVariable(params NewVariableParams) (*Variable, error) {
 	}
 
 	v := &Variable{
-		ID:          variableUUID,
-		Key:         params.Key,
-		Value:       params.Value,
-		Scope:       *scope,
-		Type:        params.Type,
-		Description: params.Description,
-		MountPath:   params.MountPath,
+		ID:                variableUUID,
+		Key:               params.Key,
+		Value:             params.Value,
+		Scope:             *scope,
+		Type:              params.Type,
+		Description:       params.Description,
+		MountPath:         params.MountPath,
+		IsCreatedByQovery: params.IsCreatedByQovery,
 	}
 
 	if err := v.Validate(); err != nil {
