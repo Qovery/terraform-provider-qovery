@@ -91,6 +91,8 @@ const (
 	argumentsDescription  = "Arguments that replace the `CMD` of the image."
 	// omittedSetsNoneNote is appended on resources to the lists whose omission means none.
 	omittedSetsNoneNote = " Omitting it sets none."
+	// qoveryOutputAliasesNote is appended on qovery_environment only: no other resource or data source filters these aliases.
+	qoveryOutputAliasesNote = " The aliases Qovery creates for the outputs of jobs, Terraform services and blueprints stay out of the state unless the configuration declares them, so an apply does not delete them."
 )
 
 const applicationAutoDeployDescription = "Whether Qovery redeploys the application on every new commit to its branch."

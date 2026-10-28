@@ -159,7 +159,7 @@ func (r environmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				},
 			},
 			"environment_variable_aliases": schema.SetNestedAttribute{
-				MarkdownDescription: envVarAliases.List,
+				MarkdownDescription: envVarAliases.List + qoveryOutputAliasesNote,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
@@ -208,7 +208,7 @@ func (r environmentResource) Schema(_ context.Context, _ resource.SchemaRequest,
 			},
 			"secrets": secretsResourceAttribute(secrets),
 			"secret_aliases": schema.SetNestedAttribute{
-				MarkdownDescription: secretAliases.List,
+				MarkdownDescription: secretAliases.List + qoveryOutputAliasesNote,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
