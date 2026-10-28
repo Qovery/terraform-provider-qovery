@@ -39,6 +39,47 @@ resource "qovery_cluster" "my_cluster" {
   }
 }
 
+# AWS (EKS) with restricted permissions: the cluster credentials have restricted permissions, and the
+# deployments that need wider ones use the wide-scope credentials, which must use an assume role (STS).
+resource "qovery_cluster" "my_restricted_cluster" {
+  organization_id = qovery_organization.my_organization.id
+  credentials_id  = qovery_aws_credentials.my_restricted_aws_credentials.id
+  name            = "my-restricted-cluster"
+  cloud_provider  = "AWS"
+  region          = "us-east-2"
+
+  using_wide_credentials = {
+    wide_scope_cloud_account_id = qovery_aws_credentials.my_wide_aws_credentials.id
+    slack_webhook_url           = var.slack_webhook_url
+  }
+
+  features = {
+    karpenter = {
+      disk_size_in_gib             = 50
+      default_service_architecture = "AMD64"
+      qovery_node_pools = {
+        requirements = [
+          {
+            key      = "InstanceFamily"
+            operator = "In"
+            values   = ["c6i", "c7i", "m6i", "m7i", "r6i", "r7i", "t3", "t3a"]
+          },
+          {
+            key      = "InstanceSize"
+            operator = "In"
+            values   = ["medium", "large", "xlarge", "2xlarge", "4xlarge"]
+          },
+          {
+            key      = "Arch"
+            operator = "In"
+            values   = ["AMD64"]
+          }
+        ]
+      }
+    }
+  }
+}
+
 # GCP (GKE Autopilot): Autopilot sizes the nodes, so instance_type, disk_size and the node counts do not apply.
 resource "qovery_cluster" "my_gcp_cluster" {
   organization_id = qovery_organization.my_organization.id

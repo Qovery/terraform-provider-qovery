@@ -49,6 +49,47 @@ resource "qovery_cluster" "my_cluster" {
   }
 }
 
+# AWS (EKS) with restricted permissions: the cluster credentials have restricted permissions, and the
+# deployments that need wider ones use the wide-scope credentials, which must use an assume role (STS).
+resource "qovery_cluster" "my_restricted_cluster" {
+  organization_id = qovery_organization.my_organization.id
+  credentials_id  = qovery_aws_credentials.my_restricted_aws_credentials.id
+  name            = "my-restricted-cluster"
+  cloud_provider  = "AWS"
+  region          = "us-east-2"
+
+  using_wide_credentials = {
+    wide_scope_cloud_account_id = qovery_aws_credentials.my_wide_aws_credentials.id
+    slack_webhook_url           = var.slack_webhook_url
+  }
+
+  features = {
+    karpenter = {
+      disk_size_in_gib             = 50
+      default_service_architecture = "AMD64"
+      qovery_node_pools = {
+        requirements = [
+          {
+            key      = "InstanceFamily"
+            operator = "In"
+            values   = ["c6i", "c7i", "m6i", "m7i", "r6i", "r7i", "t3", "t3a"]
+          },
+          {
+            key      = "InstanceSize"
+            operator = "In"
+            values   = ["medium", "large", "xlarge", "2xlarge", "4xlarge"]
+          },
+          {
+            key      = "Arch"
+            operator = "In"
+            values   = ["AMD64"]
+          }
+        ]
+      }
+    }
+  }
+}
+
 # GCP (GKE Autopilot): Autopilot sizes the nodes, so instance_type, disk_size and the node counts do not apply.
 resource "qovery_cluster" "my_gcp_cluster" {
   organization_id = qovery_organization.my_organization.id
@@ -145,6 +186,7 @@ You can find complete examples within these repositories:
 - `secret_manager_accesses` (Attributes Set) Secret managers the cluster reads external secrets from: AWS Parameter Store, AWS Secrets Manager or GCP Secret Manager. (see [below for nested schema](#nestedatt--secret_manager_accesses))
 - `state` (String) State of the cluster. `DEPLOYED` deploys it, `STOPPED` stops it, and `READY` does not deploy it.
 	- Default: `DEPLOYED`.
+- `using_wide_credentials` (Attributes) Restricted permissions of an AWS EKS cluster: its credentials (`credentials_id`) have restricted permissions, and the deployments that need wider ones, such as the first deployment that creates the infrastructure, use the wide-scope credentials. Without the block, restricted permissions are off. This feature is behind a feature flag and is not available by default: contact Qovery to enable it for your organization. Only allowed when `cloud_provider` is `AWS` and `kubernetes_mode` is `MANAGED`. Adding or removing the block redeploys the cluster; changing the attributes inside it does not. (see [below for nested schema](#nestedatt--using_wide_credentials))
 
 ### Read-Only
 
@@ -562,6 +604,22 @@ Optional:
 
 - `project_id` (String) ID of the GCP project of the secret manager. Required when `type` is `GCP_SECRET_MANAGER`.
 
+
+
+<a id="nestedatt--using_wide_credentials"></a>
+### Nested Schema for `using_wide_credentials`
+
+Required:
+
+- `wide_scope_cloud_account_id` (String) ID of the wide-scope AWS credentials, such as a `qovery_aws_credentials` resource. They must use an assume role (STS), not a static access key.
+
+Optional:
+
+- `slack_webhook_url` (String, Sensitive) Slack incoming webhook URL of the wide-scope credentials, on `https://hooks.slack.com`. The API never returns it: a refresh keeps the configured URL, and an import stores the mask `https://hooks.slack.com/services/XXXXXXXXXXX`.
+
+Read-Only:
+
+- `require_wide_access_to_deploy` (Boolean) Whether the next deployment of the cluster needs the wide-scope credentials. Set by Qovery, it cannot be configured.
 
 
 <a id="nestedatt--infrastructure_outputs"></a>

@@ -174,6 +174,90 @@ func TestUseUnknownForNullString_Description(t *testing.T) {
 	assert.NotEmpty(t, modifier.MarkdownDescription(context.Background()))
 }
 
+// --- UseNonNullStateForUnknownBool tests ---
+
+func TestUseNonNullStateForUnknownBool(t *testing.T) {
+	t.Parallel()
+
+	existingResource := tfsdk.State{Raw: tftypes.NewValue(tftypes.Object{}, map[string]tftypes.Value{})}
+	noResource := tfsdk.State{Raw: tftypes.NewValue(tftypes.Object{}, nil)}
+
+	testCases := []struct {
+		TestName     string
+		State        tfsdk.State
+		ConfigValue  types.Bool
+		StateValue   types.Bool
+		PlanValue    types.Bool
+		ExpectedPlan types.Bool
+	}{
+		{
+			TestName:     "create_keeps_unknown",
+			State:        noResource,
+			ConfigValue:  types.BoolNull(),
+			StateValue:   types.BoolNull(),
+			PlanValue:    types.BoolUnknown(),
+			ExpectedPlan: types.BoolUnknown(),
+		},
+		{
+			// The object holding the attribute is added to an existing resource.
+			TestName:     "null_prior_value_keeps_unknown",
+			State:        existingResource,
+			ConfigValue:  types.BoolNull(),
+			StateValue:   types.BoolNull(),
+			PlanValue:    types.BoolUnknown(),
+			ExpectedPlan: types.BoolUnknown(),
+		},
+		{
+			TestName:     "prior_true_is_planned",
+			State:        existingResource,
+			ConfigValue:  types.BoolNull(),
+			StateValue:   types.BoolValue(true),
+			PlanValue:    types.BoolUnknown(),
+			ExpectedPlan: types.BoolValue(true),
+		},
+		{
+			TestName:     "prior_false_is_planned",
+			State:        existingResource,
+			ConfigValue:  types.BoolNull(),
+			StateValue:   types.BoolValue(false),
+			PlanValue:    types.BoolUnknown(),
+			ExpectedPlan: types.BoolValue(false),
+		},
+		{
+			TestName:     "known_plan_is_kept",
+			State:        existingResource,
+			ConfigValue:  types.BoolNull(),
+			StateValue:   types.BoolValue(true),
+			PlanValue:    types.BoolValue(false),
+			ExpectedPlan: types.BoolValue(false),
+		},
+		{
+			TestName:     "unknown_config_keeps_unknown",
+			State:        existingResource,
+			ConfigValue:  types.BoolUnknown(),
+			StateValue:   types.BoolValue(true),
+			PlanValue:    types.BoolUnknown(),
+			ExpectedPlan: types.BoolUnknown(),
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+
+			resp := &planmodifier.BoolResponse{PlanValue: tc.PlanValue}
+			UseNonNullStateForUnknownBool().PlanModifyBool(context.Background(), planmodifier.BoolRequest{
+				State:       tc.State,
+				ConfigValue: tc.ConfigValue,
+				StateValue:  tc.StateValue,
+				PlanValue:   tc.PlanValue,
+			}, resp)
+
+			assert.Equal(t, tc.ExpectedPlan, resp.PlanValue)
+		})
+	}
+}
+
 // --- UseStateUnlessNameChanges tests ---
 
 // testSchema returns a minimal schema with "name", "ports", and "built_in_environment_variables"

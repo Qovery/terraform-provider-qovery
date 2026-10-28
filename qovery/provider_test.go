@@ -95,6 +95,12 @@ func getTestAWSCredentialsID() string {
 	return os.Getenv("TEST_AWS_CREDENTIALS_ID")
 }
 
+// getTestAWSWideCredentialsID returns AWS credentials of the test organization that use an assume
+// role (STS), for the wide-scope account of a cluster with restricted permissions.
+func getTestAWSWideCredentialsID() string {
+	return os.Getenv("TEST_AWS_ROLE_WIDE_CREDENTIALS_ID")
+}
+
 func getTestAWSCredentialsAccessKeyID() string {
 	return os.Getenv("TEST_AWS_CREDENTIALS_ACCESS_KEY_ID")
 }

@@ -14,6 +14,17 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-10-28
+
+### Added
+
+- `qovery_cluster`: `using_wide_credentials`, which runs an AWS EKS cluster with restricted
+  permissions. The block takes the wide-scope AWS credentials (`wide_scope_cloud_account_id`),
+  which the deployments that need wider permissions use, and an optional, sensitive
+  `slack_webhook_url`. It also reports `require_wide_access_to_deploy`, which Qovery sets. Adding
+  or removing the block redeploys the cluster. The `qovery_cluster` data source reports it too.
+  (QOV-2249)
+
 ## [1.3.1] - 2026-10-28
 
 ### Fixed
@@ -535,7 +546,8 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.1...v1.2.2

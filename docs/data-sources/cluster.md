@@ -45,6 +45,7 @@ data "qovery_cluster" "my_cluster" {
 - `min_running_nodes` (Number) Minimum number of nodes of the cluster. Karpenter, GCP and self-managed clusters, which do not use it, report a placeholder.
 - `name` (String) Name of the cluster.
 - `region` (String) Region of the cluster, for example `us-east-2` on AWS, or `on-premise` for a `PARTIALLY_MANAGED` cluster.
+- `using_wide_credentials` (Attributes) Restricted permissions of an AWS EKS cluster: its credentials (`credentials_id`) have restricted permissions, and the deployments that need wider ones, such as the first deployment that creates the infrastructure, use the wide-scope credentials. Without the block, restricted permissions are off. This feature is behind a feature flag and is not available by default: contact Qovery to enable it for your organization. (see [below for nested schema](#nestedatt--using_wide_credentials))
 
 <a id="nestedatt--features"></a>
 ### Nested Schema for `features`
@@ -459,3 +460,13 @@ Read-Only:
 - `cluster_oidc_issuer` (String) OIDC issuer URL of the cluster, on AWS and Azure, for example to grant IAM roles to service accounts.
 - `cluster_self_link` (String) Self link of the GKE cluster, on GCP.
 - `vpc_id` (String) ID of the VPC of the cluster, on AWS.
+
+
+<a id="nestedatt--using_wide_credentials"></a>
+### Nested Schema for `using_wide_credentials`
+
+Read-Only:
+
+- `require_wide_access_to_deploy` (Boolean) Whether the next deployment of the cluster needs the wide-scope credentials. Set by Qovery, it cannot be configured.
+- `slack_webhook_url` (String, Sensitive) Slack incoming webhook URL of the wide-scope credentials, on `https://hooks.slack.com`. The API returns the mask `https://hooks.slack.com/services/XXXXXXXXXXX` instead of the URL.
+- `wide_scope_cloud_account_id` (String) ID of the wide-scope AWS credentials, such as a `qovery_aws_credentials` resource. They must use an assume role (STS), not a static access key.

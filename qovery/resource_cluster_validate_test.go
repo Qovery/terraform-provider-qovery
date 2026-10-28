@@ -292,3 +292,109 @@ func TestValidateGkeKmsKeyConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateWideCredentialsConfig(t *testing.T) {
+	t.Parallel()
+
+	wideCredentials := types.ObjectValueMust(wideCredentialsAttrTypes, map[string]attr.Value{
+		wideCredentialsKeyCloudAccountID:            types.StringValue("33333333-3333-3333-3333-333333333333"),
+		wideCredentialsKeySlackWebhookURL:           types.StringNull(),
+		wideCredentialsKeyRequireWideAccessToDeploy: types.BoolUnknown(),
+	})
+
+	tests := []struct {
+		name                 string
+		cloudProvider        types.String
+		kubernetesMode       types.String
+		usingWideCredentials types.Object
+		wantErrors           int
+	}{
+		{
+			name:                 "AWS + MANAGED → no error",
+			cloudProvider:        types.StringValue("AWS"),
+			kubernetesMode:       types.StringValue("MANAGED"),
+			usingWideCredentials: wideCredentials,
+		},
+		{
+			name:                 "AWS + omitted kubernetes_mode (MANAGED default) → no error",
+			cloudProvider:        types.StringValue("AWS"),
+			kubernetesMode:       types.StringNull(),
+			usingWideCredentials: wideCredentials,
+		},
+		{
+			name:                 "AWS + SELF_MANAGED → error",
+			cloudProvider:        types.StringValue("AWS"),
+			kubernetesMode:       types.StringValue("SELF_MANAGED"),
+			usingWideCredentials: wideCredentials,
+			wantErrors:           1,
+		},
+		{
+			name:                 "AWS + PARTIALLY_MANAGED → error",
+			cloudProvider:        types.StringValue("AWS"),
+			kubernetesMode:       types.StringValue("PARTIALLY_MANAGED"),
+			usingWideCredentials: wideCredentials,
+			wantErrors:           1,
+		},
+		{
+			name:                 "GCP → error",
+			cloudProvider:        types.StringValue("GCP"),
+			kubernetesMode:       types.StringNull(),
+			usingWideCredentials: wideCredentials,
+			wantErrors:           1,
+		},
+		{
+			name:                 "SCW → error",
+			cloudProvider:        types.StringValue("SCW"),
+			kubernetesMode:       types.StringValue("MANAGED"),
+			usingWideCredentials: wideCredentials,
+			wantErrors:           1,
+		},
+		{
+			name:                 "AZURE → error",
+			cloudProvider:        types.StringValue("AZURE"),
+			kubernetesMode:       types.StringValue("MANAGED"),
+			usingWideCredentials: wideCredentials,
+			wantErrors:           1,
+		},
+		{
+			name:                 "GCP + null block → no error",
+			cloudProvider:        types.StringValue("GCP"),
+			kubernetesMode:       types.StringNull(),
+			usingWideCredentials: types.ObjectNull(wideCredentialsAttrTypes),
+		},
+		{
+			name:                 "GCP + unknown block → no error (benefit of the doubt)",
+			cloudProvider:        types.StringValue("GCP"),
+			kubernetesMode:       types.StringNull(),
+			usingWideCredentials: types.ObjectUnknown(wideCredentialsAttrTypes),
+		},
+		{
+			name:                 "cloud_provider unknown → no error (benefit of the doubt)",
+			cloudProvider:        types.StringUnknown(),
+			kubernetesMode:       types.StringValue("MANAGED"),
+			usingWideCredentials: wideCredentials,
+		},
+		{
+			name:                 "kubernetes_mode unknown → no error (benefit of the doubt)",
+			cloudProvider:        types.StringValue("AWS"),
+			kubernetesMode:       types.StringUnknown(),
+			usingWideCredentials: wideCredentials,
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+
+			diags := validateWideCredentialsConfig(tc.cloudProvider, tc.kubernetesMode, tc.usingWideCredentials)
+
+			errCount := 0
+			for _, d := range diags {
+				if d.Severity() == diag.SeverityError {
+					errCount++
+				}
+			}
+			assert.Equal(t, tc.wantErrors, errCount, "error count mismatch")
+		})
+	}
+}
