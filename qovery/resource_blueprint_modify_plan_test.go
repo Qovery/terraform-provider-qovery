@@ -21,13 +21,14 @@ import (
 type stubBlueprintService struct {
 	blueprint.Service
 	latestTag   string
+	iconURI     string
 	err         error
 	defaults    map[string]string
 	defaultsErr error
 }
 
-func (s stubBlueprintService) ResolveLatestTag(context.Context, string, blueprint.CatalogVersion) (string, error) {
-	return s.latestTag, s.err
+func (s stubBlueprintService) ResolveCatalogEntry(context.Context, string, blueprint.CatalogVersion) (blueprint.CatalogEntry, error) {
+	return blueprint.CatalogEntry{LatestTag: s.latestTag, IconURI: s.iconURI}, s.err
 }
 
 func (s stubBlueprintService) GetVariableDefaults(context.Context, string, blueprint.CatalogVersion) (map[string]string, error) {
@@ -157,6 +158,74 @@ func TestBlueprintModifyPlanPendingRetry(t *testing.T) {
 
 		assert.True(t, resp.Diagnostics.HasError())
 	})
+}
+
+func TestBlueprintModifyPlanIconURI(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	schemaResp := &resource.SchemaResponse{}
+	newBlueprintResource().Schema(ctx, resource.SchemaRequest{}, schemaResp)
+	schema := schemaResp.Schema
+	objectType, ok := schema.Type().TerraformType(ctx).(tftypes.Object)
+	require.True(t, ok)
+
+	createPlan := func(iconURI tftypes.Value) tftypes.Value {
+		return blueprintObjectValue(t, objectType, map[string]tftypes.Value{
+			"environment_id": tftypes.NewValue(tftypes.String, "84c946f2-f0af-409f-b249-849b06cdb6d5"),
+			"blueprint":      tftypes.NewValue(tftypes.String, "AWS/postgres/17"),
+			"tag":            tftypes.NewValue(tftypes.String, tftypes.UnknownValue),
+			"icon_uri":       iconURI,
+		})
+	}
+	unknownIcon := tftypes.NewValue(tftypes.String, tftypes.UnknownValue)
+
+	testCases := []struct {
+		name     string
+		service  stubBlueprintService
+		plan     tftypes.Value
+		wantIcon string
+	}{
+		{name: "create plans the catalog icon", service: stubBlueprintService{latestTag: "AWS/postgres/17/4.6.1", iconURI: "app://qovery-console/postgresql"}, plan: createPlan(unknownIcon), wantIcon: "app://qovery-console/postgresql"},
+		{name: "create falls back to the terraform icon when the catalog has none", service: stubBlueprintService{latestTag: "AWS/postgres/17/4.6.1"}, plan: createPlan(unknownIcon), wantIcon: defaultBlueprintIconURI},
+		{name: "create keeps the configured icon", service: stubBlueprintService{latestTag: "AWS/postgres/17/4.6.1", iconURI: "app://qovery-console/postgresql"}, plan: createPlan(tftypes.NewValue(tftypes.String, "app://qovery-console/redis")), wantIcon: "app://qovery-console/redis"},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			t.Parallel()
+			r := blueprintResource{service: tc.service}
+			req := resource.ModifyPlanRequest{
+				State: tfsdk.State{Schema: schema, Raw: tftypes.NewValue(objectType, nil)},
+				Plan:  tfsdk.Plan{Schema: schema, Raw: tc.plan},
+			}
+			resp := &resource.ModifyPlanResponse{Plan: tfsdk.Plan{Schema: schema, Raw: tc.plan}}
+
+			r.ModifyPlan(ctx, req, resp)
+
+			require.False(t, resp.Diagnostics.HasError(), resp.Diagnostics)
+			var iconURI string
+			resp.Diagnostics.Append(resp.Plan.GetAttribute(ctx, path.Root("icon_uri"), &iconURI)...)
+			assert.Equal(t, tc.wantIcon, iconURI)
+		})
+	}
+}
+
+func TestBlueprintResolveUnknownFromCatalog(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	r := blueprintResource{service: stubBlueprintService{latestTag: "AWS/postgres/17/4.6.1", iconURI: "app://qovery-console/postgresql"}}
+	// Planned while environment_id was unknown: neither value could be resolved yet
+	plan := Blueprint{
+		EnvironmentID: FromString("84c946f2-f0af-409f-b249-849b06cdb6d5"),
+		Blueprint:     FromString("AWS/postgres/17"),
+		Tag:           types.StringUnknown(),
+		IconURI:       types.StringUnknown(),
+	}
+
+	diags := r.resolveUnknownFromCatalog(ctx, &plan)
+
+	require.False(t, diags.HasError(), diags)
+	assert.Equal(t, "AWS/postgres/17/4.6.1", plan.Tag.ValueString())
+	assert.Equal(t, "app://qovery-console/postgresql", plan.IconURI.ValueString())
 }
 
 func TestCanKeepDeployedTag(t *testing.T) {

@@ -35,8 +35,7 @@ resource "qovery_blueprint" "my_blueprint" {
 
 - `deploy` (Boolean) Whether Qovery deploys the service when it creates the blueprint. Changing only `deploy` later does not redeploy.
 	- Default: `true`.
-- `icon_uri` (String) Icon of the blueprint in the Qovery Console. It can only be set at creation: changing it fails at plan time.
-	- Default: `app://qovery-console/terraform`.
+- `icon_uri` (String) Icon of the blueprint in the Qovery Console. Defaults to the icon of the catalog entry, or `app://qovery-console/terraform` when it has none. It can only be set at creation: changing it fails at plan time.
 - `secret_variables` (Map of String, Sensitive) Secret variables of the blueprint, as a map of name to value.
 - `spec_overrides` (Attributes) Overrides of the engine settings of the blueprint manifest. The API does not return them, so a change made outside Terraform does not show up in the plan. (see [below for nested schema](#nestedatt--spec_overrides))
 - `variables` (Map of String) Variables of the blueprint, as a map of name to value. Omitted variables use their catalog default.

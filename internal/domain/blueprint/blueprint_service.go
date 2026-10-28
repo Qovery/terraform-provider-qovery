@@ -24,8 +24,8 @@ type Service interface {
 	Get(ctx context.Context, blueprintID string) (*Blueprint, error)
 	Update(ctx context.Context, blueprintID string, request UpdateRequest) (*Blueprint, error)
 	Delete(ctx context.Context, blueprintID string) error
-	// ResolveLatestTag returns the only tag Terraform deploys: the catalog's latest for version.
-	ResolveLatestTag(ctx context.Context, environmentID string, version CatalogVersion) (string, error)
+	// ResolveCatalogEntry returns the catalog entry of version. Its LatestTag is the only tag Terraform deploys.
+	ResolveCatalogEntry(ctx context.Context, environmentID string, version CatalogVersion) (CatalogEntry, error)
 	// GetVariableDefaults returns the catalog default of each variable of version that has one.
 	GetVariableDefaults(ctx context.Context, environmentID string, version CatalogVersion) (map[string]string, error)
 }

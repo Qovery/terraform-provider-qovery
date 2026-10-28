@@ -108,32 +108,32 @@ func (s blueprintService) GetVariableDefaults(ctx context.Context, environmentID
 	return defaults, nil
 }
 
-func (s blueprintService) ResolveLatestTag(ctx context.Context, environmentID string, version blueprint.CatalogVersion) (string, error) {
+func (s blueprintService) ResolveCatalogEntry(ctx context.Context, environmentID string, version blueprint.CatalogVersion) (blueprint.CatalogEntry, error) {
 	if err := validateUUIDParam(environmentID, blueprint.ErrInvalidEnvironmentIDParam); err != nil {
-		return "", errors.Wrap(err, blueprint.ErrFailedToResolveTag.Error())
+		return blueprint.CatalogEntry{}, errors.Wrap(err, blueprint.ErrFailedToResolveTag.Error())
 	}
 	organizationID, err := s.blueprintRepository.GetOrganizationID(ctx, environmentID)
 	if err != nil {
-		return "", errors.Wrap(err, blueprint.ErrFailedToResolveTag.Error())
+		return blueprint.CatalogEntry{}, errors.Wrap(err, blueprint.ErrFailedToResolveTag.Error())
 	}
 	entries, err := s.blueprintRepository.ListCatalog(ctx, organizationID)
 	if err != nil {
-		return "", errors.Wrap(err, blueprint.ErrFailedToResolveTag.Error())
+		return blueprint.CatalogEntry{}, errors.Wrap(err, blueprint.ErrFailedToResolveTag.Error())
 	}
 
 	var available []string
 	for _, entry := range entries {
 		if entry.Equal(version) {
-			return entry.LatestTag, nil
+			return entry, nil
 		}
 		if entry.SameService(version) {
 			available = append(available, entry.String())
 		}
 	}
 	if len(available) > 0 {
-		return "", errors.Wrapf(blueprint.ErrCatalogVersionNotFound, "%s, available: %s", version, strings.Join(available, ", "))
+		return blueprint.CatalogEntry{}, errors.Wrapf(blueprint.ErrCatalogVersionNotFound, "%s, available: %s", version, strings.Join(available, ", "))
 	}
-	return "", errors.Wrap(blueprint.ErrCatalogVersionNotFound, version.String())
+	return blueprint.CatalogEntry{}, errors.Wrap(blueprint.ErrCatalogVersionNotFound, version.String())
 }
 
 func (s blueprintService) Update(ctx context.Context, blueprintID string, request blueprint.UpdateRequest) (*blueprint.Blueprint, error) {

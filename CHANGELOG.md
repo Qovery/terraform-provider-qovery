@@ -14,6 +14,14 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Fixed
+
+- `qovery_blueprint`: when `icon_uri` is omitted, a new blueprint now takes the icon of its
+  catalog entry, as in the Console, instead of `app://qovery-console/terraform`. That icon remains
+  the fallback for a catalog entry without one. Existing blueprints keep the icon recorded in the
+  state, so upgrading plans no change; to show the catalog icon on one, change its icon from the
+  Console. (QOV-2485)
+
 ## [1.4.0] - 2026-10-28
 
 ### Added

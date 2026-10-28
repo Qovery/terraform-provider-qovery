@@ -14,7 +14,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
@@ -99,11 +98,11 @@ func (r blueprintResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"icon_uri": schema.StringAttribute{
-				MarkdownDescription: descriptions.NewStringDefaultDescription(iconURIDescription("blueprint")+" It can only be set at creation: changing it fails at plan time.", defaultBlueprintIconURI),
+				MarkdownDescription: iconURIDescription("blueprint") + " Defaults to the icon of the catalog entry, or `" + defaultBlueprintIconURI + "` when it has none. It can only be set at creation: changing it fails at plan time.",
 				Optional:            true,
 				Computed:            true,
-				Default:             stringdefault.StaticString(defaultBlueprintIconURI),
 				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
 					RejectChangeAfterCreate(blueprintIconChangeReason),
 				},
 			},
@@ -193,7 +192,7 @@ func (r blueprintResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	resp.Diagnostics.Append(r.resolveUnknownTag(ctx, &plan)...)
+	resp.Diagnostics.Append(r.resolveUnknownFromCatalog(ctx, &plan)...)
 	request, diags := plan.toCreateRequest(ctx)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -272,7 +271,7 @@ func (r blueprintResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	resp.Diagnostics.Append(r.resolveUnknownTag(ctx, &plan)...)
+	resp.Diagnostics.Append(r.resolveUnknownFromCatalog(ctx, &plan)...)
 	request, diags := plan.toUpdateRequest(ctx, state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
@@ -342,7 +341,8 @@ func (r blueprintResource) modifyPlan(ctx context.Context, req resource.ModifyPl
 		}
 	}
 
-	tag, err := r.latestTag(ctx, planned.EnvironmentID, planned.Blueprint)
+	entry, err := r.catalogEntry(ctx, planned.EnvironmentID, planned.Blueprint)
+	tag := entry.LatestTag
 	if err != nil {
 		// Updates always target the latest tag; only a plan that deploys nothing may keep the deployed one
 		if !canKeepDeployedTag(current, planned, pending) {
@@ -359,6 +359,13 @@ func (r blueprintResource) modifyPlan(ctx context.Context, req resource.ModifyPl
 		tag = ToString(current.Tag)
 	}
 	resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("tag"), tag)...)
+
+	// Unknown only on create without a configured icon: UseStateForUnknown keeps the recorded one
+	var iconURI types.String
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("icon_uri"), &iconURI)...)
+	if iconURI.IsUnknown() {
+		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("icon_uri"), catalogIconURI(entry))...)
+	}
 
 	if pending && current != nil {
 		// Unknown computed value makes the plan non-empty, so Update retries the failed apply
@@ -429,27 +436,40 @@ func isPendingApply(ctx context.Context, private privateStateReader) (bool, diag
 	return string(value) == "true", diags
 }
 
-// resolveUnknownTag covers plans made while environment_id was still unknown
-func (r blueprintResource) resolveUnknownTag(ctx context.Context, plan *Blueprint) diag.Diagnostics {
+// resolveUnknownFromCatalog covers plans made while environment_id was still unknown
+func (r blueprintResource) resolveUnknownFromCatalog(ctx context.Context, plan *Blueprint) diag.Diagnostics {
 	var diags diag.Diagnostics
-	if !plan.Tag.IsUnknown() && !plan.Tag.IsNull() {
+	tagKnown := !plan.Tag.IsUnknown() && !plan.Tag.IsNull()
+	if tagKnown && !plan.IconURI.IsUnknown() {
 		return diags
 	}
-	tag, err := r.latestTag(ctx, plan.EnvironmentID, plan.Blueprint)
+	entry, err := r.catalogEntry(ctx, plan.EnvironmentID, plan.Blueprint)
 	if err != nil {
 		diags.AddAttributeError(path.Root("blueprint"), "Error on blueprint latest tag resolution", err.Error())
 		return diags
 	}
-	plan.Tag = FromString(tag)
+	if !tagKnown {
+		plan.Tag = FromString(entry.LatestTag)
+	}
+	if plan.IconURI.IsUnknown() {
+		plan.IconURI = catalogIconURI(entry)
+	}
 	return diags
 }
 
-func (r blueprintResource) latestTag(ctx context.Context, environmentID types.String, catalogVersion types.String) (string, error) {
+func (r blueprintResource) catalogEntry(ctx context.Context, environmentID types.String, catalogVersion types.String) (blueprint.CatalogEntry, error) {
 	version, err := blueprint.ParseCatalogVersion(ToString(catalogVersion))
 	if err != nil {
-		return "", err
+		return blueprint.CatalogEntry{}, err
 	}
-	return r.service.ResolveLatestTag(ctx, ToString(environmentID), version)
+	return r.service.ResolveCatalogEntry(ctx, ToString(environmentID), version)
+}
+
+func catalogIconURI(entry blueprint.CatalogEntry) types.String {
+	if entry.IconURI == "" {
+		return FromString(defaultBlueprintIconURI)
+	}
+	return FromString(entry.IconURI)
 }
 
 func requiresReplaceIfOtherBlueprintService() planmodifier.String {

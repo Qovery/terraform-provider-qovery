@@ -121,6 +121,7 @@ func CatalogVersionFromTag(tag string) (CatalogVersion, error) {
 type CatalogEntry struct {
 	CatalogVersion
 	LatestTag string
+	IconURI   string
 }
 
 // Dispatch is one engine run that creates or converges the blueprint's service.
