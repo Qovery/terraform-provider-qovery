@@ -14,6 +14,8 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.3.1] - 2026-10-28
+
 ### Fixed
 
 - `qovery_environment`: an apply no longer deletes the aliases Qovery creates for the outputs of
@@ -533,7 +535,8 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.3.1...HEAD
+[1.3.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.2...v1.3.0
 [1.2.2]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.1...v1.2.2
 [1.2.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.0...v1.2.1
