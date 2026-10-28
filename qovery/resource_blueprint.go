@@ -360,10 +360,15 @@ func (r blueprintResource) modifyPlan(ctx context.Context, req resource.ModifyPl
 	}
 	resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("tag"), tag)...)
 
-	// Unknown only on create without a configured icon: UseStateForUnknown keeps the recorded one
-	var iconURI types.String
+	// Omitted icon is unknown only on create: UseStateForUnknown keeps the recorded one. A configured
+	// icon unknown until apply must stay unknown, or Terraform rejects the plan.
+	var configIconURI, iconURI types.String
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("icon_uri"), &configIconURI)...)
 	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Root("icon_uri"), &iconURI)...)
-	if iconURI.IsUnknown() {
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	if configIconURI.IsNull() && iconURI.IsUnknown() {
 		resp.Diagnostics.Append(resp.Plan.SetAttribute(ctx, path.Root("icon_uri"), catalogIconURI(entry))...)
 	}
 
