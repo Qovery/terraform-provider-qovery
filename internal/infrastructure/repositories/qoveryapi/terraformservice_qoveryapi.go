@@ -104,7 +104,7 @@ func (c terraformServiceQoveryAPI) Get(ctx context.Context, terraformServiceID s
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceTerraformService, terraform.Id, resp, err)
 	}
 
-	advancedSettingsAsJson, buildSettings, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettingsWithBuildSettings(ctx, domain.TERRAFORM, terraformServiceID, terraform.Environment.Id, advancedSettingsJsonFromState, isTriggeredFromImport)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(ctx, domain.TERRAFORM, terraformServiceID, terraform.Environment.Id, advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceTerraformService, terraformServiceID, nil, err)
 	}
@@ -113,7 +113,7 @@ func (c terraformServiceQoveryAPI) Get(ctx context.Context, terraformServiceID s
 	if err != nil {
 		return nil, err
 	}
-	terraformSvc.BuildSettings = buildSettings
+	terraformSvc.BuildSettings = terraform.BuildSettings
 	return terraformSvc, nil
 }
 

@@ -129,7 +129,7 @@ func (c containerQoveryAPI) Get(ctx context.Context, containerID string, advance
 	}
 
 	// Get advanced settings
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(ctx, domain.CONTAINER, container.Id, advancedSettingsJsonFromState, isTriggeredFromImport)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(ctx, domain.CONTAINER, container.Id, "", advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceContainer, containerID, nil, err)
 	}

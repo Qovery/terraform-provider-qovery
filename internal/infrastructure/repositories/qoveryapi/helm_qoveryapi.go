@@ -129,7 +129,7 @@ func (c helmQoveryAPI) Get(ctx context.Context, helmID string, advancedSettingsJ
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceHelm, helmID, resp, err)
 	}
 
-	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(ctx, domain.HELM, helmID, advancedSettingsJsonFromState, isTriggeredFromImport)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(ctx, domain.HELM, helmID, "", advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceHelm, helmID, nil, err)
 	}
