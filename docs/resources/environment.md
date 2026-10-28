@@ -37,7 +37,7 @@ You can find complete examples within these repositories:
 
 ### Optional
 
-- `environment_variable_aliases` (Attributes Set) Environment variable aliases of the environment. An alias gives an existing variable another name. (see [below for nested schema](#nestedatt--environment_variable_aliases))
+- `environment_variable_aliases` (Attributes Set) Environment variable aliases of the environment. An alias gives an existing variable another name. The aliases Qovery creates for the outputs of jobs, Terraform services and blueprints stay out of the state unless the configuration declares them, so an apply does not delete them. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_files` (Attributes Set) Environment variable files of the environment, each mounted as a file. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `environment_variable_overrides` (Attributes Set) Environment variable overrides of the environment. An override replaces the value of a variable inherited from a broader scope. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) Environment variables of the environment. (see [below for nested schema](#nestedatt--environment_variables))
@@ -46,7 +46,7 @@ You can find complete examples within these repositories:
 - `mode` (String) Mode of the environment.
 	- Can be: `DEVELOPMENT`, `PREVIEW`, `PRODUCTION`, `STAGING`.
 	- Default: `DEVELOPMENT`.
-- `secret_aliases` (Attributes Set) Secret aliases of the environment. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
+- `secret_aliases` (Attributes Set) Secret aliases of the environment. An alias gives an existing secret another name. The aliases Qovery creates for the outputs of jobs, Terraform services and blueprints stay out of the state unless the configuration declares them, so an apply does not delete them. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_files` (Attributes Set) Secret files of the environment, each mounted as a file. (see [below for nested schema](#nestedatt--secret_files))
 - `secret_overrides` (Attributes Set) Secret overrides of the environment. An override replaces the value of a secret inherited from a broader scope. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes List, Sensitive) Secrets of the environment. Each entry sets `value` or `value_wo`, and each key appears once. (see [below for nested schema](#nestedatt--secrets))
