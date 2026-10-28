@@ -1177,6 +1177,34 @@ func (r clusterResource) Schema(_ context.Context, _ resource.SchemaRequest, res
 					},
 				},
 			},
+			"using_wide_credentials": schema.SingleNestedAttribute{
+				MarkdownDescription: clusterUsingWideCredentialsDescription + clusterUsingWideCredentialsFeatureFlagNote + clusterUsingWideCredentialsEksOnlyNote + clusterUsingWideCredentialsRedeployNote,
+				Optional:            true,
+				Attributes: map[string]schema.Attribute{
+					"wide_scope_cloud_account_id": schema.StringAttribute{
+						MarkdownDescription: clusterWideScopeCloudAccountIDDescription,
+						Required:            true,
+						Validators:          []validator.String{validators.NewUUIDValidator()},
+					},
+					"slack_webhook_url": schema.StringAttribute{
+						MarkdownDescription: clusterWideSlackWebhookURLDescription + clusterWideSlackWebhookURLNote,
+						Optional:            true,
+						Sensitive:           true,
+						Validators:          []validator.String{validators.NewSlackWebhookURLValidator()},
+					},
+					// Set by q-core only. An edit keeps it, and the apply stores the cluster the edit
+					// returns, before any deployment: the state value holds until the next refresh.
+					// Adding the block to an existing cluster plans it unknown, as an edit that turns
+					// restricted permissions on sets it to false.
+					"require_wide_access_to_deploy": schema.BoolAttribute{
+						MarkdownDescription: clusterRequireWideAccessToDeployDescription,
+						Computed:            true,
+						PlanModifiers: []planmodifier.Bool{
+							UseNonNullStateForUnknownBool(),
+						},
+					},
+				},
+			},
 		},
 	}
 }
@@ -1452,6 +1480,33 @@ func (r clusterResource) ValidateConfig(ctx context.Context, req resource.Valida
 
 	resp.Diagnostics.Append(validateNatGatewaysConfig(config.CloudProvider, config.Features)...)
 	resp.Diagnostics.Append(validateGkeKmsKeyConfig(config.CloudProvider, config.Features)...)
+	resp.Diagnostics.Append(validateWideCredentialsConfig(config.CloudProvider, config.KubernetesMode, config.UsingWideCredentials)...)
+}
+
+// validateWideCredentialsConfig validates that using_wide_credentials is only set on AWS EKS
+// clusters, the only kind for which q-core accepts restricted permissions: AWS with kubernetes_mode
+// MANAGED. An omitted kubernetes_mode is its MANAGED default.
+func validateWideCredentialsConfig(cloudProvider types.String, kubernetesMode types.String, usingWideCredentials types.Object) diag.Diagnostics {
+	var diags diag.Diagnostics
+
+	if usingWideCredentials.IsNull() || usingWideCredentials.IsUnknown() || cloudProvider.IsNull() || cloudProvider.IsUnknown() || kubernetesMode.IsUnknown() {
+		return diags
+	}
+
+	mode := clusterKubernetesModeDefault
+	if !kubernetesMode.IsNull() {
+		mode = kubernetesMode.ValueString()
+	}
+
+	if cloudProvider.ValueString() != "AWS" || mode != clusterKubernetesModeDefault {
+		diags.AddAttributeError(
+			path.Root("using_wide_credentials"),
+			"Invalid using_wide_credentials",
+			"using_wide_credentials is only supported for AWS clusters with kubernetes_mode MANAGED (EKS).",
+		)
+	}
+
+	return diags
 }
 
 // validateGkeKmsKeyConfig validates that gke_kms_key is only set on GCP clusters.

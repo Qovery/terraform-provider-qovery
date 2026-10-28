@@ -64,6 +64,7 @@ type Cluster struct {
 	InfrastructureChartsParameters types.Object `tfsdk:"infrastructure_charts_parameters"`
 	LabelsGroupIds                 types.Set    `tfsdk:"labels_group_ids"`
 	SecretManagerAccesses          types.Set    `tfsdk:"secret_manager_accesses"`
+	UsingWideCredentials           types.Object `tfsdk:"using_wide_credentials"`
 }
 
 func (c Cluster) hasFeaturesDiff(state *Cluster) bool {
@@ -131,6 +132,13 @@ func (c Cluster) hasSecretManagerAccessesDiff(state *Cluster) bool {
 		return len(c.SecretManagerAccesses.Elements()) > 0
 	}
 	return !c.SecretManagerAccesses.Equal(state.SecretManagerAccesses)
+}
+
+// hasWideCredentialsDiff reports whether using_wide_credentials was added or removed: turning
+// restrictive permissions on or off changes the permissions the cluster is deployed with. A change
+// of the account or of the slack webhook inside the block does not redeploy.
+func (c Cluster) hasWideCredentialsDiff(state *Cluster) bool {
+	return c.UsingWideCredentials.IsNull() != state.UsingWideCredentials.IsNull()
 }
 
 func (c Cluster) hasInfraChartsParamsDiff(state *Cluster) bool {
@@ -331,8 +339,12 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 		}
 	}
 
+	// The cloud provider info request sets both the credentials and the wide-scope account: q-core
+	// clears the wide-scope account when the request omits it, so the request always carries it.
+	// It is also the only way to change the wide-scope account of an existing cluster.
+	wideScopeCloudAccountID := wideCredentialsCloudAccountID(c.UsingWideCredentials)
 	var clusterCloudProviderRequest *qovery.ClusterCloudProviderInfoRequest
-	if state == nil || c.CredentialsId != state.CredentialsId {
+	if state == nil || c.CredentialsId != state.CredentialsId || !wideScopeCloudAccountID.Equal(wideCredentialsCloudAccountID(state.UsingWideCredentials)) {
 		clusterCloudProviderRequest = &qovery.ClusterCloudProviderInfoRequest{
 			CloudProvider: cloudProvider,
 			Region:        ToStringPointer(c.Region),
@@ -340,6 +352,12 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 				Id:   ToStringPointer(c.CredentialsId),
 				Name: ToStringPointer(c.Name),
 			},
+		}
+		if !wideScopeCloudAccountID.IsNull() && !wideScopeCloudAccountID.IsUnknown() {
+			clusterCloudProviderRequest.WidePermissionCredentials = &qovery.ClusterCloudProviderInfoCredentials{
+				Id:   ToStringPointer(wideScopeCloudAccountID),
+				Name: ToStringPointer(c.Name),
+			}
 		}
 	}
 
@@ -351,7 +369,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 	// A new cluster never forces a deploy: either it is not deployed yet, so updateClusterStatus
 	// deploys it anyway, or it is self-managed, which q-core marks DEPLOYED on creation and refuses
 	// to deploy unless the Qovery Operator manages it.
-	forceUpdate := state != nil && (c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || c.hasInfraChartsParamsDiff(state) || c.hasClusterSpecDiff(state) || c.hasSecretManagerAccessesDiff(state) || c.hasKedaDiff(state))
+	forceUpdate := state != nil && (c.hasFeaturesDiff(state) || c.hasRoutingTableDiff(state) || c.hasInfraChartsParamsDiff(state) || c.hasClusterSpecDiff(state) || c.hasSecretManagerAccessesDiff(state) || c.hasKedaDiff(state) || c.hasWideCredentialsDiff(state))
 
 	desiredState, err := qovery.NewClusterStateEnumFromValue(ToString(c.State))
 	if err != nil {
@@ -404,6 +422,7 @@ func (c Cluster) toUpsertClusterRequest(state *Cluster) (*client.ClusterUpsertPa
 			InfrastructureChartsParameters: infraChartsParams,
 			LabelsGroups:                   labelsGroups,
 			SecretManagerAccesses:          secretManagerAccesses,
+			WidePermissions:                toQoveryWidePermissions(c.UsingWideCredentials, state != nil),
 		},
 		ClusterRoutingTable:  routingTable.toUpsertRequest(),
 		AdvancedSettingsJson: ToString(c.AdvancedSettingsJson),
@@ -498,6 +517,7 @@ func convertResponseToClusterWithMode(ctx context.Context, res *client.ClusterRe
 		InfrastructureChartsParameters: fromQoveryInfrastructureChartsParameters(res.ClusterResponse.InfrastructureChartsParameters),
 		LabelsGroupIds:                 setFromAPIElements(types.StringType, labelsGroupIdsPrior, labelsGroupIds),
 		SecretManagerAccesses:          fromQoverySecretManagerAccesses(ctx, res.ClusterResponse.SecretManagerAccesses, initialPlan.SecretManagerAccesses),
+		UsingWideCredentials:           fromQoveryWidePermissions(res.ClusterResponse.WidePermissions, res.ClusterInfo, initialPlan.UsingWideCredentials, mode),
 	}
 
 	cluster.InstanceType, cluster.DiskSize, cluster.MinRunningNodes, cluster.MaxRunningNodes = clusterNodeSizingFromResponse(res.ClusterResponse, initialPlan, mode)

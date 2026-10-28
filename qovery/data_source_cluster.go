@@ -902,6 +902,25 @@ func (r clusterDataSource) Schema(_ context.Context, _ datasource.SchemaRequest,
 					},
 				},
 			},
+			"using_wide_credentials": schema.SingleNestedAttribute{
+				MarkdownDescription: clusterUsingWideCredentialsDescription + clusterUsingWideCredentialsFeatureFlagNote,
+				Computed:            true,
+				Attributes: map[string]schema.Attribute{
+					"wide_scope_cloud_account_id": schema.StringAttribute{
+						MarkdownDescription: clusterWideScopeCloudAccountIDDescription,
+						Computed:            true,
+					},
+					"slack_webhook_url": schema.StringAttribute{
+						MarkdownDescription: dataSourceClusterWideSlackWebhookURLDescription,
+						Computed:            true,
+						Sensitive:           true,
+					},
+					"require_wide_access_to_deploy": schema.BoolAttribute{
+						MarkdownDescription: clusterRequireWideAccessToDeployDescription,
+						Computed:            true,
+					},
+				},
+			},
 		},
 	}
 }

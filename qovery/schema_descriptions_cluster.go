@@ -267,6 +267,23 @@ const (
 	secretManagerAuthJSONCredentialsDescription      = "JSON key of the GCP service account."
 )
 
+// Wide credentials.
+const (
+	clusterUsingWideCredentialsDescription = "Restricted permissions of an AWS EKS cluster: its credentials (`credentials_id`) have restricted permissions, and the deployments that need wider ones, such as the first deployment that creates the infrastructure, use the wide-scope credentials. Without the block, restricted permissions are off."
+	// clusterUsingWideCredentialsFeatureFlagNote is the q-core allowlist of
+	// ClusterWidePermissionsUseCase.validate: an organization outside it gets an error at apply.
+	clusterUsingWideCredentialsFeatureFlagNote = " This feature is behind a feature flag and is not available by default: contact Qovery to enable it for your organization."
+	// clusterUsingWideCredentialsEksOnlyNote documents validateWideCredentialsConfig.
+	clusterUsingWideCredentialsEksOnlyNote = " Only allowed when `cloud_provider` is `AWS` and `kubernetes_mode` is `MANAGED`."
+	// clusterUsingWideCredentialsRedeployNote documents hasWideCredentialsDiff.
+	clusterUsingWideCredentialsRedeployNote         = " Adding or removing the block redeploys the cluster; changing the attributes inside it does not."
+	clusterWideScopeCloudAccountIDDescription       = "ID of the wide-scope AWS credentials, such as a `qovery_aws_credentials` resource. They must use an assume role (STS), not a static access key."
+	clusterWideSlackWebhookURLDescription           = "Slack incoming webhook URL of the wide-scope credentials, on `https://hooks.slack.com`."
+	clusterWideSlackWebhookURLNote                  = " The API never returns it: a refresh keeps the configured URL, and an import stores the mask `https://hooks.slack.com/services/XXXXXXXXXXX`."
+	clusterRequireWideAccessToDeployDescription     = "Whether the next deployment of the cluster needs the wide-scope credentials. Set by Qovery, it cannot be configured."
+	dataSourceClusterWideSlackWebhookURLDescription = clusterWideSlackWebhookURLDescription + " The API returns the mask `https://hooks.slack.com/services/XXXXXXXXXXX` instead of the URL."
+)
+
 // requiredWhenType documents an attribute of a secret manager access that
 // toQoverySecretManagerEndpoint or toQoverySecretManagerAuth requires for one type.
 func requiredWhenType(value string) string {

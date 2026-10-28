@@ -106,6 +106,38 @@ func UseUnknownForNullString() planmodifier.String {
 	return useUnknownForNullStringModifier{}
 }
 
+// useNonNullStateForUnknownBoolModifier is UseStateForUnknown for a Computed bool nested in an
+// Optional object, which ignores a null prior value. When the object is added to an existing
+// resource, the attribute's prior value is null because the object was: the framework's
+// UseStateForUnknown only checks that the resource has a state, so it would plan that null, and
+// the value the API returns would fail with "inconsistent result after apply". The attribute
+// stays unknown then.
+type useNonNullStateForUnknownBoolModifier struct{}
+
+func (m useNonNullStateForUnknownBoolModifier) Description(_ context.Context) string {
+	return "Once set, the value of this attribute in state will not change, unless the object holding it is added."
+}
+
+func (m useNonNullStateForUnknownBoolModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m useNonNullStateForUnknownBoolModifier) PlanModifyBool(_ context.Context, req planmodifier.BoolRequest, resp *planmodifier.BoolResponse) {
+	if req.State.Raw.IsNull() || !req.PlanValue.IsUnknown() || req.ConfigValue.IsUnknown() {
+		return
+	}
+	if req.StateValue.IsNull() || req.StateValue.IsUnknown() {
+		return
+	}
+	resp.PlanValue = req.StateValue
+}
+
+// UseNonNullStateForUnknownBool returns a plan modifier that plans the prior value of a Computed
+// bool nested in an Optional object, and leaves it unknown when the object is being added.
+func UseNonNullStateForUnknownBool() planmodifier.Bool {
+	return useNonNullStateForUnknownBoolModifier{}
+}
+
 // useStateUnlessPortsChangeModifier preserves the prior state value for a Computed
 // string attribute unless the resource's "ports" attribute is changing. When ports
 // change (e.g. adding a public port), attributes like external_host may be assigned

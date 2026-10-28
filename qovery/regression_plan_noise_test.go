@@ -29,6 +29,7 @@ func preservesState(m planmodifier.Describer) bool {
 	case useStateUnlessNameChangesModifier,
 		useStateUnlessPortsChangeModifier,
 		useStateUnlessRepositoryChangesModifier,
+		useNonNullStateForUnknownBoolModifier,
 		smartAllowApiOverrideModifier:
 		return true
 	// These plan the q-core default when the attribute is omitted, which keeps the plan
