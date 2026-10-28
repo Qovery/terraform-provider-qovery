@@ -136,7 +136,7 @@ type TerraformService struct {
 	CreatedAt             time.Time
 	UpdatedAt             *time.Time
 	BlueprintID           *string
-	// BuildSettings is only populated on reads, from the service's advanced settings.
+	// BuildSettings is only populated on reads, from the service response.
 	BuildSettings *qovery.BuildSettings
 }
 

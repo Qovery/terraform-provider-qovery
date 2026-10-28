@@ -87,14 +87,7 @@ func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl
 }
 
 // ReadServiceAdvancedSettings Get only overridden advanced settings
-func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(ctx context.Context, serviceType int, serviceId string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, error) {
-	advancedSettingsJson, _, err := c.ReadServiceAdvancedSettingsWithBuildSettings(ctx, serviceType, serviceId, "", advancedSettingsJsonFromState, isTriggeredFromImport)
-	return advancedSettingsJson, err
-}
-
-// ReadServiceAdvancedSettingsWithBuildSettings behaves like ReadServiceAdvancedSettings and also returns the
-// service's build settings, parsed from the unfiltered build.* keys of the same API response.
-func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSettings(ctx context.Context, serviceType int, serviceId string, environmentID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, *qovery.BuildSettings, error) {
+func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(ctx context.Context, serviceType int, serviceId string, environmentID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, error) {
 	httpClient := apiHTTPClient(c.apiConfig)
 	apiToken := c.apiConfig.DefaultHeader["Authorization"]
 
@@ -109,11 +102,11 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSett
 	// Get service advanced settings
 	urlAdvancedSettings, err := c.computeServiceAdvancedSettingsUrl(serviceType, serviceId)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	getRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, *urlAdvancedSettings, nil)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	getRequest.Header.Set("Authorization", apiToken)
 	getRequest.Header.Set("Content-Type", "application/json")
@@ -121,17 +114,17 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSett
 
 	respGetAdvancedSettings, err := httpClient.Do(getRequest)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	defer respGetAdvancedSettings.Body.Close()
 
 	if respGetAdvancedSettings.StatusCode >= 400 {
-		return nil, nil, errors.New("Cannot get advanced settings :" + respGetAdvancedSettings.Status)
+		return nil, errors.New("Cannot get advanced settings :" + respGetAdvancedSettings.Status)
 	}
 
 	serviceAdvancedSettings, err := io.ReadAll(respGetAdvancedSettings.Body)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	advancedSettingsStringJson := string(serviceAdvancedSettings)
@@ -140,17 +133,17 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSett
 	// Compute the Diff
 	advancedSettingsFromStateHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(serviceAdvancedSettingsState), &advancedSettingsFromStateHashMap); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	currentAdvancedSettingsHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap); err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	defaultAdvancedSettingsHashMap, err := c.fetchDefaultAdvancedSettings(ctx, serviceType, environmentID)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	overriddenAdvancedSettings := computeOverriddenSettings(
@@ -164,11 +157,11 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettingsWithBuildSett
 	// Transform to JSON
 	overriddenAdvancedSettingsJSON, err := json.Marshal(overriddenAdvancedSettings)
 	if err != nil {
-		return nil, nil, errors.New("Cannot parse overridden advanced settings")
+		return nil, errors.New("Cannot parse overridden advanced settings")
 	}
 
 	s := string(overriddenAdvancedSettingsJSON)
-	return &s, BuildSettingsFromAdvancedSettings(currentAdvancedSettingsHashMap), nil
+	return &s, nil
 }
 
 // UpdateServiceAdvancedSettings Update advanced settings by computing the whole http body

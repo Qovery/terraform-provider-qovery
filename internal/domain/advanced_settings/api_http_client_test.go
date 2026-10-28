@@ -88,7 +88,7 @@ func TestAdvancedSettingsServices_SendThroughTheConfiguredHTTPClient(t *testing.
 		{
 			TestName: "service_read",
 			Call: func(ctx context.Context, cfg *qovery.Configuration) error {
-				_, err := NewServiceAdvancedSettingsService(cfg).ReadServiceAdvancedSettings(ctx, domain.CONTAINER, "container-1", "", false)
+				_, err := NewServiceAdvancedSettingsService(cfg).ReadServiceAdvancedSettings(ctx, domain.CONTAINER, "container-1", "", "", false)
 				return err
 			},
 			ExpectRequests: []string{

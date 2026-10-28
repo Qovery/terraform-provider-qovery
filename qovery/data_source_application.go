@@ -631,7 +631,7 @@ func (d applicationDataSource) Read(ctx context.Context, req datasource.ReadRequ
 	state := convertResponseToApplication(ctx, data, application)
 	// The data source has no value_wo and value_wo_version.
 	state.Secrets = secretsForDataSource(state.Secrets)
-	state.BuildSettings = buildSettingsFromQovery(application.ApplicationBuildSettings)
+	state.BuildSettings = buildSettingsFromQovery(application.ApplicationResponse.BuildSettings)
 	// The git provider reports the API value, also when it matches the URL.
 	if state.GitRepository != nil && application.ApplicationResponse.GitRepository != nil {
 		if provider := application.ApplicationResponse.GitRepository.Provider; provider != "" {

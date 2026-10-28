@@ -111,7 +111,7 @@ func (c jobQoveryAPI) Get(ctx context.Context, jobID string, advancedSettingsJso
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, resp, err)
 	}
 
-	advancedSettingsAsJson, buildSettings, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettingsWithBuildSettings(ctx, domain.JOB, jobID, jobEnvironmentID(job), advancedSettingsJsonFromState, isTriggeredFromImport)
+	advancedSettingsAsJson, err := advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).ReadServiceAdvancedSettings(ctx, domain.JOB, jobID, jobEnvironmentID(job), advancedSettingsJsonFromState, isTriggeredFromImport)
 	if err != nil {
 		return nil, apierrors.NewReadAPIError(apierrors.APIResourceJob, jobID, nil, err)
 	}
@@ -120,7 +120,7 @@ func (c jobQoveryAPI) Get(ctx context.Context, jobID string, advancedSettingsJso
 	if err != nil {
 		return nil, err
 	}
-	jobDomain.BuildSettings = buildSettings
+	jobDomain.BuildSettings = jobBuildSettings(job)
 	return jobDomain, nil
 }
 
@@ -210,6 +210,19 @@ func jobEnvironmentID(j *qovery.JobResponse) string {
 		return j.LifecycleJobResponse.Environment.Id
 	default:
 		return ""
+	}
+}
+
+func jobBuildSettings(j *qovery.JobResponse) *qovery.BuildSettings {
+	switch {
+	case j == nil:
+		return nil
+	case j.CronJobResponse != nil:
+		return j.CronJobResponse.BuildSettings
+	case j.LifecycleJobResponse != nil:
+		return j.LifecycleJobResponse.BuildSettings
+	default:
+		return nil
 	}
 }
 

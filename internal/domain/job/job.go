@@ -89,7 +89,7 @@ type Job struct {
 	JobDeploymentRestrictions    []deploymentrestriction.ServiceDeploymentRestriction
 	AnnotationsGroupIds          []string
 	LabelsGroupIds               []string
-	// BuildSettings is only populated on reads, from the service's advanced settings.
+	// BuildSettings is only populated on reads, from the service response.
 	BuildSettings *qovery2.BuildSettings
 }
 

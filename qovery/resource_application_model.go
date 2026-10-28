@@ -390,7 +390,7 @@ func convertResponseToApplication(ctx context.Context, state Application, app *c
 		LabelsGroupIds:               fromLabelsGroupResponseList(state.LabelsGroupIds, app.ApplicationResponse.LabelsGroups),
 		DockerTargetBuildStage:       FromNullableString(app.ApplicationResponse.DockerTargetBuildStage),
 		Autoscaling:                  fromAutoscalingResponse(app.ApplicationResponse.Autoscaling),
-		BuildSettings:                buildSettingsToState(state.BuildSettings, app.ApplicationBuildSettings),
+		BuildSettings:                buildSettingsToState(state.BuildSettings, app.ApplicationResponse.BuildSettings),
 		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(app.ApplicationExternalSecrets, state.ExternalSecrets, variable.ScopeApplication).toTerraformSet(ctx),
 		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(app.ApplicationExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeApplication).toTerraformSet(ctx),
 	}
