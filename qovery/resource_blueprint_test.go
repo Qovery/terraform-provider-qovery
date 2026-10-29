@@ -45,7 +45,7 @@ func TestAcc_Blueprint(t *testing.T) {
 					resource.TestCheckResourceAttr(address, "name", blueprintName),
 					resource.TestCheckResourceAttr(address, "blueprint", testAccBlueprintVersion),
 					resource.TestMatchResourceAttr(address, "tag", regexp.MustCompile(`^HELM/redis/8/.+`)),
-					resource.TestCheckResourceAttr(address, "icon_uri", "app://qovery-console/terraform"),
+					resource.TestCheckResourceAttr(address, "icon_uri", "app://qovery-console/redis"),
 					resource.TestCheckResourceAttr(address, "variables.memory_limit", "256Mi"),
 					resource.TestCheckResourceAttr(address, "secret_variables.password", "first-password"),
 					resource.TestCheckResourceAttr(address, "service_type", "HELM"),
@@ -122,7 +122,7 @@ func TestAcc_Blueprint(t *testing.T) {
 			},
 			// The API cannot change the icon of an existing blueprint
 			{
-				Config:      testAccBlueprintConfig(testName, blueprintName, testAccBlueprintVariables{password: "second-password", iconURI: "app://qovery-console/redis"}),
+				Config:      testAccBlueprintConfig(testName, blueprintName, testAccBlueprintVariables{password: "second-password", iconURI: "app://qovery-console/terraform"}),
 				ExpectError: regexp.MustCompile(`Cannot change icon_uri after creation`),
 			},
 		},

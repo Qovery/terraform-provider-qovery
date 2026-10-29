@@ -337,13 +337,13 @@ func TestBlueprintServiceGetVariableDefaults(t *testing.T) {
 	})
 }
 
-func TestBlueprintServiceResolveLatestTag(t *testing.T) {
+func TestBlueprintServiceResolveCatalogEntry(t *testing.T) {
 	t.Parallel()
 	environmentID := uuid.NewString()
 	organizationID := uuid.NewString()
 	catalog := []blueprint.CatalogEntry{
-		{CatalogVersion: blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "16"}, LatestTag: "AWS/postgres/16/4.1.0"},
-		{CatalogVersion: blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "17"}, LatestTag: "AWS/postgres/17/4.1.0"},
+		{CatalogVersion: blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "16"}, LatestTag: "AWS/postgres/16/4.1.0", IconURI: "app://qovery-console/postgresql"},
+		{CatalogVersion: blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "17"}, LatestTag: "AWS/postgres/17/4.1.0", IconURI: "app://qovery-console/postgresql"},
 	}
 	newRepo := func(t *testing.T) *mocks_test.BlueprintRepository {
 		repo := mocks_test.NewBlueprintRepository(t)
@@ -352,20 +352,21 @@ func TestBlueprintServiceResolveLatestTag(t *testing.T) {
 		return repo
 	}
 
-	t.Run("latest tag of the major version", func(t *testing.T) {
-		tag, err := newTestBlueprintService(newRepo(t)).ResolveLatestTag(context.Background(), environmentID, blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "17"})
+	t.Run("latest tag and icon of the major version", func(t *testing.T) {
+		entry, err := newTestBlueprintService(newRepo(t)).ResolveCatalogEntry(context.Background(), environmentID, blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "17"})
 		require.NoError(t, err)
-		assert.Equal(t, "AWS/postgres/17/4.1.0", tag)
+		assert.Equal(t, "AWS/postgres/17/4.1.0", entry.LatestTag)
+		assert.Equal(t, "app://qovery-console/postgresql", entry.IconURI)
 	})
 
 	t.Run("unknown major lists the available ones", func(t *testing.T) {
-		_, err := newTestBlueprintService(newRepo(t)).ResolveLatestTag(context.Background(), environmentID, blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "12"})
+		_, err := newTestBlueprintService(newRepo(t)).ResolveCatalogEntry(context.Background(), environmentID, blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "12"})
 		assert.ErrorIs(t, err, blueprint.ErrCatalogVersionNotFound)
 		assert.ErrorContains(t, err, "available: AWS/postgres/16, AWS/postgres/17")
 	})
 
 	t.Run("unknown service", func(t *testing.T) {
-		_, err := newTestBlueprintService(newRepo(t)).ResolveLatestTag(context.Background(), environmentID, blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "oracle", ServiceVersion: "19"})
+		_, err := newTestBlueprintService(newRepo(t)).ResolveCatalogEntry(context.Background(), environmentID, blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "oracle", ServiceVersion: "19"})
 		assert.ErrorIs(t, err, blueprint.ErrCatalogVersionNotFound)
 		assert.NotContains(t, err.Error(), "available")
 	})

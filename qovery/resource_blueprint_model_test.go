@@ -166,6 +166,7 @@ func TestBlueprintIconURIRejectsChangeAfterCreate(t *testing.T) {
 	iconURI, ok := resp.Schema.Attributes["icon_uri"].(schema.StringAttribute)
 	require.True(t, ok)
 	assert.Contains(t, iconURI.PlanModifiers, RejectChangeAfterCreate(blueprintIconChangeReason))
+	assert.Nil(t, iconURI.Default, "an omitted icon comes from the catalog entry, planned in ModifyPlan")
 }
 
 func TestBlueprintVariableDefaults(t *testing.T) {

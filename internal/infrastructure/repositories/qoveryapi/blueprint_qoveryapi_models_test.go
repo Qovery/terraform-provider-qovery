@@ -214,6 +214,7 @@ func TestNewDomainCatalogEntriesFromQovery(t *testing.T) {
 	catalog := &qovery.BlueprintCatalogResponse{Blueprints: []qovery.BlueprintItem{{
 		Provider:      "AWS",
 		ServiceFamily: "postgres",
+		Icon:          "app://qovery-console/postgresql",
 		MajorVersions: []qovery.BlueprintMajorVersion{
 			{ServiceVersion: "16", LatestTag: "AWS/postgres/16/4.1.0"},
 			{ServiceVersion: "17", LatestTag: "AWS/postgres/17/4.1.0"},
@@ -221,8 +222,8 @@ func TestNewDomainCatalogEntriesFromQovery(t *testing.T) {
 	}}}
 
 	assert.Equal(t, []blueprint.CatalogEntry{
-		{CatalogVersion: blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "16"}, LatestTag: "AWS/postgres/16/4.1.0"},
-		{CatalogVersion: blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "17"}, LatestTag: "AWS/postgres/17/4.1.0"},
+		{CatalogVersion: blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "16"}, LatestTag: "AWS/postgres/16/4.1.0", IconURI: "app://qovery-console/postgresql"},
+		{CatalogVersion: blueprint.CatalogVersion{Provider: "AWS", ServiceFamily: "postgres", ServiceVersion: "17"}, LatestTag: "AWS/postgres/17/4.1.0", IconURI: "app://qovery-console/postgresql"},
 	}, newDomainCatalogEntriesFromQovery(catalog))
 	assert.Nil(t, newDomainCatalogEntriesFromQovery(nil))
 }

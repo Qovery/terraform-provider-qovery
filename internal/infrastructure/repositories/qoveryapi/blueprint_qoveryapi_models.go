@@ -165,6 +165,7 @@ func newDomainCatalogEntriesFromQovery(catalog *qovery.BlueprintCatalogResponse)
 					ServiceVersion: major.GetServiceVersion(),
 				},
 				LatestTag: major.GetLatestTag(),
+				IconURI:   item.GetIcon(),
 			})
 		}
 	}
