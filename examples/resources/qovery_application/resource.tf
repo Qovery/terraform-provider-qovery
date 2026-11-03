@@ -58,4 +58,14 @@ resource "qovery_application" "my_application" {
       value = var.api_key
     }
   ]
+
+  external_secrets = [
+    {
+      key                      = "DATABASE_PASSWORD"
+      reference                = "/production/database"
+      secret_manager_access_id = var.secret_manager_access_id
+      json_target_key          = "accounts.0.password"
+    }
+  ]
+
 }

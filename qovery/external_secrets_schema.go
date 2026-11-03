@@ -26,6 +26,11 @@ func externalSecretsSchemaAttribute(resourceType string) schema.SetNestedAttribu
 					MarkdownDescription: d.Description,
 					Optional:            true,
 				},
+				"json_target_key": schema.StringAttribute{
+					MarkdownDescription: d.JSONTargetKey,
+					Optional:            true,
+					Validators:          []validator.String{validators.JSONTargetKeyValidator{}},
+				},
 				"reference": schema.StringAttribute{
 					MarkdownDescription: d.Reference,
 					Required:            true,

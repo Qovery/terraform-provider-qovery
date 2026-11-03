@@ -14,6 +14,7 @@ var externalSecretAttrTypes = map[string]attr.Type{
 	"key":                      types.StringType,
 	"description":              types.StringType,
 	"reference":                types.StringType,
+	"json_target_key":          types.StringType,
 	"secret_manager_access_id": types.StringType,
 }
 
@@ -24,6 +25,7 @@ type ExternalSecretItem struct {
 	Key                   types.String `tfsdk:"key"`
 	Description           types.String `tfsdk:"description"`
 	Reference             types.String `tfsdk:"reference"`
+	JSONTargetKey         types.String `tfsdk:"json_target_key"`
 	SecretManagerAccessId types.String `tfsdk:"secret_manager_access_id"`
 }
 
@@ -71,13 +73,14 @@ func (list ExternalSecretList) diffRequest(old ExternalSecretList) variable.Exte
 
 	for _, e := range old {
 		if updated := list.find(e.Key.ValueString()); updated != nil {
-			if updated.Reference != e.Reference || updated.SecretManagerAccessId != e.SecretManagerAccessId || updated.Description != e.Description {
+			if updated.Reference != e.Reference || updated.SecretManagerAccessId != e.SecretManagerAccessId || updated.Description != e.Description || !updated.JSONTargetKey.Equal(e.JSONTargetKey) {
 				diff.Update = append(diff.Update, variable.ExternalSecretDiffUpdateRequest{
 					VariableID: e.Id.ValueString(),
 					ExternalSecretUpsertRequest: variable.ExternalSecretUpsertRequest{
 						Key:                   e.Key.ValueString(),
 						Description:           updated.Description.ValueString(),
 						Reference:             updated.Reference.ValueString(),
+						JSONTargetKey:         ToStringPointer(updated.JSONTargetKey),
 						SecretManagerAccessId: updated.SecretManagerAccessId.ValueString(),
 					},
 				})
@@ -96,6 +99,7 @@ func (list ExternalSecretList) diffRequest(old ExternalSecretList) variable.Exte
 					Key:                   e.Key.ValueString(),
 					Description:           e.Description.ValueString(),
 					Reference:             e.Reference.ValueString(),
+					JSONTargetKey:         ToStringPointer(e.JSONTargetKey),
 					SecretManagerAccessId: e.SecretManagerAccessId.ValueString(),
 				},
 			})
@@ -111,6 +115,7 @@ func (item ExternalSecretItem) toTerraformObject() types.Object {
 		"key":                      item.Key,
 		"description":              item.Description,
 		"reference":                item.Reference,
+		"json_target_key":          item.JSONTargetKey,
 		"secret_manager_access_id": item.SecretManagerAccessId,
 	}
 	obj, diagnostics := types.ObjectValue(externalSecretAttrTypes, attributes)
@@ -126,6 +131,7 @@ func toExternalSecretItem(v types.Object) ExternalSecretItem {
 		Key:                   v.Attributes()["key"].(types.String),
 		Description:           v.Attributes()["description"].(types.String),
 		Reference:             v.Attributes()["reference"].(types.String),
+		JSONTargetKey:         v.Attributes()["json_target_key"].(types.String),
 		SecretManagerAccessId: v.Attributes()["secret_manager_access_id"].(types.String),
 	}
 }
@@ -155,6 +161,7 @@ func convertDomainExternalSecretsToExternalSecretList(externalSecrets variable.E
 			Key:                   FromString(externalSecret.Key),
 			Description:           planAwareOptionalString(externalSecret.Description, planItem.Description),
 			Reference:             FromString(externalSecret.Reference),
+			JSONTargetKey:         FromStringPointer(externalSecret.JSONTargetKey),
 			SecretManagerAccessId: FromString(externalSecret.SecretManagerAccessId),
 		})
 	}

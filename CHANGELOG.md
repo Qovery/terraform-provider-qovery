@@ -14,6 +14,13 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Added
+
+- `external_secrets.json_target_key`: select a nested JSON property or array element from an
+  external secret on applications, containers, jobs, Helm services, Terraform services and
+  environments. The matching data sources report the selector. Removing it restores whole-secret
+  resolution. (QOV-2351)
+
 ### Fixed
 
 - `qovery_blueprint`: when `icon_uri` is omitted, a new blueprint now takes the icon of its

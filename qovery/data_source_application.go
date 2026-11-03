@@ -482,6 +482,7 @@ func (r applicationDataSource) Schema(_ context.Context, _ datasource.SchemaRequ
 							MarkdownDescription: externalSecrets.Reference,
 							Computed:            true,
 						},
+						"json_target_key": schema.StringAttribute{MarkdownDescription: externalSecrets.JSONTargetKey, Computed: true},
 						"secret_manager_access_id": schema.StringAttribute{
 							MarkdownDescription: externalSecrets.SecretManagerAccessID,
 							Computed:            true,

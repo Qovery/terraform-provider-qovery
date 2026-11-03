@@ -9,6 +9,7 @@ type ExternalSecret struct {
 	Key                   string
 	Description           string
 	Reference             string
+	JSONTargetKey         *string
 	SecretManagerAccessId string
 	Scope                 Scope
 	VariableType          string
@@ -19,6 +20,7 @@ type ExternalSecrets []ExternalSecret
 type ExternalSecretUpsertRequest struct {
 	Key                   string `validate:"required"`
 	Description           string
+	JSONTargetKey         *string
 	Reference             string `validate:"required"`
 	SecretManagerAccessId string `validate:"required"`
 }
