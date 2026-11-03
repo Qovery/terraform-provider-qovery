@@ -383,6 +383,7 @@ Read-Only:
 
 - `description` (String) Description of the external secret.
 - `id` (String) ID of the external secret.
+- `json_target_key` (String) JSON member/index path to extract (up to 256 characters), such as `credentials.password` or `accounts.0.password`; escape literal dots as `\.` and backslashes as `\\` in the selector (write `\\.` and `\\\\` in HCL quoted strings), and treat other characters as literal members. Omit to read the whole secret; see [JSON selection syntax](https://www.qovery.com/docs/configuration/integrations/secret-managers/secret-manager-access#selecting-a-value-from-a-json-secret).
 - `key` (String) Name of the external secret.
 - `reference` (String) Reference of the secret in the secret manager, such as its name or ARN.
 - `secret_manager_access_id` (String) ID of the cluster's secret manager access that reads the secret.

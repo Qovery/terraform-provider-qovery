@@ -68,6 +68,26 @@ resource "qovery_application" "my_application" {
       value = var.api_key
     }
   ]
+
+  # Extract one JSON value instead of the whole external secret.
+  # For {"accounts":[{"password":"example"}]}, accounts.0.password selects "example".
+  # Use dots between members and numeric indexes for arrays.
+  # Escape literal dots and backslashes in the selector; double those backslashes in HCL:
+  # "database\\.password" selects the member "database.password".
+  # "database\\\\password" selects the member "database\password".
+  # Other query characters are literal member names; arbitrary GJSON queries are not evaluated.
+  # Omit or remove json_target_key to read the whole secret.
+  # Also supported on containers, jobs, Helm services, Terraform services and environments,
+  # but not on external_secret_files.
+  external_secrets = [
+    {
+      key                      = "DATABASE_PASSWORD"
+      reference                = "/production/database"
+      secret_manager_access_id = var.secret_manager_access_id
+      json_target_key          = "accounts.0.password"
+    }
+  ]
+
 }
 ```
 
@@ -499,6 +519,7 @@ Required:
 Optional:
 
 - `description` (String) Description of the external secret.
+- `json_target_key` (String) JSON member/index path to extract (up to 256 characters), such as `credentials.password` or `accounts.0.password`; escape literal dots as `\.` and backslashes as `\\` in the selector (write `\\.` and `\\\\` in HCL quoted strings), and treat other characters as literal members. Omit to read the whole secret; see [JSON selection syntax](https://www.qovery.com/docs/configuration/integrations/secret-managers/secret-manager-access#selecting-a-value-from-a-json-secret).
 
 Read-Only:
 

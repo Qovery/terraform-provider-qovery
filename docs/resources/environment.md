@@ -156,6 +156,7 @@ Required:
 Optional:
 
 - `description` (String) Description of the external secret.
+- `json_target_key` (String) JSON member/index path to extract (up to 256 characters), such as `credentials.password` or `accounts.0.password`; escape literal dots as `\.` and backslashes as `\\` in the selector (write `\\.` and `\\\\` in HCL quoted strings), and treat other characters as literal members. Omit to read the whole secret; see [JSON selection syntax](https://www.qovery.com/docs/configuration/integrations/secret-managers/secret-manager-access#selecting-a-value-from-a-json-secret).
 
 Read-Only:
 

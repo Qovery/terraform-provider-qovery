@@ -23,6 +23,7 @@ func makeExternalSecretObj(id, key, description, reference, secretManagerAccessI
 		"key":                      types.StringValue(key),
 		"description":              strOrNull(description),
 		"reference":                types.StringValue(reference),
+		"json_target_key":          types.StringNull(),
 		"secret_manager_access_id": types.StringValue(secretManagerAccessId),
 	})
 }

@@ -157,6 +157,7 @@ type variableListDescription struct {
 	MountPath             string
 	Reference             string
 	SecretManagerAccessID string
+	JSONTargetKey         string
 }
 
 // variableListDescriptions returns the descriptions of the variable list attribute named
@@ -205,6 +206,7 @@ func variableListDescriptions(attribute, owner string) variableListDescription {
 			MountPath:             "Absolute path where the file is mounted.",
 			Reference:             "Reference of the secret in the secret manager, such as its name or ARN.",
 			SecretManagerAccessID: "ID of the cluster's secret manager access that reads the secret.",
+			JSONTargetKey:         "JSON member/index path to extract (up to 256 characters), such as `credentials.password` or `accounts.0.password`; escape literal dots as `\\.` and backslashes as `\\\\` in the selector (write `\\\\.` and `\\\\\\\\` in HCL quoted strings), and treat other characters as literal members. Omit to read the whole secret; see [JSON selection syntax](https://www.qovery.com/docs/configuration/integrations/secret-managers/secret-manager-access#selecting-a-value-from-a-json-secret).",
 		}
 	}
 

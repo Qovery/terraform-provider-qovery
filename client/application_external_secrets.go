@@ -31,6 +31,7 @@ func (c *Client) updateApplicationExternalSecrets(ctx context.Context, applicati
 				Value:                 *qovery.NewNullableString(&item.Reference),
 				SecretManagerAccessId: *qovery.NewNullableString(&smAccessID),
 				Description:           *qovery.NewNullableString(&item.Description),
+				JsonTargetKey:         *qovery.NewNullableString(item.JSONTargetKey),
 			}).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -50,6 +51,7 @@ func (c *Client) updateApplicationExternalSecrets(ctx context.Context, applicati
 				VariableParentId:      applicationID,
 				SecretManagerAccessId: *qovery.NewNullableString(&smAccessID),
 				Description:           *qovery.NewNullableString(&item.Description),
+				JsonTargetKey:         *qovery.NewNullableString(item.JSONTargetKey),
 			}).
 			Execute()
 		if err != nil || res.StatusCode >= 400 {
@@ -166,6 +168,7 @@ func newApplicationExternalSecretFromQovery(v *qovery.VariableResponse) (*variab
 		Key:                   v.Key,
 		Description:           description,
 		Reference:             reference,
+		JSONTargetKey:         v.JsonTargetKey.Get(),
 		SecretManagerAccessId: smAccessID,
 		Scope:                 *scope,
 		VariableType:          string(v.VariableType),

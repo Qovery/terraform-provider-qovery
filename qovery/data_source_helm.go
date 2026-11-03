@@ -332,6 +332,7 @@ func (d helmDataSource) Schema(_ context.Context, _ datasource.SchemaRequest, re
 						"key":                      schema.StringAttribute{MarkdownDescription: externalSecrets.Key, Computed: true},
 						"description":              schema.StringAttribute{MarkdownDescription: externalSecrets.Description, Computed: true},
 						"reference":                schema.StringAttribute{MarkdownDescription: externalSecrets.Reference, Computed: true},
+						"json_target_key":          schema.StringAttribute{MarkdownDescription: externalSecrets.JSONTargetKey, Computed: true},
 						"secret_manager_access_id": schema.StringAttribute{MarkdownDescription: externalSecrets.SecretManagerAccessID, Computed: true},
 					},
 				},
