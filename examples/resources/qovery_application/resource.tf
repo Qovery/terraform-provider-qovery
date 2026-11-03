@@ -59,6 +59,16 @@ resource "qovery_application" "my_application" {
     }
   ]
 
+  # Extract one JSON value instead of the whole external secret.
+  # For {"accounts":[{"password":"example"}]}, accounts.0.password selects "example".
+  # Use dots between members and numeric indexes for arrays.
+  # Escape literal dots and backslashes in the selector; double those backslashes in HCL:
+  # "database\\.password" selects the member "database.password".
+  # "database\\\\password" selects the member "database\password".
+  # Other query characters are literal member names; arbitrary GJSON queries are not evaluated.
+  # Omit or remove json_target_key to read the whole secret.
+  # Also supported on containers, jobs, Helm services, Terraform services and environments,
+  # but not on external_secret_files.
   external_secrets = [
     {
       key                      = "DATABASE_PASSWORD"
