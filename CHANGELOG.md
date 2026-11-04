@@ -14,18 +14,25 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.6.0] - 2026-11-04
+
 ### Added
 
-- `external_secrets.json_target_key`: select a nested JSON property or array element from an
-  external secret on applications, containers, jobs, Helm services, Terraform services and
-  environments. The matching data sources report the selector. Removing it restores whole-secret
-  resolution. (QOV-2351)
 - `healthchecks.startup_probe` on applications, containers and jobs: an optional Kubernetes
   startup probe, with the same attributes as the readiness and liveness probes. The readiness and
   liveness probes wait until it passes, so a slow start no longer needs a long liveness delay. The
   matching data sources report it. Removing it from the config removes the probe. Until now, every
   apply cleared a startup probe set from the Console or the API; it now shows in the plan instead.
   (QOV-733)
+
+## [1.5.0] - 2026-11-03
+
+### Added
+
+- `external_secrets.json_target_key`: select a nested JSON property or array element from an
+  external secret on applications, containers, jobs, Helm services, Terraform services and
+  environments. The matching data sources report the selector. Removing it restores whole-secret
+  resolution. (QOV-2351)
 
 ### Fixed
 
@@ -567,7 +574,9 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.5.0...v1.6.0
+[1.5.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.2.2...v1.3.0
