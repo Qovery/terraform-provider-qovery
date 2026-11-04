@@ -30,7 +30,7 @@ data "qovery_container" "my_container" {
 - `environment_variable_aliases` (Attributes Set) Environment variable aliases of the container. An alias gives an existing variable another name. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_overrides` (Attributes Set) Environment variable overrides of the container. An override replaces the value of a variable inherited from a broader scope. (see [below for nested schema](#nestedatt--environment_variable_overrides))
 - `environment_variables` (Attributes Set) Environment variables of the container. (see [below for nested schema](#nestedatt--environment_variables))
-- `healthchecks` (Attributes) Readiness and liveness probes of the service. `healthchecks = {}` sets none; production workloads should set at least one. (see [below for nested schema](#nestedatt--healthchecks))
+- `healthchecks` (Attributes) Readiness, liveness and startup probes of the service. `healthchecks = {}` sets none; production workloads should set at least a readiness or a liveness probe. (see [below for nested schema](#nestedatt--healthchecks))
 - `icon_uri` (String) Icon of the container in the Qovery Console.
 - `is_skipped` (Boolean) Whether environment-wide deployments skip the service. It stays in its deployment stage.
 - `max_running_instances` (Number) Maximum number of running instances of the container.
@@ -117,6 +117,7 @@ Optional:
 
 - `liveness_probe` (Attributes) Probe that decides whether the service works: when it fails, the container restarts. (see [below for nested schema](#nestedatt--healthchecks--liveness_probe))
 - `readiness_probe` (Attributes) Probe that decides when the service receives traffic: while it fails, the service is out of the load balancer. (see [below for nested schema](#nestedatt--healthchecks--readiness_probe))
+- `startup_probe` (Attributes) Probe that decides whether the service has started: the readiness and liveness probes wait until it passes, and when it fails, the container restarts. Set it for a service that is slow to start, instead of raising the liveness probe's delay. (see [below for nested schema](#nestedatt--healthchecks--startup_probe))
 
 <a id="nestedatt--healthchecks--liveness_probe"></a>
 ### Nested Schema for `healthchecks.liveness_probe`
@@ -244,6 +245,75 @@ Optional:
 
 <a id="nestedatt--healthchecks--readiness_probe--type--tcp"></a>
 ### Nested Schema for `healthchecks.readiness_probe.type.tcp`
+
+Required:
+
+- `port` (Number) Port to check.
+
+Optional:
+
+- `host` (String) Host to connect to. Defaults to the pod IP.
+
+
+
+
+<a id="nestedatt--healthchecks--startup_probe"></a>
+### Nested Schema for `healthchecks.startup_probe`
+
+Required:
+
+- `failure_threshold` (Number) Consecutive failures for the probe to fail.
+- `initial_delay_seconds` (Number) Seconds to wait after the container starts before the first probe.
+- `period_seconds` (Number) Seconds between two probes.
+- `success_threshold` (Number) Consecutive successes after a failure for the probe to pass.
+- `timeout_seconds` (Number) Seconds after which a probe that has not answered fails.
+- `type` (Attributes) Check the probe runs: set exactly one of `tcp`, `http`, `grpc` and `exec`. (see [below for nested schema](#nestedatt--healthchecks--startup_probe--type))
+
+<a id="nestedatt--healthchecks--startup_probe--type"></a>
+### Nested Schema for `healthchecks.startup_probe.type`
+
+Optional:
+
+- `exec` (Attributes) Runs a command in the container, and passes when it exits with `0`. (see [below for nested schema](#nestedatt--healthchecks--startup_probe--type--exec))
+- `grpc` (Attributes) Calls the [gRPC health checking protocol](https://kubernetes.io/blog/2018/10/01/health-checking-grpc-servers-on-kubernetes/#introducing-grpc-health-probe) on `port`. (see [below for nested schema](#nestedatt--healthchecks--startup_probe--type--grpc))
+- `http` (Attributes) Sends an HTTP GET request to `port` and passes on a status code from 200 to 399. (see [below for nested schema](#nestedatt--healthchecks--startup_probe--type--http))
+- `tcp` (Attributes) Opens a TCP connection to `port`. (see [below for nested schema](#nestedatt--healthchecks--startup_probe--type--tcp))
+
+<a id="nestedatt--healthchecks--startup_probe--type--exec"></a>
+### Nested Schema for `healthchecks.startup_probe.type.exec`
+
+Required:
+
+- `command` (List of String) Command and its arguments, for example `["cat", "/tmp/healthy"]`.
+
+
+<a id="nestedatt--healthchecks--startup_probe--type--grpc"></a>
+### Nested Schema for `healthchecks.startup_probe.type.grpc`
+
+Required:
+
+- `port` (Number) Port to check.
+
+Optional:
+
+- `service` (String) gRPC service to check. Defaults to the health of the whole server.
+
+
+<a id="nestedatt--healthchecks--startup_probe--type--http"></a>
+### Nested Schema for `healthchecks.startup_probe.type.http`
+
+Required:
+
+- `port` (Number) Port to check.
+- `scheme` (String) Scheme of the request: `HTTP` or `HTTPS`.
+
+Optional:
+
+- `path` (String) Path of the request, for example `/health`. Defaults to `/`.
+
+
+<a id="nestedatt--healthchecks--startup_probe--type--tcp"></a>
+### Nested Schema for `healthchecks.startup_probe.type.tcp`
 
 Required:
 
