@@ -9,6 +9,7 @@ import (
 type HealthChecks struct {
 	ReadinessProbe *Probe `tfsdk:"readiness_probe"`
 	LivenessProbe  *Probe `tfsdk:"liveness_probe"`
+	StartupProbe   *Probe `tfsdk:"startup_probe"`
 }
 
 type ProbeType struct {
@@ -48,7 +49,7 @@ type ProbeExec struct {
 
 func healthchecksSchemaAttributes(required bool) schema.Attribute {
 	return schema.SingleNestedAttribute{
-		MarkdownDescription: "Readiness and liveness probes of the service. `healthchecks = {}` sets none; production workloads should set at least one.",
+		MarkdownDescription: "Readiness, liveness and startup probes of the service. `healthchecks = {}` sets none; production workloads should set at least a readiness or a liveness probe.",
 		Required:            required,
 		Optional:            !required,
 		Attributes: map[string]schema.Attribute{
@@ -59,6 +60,11 @@ func healthchecksSchemaAttributes(required bool) schema.Attribute {
 			},
 			"liveness_probe": schema.SingleNestedAttribute{
 				MarkdownDescription: "Probe that decides whether the service works: when it fails, the container restarts.",
+				Optional:            true,
+				Attributes:          probeSchemaAttributes(),
+			},
+			"startup_probe": schema.SingleNestedAttribute{
+				MarkdownDescription: "Probe that decides whether the service has started: the readiness and liveness probes wait until it passes, and when it fails, the container restarts. Set it for a service that is slow to start, instead of raising the liveness probe's delay.",
 				Optional:            true,
 				Attributes:          probeSchemaAttributes(),
 			},
@@ -232,7 +238,43 @@ func (h HealthChecks) toHealthchecksRequest() qovery.Healthcheck {
 	return qovery.Healthcheck{
 		ReadinessProbe: *readinessProbe,
 		LivenessProbe:  *livenessProbe,
+		StartupProbe:   h.StartupProbe.toStartupProbeRequest(),
 	}
+}
+
+// The client has a dedicated type for the startup probe, with the same fields as qovery.Probe,
+// because the API spec documents it through an allOf.
+func (p *Probe) toStartupProbeRequest() qovery.NullableHealthcheckStartupProbe {
+	if p == nil {
+		// Sent as an explicit null, like the other probes, so removing it from the config clears it.
+		return *qovery.NewNullableHealthcheckStartupProbe(nil)
+	}
+
+	probe := p.toProbeRequest().Get()
+	return *qovery.NewNullableHealthcheckStartupProbe(&qovery.HealthcheckStartupProbe{
+		Type:                probe.Type,
+		InitialDelaySeconds: probe.InitialDelaySeconds,
+		PeriodSeconds:       probe.PeriodSeconds,
+		TimeoutSeconds:      probe.TimeoutSeconds,
+		SuccessThreshold:    probe.SuccessThreshold,
+		FailureThreshold:    probe.FailureThreshold,
+	})
+}
+
+func convertStartupProbeResponseToDomain(probe *qovery.NullableHealthcheckStartupProbe) *Probe {
+	p := probe.Get()
+	if p == nil {
+		return nil
+	}
+
+	return convertProbeResponseToDomain(qovery.NewNullableProbe(&qovery.Probe{
+		Type:                p.Type,
+		InitialDelaySeconds: p.InitialDelaySeconds,
+		PeriodSeconds:       p.PeriodSeconds,
+		TimeoutSeconds:      p.TimeoutSeconds,
+		SuccessThreshold:    p.SuccessThreshold,
+		FailureThreshold:    p.FailureThreshold,
+	}))
 }
 
 func convertProbeResponseToDomain(probe *qovery.NullableProbe) *Probe {
@@ -292,5 +334,6 @@ func convertHealthchecksResponseToDomain(r qovery.Healthcheck) HealthChecks {
 	return HealthChecks{
 		ReadinessProbe: convertProbeResponseToDomain(&r.ReadinessProbe),
 		LivenessProbe:  convertProbeResponseToDomain(&r.LivenessProbe),
+		StartupProbe:   convertStartupProbeResponseToDomain(&r.StartupProbe),
 	}
 }

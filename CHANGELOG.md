@@ -20,6 +20,12 @@ explained in the matching upgrade guide.
   external secret on applications, containers, jobs, Helm services, Terraform services and
   environments. The matching data sources report the selector. Removing it restores whole-secret
   resolution. (QOV-2351)
+- `healthchecks.startup_probe` on applications, containers and jobs: an optional Kubernetes
+  startup probe, with the same attributes as the readiness and liveness probes. The readiness and
+  liveness probes wait until it passes, so a slow start no longer needs a long liveness delay. The
+  matching data sources report it. Removing it from the config removes the probe. Until now, every
+  apply cleared a startup probe set from the Console or the API; it now shows in the plan instead.
+  (QOV-733)
 
 ### Fixed
 
