@@ -150,6 +150,12 @@ func (c containerQoveryAPI) Update(ctx context.Context, containerID string, requ
 		return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
 	}
 
+	// The edit checks the new cpu and memory against the stored limits: store raised limits first.
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).RaiseResourceLimitsBeforeRequestUpdate(ctx, domain.CONTAINER, containerID, request.AdvancedSettingsJson, request.CPU, request.Memory)
+	if err != nil {
+		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceContainer, containerID, nil, err)
+	}
+
 	container, resp, err := c.client.ContainerMainCallsAPI.
 		EditContainer(ctx, containerID).
 		ContainerRequest(*req).

@@ -146,6 +146,12 @@ func (c jobQoveryAPI) Update(ctx context.Context, jobID string, request job.Upse
 		return nil, errors.Wrap(err, job.ErrInvalidJobUpsertRequest.Error())
 	}
 
+	// The edit checks the new cpu and memory against the stored limits: store raised limits first.
+	err = advanced_settings.NewServiceAdvancedSettingsService(c.client.GetConfig()).RaiseResourceLimitsBeforeRequestUpdate(ctx, domain.JOB, jobID, request.AdvancedSettingsJson, request.CPU, request.Memory)
+	if err != nil {
+		return nil, apierrors.NewUpdateAPIError(apierrors.APIResourceJob, jobID, nil, err)
+	}
+
 	job, resp, err := c.client.JobMainCallsAPI.
 		EditJob(ctx, jobID).
 		JobRequest(*req).

@@ -215,6 +215,12 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string, advan
 }
 
 func (c *Client) UpdateApplication(ctx context.Context, applicationID string, params *ApplicationUpdateParams) (*ApplicationResponse, *apierrors.APIError) {
+	// The edit checks the new cpu and memory against the stored limits: store raised limits first.
+	err := advanced_settings.NewServiceAdvancedSettingsService(c.api.GetConfig()).RaiseResourceLimitsBeforeRequestUpdate(ctx, domain.APPLICATION, applicationID, params.AdvancedSettingsJson, params.ApplicationEditRequest.Cpu, params.ApplicationEditRequest.Memory)
+	if err != nil {
+		return nil, apierrors.NewUpdateError(apierrors.APIResourceApplication, applicationID, nil, err)
+	}
+
 	application, res, err := c.api.ApplicationMainCallsAPI.
 		EditApplication(ctx, applicationID).
 		ApplicationEditRequest(params.ApplicationEditRequest).
