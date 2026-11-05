@@ -166,9 +166,6 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(ctx context.
 
 // UpdateServiceAdvancedSettings Update advanced settings by computing the whole http body
 func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(ctx context.Context, serviceType int, serviceId string, advancedSettingsJsonFromPlan string) error {
-	apiToken := c.apiConfig.DefaultHeader["Authorization"]
-	httpClient := apiHTTPClient(c.apiConfig)
-
 	var advancedSettingsStrFromPlan string
 	if advancedSettingsJsonFromPlan == "" {
 		advancedSettingsStrFromPlan = "{}"
@@ -176,8 +173,6 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(ctx contex
 		advancedSettingsStrFromPlan = advancedSettingsJsonFromPlan
 	}
 
-	//
-	// Get service advanced settings
 	urlAdvancedSettings, err := c.computeServiceAdvancedSettingsUrl(serviceType, serviceId)
 	if err != nil {
 		return err
@@ -188,64 +183,70 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(ctx contex
 		return err
 	}
 
-	getRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, *urlAdvancedSettings, nil)
-	if err != nil {
-		return err
-	}
-	getRequest.Header.Set("Authorization", apiToken)
-	getRequest.Header.Set("Content-Type", "application/json")
-	getRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
-
-	respGetAdvancedSettings, err := httpClient.Do(getRequest)
-	if err != nil {
-		return err
-	}
-	defer respGetAdvancedSettings.Body.Close()
-
-	if respGetAdvancedSettings.StatusCode >= 400 {
-		return errors.New("Cannot get advanced settings :" + respGetAdvancedSettings.Status)
-	}
-	serviceAdvancedSettings, err := io.ReadAll(respGetAdvancedSettings.Body)
+	currentAdvancedSettingsHashMap, err := c.getServiceAdvancedSettings(ctx, *urlAdvancedSettings)
 	if err != nil {
 		return err
 	}
 
-	advancedSettingsStringJson := string(serviceAdvancedSettings)
-
-	//
 	// Compute final http body to send to satisfy PUT endpoint
-	currentAdvancedSettingsHashMap := make(map[string]any)
-	if err := json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap); err != nil {
-		return err
-	}
-
-	for k, v := range currentAdvancedSettingsHashMap {
-		if slices.Contains(BuildSettingsKeys, k) {
-			continue
-		}
+	for k, v := range withoutBuildSettingsKeys(currentAdvancedSettingsHashMap) {
 		_, exists := overriddenAdvancedSettingsHashMap[k]
 		if !exists {
 			overriddenAdvancedSettingsHashMap[k] = v
 		}
 	}
 
-	overriddenAdvancedSettingsJSON, err := json.Marshal(overriddenAdvancedSettingsHashMap)
+	return c.putServiceAdvancedSettings(ctx, *urlAdvancedSettings, overriddenAdvancedSettingsHashMap)
+}
+
+// getServiceAdvancedSettings returns every advanced setting the API holds for the service.
+func (c ServiceAdvancedSettingsService) getServiceAdvancedSettings(ctx context.Context, urlAdvancedSettings string) (map[string]any, error) {
+	getRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, urlAdvancedSettings, nil)
+	if err != nil {
+		return nil, err
+	}
+	getRequest.Header.Set("Authorization", c.apiConfig.DefaultHeader["Authorization"])
+	getRequest.Header.Set("Content-Type", "application/json")
+	getRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
+
+	respGetAdvancedSettings, err := apiHTTPClient(c.apiConfig).Do(getRequest)
+	if err != nil {
+		return nil, err
+	}
+	defer respGetAdvancedSettings.Body.Close()
+
+	if respGetAdvancedSettings.StatusCode >= 400 {
+		return nil, errors.New("Cannot get advanced settings :" + respGetAdvancedSettings.Status)
+	}
+	serviceAdvancedSettings, err := io.ReadAll(respGetAdvancedSettings.Body)
+	if err != nil {
+		return nil, err
+	}
+
+	currentAdvancedSettingsHashMap := make(map[string]any)
+	if err := json.Unmarshal(serviceAdvancedSettings, &currentAdvancedSettingsHashMap); err != nil {
+		return nil, err
+	}
+	return currentAdvancedSettingsHashMap, nil
+}
+
+// putServiceAdvancedSettings replaces the advanced settings of the service with settings.
+func (c ServiceAdvancedSettingsService) putServiceAdvancedSettings(ctx context.Context, urlAdvancedSettings string, settings map[string]any) error {
+	settingsJSON, err := json.Marshal(settings)
 	if err != nil {
 		return err
 	}
 
-	//
-	// Update advanced settings
-	putRequest, err := http.NewRequestWithContext(ctx, http.MethodPut, *urlAdvancedSettings, bytes.NewBuffer(overriddenAdvancedSettingsJSON))
+	putRequest, err := http.NewRequestWithContext(ctx, http.MethodPut, urlAdvancedSettings, bytes.NewBuffer(settingsJSON))
 	if err != nil {
 		return err
 	}
-	putRequest.Header.Set("Authorization", apiToken)
+	putRequest.Header.Set("Authorization", c.apiConfig.DefaultHeader["Authorization"])
 	putRequest.Header.Set("Content-Type", "application/json")
 	putRequest.Header.Set("Accept", "application/json")
 	putRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
 
-	respPostAdvancedSettings, err := httpClient.Do(putRequest)
+	respPostAdvancedSettings, err := apiHTTPClient(c.apiConfig).Do(putRequest)
 	if err != nil {
 		return err
 	}
@@ -258,6 +259,19 @@ func (c ServiceAdvancedSettingsService) UpdateServiceAdvancedSettings(ctx contex
 	}
 
 	return nil
+}
+
+// withoutBuildSettingsKeys returns a copy of settings without the keys that mirror the typed build
+// settings: the API keeps those in sync on its own, so they are only sent when the plan sets them.
+func withoutBuildSettingsKeys(settings map[string]any) map[string]any {
+	filtered := make(map[string]any, len(settings))
+	for k, v := range settings {
+		if slices.Contains(BuildSettingsKeys, k) {
+			continue
+		}
+		filtered[k] = v
+	}
+	return filtered
 }
 
 // fetchDefaultAdvancedSettings fetches and parses the default advanced settings for a service

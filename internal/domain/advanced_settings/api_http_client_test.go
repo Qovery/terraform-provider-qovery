@@ -107,6 +107,16 @@ func TestAdvancedSettingsServices_SendThroughTheConfiguredHTTPClient(t *testing.
 			},
 		},
 		{
+			TestName: "service_raise_resource_limits",
+			Call: func(ctx context.Context, cfg *qovery.Configuration) error {
+				planned := `{"resources.override.limit.ram_in_mib": 2048}`
+				return NewServiceAdvancedSettingsService(cfg).RaiseResourceLimitsBeforeRequestUpdate(ctx, domain.CONTAINER, "container-1", planned, nil, int32Ptr(2048))
+			},
+			ExpectRequests: []string{
+				"GET /container/container-1/advancedSettings",
+			},
+		},
+		{
 			TestName: "service_unknown_keys",
 			Call: func(ctx context.Context, cfg *qovery.Configuration) error {
 				_, err := NewServiceAdvancedSettingsService(cfg).UnknownSettingKeys(ctx, domain.CONTAINER, `{"bogus.key": 1}`)

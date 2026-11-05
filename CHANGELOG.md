@@ -14,6 +14,13 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Fixed
+
+- Raising `cpu` or `memory` on an application, container or job together with
+  `resources.override.limit.cpu_in_milli` or `resources.override.limit.ram_in_mib` in
+  `advanced_settings_json` now passes in one apply. It used to fail with "Ram limit (…) must be
+  greater than ram request (…)" and needed a first apply for the limit and a second for the request.
+
 ## [1.6.0] - 2026-11-04
 
 ### Added
