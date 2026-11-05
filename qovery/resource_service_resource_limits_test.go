@@ -72,6 +72,24 @@ func TestAcc_ContainerResourceLimits(t *testing.T) {
 	})
 }
 
+func TestAcc_JobResourceLimits(t *testing.T) {
+	t.Parallel()
+	testName := "job-resource-limits"
+	resourceName := "qovery_job.test"
+
+	resource.Test(t, resource.TestCase{
+		PreCheck: func() {
+			testAccPreCheck(t)
+			testAccRequireClusterResourceOvercommit(t)
+		},
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryJobDestroy(resourceName),
+		Steps: testAccResourceLimitsTestSteps(resourceName, testAccQoveryJobExists(resourceName), func(r serviceResources) string {
+			return testAccJobDefaultConfigWithResourceLimits(testName, r)
+		}),
+	})
+}
+
 // testAccResourceLimitsTestSteps applies each of resourceLimitsSteps, then checks the last one plans
 // no change.
 func testAccResourceLimitsTestSteps(resourceName string, exists resource.TestCheckFunc, config func(serviceResources) string) []resource.TestStep {
@@ -161,5 +179,42 @@ resource "qovery_container" "test" {
   advanced_settings_json = %s
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, r.cpu, r.memory, testAccResourceLimitsAdvancedSettingsJSON(r),
+	)
+}
+
+func testAccJobDefaultConfigWithResourceLimits(testName string, r serviceResources) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_job" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  cpu = %d
+  memory = %d
+  max_duration_seconds = 300
+  max_nb_restart = 0
+  auto_preview = false
+  healthchecks = {}
+  source = {
+    image = {
+      registry_id = qovery_container_registry.test.id
+      name = "%s"
+      tag = "%s"
+    }
+  }
+  schedule = {
+    cronjob = {
+      schedule = "0 0 31 2 *"
+      command = {
+        entrypoint = "/bin/sh"
+        arguments = ["-c", "exit 0"]
+      }
+    }
+  }
+  advanced_settings_json = %s
+}
+`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), r.cpu, r.memory, containerImageName, containerTag, testAccResourceLimitsAdvancedSettingsJSON(r),
 	)
 }

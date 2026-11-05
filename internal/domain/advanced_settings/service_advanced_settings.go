@@ -88,9 +88,6 @@ func (c ServiceAdvancedSettingsService) computeDefaultServiceAdvancedSettingsUrl
 
 // ReadServiceAdvancedSettings Get only overridden advanced settings
 func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(ctx context.Context, serviceType int, serviceId string, environmentID string, advancedSettingsJsonFromState string, isTriggeredFromImport bool) (*string, error) {
-	httpClient := apiHTTPClient(c.apiConfig)
-	apiToken := c.apiConfig.DefaultHeader["Authorization"]
-
 	var serviceAdvancedSettingsState string
 	if advancedSettingsJsonFromState == "" {
 		serviceAdvancedSettingsState = "{}"
@@ -104,40 +101,15 @@ func (c ServiceAdvancedSettingsService) ReadServiceAdvancedSettings(ctx context.
 	if err != nil {
 		return nil, err
 	}
-	getRequest, err := http.NewRequestWithContext(ctx, http.MethodGet, *urlAdvancedSettings, nil)
+	currentAdvancedSettingsHashMap, err := c.getServiceAdvancedSettings(ctx, *urlAdvancedSettings)
 	if err != nil {
 		return nil, err
 	}
-	getRequest.Header.Set("Authorization", apiToken)
-	getRequest.Header.Set("Content-Type", "application/json")
-	getRequest.Header.Set("User-Agent", c.apiConfig.UserAgent)
-
-	respGetAdvancedSettings, err := httpClient.Do(getRequest)
-	if err != nil {
-		return nil, err
-	}
-	defer respGetAdvancedSettings.Body.Close()
-
-	if respGetAdvancedSettings.StatusCode >= 400 {
-		return nil, errors.New("Cannot get advanced settings :" + respGetAdvancedSettings.Status)
-	}
-
-	serviceAdvancedSettings, err := io.ReadAll(respGetAdvancedSettings.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	advancedSettingsStringJson := string(serviceAdvancedSettings)
 
 	//
 	// Compute the Diff
 	advancedSettingsFromStateHashMap := make(map[string]any)
 	if err := json.Unmarshal([]byte(serviceAdvancedSettingsState), &advancedSettingsFromStateHashMap); err != nil {
-		return nil, err
-	}
-
-	currentAdvancedSettingsHashMap := make(map[string]any)
-	if err := json.Unmarshal([]byte(advancedSettingsStringJson), &currentAdvancedSettingsHashMap); err != nil {
 		return nil, err
 	}
 

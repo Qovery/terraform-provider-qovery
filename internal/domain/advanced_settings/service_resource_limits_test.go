@@ -145,6 +145,14 @@ func TestLimitsToRaise(t *testing.T) {
 			Expected:   map[string]any{},
 		},
 		{
+			TestName:   "invalid_cpu_pair_blocks_ram_raise",
+			Current:    `{"` + ram + `": 1024, "` + cpu + `": 500}`,
+			Planned:    `{"` + ram + `": 2048, "` + cpu + `": 800}`,
+			PlannedCPU: int32Ptr(1000),
+			PlannedRAM: int32Ptr(2048),
+			Expected:   map[string]any{},
+		},
+		{
 			TestName:   "planned_limit_not_a_number",
 			Current:    `{"` + ram + `": 1024}`,
 			Planned:    `{"` + ram + `": "2048"}`,
@@ -230,15 +238,20 @@ func TestRaiseResourceLimitsBeforeRequestUpdate_PutBody(t *testing.T) {
 	}
 }
 
-func TestRaiseResourceLimitsBeforeRequestUpdate_NoCallWithoutPlannedLimit(t *testing.T) {
+func TestRaiseResourceLimitsBeforeRequestUpdate_NoCallWithoutPlannedLimitOrRequest(t *testing.T) {
 	t.Parallel()
 
+	const plannedLimits = `{"resources.override.limit.ram_in_mib": 8192, "resources.override.limit.cpu_in_milli": 4000}`
+
 	testCases := []struct {
-		TestName string
-		PlanJson string
+		TestName   string
+		PlanJson   string
+		PlannedCPU *int32
+		PlannedRAM *int32
 	}{
-		{TestName: "empty_plan", PlanJson: ""},
-		{TestName: "plan_without_limits", PlanJson: `{"network.ingress.proxy_body_size_mb": 200}`},
+		{TestName: "empty_plan", PlanJson: "", PlannedCPU: int32Ptr(4000), PlannedRAM: int32Ptr(8192)},
+		{TestName: "plan_without_limits", PlanJson: `{"network.ingress.proxy_body_size_mb": 200}`, PlannedCPU: int32Ptr(4000), PlannedRAM: int32Ptr(8192)},
+		{TestName: "no_planned_request", PlanJson: plannedLimits},
 	}
 
 	for _, tc := range testCases {
@@ -246,7 +259,7 @@ func TestRaiseResourceLimitsBeforeRequestUpdate_NoCallWithoutPlannedLimit(t *tes
 			t.Parallel()
 
 			cfg, transport := newRecordingConfig()
-			err := NewServiceAdvancedSettingsService(cfg).RaiseResourceLimitsBeforeRequestUpdate(context.Background(), domain.JOB, "job-1", tc.PlanJson, int32Ptr(4000), int32Ptr(8192))
+			err := NewServiceAdvancedSettingsService(cfg).RaiseResourceLimitsBeforeRequestUpdate(context.Background(), domain.JOB, "job-1", tc.PlanJson, tc.PlannedCPU, tc.PlannedRAM)
 			require.NoError(t, err)
 			assert.Empty(t, transport.requests)
 		})

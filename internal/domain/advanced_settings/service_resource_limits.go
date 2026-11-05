@@ -23,10 +23,10 @@ const (
 // the raised limits first, then editing the service, then writing all the advanced settings passes
 // every check. Remove this once the q-core service edit accepts the limits.
 //
-// It makes no call unless the plan sets one of the limits, and writes nothing unless a limit needs
-// raising.
+// It makes no call unless the plan sets one of the limits and a request, and writes nothing unless a
+// limit needs raising and every planned limit admits its planned request.
 func (c ServiceAdvancedSettingsService) RaiseResourceLimitsBeforeRequestUpdate(ctx context.Context, serviceType int, serviceID string, advancedSettingsJsonFromPlan string, plannedCPUInMilli *int32, plannedRAMInMib *int32) error {
-	if advancedSettingsJsonFromPlan == "" {
+	if advancedSettingsJsonFromPlan == "" || (plannedCPUInMilli == nil && plannedRAMInMib == nil) {
 		return nil
 	}
 
@@ -76,7 +76,10 @@ func (l resourceLimit) isDisabled(value float64) bool {
 }
 
 // limitsToRaise returns the limits to store before the service edit, keyed by setting, with their
-// planned values.
+// planned values: those whose stored value the planned request goes above.
+//
+// When a planned limit does not admit its planned request, the apply fails at q-core whatever this
+// does, so it returns none: the q-core error comes with nothing written ahead of it.
 func limitsToRaise(current map[string]any, planned map[string]any, plannedCPUInMilli *int32, plannedRAMInMib *int32) map[string]any {
 	cpuDisabled := cpuLimitDisabled
 	limits := []resourceLimit{
@@ -86,43 +89,30 @@ func limitsToRaise(current map[string]any, planned map[string]any, plannedCPUInM
 
 	raised := make(map[string]any)
 	for _, limit := range limits {
-		if value, ok := limit.valueToRaise(current, planned); ok {
-			raised[limit.key] = value
+		plannedLimit, inPlan := planned[limit.key]
+		if !inPlan || limit.plannedRequest == nil {
+			continue
+		}
+		request := float64(*limit.plannedRequest)
+		if !limit.admits(plannedLimit, request) {
+			return map[string]any{}
+		}
+		if !limit.admits(current[limit.key], request) {
+			raised[limit.key] = plannedLimit
 		}
 	}
 	return raised
 }
 
-// valueToRaise returns the planned limit when the service edit would reject the planned request
-// against the stored limit and the planned limit admits the planned request. Every other case is left
-// to the usual calls, so an invalid plan gets the q-core error and nothing is written ahead of it.
-func (l resourceLimit) valueToRaise(current map[string]any, planned map[string]any) (any, bool) {
-	if l.plannedRequest == nil {
-		return nil, false
+// admits reports whether value, as this limit, lets the service request request. A missing or null
+// limit, and a disabled one, admit any request: q-core only checks a limit that is set.
+func (l resourceLimit) admits(value any, request float64) bool {
+	if value == nil {
+		return true
 	}
-	plannedLimit, inPlan := planned[l.key]
-	if !inPlan {
-		return nil, false
+	limit, isNumber := value.(float64)
+	if !isNumber {
+		return false
 	}
-
-	// Without a stored limit the service edit does not check the request.
-	storedLimit, isSet := current[l.key].(float64)
-	if !isSet || l.isDisabled(storedLimit) {
-		return nil, false
-	}
-
-	request := float64(*l.plannedRequest)
-	if request <= storedLimit {
-		return nil, false
-	}
-
-	// A null limit removes it.
-	if plannedLimit == nil {
-		return nil, true
-	}
-	value, isNumber := plannedLimit.(float64)
-	if !isNumber || (value < request && !l.isDisabled(value)) {
-		return nil, false
-	}
-	return value, true
+	return l.isDisabled(limit) || limit >= request
 }
