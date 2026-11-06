@@ -427,7 +427,7 @@ Optional:
 
 Required:
 
-- `name` (String) Name of the trigger authentication.
+- `name` (String) Name of the trigger authentication. Qovery ignores this value and generates the name of the KEDA TriggerAuthentication, so changing it has no effect on the service; the data source reports the generated name.
 
 Optional:
 

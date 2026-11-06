@@ -2,7 +2,9 @@ package qovery
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -77,6 +79,10 @@ const (
 	autoscalingTriggerAuthDescription       = "KEDA TriggerAuthentication of the scaler."
 	autoscalingTriggerAuthNameDescription   = "Name of the trigger authentication."
 	autoscalingTriggerAuthConfigDescription = "Configuration of the trigger authentication, as YAML."
+	// autoscalingTriggerAuthNameIgnoredNote completes the resource description:
+	// the API ignores the name sent, see triggerAuthNames.
+	autoscalingTriggerAuthNameIgnoredNote = " Qovery ignores this value and generates the name of the KEDA TriggerAuthentication, " +
+		"so changing it has no effect on the service; the data source reports the generated name."
 )
 
 // autoscalingResourceSchema returns the resource schema attribute for the
@@ -146,7 +152,7 @@ func autoscalingResourceSchema() schema.SingleNestedAttribute {
 							Optional:            true,
 							Attributes: map[string]schema.Attribute{
 								"name": schema.StringAttribute{
-									MarkdownDescription: autoscalingTriggerAuthNameDescription,
+									MarkdownDescription: autoscalingTriggerAuthNameDescription + autoscalingTriggerAuthNameIgnoredNote,
 									Required:            true,
 								},
 								"config_yaml": schema.StringAttribute{
@@ -301,16 +307,20 @@ func toQoveryAutoscalingRequest(o types.Object) (*qovery.AutoscalingPolicyReques
 
 // fromAutoscaling converts the shared domain model into a Terraform object.
 // Returns a null object when the policy is absent so an unset block stays unset.
-func fromAutoscaling(p *autoscaling.AutoscalingPolicy) types.Object {
+// prior is the value the object replaces (the plan on Create and Update, the
+// state on Read, null on import and in data sources): it supplies the trigger
+// authentication names, see triggerAuthNames.
+func fromAutoscaling(p *autoscaling.AutoscalingPolicy, prior types.Object) types.Object {
 	if p == nil {
 		return types.ObjectNull(autoscalingAttrTypes())
 	}
 
 	triggerAuthAttrTypes := autoscalingTriggerAuthAttrTypes()
 	scalerAttrTypes := autoscalingScalerAttrTypes()
+	names := triggerAuthNames(p.Scalers, toQoveryAutoscaling(prior))
 
 	scalerElems := make([]attr.Value, 0, len(p.Scalers))
-	for _, s := range p.Scalers {
+	for i, s := range p.Scalers {
 		configJSON := jsontypes.NewNormalizedNull()
 		if s.Config.ConfigJSON != "" {
 			configJSON = jsontypes.NewNormalizedValue(s.Config.ConfigJSON)
@@ -324,7 +334,7 @@ func fromAutoscaling(p *autoscaling.AutoscalingPolicy) types.Object {
 		triggerAuth := types.ObjectNull(triggerAuthAttrTypes)
 		if s.TriggerAuth != nil {
 			triggerAuth = types.ObjectValueMust(triggerAuthAttrTypes, map[string]attr.Value{
-				"name":        types.StringValue(s.TriggerAuth.Name),
+				"name":        types.StringValue(names[i]),
 				"config_yaml": FromStringPointer(s.TriggerAuth.ConfigYAML),
 			})
 		}
@@ -348,16 +358,78 @@ func fromAutoscaling(p *autoscaling.AutoscalingPolicy) types.Object {
 	})
 }
 
+// triggerAuthNames returns, for each scaler of actual, the name of its trigger
+// authentication to store in the state ("" for a scaler without one).
+//
+// The API ignores the name sent for an inline trigger authentication: q-core
+// generates one from the service ID and a timestamp (`<id prefix>-<timestamp>-auth`)
+// and keeps it on every edit. The configured name is therefore write-only, so it
+// comes from the prior scaler that matches on every other attribute. A scaler
+// with no such match (after an import, in a data source, or after a change made
+// outside Terraform) keeps the name the API returns.
+func triggerAuthNames(actual []autoscaling.Scaler, prior *autoscaling.AutoscalingPolicy) []string {
+	var candidates []autoscaling.Scaler
+	if prior != nil {
+		candidates = prior.Scalers
+	}
+	used := make([]bool, len(candidates))
+
+	names := make([]string, len(actual))
+	for i, s := range actual {
+		if s.TriggerAuth == nil {
+			continue
+		}
+		names[i] = s.TriggerAuth.Name
+		for j, c := range candidates {
+			if used[j] || !sameScalerExceptTriggerAuthName(s, c) {
+				continue
+			}
+			used[j] = true
+			names[i] = c.TriggerAuth.Name
+			break
+		}
+	}
+	return names
+}
+
+// sameScalerExceptTriggerAuthName reports whether a and b both carry a trigger
+// authentication and are equal on every attribute but its name. config_json is
+// compared as JSON, since the API returns it re-encoded.
+func sameScalerExceptTriggerAuthName(a, b autoscaling.Scaler) bool {
+	if a.TriggerAuth == nil || b.TriggerAuth == nil {
+		return false
+	}
+	return a.ScalerType == b.ScalerType &&
+		a.Role == b.Role &&
+		a.Enabled == b.Enabled &&
+		a.Config.ConfigYAML == b.Config.ConfigYAML &&
+		sameJSON(a.Config.ConfigJSON, b.Config.ConfigJSON) &&
+		ptrStringValue(a.TriggerAuth.ConfigYAML) == ptrStringValue(b.TriggerAuth.ConfigYAML)
+}
+
+// sameJSON reports whether a and b encode the same JSON value. Two empty strings
+// are equal; an empty and a non-empty string, or an invalid document, are not.
+func sameJSON(a, b string) bool {
+	if a == b {
+		return true
+	}
+	var av, bv any
+	if json.Unmarshal([]byte(a), &av) != nil || json.Unmarshal([]byte(b), &bv) != nil {
+		return false
+	}
+	return reflect.DeepEqual(av, bv)
+}
+
 // fromAutoscalingResponse converts the API response model directly into a
 // Terraform object. Used by the application resource (legacy client layer).
 // A serialization error (re-marshalling an already-decoded config_json map,
 // which cannot realistically fail) degrades to a null object.
-func fromAutoscalingResponse(res *qovery.AutoscalingPolicyResponse) types.Object {
+func fromAutoscalingResponse(res *qovery.AutoscalingPolicyResponse, prior types.Object) types.Object {
 	policy, err := autoscaling.FromQoveryResponse(res)
 	if err != nil {
 		return types.ObjectNull(autoscalingAttrTypes())
 	}
-	return fromAutoscaling(policy)
+	return fromAutoscaling(policy, prior)
 }
 
 // validateAutoscalingPlan enforces, at plan time, the KEDA constraints the

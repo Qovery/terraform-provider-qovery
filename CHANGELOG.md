@@ -21,6 +21,11 @@ explained in the matching upgrade guide.
   `advanced_settings_json` now passes in one apply. It used to fail with "Ram limit (…) must be
   greater than ram request (…)" and needed a first apply for the limit and a second for the request.
   (#660)
+- An application or container whose `autoscaling` scaler sets an inline `trigger_authentication`
+  now applies. It used to fail with "Provider produced inconsistent result after apply", and every
+  later plan wanted to replace the scalers: Qovery ignores the `name` sent and generates one. The
+  state now keeps the configured `name`; after an import it holds the generated one until the next
+  apply.
 
 ## [1.6.0] - 2026-11-04
 
