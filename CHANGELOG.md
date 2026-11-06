@@ -25,7 +25,7 @@ explained in the matching upgrade guide.
   now applies. It used to fail with "Provider produced inconsistent result after apply", and every
   later plan wanted to replace the scalers: Qovery ignores the `name` sent and generates one. The
   state now keeps the configured `name`; after an import it holds the generated one until the next
-  apply.
+  apply. (#661)
 
 ## [1.6.0] - 2026-11-04
 
