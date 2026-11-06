@@ -44,6 +44,86 @@ func TestAcc_ApplicationWithAutoscaling(t *testing.T) {
 	})
 }
 
+// Regression: the API ignores the name of an inline trigger authentication and
+// generates one, which made the apply fail with "Provider produced inconsistent
+// result after apply". The state keeps the configured name.
+func TestAcc_ApplicationAutoscalingTriggerAuthentication(t *testing.T) {
+	t.Parallel()
+	testName := "application-autoscaling-trigger-auth"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
+		Steps: []resource.TestStep{
+			// Create: the apply is consistent and the next plan is empty.
+			{
+				Config: testAccApplicationConfigWithTriggerAuthentication(testName, "tf-acc-auth"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "autoscaling.scalers.*", map[string]string{
+						"scaler_type":                        "prometheus",
+						"trigger_authentication.name":        "tf-acc-auth",
+						"trigger_authentication.config_yaml": autoscalingTriggerAuthConfigYAML,
+					}),
+				),
+			},
+			// Rename: the API keeps its generated name, the state takes the new one.
+			{
+				Config: testAccApplicationConfigWithTriggerAuthentication(testName, "tf-acc-auth-renamed"),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "autoscaling.scalers.*", map[string]string{
+						"trigger_authentication.name": "tf-acc-auth-renamed",
+					}),
+				),
+			},
+			// Import: no prior state, so the state records the generated name.
+			{
+				ResourceName:      "qovery_application.test",
+				ImportState:       true,
+				ImportStateVerify: true,
+				// Create stores "" when unset while Read returns "{}"; state is not refreshed
+				// before import.
+				ImportStateVerifyIgnore: []string{"advanced_settings_json", "autoscaling.scalers.0.trigger_authentication.name"},
+			},
+		},
+	})
+}
+
+func testAccApplicationConfigWithTriggerAuthentication(testName, triggerAuthName string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_application" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  build_mode = "DOCKER"
+  dockerfile_path = "Dockerfile"
+  git_repository = {
+    url = "%s"
+    git_token_id = "%s"
+  }
+  min_running_instances = 0
+  healthchecks = {}
+  autoscaling = {
+    scalers = [
+      {
+        scaler_type = "prometheus"
+        role        = "PRIMARY"
+        config_json = jsonencode({ query = "up" })
+        trigger_authentication = {
+          name        = "%s"
+          config_yaml = %q
+        }
+      },
+    ]
+  }
+}
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(),
+		triggerAuthName, autoscalingTriggerAuthConfigYAML,
+	)
+}
+
 func TestAcc_ApplicationScaleToZeroRequiresAutoscaling(t *testing.T) {
 	t.Parallel()
 	testName := "application-scale-to-zero-invalid"

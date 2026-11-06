@@ -251,7 +251,7 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		AutoDeploy:                   FromBoolPointer(container.AutoDeploy),
 		AnnotationsGroupIds:          stringSetFromAPI(state.AnnotationsGroupIds, container.AnnotationsGroupIds),
 		LabelsGroupIds:               stringSetFromAPI(state.LabelsGroupIds, container.LabelsGroupIds),
-		Autoscaling:                  fromAutoscaling(container.Autoscaling),
+		Autoscaling:                  fromAutoscaling(container.Autoscaling, state.Autoscaling),
 		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(container.ExternalSecrets, state.ExternalSecrets, variable.ScopeContainer).toTerraformSet(ctx),
 		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(container.ExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeContainer).toTerraformSet(ctx),
 	}
