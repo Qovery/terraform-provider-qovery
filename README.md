@@ -135,7 +135,7 @@ See the [full list of resources and data sources](https://registry.terraform.io/
 - [Getting started](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/getting-started): AWS account, EKS cluster, Postgres and an application in staging and production.
 - [Airbyte on Qovery](https://github.com/evoxmusic/qovery-airbyte): a Helm-based stack with a database, deployment stages and a proxy.
 - [Terraform provider documentation on qovery.com](https://www.qovery.com/docs/terraform-provider/overview): multi-environment setups, linking services, modules and remote state.
-- Already configured in the Console? [Export your setup as Terraform](https://www.qovery.com/docs/terraform-provider/exporter).
+- Already configured in the Console? [Export your setup as Terraform](https://www.qovery.com/docs/terraform-provider/exporter), or ask your coding agent: the [qovery-terraform skill](https://github.com/Qovery/qovery-skills) writes the configuration, imports the resources and checks that the plan shows no change.
 
 ## Contributing
 
