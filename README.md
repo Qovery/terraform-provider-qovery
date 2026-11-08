@@ -28,6 +28,15 @@ terraform {
 # Reads the API token from the QOVERY_API_TOKEN environment variable.
 provider "qovery" {}
 
+# Both IDs are in the Console URL, or in `qovery organization list` and `qovery cluster list`.
+variable "organization_id" {
+  type = string
+}
+
+variable "cluster_id" {
+  type = string
+}
+
 resource "qovery_project" "app" {
   organization_id = var.organization_id
   name            = "my-app"
@@ -68,8 +77,20 @@ resource "qovery_application" "api" {
     }
   ]
 
-  # No probes here. Add a readiness and a liveness probe before production.
-  healthchecks = {}
+  healthchecks = {
+    readiness_probe = {
+      type = {
+        tcp = {
+          port = 8080
+        }
+      }
+      initial_delay_seconds = 30
+      period_seconds        = 10
+      timeout_seconds       = 5
+      success_threshold     = 1
+      failure_threshold     = 3
+    }
+  }
 
   environment_variables = [
     {
