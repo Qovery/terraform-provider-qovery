@@ -68,21 +68,13 @@ task testacc
 
 *Note:* Acceptance tests create real resources, and often cost money to run.
 
-The acceptance tests require a `QOVERY_API_TOKEN` environment variable to be set. 
-It corresponds to your JWT token on the Qovery's console and can be acquired using the [qovery-cli](https://github.com/Qovery/qovery-cli) with the following command (needs [jq](https://stedolan.github.io/jq/download/)): 
+The acceptance tests require a `QOVERY_API_TOKEN` environment variable set to a Qovery API token. The provider sends it as `Authorization: Token <value>`, so use an API token, not the session JWT of `qovery auth`. Create one with the [qovery-cli](https://github.com/Qovery/qovery-cli) command `qovery token`, or in the Console under Settings > API Tokens.
 
-```shell
-qovery auth ; cat ~/.qovery/context.json | jq -r .access_token | sed 's/.*Authorization: Bearer \(*\)/\1/' | tr -d '\n'
-```
-
-This JWT needs to be put inside a `.env` file at the root of the repository. 
-You can use the `.env.example` file as a base for you file.  
+Put it in a `.env` file at the root of the repository. You can use the `.env.example` file as a base for your file.
 
 ```dotenv
 QOVERY_API_TOKEN=<qovery-api-token>
 ```
-
-*Note:* API tokens can be generated via the [qovery-cli](https://github.com/Qovery/qovery-cli) command `qovery token`.
 
 In order to run the tests with extra debugging context, prefix with `TF_LOG` (see the [terraform documentation](https://www.terraform.io/docs/internals/debugging.html) for details).
 
@@ -98,11 +90,11 @@ task testacc -- -run 'TestAcc_Organization*'
 
 ### Using IntelliJ IDEA Debugger
 
-To be able to add breakpoints in your code and use the debugger provided by IntelliJ IDEA, you'll need to add `--debug` in `Program arguments` field in Idea configuration.
+To be able to add breakpoints in your code and use the debugger provided by IntelliJ IDEA, you'll need to add `--debug` in `Program arguments` field of the IntelliJ IDEA run configuration.
 
-Once you run the project in debug mod, you'll find a line in terminal looking like `TF_REATTACH_PROVIDERS='{"registry.terraform.io/Qovery/qovery":{"Protocol":"grpc","ProtocolVersion":6,"Pid":591078,"Test":true,"Addr":{"Network":"unix","String":"/tmp/plugin1516819738"}}}'`
+Once you run the project in debug mode, you'll find a line in terminal looking like `TF_REATTACH_PROVIDERS='{"registry.terraform.io/Qovery/qovery":{"Protocol":"grpc","ProtocolVersion":6,"Pid":591078,"Test":true,"Addr":{"Network":"unix","String":"/tmp/plugin1516819738"}}}'`
 
-Copy and export this environment variable in the terminal you use to run Terraform Commands. Use any Terraform command in this terminal and Idea will listen to it and stop on breakpoints you set.
+Copy and export this environment variable in the terminal you use to run Terraform Commands. Use any Terraform command in this terminal and IntelliJ IDEA will listen to it and stop on breakpoints you set.
 
 ## Generating The Provider Documentation
 
