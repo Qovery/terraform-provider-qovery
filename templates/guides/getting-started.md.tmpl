@@ -147,8 +147,9 @@ resource "qovery_application" "api" {
   name           = "api"
 
   git_repository = {
+    # Use another branch for staging once you have one.
     url    = "https://github.com/my-org/my-app.git"
-    branch = each.key == "production" ? "main" : "staging"
+    branch = "main"
   }
   dockerfile_path = "Dockerfile"
 
@@ -176,21 +177,12 @@ resource "qovery_application" "api" {
     }
   }
 
-  environment_variables = [
+  # DATABASE_URL is an alias of the database's built-in DATABASE_URL_INTERNAL secret.
+  # Qovery resolves it at deploy time, so the password never enters the Terraform state.
+  secret_aliases = [
     {
-      key   = "DATABASE_HOST"
-      value = qovery_database.postgres[each.key].internal_host
-    },
-    {
-      key   = "DATABASE_USER"
-      value = qovery_database.postgres[each.key].login
-    }
-  ]
-
-  secrets = [
-    {
-      key   = "DATABASE_PASSWORD"
-      value = qovery_database.postgres[each.key].password
+      key   = "DATABASE_URL"
+      value = "QOVERY_POSTGRESQL_Z${upper(split("-", qovery_database.postgres[each.key].id)[0])}_DATABASE_URL_INTERNAL"
     }
   ]
 }
@@ -211,6 +203,8 @@ resource "qovery_deployment" "app" {
   ]
 }
 ```
+
+At runtime, `DATABASE_URL` holds `postgresql://<login>:<password>@<host>:<port>/<database>`.
 
 Then run:
 
