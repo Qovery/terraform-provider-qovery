@@ -7,6 +7,10 @@ The provider needs to be configured with the proper credentials before it can be
 
 The provider is tested against Terraform 1.15. Earlier versions are expected to work but are not tested.
 
+The provider is also published on the [OpenTofu Registry](https://search.opentofu.org/provider/qovery/qovery/latest): `tofu init` resolves `qovery/qovery` there, and the same configuration applies with `tofu`.
+
+Starting a new project? The [Getting started](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/getting-started) guide goes from an empty cloud account to an app and a database running in staging and production.
+
 Upgrading from an earlier version? Read the [upgrade guide](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/upgrade-to-1.0) first. The [Managing changes](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes) guide explains how the provider plans changes.
 
 ## Authentication

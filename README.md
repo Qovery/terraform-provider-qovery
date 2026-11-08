@@ -1,123 +1,125 @@
-# Qovery Terraform Provider
+# Qovery Terraform and OpenTofu Provider
 
+[![Terraform Registry](https://img.shields.io/badge/Terraform-registry-7B42BC?logo=terraform)](https://registry.terraform.io/providers/qovery/qovery/latest)
+[![OpenTofu Registry](https://img.shields.io/badge/OpenTofu-registry-FFDA18?logo=opentofu)](https://search.opentofu.org/provider/qovery/qovery/latest)
 [![Tests](https://github.com/qovery/terraform-provider-qovery/actions/workflows/tests.yml/badge.svg)](https://github.com/qovery/terraform-provider-qovery/actions/workflows/tests.yml)
+[![License: MPL 2.0](https://img.shields.io/badge/License-MPL_2.0-brightgreen.svg)](LICENSE)
 
-- Documentation: https://registry.terraform.io/providers/qovery/qovery/latest
-- Changelog: [CHANGELOG.md](CHANGELOG.md)
-- Upgrading from 0.x: [1.0 upgrade guide](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/upgrade-to-1.0)
+Run applications, databases, Helm charts and Terraform modules on Kubernetes in your own AWS, GCP, Azure or Scaleway account, described in Terraform or OpenTofu.
 
-## Requirements
+[Qovery](https://www.qovery.com) creates and operates the Kubernetes cluster (EKS, GKE, AKS, Kapsule) in your cloud account, then builds and deploys your services on it, with DNS, TLS, autoscaling, preview environments and rollbacks. This provider lets you declare all of it as code, so you do not have to write and maintain EKS modules, Helm charts and Kubernetes manifests yourself.
 
-- [Terraform](https://www.terraform.io/downloads.html): tested against Terraform 1.15. Earlier versions are expected to work but are not tested.
-- [Go](https://golang.org/doc/install) >= 1.27 (to build the provider)
-- [Task](https://taskfile.dev) v3 (to run Taskfile commands)
-- [jq](https://stedolan.github.io/jq/download/) (to parse json from curl api calls)
+- **Documentation:** [registry.terraform.io/providers/qovery/qovery](https://registry.terraform.io/providers/qovery/qovery/latest/docs)
+- **Start a new project:** [Getting started guide](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/getting-started), from an empty cloud account to an app and a database in staging and production
+- **Changelog:** [CHANGELOG.md](CHANGELOG.md). Upgrading from 0.x? Read the [1.0 upgrade guide](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/upgrade-to-1.0).
 
-## Building The Provider
+## Quick start
 
-1. Clone the repository
-1. Enter the repository directory
-1. Build the provider using the task `build` command:
+```terraform
+terraform {
+  required_providers {
+    qovery = {
+      source  = "qovery/qovery"
+      version = "~> 1.0"
+    }
+  }
+}
+
+# Reads the API token from the QOVERY_API_TOKEN environment variable.
+provider "qovery" {}
+
+resource "qovery_project" "app" {
+  organization_id = var.organization_id
+  name            = "my-app"
+}
+
+resource "qovery_environment" "production" {
+  project_id = qovery_project.app.id
+  cluster_id = var.cluster_id
+  name       = "production"
+  mode       = "PRODUCTION"
+}
+
+resource "qovery_database" "postgres" {
+  environment_id = qovery_environment.production.id
+  name           = "postgres"
+  type           = "POSTGRESQL"
+  version        = "17"
+  mode           = "CONTAINER"
+  accessibility  = "PRIVATE"
+  storage        = 20
+}
+
+resource "qovery_application" "api" {
+  environment_id  = qovery_environment.production.id
+  name            = "api"
+  dockerfile_path = "Dockerfile"
+
+  git_repository = {
+    url    = "https://github.com/my-org/my-app.git"
+    branch = "main"
+  }
+
+  ports = [
+    {
+      internal_port       = 8080
+      external_port       = 443
+      publicly_accessible = true
+    }
+  ]
+
+  # No probes here. Add a readiness and a liveness probe before production.
+  healthchecks = {}
+
+  environment_variables = [
+    {
+      key   = "DATABASE_HOST"
+      value = qovery_database.postgres.internal_host
+    }
+  ]
+}
+
+resource "qovery_deployment" "production" {
+  environment_id = qovery_environment.production.id
+  desired_state  = "RUNNING"
+  depends_on     = [qovery_application.api, qovery_database.postgres]
+}
+```
 
 ```shell
-task build
+export QOVERY_API_TOKEN="<your token>"   # Qovery Console > Settings > API Tokens
+terraform init && terraform apply        # or: tofu init && tofu apply
 ```
 
-## Available Commands
+This example uses an existing cluster. To create the cluster from Terraform too, with `qovery_aws_credentials` and `qovery_cluster`, follow the [Getting started guide](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/getting-started).
 
-| Command | Description |
-|---------|-------------|
-| `task build` | Build the provider binary |
-| `task install` | Build and install dev override |
-| `task test` | Run unit tests |
-| `task testacc` | Run acceptance tests |
-| `task lint` | Run linters |
-| `task docs` | Generate documentation |
-| `task mocks` | Generate test mocks |
-| `task clean-tests` | Clean up test resources |
+## Terraform and OpenTofu
 
-## Developing The Provider
+The provider is published on both the [Terraform Registry](https://registry.terraform.io/providers/qovery/qovery/latest) and the [OpenTofu Registry](https://search.opentofu.org/provider/qovery/qovery/latest) under the same address, `qovery/qovery`. The configuration is the same for both: run `terraform` or `tofu`. The test suite runs against Terraform 1.15.
 
-If you wish to work on the provider, you'll first need [Go](http://www.golang.org) installed on your machine (see [Requirements](#requirements) above).
+## What you can manage
 
-To compile the provider, run the task `build` command:
+| Area | Resources |
+|------|-----------|
+| Cloud accounts and clusters | `qovery_aws_credentials`, `qovery_gcp_credentials`, `qovery_scaleway_credentials`, `qovery_cluster` (EKS, GKE, AKS, Kapsule, EKS Anywhere) |
+| Projects and environments | `qovery_project`, `qovery_environment`, `qovery_deployment_stage`, `qovery_deployment` |
+| Services | `qovery_application` (built from git), `qovery_container` (from an image), `qovery_job` (cron and lifecycle), `qovery_helm`, `qovery_terraform_service`, `qovery_database` |
+| Managed cloud resources | `qovery_blueprint` (RDS, ElastiCache, S3, MSK, CloudFront and more, from the [service catalog](https://github.com/Qovery/service-catalog)) |
+| Organization and access | `qovery_organization`, `qovery_organization_member`, `qovery_custom_role`, `qovery_api_token` |
 
-```shell
-task build
-```
+See the [full list of resources and data sources](https://registry.terraform.io/providers/qovery/qovery/latest/docs).
 
-This will build the provider and put the provider binary in the repository `/bin` folder.
+## Examples
 
-To be able to use the compiled provider binary, you will need to create a [development override](https://www.terraform.io/docs/cli/config/config-file.html#development-overrides-for-provider-developers) for this provider in your `~/.terraformrc` pointing to the repository `/bin` folder. 
-To create a development override, run the task `install-dev-override` command:
+- [Getting started](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/getting-started): AWS account, EKS cluster, Postgres and an application in staging and production.
+- [Airbyte on Qovery](https://github.com/evoxmusic/qovery-airbyte): a Helm-based stack with a database, deployment stages and a proxy.
+- [Terraform provider documentation on qovery.com](https://www.qovery.com/docs/terraform-provider/overview): multi-environment setups, linking services, modules and remote state.
+- Already configured in the Console? [Export your setup as Terraform](https://www.qovery.com/docs/terraform-provider/exporter).
 
-```shell
-task install-dev-override
-```
+## Contributing
 
-When you are finished using the compiled version of the provider, you can safely remove the `~/.terraformrc` file.
-To remove a development override, run the task `uninstall-dev-override` command:
+To build, test and document the provider, see [CONTRIBUTING.md](CONTRIBUTING.md).
 
-```shell
-task uninstall-dev-override
-```
+## License
 
-## Testing The Provider
-
-In order to run the full suite of Acceptance tests, run task `testacc` command:
-
-```shell
-task testacc
-```
-
-*Note:* Acceptance tests create real resources, and often cost money to run.
-
-The acceptance tests require a `QOVERY_API_TOKEN` environment variable to be set. 
-It corresponds to your JWT token on the Qovery's console and can be acquired using the [qovery-cli](https://github.com/Qovery/qovery-cli) with the following command (needs [jq](https://stedolan.github.io/jq/download/)): 
-
-```shell
-qovery auth ; cat ~/.qovery/context.json | jq -r .access_token | sed 's/.*Authorization: Bearer \(*\)/\1/' | tr -d '\n'
-```
-
-This JWT needs to be put inside a `.env` file at the root of the repository. 
-You can use the `.env.example` file as a base for you file.  
-
-```dotenv
-QOVERY_API_TOKEN=<qovery-api-token>
-```
-
-*Note:* API tokens can be generated via the [qovery-cli](https://github.com/Qovery/qovery-cli) command `qovery token`.
-
-In order to run the tests with extra debugging context, prefix with `TF_LOG` (see the [terraform documentation](https://www.terraform.io/docs/internals/debugging.html) for details).
-
-```sh
-TF_LOG=trace task testacc
-```
-
-To run a specific set of tests, use the `-run` flag and specify a regex pattern matching the test names.
-
-```sh
-task testacc -- -run 'TestAcc_Organization*'
-```
-
-### Using Intellij IDEA Debugger
-
-To be able to add breakpoints in you code and use the debugger provided by Intellij IDEA, you'll need to add `--debug` in `Program arguments` field in Idea configuration.
-
-Once you run the project in debug mod, you'll find a line in terminal looking like `TF_REATTACH_PROVIDERS='{"registry.terraform.io/Qovery/qovery":{"Protocol":"grpc","ProtocolVersion":6,"Pid":591078,"Test":true,"Addr":{"Network":"unix","String":"/tmp/plugin1516819738"}}}'`
-
-Copy and export this environment variable in the terminal you use to run Terraform Commands. Use any Terraform command in this terminal and Idea will listen to it and stop on breakpoints you set.
-
-## Generating The Provider Documentation
-
-The documentation is autogenerated from Description fields within the provider, and the `examples` directory.
-Generating the documentation creates markdown in the `docs` folder, ready for deployment to Hashicorp.
-To generate the documentation, run the task `docs` command:
-
-*NOTE:* To generate the documentation you need to have provided the environment variable `QOVERY_API_TOKEN` as it uses the api to fetch some data present in the doc.
-
-```sh
-task docs
-```
-
-You can preview the generated documentation by copying `/docs` Markdown file content into this [preview tool](https://registry.terraform.io/tools/doc-preview).
+[Mozilla Public License 2.0](LICENSE)
