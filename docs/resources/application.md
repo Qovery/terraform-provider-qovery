@@ -416,8 +416,8 @@ Required:
 
 Optional:
 
-- `config_json` (String) Configuration of the scaler, as JSON. Conflicts with `config_yaml`.
-- `config_yaml` (String) Configuration of the scaler, as YAML. Conflicts with `config_json`.
+- `config_json` (String) Scaler `metadata` only, as an object of string values, e.g. `{"query": "...", "threshold": "10"}`. Other trigger fields (`name`, `metricType`, `useCachedMetrics`) are only available through `config_yaml`. Conflicts with `config_yaml`.
+- `config_yaml` (String) Body of the KEDA trigger as YAML, without `type` (from `scaler_type`) and `authenticationRef` (from `trigger_authentication`). Scaler settings are under `metadata:`, next to the optional `name`, `metricType` and `useCachedMetrics`. Conflicts with `config_json`.
 - `enabled` (Boolean) Whether the scaler is enabled.
 	- Default: `true`.
 - `trigger_authentication` (Attributes) KEDA TriggerAuthentication of the scaler. (see [below for nested schema](#nestedatt--autoscaling--scalers--trigger_authentication))
