@@ -399,8 +399,8 @@ Read-Only:
 
 Read-Only:
 
-- `config_json` (String) Scaler `metadata` only, as an object of string values, e.g. `{"query": "...", "threshold": "10"}`. Other trigger fields (`name`, `metricType`, `useCachedMetrics`) cannot be set here: use `config_yaml`. Conflicts with `config_yaml`.
-- `config_yaml` (String) Body of the KEDA trigger as YAML, without `type` (set from `scaler_type`) and `authenticationRef` (set from `trigger_authentication`). Scaler settings go under `metadata:`; `name`, `metricType` and `useCachedMetrics` can be set next to it. Conflicts with `config_json`.
+- `config_json` (String) Scaler `metadata` only, as an object of string values, e.g. `{"query": "...", "threshold": "10"}`. Other trigger fields (`name`, `metricType`, `useCachedMetrics`) are only available through `config_yaml`. Conflicts with `config_yaml`.
+- `config_yaml` (String) Body of the KEDA trigger as YAML, without `type` (from `scaler_type`) and `authenticationRef` (from `trigger_authentication`). Scaler settings are under `metadata:`, next to the optional `name`, `metricType` and `useCachedMetrics`. Conflicts with `config_json`.
 - `enabled` (Boolean) Whether the scaler is enabled.
 - `role` (String) Role of the scaler: `PRIMARY` or `SAFETY`.
 - `scaler_type` (String) Type of the KEDA scaler, for example `cpu`, `memory`, `prometheus` or `cron`.
