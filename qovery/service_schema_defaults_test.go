@@ -169,9 +169,9 @@ func TestUpgradeArgumentsFrom0x(t *testing.T) {
 	assert.True(t, arguments.Equal(upgradeArgumentsFrom0x(arguments)), "declared arguments are kept")
 }
 
-// TestServiceResource_UpgradeStateV0ToV1 runs the V0 upgrader of application and container on a
+// TestServiceResource_UpgradeStateV0 runs the V0 upgrader of application and container on a
 // 0.x state.
-func TestServiceResource_UpgradeStateV0ToV1(t *testing.T) {
+func TestServiceResource_UpgradeStateV0(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 
@@ -203,7 +203,7 @@ func TestServiceResource_UpgradeStateV0ToV1(t *testing.T) {
 
 				var schemaResp resource.SchemaResponse
 				r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
-				assert.Equal(t, int64(1), schemaResp.Schema.Version)
+				assert.Equal(t, int64(2), schemaResp.Schema.Version)
 
 				upgrader, ok := r.UpgradeState(ctx)[0]
 				require.True(t, ok)

@@ -113,7 +113,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 	restrictions := deploymentRestrictionDescriptions("application")
 
 	resp.Schema = schema.Schema{
-		Version:             1,
+		Version:             2,
 		MarkdownDescription: "Manages a Qovery application: a service Qovery builds from a git repository, with a Dockerfile or Buildpacks, and deploys to its environment.",
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -764,26 +764,38 @@ func (r applicationResource) ImportState(ctx context.Context, req resource.Impor
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-// UpgradeState migrates application states written by 0.x (schema version 0).
+// UpgradeState migrates application states written by 0.x (schema version 0)
+// and by the versions whose autoscaling scalers were a set (schema version 1).
 func (r applicationResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
-	// Version 0 has the same attribute types as the current schema.
+	// Versions 0 and 1 have the attribute types of the current schema, except the
+	// autoscaling scalers.
 	var schemaResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
-	priorSchema := schemaResp.Schema
+	priorSchema := withAutoscalingSchemaV1(schemaResp.Schema)
 
 	return map[int64]resource.StateUpgrader{
-		0: {
-			PriorSchema: &priorSchema,
-			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-				var app Application
-				resp.Diagnostics.Append(req.State.Get(ctx, &app)...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-				app.Arguments = upgradeArgumentsFrom0x(app.Arguments)
-				resp.Diagnostics.Append(resp.State.Set(ctx, app)...)
-			},
-		},
+		0: {PriorSchema: &priorSchema, StateUpgrader: upgradeApplicationState(true)},
+		1: {PriorSchema: &priorSchema, StateUpgrader: upgradeApplicationState(false)},
+	}
+}
+
+func upgradeApplicationState(from0x bool) func(context.Context, resource.UpgradeStateRequest, *resource.UpgradeStateResponse) {
+	return func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+		var app Application
+		resp.Diagnostics.Append(req.State.Get(ctx, &app)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if from0x {
+			app.Arguments = upgradeArgumentsFrom0x(app.Arguments)
+		}
+		autoscaling, diags := upgradeAutoscalingFromV1(app.Autoscaling)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		app.Autoscaling = autoscaling
+		resp.Diagnostics.Append(resp.State.Set(ctx, app)...)
 	}
 }
 

@@ -244,12 +244,21 @@ func walkAttributes(prefix string, attrs map[string]schema.Attribute, visit func
 	}
 }
 
-// setPlannedDefaults returns the paths of the nested attributes whose default a set-level plan
-// modifier plans, such as custom_domains.use_cdn: a Default nested in a set breaks the matching
-// of planned and applied elements, so CustomDomainsBoolDefaults plans it on the whole set.
+// setPlannedDefaults returns the paths of the nested attributes that a set- or list-level plan
+// modifier plans. A Default nested in a set breaks the matching of planned and applied elements,
+// so CustomDomainsBoolDefaults plans custom_domains.use_cdn on the whole set; the id of a KEDA
+// scaler comes from the state scaler it stands for, which only the whole list knows.
 func setPlannedDefaults(attrs map[string]schema.Attribute) map[string]bool {
 	defaulted := make(map[string]bool)
 	walkAttributes("", attrs, func(path string, attr schema.Attribute) {
+		if list, ok := attr.(schema.ListNestedAttribute); ok {
+			for _, m := range list.PlanModifiers {
+				if _, ok := m.(scalerIDsFromStateModifier); ok {
+					defaulted[path+".id"] = true
+				}
+			}
+			return
+		}
 		set, ok := attr.(schema.SetNestedAttribute)
 		if !ok {
 			return

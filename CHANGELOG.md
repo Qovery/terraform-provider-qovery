@@ -14,6 +14,13 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Changed
+
+- `autoscaling.scalers` on applications and containers, and on their data sources, is now a list
+  instead of a set, and each scaler has a read-only `id`. The HCL stays the same and the state is
+  upgraded automatically. The list keeps the order of the config; the first plan after the upgrade
+  can show the scalers reordered to follow it, once, without recreating them. (#666)
+
 ### Fixed
 
 - Raising `cpu` or `memory` on an application, container or job together with
@@ -26,6 +33,12 @@ explained in the matching upgrade guide.
   later plan wanted to replace the scalers: Qovery ignores the `name` sent and generates one. The
   state now keeps the configured `name`; after an import it holds the generated one until the next
   apply. (#661)
+- Applying an application or container with an `autoscaling` block no longer recreates its KEDA
+  scalers. Each recreated scaler got a new KEDA TriggerAuthentication, and the next deployment ran
+  it without credentials until the following one. The provider now sends each scaler's `id` so
+  Qovery updates it in place. A scaler keeps its id when the config reorders, adds, removes or
+  edits scalers: it is matched to the state scaler with the same attributes, then the same
+  `scaler_type` and `role`. (#666)
 
 ## [1.6.0] - 2026-11-04
 

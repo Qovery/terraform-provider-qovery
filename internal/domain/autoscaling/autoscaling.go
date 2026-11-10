@@ -45,8 +45,10 @@ type AutoscalingPolicy struct {
 	Scalers                []Scaler
 }
 
-// Scaler is a single KEDA scaler within an AutoscalingPolicy.
+// Scaler is a single KEDA scaler within an AutoscalingPolicy. ID is the API id
+// of an existing scaler, empty for a scaler to create.
 type Scaler struct {
+	ID          string
 	ScalerType  string
 	Enabled     bool
 	Role        Role

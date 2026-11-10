@@ -4,7 +4,9 @@ package autoscaling_test
 
 import (
 	"testing"
+	"time"
 
+	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -153,4 +155,35 @@ func TestFromQoveryResponse_Nil(t *testing.T) {
 	got, err := autoscaling.FromQoveryResponse(nil)
 	require.NoError(t, err)
 	assert.Nil(t, got)
+}
+
+func TestToQoveryRequest_ScalerID(t *testing.T) {
+	policy := autoscaling.AutoscalingPolicy{
+		Scalers: []autoscaling.Scaler{
+			{ID: "scaler-1", ScalerType: "cron", Role: autoscaling.RolePrimary, Config: autoscaling.Config{ConfigYAML: "a: 1"}},
+			{ScalerType: "cpu", Role: autoscaling.RoleSafety, Config: autoscaling.Config{ConfigYAML: "b: 2"}},
+		},
+	}
+
+	req, err := autoscaling.ToQoveryRequest(policy)
+	require.NoError(t, err)
+	scalers := req.KedaAutoscalingRequest.Scalers
+	require.Len(t, scalers, 2)
+	require.NotNil(t, scalers[0].Id, "an existing scaler is sent with its id")
+	assert.Equal(t, "scaler-1", *scalers[0].Id)
+	assert.Nil(t, scalers[1].Id, "a new scaler is sent without id")
+}
+
+func TestFromQoveryResponse_ScalerID(t *testing.T) {
+	yaml := "a: 1"
+	scaler := qovery.NewKedaScalerResponse("scaler-1", time.Now(), "cron", true, qovery.KEDASCALERROLE_PRIMARY)
+	scaler.ConfigYaml = *qovery.NewNullableString(&yaml)
+	keda := qovery.NewKedaAutoscalingResponse("policy-1", time.Now(), "service-1", qovery.AUTOSCALINGMODE_KEDA, 30, 300, []qovery.KedaScalerResponse{*scaler})
+	res := qovery.KedaAutoscalingResponseAsAutoscalingPolicyResponse(keda)
+
+	got, err := autoscaling.FromQoveryResponse(&res)
+	require.NoError(t, err)
+	require.Len(t, got.Scalers, 1)
+	assert.Equal(t, "scaler-1", got.Scalers[0].ID)
+	assert.Equal(t, "a: 1", got.Scalers[0].Config.ConfigYAML)
 }

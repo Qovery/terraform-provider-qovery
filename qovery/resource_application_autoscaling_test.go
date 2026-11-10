@@ -50,6 +50,7 @@ func TestAcc_ApplicationWithAutoscaling(t *testing.T) {
 func TestAcc_ApplicationAutoscalingTriggerAuthentication(t *testing.T) {
 	t.Parallel()
 	testName := "application-autoscaling-trigger-auth"
+	var scalerID scalerIDTracker
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -65,13 +66,16 @@ func TestAcc_ApplicationAutoscalingTriggerAuthentication(t *testing.T) {
 						"trigger_authentication.name":        "tf-acc-auth",
 						"trigger_authentication.config_yaml": autoscalingTriggerAuthConfigYAML,
 					}),
+					scalerID.record("qovery_application.test", "autoscaling.scalers.0.id"),
 				),
 			},
-			// Rename: the API keeps its generated name, the state takes the new one.
+			// Rename: the API keeps its generated name, the state takes the new one,
+			// and the scaler is updated in place.
 			{
 				Config: testAccApplicationConfigWithTriggerAuthentication(testName, "tf-acc-auth-renamed"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryApplicationExists("qovery_application.test"),
+					scalerID.unchanged("qovery_application.test", "autoscaling.scalers.0.id"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_application.test", "autoscaling.scalers.*", map[string]string{
 						"trigger_authentication.name": "tf-acc-auth-renamed",
 					}),

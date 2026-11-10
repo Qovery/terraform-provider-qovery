@@ -16,6 +16,9 @@ func ToQoveryRequest(p AutoscalingPolicy) (qovery.AutoscalingPolicyRequest, erro
 	for _, s := range p.Scalers {
 		scaler := qovery.NewKedaScalerRequest(s.ScalerType, qovery.KedaScalerRole(s.Role))
 		scaler.Enabled = &s.Enabled
+		if s.ID != "" {
+			scaler.Id = &s.ID
+		}
 
 		switch {
 		case s.Config.ConfigJSON != "":
@@ -45,8 +48,8 @@ func ToQoveryRequest(p AutoscalingPolicy) (qovery.AutoscalingPolicyRequest, erro
 }
 
 // FromQoveryResponse converts the API response model into the domain
-// AutoscalingPolicy. Response-only fields (id, created_at, updated_at,
-// service_id) are dropped. Returns (nil, nil) when autoscaling is absent.
+// AutoscalingPolicy. Response-only fields other than the scaler id (policy id,
+// created_at, updated_at, service_id) are dropped. Returns (nil, nil) when autoscaling is absent.
 func FromQoveryResponse(res *qovery.AutoscalingPolicyResponse) (*AutoscalingPolicy, error) {
 	if res == nil || res.KedaAutoscalingResponse == nil {
 		return nil, nil
@@ -76,6 +79,7 @@ func FromQoveryResponse(res *qovery.AutoscalingPolicyResponse) (*AutoscalingPoli
 		}
 
 		scalers = append(scalers, Scaler{
+			ID:          s.Id,
 			ScalerType:  s.ScalerType,
 			Enabled:     s.Enabled,
 			Role:        Role(s.Role),
