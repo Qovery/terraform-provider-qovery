@@ -13,6 +13,7 @@ import (
 func TestAcc_ContainerWithAutoscaling(t *testing.T) {
 	t.Parallel()
 	testName := "container-with-autoscaling"
+	var scalerID, cronScalerID scalerIDTracker
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -32,6 +33,7 @@ func TestAcc_ContainerWithAutoscaling(t *testing.T) {
 						"role":        "PRIMARY",
 						"enabled":     "true",
 					}),
+					scalerID.record("qovery_container.test", "autoscaling.scalers.0.id"),
 				),
 			},
 			// Import.
@@ -43,12 +45,26 @@ func TestAcc_ContainerWithAutoscaling(t *testing.T) {
 				// before import.
 				ImportStateVerifyIgnore: []string{"advanced_settings_json"},
 			},
-			// Update: switch the scaler to config_yaml and add a SAFETY scaler.
+			// Update: switch the scaler to config_yaml and add a SAFETY scaler. The
+			// first scaler is updated in place.
 			{
 				Config: testAccContainerConfigWithAutoscalingYAML(testName),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryContainerExists("qovery_container.test"),
 					resource.TestCheckResourceAttr("qovery_container.test", "autoscaling.scalers.#", "2"),
+					scalerID.unchanged("qovery_container.test", "autoscaling.scalers.0.id"),
+					resource.TestCheckResourceAttr("qovery_container.test", "autoscaling.scalers.1.scaler_type", "cron"),
+					cronScalerID.record("qovery_container.test", "autoscaling.scalers.1.id"),
+				),
+			},
+			// Reorder the scalers in the config: each one keeps its id.
+			{
+				Config: testAccContainerConfigWithAutoscalingScalers(testName, autoscalingCronJSONScaler, autoscalingPrometheusYAMLScaler),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists("qovery_container.test"),
+					resource.TestCheckResourceAttr("qovery_container.test", "autoscaling.scalers.0.scaler_type", "cron"),
+					cronScalerID.unchanged("qovery_container.test", "autoscaling.scalers.0.id"),
+					scalerID.unchanged("qovery_container.test", "autoscaling.scalers.1.id"),
 				),
 			},
 		},
@@ -61,6 +77,7 @@ func TestAcc_ContainerWithAutoscaling(t *testing.T) {
 func TestAcc_ContainerAutoscalingTriggerAuthentication(t *testing.T) {
 	t.Parallel()
 	testName := "container-autoscaling-trigger-auth"
+	var scalerID scalerIDTracker
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -76,13 +93,16 @@ func TestAcc_ContainerAutoscalingTriggerAuthentication(t *testing.T) {
 						"trigger_authentication.name":        "tf-acc-auth",
 						"trigger_authentication.config_yaml": autoscalingTriggerAuthConfigYAML,
 					}),
+					scalerID.record("qovery_container.test", "autoscaling.scalers.0.id"),
 				),
 			},
-			// Rename: the API keeps its generated name, the state takes the new one.
+			// Rename: the API keeps its generated name, the state takes the new one,
+			// and the scaler is updated in place.
 			{
 				Config: testAccContainerConfigWithTriggerAuthentication(testName, "tf-acc-auth-renamed"),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryContainerExists("qovery_container.test"),
+					scalerID.unchanged("qovery_container.test", "autoscaling.scalers.0.id"),
 					resource.TestCheckTypeSetElemNestedAttrs("qovery_container.test", "autoscaling.scalers.*", map[string]string{
 						"trigger_authentication.name": "tf-acc-auth-renamed",
 					}),
@@ -98,6 +118,31 @@ func TestAcc_ContainerAutoscalingTriggerAuthentication(t *testing.T) {
 				ImportStateVerifyIgnore: []string{"advanced_settings_json", "autoscaling.scalers.0.trigger_authentication.name"},
 			},
 		},
+	})
+}
+
+// scalerIDTracker records the id of a scaler at one step and checks that a later
+// step updated that scaler in place instead of recreating it.
+type scalerIDTracker struct {
+	id string
+}
+
+func (s *scalerIDTracker) record(name, key string) resource.TestCheckFunc {
+	return resource.TestCheckResourceAttrWith(name, key, func(value string) error {
+		if value == "" {
+			return fmt.Errorf("%s is empty", key)
+		}
+		s.id = value
+		return nil
+	})
+}
+
+func (s *scalerIDTracker) unchanged(name, key string) resource.TestCheckFunc {
+	return resource.TestCheckResourceAttrWith(name, key, func(value string) error {
+		if value != s.id {
+			return fmt.Errorf("%s changed from %q to %q: the scaler was recreated", key, s.id, value)
+		}
+		return nil
 	})
 }
 
@@ -443,7 +488,23 @@ resource "qovery_container" "test" {
 	)
 }
 
+const autoscalingPrometheusYAMLScaler = `{
+        scaler_type = "prometheus"
+        role        = "PRIMARY"
+        config_yaml = "query: up"
+      }`
+
+const autoscalingCronJSONScaler = `{
+        scaler_type = "cron"
+        role        = "SAFETY"
+        config_json = jsonencode({ start = "0 0 * * *" })
+      }`
+
 func testAccContainerConfigWithAutoscalingYAML(testName string) string {
+	return testAccContainerConfigWithAutoscalingScalers(testName, autoscalingPrometheusYAMLScaler, autoscalingCronJSONScaler)
+}
+
+func testAccContainerConfigWithAutoscalingScalers(testName, firstScaler, secondScaler string) string {
 	return fmt.Sprintf(`
 %s
 
@@ -459,20 +520,13 @@ resource "qovery_container" "test" {
   healthchecks = {}
   autoscaling = {
     scalers = [
-      {
-        scaler_type = "prometheus"
-        role        = "PRIMARY"
-        config_yaml = "query: up"
-      },
-      {
-        scaler_type = "cron"
-        role        = "SAFETY"
-        config_json = jsonencode({ start = "0 0 * * *" })
-      },
+      %s,
+      %s,
     ]
   }
 }
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag,
+		firstScaler, secondScaler,
 	)
 }
 

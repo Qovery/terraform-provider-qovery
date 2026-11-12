@@ -344,7 +344,7 @@ Optional:
 
 Required:
 
-- `scalers` (Attributes Set) KEDA scalers that drive the autoscaling. Set at least one. (see [below for nested schema](#nestedatt--autoscaling--scalers))
+- `scalers` (Attributes List) KEDA scalers that drive the autoscaling. Set at least one. (see [below for nested schema](#nestedatt--autoscaling--scalers))
 
 Optional:
 
@@ -368,6 +368,10 @@ Optional:
 - `enabled` (Boolean) Whether the scaler is enabled.
 	- Default: `true`.
 - `trigger_authentication` (Attributes) KEDA TriggerAuthentication of the scaler. (see [below for nested schema](#nestedatt--autoscaling--scalers--trigger_authentication))
+
+Read-Only:
+
+- `id` (String) Id of the scaler.
 
 <a id="nestedatt--autoscaling--scalers--trigger_authentication"></a>
 ### Nested Schema for `autoscaling.scalers.trigger_authentication`

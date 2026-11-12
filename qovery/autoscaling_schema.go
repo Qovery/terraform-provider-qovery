@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"reflect"
 
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
@@ -38,6 +39,7 @@ func autoscalingTriggerAuthAttrTypes() map[string]attr.Type {
 // autoscalingScalerAttrTypes returns the attribute types for a single scaler object.
 func autoscalingScalerAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
+		"id":                     types.StringType,
 		"scaler_type":            types.StringType,
 		"enabled":                types.BoolType,
 		"role":                   types.StringType,
@@ -52,7 +54,7 @@ func autoscalingAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"polling_interval_seconds": types.Int64Type,
 		"cooldown_period_seconds":  types.Int64Type,
-		"scalers":                  types.SetType{ElemType: types.ObjectType{AttrTypes: autoscalingScalerAttrTypes()}},
+		"scalers":                  types.ListType{ElemType: types.ObjectType{AttrTypes: autoscalingScalerAttrTypes()}},
 	}
 }
 
@@ -71,6 +73,7 @@ const (
 	autoscalingPollingIntervalDescription   = "Seconds between two polls of the scalers."
 	autoscalingCooldownPeriodDescription    = "Seconds to wait after the last trigger before scaling down."
 	autoscalingScalersDescription           = "KEDA scalers that drive the autoscaling. Set at least one."
+	autoscalingScalerIDDescription          = "Id of the scaler."
 	autoscalingScalerTypeDescription        = "Type of the KEDA scaler, for example `cpu`, `memory`, `prometheus` or `cron`."
 	autoscalingScalerEnabledDescription     = "Whether the scaler is enabled."
 	autoscalingScalerRoleDescription        = "Role of the scaler: `PRIMARY` or `SAFETY`."
@@ -113,14 +116,21 @@ func autoscalingResourceSchema() schema.SingleNestedAttribute {
 					int64planmodifier.UseStateForUnknown(),
 				},
 			},
-			"scalers": schema.SetNestedAttribute{
+			"scalers": schema.ListNestedAttribute{
 				MarkdownDescription: autoscalingScalersDescription,
 				Required:            true,
-				Validators: []validator.Set{
+				Validators: []validator.List{
 					validators.ScalerConfigExactlyOneValidator{},
+				},
+				PlanModifiers: []planmodifier.List{
+					scalerIDsFromStateModifier{},
 				},
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							MarkdownDescription: autoscalingScalerIDDescription,
+							Computed:            true,
+						},
 						"scaler_type": schema.StringAttribute{
 							MarkdownDescription: autoscalingScalerTypeDescription,
 							Required:            true,
@@ -185,11 +195,15 @@ func autoscalingDataSourceSchema() dsschema.SingleNestedAttribute {
 				MarkdownDescription: autoscalingCooldownPeriodDescription,
 				Computed:            true,
 			},
-			"scalers": dsschema.SetNestedAttribute{
+			"scalers": dsschema.ListNestedAttribute{
 				MarkdownDescription: autoscalingScalersDescription,
 				Computed:            true,
 				NestedObject: dsschema.NestedAttributeObject{
 					Attributes: map[string]dsschema.Attribute{
+						"id": dsschema.StringAttribute{
+							MarkdownDescription: autoscalingScalerIDDescription,
+							Computed:            true,
+						},
 						"scaler_type": dsschema.StringAttribute{
 							MarkdownDescription: autoscalingScalerTypeDescription,
 							Computed:            true,
@@ -246,46 +260,58 @@ func toQoveryAutoscaling(o types.Object) *autoscaling.AutoscalingPolicy {
 		CooldownPeriodSeconds:  int64ObjectAttrToInt32Pointer(attrs["cooldown_period_seconds"]),
 	}
 
-	scalersSet, ok := attrs["scalers"].(types.Set)
-	if !ok || scalersSet.IsNull() || scalersSet.IsUnknown() {
-		return policy
+	if scalersList, ok := attrs["scalers"].(types.List); ok {
+		policy.Scalers = scalersFromList(scalersList)
 	}
 
-	scalers := make([]autoscaling.Scaler, 0, len(scalersSet.Elements()))
-	for _, elem := range scalersSet.Elements() {
+	return policy
+}
+
+// scalersFromList converts the known scalers of a Terraform `scalers` list into
+// the domain model. Returns nil when the list is null or unknown.
+func scalersFromList(l types.List) []autoscaling.Scaler {
+	if l.IsNull() || l.IsUnknown() {
+		return nil
+	}
+
+	scalers := make([]autoscaling.Scaler, 0, len(l.Elements()))
+	for _, elem := range l.Elements() {
 		obj, ok := elem.(types.Object)
 		if !ok || obj.IsNull() || obj.IsUnknown() {
 			continue
 		}
-		sAttrs := obj.Attributes()
-
-		scaler := autoscaling.Scaler{
-			ScalerType: objectAttrToString(sAttrs["scaler_type"]),
-			Enabled:    objectAttrToBool(sAttrs["enabled"]),
-			Role:       autoscaling.Role(objectAttrToString(sAttrs["role"])),
-		}
-
-		if cj, ok := sAttrs["config_json"].(jsontypes.Normalized); ok && !cj.IsNull() && !cj.IsUnknown() {
-			scaler.Config.ConfigJSON = cj.ValueString()
-		}
-		scaler.Config.ConfigYAML = objectAttrToString(sAttrs["config_yaml"])
-
-		if ta, ok := sAttrs["trigger_authentication"].(types.Object); ok && !ta.IsNull() && !ta.IsUnknown() {
-			taAttrs := ta.Attributes()
-			triggerAuth := &autoscaling.TriggerAuth{
-				Name: objectAttrToString(taAttrs["name"]),
-			}
-			if cy := objectAttrToStringPointer(taAttrs["config_yaml"]); cy != nil {
-				triggerAuth.ConfigYAML = cy
-			}
-			scaler.TriggerAuth = triggerAuth
-		}
-
-		scalers = append(scalers, scaler)
+		scalers = append(scalers, scalerFromObject(obj))
 	}
-	policy.Scalers = scalers
+	return scalers
+}
 
-	return policy
+func scalerFromObject(obj types.Object) autoscaling.Scaler {
+	sAttrs := obj.Attributes()
+
+	scaler := autoscaling.Scaler{
+		ID:         objectAttrToString(sAttrs["id"]),
+		ScalerType: objectAttrToString(sAttrs["scaler_type"]),
+		Enabled:    objectAttrToBool(sAttrs["enabled"]),
+		Role:       autoscaling.Role(objectAttrToString(sAttrs["role"])),
+	}
+
+	if cj, ok := sAttrs["config_json"].(jsontypes.Normalized); ok && !cj.IsNull() && !cj.IsUnknown() {
+		scaler.Config.ConfigJSON = cj.ValueString()
+	}
+	scaler.Config.ConfigYAML = objectAttrToString(sAttrs["config_yaml"])
+
+	if ta, ok := sAttrs["trigger_authentication"].(types.Object); ok && !ta.IsNull() && !ta.IsUnknown() {
+		taAttrs := ta.Attributes()
+		triggerAuth := &autoscaling.TriggerAuth{
+			Name: objectAttrToString(taAttrs["name"]),
+		}
+		if cy := objectAttrToStringPointer(taAttrs["config_yaml"]); cy != nil {
+			triggerAuth.ConfigYAML = cy
+		}
+		scaler.TriggerAuth = triggerAuth
+	}
+
+	return scaler
 }
 
 // toQoveryAutoscalingRequest converts the Terraform `autoscaling` object directly
@@ -308,8 +334,9 @@ func toQoveryAutoscalingRequest(o types.Object) (*qovery.AutoscalingPolicyReques
 // fromAutoscaling converts the shared domain model into a Terraform object.
 // Returns a null object when the policy is absent so an unset block stays unset.
 // prior is the value the object replaces (the plan on Create and Update, the
-// state on Read, null on import and in data sources): it supplies the trigger
-// authentication names, see triggerAuthNames.
+// state on Read, null on import and in data sources): it supplies the order of
+// the scalers, see orderScalersLikePrior, and the trigger authentication names,
+// see triggerAuthNames.
 func fromAutoscaling(p *autoscaling.AutoscalingPolicy, prior types.Object) types.Object {
 	if p == nil {
 		return types.ObjectNull(autoscalingAttrTypes())
@@ -317,10 +344,15 @@ func fromAutoscaling(p *autoscaling.AutoscalingPolicy, prior types.Object) types
 
 	triggerAuthAttrTypes := autoscalingTriggerAuthAttrTypes()
 	scalerAttrTypes := autoscalingScalerAttrTypes()
-	names := triggerAuthNames(p.Scalers, toQoveryAutoscaling(prior))
+	var priorScalers []autoscaling.Scaler
+	if priorPolicy := toQoveryAutoscaling(prior); priorPolicy != nil {
+		priorScalers = priorPolicy.Scalers
+	}
+	actual := orderScalersLikePrior(p.Scalers, priorScalers)
+	names := triggerAuthNames(actual, priorScalers)
 
-	scalerElems := make([]attr.Value, 0, len(p.Scalers))
-	for i, s := range p.Scalers {
+	scalerElems := make([]attr.Value, 0, len(actual))
+	for i, s := range actual {
 		configJSON := jsontypes.NewNormalizedNull()
 		if s.Config.ConfigJSON != "" {
 			configJSON = jsontypes.NewNormalizedValue(s.Config.ConfigJSON)
@@ -339,7 +371,13 @@ func fromAutoscaling(p *autoscaling.AutoscalingPolicy, prior types.Object) types
 			})
 		}
 
+		id := types.StringNull()
+		if s.ID != "" {
+			id = types.StringValue(s.ID)
+		}
+
 		scalerElems = append(scalerElems, types.ObjectValueMust(scalerAttrTypes, map[string]attr.Value{
+			"id":                     id,
 			"scaler_type":            types.StringValue(s.ScalerType),
 			"enabled":                types.BoolValue(s.Enabled),
 			"role":                   types.StringValue(string(s.Role)),
@@ -349,13 +387,76 @@ func fromAutoscaling(p *autoscaling.AutoscalingPolicy, prior types.Object) types
 		}))
 	}
 
-	scalers := types.SetValueMust(types.ObjectType{AttrTypes: scalerAttrTypes}, scalerElems)
+	scalers := types.ListValueMust(types.ObjectType{AttrTypes: scalerAttrTypes}, scalerElems)
 
 	return types.ObjectValueMust(autoscalingAttrTypes(), map[string]attr.Value{
 		"polling_interval_seconds": FromInt32Pointer(p.PollingIntervalSeconds),
 		"cooldown_period_seconds":  FromInt32Pointer(p.CooldownPeriodSeconds),
 		"scalers":                  scalers,
 	})
+}
+
+// withAutoscalingSchemaV1 returns s with the autoscaling attribute of schema
+// version 1 of the application and container resources, whose scalers were a
+// set without id. It is the prior schema of their state upgraders.
+func withAutoscalingSchemaV1(s schema.Schema) schema.Schema {
+	autoscalingAttr := autoscalingResourceSchema()
+	scalers := autoscalingAttr.Attributes["scalers"].(schema.ListNestedAttribute)
+	scalerAttrs := maps.Clone(scalers.NestedObject.Attributes)
+	delete(scalerAttrs, "id")
+	autoscalingAttr.Attributes = maps.Clone(autoscalingAttr.Attributes)
+	autoscalingAttr.Attributes["scalers"] = schema.SetNestedAttribute{
+		Required:     true,
+		NestedObject: schema.NestedAttributeObject{Attributes: scalerAttrs},
+	}
+
+	s.Attributes = maps.Clone(s.Attributes)
+	s.Attributes["autoscaling"] = autoscalingAttr
+	s.Version = 1
+	return s
+}
+
+// upgradeAutoscalingFromV1 turns the set of scalers of a version 1 autoscaling
+// object into a list of scalers with a null id. The next refresh fills the ids,
+// matching the scalers by their attributes, see orderScalersLikePrior.
+func upgradeAutoscalingFromV1(o types.Object) (types.Object, diag.Diagnostics) {
+	if o.IsNull() || o.IsUnknown() {
+		return types.ObjectNull(autoscalingAttrTypes()), nil
+	}
+
+	var diags diag.Diagnostics
+	attrs := o.Attributes()
+	scalerType := types.ObjectType{AttrTypes: autoscalingScalerAttrTypes()}
+
+	scalers := types.ListNull(scalerType)
+	if set, ok := attrs["scalers"].(types.Set); ok && !set.IsNull() && !set.IsUnknown() {
+		elems := make([]attr.Value, 0, len(set.Elements()))
+		for _, elem := range set.Elements() {
+			obj, ok := elem.(types.Object)
+			if !ok || obj.IsNull() || obj.IsUnknown() {
+				continue
+			}
+			scalerAttrs := maps.Clone(obj.Attributes())
+			scalerAttrs["id"] = types.StringNull()
+			scaler, d := types.ObjectValue(scalerType.AttrTypes, scalerAttrs)
+			diags.Append(d...)
+			elems = append(elems, scaler)
+		}
+		if diags.HasError() {
+			return types.ObjectNull(autoscalingAttrTypes()), diags
+		}
+		list, d := types.ListValue(scalerType, elems)
+		diags.Append(d...)
+		scalers = list
+	}
+
+	upgraded, d := types.ObjectValue(autoscalingAttrTypes(), map[string]attr.Value{
+		"polling_interval_seconds": attrs["polling_interval_seconds"],
+		"cooldown_period_seconds":  attrs["cooldown_period_seconds"],
+		"scalers":                  scalers,
+	})
+	diags.Append(d...)
+	return upgraded, diags
 }
 
 // triggerAuthNames returns, for each scaler of actual, the name of its trigger
@@ -367,11 +468,7 @@ func fromAutoscaling(p *autoscaling.AutoscalingPolicy, prior types.Object) types
 // comes from the prior scaler that matches on every other attribute. A scaler
 // with no such match (after an import, in a data source, or after a change made
 // outside Terraform) keeps the name the API returns.
-func triggerAuthNames(actual []autoscaling.Scaler, prior *autoscaling.AutoscalingPolicy) []string {
-	var candidates []autoscaling.Scaler
-	if prior != nil {
-		candidates = prior.Scalers
-	}
+func triggerAuthNames(actual []autoscaling.Scaler, candidates []autoscaling.Scaler) []string {
 	used := make([]bool, len(candidates))
 
 	names := make([]string, len(actual))
@@ -392,6 +489,171 @@ func triggerAuthNames(actual []autoscaling.Scaler, prior *autoscaling.Autoscalin
 	return names
 }
 
+// orderScalersLikePrior returns actual, the scalers the API returns in creation
+// order, in the order of prior so that a refresh does not plan a reorder of the
+// list. Prior scalers are matched as described in matchScalers, by id first:
+// the scalers the API has not given an id to yet (Create, a scaler added on
+// Update, a state upgraded from a set) are matched by their attributes. The
+// scalers no prior one matches follow in API order.
+func orderScalersLikePrior(actual, prior []autoscaling.Scaler) []autoscaling.Scaler {
+	if len(prior) == 0 {
+		return actual
+	}
+
+	used := make([]bool, len(actual))
+	ordered := make([]autoscaling.Scaler, 0, len(actual))
+	for _, j := range matchScalers(prior, actual, true, false) {
+		if j != -1 {
+			used[j] = true
+			ordered = append(ordered, actual[j])
+		}
+	}
+	for j, a := range actual {
+		if !used[j] {
+			ordered = append(ordered, a)
+		}
+	}
+	return ordered
+}
+
+// matchScalers returns, for each scaler of targets, the index of the scaler of
+// candidates it stands for, or -1. Each candidate is used once, in successive
+// passes: same id (when byID), same attributes except id and trigger
+// authentication name, same scaler_type and role, then (when byPosition) the
+// remaining targets and candidates paired in order.
+func matchScalers(targets, candidates []autoscaling.Scaler, byID, byPosition bool) []int {
+	matched := make([]int, len(targets))
+	for i := range matched {
+		matched[i] = -1
+	}
+	used := make([]bool, len(candidates))
+
+	pass := func(same func(t, c autoscaling.Scaler) bool) {
+		for i, t := range targets {
+			if matched[i] != -1 {
+				continue
+			}
+			for j, c := range candidates {
+				if !used[j] && same(t, c) {
+					used[j] = true
+					matched[i] = j
+					break
+				}
+			}
+		}
+	}
+
+	if byID {
+		pass(func(t, c autoscaling.Scaler) bool { return t.ID != "" && t.ID == c.ID })
+	}
+	pass(sameScalerExceptIDAndTriggerAuthName)
+	pass(func(t, c autoscaling.Scaler) bool { return t.ScalerType == c.ScalerType && t.Role == c.Role })
+	if byPosition {
+		pass(func(_, _ autoscaling.Scaler) bool { return true })
+	}
+	return matched
+}
+
+// scalerIDsFromStateModifier plans the id of each scaler from the state scaler
+// it stands for (see matchScalers), not from the state scaler at the same index:
+// the config order can differ from the state order (a state upgraded from a set,
+// scalers reordered, added or removed in the config), and Qovery updates the
+// scaler whose id is sent, editing its trigger authentication in place. A scaler
+// that stands for none has an unknown id and is created.
+type scalerIDsFromStateModifier struct{}
+
+func (m scalerIDsFromStateModifier) Description(_ context.Context) string {
+	return "Plans the id of each scaler from the scaler in state it stands for."
+}
+
+func (m scalerIDsFromStateModifier) MarkdownDescription(ctx context.Context) string {
+	return m.Description(ctx)
+}
+
+func (m scalerIDsFromStateModifier) PlanModifyList(ctx context.Context, req planmodifier.ListRequest, resp *planmodifier.ListResponse) {
+	if req.PlanValue.IsNull() || req.PlanValue.IsUnknown() {
+		return
+	}
+
+	state := scalersFromList(req.StateValue)
+
+	elems := req.PlanValue.Elements()
+	planned := make([]autoscaling.Scaler, len(elems))
+	allKnown := true
+	for i, elem := range elems {
+		obj, ok := elem.(types.Object)
+		if !ok || obj.IsNull() || obj.IsUnknown() || !scalerKnownExceptID(ctx, obj) {
+			allKnown = false
+			break
+		}
+		planned[i] = scalerFromObject(obj)
+	}
+
+	// With an unknown attribute, the match can change once it is known: the ids
+	// stay unknown until apply, where the plan is known.
+	var match []int
+	if allKnown {
+		match = matchScalers(planned, state, false, true)
+	}
+
+	scalerAttrTypes := autoscalingScalerAttrTypes()
+	newElems := make([]attr.Value, len(elems))
+	for i, elem := range elems {
+		obj, ok := elem.(types.Object)
+		if !ok || obj.IsNull() || obj.IsUnknown() {
+			newElems[i] = elem
+			continue
+		}
+		id := types.StringUnknown()
+		if match != nil && match[i] != -1 && state[match[i]].ID != "" {
+			id = types.StringValue(state[match[i]].ID)
+		}
+		attrs := maps.Clone(obj.Attributes())
+		attrs["id"] = id
+		newObj, diags := types.ObjectValue(scalerAttrTypes, attrs)
+		resp.Diagnostics.Append(diags...)
+		newElems[i] = newObj
+	}
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	planValue, diags := types.ListValue(types.ObjectType{AttrTypes: scalerAttrTypes}, newElems)
+	resp.Diagnostics.Append(diags...)
+	resp.PlanValue = planValue
+}
+
+// scalerKnownExceptID reports whether every attribute of a planned scaler but
+// its id is known.
+func scalerKnownExceptID(ctx context.Context, obj types.Object) bool {
+	for name, v := range obj.Attributes() {
+		if name == "id" {
+			continue
+		}
+		tv, err := v.ToTerraformValue(ctx)
+		if err != nil || !tv.IsFullyKnown() {
+			return false
+		}
+	}
+	return true
+}
+
+// sameScalerExceptIDAndTriggerAuthName reports whether a and b are equal on every
+// attribute but their id and the name of their trigger authentication.
+func sameScalerExceptIDAndTriggerAuthName(a, b autoscaling.Scaler) bool {
+	if (a.TriggerAuth == nil) != (b.TriggerAuth == nil) {
+		return false
+	}
+	if a.TriggerAuth != nil && ptrStringValue(a.TriggerAuth.ConfigYAML) != ptrStringValue(b.TriggerAuth.ConfigYAML) {
+		return false
+	}
+	return a.ScalerType == b.ScalerType &&
+		a.Role == b.Role &&
+		a.Enabled == b.Enabled &&
+		a.Config.ConfigYAML == b.Config.ConfigYAML &&
+		sameJSON(a.Config.ConfigJSON, b.Config.ConfigJSON)
+}
+
 // sameScalerExceptTriggerAuthName reports whether a and b both carry a trigger
 // authentication and are equal on every attribute but its name. config_json is
 // compared as JSON, since the API returns it re-encoded.
@@ -399,12 +661,7 @@ func sameScalerExceptTriggerAuthName(a, b autoscaling.Scaler) bool {
 	if a.TriggerAuth == nil || b.TriggerAuth == nil {
 		return false
 	}
-	return a.ScalerType == b.ScalerType &&
-		a.Role == b.Role &&
-		a.Enabled == b.Enabled &&
-		a.Config.ConfigYAML == b.Config.ConfigYAML &&
-		sameJSON(a.Config.ConfigJSON, b.Config.ConfigJSON) &&
-		ptrStringValue(a.TriggerAuth.ConfigYAML) == ptrStringValue(b.TriggerAuth.ConfigYAML)
+	return sameScalerExceptIDAndTriggerAuthName(a, b)
 }
 
 // sameJSON reports whether a and b encode the same JSON value. Two empty strings

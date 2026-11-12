@@ -9,7 +9,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 )
 
-// ScalerConfigExactlyOneValidator validates that every scaler in the set sets
+// ScalerConfigExactlyOneValidator validates that every scaler in the list sets
 // exactly one of `config_json` / `config_yaml`, and that at least one scaler is
 // enabled. It mirrors the API constraints (config_json ⊻ config_yaml, and the
 // requirement that a KEDA policy carries at least one enabled scaler) at plan
@@ -24,7 +24,7 @@ func (v ScalerConfigExactlyOneValidator) MarkdownDescription(ctx context.Context
 	return v.Description(ctx)
 }
 
-func (v ScalerConfigExactlyOneValidator) ValidateSet(ctx context.Context, req validator.SetRequest, resp *validator.SetResponse) {
+func (v ScalerConfigExactlyOneValidator) ValidateList(ctx context.Context, req validator.ListRequest, resp *validator.ListResponse) {
 	if req.ConfigValue.IsNull() || req.ConfigValue.IsUnknown() {
 		return
 	}

@@ -78,7 +78,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 	customDomains := customDomainDescriptions("container")
 
 	resp.Schema = schema.Schema{
-		Version:             1,
+		Version:             2,
 		MarkdownDescription: containerResourceDescription,
 		Attributes: map[string]schema.Attribute{
 			"id": schema.StringAttribute{
@@ -649,26 +649,38 @@ func (r containerResource) ImportState(ctx context.Context, req resource.ImportS
 	resource.ImportStatePassthroughID(ctx, path.Root("id"), req, resp)
 }
 
-// UpgradeState migrates container states written by 0.x (schema version 0).
+// UpgradeState migrates container states written by 0.x (schema version 0)
+// and by the versions whose autoscaling scalers were a set (schema version 1).
 func (r containerResource) UpgradeState(ctx context.Context) map[int64]resource.StateUpgrader {
-	// Version 0 has the same attribute types as the current schema.
+	// Versions 0 and 1 have the attribute types of the current schema, except the
+	// autoscaling scalers.
 	var schemaResp resource.SchemaResponse
 	r.Schema(ctx, resource.SchemaRequest{}, &schemaResp)
-	priorSchema := schemaResp.Schema
+	priorSchema := withAutoscalingSchemaV1(schemaResp.Schema)
 
 	return map[int64]resource.StateUpgrader{
-		0: {
-			PriorSchema: &priorSchema,
-			StateUpgrader: func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
-				var cont Container
-				resp.Diagnostics.Append(req.State.Get(ctx, &cont)...)
-				if resp.Diagnostics.HasError() {
-					return
-				}
-				cont.Arguments = upgradeArgumentsFrom0x(cont.Arguments)
-				resp.Diagnostics.Append(resp.State.Set(ctx, cont)...)
-			},
-		},
+		0: {PriorSchema: &priorSchema, StateUpgrader: upgradeContainerState(true)},
+		1: {PriorSchema: &priorSchema, StateUpgrader: upgradeContainerState(false)},
+	}
+}
+
+func upgradeContainerState(from0x bool) func(context.Context, resource.UpgradeStateRequest, *resource.UpgradeStateResponse) {
+	return func(ctx context.Context, req resource.UpgradeStateRequest, resp *resource.UpgradeStateResponse) {
+		var cont Container
+		resp.Diagnostics.Append(req.State.Get(ctx, &cont)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		if from0x {
+			cont.Arguments = upgradeArgumentsFrom0x(cont.Arguments)
+		}
+		autoscaling, diags := upgradeAutoscalingFromV1(cont.Autoscaling)
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+		cont.Autoscaling = autoscaling
+		resp.Diagnostics.Append(resp.State.Set(ctx, cont)...)
 	}
 }
 

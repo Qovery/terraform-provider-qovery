@@ -53,50 +53,50 @@ func TestScalerConfigExactlyOneValidator(t *testing.T) {
 
 	testCases := []struct {
 		TestName    string
-		ConfigValue types.Set
+		ConfigValue types.List
 		ExpectError bool
 	}{
 		{
 			TestName:    "null_set_skips",
-			ConfigValue: types.SetNull(elemType),
+			ConfigValue: types.ListNull(elemType),
 			ExpectError: false,
 		},
 		{
 			TestName:    "empty_set_errors",
-			ConfigValue: types.SetValueMust(elemType, []attr.Value{}),
+			ConfigValue: types.ListValueMust(elemType, []attr.Value{}),
 			ExpectError: true,
 		},
 		{
 			TestName: "json_only_ok",
-			ConfigValue: types.SetValueMust(elemType, []attr.Value{
+			ConfigValue: types.ListValueMust(elemType, []attr.Value{
 				makeScalerObject(new(`{"a":1}`), nil),
 			}),
 			ExpectError: false,
 		},
 		{
 			TestName: "yaml_only_ok",
-			ConfigValue: types.SetValueMust(elemType, []attr.Value{
+			ConfigValue: types.ListValueMust(elemType, []attr.Value{
 				makeScalerObject(nil, new("a: 1")),
 			}),
 			ExpectError: false,
 		},
 		{
 			TestName: "both_set_errors",
-			ConfigValue: types.SetValueMust(elemType, []attr.Value{
+			ConfigValue: types.ListValueMust(elemType, []attr.Value{
 				makeScalerObject(new(`{"a":1}`), new("a: 1")),
 			}),
 			ExpectError: true,
 		},
 		{
 			TestName: "neither_set_errors",
-			ConfigValue: types.SetValueMust(elemType, []attr.Value{
+			ConfigValue: types.ListValueMust(elemType, []attr.Value{
 				makeScalerObject(nil, nil),
 			}),
 			ExpectError: true,
 		},
 		{
 			TestName: "one_valid_one_invalid_errors",
-			ConfigValue: types.SetValueMust(elemType, []attr.Value{
+			ConfigValue: types.ListValueMust(elemType, []attr.Value{
 				makeScalerObject(new(`{"a":1}`), nil),
 				makeScalerObject(nil, nil),
 			}),
@@ -104,14 +104,14 @@ func TestScalerConfigExactlyOneValidator(t *testing.T) {
 		},
 		{
 			TestName: "single_scaler_disabled_errors",
-			ConfigValue: types.SetValueMust(elemType, []attr.Value{
+			ConfigValue: types.ListValueMust(elemType, []attr.Value{
 				makeScalerObjectEnabled(new(`{"a":1}`), nil, new(false)),
 			}),
 			ExpectError: true,
 		},
 		{
 			TestName: "all_scalers_disabled_errors",
-			ConfigValue: types.SetValueMust(elemType, []attr.Value{
+			ConfigValue: types.ListValueMust(elemType, []attr.Value{
 				makeScalerObjectEnabled(new(`{"a":1}`), nil, new(false)),
 				makeScalerObjectEnabled(nil, new("a: 1"), new(false)),
 			}),
@@ -119,7 +119,7 @@ func TestScalerConfigExactlyOneValidator(t *testing.T) {
 		},
 		{
 			TestName: "one_enabled_among_disabled_ok",
-			ConfigValue: types.SetValueMust(elemType, []attr.Value{
+			ConfigValue: types.ListValueMust(elemType, []attr.Value{
 				makeScalerObjectEnabled(new(`{"a":1}`), nil, new(false)),
 				makeScalerObjectEnabled(nil, new("a: 1"), new(true)),
 			}),
@@ -127,7 +127,7 @@ func TestScalerConfigExactlyOneValidator(t *testing.T) {
 		},
 		{
 			TestName: "single_scaler_enabled_ok",
-			ConfigValue: types.SetValueMust(elemType, []attr.Value{
+			ConfigValue: types.ListValueMust(elemType, []attr.Value{
 				makeScalerObjectEnabled(new(`{"a":1}`), nil, new(true)),
 			}),
 			ExpectError: false,
@@ -137,12 +137,12 @@ func TestScalerConfigExactlyOneValidator(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.TestName, func(t *testing.T) {
 			t.Parallel()
-			req := validator.SetRequest{
+			req := validator.ListRequest{
 				Path:        path.Root("autoscaling").AtName("scalers"),
 				ConfigValue: tc.ConfigValue,
 			}
-			resp := &validator.SetResponse{Diagnostics: diag.Diagnostics{}}
-			ScalerConfigExactlyOneValidator{}.ValidateSet(context.Background(), req, resp)
+			resp := &validator.ListResponse{Diagnostics: diag.Diagnostics{}}
+			ScalerConfigExactlyOneValidator{}.ValidateList(context.Background(), req, resp)
 			if tc.ExpectError {
 				assert.True(t, resp.Diagnostics.HasError(), "expected validation error")
 			} else {

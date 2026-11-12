@@ -395,7 +395,7 @@ Read-Only:
 
 - `cooldown_period_seconds` (Number) Seconds to wait after the last trigger before scaling down.
 - `polling_interval_seconds` (Number) Seconds between two polls of the scalers.
-- `scalers` (Attributes Set) KEDA scalers that drive the autoscaling. Set at least one. (see [below for nested schema](#nestedatt--autoscaling--scalers))
+- `scalers` (Attributes List) KEDA scalers that drive the autoscaling. Set at least one. (see [below for nested schema](#nestedatt--autoscaling--scalers))
 
 <a id="nestedatt--autoscaling--scalers"></a>
 ### Nested Schema for `autoscaling.scalers`
@@ -405,6 +405,7 @@ Read-Only:
 - `config_json` (String) Scaler `metadata` only, as an object of string values, e.g. `{"query": "...", "threshold": "10"}`. Other trigger fields (`name`, `metricType`, `useCachedMetrics`) are only available through `config_yaml`. Conflicts with `config_yaml`.
 - `config_yaml` (String) Body of the KEDA trigger as YAML, without `type` (from `scaler_type`) and `authenticationRef` (from `trigger_authentication`). Scaler settings are under `metadata:`, next to the optional `name`, `metricType` and `useCachedMetrics`. Conflicts with `config_json`.
 - `enabled` (Boolean) Whether the scaler is enabled.
+- `id` (String) Id of the scaler.
 - `role` (String) Role of the scaler: `PRIMARY` or `SAFETY`.
 - `scaler_type` (String) Type of the KEDA scaler, for example `cpu`, `memory`, `prometheus` or `cron`.
 - `trigger_authentication` (Attributes) KEDA TriggerAuthentication of the scaler. (see [below for nested schema](#nestedatt--autoscaling--scalers--trigger_authentication))
