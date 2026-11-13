@@ -14,6 +14,14 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Added
+
+- `autoscaling.initial_cooldown_period_seconds`, `autoscaling.idle_replica_count` and
+  `autoscaling.advanced_yaml` on applications and containers, and on their data sources, set the
+  KEDA ScaledObject `initialCooldownPeriod`, `idleReplicaCount` and `advanced` fields. Use
+  `advanced_yaml` with `horizontalPodAutoscalerConfig.behavior` to tune how fast a service scales
+  up and down. (QOV-2465)
+
 ### Changed
 
 - `autoscaling.scalers` on applications and containers, and on their data sources, is now a list

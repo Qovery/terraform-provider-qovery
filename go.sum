@@ -199,8 +199,8 @@ github.com/pkg/errors v0.9.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINE
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/posener/complete v1.2.3 h1:NP0eAhjcjImqslEwo/1hq7gpajME0fTLTezBKDqfXqo=
 github.com/posener/complete v1.2.3/go.mod h1:WZIdtGGp+qx0sLrYKtIRAruyNpv6hFCicSgv7Sy7s/s=
-github.com/qovery/qovery-client-go v0.0.0-20261110182849-36b17088b380 h1:RUmOdvB47gqos+/N2x3tklGuP7KWOWLT4KqlsY7paQo=
-github.com/qovery/qovery-client-go v0.0.0-20261110182849-36b17088b380/go.mod h1:qGyibtOSpR2wQeInNzFagLGRpQqlCGcRcFUiDf9FPLw=
+github.com/qovery/qovery-client-go v0.0.0-20261112080836-20d23108d6b2 h1:k4QkOrpFckAANiB88rPkoL18UqpwyDGnUN+L0ycgE+Q=
+github.com/qovery/qovery-client-go v0.0.0-20261112080836-20d23108d6b2/go.mod h1:qGyibtOSpR2wQeInNzFagLGRpQqlCGcRcFUiDf9FPLw=
 github.com/rivo/uniseg v0.2.0/go.mod h1:J6wj4VEh+S6ZtnVlnTBMWIodfgj8LQOQFoIToxlJtxc=
 github.com/rivo/uniseg v0.4.7 h1:WUdvkW8uEhrYfLC4ZzdpI2ztxP1I582+49Oc5Mq64VQ=
 github.com/rivo/uniseg v0.4.7/go.mod h1:FN3SvrM+Zdj16jyLfmOkMNblXMcoc8DfTHruCPUcx88=

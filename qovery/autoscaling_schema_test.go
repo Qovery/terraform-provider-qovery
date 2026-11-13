@@ -85,6 +85,40 @@ func TestAutoscaling_RoundTrip(t *testing.T) {
 	assert.Nil(t, cron.TriggerAuth)
 }
 
+func TestAutoscaling_RoundTripScaledObjectSettings(t *testing.T) {
+	t.Parallel()
+
+	scalers := []autoscaling.Scaler{cronScaler("0 0 * * *")}
+	testCases := []struct {
+		TestName string
+		Policy   autoscaling.AutoscalingPolicy
+	}{
+		{
+			TestName: "set",
+			Policy: autoscaling.AutoscalingPolicy{
+				InitialCooldownPeriodSeconds: i32(120),
+				IdleReplicaCount:             i32(0),
+				AdvancedYAML:                 sp("restoreToOriginalReplicaCount: true"),
+				Scalers:                      scalers,
+			},
+		},
+		{TestName: "unset", Policy: autoscaling.AutoscalingPolicy{Scalers: scalers}},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+
+			obj := fromAutoscaling(&tc.Policy, types.ObjectNull(autoscalingAttrTypes()))
+			got := toQoveryAutoscaling(obj)
+			require.NotNil(t, got)
+			assert.Equal(t, tc.Policy.InitialCooldownPeriodSeconds, got.InitialCooldownPeriodSeconds)
+			assert.Equal(t, tc.Policy.IdleReplicaCount, got.IdleReplicaCount)
+			assert.Equal(t, tc.Policy.AdvancedYAML, got.AdvancedYAML)
+		})
+	}
+}
+
 func TestAutoscaling_NilRoundTrip(t *testing.T) {
 	t.Parallel()
 
@@ -351,8 +385,11 @@ func TestToQoveryAutoscaling_ScalerID(t *testing.T) {
 	unknownAttrs := scalers[0].(types.Object).Attributes()
 	unknownAttrs["id"] = types.StringUnknown()
 	planned := types.ObjectValueMust(autoscalingAttrTypes(), map[string]attr.Value{
-		"polling_interval_seconds": types.Int64Null(),
-		"cooldown_period_seconds":  types.Int64Null(),
+		"polling_interval_seconds":        types.Int64Null(),
+		"cooldown_period_seconds":         types.Int64Null(),
+		"initial_cooldown_period_seconds": types.Int64Null(),
+		"idle_replica_count":              types.Int64Null(),
+		"advanced_yaml":                   types.StringNull(),
 		"scalers": types.ListValueMust(types.ObjectType{AttrTypes: autoscalingScalerAttrTypes()}, []attr.Value{
 			types.ObjectValueMust(autoscalingScalerAttrTypes(), unknownAttrs),
 		}),
@@ -369,6 +406,9 @@ func TestServiceResource_UpgradeStateAutoscaling(t *testing.T) {
 	scalerAttrTypesV1 := autoscalingScalerAttrTypes()
 	delete(scalerAttrTypesV1, "id")
 	autoscalingAttrTypesV1 := autoscalingAttrTypes()
+	for _, name := range autoscalingAttributesAddedInV2 {
+		delete(autoscalingAttrTypesV1, name)
+	}
 	autoscalingAttrTypesV1["scalers"] = types.SetType{ElemType: types.ObjectType{AttrTypes: scalerAttrTypesV1}}
 
 	triggerAuth := types.ObjectValueMust(autoscalingTriggerAuthAttrTypes(), map[string]attr.Value{
@@ -429,6 +469,10 @@ func TestServiceResource_UpgradeStateAutoscaling(t *testing.T) {
 					if prior.IsNull() {
 						assert.True(t, got.IsNull())
 						return
+					}
+
+					for _, name := range autoscalingAttributesAddedInV2 {
+						assert.True(t, got.Attributes()[name].IsNull(), "%s is null after the upgrade", name)
 					}
 
 					policy := toQoveryAutoscaling(got)

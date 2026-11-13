@@ -43,6 +43,10 @@ func ToQoveryRequest(p AutoscalingPolicy) (qovery.AutoscalingPolicyRequest, erro
 	keda := qovery.NewKedaAutoscalingRequest(qovery.AUTOSCALINGMODE_KEDA, scalers)
 	keda.PollingIntervalSeconds = p.PollingIntervalSeconds
 	keda.CooldownPeriodSeconds = p.CooldownPeriodSeconds
+	// Sent as an explicit null when unset, so removing them clears them.
+	keda.InitialCooldownPeriodSeconds = *qovery.NewNullableInt32(p.InitialCooldownPeriodSeconds)
+	keda.IdleReplicaCount = *qovery.NewNullableInt32(p.IdleReplicaCount)
+	keda.AdvancedYaml = *qovery.NewNullableString(p.AdvancedYAML)
 
 	return qovery.KedaAutoscalingRequestAsAutoscalingPolicyRequest(keda), nil
 }
@@ -92,8 +96,11 @@ func FromQoveryResponse(res *qovery.AutoscalingPolicyResponse) (*AutoscalingPoli
 	cooldownPeriod := keda.CooldownPeriodSeconds
 
 	return &AutoscalingPolicy{
-		PollingIntervalSeconds: &pollingInterval,
-		CooldownPeriodSeconds:  &cooldownPeriod,
-		Scalers:                scalers,
+		PollingIntervalSeconds:       &pollingInterval,
+		CooldownPeriodSeconds:        &cooldownPeriod,
+		InitialCooldownPeriodSeconds: keda.InitialCooldownPeriodSeconds.Get(),
+		IdleReplicaCount:             keda.IdleReplicaCount.Get(),
+		AdvancedYAML:                 keda.AdvancedYaml.Get(),
+		Scalers:                      scalers,
 	}, nil
 }

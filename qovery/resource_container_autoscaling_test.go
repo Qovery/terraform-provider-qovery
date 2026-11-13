@@ -576,3 +576,132 @@ resource "qovery_container" "test" {
 `, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag,
 	)
 }
+
+const autoscalingAdvancedYAML = "horizontalPodAutoscalerConfig:\n  behavior:\n    scaleDown:\n      stabilizationWindowSeconds: 60\n"
+
+// The KEDA ScaledObject settings: set on create, kept on import, a change made
+// outside Terraform shows on refresh, and removing them from the config clears them.
+func TestAcc_ContainerAutoscalingScaledObjectSettings(t *testing.T) {
+	t.Parallel()
+	testName := "container-autoscaling-scaled-object-settings"
+	address := "qovery_container.test"
+	settings := `
+    initial_cooldown_period_seconds = 120
+    idle_replica_count              = 0
+    advanced_yaml                   = ` + fmt.Sprintf("%q", autoscalingAdvancedYAML)
+	var containerID string
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryContainerDestroy(address),
+		Steps: []resource.TestStep{
+			{
+				Config: testAccContainerConfigWithScaledObjectSettings(testName, 1, settings),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists(address),
+					testAccCaptureResourceID(address, &containerID),
+					resource.TestCheckResourceAttr(address, "autoscaling.initial_cooldown_period_seconds", "120"),
+					resource.TestCheckResourceAttr(address, "autoscaling.idle_replica_count", "0"),
+					resource.TestCheckResourceAttr(address, "autoscaling.advanced_yaml", autoscalingAdvancedYAML),
+				),
+			},
+			{
+				ResourceName:            address,
+				ImportState:             true,
+				ImportStateVerify:       true,
+				ImportStateVerifyIgnore: []string{"advanced_settings_json"},
+			},
+			// A change made outside Terraform shows as a difference on refresh.
+			{
+				PreConfig: func() {
+					err := testAccEditServiceOutOfBand("/container/"+containerID, func(container map[string]any) {
+						if registry, ok := container["registry"].(map[string]any); ok {
+							container["registry_id"] = registry["id"]
+						}
+					}, func(container map[string]any) {
+						container["autoscaling"].(map[string]any)["initial_cooldown_period_seconds"] = 60
+					})
+					if err != nil {
+						t.Fatal(err)
+					}
+				},
+				Config:             testAccContainerConfigWithScaledObjectSettings(testName, 1, settings),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			// Removing the settings from the config clears them.
+			{
+				Config: testAccContainerConfigWithScaledObjectSettings(testName, 1, ""),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists(address),
+					resource.TestCheckNoResourceAttr(address, "autoscaling.initial_cooldown_period_seconds"),
+					resource.TestCheckNoResourceAttr(address, "autoscaling.idle_replica_count"),
+					resource.TestCheckNoResourceAttr(address, "autoscaling.advanced_yaml"),
+				),
+			},
+		},
+	})
+}
+
+func TestAcc_ContainerAutoscalingScaledObjectSettingsInvalid(t *testing.T) {
+	t.Parallel()
+	testName := "container-autoscaling-scaled-object-settings-invalid"
+	testCases := []struct {
+		TestName            string
+		MinRunningInstances int
+		Settings            string
+		ExpectError         *regexp.Regexp
+	}{
+		{"idle_replica_count_not_below_min", 0, "idle_replica_count = 0", regexp.MustCompile(`strictly less than\s+min_running_instances`)},
+		{"idle_replica_count_not_zero", 2, "idle_replica_count = 1", regexp.MustCompile(`value must be one of`)},
+		{"initial_cooldown_out_of_range", 1, "initial_cooldown_period_seconds = 3601", regexp.MustCompile(`value must be between 0\s+and 3600`)},
+		{"blank_advanced_yaml", 1, `advanced_yaml = " "`, regexp.MustCompile(`must not be blank`)},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+			resource.Test(t, resource.TestCase{
+				PreCheck:                 func() { testAccPreCheck(t) },
+				ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+				Steps: []resource.TestStep{
+					{
+						Config:      testAccContainerConfigWithScaledObjectSettings(testName, tc.MinRunningInstances, tc.Settings),
+						ExpectError: tc.ExpectError,
+					},
+				},
+			})
+		})
+	}
+}
+
+func testAccContainerConfigWithScaledObjectSettings(testName string, minRunningInstances int, settings string) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_container" "test" {
+  environment_id = qovery_environment.test.id
+  registry_id = qovery_container_registry.test.id
+  name = "%s"
+  image_name = "%s"
+  tag = "%s"
+  min_running_instances = %d
+  max_running_instances = 5
+  healthchecks = {}
+  autoscaling = {
+    %s
+    scalers = [
+      {
+        scaler_type = "prometheus"
+        role        = "PRIMARY"
+        config_json = jsonencode({ query = "up" })
+      },
+    ]
+  }
+}
+`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag,
+		minRunningInstances, settings,
+	)
+}

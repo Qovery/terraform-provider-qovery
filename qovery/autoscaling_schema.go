@@ -6,8 +6,11 @@ import (
 	"fmt"
 	"maps"
 	"reflect"
+	"regexp"
 
 	"github.com/hashicorp/terraform-plugin-framework-jsontypes/jsontypes"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	dsschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
@@ -52,9 +55,12 @@ func autoscalingScalerAttrTypes() map[string]attr.Type {
 // autoscalingAttrTypes returns the attribute types for the autoscaling object.
 func autoscalingAttrTypes() map[string]attr.Type {
 	return map[string]attr.Type{
-		"polling_interval_seconds": types.Int64Type,
-		"cooldown_period_seconds":  types.Int64Type,
-		"scalers":                  types.ListType{ElemType: types.ObjectType{AttrTypes: autoscalingScalerAttrTypes()}},
+		"polling_interval_seconds":        types.Int64Type,
+		"cooldown_period_seconds":         types.Int64Type,
+		"initial_cooldown_period_seconds": types.Int64Type,
+		"idle_replica_count":              types.Int64Type,
+		"advanced_yaml":                   types.StringType,
+		"scalers":                         types.ListType{ElemType: types.ObjectType{AttrTypes: autoscalingScalerAttrTypes()}},
 	}
 }
 
@@ -70,9 +76,13 @@ const (
 const (
 	autoscalingDescription = "Event-driven autoscaling with KEDA, which requires KEDA on the cluster. " +
 		"It adds to the CPU and memory autoscaling of `min_running_instances` and `max_running_instances`, and allows `min_running_instances = 0`."
-	autoscalingPollingIntervalDescription   = "Seconds between two polls of the scalers."
-	autoscalingCooldownPeriodDescription    = "Seconds to wait after the last trigger before scaling down."
-	autoscalingScalersDescription           = "KEDA scalers that drive the autoscaling. Set at least one."
+	autoscalingPollingIntervalDescription  = "Seconds between two polls of the scalers."
+	autoscalingCooldownPeriodDescription   = "Seconds to wait after the last trigger before scaling down."
+	autoscalingScalersDescription          = "KEDA scalers that drive the autoscaling. Set at least one."
+	autoscalingInitialCooldownDescription  = "Seconds to wait after the service is created before it can scale to 0 (KEDA `initialCooldownPeriod`). Unset leaves KEDA's default of 0."
+	autoscalingIdleReplicaCountDescription = "Instances to keep while no scaler is active (KEDA `idleReplicaCount`). Only `0` is supported, and it must be less than `min_running_instances`: the service then scales to 0 when idle instead of to its minimum. Unset disables the idle state."
+	autoscalingAdvancedYAMLDescription     = "KEDA ScaledObject `advanced` field, as YAML, e.g. `horizontalPodAutoscalerConfig.behavior` to tune how fast the service scales up and down. " +
+		"Allowed top-level keys: `horizontalPodAutoscalerConfig`, `restoreToOriginalReplicaCount` and `scalingModifiers`."
 	autoscalingScalerIDDescription          = "Id of the scaler."
 	autoscalingScalerTypeDescription        = "Type of the KEDA scaler, for example `cpu`, `memory`, `prometheus` or `cron`."
 	autoscalingScalerEnabledDescription     = "Whether the scaler is enabled."
@@ -114,6 +124,30 @@ func autoscalingResourceSchema() schema.SingleNestedAttribute {
 				Default:             int64default.StaticInt64(autoscalingCooldownPeriodSecondsDefault),
 				PlanModifiers: []planmodifier.Int64{
 					int64planmodifier.UseStateForUnknown(),
+				},
+			},
+			"initial_cooldown_period_seconds": schema.Int64Attribute{
+				MarkdownDescription: descriptions.NewInt64MinMaxDescription(autoscalingInitialCooldownDescription,
+					autoscaling.MinInitialCooldownPeriodSeconds, autoscaling.MaxInitialCooldownPeriodSeconds, nil),
+				Optional: true,
+				Validators: []validator.Int64{
+					int64validator.Between(autoscaling.MinInitialCooldownPeriodSeconds, autoscaling.MaxInitialCooldownPeriodSeconds),
+				},
+			},
+			"idle_replica_count": schema.Int64Attribute{
+				MarkdownDescription: autoscalingIdleReplicaCountDescription,
+				Optional:            true,
+				Validators: []validator.Int64{
+					int64validator.OneOf(autoscaling.SupportedIdleReplicaCount),
+				},
+			},
+			"advanced_yaml": schema.StringAttribute{
+				MarkdownDescription: autoscalingAdvancedYAMLDescription,
+				Optional:            true,
+				Validators: []validator.String{
+					// The API reads a blank value as unset and returns null, which
+					// would not match the configuration.
+					stringvalidator.RegexMatches(regexp.MustCompile(`\S`), "must not be blank"),
 				},
 			},
 			"scalers": schema.ListNestedAttribute{
@@ -195,6 +229,18 @@ func autoscalingDataSourceSchema() dsschema.SingleNestedAttribute {
 				MarkdownDescription: autoscalingCooldownPeriodDescription,
 				Computed:            true,
 			},
+			"initial_cooldown_period_seconds": dsschema.Int64Attribute{
+				MarkdownDescription: autoscalingInitialCooldownDescription,
+				Computed:            true,
+			},
+			"idle_replica_count": dsschema.Int64Attribute{
+				MarkdownDescription: autoscalingIdleReplicaCountDescription,
+				Computed:            true,
+			},
+			"advanced_yaml": dsschema.StringAttribute{
+				MarkdownDescription: autoscalingAdvancedYAMLDescription,
+				Computed:            true,
+			},
 			"scalers": dsschema.ListNestedAttribute{
 				MarkdownDescription: autoscalingScalersDescription,
 				Computed:            true,
@@ -256,8 +302,11 @@ func toQoveryAutoscaling(o types.Object) *autoscaling.AutoscalingPolicy {
 	attrs := o.Attributes()
 
 	policy := &autoscaling.AutoscalingPolicy{
-		PollingIntervalSeconds: int64ObjectAttrToInt32Pointer(attrs["polling_interval_seconds"]),
-		CooldownPeriodSeconds:  int64ObjectAttrToInt32Pointer(attrs["cooldown_period_seconds"]),
+		PollingIntervalSeconds:       int64ObjectAttrToInt32Pointer(attrs["polling_interval_seconds"]),
+		CooldownPeriodSeconds:        int64ObjectAttrToInt32Pointer(attrs["cooldown_period_seconds"]),
+		InitialCooldownPeriodSeconds: int64ObjectAttrToInt32Pointer(attrs["initial_cooldown_period_seconds"]),
+		IdleReplicaCount:             int64ObjectAttrToInt32Pointer(attrs["idle_replica_count"]),
+		AdvancedYAML:                 objectAttrToStringPointer(attrs["advanced_yaml"]),
 	}
 
 	if scalersList, ok := attrs["scalers"].(types.List); ok {
@@ -390,11 +439,18 @@ func fromAutoscaling(p *autoscaling.AutoscalingPolicy, prior types.Object) types
 	scalers := types.ListValueMust(types.ObjectType{AttrTypes: scalerAttrTypes}, scalerElems)
 
 	return types.ObjectValueMust(autoscalingAttrTypes(), map[string]attr.Value{
-		"polling_interval_seconds": FromInt32Pointer(p.PollingIntervalSeconds),
-		"cooldown_period_seconds":  FromInt32Pointer(p.CooldownPeriodSeconds),
-		"scalers":                  scalers,
+		"polling_interval_seconds":        FromInt32Pointer(p.PollingIntervalSeconds),
+		"cooldown_period_seconds":         FromInt32Pointer(p.CooldownPeriodSeconds),
+		"initial_cooldown_period_seconds": FromInt32Pointer(p.InitialCooldownPeriodSeconds),
+		"idle_replica_count":              FromInt32Pointer(p.IdleReplicaCount),
+		"advanced_yaml":                   FromStringPointer(p.AdvancedYAML),
+		"scalers":                         scalers,
 	})
 }
+
+// autoscalingAttributesAddedInV2 are the autoscaling attributes that schema
+// version 1 does not have: upgradeAutoscalingFromV1 sets them to null.
+var autoscalingAttributesAddedInV2 = []string{"initial_cooldown_period_seconds", "idle_replica_count", "advanced_yaml"}
 
 // withAutoscalingSchemaV1 returns s with the autoscaling attribute of schema
 // version 1 of the application and container resources, whose scalers were a
@@ -405,6 +461,9 @@ func withAutoscalingSchemaV1(s schema.Schema) schema.Schema {
 	scalerAttrs := maps.Clone(scalers.NestedObject.Attributes)
 	delete(scalerAttrs, "id")
 	autoscalingAttr.Attributes = maps.Clone(autoscalingAttr.Attributes)
+	for _, name := range autoscalingAttributesAddedInV2 {
+		delete(autoscalingAttr.Attributes, name)
+	}
 	autoscalingAttr.Attributes["scalers"] = schema.SetNestedAttribute{
 		Required:     true,
 		NestedObject: schema.NestedAttributeObject{Attributes: scalerAttrs},
@@ -451,9 +510,12 @@ func upgradeAutoscalingFromV1(o types.Object) (types.Object, diag.Diagnostics) {
 	}
 
 	upgraded, d := types.ObjectValue(autoscalingAttrTypes(), map[string]attr.Value{
-		"polling_interval_seconds": attrs["polling_interval_seconds"],
-		"cooldown_period_seconds":  attrs["cooldown_period_seconds"],
-		"scalers":                  scalers,
+		"polling_interval_seconds":        attrs["polling_interval_seconds"],
+		"cooldown_period_seconds":         attrs["cooldown_period_seconds"],
+		"initial_cooldown_period_seconds": types.Int64Null(),
+		"idle_replica_count":              types.Int64Null(),
+		"advanced_yaml":                   types.StringNull(),
+		"scalers":                         scalers,
 	})
 	diags.Append(d...)
 	return upgraded, diags
@@ -695,13 +757,14 @@ func fromAutoscalingResponse(res *qovery.AutoscalingPolicyResponse, prior types.
 // resource's ModifyPlan for the application and container resources, which share
 // the `min_running_instances` / `max_running_instances` / `autoscaling` schema.
 //
-// It enforces two rules:
+// It enforces three rules:
 //  1. When a KEDA `autoscaling` block is set, min_running_instances must be
 //     strictly less than max_running_instances.
 //  2. A direct HPA -> KEDA transition is rejected: a service whose prior state
 //     had no autoscaling block and min_running_instances != max_running_instances
 //     (i.e. it was using HPA) cannot gain an autoscaling block in a single apply.
 //     The API requires a documented two-step change.
+//  3. A KEDA idle_replica_count must be strictly less than min_running_instances.
 func validateAutoscalingPlan(ctx context.Context, plan tfsdk.Plan, state tfsdk.State, diags *diag.Diagnostics) {
 	// No plan on destroy.
 	if plan.Raw.IsNull() {
@@ -737,6 +800,20 @@ func validateAutoscalingPlan(ctx context.Context, plan tfsdk.Plan, state tfsdk.S
 				),
 			)
 		}
+	}
+
+	// Rule 3: an idle replica count must be less than min_running_instances.
+	idle, ok := planAutoscaling.Attributes()["idle_replica_count"].(types.Int64)
+	if ok && !idle.IsNull() && !idle.IsUnknown() && !planMin.IsNull() && !planMin.IsUnknown() &&
+		idle.ValueInt64() >= planMin.ValueInt64() {
+		diags.AddAttributeError(
+			path.Root("autoscaling").AtName("idle_replica_count"),
+			"Invalid Idle Replica Count",
+			fmt.Sprintf(
+				"autoscaling.idle_replica_count (%d) must be strictly less than min_running_instances (%d). Scaling to 0 when idle requires min_running_instances >= 1.",
+				idle.ValueInt64(), planMin.ValueInt64(),
+			),
+		)
 	}
 
 	// Rule 2: reject direct HPA -> KEDA transition (update only; no prior state on create).
