@@ -173,9 +173,10 @@ func TestAcc_ApplicationAutoscalingRequiresEnabledScaler(t *testing.T) {
 	})
 }
 
-func TestAcc_ApplicationHpaToKedaTransitionRejected(t *testing.T) {
+// A service on HPA (min != max) can switch to KEDA in a single apply (QOV-2564).
+func TestAcc_ApplicationHpaToKedaTransitionAllowed(t *testing.T) {
 	t.Parallel()
-	testName := "application-hpa-to-keda-invalid"
+	testName := "application-hpa-to-keda-allowed"
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
@@ -190,18 +191,22 @@ func TestAcc_ApplicationHpaToKedaTransitionRejected(t *testing.T) {
 					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "5"),
 				),
 			},
-			// Step 2: add a KEDA autoscaling block -> direct HPA->KEDA transition must be rejected at plan time.
+			// Step 2: add the KEDA autoscaling block in the same apply -> must succeed.
 			{
-				Config:      testAccApplicationConfigHpaToKeda(testName),
-				ExpectError: regexp.MustCompile(`two-step`),
+				Config: testAccApplicationConfigHpaToKeda(testName),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "min_running_instances", "2"),
+					resource.TestCheckResourceAttr("qovery_application.test", "max_running_instances", "5"),
+					resource.TestCheckResourceAttr("qovery_application.test", "autoscaling.scalers.#", "1"),
+				),
 			},
 		},
 	})
 }
 
-// Regression: the documented two-step migration must be allowed. A service whose
-// prior state has min == max (NONE mode, not HPA) can gain a KEDA autoscaling
-// block in a single apply without being blocked by the HPA->KEDA guard.
+// A service whose prior state has min == max (NONE mode) can gain a KEDA
+// autoscaling block in a single apply.
 func TestAcc_ApplicationEqualInstancesToKedaAllowed(t *testing.T) {
 	t.Parallel()
 	testName := "application-equal-to-keda-allowed"

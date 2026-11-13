@@ -688,6 +688,6 @@ func upgradeContainerState(from0x bool) func(context.Context, resource.UpgradeSt
 // never rejects them mid-apply (which would leave the service partially mutated),
 // and warns about advanced_settings_json keys that are unknown for this service type.
 func (r containerResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	validateAutoscalingPlan(ctx, req.Plan, req.State, &resp.Diagnostics)
+	validateAutoscalingPlan(ctx, req.Plan, &resp.Diagnostics)
 	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.CONTAINER, req.Config, &resp.Diagnostics)
 }

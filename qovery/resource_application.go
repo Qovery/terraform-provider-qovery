@@ -804,7 +804,7 @@ func upgradeApplicationState(from0x bool) func(context.Context, resource.Upgrade
 // warns about advanced_settings_json keys that are unknown for this service type,
 // and lets build_settings own the build.* advanced settings when it is set.
 func (r applicationResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	validateAutoscalingPlan(ctx, req.Plan, req.State, &resp.Diagnostics)
+	validateAutoscalingPlan(ctx, req.Plan, &resp.Diagnostics)
 	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.APPLICATION, req.Config, &resp.Diagnostics)
 	modifyBuildSettingsPlan(ctx, req, resp)
 }
