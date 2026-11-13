@@ -757,15 +757,14 @@ func fromAutoscalingResponse(res *qovery.AutoscalingPolicyResponse, prior types.
 // resource's ModifyPlan for the application and container resources, which share
 // the `min_running_instances` / `max_running_instances` / `autoscaling` schema.
 //
-// It enforces three rules:
-//  1. When a KEDA `autoscaling` block is set, min_running_instances must be
+// It enforces two rules:
+//  1. When the KEDA `autoscaling` block is set, min_running_instances must be
 //     strictly less than max_running_instances.
-//  2. A direct HPA -> KEDA transition is rejected: a service whose prior state
-//     had no autoscaling block and min_running_instances != max_running_instances
-//     (i.e. it was using HPA) cannot gain an autoscaling block in a single apply.
-//     The API requires a documented two-step change.
-//  3. A KEDA idle_replica_count must be strictly less than min_running_instances.
-func validateAutoscalingPlan(ctx context.Context, plan tfsdk.Plan, state tfsdk.State, diags *diag.Diagnostics) {
+//  2. A KEDA idle_replica_count must be strictly less than min_running_instances.
+//
+// A direct HPA -> KEDA switch is allowed: the engine deletes the native HPA
+// before it creates the ScaledObject (QOV-2561, QOV-2564).
+func validateAutoscalingPlan(ctx context.Context, plan tfsdk.Plan, diags *diag.Diagnostics) {
 	// No plan on destroy.
 	if plan.Raw.IsNull() {
 		return
@@ -802,7 +801,7 @@ func validateAutoscalingPlan(ctx context.Context, plan tfsdk.Plan, state tfsdk.S
 		}
 	}
 
-	// Rule 3: an idle replica count must be less than min_running_instances.
+	// Rule 2: an idle replica count must be less than min_running_instances.
 	idle, ok := planAutoscaling.Attributes()["idle_replica_count"].(types.Int64)
 	if ok && !idle.IsNull() && !idle.IsUnknown() && !planMin.IsNull() && !planMin.IsUnknown() &&
 		idle.ValueInt64() >= planMin.ValueInt64() {
@@ -816,38 +815,6 @@ func validateAutoscalingPlan(ctx context.Context, plan tfsdk.Plan, state tfsdk.S
 		)
 	}
 
-	// Rule 2: reject direct HPA -> KEDA transition (update only; no prior state on create).
-	if state.Raw.IsNull() {
-		return
-	}
-
-	var stateAutoscaling types.Object
-	diags.Append(state.GetAttribute(ctx, path.Root("autoscaling"), &stateAutoscaling)...)
-	if diags.HasError() {
-		return
-	}
-	stateHadAutoscaling := !stateAutoscaling.IsNull() && !stateAutoscaling.IsUnknown()
-	if stateHadAutoscaling {
-		return
-	}
-
-	var stateMin, stateMax types.Int64
-	diags.Append(state.GetAttribute(ctx, path.Root("min_running_instances"), &stateMin)...)
-	diags.Append(state.GetAttribute(ctx, path.Root("max_running_instances"), &stateMax)...)
-	if diags.HasError() {
-		return
-	}
-	if !stateMin.IsNull() && !stateMin.IsUnknown() && !stateMax.IsNull() && !stateMax.IsUnknown() &&
-		stateMin.ValueInt64() != stateMax.ValueInt64() {
-		diags.AddAttributeError(
-			path.Root("autoscaling"),
-			"Invalid HPA to KEDA Transition",
-			"Switching a service that uses HPA (min_running_instances != max_running_instances) directly to KEDA "+
-				"autoscaling is rejected by the API. Perform a two-step change: first set min_running_instances equal "+
-				"to max_running_instances WITHOUT an autoscaling block and apply; then, in a second apply, add the KEDA "+
-				"`autoscaling` block AND set min_running_instances strictly less than max_running_instances.",
-		)
-	}
 }
 
 func int64ObjectAttrToInt32Pointer(v attr.Value) *int32 {
