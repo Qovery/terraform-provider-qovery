@@ -814,7 +814,6 @@ func validateAutoscalingPlan(ctx context.Context, plan tfsdk.Plan, diags *diag.D
 			),
 		)
 	}
-
 }
 
 func int64ObjectAttrToInt32Pointer(v attr.Value) *int32 {
