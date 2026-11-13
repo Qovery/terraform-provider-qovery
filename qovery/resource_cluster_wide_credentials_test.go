@@ -97,7 +97,8 @@ func TestAcc_ClusterWideCredentials(t *testing.T) {
 			},
 			// Adding it back to an existing cluster sets the wide-scope account through the cloud
 			// provider info. require_wide_access_to_deploy has a null prior value then: it must be
-			// planned unknown, as the edit sets it to false.
+			// planned unknown, as Qovery sets it and the provider only reads it back (true while the
+			// cluster has not been deployed yet).
 			{
 				Config: testAccClusterConfigWithWideCredentials(testName, true, ""),
 				ConfigPlanChecks: resource.ConfigPlanChecks{
@@ -109,7 +110,7 @@ func TestAcc_ClusterWideCredentials(t *testing.T) {
 				},
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr("qovery_cluster.test", "using_wide_credentials.wide_scope_cloud_account_id", getTestAWSWideCredentialsID()),
-					resource.TestCheckResourceAttr("qovery_cluster.test", "using_wide_credentials.require_wide_access_to_deploy", "false"),
+					resource.TestCheckResourceAttr("qovery_cluster.test", "using_wide_credentials.require_wide_access_to_deploy", "true"),
 					testAccCheckClusterWidePermissionsInAPI(&clusterID, true, false),
 				),
 			},
