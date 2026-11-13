@@ -348,8 +348,12 @@ Required:
 
 Optional:
 
+- `advanced_yaml` (String) KEDA ScaledObject `advanced` field, as YAML, e.g. `horizontalPodAutoscalerConfig.behavior` to tune how fast the service scales up and down. Allowed top-level keys: `horizontalPodAutoscalerConfig`, `restoreToOriginalReplicaCount` and `scalingModifiers`.
 - `cooldown_period_seconds` (Number) Seconds to wait after the last trigger before scaling down.
 	- Default: `300`.
+- `idle_replica_count` (Number) Instances to keep while no scaler is active (KEDA `idleReplicaCount`). Only `0` is supported, and it must be less than `min_running_instances`: the service then scales to 0 when idle instead of to its minimum. Unset disables the idle state.
+- `initial_cooldown_period_seconds` (Number) Seconds to wait after the service is created before it can scale to 0 (KEDA `initialCooldownPeriod`). Unset leaves KEDA's default of 0.
+	- Must be: `>= 0` and `<= 3600`.
 - `polling_interval_seconds` (Number) Seconds between two polls of the scalers.
 	- Default: `30`.
 

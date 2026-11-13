@@ -1,6 +1,8 @@
 package autoscaling
 
 import (
+	"strings"
+
 	"github.com/pkg/errors"
 )
 
@@ -29,6 +31,22 @@ var (
 	ErrInvalidTriggerAuth = errors.New("invalid trigger authentication: name must not be empty")
 	// ErrNoScalers is returned when an autoscaling policy has no scalers.
 	ErrNoScalers = errors.New("invalid autoscaling policy: at least one scaler is required")
+	// ErrInvalidInitialCooldownPeriod is returned when the initial cooldown period is out of range.
+	ErrInvalidInitialCooldownPeriod = errors.New("invalid autoscaling policy: initial_cooldown_period_seconds must be between 0 and 3600")
+	// ErrInvalidIdleReplicaCount is returned when the idle replica count is not the only value KEDA supports.
+	ErrInvalidIdleReplicaCount = errors.New("invalid autoscaling policy: idle_replica_count must be 0, the only value supported by KEDA")
+	// ErrBlankAdvancedYAML is returned when the advanced YAML is set but blank.
+	ErrBlankAdvancedYAML = errors.New("invalid autoscaling policy: advanced_yaml must not be blank")
+)
+
+const (
+	// MinInitialCooldownPeriodSeconds and MaxInitialCooldownPeriodSeconds bound
+	// the initial cooldown period, as the API does.
+	MinInitialCooldownPeriodSeconds = 0
+	MaxInitialCooldownPeriodSeconds = 3600
+	// SupportedIdleReplicaCount is the only idle replica count KEDA supports:
+	// the HPA cannot hold a Deployment at a non-zero idle count.
+	SupportedIdleReplicaCount = 0
 )
 
 // IsValid returns whether the Role is one of the allowed values.
@@ -39,10 +57,17 @@ func (r Role) IsValid() bool {
 // AutoscalingPolicy is the domain model for a service KEDA autoscaling policy.
 // It is shared between the application (legacy client layer) and container
 // (full DDD) wirings so the mapping logic lives in a single place.
+//
+// InitialCooldownPeriodSeconds, IdleReplicaCount and AdvancedYAML map to the
+// KEDA ScaledObject initialCooldownPeriod, idleReplicaCount and advanced
+// fields; nil leaves them unset.
 type AutoscalingPolicy struct {
-	PollingIntervalSeconds *int32
-	CooldownPeriodSeconds  *int32
-	Scalers                []Scaler
+	PollingIntervalSeconds       *int32
+	CooldownPeriodSeconds        *int32
+	InitialCooldownPeriodSeconds *int32
+	IdleReplicaCount             *int32
+	AdvancedYAML                 *string
+	Scalers                      []Scaler
 }
 
 // Scaler is a single KEDA scaler within an AutoscalingPolicy. ID is the API id
@@ -73,6 +98,18 @@ type TriggerAuth struct {
 func (p AutoscalingPolicy) Validate() error {
 	if len(p.Scalers) == 0 {
 		return ErrNoScalers
+	}
+
+	if c := p.InitialCooldownPeriodSeconds; c != nil && (*c < MinInitialCooldownPeriodSeconds || *c > MaxInitialCooldownPeriodSeconds) {
+		return ErrInvalidInitialCooldownPeriod
+	}
+
+	if p.IdleReplicaCount != nil && *p.IdleReplicaCount != SupportedIdleReplicaCount {
+		return ErrInvalidIdleReplicaCount
+	}
+
+	if p.AdvancedYAML != nil && strings.TrimSpace(*p.AdvancedYAML) == "" {
+		return ErrBlankAdvancedYAML
 	}
 
 	for _, s := range p.Scalers {

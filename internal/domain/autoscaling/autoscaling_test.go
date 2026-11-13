@@ -3,6 +3,7 @@
 package autoscaling_test
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
@@ -186,4 +187,110 @@ func TestFromQoveryResponse_ScalerID(t *testing.T) {
 	require.Len(t, got.Scalers, 1)
 	assert.Equal(t, "scaler-1", got.Scalers[0].ID)
 	assert.Equal(t, "a: 1", got.Scalers[0].Config.ConfigYAML)
+}
+
+func TestAutoscalingPolicy_Validate_ScaledObjectSettings(t *testing.T) {
+	t.Parallel()
+
+	scalers := []autoscaling.Scaler{{
+		ScalerType: "cpu",
+		Enabled:    true,
+		Role:       autoscaling.RolePrimary,
+		Config:     autoscaling.Config{ConfigYAML: "value: \"80\""},
+	}}
+
+	testCases := []struct {
+		TestName    string
+		Policy      autoscaling.AutoscalingPolicy
+		ExpectedErr error
+	}{
+		{TestName: "success_unset", Policy: autoscaling.AutoscalingPolicy{}},
+		{TestName: "success_initial_cooldown_min", Policy: autoscaling.AutoscalingPolicy{InitialCooldownPeriodSeconds: ptrInt32(0)}},
+		{TestName: "success_initial_cooldown_max", Policy: autoscaling.AutoscalingPolicy{InitialCooldownPeriodSeconds: ptrInt32(3600)}},
+		{TestName: "success_idle_replica_count", Policy: autoscaling.AutoscalingPolicy{IdleReplicaCount: ptrInt32(0)}},
+		{TestName: "success_advanced_yaml", Policy: autoscaling.AutoscalingPolicy{AdvancedYAML: ptrStr("restoreToOriginalReplicaCount: true")}},
+		{TestName: "error_negative_initial_cooldown", Policy: autoscaling.AutoscalingPolicy{InitialCooldownPeriodSeconds: ptrInt32(-1)}, ExpectedErr: autoscaling.ErrInvalidInitialCooldownPeriod},
+		{TestName: "error_initial_cooldown_too_long", Policy: autoscaling.AutoscalingPolicy{InitialCooldownPeriodSeconds: ptrInt32(3601)}, ExpectedErr: autoscaling.ErrInvalidInitialCooldownPeriod},
+		{TestName: "error_idle_replica_count_not_zero", Policy: autoscaling.AutoscalingPolicy{IdleReplicaCount: ptrInt32(1)}, ExpectedErr: autoscaling.ErrInvalidIdleReplicaCount},
+		{TestName: "error_blank_advanced_yaml", Policy: autoscaling.AutoscalingPolicy{AdvancedYAML: ptrStr(" \n")}, ExpectedErr: autoscaling.ErrBlankAdvancedYAML},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+
+			policy := tc.Policy
+			policy.Scalers = scalers
+			err := policy.Validate()
+			if tc.ExpectedErr == nil {
+				assert.NoError(t, err)
+				return
+			}
+			assert.ErrorIs(t, err, tc.ExpectedErr)
+		})
+	}
+}
+
+func TestToQoveryRequest_ScaledObjectSettings(t *testing.T) {
+	t.Parallel()
+
+	scalers := []autoscaling.Scaler{{ScalerType: "cpu", Role: autoscaling.RolePrimary, Config: autoscaling.Config{ConfigYAML: "a: 1"}}}
+
+	t.Run("set", func(t *testing.T) {
+		t.Parallel()
+
+		req, err := autoscaling.ToQoveryRequest(autoscaling.AutoscalingPolicy{
+			InitialCooldownPeriodSeconds: ptrInt32(120),
+			IdleReplicaCount:             ptrInt32(0),
+			AdvancedYAML:                 ptrStr("restoreToOriginalReplicaCount: true"),
+			Scalers:                      scalers,
+		})
+		require.NoError(t, err)
+
+		body, err := json.Marshal(req.KedaAutoscalingRequest)
+		require.NoError(t, err)
+		assert.Contains(t, string(body), `"initial_cooldown_period_seconds":120`)
+		assert.Contains(t, string(body), `"idle_replica_count":0`)
+		assert.Contains(t, string(body), `"advanced_yaml":"restoreToOriginalReplicaCount: true"`)
+	})
+
+	// Unset settings are sent as an explicit null so that removing them from the
+	// configuration clears them.
+	t.Run("unset", func(t *testing.T) {
+		t.Parallel()
+
+		req, err := autoscaling.ToQoveryRequest(autoscaling.AutoscalingPolicy{Scalers: scalers})
+		require.NoError(t, err)
+
+		body, err := json.Marshal(req.KedaAutoscalingRequest)
+		require.NoError(t, err)
+		assert.Contains(t, string(body), `"initial_cooldown_period_seconds":null`)
+		assert.Contains(t, string(body), `"idle_replica_count":null`)
+		assert.Contains(t, string(body), `"advanced_yaml":null`)
+	})
+}
+
+func TestFromQoveryResponse_ScaledObjectSettings(t *testing.T) {
+	t.Parallel()
+
+	keda := qovery.NewKedaAutoscalingResponse("policy-1", time.Now(), "service-1", qovery.AUTOSCALINGMODE_KEDA, 30, 300, []qovery.KedaScalerResponse{})
+	keda.InitialCooldownPeriodSeconds = *qovery.NewNullableInt32(ptrInt32(120))
+	keda.IdleReplicaCount = *qovery.NewNullableInt32(ptrInt32(0))
+	keda.AdvancedYaml = *qovery.NewNullableString(ptrStr("restoreToOriginalReplicaCount: true"))
+	res := qovery.KedaAutoscalingResponseAsAutoscalingPolicyResponse(keda)
+
+	got, err := autoscaling.FromQoveryResponse(&res)
+	require.NoError(t, err)
+	assert.Equal(t, ptrInt32(120), got.InitialCooldownPeriodSeconds)
+	assert.Equal(t, ptrInt32(0), got.IdleReplicaCount)
+	assert.Equal(t, ptrStr("restoreToOriginalReplicaCount: true"), got.AdvancedYAML)
+
+	unset := qovery.KedaAutoscalingResponseAsAutoscalingPolicyResponse(
+		qovery.NewKedaAutoscalingResponse("policy-1", time.Now(), "service-1", qovery.AUTOSCALINGMODE_KEDA, 30, 300, []qovery.KedaScalerResponse{}),
+	)
+	got, err = autoscaling.FromQoveryResponse(&unset)
+	require.NoError(t, err)
+	assert.Nil(t, got.InitialCooldownPeriodSeconds)
+	assert.Nil(t, got.IdleReplicaCount)
+	assert.Nil(t, got.AdvancedYAML)
 }
