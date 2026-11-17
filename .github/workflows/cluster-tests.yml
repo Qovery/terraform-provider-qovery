@@ -80,13 +80,13 @@ jobs:
         cloud: ${{ fromJson(needs.setup.outputs.clouds) }}
     steps:
       - name: Check out source code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.1.0
         with:
           sparse-checkout: tests/cluster-smoke/${{ matrix.cloud }}
           sparse-checkout-cone-mode: false
 
       - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v4
+        uses: hashicorp/setup-terraform@v4.0.1
         with:
           terraform_version: ${{ env.TF_VERSION }}
           terraform_wrapper: false
