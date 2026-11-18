@@ -116,11 +116,11 @@ func newQoveryContainerRequestFromDomain(request container.UpsertRepositoryReque
 	}
 
 	return &qovery.ContainerRequest{
-		RegistryId:            request.RegistryID,
+		RegistryId:            &request.RegistryID,
 		Name:                  request.Name,
 		IconUri:               request.IconUri,
-		ImageName:             request.ImageName,
-		Tag:                   request.Tag,
+		ImageName:             &request.ImageName,
+		Tag:                   &request.Tag,
 		Entrypoint:            request.Entrypoint,
 		AutoPreview:           request.AutoPreview,
 		Cpu:                   request.CPU,

@@ -456,9 +456,9 @@ func testAccWriteContainerGroups(containerID string, groups testAccServiceGroups
 	request := qovery.ContainerRequest{
 		Name:                  cont.Name,
 		Description:           cont.Description,
-		RegistryId:            cont.Registry.Id,
-		ImageName:             cont.ImageName,
-		Tag:                   cont.Tag,
+		RegistryId:            &cont.Registry.Id,
+		ImageName:             &cont.ImageName,
+		Tag:                   &cont.Tag,
 		Arguments:             cont.Arguments,
 		Entrypoint:            cont.Entrypoint,
 		Cpu:                   &cont.Cpu,
