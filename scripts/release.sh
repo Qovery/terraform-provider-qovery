@@ -33,11 +33,13 @@ fail() { echo "Error: $*" >&2; exit 1; }
 
 cd "$(git rev-parse --show-toplevel)"
 
-is_final() { echo "$1" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$'; }
-is_rc() { echo "$1" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+-rc\.[0-9]+$'; }
+FINAL_RE='^v[0-9]{1,5}\.[0-9]{1,5}\.[0-9]{1,5}$'
+RC_RE='^v[0-9]{1,5}\.[0-9]{1,5}\.[0-9]{1,5}-rc\.[0-9]{1,4}$'
+is_final() { echo "$1" | grep -Eq "$FINAL_RE"; }
+is_rc() { echo "$1" | grep -Eq "$RC_RE"; }
 base_of() { echo "${1%%-rc.*}"; }
 
-# Sortable integer: up to 99999 per field, and a final release ranks above its release candidates
+# Sortable integer, sized by FINAL_RE and RC_RE: a final release ranks above its release candidates
 ver_num() {
   local base="${1#v}" rc=9999 major minor patch
   case "$base" in *-rc.*) rc="${base##*-rc.}"; base="${base%%-rc.*}" ;; esac
@@ -75,6 +77,34 @@ has_changelog_section() {
   { grep -E "$SECTION_RE" "$CHANGELOG" || true; } | grep -qF "## [$1] - "
 }
 
+# Commit a remote tag points at; main was fetched, so a released commit is already local
+remote_tag_commit() {
+  local refs sha
+  refs="$(git ls-remote "$REMOTE" "refs/tags/$1" "refs/tags/$1^{}")" || return 1
+  sha="$(printf '%s\n' "$refs" | awk '/\^\{\}$/ {print $1}' | head -1)"
+  [ -n "$sha" ] || sha="$(printf '%s\n' "$refs" | awk 'NR==1 {print $1}')"
+  [ -n "$sha" ] && git cat-file -e "$sha^{commit}" 2>/dev/null && echo "$sha"
+}
+
+# Fails unless $new is above every release and candidate it must follow; sets $since
+check_order() {
+  local tags="$1" base latest_rc
+  current_final="$(printf '%s\n' "$tags" | highest_of "$FINAL_RE")"
+  [ -n "$current_final" ] || fail "no vX.Y.Z tag found on $REMOTE."
+  printf '%s\n' "$tags" | grep -qxF "$new" && fail "tag $new already exists on $REMOTE."
+  if is_final "$new"; then
+    [ "$(ver_num "$new")" -gt "$(ver_num "$current_final")" ] || fail "$new is not above the latest release $current_final."
+    since="$current_final"
+  else
+    base="$(base_of "$new")"
+    [ "$(ver_num "$base")" -gt "$(ver_num "$current_final")" ] || fail "$base is not above the latest release $current_final."
+    latest_rc="$(printf '%s\n' "$tags" | highest_of "^${base//./\\.}-rc\.[0-9]{1,4}$")"
+    [ -z "$latest_rc" ] || [ "$(ver_num "$new")" -gt "$(ver_num "$latest_rc")" ] \
+      || fail "$new is not above the latest candidate $latest_rc."
+    since="${latest_rc:-$current_final}"
+  fi
+}
+
 # Lines between "## [Unreleased]" and the next "## " heading that hold an entry
 unreleased_entries() {
   awk '/^## \[Unreleased\]/{in_section=1; next} /^## /{in_section=0} in_section && /^- /' "$CHANGELOG"
@@ -88,7 +118,7 @@ echo "==> Fetching $REMOTE"
 require_in_sync
 
 tags="$(remote_tags)" || fail "listing the tags of $REMOTE failed (see the git error above)."
-current_final="$(printf '%s\n' "$tags" | highest_of '^v[0-9]+\.[0-9]+\.[0-9]+$')"
+current_final="$(printf '%s\n' "$tags" | highest_of "$FINAL_RE")"
 [ -n "$current_final" ] || fail "no vX.Y.Z tag found on $REMOTE."
 
 if [ -z "$new" ]; then
@@ -99,27 +129,20 @@ if [ -z "$new" ]; then
     || fail "the newest $CHANGELOG section is $section, not above the latest release $current_final. Cut the next section in a PR first (AGENTS.md, Releasing), or pass a vX.Y.Z-rc.N version."
 fi
 
-is_final "$new" || is_rc "$new" || fail "'$new' is neither vX.Y.Z nor vX.Y.Z-rc.N."
-printf '%s\n' "$tags" | grep -qxF "$new" && fail "tag $new already exists on $REMOTE."
+is_final "$new" || is_rc "$new" || fail "'$new' is neither vX.Y.Z nor vX.Y.Z-rc.N (at most 5 digits per number, 4 for the candidate)."
+check_order "$tags"
 git rev-parse -q --verify "refs/tags/$new" >/dev/null && fail "tag $new exists locally but not on $REMOTE: delete it with 'git tag -d $new' if it is a leftover."
 
 if is_final "$new"; then
-  [ "$(ver_num "$new")" -gt "$(ver_num "$current_final")" ] || fail "$new is not above the latest release $current_final."
   has_changelog_section "${new#v}" \
     || fail "$CHANGELOG has no '## [${new#v}] - YYYY-MM-DD' section. Cut it in a PR first (AGENTS.md, Releasing)."
   [ -z "$(unreleased_entries)" ] \
     || fail "$CHANGELOG still has entries under [Unreleased]: they would ship in $new without being listed in its section."
-  since="$current_final"
-else
-  base="$(base_of "$new")"
-  [ "$(ver_num "$base")" -gt "$(ver_num "$current_final")" ] || fail "$base is not above the latest release $current_final."
-  latest_rc="$(printf '%s\n' "$tags" | highest_of "^${base//./\\.}-rc\.[0-9]+$")"
-  [ -z "$latest_rc" ] || [ "$(ver_num "$new")" -gt "$(ver_num "$latest_rc")" ] \
-    || fail "$new is not above the latest candidate $latest_rc."
-  since="${latest_rc:-$current_final}"
 fi
 
-commits="$(git log --oneline "$since..HEAD" 2>/dev/null || git log --oneline -20 HEAD)"
+since_commit="$(remote_tag_commit "$since")" \
+  || fail "the commit of $since is not in the local history. Fetch it ('git fetch $REMOTE tag $since') and re-run."
+commits="$(git log --oneline "$since_commit..HEAD")"
 [ -n "$commits" ] || fail "no commit since $since, nothing to release."
 
 remote_url="$(git remote get-url "$REMOTE" | sed -E 's#://[^/@]*@#://***@#')"
@@ -150,7 +173,9 @@ fi
 # main or the tags may have moved while the prompt was open
 require_in_sync "$REMOTE/$RELEASE_BRANCH moved meanwhile, nothing pushed. Re-run to release the new HEAD."
 tags="$(remote_tags)" || fail "listing the tags of $REMOTE failed, nothing pushed."
-printf '%s\n' "$tags" | grep -qxF "$new" && fail "tag $new appeared on $REMOTE meanwhile, nothing pushed."
+checked_since="$since"
+check_order "$tags"
+[ "$since" = "$checked_since" ] || fail "$since was tagged on $REMOTE meanwhile, nothing pushed. Re-run to check the new order."
 
 git tag -a "$new" -m "$new"
 if ! git push "$REMOTE" "refs/tags/$new"; then
