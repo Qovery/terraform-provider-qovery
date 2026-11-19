@@ -14,13 +14,26 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-11-19
+
+### Changed
+
+- Adding a KEDA `autoscaling` block to an application or container that scales with the native
+  HPA (`min_running_instances` lower than `max_running_instances`) now works in one apply. The
+  plan used to reject the switch and ask for two applies; Qovery now removes the HPA before it
+  creates the KEDA ScaledObject. (QOV-2564, #668)
+
+## [1.7.1] - 2026-11-13
+
 ### Added
 
 - `autoscaling.initial_cooldown_period_seconds`, `autoscaling.idle_replica_count` and
   `autoscaling.advanced_yaml` on applications and containers, and on their data sources, set the
   KEDA ScaledObject `initialCooldownPeriod`, `idleReplicaCount` and `advanced` fields. Use
   `advanced_yaml` with `horizontalPodAutoscalerConfig.behavior` to tune how fast a service scales
-  up and down. (QOV-2465)
+  up and down. (QOV-2465, #667)
+
+## [1.7.0] - 2026-11-12
 
 ### Changed
 
@@ -31,22 +44,32 @@ explained in the matching upgrade guide.
 
 ### Fixed
 
-- Raising `cpu` or `memory` on an application, container or job together with
-  `resources.override.limit.cpu_in_milli` or `resources.override.limit.ram_in_mib` in
-  `advanced_settings_json` now passes in one apply. It used to fail with "Ram limit (…) must be
-  greater than ram request (…)" and needed a first apply for the limit and a second for the request.
-  (#660)
-- An application or container whose `autoscaling` scaler sets an inline `trigger_authentication`
-  now applies. It used to fail with "Provider produced inconsistent result after apply", and every
-  later plan wanted to replace the scalers: Qovery ignores the `name` sent and generates one. The
-  state now keeps the configured `name`; after an import it holds the generated one until the next
-  apply. (#661)
 - Applying an application or container with an `autoscaling` block no longer recreates its KEDA
   scalers. Each recreated scaler got a new KEDA TriggerAuthentication, and the next deployment ran
   it without credentials until the following one. The provider now sends each scaler's `id` so
   Qovery updates it in place. A scaler keeps its id when the config reorders, adds, removes or
   edits scalers: it is matched to the state scaler with the same attributes, then the same
   `scaler_type` and `role`. (#666)
+
+## [1.6.2] - 2026-11-06
+
+### Fixed
+
+- An application or container whose `autoscaling` scaler sets an inline `trigger_authentication`
+  now applies. It used to fail with "Provider produced inconsistent result after apply", and every
+  later plan wanted to replace the scalers: Qovery ignores the `name` sent and generates one. The
+  state now keeps the configured `name`; after an import it holds the generated one until the next
+  apply. (#661)
+
+## [1.6.1] - 2026-11-06
+
+### Fixed
+
+- Raising `cpu` or `memory` on an application, container or job together with
+  `resources.override.limit.cpu_in_milli` or `resources.override.limit.ram_in_mib` in
+  `advanced_settings_json` now passes in one apply. It used to fail with "Ram limit (…) must be
+  greater than ram request (…)" and needed a first apply for the limit and a second for the request.
+  (#660)
 
 ## [1.6.0] - 2026-11-04
 
@@ -608,7 +631,12 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.7.1...v1.8.0
+[1.7.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.7.0...v1.7.1
+[1.7.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.6.2...v1.7.0
+[1.6.2]: https://github.com/qovery/terraform-provider-qovery/compare/v1.6.1...v1.6.2
+[1.6.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.6.0...v1.6.1
 [1.6.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.5.0...v1.6.0
 [1.5.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.4.0...v1.5.0
 [1.4.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.3.1...v1.4.0
