@@ -179,7 +179,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			},
 			"autoscaling": autoscalingResourceSchema(),
 			"auto_preview": schema.BoolAttribute{
-				MarkdownDescription: descriptions.NewBoolDefaultDescription(autoPreviewDescription("container")+containerGitSourceAutoPreviewNote, serviceAutoPreviewDefault),
+				MarkdownDescription: descriptions.NewBoolDefaultDescription(autoPreviewDescription("container")+containerGitSourceFalseNote, serviceAutoPreviewDefault),
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(serviceAutoPreviewDefault),
@@ -521,7 +521,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"auto_deploy": schema.BoolAttribute{
-				MarkdownDescription: descriptions.NewBoolDefaultDescription(containerAutoDeployDescription+containerGitSourceAutoDeployNote, serviceAutoDeployDefault),
+				MarkdownDescription: containerAutoDeployDescription + containerGitSourceFalseNote + containerAutoDeployDefaultNote,
 				Optional:            true,
 				Computed:            true,
 				// No static Default: true would be planned and sent for a Git container that omits

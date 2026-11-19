@@ -434,7 +434,7 @@ func TestContainerPlan_SwitchImageToGit_IsInPlaceUpdate(t *testing.T) {
 func TestContainerPlan_GitContainerAfterNewBuild_NoDiff(t *testing.T) {
 	t.Parallel()
 
-	prior := testContainerValue(t, testGitContainerState("build-2"))
+	prior := testContainerValue(t, testGitContainerState())
 	resp := planTestContainer(t, prior, testContainerValue(t, testGitContainerConfig(nil)))
 
 	requireNoPlanErrors(t, resp)
@@ -446,7 +446,7 @@ func TestContainerPlan_GitContainerUpdate_KeepsBuiltImage(t *testing.T) {
 	t.Parallel()
 
 	config := testGitContainerConfig(map[string]tftypes.Value{"cpu": tftypes.NewValue(tftypes.Number, big.NewFloat(1000))})
-	resp := planTestContainer(t, testContainerValue(t, testGitContainerState("build-2")), testContainerValue(t, config))
+	resp := planTestContainer(t, testContainerValue(t, testGitContainerState()), testContainerValue(t, config))
 
 	requireNoPlanErrors(t, resp)
 	assert.Empty(t, resp.RequiresReplace)
@@ -460,7 +460,7 @@ func TestContainerPlan_GitContainerUpdate_KeepsBuiltImage(t *testing.T) {
 func TestContainerPlan_SwitchGitToImage_IsInPlaceUpdate(t *testing.T) {
 	t.Parallel()
 
-	resp := planTestContainer(t, testContainerValue(t, testGitContainerState("build-2")), testContainerValue(t, testImageContainerConfig()))
+	resp := planTestContainer(t, testContainerValue(t, testGitContainerState()), testContainerValue(t, testImageContainerConfig()))
 
 	requireNoPlanErrors(t, resp)
 	assert.Empty(t, resp.RequiresReplace)
@@ -493,6 +493,30 @@ func TestContainerPlan_CreateWithGitSource_Fails(t *testing.T) {
 
 	var summaries []string
 	for _, d := range resp.Diagnostics {
+		if d.Severity == tfprotov6.DiagnosticSeverityError {
+			summaries = append(summaries, d.Summary)
+		}
+	}
+	assert.Equal(t, []string{"Cannot create a container from a Git repository"}, summaries)
+}
+
+// TestContainerPlan_ReplaceGitContainer_Fails replays the two calls Terraform core makes for a
+// replacement: the update plan that requires it, then the plan of the create from a null prior.
+func TestContainerPlan_ReplaceGitContainer_Fails(t *testing.T) {
+	t.Parallel()
+
+	config := testContainerValue(t, testGitContainerConfig(map[string]tftypes.Value{
+		"environment_id": tftypes.NewValue(tftypes.String, uuid.NewString()),
+	}))
+	update := planTestContainer(t, testContainerValue(t, testGitContainerState()), config)
+	requireNoPlanErrors(t, update)
+	require.Len(t, update.RequiresReplace, 1)
+	assert.True(t, update.RequiresReplace[0].Equal(tftypes.NewAttributePath().WithAttributeName("environment_id")))
+
+	s := testContainerSchema(t)
+	create := planTestContainer(t, tftypes.NewValue(s.Type().TerraformType(context.Background()), nil), config)
+	var summaries []string
+	for _, d := range create.Diagnostics {
 		if d.Severity == tfprotov6.DiagnosticSeverityError {
 			summaries = append(summaries, d.Summary)
 		}
@@ -548,13 +572,14 @@ func testGitContainerConfig(overrides map[string]tftypes.Value) map[string]tftyp
 	return config
 }
 
-func testGitContainerState(builtTag string) map[string]tftypes.Value {
+// testGitContainerState is the state of a Git container refreshed after its second build.
+func testGitContainerState() map[string]tftypes.Value {
 	state := map[string]tftypes.Value{
 		"environment_id": tftypes.NewValue(tftypes.String, testEnvironmentID),
 		"name":           tftypes.NewValue(tftypes.String, "api"),
 		"registry_id":    tftypes.NewValue(tftypes.String, testBuildRegistryID),
 		"image_name":     tftypes.NewValue(tftypes.String, "z6f0c8a52-built"),
-		"tag":            tftypes.NewValue(tftypes.String, builtTag),
+		"tag":            tftypes.NewValue(tftypes.String, "build-2"),
 		"source": testGitSourceValue(map[string]tftypes.Value{
 			"branch":    tftypes.NewValue(tftypes.String, "main"),
 			"root_path": tftypes.NewValue(tftypes.String, "/"),

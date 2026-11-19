@@ -102,8 +102,8 @@ resource "qovery_container" "my_container" {
 - `advanced_settings_json` (String) Advanced settings to override, as a JSON string built with `jsonencode()`. The [Qovery API documentation](https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings) lists them with their defaults. Terraform manages only the keys you set, and removing a key keeps its current value: see [Advanced settings](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes#advanced-settings).
 - `annotations_group_ids` (Set of String) IDs of the annotations groups applied to the container's pods. Omitting it detaches every annotations group.
 - `arguments` (List of String) Arguments that replace the `CMD` of the image. Omitting it sets none.
-- `auto_deploy` (Boolean) Whether Qovery redeploys the container when it receives a new image tag. On a container with `source.git_repository` it must be `false`, which is then its default.
-	- Default: `true`.
+- `auto_deploy` (Boolean) Whether Qovery redeploys the container when it receives a new image tag. On a container with `source.git_repository` it must be `false`.
+	- Default: `true`, or `false` on a container with `source.git_repository`.
 - `auto_preview` (Boolean) Whether Qovery creates a preview environment with the container for each pull request. On a container with `source.git_repository` it must be `false`.
 	- Default: `false`.
 - `autoscaling` (Attributes) Event-driven autoscaling with KEDA, which requires KEDA on the cluster. It adds to the CPU and memory autoscaling of `min_running_instances` and `max_running_instances`, and allows `min_running_instances = 0`. (see [below for nested schema](#nestedatt--autoscaling))

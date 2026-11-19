@@ -28,7 +28,7 @@ explained in the matching upgrade guide.
   them for a container that runs a registry image, as before; on a container with
   `source.git_repository` they report the image Qovery last built, so a new build plans no change.
   `auto_deploy` still defaults to `true` on an image container; on a Git container it defaults to
-  `false` and cannot be `true`. (QOV-2568)
+  `false` and cannot be `true`, and `auto_preview` cannot be `true`. (QOV-2568)
 
 ## [1.8.0] - 2026-11-19
 
