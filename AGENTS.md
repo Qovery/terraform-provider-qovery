@@ -50,6 +50,8 @@ Cut the CHANGELOG section of a final release `vX.Y.Z` in the last PR merged befo
 - **Links** at the bottom: `[Unreleased]` compares `vX.Y.Z...HEAD`; add `[X.Y.Z]` comparing the previous final release `...vX.Y.Z`.
 - **Commit**: `docs(QOV-XXXX): release the X.Y.Z section of the CHANGELOG`.
 
+Once that PR is merged, run `task release` on an up-to-date `main`: it tags the version of the newest CHANGELOG section and pushes the tag, which starts the release workflow (GoReleaser, then the Terraform Registry). For a release candidate, run `task release -- vX.Y.Z-rc.N`. It checks the branch, a clean tree, the CHANGELOG section and the version order, and asks before pushing.
+
 ### Commit Message Format
 
 - **One-liner only** - No multi-line commit messages

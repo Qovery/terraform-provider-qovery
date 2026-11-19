@@ -82,6 +82,12 @@ tasks:
     generates:
       - qovery/data/cluster_instance_types/*.json
 
+  release:
+    desc: Tag a release of main and push the tag (starts the GoReleaser release workflow)
+    interactive: true
+    cmds:
+      - ./scripts/release.sh {{.CLI_ARGS}}
+
   clean-tests:
     desc: Clean up leftover test resources from Qovery organization
     dir: scripts/cleantests
