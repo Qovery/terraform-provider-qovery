@@ -21,7 +21,10 @@ func TestAcc_ContainerSwitchToGitRepositoryAndBack(t *testing.T) {
 	testName := "container-git-source"
 	var containerID string
 	sameID := statecheck.CompareValue(compare.ValuesSame())
-	keepsID := []statecheck.StateCheck{sameID.AddStateValue(containerGitSourceAddress, tfjsonpath.New("id"))}
+	// CompareValue checks one recorded value per AddStateValue call, so each step needs its own call.
+	keepsID := func() []statecheck.StateCheck {
+		return []statecheck.StateCheck{sameID.AddStateValue(containerGitSourceAddress, tfjsonpath.New("id"))}
+	}
 	inPlaceUpdate := resource.ConfigPlanChecks{
 		PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(containerGitSourceAddress, plancheck.ResourceActionUpdate)},
 		PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
@@ -35,7 +38,7 @@ func TestAcc_ContainerSwitchToGitRepositoryAndBack(t *testing.T) {
 			{
 				Config:            testAccContainerDefaultConfig(testName),
 				ConfigPlanChecks:  testAccEmptyPlanAfterApply,
-				ConfigStateChecks: keepsID,
+				ConfigStateChecks: keepsID(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryContainerExists(containerGitSourceAddress),
 					testAccCaptureResourceID(containerGitSourceAddress, &containerID),
@@ -47,7 +50,7 @@ func TestAcc_ContainerSwitchToGitRepositoryAndBack(t *testing.T) {
 			{
 				Config:            testAccContainerGitSourceConfig(testName, containerGitSourceBuildSettings),
 				ConfigPlanChecks:  inPlaceUpdate,
-				ConfigStateChecks: keepsID,
+				ConfigStateChecks: keepsID(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryContainerExists(containerGitSourceAddress),
 					resource.TestCheckResourceAttr(containerGitSourceAddress, "source.git_repository.url", applicationRepositoryURL),
@@ -89,7 +92,7 @@ func TestAcc_ContainerSwitchToGitRepositoryAndBack(t *testing.T) {
 			{
 				Config:            testAccContainerGitSourceConfig(testName, containerGitSourceBuildSettings),
 				ConfigPlanChecks:  inPlaceUpdate,
-				ConfigStateChecks: keepsID,
+				ConfigStateChecks: keepsID(),
 				Check:             resource.TestCheckResourceAttr(containerGitSourceAddress, "source.git_repository.branch", "master"),
 			},
 			// Build settings changed outside Terraform show as a difference on refresh.
@@ -113,7 +116,7 @@ func TestAcc_ContainerSwitchToGitRepositoryAndBack(t *testing.T) {
 			{
 				Config:            testAccContainerGitSourceConfig(testName, ""),
 				ConfigPlanChecks:  inPlaceUpdate,
-				ConfigStateChecks: keepsID,
+				ConfigStateChecks: keepsID(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					resource.TestCheckResourceAttr(containerGitSourceAddress, "source.git_repository.url", applicationRepositoryURL),
 					resource.TestCheckNoResourceAttr(containerGitSourceAddress, "build_settings.timeout_max_sec"),
@@ -127,7 +130,7 @@ func TestAcc_ContainerSwitchToGitRepositoryAndBack(t *testing.T) {
 			{
 				Config:            testAccContainerDefaultConfig(testName),
 				ConfigPlanChecks:  inPlaceUpdate,
-				ConfigStateChecks: keepsID,
+				ConfigStateChecks: keepsID(),
 				Check: resource.ComposeAggregateTestCheckFunc(
 					testAccQoveryContainerExists(containerGitSourceAddress),
 					resource.TestCheckResourceAttr(containerGitSourceAddress, "image_name", containerImageName),
@@ -182,6 +185,8 @@ func testAccContainerGitSourceConfig(testName string, buildSettings string) stri
 resource "qovery_container" "test" {
   environment_id = qovery_environment.test.id
   name = "%s"
+  # The registry outlives the container: it runs the image again once switched back.
+  depends_on = [qovery_container_registry.test]
   source = {
     git_repository = {
       url = "%s"
