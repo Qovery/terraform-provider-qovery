@@ -283,8 +283,8 @@ func convertUpdatedContainerToContainer(ctx context.Context, plan Container, pri
 		return updated
 	}
 
-	// The API reports the image running at update time, which a build finished after the plan
-	// changes: keep the planned one, and let the next refresh record the new build.
+	// The API returns the running image, which changes when a build finishes after the plan:
+	// keep the planned one; the next refresh records the new build.
 	updated.RegistryID = knownOr(plan.RegistryID, updated.RegistryID)
 	updated.ImageName = knownOr(plan.ImageName, updated.ImageName)
 	updated.Tag = knownOr(plan.Tag, updated.Tag)

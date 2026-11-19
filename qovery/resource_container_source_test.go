@@ -344,6 +344,26 @@ func TestConvertUpdatedContainerToContainer_Image(t *testing.T) {
 		assert.Equal(t, "z6f0c8a52-built", state.ImageName.ValueString())
 	})
 
+	t.Run("switch_back_to_image_stores_the_api_image", func(t *testing.T) {
+		t.Parallel()
+		registryID, imageName, tag := builtValues("build-1")
+		prior := withImage(gitSource(), registryID, imageName, tag)
+		plan := withImage(nil, types.StringValue(testRegistryID), types.StringValue("qovery/nginx"), types.StringValue("1.27"))
+		running := &container.Container{
+			ID:            uuid.MustParse(testContainerID),
+			EnvironmentID: uuid.MustParse(testEnvironmentID),
+			RegistryID:    uuid.MustParse(testRegistryID),
+			Name:          "api",
+			ImageName:     "qovery/nginx",
+			Tag:           "1.28",
+		}
+
+		state := convertUpdatedContainerToContainer(context.Background(), plan, prior, running)
+
+		assert.Equal(t, "1.28", state.Tag.ValueString())
+		assert.Nil(t, state.Source)
+	})
+
 	t.Run("switch_to_git_stores_the_api_image", func(t *testing.T) {
 		t.Parallel()
 		prior := withImage(nil, types.StringValue(testRegistryID), types.StringValue("qovery/nginx"), types.StringValue("1.27"))
