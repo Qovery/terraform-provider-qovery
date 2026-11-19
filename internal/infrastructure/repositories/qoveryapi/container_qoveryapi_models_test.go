@@ -317,6 +317,13 @@ func TestNewDomainContainerFromQovery_Source(t *testing.T) {
 
 			var resp qovery.ContainerResponse
 			require.NoError(t, json.Unmarshal([]byte(body), &resp))
+			if tc.SourceAndMore == "" {
+				assert.Nil(t, resp.Source)
+			} else {
+				require.NotNil(t, resp.Source)
+				assert.Equal(t, !tc.ExpectGit, resp.Source.ContainerSourceResponseOneOf != nil)
+				assert.Equal(t, tc.ExpectGit, resp.Source.ContainerSourceResponseOneOf1 != nil)
+			}
 
 			var registry qovery.ContainerRegistryProviderDetailsResponse
 			require.NoError(t, json.Unmarshal([]byte(tc.Registry), &registry))
