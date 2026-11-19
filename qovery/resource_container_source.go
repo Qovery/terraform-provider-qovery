@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -63,10 +64,12 @@ func containerSourceResourceSchemaAttribute() schema.SingleNestedAttribute {
 						},
 					},
 					"root_path": schema.StringAttribute{
-						MarkdownDescription: descriptions.NewStringDefaultDescription(gitRepositoryRootPathDescription, containerGitSourceRootPathDefault),
+						MarkdownDescription: descriptions.NewStringDefaultDescription(gitRepositoryRootPathDescription+containerGitSourceRootPathWriteNote, containerGitSourceRootPathDefault),
 						Optional:            true,
 						Computed:            true,
 						Default:             stringdefault.StaticString(containerGitSourceRootPathDefault),
+						// The read maps an API "" to "/", so "" in the configuration would never match the state.
+						Validators: []validator.String{stringvalidator.LengthAtLeast(1)},
 					},
 					"git_token_id": schema.StringAttribute{
 						MarkdownDescription: gitRepositoryTokenIDDescription,
@@ -162,13 +165,22 @@ func containerSourceFromDomain(prior *ContainerSource, gitSource *docker.Docker)
 		GitRepository: &ContainerSourceGitRepository{
 			URL:                    FromString(repository.Url),
 			Branch:                 FromStringPointer(repository.Branch),
-			RootPath:               FromStringPointer(repository.RootPath),
+			RootPath:               containerGitSourceRootPathFromAPI(repository.RootPath),
 			GitTokenId:             optionalStringFromAPI(priorGitTokenID, repository.GitTokenId),
 			Provider:               FromStringPointer(gitProviderFromDomain(repository.Url, repository.Provider, priorProvider)),
 			DockerfilePath:         FromStringPointer(gitSource.DockerFilePath),
 			DockerTargetBuildStage: optionalStringFromAPI(priorTargetStage, gitSource.DockerTargetBuildStage),
 		},
 	}
+}
+
+// containerGitSourceRootPathFromAPI reads an API "" or none as "/", the schema default: the engine
+// builds both alike, as for jobs (jobRootPathFromAPI).
+func containerGitSourceRootPathFromAPI(v *string) types.String {
+	if v == nil || *v == "" {
+		return types.StringValue(containerGitSourceRootPathDefault)
+	}
+	return FromString(*v)
 }
 
 // containerSourceForDataSource reports the source as the API returns it.

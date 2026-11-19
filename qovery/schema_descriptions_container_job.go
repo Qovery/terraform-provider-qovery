@@ -29,6 +29,7 @@ const (
 		"Qovery cannot create a container with `source`: create it with an image, then set `source` in a later apply."
 	containerSourceGitRepositoryDescription = "Git repository with the Dockerfile Qovery builds the image from."
 	containerSourceBranchDescription        = "Branch to build."
+	containerGitSourceRootPathWriteNote     = " Use `/`, not an empty string, for the repository root."
 	containerGitSourceFalseNote             = " On a container with `source.git_repository` it must be `false`."
 	containerAutoDeployDefaultNote          = "\n\t- Default: `true`, or `false` on a container with `source.git_repository`."
 	containerBuildSettingsNote              = " Only for a container with `source.git_repository`."

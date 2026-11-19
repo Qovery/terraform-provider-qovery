@@ -283,6 +283,17 @@ func TestConvertDomainContainerToContainer_Source(t *testing.T) {
 		assert.True(t, state.BuildSettings.IsNull(), "build_settings is only tracked once set")
 	})
 
+	t.Run("root_path_unset_or_empty_reads_as_slash", func(t *testing.T) {
+		t.Parallel()
+		for _, rootPath := range []*string{nil, new("")} {
+			source := *gitSource
+			source.GitRepository.RootPath = rootPath
+			state := convertDomainContainerToContainer(context.Background(), prior, newContainer(&source, nil))
+			require.NotNil(t, state.Source)
+			assert.Equal(t, types.StringValue("/"), state.Source.GitRepository.RootPath)
+		}
+	})
+
 	t.Run("data_source_reports_provider", func(t *testing.T) {
 		t.Parallel()
 		source := containerSourceForDataSource(gitSource)
