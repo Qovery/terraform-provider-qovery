@@ -79,7 +79,6 @@ func TestServiceSchemaDefaults(t *testing.T) {
 		{TestName: "application_auto_preview", Resource: application, Path: path.Root("auto_preview"), Expect: types.BoolValue(false)},
 		{TestName: "application_ephemeral_storage", Resource: application, Path: path.Root("ephemeral_storage"), Expect: types.Int64Value(0)},
 		{TestName: "container_icon_uri", Resource: container, Path: path.Root("icon_uri"), Expect: types.StringValue("app://qovery-console/container")},
-		{TestName: "container_auto_deploy", Resource: container, Path: path.Root("auto_deploy"), Expect: types.BoolValue(true)},
 		{TestName: "container_auto_preview", Resource: container, Path: path.Root("auto_preview"), Expect: types.BoolValue(false)},
 		{TestName: "container_ephemeral_storage", Resource: container, Path: path.Root("ephemeral_storage"), Expect: types.Int64Value(0)},
 		{TestName: "container_ports_protocol", Resource: container, Path: path.Root("ports").AtListIndex(0).AtName("protocol"), Expect: types.StringValue("HTTP")},
@@ -115,6 +114,7 @@ func TestServiceSchemaExceptionsKeepNoDefault(t *testing.T) {
 		Path     path.Path
 	}{
 		{TestName: "job_icon_uri_depends_on_the_schedule", Resource: jobResource{}, Path: path.Root("icon_uri")},
+		{TestName: "container_auto_deploy_depends_on_the_source", Resource: containerResource{}, Path: path.Root("auto_deploy")},
 		{TestName: "application_ports_name_derives_from_the_port", Resource: applicationResource{}, Path: path.Root("ports").AtListIndex(0).AtName("name")},
 		{TestName: "application_deployment_stage_id", Resource: applicationResource{}, Path: path.Root("deployment_stage_id")},
 		{TestName: "application_git_repository_branch", Resource: applicationResource{}, Path: path.Root("git_repository").AtName("branch")},

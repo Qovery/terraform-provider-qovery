@@ -12,6 +12,7 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/autoscaling"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
 )
@@ -26,11 +27,11 @@ type Repository interface {
 
 // UpsertRepositoryRequest represents the parameters needed to create & update a Variable.
 type UpsertRepositoryRequest struct {
-	RegistryID           string `validate:"required"`
+	RegistryID           string
 	Name                 string `validate:"required"`
 	IconUri              *string
-	ImageName            string `validate:"required"`
-	Tag                  string `validate:"required"`
+	ImageName            string
+	Tag                  string
 	AutoPreview          *bool
 	Entrypoint           *string
 	CPU                  *int32
@@ -50,12 +51,44 @@ type UpsertRepositoryRequest struct {
 	AnnotationsGroupIds  []string
 	LabelsGroupIds       []string
 	Autoscaling          *autoscaling.AutoscalingPolicy
+	// GitSource is the Git repository Qovery builds the image from. When set, RegistryID, ImageName and Tag are empty.
+	GitSource *docker.Docker
+	// ImageAsSource sends the image as the container source, which switches a container with a Git repository source back to it.
+	ImageAsSource bool
+	// BuildSettings applies to a container with a Git repository source only.
+	BuildSettings *qovery.BuildSettings
 }
 
 // Validate returns an error to tell whether the UpsertRepositoryRequest is valid or not.
 func (r UpsertRepositoryRequest) Validate() error {
 	if err := validator.New().Struct(r); err != nil {
 		return errors.Wrap(err, ErrInvalidUpsertRequest.Error())
+	}
+
+	if err := r.validateSource(); err != nil {
+		return errors.Wrap(err, ErrInvalidUpsertRequest.Error())
+	}
+
+	return nil
+}
+
+// validateSource checks that the request names either an image or a Git repository source.
+func (r UpsertRepositoryRequest) validateSource() error {
+	if r.GitSource != nil {
+		if r.RegistryID != "" || r.ImageName != "" || r.Tag != "" || r.ImageAsSource {
+			return ErrImageWithGitSource
+		}
+		return r.GitSource.Validate()
+	}
+
+	if r.RegistryID == "" {
+		return ErrInvalidRegistryIDParam
+	}
+	if r.ImageName == "" {
+		return ErrInvalidImageNameParam
+	}
+	if r.Tag == "" {
+		return ErrInvalidTagParam
 	}
 
 	return nil

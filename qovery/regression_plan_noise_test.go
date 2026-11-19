@@ -30,14 +30,16 @@ func preservesState(m planmodifier.Describer) bool {
 		useStateUnlessPortsChangeModifier,
 		useStateUnlessRepositoryChangesModifier,
 		useNonNullStateForUnknownBoolModifier,
-		smartAllowApiOverrideModifier:
+		smartAllowApiOverrideModifier,
+		gitContainerImageModifier:
 		return true
 	// These plan the q-core default when the attribute is omitted, which keeps the plan
 	// known like a schema Default does.
 	case portNameDefaultModifier,
 		jobIconUriDefaultModifier,
 		jobLifecycleTypeDefaultModifier,
-		clusterNodeSizingDefaultModifier:
+		clusterNodeSizingDefaultModifier,
+		containerAutoDeployDefaultModifier:
 		return true
 	}
 	return m.Description(context.Background()) == useStateForUnknownDescription

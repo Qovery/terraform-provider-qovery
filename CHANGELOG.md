@@ -14,6 +14,22 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Added
+
+- `source.git_repository` and `build_settings` on `qovery_container`: an existing container
+  switches in place from a registry image to an image Qovery builds from a Dockerfile in a Git
+  repository, and back, keeping its id, volumes and built-in variables. Qovery cannot create a
+  container from a Git repository: create it with an image first. The `qovery_container` data
+  source reports `source` and `build_settings`. (QOV-2568)
+
+### Changed
+
+- `registry_id`, `image_name` and `tag` of `qovery_container` are now optional and computed. Set
+  them for a container that runs a registry image, as before; on a container with
+  `source.git_repository` they report the image Qovery last built, so a new build plans no change.
+  `auto_deploy` still defaults to `true` on an image container; on a Git container it defaults to
+  `false` and cannot be `true`. (QOV-2568)
+
 ## [1.8.0] - 2026-11-19
 
 ### Changed

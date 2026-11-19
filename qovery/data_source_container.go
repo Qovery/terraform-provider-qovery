@@ -93,6 +93,8 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				MarkdownDescription: containerImageTagDescription,
 				Computed:            true,
 			},
+			"source":         containerSourceDataSourceSchemaAttribute(),
+			"build_settings": buildSettingsDataSourceSchemaAttributes(),
 			"cpu": schema.Int64Attribute{
 				MarkdownDescription: cpuDescription("container"),
 				Optional:            true,
@@ -552,6 +554,8 @@ func (d containerDataSource) Read(ctx context.Context, req datasource.ReadReques
 	data.Arguments = emptyStringList()
 	data.Entrypoint = types.StringValue("")
 	state := convertDomainContainerToContainer(ctx, data, cont)
+	state.Source = containerSourceForDataSource(cont.GitSource)
+	state.BuildSettings = buildSettingsFromQovery(cont.BuildSettings)
 	// The data source has no value_wo and value_wo_version.
 	state.Secrets = secretsForDataSource(state.Secrets)
 	tflog.Trace(ctx, "read container", map[string]any{"container_id": state.ID.ValueString()})

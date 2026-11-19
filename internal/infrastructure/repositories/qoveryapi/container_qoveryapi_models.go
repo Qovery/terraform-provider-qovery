@@ -6,6 +6,8 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/autoscaling"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/git_repository"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
@@ -81,7 +83,31 @@ func newDomainContainerFromQovery(
 		AnnotationsGroupIds:    annotationsGroupIds,
 		LabelsGroupIds:         labelsGroupIds,
 		Autoscaling:            autoscalingPolicy,
+		GitSource:              newDomainContainerGitSourceFromQovery(c.Source),
+		BuildSettings:          c.BuildSettings,
 	})
+}
+
+// newDomainContainerGitSourceFromQovery returns the Git repository source of a container, nil for an
+// image source or for a response without source, which an API older than Git containers returns.
+func newDomainContainerGitSourceFromQovery(source *qovery.ContainerSourceResponse) *docker.NewDockerParams {
+	if source == nil || source.ContainerSourceResponseOneOf1 == nil {
+		return nil
+	}
+
+	git := source.ContainerSourceResponseOneOf1.GitRepository
+	return &docker.NewDockerParams{
+		GitRepository: git_repository.NewGitRepositoryParams{
+			Url:        git.Url,
+			Branch:     git.Branch,
+			CommitID:   git.DeployedCommitId,
+			RootPath:   git.RootPath,
+			GitTokenId: git.GitTokenId.Get(),
+			Provider:   gitProviderPointer(git.Provider),
+		},
+		DockerFilePath:         &git.DockerfilePath,
+		DockerTargetBuildStage: git.DockerTargetBuildStage.Get(),
+	}
 }
 
 // newQoveryContainerRequestFromDomain takes the domain request container.UpsertRequest and turns it into a qovery.ContainerRequest to make the api call.
@@ -115,12 +141,9 @@ func newQoveryContainerRequestFromDomain(request container.UpsertRepositoryReque
 		autoscalingPolicy = &policy
 	}
 
-	return &qovery.ContainerRequest{
-		RegistryId:            &request.RegistryID,
+	containerRequest := &qovery.ContainerRequest{
 		Name:                  request.Name,
 		IconUri:               request.IconUri,
-		ImageName:             &request.ImageName,
-		Tag:                   &request.Tag,
 		Entrypoint:            request.Entrypoint,
 		AutoPreview:           request.AutoPreview,
 		Cpu:                   request.CPU,
@@ -136,5 +159,49 @@ func newQoveryContainerRequestFromDomain(request container.UpsertRepositoryReque
 		AnnotationsGroups:     annotationsGroups,
 		LabelsGroups:          labelsGroups,
 		Autoscaling:           autoscalingPolicy,
-	}, nil
+	}
+
+	switch {
+	case request.GitSource != nil:
+		gitSource, err := newQoveryContainerGitSourceRequestFromDomain(*request.GitSource)
+		if err != nil {
+			return nil, errors.Wrap(err, container.ErrInvalidUpsertRequest.Error())
+		}
+		containerRequest.Source = gitSource
+		containerRequest.BuildSettings = request.BuildSettings
+	case request.ImageAsSource:
+		image := qovery.NewContainerSourceRequestOneOfImage(request.RegistryID, request.ImageName, request.Tag)
+		source := qovery.ContainerSourceRequestOneOfAsContainerSourceRequest(qovery.NewContainerSourceRequestOneOf(*image))
+		containerRequest.Source = &source
+	default:
+		containerRequest.RegistryId = &request.RegistryID
+		containerRequest.ImageName = &request.ImageName
+		containerRequest.Tag = &request.Tag
+	}
+
+	return containerRequest, nil
+}
+
+func newQoveryContainerGitSourceRequestFromDomain(gitSource docker.Docker) (*qovery.ContainerSourceRequest, error) {
+	provider, err := ResolveGitProvider(gitSource.GitRepository.Url, gitSource.GitRepository.Provider)
+	if err != nil {
+		return nil, err
+	}
+
+	dockerfilePath := ""
+	if gitSource.DockerFilePath != nil {
+		dockerfilePath = *gitSource.DockerFilePath
+	}
+
+	gitRepository := qovery.ContainerGitRepositorySourceRequest{
+		Url:                    gitSource.GitRepository.Url,
+		Branch:                 gitSource.GitRepository.Branch,
+		RootPath:               gitSource.GitRepository.RootPath,
+		GitTokenId:             *qovery.NewNullableString(gitSource.GitRepository.GitTokenId),
+		Provider:               provider,
+		DockerfilePath:         dockerfilePath,
+		DockerTargetBuildStage: *qovery.NewNullableString(gitSource.DockerTargetBuildStage),
+	}
+	source := qovery.ContainerSourceRequestOneOf1AsContainerSourceRequest(qovery.NewContainerSourceRequestOneOf1(gitRepository))
+	return &source, nil
 }

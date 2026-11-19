@@ -46,6 +46,7 @@ data "qovery_container" "my_container" {
 
 - `annotations_group_ids` (Set of String) IDs of the annotations groups attached to the container.
 - `autoscaling` (Attributes) Event-driven autoscaling with KEDA, which requires KEDA on the cluster. It adds to the CPU and memory autoscaling of `min_running_instances` and `max_running_instances`, and allows `min_running_instances = 0`. (see [below for nested schema](#nestedatt--autoscaling))
+- `build_settings` (Attributes) Build limits and options of the service. (see [below for nested schema](#nestedatt--build_settings))
 - `built_in_environment_variables` (Attributes List) Environment variables Qovery defines for the container. (see [below for nested schema](#nestedatt--built_in_environment_variables))
 - `environment_id` (String) ID of the environment.
 - `environment_variable_files` (Attributes Set) Environment variable files of the container, each mounted as a file. (see [below for nested schema](#nestedatt--environment_variable_files))
@@ -59,6 +60,7 @@ data "qovery_container" "my_container" {
 - `name` (String) Name of the container.
 - `registry_id` (String) ID of the `qovery_container_registry` the image is pulled from.
 - `secret_files` (Attributes Set) Secret files of the container, each mounted as a file. (see [below for nested schema](#nestedatt--secret_files))
+- `source` (Attributes) Source Qovery builds the container image from, instead of a registry image. (see [below for nested schema](#nestedatt--source))
 - `tag` (String) Tag of the image, for example `v1.2.3`.
 
 <a id="nestedatt--custom_domains"></a>
@@ -424,6 +426,19 @@ Read-Only:
 
 
 
+<a id="nestedatt--build_settings"></a>
+### Nested Schema for `build_settings`
+
+Read-Only:
+
+- `cpu_max_in_milli` (Number) Maximum CPU of a build, in millicores (1000 = 1 vCPU).
+- `disable_buildkit_cache` (Boolean) Whether builds skip the BuildKit registry cache.
+- `ephemeral_storage_in_gib` (Number) Ephemeral storage of a build, in GiB.
+- `ram_max_in_gib` (Number) Maximum memory of a build, in GiB.
+- `skip_git_submodules` (Boolean) Whether builds skip the update of the git submodules.
+- `timeout_max_sec` (Number) Maximum duration of a build, in seconds.
+
+
 <a id="nestedatt--built_in_environment_variables"></a>
 ### Nested Schema for `built_in_environment_variables`
 
@@ -483,3 +498,24 @@ Read-Only:
 - `key` (String) Name of the secret.
 - `mount_path` (String) Path where the file is mounted.
 - `value` (String, Sensitive) Content of the file.
+
+
+<a id="nestedatt--source"></a>
+### Nested Schema for `source`
+
+Read-Only:
+
+- `git_repository` (Attributes) Git repository with the Dockerfile Qovery builds the image from. (see [below for nested schema](#nestedatt--source--git_repository))
+
+<a id="nestedatt--source--git_repository"></a>
+### Nested Schema for `source.git_repository`
+
+Read-Only:
+
+- `branch` (String) Branch to build.
+- `docker_target_build_stage` (String) Stage of a multi-stage Dockerfile to build.
+- `dockerfile_path` (String) Path of the Dockerfile, relative to `root_path`, for example `Dockerfile`.
+- `git_token_id` (String) ID of the `qovery_git_token` used to access a private repository.
+- `provider` (String) Git provider of the repository: `GITHUB`, `GITLAB` or `BITBUCKET`.
+- `root_path` (String) Directory of the repository to build from, for monorepos.
+- `url` (String) URL of the git repository, for example `https://github.com/my-org/my-app.git`.

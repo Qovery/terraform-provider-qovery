@@ -13,6 +13,8 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/autoscaling"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/git_repository"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 )
 
@@ -254,7 +256,7 @@ func TestNewQoveryContainerRequestFromDomain_ImageContainerJSON(t *testing.T) {
 	assert.Equal(t, `{"annotations_groups":[],"arguments":["nginx","-g","daemon off;"],"auto_deploy":true,"auto_preview":false,"cpu":500,"entrypoint":"/docker-entrypoint.sh","ephemeral_storage_in_gib":0,"healthchecks":{"liveness_probe":null,"readiness_probe":null},"icon_uri":"app://qovery-console/container","image_name":"qovery/nginx","labels_groups":[],"max_running_instances":2,"memory":512,"min_running_instances":1,"name":"my-container","ports":[{"external_port":443,"internal_port":80,"is_default":false,"name":"http","protocol":"HTTP","publicly_accessible":true}],"registry_id":"2b1f5d0e-2c7a-4f43-9d3a-8f1c6b1a2e10","storage":[],"tag":"1.27"}`, string(body))
 }
 
-func TestNewDomainContainerFromQovery_SourceReadsFlatImageFields(t *testing.T) {
+func TestNewDomainContainerFromQovery_Source(t *testing.T) {
 	t.Parallel()
 
 	testCases := []struct {
@@ -266,19 +268,27 @@ func TestNewDomainContainerFromQovery_SourceReadsFlatImageFields(t *testing.T) {
 		ExpectGit     bool
 	}{
 		{
+			TestName:  "no_source",
+			Registry:  `{"id": "2b1f5d0e-2c7a-4f43-9d3a-8f1c6b1a2e10", "name": "Docker Hub", "url": "https://docker.io", "kind": "DOCKER_HUB"}`,
+			ImageName: "qovery/nginx",
+			Tag:       "1.27",
+		},
+		{
 			TestName:      "image_source",
 			Registry:      `{"id": "2b1f5d0e-2c7a-4f43-9d3a-8f1c6b1a2e10", "name": "Docker Hub", "url": "https://docker.io", "kind": "DOCKER_HUB"}`,
 			ImageName:     "qovery/nginx",
 			Tag:           "1.27",
-			SourceAndMore: `"source": {"image": {"image_name": "qovery/nginx", "tag": "1.27", "registry": {"id": "2b1f5d0e-2c7a-4f43-9d3a-8f1c6b1a2e10", "name": "Docker Hub", "url": "https://docker.io", "kind": "DOCKER_HUB"}}}`,
+			SourceAndMore: `"source": {"image": {"image_name": "qovery/nginx", "tag": "1.27", "registry": {"id": "2b1f5d0e-2c7a-4f43-9d3a-8f1c6b1a2e10", "name": "Docker Hub", "url": "https://docker.io", "kind": "DOCKER_HUB"}}},`,
 		},
 		{
-			TestName:      "git_repository_source",
-			Registry:      `{"id": "7c3e1a90-5b2d-4e8f-a1c6-0d9b8e7f6a54", "name": "cluster registry", "url": "https://rg.fr-par.scw.cloud", "kind": "SCALEWAY_CR"}`,
-			ImageName:     "z6f0c8a52-built",
-			Tag:           "4f2a9c1",
-			SourceAndMore: `"source": {"git_repository": {"provider": "GITHUB", "owner": "acme", "url": "https://github.com/acme/api.git", "name": "acme/api", "branch": "main", "root_path": "/", "dockerfile_path": "Dockerfile"}}, "build_settings": {"timeout_max_sec": 1800}`,
-			ExpectGit:     true,
+			TestName:  "git_repository_source",
+			Registry:  `{"id": "7c3e1a90-5b2d-4e8f-a1c6-0d9b8e7f6a54", "name": "cluster registry", "url": "https://rg.fr-par.scw.cloud", "kind": "SCALEWAY_CR"}`,
+			ImageName: "z6f0c8a52-built",
+			Tag:       "4f2a9c1",
+			SourceAndMore: `"source": {"git_repository": {"provider": "GITHUB", "owner": "acme", "url": "https://github.com/acme/api.git", "name": "acme/api", "branch": "main", "root_path": "/api",` +
+				` "git_token_id": "9d1c2b3a-4e5f-4a6b-8c7d-0e1f2a3b4c5d", "git_token_name": "acme token", "deployed_commit_id": "4f2a9c1", "dockerfile_path": "Dockerfile", "docker_target_build_stage": "runtime"}},` +
+				` "build_settings": {"timeout_max_sec": 1800, "cpu_max_in_milli": 4000, "ram_max_in_gib": 8, "disable_buildkit_cache": false, "skip_git_submodules": true},`,
+			ExpectGit: true,
 		},
 	}
 
@@ -293,7 +303,7 @@ func TestNewDomainContainerFromQovery_SourceReadsFlatImageFields(t *testing.T) {
 				"registry": %s,
 				"image_name": %q,
 				"tag": %q,
-				%s,
+				%s
 				"name": "api",
 				"icon_uri": "app://qovery-console/container",
 				"service_type": "CONTAINER",
@@ -307,9 +317,6 @@ func TestNewDomainContainerFromQovery_SourceReadsFlatImageFields(t *testing.T) {
 
 			var resp qovery.ContainerResponse
 			require.NoError(t, json.Unmarshal([]byte(body), &resp))
-			require.NotNil(t, resp.Source)
-			assert.Equal(t, !tc.ExpectGit, resp.Source.ContainerSourceResponseOneOf != nil)
-			assert.Equal(t, tc.ExpectGit, resp.Source.ContainerSourceResponseOneOf1 != nil)
 
 			var registry qovery.ContainerRegistryProviderDetailsResponse
 			require.NoError(t, json.Unmarshal([]byte(tc.Registry), &registry))
@@ -319,8 +326,121 @@ func TestNewDomainContainerFromQovery_SourceReadsFlatImageFields(t *testing.T) {
 			assert.Equal(t, registry.Id, cont.RegistryID.String())
 			assert.Equal(t, tc.ImageName, cont.ImageName)
 			assert.Equal(t, tc.Tag, cont.Tag)
+
+			if !tc.ExpectGit {
+				assert.Nil(t, cont.GitSource)
+				assert.Nil(t, cont.BuildSettings)
+				return
+			}
+
+			require.NotNil(t, cont.GitSource)
+			assert.Equal(t, "https://github.com/acme/api.git", cont.GitSource.GitRepository.Url)
+			assert.Equal(t, new("main"), cont.GitSource.GitRepository.Branch)
+			assert.Equal(t, new("/api"), cont.GitSource.GitRepository.RootPath)
+			assert.Equal(t, new("9d1c2b3a-4e5f-4a6b-8c7d-0e1f2a3b4c5d"), cont.GitSource.GitRepository.GitTokenId)
+			assert.Equal(t, new("GITHUB"), cont.GitSource.GitRepository.Provider)
+			assert.Equal(t, new("4f2a9c1"), cont.GitSource.GitRepository.CommitID)
+			assert.Equal(t, new("Dockerfile"), cont.GitSource.DockerFilePath)
+			assert.Equal(t, new("runtime"), cont.GitSource.DockerTargetBuildStage)
+			require.NotNil(t, cont.BuildSettings)
+			assert.Equal(t, int32(1800), cont.BuildSettings.GetTimeoutMaxSec())
+			assert.True(t, cont.BuildSettings.GetSkipGitSubmodules())
 		})
 	}
+}
+
+func TestNewQoveryContainerRequestFromDomain_Source(t *testing.T) {
+	t.Parallel()
+
+	baseRequest := func() container.UpsertRepositoryRequest {
+		return container.UpsertRepositoryRequest{
+			Name: "api",
+			Healthchecks: qovery.Healthcheck{
+				ReadinessProbe: *qovery.NewNullableProbe(nil),
+				LivenessProbe:  *qovery.NewNullableProbe(nil),
+			},
+			AutoDeploy: *qovery.NewNullableBool(new(false)),
+		}
+	}
+
+	buildSettings := &qovery.BuildSettings{TimeoutMaxSec: new(int32(900))}
+
+	gitRequest := baseRequest()
+	gitRequest.GitSource = &docker.Docker{
+		GitRepository: git_repository.GitRepository{
+			Url:        "https://github.com/acme/api.git",
+			Branch:     new("main"),
+			RootPath:   new("/api"),
+			GitTokenId: new("9d1c2b3a-4e5f-4a6b-8c7d-0e1f2a3b4c5d"),
+		},
+		DockerFilePath:         new("Dockerfile"),
+		DockerTargetBuildStage: new("runtime"),
+	}
+	gitRequest.BuildSettings = buildSettings
+
+	switchBackRequest := baseRequest()
+	switchBackRequest.RegistryID = "2b1f5d0e-2c7a-4f43-9d3a-8f1c6b1a2e10"
+	switchBackRequest.ImageName = "qovery/nginx"
+	switchBackRequest.Tag = "1.27"
+	switchBackRequest.ImageAsSource = true
+
+	testCases := []struct {
+		TestName       string
+		Request        container.UpsertRepositoryRequest
+		ExpectedSource string
+		ExpectedBuild  string
+	}{
+		{
+			TestName: "git_repository_source",
+			Request:  gitRequest,
+			ExpectedSource: `{"git_repository": {"url": "https://github.com/acme/api.git", "branch": "main", "root_path": "/api", "git_token_id": "9d1c2b3a-4e5f-4a6b-8c7d-0e1f2a3b4c5d",` +
+				` "provider": "GITHUB", "dockerfile_path": "Dockerfile", "docker_target_build_stage": "runtime"}}`,
+			ExpectedBuild: `{"timeout_max_sec": 900}`,
+		},
+		{
+			TestName:       "switch_back_to_image",
+			Request:        switchBackRequest,
+			ExpectedSource: `{"image": {"registry_id": "2b1f5d0e-2c7a-4f43-9d3a-8f1c6b1a2e10", "image_name": "qovery/nginx", "tag": "1.27"}}`,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+
+			req, err := newQoveryContainerRequestFromDomain(tc.Request)
+			require.NoError(t, err)
+
+			body, err := json.Marshal(req)
+			require.NoError(t, err)
+
+			var fields map[string]json.RawMessage
+			require.NoError(t, json.Unmarshal(body, &fields))
+			assert.NotContains(t, fields, "registry_id")
+			assert.NotContains(t, fields, "image_name")
+			assert.NotContains(t, fields, "tag")
+			require.Contains(t, fields, "source")
+			assert.JSONEq(t, tc.ExpectedSource, string(fields["source"]))
+			if tc.ExpectedBuild == "" {
+				assert.NotContains(t, fields, "build_settings")
+			} else {
+				assert.JSONEq(t, tc.ExpectedBuild, string(fields["build_settings"]))
+			}
+		})
+	}
+}
+
+func TestNewQoveryContainerRequestFromDomain_GitSourceProviderConflict(t *testing.T) {
+	t.Parallel()
+
+	_, err := newQoveryContainerRequestFromDomain(container.UpsertRepositoryRequest{
+		Name: "api",
+		GitSource: &docker.Docker{
+			GitRepository:  git_repository.GitRepository{Url: "https://github.com/acme/api.git", Provider: new("GITLAB")},
+			DockerFilePath: new("Dockerfile"),
+		},
+	})
+	assert.ErrorContains(t, err, "conflicts with the repository URL")
 }
 
 // TestNewDomainContainerFromQovery_Autoscaling covers the autoscaling glue in
