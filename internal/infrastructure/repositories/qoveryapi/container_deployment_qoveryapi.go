@@ -41,13 +41,17 @@ func (c containerDeploymentQoveryAPI) GetStatus(ctx context.Context, containerID
 	return newDomainStatusFromQovery(containerStatus)
 }
 
-// Deploy calls Qovery's API to deploy a container using the given containerID.
+// Deploy calls Qovery's API to deploy a container using the given containerID. An empty imageTag
+// sends none, so the API deploys the stored tag, or the stored commit of a Git repository source.
 func (c containerDeploymentQoveryAPI) Deploy(ctx context.Context, containerID string, imageTag string) (*status.Status, error) {
+	deployRequest := qovery.ContainerDeployRequest{}
+	if imageTag != "" {
+		deployRequest.SetImageTag(imageTag)
+	}
+
 	containerStatus, resp, err := c.client.ContainerActionsAPI.
 		DeployContainer(ctx, containerID).
-		ContainerDeployRequest(qovery.ContainerDeployRequest{
-			ImageTag: *qovery.NewNullableString(&imageTag),
-		}).
+		ContainerDeployRequest(deployRequest).
 		Execute()
 	if err != nil || resp.StatusCode >= 400 {
 		return nil, apierrors.NewDeployAPIError(apierrors.APIResourceContainer, containerID, resp, err)

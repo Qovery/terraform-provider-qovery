@@ -55,9 +55,9 @@ func newDeploymentActionAPIClient(t *testing.T, status int, body string) (*qover
 	}
 }
 
-// TestContainerDeploymentQoveryAPIDeploy_SendsImageTag guards that the image tag is always sent,
-// as when the client required it.
-func TestContainerDeploymentQoveryAPIDeploy_SendsImageTag(t *testing.T) {
+// TestContainerDeploymentQoveryAPIDeploy_ImageTag guards that a tag is sent when given, and that
+// none is sent without one: the API rejects any image_tag for a container with a Git repository source.
+func TestContainerDeploymentQoveryAPIDeploy_ImageTag(t *testing.T) {
 	t.Parallel()
 
 	containerID := uuid.NewString()
@@ -75,9 +75,9 @@ func TestContainerDeploymentQoveryAPIDeploy_SendsImageTag(t *testing.T) {
 			ExpectedBody: `{"image_tag":"1.2.3"}`,
 		},
 		{
-			TestName:     "with_empty_image_tag",
+			TestName:     "without_image_tag",
 			ImageTag:     "",
-			ExpectedBody: `{"image_tag":""}`,
+			ExpectedBody: `{}`,
 		},
 	}
 
