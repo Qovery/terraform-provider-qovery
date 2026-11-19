@@ -1,6 +1,7 @@
 package qoveryapi
 
 import (
+	"encoding/json"
 	"fmt"
 	"testing"
 
@@ -8,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/qovery/qovery-client-go"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/autoscaling"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
@@ -175,10 +177,10 @@ func TestNewQoveryContainerRequestFromDomain(t *testing.T) {
 			req, err := newQoveryContainerRequestFromDomain(tc.Request)
 			assert.NoError(t, err)
 
-			assert.Equal(t, tc.Request.RegistryID, req.RegistryId)
+			assert.Equal(t, tc.Request.RegistryID, *req.RegistryId)
 			assert.Equal(t, tc.Request.Name, req.Name)
-			assert.Equal(t, tc.Request.ImageName, req.ImageName)
-			assert.Equal(t, tc.Request.Tag, req.Tag)
+			assert.Equal(t, tc.Request.ImageName, *req.ImageName)
+			assert.Equal(t, tc.Request.Tag, *req.Tag)
 			assert.Equal(t, tc.Request.Entrypoint, req.Entrypoint)
 			assert.Equal(t, tc.Request.CPU, req.Cpu)
 			assert.Equal(t, tc.Request.Memory, req.Memory)
@@ -207,6 +209,116 @@ func TestNewQoveryContainerRequestFromDomain(t *testing.T) {
 			for _, arg := range req.Arguments {
 				assert.Contains(t, tc.Request.Arguments, arg)
 			}
+		})
+	}
+}
+
+func TestNewQoveryContainerRequestFromDomain_ImageContainerJSON(t *testing.T) {
+	t.Parallel()
+
+	req, err := newQoveryContainerRequestFromDomain(container.UpsertRepositoryRequest{
+		RegistryID:          "2b1f5d0e-2c7a-4f43-9d3a-8f1c6b1a2e10",
+		Name:                "my-container",
+		IconUri:             new("app://qovery-console/container"),
+		ImageName:           "qovery/nginx",
+		Tag:                 "1.27",
+		AutoPreview:         new(false),
+		Entrypoint:          new("/docker-entrypoint.sh"),
+		CPU:                 new(int32(500)),
+		Memory:              new(int32(512)),
+		EphemeralStorage:    new(int32(0)),
+		MinRunningInstances: new(int32(1)),
+		MaxRunningInstances: new(int32(2)),
+		Arguments:           []string{"nginx", "-g", "daemon off;"},
+		Ports: []port.UpsertRequest{
+			{
+				Name:               new("http"),
+				InternalPort:       80,
+				ExternalPort:       new(int32(443)),
+				Protocol:           new(port.ProtocolHTTP.String()),
+				PubliclyAccessible: true,
+			},
+		},
+		Healthchecks: qovery.Healthcheck{
+			ReadinessProbe: *qovery.NewNullableProbe(nil),
+			LivenessProbe:  *qovery.NewNullableProbe(nil),
+		},
+		AutoDeploy: *qovery.NewNullableBool(new(true)),
+	})
+	require.NoError(t, err)
+
+	body, err := json.Marshal(req)
+	require.NoError(t, err)
+
+	// Bytes captured with the client before the flat image fields became optional and `source` was added.
+	assert.Equal(t, `{"annotations_groups":[],"arguments":["nginx","-g","daemon off;"],"auto_deploy":true,"auto_preview":false,"cpu":500,"entrypoint":"/docker-entrypoint.sh","ephemeral_storage_in_gib":0,"healthchecks":{"liveness_probe":null,"readiness_probe":null},"icon_uri":"app://qovery-console/container","image_name":"qovery/nginx","labels_groups":[],"max_running_instances":2,"memory":512,"min_running_instances":1,"name":"my-container","ports":[{"external_port":443,"internal_port":80,"is_default":false,"name":"http","protocol":"HTTP","publicly_accessible":true}],"registry_id":"2b1f5d0e-2c7a-4f43-9d3a-8f1c6b1a2e10","storage":[],"tag":"1.27"}`, string(body))
+}
+
+func TestNewDomainContainerFromQovery_SourceReadsFlatImageFields(t *testing.T) {
+	t.Parallel()
+
+	testCases := []struct {
+		TestName      string
+		Registry      string
+		ImageName     string
+		Tag           string
+		SourceAndMore string
+		ExpectGit     bool
+	}{
+		{
+			TestName:      "image_source",
+			Registry:      `{"id": "2b1f5d0e-2c7a-4f43-9d3a-8f1c6b1a2e10", "name": "Docker Hub", "url": "https://docker.io", "kind": "DOCKER_HUB"}`,
+			ImageName:     "qovery/nginx",
+			Tag:           "1.27",
+			SourceAndMore: `"source": {"image": {"image_name": "qovery/nginx", "tag": "1.27", "registry": {"id": "2b1f5d0e-2c7a-4f43-9d3a-8f1c6b1a2e10", "name": "Docker Hub", "url": "https://docker.io", "kind": "DOCKER_HUB"}}}`,
+		},
+		{
+			TestName:      "git_repository_source",
+			Registry:      `{"id": "7c3e1a90-5b2d-4e8f-a1c6-0d9b8e7f6a54", "name": "cluster registry", "url": "https://rg.fr-par.scw.cloud", "kind": "SCALEWAY_CR"}`,
+			ImageName:     "z6f0c8a52-built",
+			Tag:           "4f2a9c1",
+			SourceAndMore: `"source": {"git_repository": {"provider": "GITHUB", "owner": "acme", "url": "https://github.com/acme/api.git", "name": "acme/api", "branch": "main", "root_path": "/", "dockerfile_path": "Dockerfile"}}, "build_settings": {"timeout_max_sec": 1800}`,
+			ExpectGit:     true,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+
+			body := fmt.Sprintf(`{
+				"id": "6f0c8a52-3e0f-4c43-a1a8-5d6d1c0e9b21",
+				"created_at": "2026-11-18T10:00:00Z",
+				"environment": {"id": "0e8f9b0c-7d0a-4f5e-9c1e-3a2b1c0d9e8f"},
+				"registry": %s,
+				"image_name": %q,
+				"tag": %q,
+				%s,
+				"name": "api",
+				"icon_uri": "app://qovery-console/container",
+				"service_type": "CONTAINER",
+				"maximum_cpu": 4000, "maximum_memory": 8192, "maximum_gpu": 0,
+				"cpu": 500, "memory": 512, "gpu": 0,
+				"min_running_instances": 1, "max_running_instances": 1,
+				"healthchecks": {"readiness_probe": null, "liveness_probe": null},
+				"auto_preview": false,
+				"auto_deploy": false
+			}`, tc.Registry, tc.ImageName, tc.Tag, tc.SourceAndMore)
+
+			var resp qovery.ContainerResponse
+			require.NoError(t, json.Unmarshal([]byte(body), &resp))
+			require.NotNil(t, resp.Source)
+			assert.Equal(t, !tc.ExpectGit, resp.Source.ContainerSourceResponseOneOf != nil)
+			assert.Equal(t, tc.ExpectGit, resp.Source.ContainerSourceResponseOneOf1 != nil)
+
+			var registry qovery.ContainerRegistryProviderDetailsResponse
+			require.NoError(t, json.Unmarshal([]byte(tc.Registry), &registry))
+
+			cont, err := newDomainContainerFromQovery(&resp, uuid.NewString(), false, "", &qovery.CustomDomainResponseList{})
+			require.NoError(t, err)
+			assert.Equal(t, registry.Id, cont.RegistryID.String())
+			assert.Equal(t, tc.ImageName, cont.ImageName)
+			assert.Equal(t, tc.Tag, cont.Tag)
 		})
 	}
 }

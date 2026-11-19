@@ -49,10 +49,10 @@ type AggregateJobResponse struct {
 func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobResponse {
 	source := job.SourceResponse{}
 	if jobResponse.CronJobResponse != nil {
-		if jobResponse.CronJobResponse.Source.BaseJobResponseAllOfSourceOneOf != nil {
-			source.Image = &jobResponse.CronJobResponse.Source.BaseJobResponseAllOfSourceOneOf.Image
-		} else if jobResponse.CronJobResponse.Source.BaseJobResponseAllOfSourceOneOf1 != nil {
-			source.Docker = &jobResponse.CronJobResponse.Source.BaseJobResponseAllOfSourceOneOf1.Docker
+		if jobResponse.CronJobResponse.Source.ContainerSourceResponseOneOf != nil {
+			source.Image = &jobResponse.CronJobResponse.Source.ContainerSourceResponseOneOf.Image
+		} else if jobResponse.CronJobResponse.Source.BaseJobResponseAllOfSourceOneOf != nil {
+			source.Docker = &jobResponse.CronJobResponse.Source.BaseJobResponseAllOfSourceOneOf.Docker
 		}
 
 		annotations := make([]string, 0, len(jobResponse.CronJobResponse.AnnotationsGroups))
@@ -91,10 +91,10 @@ func getAggregateJobResponse(jobResponse *qovery.JobResponse) AggregateJobRespon
 			LabelsGroupIds:      labels,
 		}
 	} else {
-		if jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf != nil {
-			source.Image = &jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf.Image
-		} else if jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf1 != nil {
-			source.Docker = &jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf1.Docker
+		if jobResponse.LifecycleJobResponse.Source.ContainerSourceResponseOneOf != nil {
+			source.Image = &jobResponse.LifecycleJobResponse.Source.ContainerSourceResponseOneOf.Image
+		} else if jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf != nil {
+			source.Docker = &jobResponse.LifecycleJobResponse.Source.BaseJobResponseAllOfSourceOneOf.Docker
 		}
 
 		annotations := make([]string, 0, len(jobResponse.LifecycleJobResponse.AnnotationsGroups))

@@ -67,6 +67,45 @@ func TestGetAggregateJobResponse_EphemeralStorage(t *testing.T) {
 	}
 }
 
+func TestGetAggregateJobResponse_Source(t *testing.T) {
+	t.Parallel()
+
+	imageSource := `{"image": {"image_name": "busybox", "tag": "1.36", "registry": {"id": "2b1f5d0e-2c7a-4f43-9d3a-8f1c6b1a2e10", "name": "Docker Hub", "url": "https://docker.io", "kind": "DOCKER_HUB"}}}`
+	dockerSource := `{"docker": {"git_repository": {"provider": "GITHUB", "owner": "acme", "url": "https://github.com/acme/jobs.git", "name": "acme/jobs"}, "dockerfile_path": "Dockerfile"}}`
+
+	testCases := []struct {
+		TestName     string
+		Lifecycle    bool
+		Source       string
+		ExpectImage  bool
+		ExpectDocker bool
+	}{
+		{TestName: "cron_job_image", Source: imageSource, ExpectImage: true},
+		{TestName: "cron_job_docker", Source: dockerSource, ExpectDocker: true},
+		{TestName: "lifecycle_job_image", Lifecycle: true, Source: imageSource, ExpectImage: true},
+		{TestName: "lifecycle_job_docker", Lifecycle: true, Source: dockerSource, ExpectDocker: true},
+	}
+
+	for _, tc := range testCases {
+		tc := tc
+		t.Run(tc.TestName, func(t *testing.T) {
+			t.Parallel()
+
+			var source qovery.BaseJobResponseAllOfSource
+			require.NoError(t, json.Unmarshal([]byte(tc.Source), &source))
+
+			response := &qovery.JobResponse{CronJobResponse: &qovery.CronJobResponse{Source: source}}
+			if tc.Lifecycle {
+				response = &qovery.JobResponse{LifecycleJobResponse: &qovery.LifecycleJobResponse{Source: source}}
+			}
+
+			aggregate := getAggregateJobResponse(response)
+			assert.Equal(t, tc.ExpectImage, aggregate.Source.Image != nil)
+			assert.Equal(t, tc.ExpectDocker, aggregate.Source.Docker != nil)
+		})
+	}
+}
+
 // TestNewQoveryJobRequestFromDomain_EphemeralStorage guards the domain→request
 // direction: a set value is forwarded and an unset value stays nil (omitempty →
 // no payload sent, so the platform default is used).
