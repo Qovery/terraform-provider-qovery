@@ -14,13 +14,15 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-11-19
+
 ### Added
 
 - `source.git_repository` and `build_settings` on `qovery_container`: an existing container
   switches in place from a registry image to an image Qovery builds from a Dockerfile in a Git
   repository, and back, keeping its id, volumes and built-in variables. Qovery cannot create a
   container from a Git repository: create it with an image first. The `qovery_container` data
-  source reports `source` and `build_settings`. (QOV-2568)
+  source reports `source` and `build_settings`. (QOV-2568, #674)
 
 ### Changed
 
@@ -28,7 +30,7 @@ explained in the matching upgrade guide.
   them for a container that runs a registry image, as before; on a container with
   `source.git_repository` they report the image Qovery last built, so a new build plans no change.
   `auto_deploy` still defaults to `true` on an image container; on a Git container it defaults to
-  `false` and cannot be `true`, and `auto_preview` cannot be `true`. (QOV-2568)
+  `false` and cannot be `true`, and `auto_preview` cannot be `true`. (QOV-2568, #674)
 
 ## [1.8.0] - 2026-11-19
 
@@ -647,7 +649,8 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.6.2...v1.7.0
