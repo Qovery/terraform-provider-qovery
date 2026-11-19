@@ -291,6 +291,71 @@ func TestConvertDomainContainerToContainer_Source(t *testing.T) {
 	})
 }
 
+func TestConvertUpdatedContainerToContainer_Image(t *testing.T) {
+	t.Parallel()
+
+	gitSource := func() *ContainerSource {
+		return &ContainerSource{GitRepository: &ContainerSourceGitRepository{
+			URL:                    types.StringValue(testGitURL),
+			Branch:                 types.StringValue("main"),
+			RootPath:               types.StringValue("/"),
+			GitTokenId:             types.StringNull(),
+			Provider:               types.StringNull(),
+			DockerfilePath:         types.StringValue("Dockerfile"),
+			DockerTargetBuildStage: types.StringNull(),
+		}}
+	}
+	withImage := func(source *ContainerSource, registryID, imageName, tag types.String) Container {
+		cont := nullPlanFor[Container](t, &containerResource{})
+		cont.Source = source
+		cont.RegistryID = registryID
+		cont.ImageName = imageName
+		cont.Tag = tag
+		return cont
+	}
+	builtImage := func(tag string) *container.Container {
+		return &container.Container{
+			ID:            uuid.MustParse(testContainerID),
+			EnvironmentID: uuid.MustParse(testEnvironmentID),
+			RegistryID:    uuid.MustParse(testBuildRegistryID),
+			Name:          "api",
+			ImageName:     "z6f0c8a52-built",
+			Tag:           tag,
+			GitSource: &docker.Docker{
+				GitRepository:  git_repository.GitRepository{Url: testGitURL, Branch: new("main"), RootPath: new("/")},
+				DockerFilePath: new("Dockerfile"),
+			},
+		}
+	}
+	builtValues := func(tag string) (types.String, types.String, types.String) {
+		return types.StringValue(testBuildRegistryID), types.StringValue("z6f0c8a52-built"), types.StringValue(tag)
+	}
+
+	t.Run("git_container_keeps_the_planned_image_when_a_build_finished_after_the_plan", func(t *testing.T) {
+		t.Parallel()
+		registryID, imageName, tag := builtValues("build-1")
+		prior := withImage(gitSource(), registryID, imageName, tag)
+		plan := withImage(gitSource(), registryID, imageName, tag)
+
+		state := convertUpdatedContainerToContainer(context.Background(), plan, prior, builtImage("build-2"))
+
+		assert.Equal(t, "build-1", state.Tag.ValueString())
+		assert.Equal(t, testBuildRegistryID, state.RegistryID.ValueString())
+		assert.Equal(t, "z6f0c8a52-built", state.ImageName.ValueString())
+	})
+
+	t.Run("switch_to_git_stores_the_api_image", func(t *testing.T) {
+		t.Parallel()
+		prior := withImage(nil, types.StringValue(testRegistryID), types.StringValue("qovery/nginx"), types.StringValue("1.27"))
+		plan := withImage(gitSource(), types.StringUnknown(), types.StringUnknown(), types.StringUnknown())
+
+		state := convertUpdatedContainerToContainer(context.Background(), plan, prior, builtImage("build-2"))
+
+		assert.Equal(t, "build-2", state.Tag.ValueString())
+		assert.Equal(t, testBuildRegistryID, state.RegistryID.ValueString())
+	})
+}
+
 const (
 	testContainerID     = "6f0c8a52-3e0f-4c43-a1a8-5d6d1c0e9b21"
 	testEnvironmentID   = "0e8f9b0c-7d0a-4f5e-9c1e-3a2b1c0d9e8f"

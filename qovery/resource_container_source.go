@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/hashicorp/terraform-plugin-framework/attr"
 	datasourceschema "github.com/hashicorp/terraform-plugin-framework/datasource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/path"
@@ -172,13 +171,24 @@ func containerSourceFromDomain(prior *ContainerSource, gitSource *docker.Docker)
 	}
 }
 
-// containerSourceForDataSource reports the source as the API returns it, provider included.
+// containerSourceForDataSource reports the source as the API returns it.
 func containerSourceForDataSource(gitSource *docker.Docker) *ContainerSource {
-	source := containerSourceFromDomain(nil, gitSource)
-	if source != nil {
-		source.GitRepository.Provider = FromStringPointer(gitSource.GitRepository.Provider)
+	if gitSource == nil {
+		return nil
 	}
-	return source
+
+	repository := gitSource.GitRepository
+	return &ContainerSource{
+		GitRepository: &ContainerSourceGitRepository{
+			URL:                    FromString(repository.Url),
+			Branch:                 FromStringPointer(repository.Branch),
+			RootPath:               FromStringPointer(repository.RootPath),
+			GitTokenId:             FromStringPointer(repository.GitTokenId),
+			Provider:               FromStringPointer(repository.Provider),
+			DockerfilePath:         FromStringPointer(gitSource.DockerFilePath),
+			DockerTargetBuildStage: FromStringPointer(gitSource.DockerTargetBuildStage),
+		},
+	}
 }
 
 // attributeGetter is satisfied by tfsdk.Config, tfsdk.Plan and tfsdk.State.
@@ -186,20 +196,35 @@ type attributeGetter interface {
 	GetAttribute(ctx context.Context, p path.Path, target interface{}) diag.Diagnostics
 }
 
-// containerGitRepositoryAt returns source.git_repository of a container configuration, plan or state:
-// null for a container that runs a registry image, unknown while source is unknown.
-func containerGitRepositoryAt(ctx context.Context, data attributeGetter) (types.Object, diag.Diagnostics) {
+// containerSourceKind is what a container configuration, plan or state runs.
+type containerSourceKind int
+
+const (
+	containerRunsImage containerSourceKind = iota
+	containerSourceUnknown
+	containerRunsGitRepository
+)
+
+// containerSourceKindAt reads source.git_repository of a container configuration, plan or state.
+func containerSourceKindAt(ctx context.Context, data attributeGetter) (containerSourceKind, diag.Diagnostics) {
 	var source types.Object
 	diags := data.GetAttribute(ctx, path.Root("source"), &source)
-	if diags.HasError() || source.IsNull() || source.IsUnknown() {
-		return source, diags
+	switch {
+	case diags.HasError() || source.IsNull():
+		return containerRunsImage, diags
+	case source.IsUnknown():
+		return containerSourceUnknown, diags
 	}
 
 	gitRepository, ok := source.Attributes()["git_repository"].(types.Object)
-	if !ok {
-		return types.ObjectNull(map[string]attr.Type{}), diags
+	switch {
+	case !ok || gitRepository.IsNull():
+		return containerRunsImage, diags
+	case gitRepository.IsUnknown():
+		return containerSourceUnknown, diags
+	default:
+		return containerRunsGitRepository, diags
 	}
-	return gitRepository, diags
 }
 
 // gitContainerImageModifier keeps the image in state while the container keeps its Git repository
@@ -220,11 +245,11 @@ func (m gitContainerImageModifier) PlanModifyString(ctx context.Context, req pla
 		return
 	}
 
-	planned, diags := containerGitRepositoryAt(ctx, req.Plan)
+	planned, diags := containerSourceKindAt(ctx, req.Plan)
 	resp.Diagnostics.Append(diags...)
-	recorded, diags := containerGitRepositoryAt(ctx, req.State)
+	recorded, diags := containerSourceKindAt(ctx, req.State)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() || planned.IsNull() || planned.IsUnknown() || recorded.IsNull() {
+	if resp.Diagnostics.HasError() || planned != containerRunsGitRepository || recorded != containerRunsGitRepository {
 		return
 	}
 	resp.PlanValue = req.StateValue
@@ -252,15 +277,17 @@ func (m containerAutoDeployDefaultModifier) PlanModifyBool(ctx context.Context, 
 		return
 	}
 
-	planned, diags := containerGitRepositoryAt(ctx, req.Plan)
+	planned, diags := containerSourceKindAt(ctx, req.Plan)
 	resp.Diagnostics.Append(diags...)
-	switch {
-	case resp.Diagnostics.HasError():
-	case planned.IsUnknown():
+	if resp.Diagnostics.HasError() {
+		return
+	}
+	switch planned {
+	case containerSourceUnknown:
 		resp.PlanValue = types.BoolUnknown()
-	case planned.IsNull():
+	case containerRunsImage:
 		resp.PlanValue = types.BoolValue(serviceAutoDeployDefault)
-	default:
+	case containerRunsGitRepository:
 		resp.PlanValue = types.BoolValue(false)
 	}
 }
@@ -379,9 +406,9 @@ func rejectGitSourceOnCreate(ctx context.Context, req resource.ModifyPlanRequest
 		return
 	}
 
-	planned, diags := containerGitRepositoryAt(ctx, req.Plan)
+	planned, diags := containerSourceKindAt(ctx, req.Plan)
 	resp.Diagnostics.Append(diags...)
-	if diags.HasError() || planned.IsNull() || planned.IsUnknown() {
+	if diags.HasError() || planned != containerRunsGitRepository {
 		return
 	}
 

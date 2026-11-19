@@ -524,8 +524,8 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				MarkdownDescription: descriptions.NewBoolDefaultDescription(containerAutoDeployDescription+containerGitSourceAutoDeployNote, serviceAutoDeployDefault),
 				Optional:            true,
 				Computed:            true,
-				// No static Default: a Git container defaults to false, and a static true would
-				// disagree with its state and plan a change after every build.
+				// No static Default: true would be planned and sent for a Git container that omits
+				// auto_deploy, and the API rejects it there.
 				PlanModifiers: []planmodifier.Bool{ContainerAutoDeployDefault()},
 			},
 			"annotations_group_ids": schema.SetAttribute{
@@ -630,7 +630,7 @@ func (r containerResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	// Update state values
-	state = convertDomainContainerToContainer(ctx, plan, cont)
+	state = convertUpdatedContainerToContainer(ctx, plan, state, cont)
 	tflog.Trace(ctx, "updated container", map[string]any{"container_id": state.ID.ValueString()})
 
 	// Set state

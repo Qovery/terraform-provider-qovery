@@ -64,13 +64,40 @@ func TestAcc_ContainerSwitchToGitRepositoryAndBack(t *testing.T) {
 					resource.TestCheckResourceAttrSet(containerGitSourceAddress, "tag"),
 				),
 			},
-			// A change made outside Terraform shows as a difference on refresh.
+			// A source changed outside Terraform shows as a difference on refresh, and an apply restores it.
+			{
+				PreConfig: func() {
+					err := testAccEditServiceOutOfBand("/container/"+containerID, withoutContainerImageFields, func(container map[string]any) {
+						git := container["source"].(map[string]any)["git_repository"].(map[string]any)
+						container["source"] = map[string]any{"git_repository": map[string]any{
+							"url":             git["url"],
+							"branch":          "test",
+							"root_path":       git["root_path"],
+							"git_token_id":    git["git_token_id"],
+							"provider":        git["provider"],
+							"dockerfile_path": git["dockerfile_path"],
+						}}
+					})
+					if err != nil {
+						t.Fatal(err)
+					}
+				},
+				Config:             testAccContainerGitSourceConfig(testName, containerGitSourceBuildSettings),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config:            testAccContainerGitSourceConfig(testName, containerGitSourceBuildSettings),
+				ConfigPlanChecks:  inPlaceUpdate,
+				ConfigStateChecks: keepsID,
+				Check:             resource.TestCheckResourceAttr(containerGitSourceAddress, "source.git_repository.branch", "master"),
+			},
+			// Build settings changed outside Terraform show as a difference on refresh.
 			{
 				PreConfig: func() {
 					err := testAccEditServiceOutOfBand("/container/"+containerID, func(container map[string]any) {
-						for _, key := range []string{"source", "registry", "image_name", "tag"} {
-							delete(container, key)
-						}
+						withoutContainerImageFields(container)
+						delete(container, "source")
 					}, func(container map[string]any) {
 						container["build_settings"].(map[string]any)["timeout_max_sec"] = 600
 					})
@@ -131,6 +158,14 @@ func TestAcc_ContainerCreateWithGitRepositorySourceFails(t *testing.T) {
 			},
 		},
 	})
+}
+
+// withoutContainerImageFields drops the image of a container read from the API, which a request on a
+// container with a Git repository source must not repeat next to a source.
+func withoutContainerImageFields(container map[string]any) {
+	for _, key := range []string{"registry", "image_name", "tag"} {
+		delete(container, key)
+	}
 }
 
 const containerGitSourceBuildSettings = `

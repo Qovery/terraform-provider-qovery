@@ -275,3 +275,18 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		BuildSettings:                buildSettingsToState(state.BuildSettings, container.BuildSettings),
 	}
 }
+
+// convertUpdatedContainerToContainer returns the state to store after an update from prior to plan.
+func convertUpdatedContainerToContainer(ctx context.Context, plan Container, prior Container, cont *container.Container) Container {
+	updated := convertDomainContainerToContainer(ctx, plan, cont)
+	if prior.Source.gitRepository() == nil || plan.Source.gitRepository() == nil {
+		return updated
+	}
+
+	// The API reports the image running at update time, which a build finished after the plan
+	// changes: keep the planned one, and let the next refresh record the new build.
+	updated.RegistryID = knownOr(plan.RegistryID, updated.RegistryID)
+	updated.ImageName = knownOr(plan.ImageName, updated.ImageName)
+	updated.Tag = knownOr(plan.Tag, updated.Tag)
+	return updated
+}
