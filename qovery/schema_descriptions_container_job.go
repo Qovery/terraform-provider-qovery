@@ -5,7 +5,7 @@ package qovery
 // sentence alone.
 
 const (
-	containerResourceDescription = "Manages a Qovery container: a service that runs a prebuilt image from a container registry in its environment."
+	containerResourceDescription = "Manages a Qovery container: a service that runs a prebuilt image from a container registry, or an image Qovery builds from a Git repository, in its environment."
 	jobResourceDescription       = "Manages a Qovery job: a cron job that runs on a schedule, or a lifecycle job that runs when its environment starts, stops or is deleted."
 )
 
@@ -17,6 +17,23 @@ const (
 )
 
 const containerAutoDeployDescription = "Whether Qovery redeploys the container when it receives a new image tag."
+
+// Git repository source of qovery_container. A container switches between a registry image and a
+// Git repository source in place.
+const (
+	containerImageGitSourceNote = " Set it for a container that runs a registry image. " +
+		"On a container with `source.git_repository`, leave it out: it reports the image Qovery last built."
+	containerSourceDescription = "Source Qovery builds the container image from, instead of a registry image."
+	containerSourceWriteNote   = " Set either `source` or `registry_id`, `image_name` and `tag`: changing from one to the other updates the container in place, " +
+		"keeping its id, volumes and built-in variables, and the next deployment uses the new source. " +
+		"Qovery cannot create a container with `source`: create it with an image, then set `source` in a later apply."
+	containerSourceGitRepositoryDescription = "Git repository with the Dockerfile Qovery builds the image from."
+	containerSourceBranchDescription        = "Branch to build."
+	containerGitSourceRootPathWriteNote     = " Use `/`, not an empty string, for the repository root."
+	containerGitSourceFalseNote             = " On a container with `source.git_repository` it must be `false`."
+	containerAutoDeployDefaultNote          = "\n\t- Default: `true`, or `false` on a container with `source.git_repository`."
+	containerBuildSettingsNote              = " Only for a container with `source.git_repository`."
+)
 
 const (
 	jobMaxDurationSecondsDescription = "Maximum run time of the job, in seconds: a job that runs longer is stopped and marked failed."

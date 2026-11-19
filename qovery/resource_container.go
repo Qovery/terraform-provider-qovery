@@ -27,10 +27,11 @@ import (
 
 // Ensure provider defined types fully satisfy terraform framework interfaces.
 var (
-	_ resource.ResourceWithConfigure    = &containerResource{}
-	_ resource.ResourceWithImportState  = containerResource{}
-	_ resource.ResourceWithModifyPlan   = containerResource{}
-	_ resource.ResourceWithUpgradeState = containerResource{}
+	_ resource.ResourceWithConfigure        = &containerResource{}
+	_ resource.ResourceWithConfigValidators = containerResource{}
+	_ resource.ResourceWithImportState      = containerResource{}
+	_ resource.ResourceWithModifyPlan       = containerResource{}
+	_ resource.ResourceWithUpgradeState     = containerResource{}
 )
 
 type containerResource struct {
@@ -76,6 +77,8 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 	ports := portDescriptions("container")
 	storages := storageDescriptions("container")
 	customDomains := customDomainDescriptions("container")
+	buildSettings := buildSettingsResourceSchemaAttributes()
+	buildSettings.MarkdownDescription += containerBuildSettingsNote
 
 	resp.Schema = schema.Schema{
 		Version:             2,
@@ -96,10 +99,14 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 				Validators: []validator.String{validators.NewUUIDValidator()},
 			},
+			// The image attributes are computed on a container with a Git repository source,
+			// where the API sets them to the image it built.
 			"registry_id": schema.StringAttribute{
-				MarkdownDescription: containerImageRegistryIDDescription,
-				Required:            true,
+				MarkdownDescription: containerImageRegistryIDDescription + containerImageGitSourceNote,
+				Optional:            true,
+				Computed:            true,
 				Validators:          []validator.String{validators.NewUUIDValidator()},
+				PlanModifiers:       []planmodifier.String{GitContainerImage()},
 			},
 			"name": schema.StringAttribute{
 				MarkdownDescription: nameDescription("container"),
@@ -112,13 +119,19 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				Default:             stringdefault.StaticString(containerIconURIDefault),
 			},
 			"image_name": schema.StringAttribute{
-				MarkdownDescription: containerImageNameDescription,
-				Required:            true,
+				MarkdownDescription: containerImageNameDescription + containerImageGitSourceNote,
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{GitContainerImage()},
 			},
 			"tag": schema.StringAttribute{
-				MarkdownDescription: containerImageTagDescription,
-				Required:            true,
+				MarkdownDescription: containerImageTagDescription + containerImageGitSourceNote,
+				Optional:            true,
+				Computed:            true,
+				PlanModifiers:       []planmodifier.String{GitContainerImage()},
 			},
+			"source":         containerSourceResourceSchemaAttribute(),
+			"build_settings": buildSettings,
 			"cpu": schema.Int64Attribute{
 				MarkdownDescription: descriptions.NewInt64MinDescription(cpuDescription("container"), container.MinCPU, new(int64(container.DefaultCPU))),
 				Optional:            true,
@@ -166,7 +179,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			},
 			"autoscaling": autoscalingResourceSchema(),
 			"auto_preview": schema.BoolAttribute{
-				MarkdownDescription: descriptions.NewBoolDefaultDescription(autoPreviewDescription("container"), serviceAutoPreviewDefault),
+				MarkdownDescription: descriptions.NewBoolDefaultDescription(autoPreviewDescription("container")+containerGitSourceFalseNote, serviceAutoPreviewDefault),
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(serviceAutoPreviewDefault),
@@ -508,10 +521,12 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"auto_deploy": schema.BoolAttribute{
-				MarkdownDescription: descriptions.NewBoolDefaultDescription(containerAutoDeployDescription, serviceAutoDeployDefault),
+				MarkdownDescription: containerAutoDeployDescription + containerGitSourceFalseNote + containerAutoDeployDefaultNote,
 				Optional:            true,
 				Computed:            true,
-				Default:             booldefault.StaticBool(serviceAutoDeployDefault),
+				// No static Default: true would be planned and sent for a Git container that omits
+				// auto_deploy, and the API rejects it there.
+				PlanModifiers: []planmodifier.Bool{ContainerAutoDeployDefault()},
 			},
 			"annotations_group_ids": schema.SetAttribute{
 				MarkdownDescription: groupIDsDescription("annotations", "the container's pods"),
@@ -615,7 +630,7 @@ func (r containerResource) Update(ctx context.Context, req resource.UpdateReques
 	}
 
 	// Update state values
-	state = convertDomainContainerToContainer(ctx, plan, cont)
+	state = convertUpdatedContainerToContainer(ctx, plan, state, cont)
 	tflog.Trace(ctx, "updated container", map[string]any{"container_id": state.ID.ValueString()})
 
 	// Set state
@@ -684,10 +699,15 @@ func upgradeContainerState(from0x bool) func(context.Context, resource.UpgradeSt
 	}
 }
 
-// ModifyPlan enforces KEDA autoscaling constraints at plan time so the backend
-// never rejects them mid-apply (which would leave the service partially mutated),
-// and warns about advanced_settings_json keys that are unknown for this service type.
+func (r containerResource) ConfigValidators(_ context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{containerSourceValidator{}}
+}
+
+// ModifyPlan enforces KEDA autoscaling constraints and the create-time limit of a Git repository
+// source at plan time so the backend never rejects them mid-apply (which would leave the service
+// partially mutated), and warns about advanced_settings_json keys unknown for this service type.
 func (r containerResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	validateAutoscalingPlan(ctx, req.Plan, &resp.Diagnostics)
+	rejectGitSourceOnCreate(ctx, req, resp)
 	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.CONTAINER, req.Config, &resp.Diagnostics)
 }

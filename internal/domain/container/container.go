@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/autoscaling"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/status"
@@ -58,6 +59,10 @@ var (
 	ErrInvalidContainerSecretsParam = errors.New("invalid container secrets param")
 	// ErrFailedToSetHosts is returned if the internal & external host failed to be set.
 	ErrFailedToSetHosts = errors.New("failed to set hosts")
+	// ErrInvalidGitSourceParam is returned if the Git repository source param is invalid.
+	ErrInvalidGitSourceParam = errors.New("invalid git repository source param")
+	// ErrImageWithGitSource is returned if an upsert request names an image next to a Git repository source.
+	ErrImageWithGitSource = errors.New("a container with a git repository source takes no registry_id, image_name and tag")
 )
 
 type Container struct {
@@ -95,6 +100,9 @@ type Container struct {
 	AnnotationsGroupIds         []string
 	LabelsGroupIds              []string
 	Autoscaling                 *autoscaling.AutoscalingPolicy
+	// GitSource is the Git repository Qovery builds the image from, nil for a container that runs a registry image.
+	GitSource     *docker.Docker
+	BuildSettings *qovery.BuildSettings
 }
 
 // Validate returns an error to tell whether the Container domain model is valid or not.
@@ -156,6 +164,8 @@ type NewContainerParams struct {
 	AnnotationsGroupIds    []string
 	LabelsGroupIds         []string
 	Autoscaling            *autoscaling.AutoscalingPolicy
+	GitSource              *docker.NewDockerParams
+	BuildSettings          *qovery.BuildSettings
 }
 
 // NewContainer returns a new instance of a Container domain model.
@@ -214,6 +224,15 @@ func NewContainer(params NewContainerParams) (*Container, error) {
 		AnnotationsGroupIds:  params.AnnotationsGroupIds,
 		LabelsGroupIds:       params.LabelsGroupIds,
 		Autoscaling:          params.Autoscaling,
+		BuildSettings:        params.BuildSettings,
+	}
+
+	if params.GitSource != nil {
+		gitSource, err := docker.NewDocker(*params.GitSource)
+		if err != nil {
+			return nil, errors.Wrap(err, ErrInvalidGitSourceParam.Error())
+		}
+		c.GitSource = gitSource
 	}
 
 	if err := c.SetEnvironmentVariables(params.EnvironmentVariables); err != nil {

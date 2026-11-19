@@ -14,45 +14,47 @@ import (
 )
 
 type Container struct {
-	ID                           types.String  `tfsdk:"id"`
-	EnvironmentID                types.String  `tfsdk:"environment_id"`
-	RegistryID                   types.String  `tfsdk:"registry_id"`
-	Name                         types.String  `tfsdk:"name"`
-	IconUri                      types.String  `tfsdk:"icon_uri"`
-	ImageName                    types.String  `tfsdk:"image_name"`
-	Tag                          types.String  `tfsdk:"tag"`
-	Entrypoint                   types.String  `tfsdk:"entrypoint"`
-	CPU                          types.Int64   `tfsdk:"cpu"`
-	Memory                       types.Int64   `tfsdk:"memory"`
-	EphemeralStorage             types.Int64   `tfsdk:"ephemeral_storage"`
-	MinRunningInstances          types.Int64   `tfsdk:"min_running_instances"`
-	MaxRunningInstances          types.Int64   `tfsdk:"max_running_instances"`
-	AutoPreview                  types.Bool    `tfsdk:"auto_preview"`
-	BuiltInEnvironmentVariables  types.List    `tfsdk:"built_in_environment_variables"`
-	EnvironmentVariables         types.Set     `tfsdk:"environment_variables"`
-	EnvironmentVariableAliases   types.Set     `tfsdk:"environment_variable_aliases"`
-	EnvironmentVariableOverrides types.Set     `tfsdk:"environment_variable_overrides"`
-	Secrets                      types.List    `tfsdk:"secrets"`
-	SecretAliases                types.Set     `tfsdk:"secret_aliases"`
-	SecretOverrides              types.Set     `tfsdk:"secret_overrides"`
-	EnvironmentVariableFiles     types.Set     `tfsdk:"environment_variable_files"`
-	SecretFiles                  types.Set     `tfsdk:"secret_files"`
-	ExternalSecrets              types.Set     `tfsdk:"external_secrets"`
-	ExternalSecretFiles          types.Set     `tfsdk:"external_secret_files"`
-	Storages                     types.Set     `tfsdk:"storage"`
-	Ports                        types.List    `tfsdk:"ports"`
-	Arguments                    types.List    `tfsdk:"arguments"`
-	CustomDomains                types.Set     `tfsdk:"custom_domains"`
-	ExternalHost                 types.String  `tfsdk:"external_host"`
-	InternalHost                 types.String  `tfsdk:"internal_host"`
-	DeploymentStageId            types.String  `tfsdk:"deployment_stage_id"`
-	IsSkipped                    types.Bool    `tfsdk:"is_skipped"`
-	Healthchecks                 *HealthChecks `tfsdk:"healthchecks"`
-	AdvancedSettingsJson         types.String  `tfsdk:"advanced_settings_json"`
-	AutoDeploy                   types.Bool    `tfsdk:"auto_deploy"`
-	AnnotationsGroupIds          types.Set     `tfsdk:"annotations_group_ids"`
-	LabelsGroupIds               types.Set     `tfsdk:"labels_group_ids"`
-	Autoscaling                  types.Object  `tfsdk:"autoscaling"`
+	ID                           types.String     `tfsdk:"id"`
+	EnvironmentID                types.String     `tfsdk:"environment_id"`
+	RegistryID                   types.String     `tfsdk:"registry_id"`
+	Name                         types.String     `tfsdk:"name"`
+	IconUri                      types.String     `tfsdk:"icon_uri"`
+	ImageName                    types.String     `tfsdk:"image_name"`
+	Tag                          types.String     `tfsdk:"tag"`
+	Entrypoint                   types.String     `tfsdk:"entrypoint"`
+	CPU                          types.Int64      `tfsdk:"cpu"`
+	Memory                       types.Int64      `tfsdk:"memory"`
+	EphemeralStorage             types.Int64      `tfsdk:"ephemeral_storage"`
+	MinRunningInstances          types.Int64      `tfsdk:"min_running_instances"`
+	MaxRunningInstances          types.Int64      `tfsdk:"max_running_instances"`
+	AutoPreview                  types.Bool       `tfsdk:"auto_preview"`
+	BuiltInEnvironmentVariables  types.List       `tfsdk:"built_in_environment_variables"`
+	EnvironmentVariables         types.Set        `tfsdk:"environment_variables"`
+	EnvironmentVariableAliases   types.Set        `tfsdk:"environment_variable_aliases"`
+	EnvironmentVariableOverrides types.Set        `tfsdk:"environment_variable_overrides"`
+	Secrets                      types.List       `tfsdk:"secrets"`
+	SecretAliases                types.Set        `tfsdk:"secret_aliases"`
+	SecretOverrides              types.Set        `tfsdk:"secret_overrides"`
+	EnvironmentVariableFiles     types.Set        `tfsdk:"environment_variable_files"`
+	SecretFiles                  types.Set        `tfsdk:"secret_files"`
+	ExternalSecrets              types.Set        `tfsdk:"external_secrets"`
+	ExternalSecretFiles          types.Set        `tfsdk:"external_secret_files"`
+	Storages                     types.Set        `tfsdk:"storage"`
+	Ports                        types.List       `tfsdk:"ports"`
+	Arguments                    types.List       `tfsdk:"arguments"`
+	CustomDomains                types.Set        `tfsdk:"custom_domains"`
+	ExternalHost                 types.String     `tfsdk:"external_host"`
+	InternalHost                 types.String     `tfsdk:"internal_host"`
+	DeploymentStageId            types.String     `tfsdk:"deployment_stage_id"`
+	IsSkipped                    types.Bool       `tfsdk:"is_skipped"`
+	Healthchecks                 *HealthChecks    `tfsdk:"healthchecks"`
+	AdvancedSettingsJson         types.String     `tfsdk:"advanced_settings_json"`
+	AutoDeploy                   types.Bool       `tfsdk:"auto_deploy"`
+	AnnotationsGroupIds          types.Set        `tfsdk:"annotations_group_ids"`
+	LabelsGroupIds               types.Set        `tfsdk:"labels_group_ids"`
+	Autoscaling                  types.Object     `tfsdk:"autoscaling"`
+	Source                       *ContainerSource `tfsdk:"source"`
+	BuildSettings                types.Object     `tfsdk:"build_settings"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
@@ -145,7 +147,7 @@ func (cont Container) toUpsertServiceRequest(state *Container, secretValuesWo wr
 	}
 
 	return &container.UpsertServiceRequest{
-		ContainerUpsertRequest:       cont.toUpsertRepositoryRequest(cont.CustomDomainsList().diff(stateCustomDomains)),
+		ContainerUpsertRequest:       cont.toUpsertRepositoryRequest(cont.CustomDomainsList().diff(stateCustomDomains), state),
 		EnvironmentVariables:         cont.EnvironmentVariableList().diffRequest(stateEnvironmentVariables),
 		EnvironmentVariableAliases:   cont.EnvironmentVariableAliasList().diffRequest(stateEnvironmentVariableAliases),
 		EnvironmentVariableOverrides: cont.EnvironmentVariableOverrideList().diffRequest(stateEnvironmentVariableOverrides),
@@ -159,7 +161,9 @@ func (cont Container) toUpsertServiceRequest(state *Container, secretValuesWo wr
 	}
 }
 
-func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomDomainsDiff) container.UpsertRepositoryRequest {
+// toUpsertRepositoryRequest sends either the image or the Git repository source of the plan. state is
+// nil on create; a state with a Git repository source makes the image a source, to switch back to it.
+func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomDomainsDiff, state *Container) container.UpsertRepositoryRequest {
 	storageList := cont.StorageList()
 	storages := make([]storage.UpsertRequest, 0, len(storageList))
 	for _, store := range storageList {
@@ -184,12 +188,9 @@ func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomD
 		labelsGroupIds = append(labelsGroupIds, id.ValueString())
 	}
 
-	return container.UpsertRepositoryRequest{
-		RegistryID:           ToString(cont.RegistryID),
+	request := container.UpsertRepositoryRequest{
 		Name:                 ToString(cont.Name),
 		IconUri:              ToStringPointer(cont.IconUri),
-		ImageName:            ToString(cont.ImageName),
-		Tag:                  ToString(cont.Tag),
 		AutoPreview:          ToBoolPointer(cont.AutoPreview),
 		Entrypoint:           ToStringPointer(cont.Entrypoint),
 		CPU:                  ToInt32Pointer(cont.CPU),
@@ -210,6 +211,22 @@ func (cont Container) toUpsertRepositoryRequest(customDomainsDiff client.CustomD
 		LabelsGroupIds:       labelsGroupIds,
 		Autoscaling:          toQoveryAutoscaling(cont.Autoscaling),
 	}
+
+	if gitSource := cont.Source.gitRepository().toDomain(); gitSource != nil {
+		stateBuildSettings := types.ObjectNull(buildSettingsAttrTypes)
+		if state != nil {
+			stateBuildSettings = state.BuildSettings
+		}
+		request.GitSource = gitSource
+		request.BuildSettings = buildSettingsRequest(cont.BuildSettings, stateBuildSettings)
+		return request
+	}
+
+	request.RegistryID = ToString(cont.RegistryID)
+	request.ImageName = ToString(cont.ImageName)
+	request.Tag = ToString(cont.Tag)
+	request.ImageAsSource = state != nil && state.Source.gitRepository() != nil
+	return request
 }
 
 func convertDomainContainerToContainer(ctx context.Context, state Container, container *container.Container) Container {
@@ -254,5 +271,22 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		Autoscaling:                  fromAutoscaling(container.Autoscaling, state.Autoscaling),
 		ExternalSecrets:              convertDomainExternalSecretsToExternalSecretList(container.ExternalSecrets, state.ExternalSecrets, variable.ScopeContainer).toTerraformSet(ctx),
 		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(container.ExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeContainer).toTerraformSet(ctx),
+		Source:                       containerSourceFromDomain(state.Source, container.GitSource),
+		BuildSettings:                buildSettingsToState(state.BuildSettings, container.BuildSettings),
 	}
+}
+
+// convertUpdatedContainerToContainer returns the state to store after an update from prior to plan.
+func convertUpdatedContainerToContainer(ctx context.Context, plan Container, prior Container, cont *container.Container) Container {
+	updated := convertDomainContainerToContainer(ctx, plan, cont)
+	if prior.Source.gitRepository() == nil || plan.Source.gitRepository() == nil {
+		return updated
+	}
+
+	// The API returns the running image, which changes when a build finishes after the plan:
+	// keep the planned one; the next refresh records the new build.
+	updated.RegistryID = knownOr(plan.RegistryID, updated.RegistryID)
+	updated.ImageName = knownOr(plan.ImageName, updated.ImageName)
+	updated.Tag = knownOr(plan.Tag, updated.Tag)
+	return updated
 }

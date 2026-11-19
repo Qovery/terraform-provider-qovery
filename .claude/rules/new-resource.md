@@ -29,7 +29,7 @@ A **service resource** (application, container, job, helm, terraform_service) ca
 | `name` | Required | |
 | `description` | Optional | |
 | `icon_uri` | Optional + Computed, `Default` = the type's q-core icon (`app://qovery-console/<type>`) | Job: the `JobIconUriDefault()` plan modifier picks the cron or lifecycle icon |
-| `auto_deploy` | Optional + Computed, `Default` `true` (helm `false`) | Required on terraform_service |
+| `auto_deploy` | Optional + Computed, `Default` `true` (helm `false`) | Required on terraform_service. Container: no `Default`, the `ContainerAutoDeployDefault()` plan modifier plans `true`, or `false` with a Git repository source |
 | `auto_preview` | Optional + Computed, `Default` `false` | Not on terraform_service |
 | `ephemeral_storage` | Optional + Computed, `Default` `0` | The read maps an API null to `0` (`ephemeralStorageFromAPI`). Not on helm and terraform_service |
 | `deployment_stage_id` | Optional + Computed, `UseStateForUnknown` | Exception, commented in code: q-core cannot detach a service from its stage. Append `deploymentStageIDRemovalNote` to the description. Separate API calls (see below) |
