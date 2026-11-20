@@ -410,21 +410,3 @@ func (v containerSourceValidator) ValidateResource(ctx context.Context, req reso
 	}
 	resp.Diagnostics.Append(cfg.validate()...)
 }
-
-// rejectGitSourceOnCreate fails the plan of a container created, or recreated, with a Git
-// repository source: the API sets one on update only.
-func rejectGitSourceOnCreate(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
-	if !req.State.Raw.IsNull() || req.Plan.Raw.IsNull() {
-		return
-	}
-
-	planned, diags := containerSourceKindAt(ctx, req.Plan)
-	resp.Diagnostics.Append(diags...)
-	if diags.HasError() || planned != containerRunsGitRepository {
-		return
-	}
-
-	resp.Diagnostics.AddAttributeError(path.Root("source").AtName("git_repository"), "Cannot create a container from a Git repository",
-		"Qovery sets source.git_repository on an existing container only. Create the container with registry_id, image_name and tag, apply, "+
-			"then replace them with source.git_repository and apply again. This also applies when the container is recreated, for example after a change of environment_id.")
-}

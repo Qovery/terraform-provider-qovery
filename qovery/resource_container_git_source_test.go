@@ -4,7 +4,6 @@ package qovery_test
 
 import (
 	"fmt"
-	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/compare"
@@ -148,16 +147,75 @@ func TestAcc_ContainerSwitchToGitRepositoryAndBack(t *testing.T) {
 	})
 }
 
-func TestAcc_ContainerCreateWithGitRepositorySourceFails(t *testing.T) {
+func TestAcc_ContainerCreateWithGitRepositorySource(t *testing.T) {
 	t.Parallel()
+	testName := "container-git-source-create"
+	sameID := statecheck.CompareValue(compare.ValuesSame())
+	// CompareValue checks one recorded value per AddStateValue call, so each step needs its own call.
+	keepsID := func() []statecheck.StateCheck {
+		return []statecheck.StateCheck{sameID.AddStateValue(containerGitSourceAddress, tfjsonpath.New("id"))}
+	}
+	inPlaceUpdate := resource.ConfigPlanChecks{
+		PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(containerGitSourceAddress, plancheck.ResourceActionUpdate)},
+		PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+	}
+
 	resource.Test(t, resource.TestCase{
 		PreCheck:                 func() { testAccPreCheck(t) },
 		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryContainerDestroy(containerGitSourceAddress),
 		Steps: []resource.TestStep{
 			{
-				Config:      testAccContainerGitSourceConfig("container-git-source-create", ""),
-				PlanOnly:    true,
-				ExpectError: regexp.MustCompile(`Cannot create a container from a Git repository`),
+				Config: testAccContainerGitSourceConfig(testName, containerGitSourceBuildSettings),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(containerGitSourceAddress, plancheck.ResourceActionCreate)},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				ConfigStateChecks: keepsID(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists(containerGitSourceAddress),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "source.git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "source.git_repository.branch", "master"),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "source.git_repository.root_path", "/"),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "build_settings.timeout_max_sec", "900"),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "auto_deploy", "false"),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "auto_preview", "false"),
+					resource.TestCheckResourceAttrSet(containerGitSourceAddress, "registry_id"),
+					resource.TestCheckResourceAttrSet(containerGitSourceAddress, "image_name"),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "tag", "pending-first-build"),
+				),
+			},
+			{
+				Config:   testAccContainerGitSourceConfig(testName, containerGitSourceBuildSettings),
+				PlanOnly: true,
+			},
+			{
+				ResourceName:      containerGitSourceAddress,
+				ImportState:       true,
+				ImportStateVerify: true,
+				// An import leaves build_settings null: the block is tracked only once the config sets it.
+				ImportStateVerifyIgnore: []string{"build_settings"},
+			},
+			{
+				Config:            testAccContainerDefaultConfig(testName),
+				ConfigPlanChecks:  inPlaceUpdate,
+				ConfigStateChecks: keepsID(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "image_name", containerImageName),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "tag", containerTag),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "auto_deploy", "true"),
+					resource.TestCheckNoResourceAttr(containerGitSourceAddress, "source.git_repository.url"),
+				),
+			},
+			{
+				Config:            testAccContainerGitSourceConfig(testName, containerGitSourceBuildSettings),
+				ConfigPlanChecks:  inPlaceUpdate,
+				ConfigStateChecks: keepsID(),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "source.git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "build_settings.timeout_max_sec", "900"),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "auto_deploy", "false"),
+				),
 			},
 		},
 	})

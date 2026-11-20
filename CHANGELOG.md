@@ -14,6 +14,14 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Changed
+
+- Creating a `qovery_container` with `source.git_repository` is now allowed, in one apply, and so
+  is recreating one after a change of `environment_id`. The plan used to reject it and ask to
+  create the container with an image first. Until the first build, `registry_id`, `image_name`
+  and `tag` report the registry of the cluster, the repository name and the tag
+  `pending-first-build`. (QOV-2587)
+
 ## [1.9.0] - 2026-11-19
 
 ### Added

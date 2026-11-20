@@ -703,11 +703,10 @@ func (r containerResource) ConfigValidators(_ context.Context) []resource.Config
 	return []resource.ConfigValidator{containerSourceValidator{}}
 }
 
-// ModifyPlan enforces KEDA autoscaling constraints and the create-time limit of a Git repository
-// source at plan time so the backend never rejects them mid-apply (which would leave the service
-// partially mutated), and warns about advanced_settings_json keys unknown for this service type.
+// ModifyPlan enforces KEDA autoscaling constraints at plan time so the backend
+// never rejects them mid-apply (which would leave the service partially mutated),
+// and warns about advanced_settings_json keys that are unknown for this service type.
 func (r containerResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, resp *resource.ModifyPlanResponse) {
 	validateAutoscalingPlan(ctx, req.Plan, &resp.Diagnostics)
-	rejectGitSourceOnCreate(ctx, req, resp)
 	warnUnknownAdvancedSettings(ctx, r.advancedSettingsService, domain.CONTAINER, req.Config, &resp.Diagnostics)
 }
