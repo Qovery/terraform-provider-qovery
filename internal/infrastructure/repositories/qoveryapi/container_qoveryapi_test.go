@@ -19,6 +19,8 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/git_repository"
 )
 
 // createThenFailRoundTripper answers the service creation call with the given payload
@@ -297,4 +299,117 @@ func TestContainerQoveryAPI_Create_FallsBackToRequestedEnvironmentWhenResponseRe
 	require.NotNil(t, cont, "a broken environment reference must not cost us the whole entity")
 	assert.Equal(t, containerID, cont.ID.String())
 	assert.Equal(t, environmentID, cont.EnvironmentID.String(), "expected the environment the create was aimed at")
+}
+
+// gitContainerCreateRoundTripper answers the calls of a container create from a Git repository and
+// records the body of the creation call.
+type gitContainerCreateRoundTripper struct {
+	containerID   string
+	environmentID string
+	registryID    string
+	createBody    *[]byte
+}
+
+func (rt gitContainerCreateRoundTripper) RoundTrip(req *http.Request) (*http.Response, error) {
+	var body string
+	switch {
+	case req.Method == http.MethodPost && strings.HasSuffix(req.URL.Path, "/environment/"+rt.environmentID+"/container"):
+		created, err := io.ReadAll(req.Body)
+		if err != nil {
+			return nil, err
+		}
+		*rt.createBody = created
+		body = `{
+			"id": "` + rt.containerID + `",
+			"created_at": "2026-11-20T10:00:00Z",
+			"environment": {"id": "` + rt.environmentID + `"},
+			"registry": {"id": "` + rt.registryID + `", "name": "cluster registry", "url": "https://rg.fr-par.scw.cloud", "kind": "SCALEWAY_CR"},
+			"image_name": "api",
+			"tag": "pending-first-build",
+			"source": {"git_repository": {"provider": "GITHUB", "owner": "acme", "url": "https://github.com/acme/api.git", "name": "acme/api", "branch": "main",
+				"root_path": "/", "dockerfile_path": "Dockerfile"}},
+			"build_settings": {"timeout_max_sec": 900, "cpu_max_in_milli": 4000, "ram_max_in_gib": 8, "disable_buildkit_cache": false, "skip_git_submodules": false},
+			"name": "api",
+			"icon_uri": "app://qovery-console/container",
+			"service_type": "CONTAINER",
+			"maximum_cpu": 4000, "maximum_memory": 8192, "maximum_gpu": 0,
+			"cpu": 500, "memory": 512, "gpu": 0,
+			"min_running_instances": 1, "max_running_instances": 1,
+			"healthchecks": {"readiness_probe": null, "liveness_probe": null},
+			"auto_preview": false,
+			"auto_deploy": false
+		}`
+	case strings.HasSuffix(req.URL.Path, "/service/"+rt.containerID+"/deploymentStage"):
+		body = `{"id": "` + uuid.NewString() + `", "created_at": "2026-11-20T10:00:00Z", "environment": {"id": "` + rt.environmentID + `"}, "name": "DEFAULT", "services": []}`
+	case strings.HasSuffix(req.URL.Path, "/container/"+rt.containerID+"/customDomain"):
+		body = `{"results": []}`
+	case strings.HasSuffix(req.URL.Path, "/container/"+rt.containerID+"/advancedSettings"):
+		body = `{}`
+	default:
+		return &http.Response{
+			StatusCode: http.StatusNotFound,
+			Header:     http.Header{"Content-Type": []string{"application/json"}},
+			Body:       io.NopCloser(strings.NewReader(`{"message":"unexpected call"}`)),
+			Request:    req,
+		}, nil
+	}
+
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Header:     http.Header{"Content-Type": []string{"application/json"}},
+		Body:       io.NopCloser(strings.NewReader(body)),
+		Request:    req,
+	}, nil
+}
+
+// Until its first build, a container created from a Git repository reports the cluster registry,
+// the repository name and a placeholder tag as its image.
+func TestContainerQoveryAPI_Create_GitRepositorySource(t *testing.T) {
+	t.Parallel()
+
+	containerID := uuid.New().String()
+	environmentID := uuid.New().String()
+	registryID := uuid.New().String()
+	var createBody []byte
+
+	client := newAPIClientWithTransport(t, gitContainerCreateRoundTripper{
+		containerID:   containerID,
+		environmentID: environmentID,
+		registryID:    registryID,
+		createBody:    &createBody,
+	})
+	repository, err := newContainerQoveryAPI(client)
+	require.NoError(t, err)
+
+	cont, err := repository.Create(context.Background(), environmentID, container.UpsertRepositoryRequest{
+		Name: "api",
+		GitSource: &docker.Docker{
+			GitRepository:  git_repository.GitRepository{Url: "https://github.com/acme/api.git", Branch: new("main"), RootPath: new("/")},
+			DockerFilePath: new("Dockerfile"),
+		},
+		BuildSettings:        &qovery.BuildSettings{TimeoutMaxSec: new(int32(900))},
+		AutoDeploy:           *qovery.NewNullableBool(new(false)),
+		AutoPreview:          new(false),
+		AdvancedSettingsJson: "{}",
+	})
+	require.NoError(t, err)
+
+	var fields map[string]json.RawMessage
+	require.NoError(t, json.Unmarshal(createBody, &fields))
+	assert.NotContains(t, fields, "registry_id")
+	assert.NotContains(t, fields, "image_name")
+	assert.NotContains(t, fields, "tag")
+	assert.JSONEq(t, `{"git_repository": {"url": "https://github.com/acme/api.git", "branch": "main", "root_path": "/", "git_token_id": null,`+
+		` "provider": "GITHUB", "dockerfile_path": "Dockerfile", "docker_target_build_stage": null}}`, string(fields["source"]))
+	assert.JSONEq(t, `{"timeout_max_sec": 900}`, string(fields["build_settings"]))
+	assert.JSONEq(t, `false`, string(fields["auto_deploy"]))
+	assert.JSONEq(t, `false`, string(fields["auto_preview"]))
+
+	require.NotNil(t, cont)
+	assert.Equal(t, registryID, cont.RegistryID.String())
+	assert.Equal(t, "api", cont.ImageName)
+	assert.Equal(t, "pending-first-build", cont.Tag)
+	require.NotNil(t, cont.GitSource)
+	assert.Equal(t, "https://github.com/acme/api.git", cont.GitSource.GitRepository.Url)
+	assert.Equal(t, new(false), cont.AutoDeploy)
 }

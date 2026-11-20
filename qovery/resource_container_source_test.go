@@ -13,6 +13,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/providerserver"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/tfsdk"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-go/tfprotov6"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
@@ -232,6 +233,29 @@ func TestContainerToUpsertRepositoryRequest_Source(t *testing.T) {
 		t.Parallel()
 		request := imageContainer.toUpsertRepositoryRequest(client.CustomDomainsDiff{}, nil)
 		assert.False(t, request.ImageAsSource)
+	})
+
+	t.Run("create_git_container", func(t *testing.T) {
+		t.Parallel()
+		created := gitContainer
+		created.RegistryID = types.StringUnknown()
+		created.ImageName = types.StringUnknown()
+		created.Tag = types.StringUnknown()
+		created.AutoDeploy = types.BoolValue(false)
+		created.AutoPreview = types.BoolValue(false)
+
+		request := created.toUpsertRepositoryRequest(client.CustomDomainsDiff{}, nil)
+		require.NoError(t, request.Validate())
+		require.NotNil(t, request.GitSource)
+		assert.Equal(t, "https://github.com/acme/api.git", request.GitSource.GitRepository.Url)
+		assert.Empty(t, request.RegistryID)
+		assert.Empty(t, request.ImageName)
+		assert.Empty(t, request.Tag)
+		assert.False(t, request.ImageAsSource)
+		require.NotNil(t, request.BuildSettings)
+		assert.Equal(t, int32(900), request.BuildSettings.GetTimeoutMaxSec())
+		assert.Equal(t, new(false), request.AutoDeploy.Get())
+		assert.Equal(t, new(false), request.AutoPreview)
 	})
 }
 
@@ -495,25 +519,20 @@ func TestContainerPlan_EnvironmentChange_StillReplaces(t *testing.T) {
 	assert.True(t, resp.RequiresReplace[0].Equal(tftypes.NewAttributePath().WithAttributeName("environment_id")))
 }
 
-func TestContainerPlan_CreateWithGitSource_Fails(t *testing.T) {
+func TestContainerPlan_CreateWithGitSource_IsAccepted(t *testing.T) {
 	t.Parallel()
 
 	s := testContainerSchema(t)
 	prior := tftypes.NewValue(s.Type().TerraformType(context.Background()), nil)
 	resp := planTestContainer(t, prior, testContainerValue(t, testGitContainerConfig(nil)))
 
-	var summaries []string
-	for _, d := range resp.Diagnostics {
-		if d.Severity == tfprotov6.DiagnosticSeverityError {
-			summaries = append(summaries, d.Summary)
-		}
-	}
-	assert.Equal(t, []string{"Cannot create a container from a Git repository"}, summaries)
+	requireNoPlanErrors(t, resp)
+	requireCreatePlanOfGitContainer(t, plannedTestContainer(t, resp))
 }
 
-// TestContainerPlan_ReplaceGitContainer_Fails replays the two calls Terraform core makes for a
+// TestContainerPlan_ReplaceGitContainer_IsAccepted replays the two calls Terraform core makes for a
 // replacement: the update plan that requires it, then the plan of the create from a null prior.
-func TestContainerPlan_ReplaceGitContainer_Fails(t *testing.T) {
+func TestContainerPlan_ReplaceGitContainer_IsAccepted(t *testing.T) {
 	t.Parallel()
 
 	config := testContainerValue(t, testGitContainerConfig(map[string]tftypes.Value{
@@ -526,13 +545,124 @@ func TestContainerPlan_ReplaceGitContainer_Fails(t *testing.T) {
 
 	s := testContainerSchema(t)
 	create := planTestContainer(t, tftypes.NewValue(s.Type().TerraformType(context.Background()), nil), config)
-	var summaries []string
-	for _, d := range create.Diagnostics {
-		if d.Severity == tfprotov6.DiagnosticSeverityError {
-			summaries = append(summaries, d.Summary)
+	requireNoPlanErrors(t, create)
+	requireCreatePlanOfGitContainer(t, plannedTestContainer(t, create))
+}
+
+// requireCreatePlanOfGitContainer checks the create plan of testGitContainerConfig: the API sets
+// the image and the built-in variables, and the auto flags it rejects as true on a Git container
+// are planned false.
+func requireCreatePlanOfGitContainer(t *testing.T, plannedValue tftypes.Value) {
+	t.Helper()
+	planned := testValueAttributes(t, plannedValue)
+	for _, name := range []string{"id", "registry_id", "image_name", "tag", "built_in_environment_variables"} {
+		assert.False(t, planned[name].IsKnown(), "%s must be unknown on create", name)
+	}
+	assert.Equal(t, tftypes.NewValue(tftypes.Bool, false), planned["auto_deploy"])
+	assert.Equal(t, tftypes.NewValue(tftypes.Bool, false), planned["auto_preview"])
+	assert.True(t, planned["build_settings"].IsNull())
+}
+
+// TestContainerCreateWithGitSource_ApplyThenPlan_NoDiff replays a create from a Git repository:
+// until the first build, the API reports the cluster registry, the repository name and a
+// placeholder tag as the image.
+func TestContainerCreateWithGitSource_ApplyThenPlan_NoDiff(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	s := testContainerSchema(t)
+
+	config := testContainerValue(t, testGitContainerConfig(map[string]tftypes.Value{
+		"healthchecks":   testEmptyHealthchecksValue(),
+		"build_settings": testBuildSettingsValue(map[string]tftypes.Value{"timeout_max_sec": tftypes.NewValue(tftypes.Number, big.NewFloat(900))}),
+	}))
+	create := planTestContainer(t, tftypes.NewValue(s.Type().TerraformType(ctx), nil), config)
+	requireNoPlanErrors(t, create)
+	plannedValue := plannedTestContainer(t, create)
+
+	var plan Container
+	diags := tfsdk.Plan{Schema: s, Raw: plannedValue}.Get(ctx, &plan)
+	require.False(t, diags.HasError(), diags)
+
+	created := &container.Container{
+		ID:                   uuid.MustParse(testContainerID),
+		EnvironmentID:        uuid.MustParse(testEnvironmentID),
+		RegistryID:           uuid.MustParse(testBuildRegistryID),
+		Name:                 "api",
+		IconUri:              containerIconURIDefault,
+		ImageName:            "api",
+		Tag:                  "pending-first-build",
+		CPU:                  container.DefaultCPU,
+		Memory:               container.DefaultMemory,
+		MinRunningInstances:  container.MinMinRunningInstances,
+		MaxRunningInstances:  container.DefaultMaxRunningInstances,
+		InternalHost:         new("api.internal"),
+		DeploymentStageID:    "8b6a2f4e-1c3d-4e5f-9a7b-2c1d0e9f8a7b",
+		AdvancedSettingsJson: "{}",
+		AutoDeploy:           new(false),
+		GitSource: &docker.Docker{
+			GitRepository:  git_repository.GitRepository{Url: testGitURL, Branch: new("main"), RootPath: new("/")},
+			DockerFilePath: new("Dockerfile"),
+		},
+		BuildSettings: &qovery.BuildSettings{
+			TimeoutMaxSec:        new(int32(900)),
+			CpuMaxInMilli:        new(int32(buildSettingsDefaultCpuMaxInMilli)),
+			RamMaxInGib:          new(int32(buildSettingsDefaultRamMaxInGib)),
+			DisableBuildkitCache: new(buildSettingsDefaultDisableBuildkitCache),
+			SkipGitSubmodules:    new(buildSettingsDefaultSkipGitSubmodules),
+		},
+	}
+	state := tfsdk.State{Schema: s}
+	diags = state.Set(ctx, convertDomainContainerToContainer(ctx, plan, created))
+	require.False(t, diags.HasError(), diags)
+
+	requireAppliedMatchesPlan(t, plannedValue, state.Raw)
+	applied := testValueAttributes(t, state.Raw)
+	assert.Equal(t, tftypes.NewValue(tftypes.String, testBuildRegistryID), applied["registry_id"])
+	assert.Equal(t, tftypes.NewValue(tftypes.String, "api"), applied["image_name"])
+	assert.Equal(t, tftypes.NewValue(tftypes.String, "pending-first-build"), applied["tag"])
+	buildSettings := testValueAttributes(t, applied["build_settings"])
+	assert.True(t, tftypes.NewValue(tftypes.Number, big.NewFloat(900)).Equal(buildSettings["timeout_max_sec"]), "timeout_max_sec: %s", buildSettings["timeout_max_sec"])
+
+	next := planTestContainer(t, state.Raw, config)
+	requireNoPlanErrors(t, next)
+	assert.Empty(t, next.RequiresReplace)
+	assert.True(t, state.Raw.Equal(plannedTestContainer(t, next)), "the plan after a create from a Git repository planned a change")
+}
+
+// requireAppliedMatchesPlan fails where Terraform reports "Provider produced inconsistent result
+// after apply": the applied value differs from a known planned value.
+func requireAppliedMatchesPlan(t *testing.T, planned, applied tftypes.Value) {
+	t.Helper()
+	diffs, err := planned.Diff(applied)
+	require.NoError(t, err)
+	for _, d := range diffs {
+		if d.Value1 != nil && d.Value1.IsFullyKnown() {
+			t.Errorf("%s: planned %s, applied %v", d.Path, d.Value1, d.Value2)
 		}
 	}
-	assert.Equal(t, []string{"Cannot create a container from a Git repository"}, summaries)
+}
+
+// testBuildSettingsValue builds a build_settings value from fields, every other setting null.
+func testBuildSettingsValue(fields map[string]tftypes.Value) tftypes.Value {
+	buildSettingsType := testContainerType().AttributeTypes["build_settings"].(tftypes.Object)
+	settings := make(map[string]tftypes.Value, len(buildSettingsType.AttributeTypes))
+	for name, settingType := range buildSettingsType.AttributeTypes {
+		if value, ok := fields[name]; ok {
+			settings[name] = value
+		} else {
+			settings[name] = tftypes.NewValue(settingType, nil)
+		}
+	}
+	return tftypes.NewValue(buildSettingsType, settings)
+}
+
+func testEmptyHealthchecksValue() tftypes.Value {
+	healthchecksType := testContainerType().AttributeTypes["healthchecks"].(tftypes.Object)
+	probes := make(map[string]tftypes.Value, len(healthchecksType.AttributeTypes))
+	for name, probeType := range healthchecksType.AttributeTypes {
+		probes[name] = tftypes.NewValue(probeType, nil)
+	}
+	return tftypes.NewValue(healthchecksType, probes)
 }
 
 func TestContainerValidateConfig_RunsSourceValidator(t *testing.T) {
