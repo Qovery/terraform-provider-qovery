@@ -22,7 +22,8 @@ const containerAutoDeployDescription = "Whether Qovery redeploys the container w
 // Git repository source in place.
 const (
 	containerImageGitSourceNote = " Set it for a container that runs a registry image. " +
-		"On a container with `source.git_repository`, leave it out: it reports the image Qovery last built, or a placeholder before the first build."
+		"On a container with `source.git_repository`, leave it out: it reports the image Qovery last built, " +
+		"and before the first build the cluster registry, the repository name and the tag `pending-first-build`."
 	containerSourceDescription = "Source Qovery builds the container image from, instead of a registry image."
 	containerSourceWriteNote   = " Set either `source` or `registry_id`, `image_name` and `tag`: changing from one to the other updates the container in place, " +
 		"keeping its id, volumes and built-in variables, and the next deployment uses the new source."

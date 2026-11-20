@@ -550,11 +550,12 @@ func TestContainerPlan_ReplaceGitContainer_IsAccepted(t *testing.T) {
 }
 
 // requireCreatePlanOfGitContainer checks the create plan of testGitContainerConfig: the API sets
-// the image, and the auto flags it rejects as true on a Git container are planned false.
+// the image and the built-in variables, and the auto flags it rejects as true on a Git container
+// are planned false.
 func requireCreatePlanOfGitContainer(t *testing.T, plannedValue tftypes.Value) {
 	t.Helper()
 	planned := testValueAttributes(t, plannedValue)
-	for _, name := range []string{"id", "registry_id", "image_name", "tag"} {
+	for _, name := range []string{"id", "registry_id", "image_name", "tag", "built_in_environment_variables"} {
 		assert.False(t, planned[name].IsKnown(), "%s must be unknown on create", name)
 	}
 	assert.Equal(t, tftypes.NewValue(tftypes.Bool, false), planned["auto_deploy"])
@@ -571,7 +572,8 @@ func TestContainerCreateWithGitSource_ApplyThenPlan_NoDiff(t *testing.T) {
 	s := testContainerSchema(t)
 
 	config := testContainerValue(t, testGitContainerConfig(map[string]tftypes.Value{
-		"healthchecks": testEmptyHealthchecksValue(),
+		"healthchecks":   testEmptyHealthchecksValue(),
+		"build_settings": testBuildSettingsValue(map[string]tftypes.Value{"timeout_max_sec": tftypes.NewValue(tftypes.Number, big.NewFloat(900))}),
 	}))
 	create := planTestContainer(t, tftypes.NewValue(s.Type().TerraformType(ctx), nil), config)
 	requireNoPlanErrors(t, create)
@@ -601,6 +603,13 @@ func TestContainerCreateWithGitSource_ApplyThenPlan_NoDiff(t *testing.T) {
 			GitRepository:  git_repository.GitRepository{Url: testGitURL, Branch: new("main"), RootPath: new("/")},
 			DockerFilePath: new("Dockerfile"),
 		},
+		BuildSettings: &qovery.BuildSettings{
+			TimeoutMaxSec:        new(int32(900)),
+			CpuMaxInMilli:        new(int32(buildSettingsDefaultCpuMaxInMilli)),
+			RamMaxInGib:          new(int32(buildSettingsDefaultRamMaxInGib)),
+			DisableBuildkitCache: new(buildSettingsDefaultDisableBuildkitCache),
+			SkipGitSubmodules:    new(buildSettingsDefaultSkipGitSubmodules),
+		},
 	}
 	state := tfsdk.State{Schema: s}
 	diags = state.Set(ctx, convertDomainContainerToContainer(ctx, plan, created))
@@ -611,6 +620,8 @@ func TestContainerCreateWithGitSource_ApplyThenPlan_NoDiff(t *testing.T) {
 	assert.Equal(t, tftypes.NewValue(tftypes.String, testBuildRegistryID), applied["registry_id"])
 	assert.Equal(t, tftypes.NewValue(tftypes.String, "api"), applied["image_name"])
 	assert.Equal(t, tftypes.NewValue(tftypes.String, "pending-first-build"), applied["tag"])
+	buildSettings := testValueAttributes(t, applied["build_settings"])
+	assert.True(t, tftypes.NewValue(tftypes.Number, big.NewFloat(900)).Equal(buildSettings["timeout_max_sec"]), "timeout_max_sec: %s", buildSettings["timeout_max_sec"])
 
 	next := planTestContainer(t, state.Raw, config)
 	requireNoPlanErrors(t, next)
@@ -629,6 +640,20 @@ func requireAppliedMatchesPlan(t *testing.T, planned, applied tftypes.Value) {
 			t.Errorf("%s: planned %s, applied %v", d.Path, d.Value1, d.Value2)
 		}
 	}
+}
+
+// testBuildSettingsValue builds a build_settings value from fields, every other setting null.
+func testBuildSettingsValue(fields map[string]tftypes.Value) tftypes.Value {
+	buildSettingsType := testContainerType().AttributeTypes["build_settings"].(tftypes.Object)
+	settings := make(map[string]tftypes.Value, len(buildSettingsType.AttributeTypes))
+	for name, settingType := range buildSettingsType.AttributeTypes {
+		if value, ok := fields[name]; ok {
+			settings[name] = value
+		} else {
+			settings[name] = tftypes.NewValue(settingType, nil)
+		}
+	}
+	return tftypes.NewValue(buildSettingsType, settings)
 }
 
 func testEmptyHealthchecksValue() tftypes.Value {

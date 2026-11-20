@@ -141,7 +141,7 @@ resource "qovery_container" "my_git_container" {
 - `external_secrets` (Attributes Set) External secrets of the container, read from an external secret manager such as AWS Secrets Manager. (see [below for nested schema](#nestedatt--external_secrets))
 - `icon_uri` (String) Icon of the container in the Qovery Console.
 	- Default: `app://qovery-console/container`.
-- `image_name` (String) Name of the image, without the tag, for example `nginx` or `my-org/my-app`. Set it for a container that runs a registry image. On a container with `source.git_repository`, leave it out: it reports the image Qovery last built, or a placeholder before the first build.
+- `image_name` (String) Name of the image, without the tag, for example `nginx` or `my-org/my-app`. Set it for a container that runs a registry image. On a container with `source.git_repository`, leave it out: it reports the image Qovery last built, and before the first build the cluster registry, the repository name and the tag `pending-first-build`.
 - `is_skipped` (Boolean) Whether environment-wide deployments skip the service. It stays in its deployment stage.
 	- Default: `false`.
 - `labels_group_ids` (Set of String) IDs of the labels groups applied to the container's pods. Omitting it detaches every labels group.
@@ -153,14 +153,14 @@ resource "qovery_container" "my_git_container" {
 - `min_running_instances` (Number) Minimum number of running instances of the container.
 	- Default: `1`.
 - `ports` (Attributes List) Ports of the container. A publicly accessible port needs an `external_port`. (see [below for nested schema](#nestedatt--ports))
-- `registry_id` (String) ID of the `qovery_container_registry` the image is pulled from. Set it for a container that runs a registry image. On a container with `source.git_repository`, leave it out: it reports the image Qovery last built, or a placeholder before the first build.
+- `registry_id` (String) ID of the `qovery_container_registry` the image is pulled from. Set it for a container that runs a registry image. On a container with `source.git_repository`, leave it out: it reports the image Qovery last built, and before the first build the cluster registry, the repository name and the tag `pending-first-build`.
 - `secret_aliases` (Attributes Set) Secret aliases of the container. An alias gives an existing secret another name. (see [below for nested schema](#nestedatt--secret_aliases))
 - `secret_files` (Attributes Set) Secret files of the container, each mounted as a file. (see [below for nested schema](#nestedatt--secret_files))
 - `secret_overrides` (Attributes Set) Secret overrides of the container. An override replaces the value of a secret inherited from a broader scope. (see [below for nested schema](#nestedatt--secret_overrides))
 - `secrets` (Attributes List, Sensitive) Secrets of the container. Each entry sets `value` or `value_wo`, and each key appears once. (see [below for nested schema](#nestedatt--secrets))
 - `source` (Attributes) Source Qovery builds the container image from, instead of a registry image. Set either `source` or `registry_id`, `image_name` and `tag`: changing from one to the other updates the container in place, keeping its id, volumes and built-in variables, and the next deployment uses the new source. (see [below for nested schema](#nestedatt--source))
 - `storage` (Attributes Set) Persistent volumes of the container. Their data survives restarts. (see [below for nested schema](#nestedatt--storage))
-- `tag` (String) Tag of the image, for example `v1.2.3`. Set it for a container that runs a registry image. On a container with `source.git_repository`, leave it out: it reports the image Qovery last built, or a placeholder before the first build.
+- `tag` (String) Tag of the image, for example `v1.2.3`. Set it for a container that runs a registry image. On a container with `source.git_repository`, leave it out: it reports the image Qovery last built, and before the first build the cluster registry, the repository name and the tag `pending-first-build`.
 
 ### Read-Only
 
