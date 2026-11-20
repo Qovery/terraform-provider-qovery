@@ -14,6 +14,8 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.10.0] - 2026-11-20
+
 ### Changed
 
 - Creating a `qovery_container` with `source.git_repository` is now allowed, in one apply, and so
@@ -657,7 +659,8 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/qovery/terraform-provider-qovery/compare/v1.7.0...v1.7.1
