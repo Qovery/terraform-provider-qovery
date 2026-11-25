@@ -119,6 +119,7 @@ func TestDeploymentRestrictionService_GetServiceDeploymentRestrictions(t *testin
 		assert.Nil(t, restrictions)
 		require.NotNil(t, apiErr)
 		assert.Equal(t, apierrors.NewReadError(apierrors.APIResourceServiceDeploymentRestriction, serviceID, nil, nil).Summary(), apiErr.Summary())
+		assert.Contains(t, apiErr.Detail(), serviceID)
 	})
 }
 
@@ -174,6 +175,7 @@ func TestDeploymentRestrictionService_UpdateServiceDeploymentRestrictions(t *tes
 
 		require.NotNil(t, apiErr)
 		assert.Equal(t, apierrors.NewDeleteError(apierrors.APIResourceServiceDeploymentRestriction, removedRestrictionID, nil, nil).Summary(), apiErr.Summary())
+		assert.Contains(t, apiErr.Detail(), removedRestrictionID)
 		assert.Len(t, recordedCalls(), 1)
 	})
 
@@ -193,6 +195,7 @@ func TestDeploymentRestrictionService_UpdateServiceDeploymentRestrictions(t *tes
 
 		require.NotNil(t, apiErr)
 		assert.Equal(t, apierrors.NewCreateError(apierrors.APIResourceServiceDeploymentRestriction, "no id", nil, nil).Summary(), apiErr.Summary())
+		assert.Contains(t, apiErr.Detail(), "no id")
 		assert.Len(t, recordedCalls(), 1)
 	})
 }

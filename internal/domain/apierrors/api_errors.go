@@ -68,7 +68,7 @@ func (e APIError) Detail() string {
 	payload := e.errorPayload()
 
 	if e.err != nil {
-		extra = fmt.Sprintf("unexpected error: %s", e.err)
+		extra = fmt.Sprintf("unexpected error: %s", e.errorMessage())
 		if payload != nil && payload.Message != "" {
 			extra = fmt.Sprintf("%s - %s", extra, payload.Message)
 		}
@@ -77,6 +77,14 @@ func (e APIError) Detail() string {
 	}
 
 	return fmt.Sprintf("Could not %s %s '%s', %s", e.action, e.resource, e.resourceID, extra)
+}
+
+func (e APIError) errorMessage() string {
+	// The client formats some error bodies into err as Go pointers; the status line reads the same for every status.
+	if e.Resp != nil && e.Resp.StatusCode >= 300 && e.Resp.Status != "" {
+		return e.Resp.Status
+	}
+	return e.err.Error()
 }
 
 // errorPayload parses the error payload sent by the api client from the body buffered at construction.
