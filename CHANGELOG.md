@@ -19,7 +19,11 @@ explained in the matching upgrade guide.
 - `qovery_container` and its data source get `deployment_restrictions`: on a container with
   `source.git_repository`, a push deploys the container only if the files it changes pass the
   rules. The plan rejects rules on a container that runs a registry image: remove the block when
-  switching to one, which deletes the rules in Qovery. (QOV-2669)
+  switching to one, which deletes the rules in Qovery. When you upgrade, the next apply on a
+  container with no `deployment_restrictions` block deletes the rules Qovery already holds for it,
+  both rules set in the Qovery Console on a Git container and rules left from before a switch to an
+  image: to keep rules managed in the Console, set
+  `lifecycle { ignore_changes = [deployment_restrictions] }`. (QOV-2669)
 
 ### Changed
 
