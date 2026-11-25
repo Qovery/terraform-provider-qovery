@@ -23,6 +23,10 @@ explained in the matching upgrade guide.
   Anyone who can push to the branch can deploy the container, and a preview builds the pull
   request's code, pull requests from forks included, and runs it with the environment's variables
   and secrets. (QOV-2669)
+- The `deployment_restrictions` of `qovery_application`, `qovery_job` and `qovery_helm` are now
+  read and written through the Qovery API shared by every service kind,
+  `/service/{serviceId}/deploymentRestriction`. The rules, the plan and the errors stay the same.
+  (QOV-2669)
 
 ## [1.10.0] - 2026-11-20
 

@@ -180,7 +180,7 @@ func (c *Client) GetApplication(ctx context.Context, applicationID string, advan
 	if err != nil {
 		return nil, apierrors.NewUpdateError(apierrors.APIResourceApplication, application.Id, nil, err)
 	}
-	deploymentRestrictions, apiErr := deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, application.Id, domain.APPLICATION)
+	deploymentRestrictions, apiErr := deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, application.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
@@ -403,7 +403,7 @@ func (c *Client) updateApplication(
 		return nil, apierrors.NewUpdateError(apierrors.APIResourceApplication, application.Id, nil, err)
 	}
 	if deploymentRestrictionsDiff.IsNotEmpty() {
-		if apiErr := deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, application.Id, domain.APPLICATION, deploymentRestrictionsDiff); apiErr != nil {
+		if apiErr := deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, application.Id, deploymentRestrictionsDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}
@@ -430,7 +430,7 @@ func (c *Client) updateApplication(
 
 	hosts := c.getApplicationHosts(application, environmentVariables)
 
-	deploymentRestrictions, apiErr := deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, application.Id, domain.APPLICATION)
+	deploymentRestrictions, apiErr := deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, application.Id)
 	if apiErr != nil {
 		return nil, apiErr
 	}
