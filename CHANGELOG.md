@@ -14,6 +14,8 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+## [1.11.0] - 2026-11-25
+
 ### Added
 
 - `qovery_container` and its data source get `deployment_restrictions`: on a container with
@@ -23,7 +25,7 @@ explained in the matching upgrade guide.
   container with no `deployment_restrictions` block deletes the rules Qovery already holds for it,
   both rules set in the Qovery Console on a Git container and rules left from before a switch to an
   image: to keep rules managed in the Console, set
-  `lifecycle { ignore_changes = [deployment_restrictions] }`. (QOV-2669)
+  `lifecycle { ignore_changes = [deployment_restrictions] }`. (QOV-2669, #681)
 
 ### Changed
 
@@ -33,7 +35,7 @@ explained in the matching upgrade guide.
   `false` on such a container, and the plan shows the difference when Qovery holds `true`.
   Anyone who can push to the branch can deploy the container, and a preview builds the pull
   request's code, pull requests from forks included, and runs it with the environment's variables
-  and secrets. (QOV-2669)
+  and secrets. (QOV-2669, #678)
 - The `deployment_restrictions` of `qovery_application`, `qovery_job` and `qovery_helm` are now
   read and written through the Qovery API shared by every service kind,
   `/service/{serviceId}/deploymentRestriction`. The rules, the plan and the restriction error
@@ -45,9 +47,10 @@ explained in the matching upgrade guide.
   already exists (409), the error now reads `409 Conflict - <reason>`. It used to hold Go pointers
   such as `%!s(*string=0x…)`. Other API errors keep their message. (QOV-2669, #679)
 - Leaving out (or removing) `deployment_restrictions` from a `qovery_application`, `qovery_job` or
-  `qovery_helm` now deletes its rules. The apply used to fail with "Provider produced inconsistent
-  result after apply". To keep rules managed in the Qovery Console, set
-  `lifecycle { ignore_changes = [deployment_restrictions] }`. (QOV-2669)
+  `qovery_helm` now deletes the rules Qovery holds for it, rules set in the Qovery Console
+  included. The apply used to fail with "Provider produced inconsistent result after apply". To
+  keep rules managed in the Console, set `lifecycle { ignore_changes = [deployment_restrictions] }`.
+  (QOV-2669, #680)
 
 ## [1.10.0] - 2026-11-20
 
@@ -694,7 +697,8 @@ explained in the matching upgrade guide.
 - Go toolchain upgraded to 1.26.6 (QOV-2149, #615) and `google.golang.org/grpc` to 1.82.1
   (#614).
 
-[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/qovery/terraform-provider-qovery/compare/v1.11.0...HEAD
+[1.11.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.10.0...v1.11.0
 [1.10.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.9.0...v1.10.0
 [1.9.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.8.0...v1.9.0
 [1.8.0]: https://github.com/qovery/terraform-provider-qovery/compare/v1.7.1...v1.8.0
