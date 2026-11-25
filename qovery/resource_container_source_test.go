@@ -37,11 +37,12 @@ func TestContainerSourceConfigValidate(t *testing.T) {
 
 	image := func() containerSourceConfig {
 		return containerSourceConfig{
-			Source:        types.ObjectNull(map[string]attr.Type{}),
-			RegistryID:    types.StringValue(uuid.NewString()),
-			ImageName:     types.StringValue("nginx"),
-			Tag:           types.StringValue("1.27"),
-			BuildSettings: types.ObjectNull(buildSettingsAttrTypes),
+			Source:                 types.ObjectNull(map[string]attr.Type{}),
+			RegistryID:             types.StringValue(uuid.NewString()),
+			ImageName:              types.StringValue("nginx"),
+			Tag:                    types.StringValue("1.27"),
+			BuildSettings:          types.ObjectNull(buildSettingsAttrTypes),
+			DeploymentRestrictions: types.SetNull(deploymentRestrictionObjectType),
 		}
 	}
 	git := func() containerSourceConfig {
@@ -119,6 +120,39 @@ func TestContainerSourceConfigValidate(t *testing.T) {
 				return cfg
 			},
 			ExpectedError: "build_settings needs a Git repository source",
+		},
+		{
+			TestName: "git_repository_source_with_deployment_restrictions",
+			Config: func() containerSourceConfig {
+				cfg := git()
+				cfg.DeploymentRestrictions = testDeploymentRestrictionSet(types.StringNull())
+				return cfg
+			},
+		},
+		{
+			TestName: "deployment_restrictions_on_image",
+			Config: func() containerSourceConfig {
+				cfg := image()
+				cfg.DeploymentRestrictions = testDeploymentRestrictionSet(types.StringNull())
+				return cfg
+			},
+			ExpectedError: "deployment_restrictions needs source.git_repository",
+		},
+		{
+			TestName: "empty_deployment_restrictions_on_image",
+			Config: func() containerSourceConfig {
+				cfg := image()
+				cfg.DeploymentRestrictions = types.SetValueMust(deploymentRestrictionObjectType, []attr.Value{})
+				return cfg
+			},
+		},
+		{
+			TestName: "unknown_deployment_restrictions_on_image",
+			Config: func() containerSourceConfig {
+				cfg := image()
+				cfg.DeploymentRestrictions = types.SetUnknown(deploymentRestrictionObjectType)
+				return cfg
+			},
 		},
 		{
 			TestName: "build_settings_with_build_keys_in_advanced_settings",

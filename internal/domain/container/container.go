@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/autoscaling"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/docker"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
@@ -101,8 +102,9 @@ type Container struct {
 	LabelsGroupIds              []string
 	Autoscaling                 *autoscaling.AutoscalingPolicy
 	// GitSource is the Git repository Qovery builds the image from, nil for a container that runs a registry image.
-	GitSource     *docker.Docker
-	BuildSettings *qovery.BuildSettings
+	GitSource              *docker.Docker
+	BuildSettings          *qovery.BuildSettings
+	DeploymentRestrictions []deploymentrestriction.ServiceDeploymentRestriction
 }
 
 // Validate returns an error to tell whether the Container domain model is valid or not.

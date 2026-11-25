@@ -9,6 +9,7 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/secret"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
 )
@@ -22,12 +23,21 @@ type containerService struct {
 	containerDeploymentService   deployment.Service
 	variableService              variable.Service
 	secretService                secret.Service
+	deploymentRestrictionService deploymentrestriction.DeploymentRestrictionService
 	externalSecretRepository     variable.ExternalSecretRepository
 	externalSecretFileRepository variable.ExternalSecretFileRepository
 }
 
 // NewContainerService return a new instance of a container.Service that uses the given container.Repository.
-func NewContainerService(containerRepository container.Repository, containerDeploymentService deployment.Service, variableService variable.Service, secretService secret.Service, externalSecretRepository variable.ExternalSecretRepository, externalSecretFileRepository variable.ExternalSecretFileRepository) (container.Service, error) {
+func NewContainerService(
+	containerRepository container.Repository,
+	containerDeploymentService deployment.Service,
+	variableService variable.Service,
+	secretService secret.Service,
+	deploymentRestrictionService deploymentrestriction.DeploymentRestrictionService,
+	externalSecretRepository variable.ExternalSecretRepository,
+	externalSecretFileRepository variable.ExternalSecretFileRepository,
+) (container.Service, error) {
 	if containerRepository == nil {
 		return nil, ErrInvalidRepository
 	}
@@ -57,6 +67,7 @@ func NewContainerService(containerRepository container.Repository, containerDepl
 		variableService:              variableService,
 		secretService:                secretService,
 		containerDeploymentService:   containerDeploymentService,
+		deploymentRestrictionService: deploymentRestrictionService,
 		externalSecretRepository:     externalSecretRepository,
 		externalSecretFileRepository: externalSecretFileRepository,
 	}, nil
@@ -95,6 +106,12 @@ func (s containerService) Create(ctx context.Context, environmentID string, requ
 	_, err = s.secretService.Update(ctx, cont.ID.String(), request.Secrets, request.SecretAliases, request.SecretOverrides, request.SecretFiles, overridesAuthorizedScopes)
 	if err != nil {
 		return cont, errors.Wrap(err, container.ErrFailedToCreateContainer.Error())
+	}
+
+	if request.DeploymentRestrictionsDiff.IsNotEmpty() {
+		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, cont.ID.String(), request.DeploymentRestrictionsDiff); apiErr != nil {
+			return cont, errors.Wrap(apiErr, container.ErrFailedToCreateContainer.Error())
+		}
 	}
 
 	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, cont.ID.String(), request.ExternalSecrets); err != nil {
@@ -160,6 +177,12 @@ func (s containerService) Update(ctx context.Context, containerID string, reques
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
 	}
 
+	if request.DeploymentRestrictionsDiff.IsNotEmpty() {
+		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, cont.ID.String(), request.DeploymentRestrictionsDiff); apiErr != nil {
+			return nil, errors.Wrap(apiErr, container.ErrFailedToUpdateContainer.Error())
+		}
+	}
+
 	if err := applyExternalSecretsDiff(ctx, s.externalSecretRepository, cont.ID.String(), request.ExternalSecrets); err != nil {
 		return nil, errors.Wrap(err, container.ErrFailedToUpdateContainer.Error())
 	}
@@ -219,6 +242,11 @@ func (s containerService) refreshContainer(ctx context.Context, cont container.C
 		return nil, err
 	}
 
+	deploymentRestrictions, apiErr := s.deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, cont.ID.String())
+	if apiErr != nil {
+		return nil, apiErr
+	}
+
 	if err := cont.SetEnvironmentVariables(envVars); err != nil {
 		return nil, err
 	}
@@ -233,6 +261,8 @@ func (s containerService) refreshContainer(ctx context.Context, cont container.C
 	if err := cont.SetState(status.State); err != nil {
 		return nil, err
 	}
+
+	cont.DeploymentRestrictions = deploymentRestrictions
 
 	return &cont, err
 }

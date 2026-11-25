@@ -34,6 +34,7 @@ const (
 	containerAutoPreviewGitSourceNote       = " With `source.git_repository`, a preview builds the pull request's code, pull requests from forks included, and runs it with the environment's variables and secrets."
 	containerAutoDeployDefaultNote          = "\n\t- Default: `true`, or `false` on a container with `source.git_repository`."
 	containerBuildSettingsNote              = " Only for a container with `source.git_repository`."
+	containerDeploymentRestrictionsNote     = " Only for a container with `source.git_repository`: remove them when switching to a registry image, which deletes them in Qovery."
 )
 
 const (

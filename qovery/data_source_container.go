@@ -60,6 +60,7 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 	ports := portDescriptions("container")
 	storages := storageDescriptions("container")
 	customDomains := customDomainDescriptions("container")
+	restrictions := deploymentRestrictionDescriptions("container")
 
 	resp.Schema = schema.Schema{
 		MarkdownDescription: "Reads an existing Qovery container.",
@@ -516,6 +517,30 @@ func (r containerDataSource) Schema(_ context.Context, _ datasource.SchemaReques
 				MarkdownDescription: containerAutoDeployDescription,
 				Optional:            true,
 				Computed:            true,
+			},
+			"deployment_restrictions": schema.SetNestedAttribute{
+				MarkdownDescription: restrictions.List,
+				Computed:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							MarkdownDescription: restrictions.ID,
+							Computed:            true,
+						},
+						"mode": schema.StringAttribute{
+							MarkdownDescription: restrictions.Mode,
+							Computed:            true,
+						},
+						"type": schema.StringAttribute{
+							MarkdownDescription: restrictions.Type,
+							Computed:            true,
+						},
+						"value": schema.StringAttribute{
+							MarkdownDescription: restrictions.Value,
+							Computed:            true,
+						},
+					},
+				},
 			},
 			"annotations_group_ids": schema.SetAttribute{
 				MarkdownDescription: dataSourceGroupIDsDescription("annotations", "container"),

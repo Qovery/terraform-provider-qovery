@@ -48,6 +48,7 @@ data "qovery_container" "my_container" {
 - `autoscaling` (Attributes) Event-driven autoscaling with KEDA, which requires KEDA on the cluster. It adds to the CPU and memory autoscaling of `min_running_instances` and `max_running_instances`, and allows `min_running_instances = 0`. (see [below for nested schema](#nestedatt--autoscaling))
 - `build_settings` (Attributes) Build limits and options of the service. (see [below for nested schema](#nestedatt--build_settings))
 - `built_in_environment_variables` (Attributes List) Environment variables Qovery defines for the container. (see [below for nested schema](#nestedatt--built_in_environment_variables))
+- `deployment_restrictions` (Attributes Set) Deployment restrictions of the container: a new commit deploys it only if the files it changes pass them. (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `environment_id` (String) ID of the environment.
 - `environment_variable_files` (Attributes Set) Environment variable files of the container, each mounted as a file. (see [below for nested schema](#nestedatt--environment_variable_files))
 - `ephemeral_storage` (Number) Ephemeral storage of the container, in GiB. `0` sets none, so the platform default applies.
@@ -448,6 +449,17 @@ Read-Only:
 - `id` (String) ID of the environment variable.
 - `key` (String) Name of the environment variable.
 - `value` (String) Value of the environment variable.
+
+
+<a id="nestedatt--deployment_restrictions"></a>
+### Nested Schema for `deployment_restrictions`
+
+Read-Only:
+
+- `id` (String) ID of the deployment restriction.
+- `mode` (String) `MATCH` deploys only when a changed file matches `value`; `EXCLUDE` ignores the changed files that match it.
+- `type` (String) Type of the restriction. Only `PATH` is supported.
+- `value` (String) Path the changed files are compared with, for example `src/`.
 
 
 <a id="nestedatt--environment_variable_files"></a>

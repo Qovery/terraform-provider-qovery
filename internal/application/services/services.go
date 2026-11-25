@@ -153,7 +153,12 @@ func New(configs ...Configuration) (*Services, error) {
 		return nil, err
 	}
 
-	containerService, err := NewContainerService(services.repos.Container, containerDeploymentService, containerEnvironmentVariableService, containerSecretService, services.repos.ContainerExternalSecret, services.repos.ContainerExternalSecretFile)
+	deploymentRestrictionService, err := deploymentrestriction.NewDeploymentRestrictionService(*services.repos.QoveryClient)
+	if err != nil {
+		return nil, err
+	}
+
+	containerService, err := NewContainerService(services.repos.Container, containerDeploymentService, containerEnvironmentVariableService, containerSecretService, deploymentRestrictionService, services.repos.ContainerExternalSecret, services.repos.ContainerExternalSecretFile)
 	if err != nil {
 		return nil, err
 	}
@@ -169,11 +174,6 @@ func New(configs ...Configuration) (*Services, error) {
 	}
 
 	jobSecretService, err := NewSecretService(services.repos.JobSecret)
-	if err != nil {
-		return nil, err
-	}
-
-	deploymentRestrictionService, err := deploymentrestriction.NewDeploymentRestrictionService(*services.repos.QoveryClient)
 	if err != nil {
 		return nil, err
 	}

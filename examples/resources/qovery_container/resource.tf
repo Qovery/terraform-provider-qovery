@@ -68,6 +68,14 @@ resource "qovery_container" "my_git_container" {
     timeout_max_sec = 1800
   }
 
+  deployment_restrictions = [
+    {
+      mode  = "EXCLUDE"
+      type  = "PATH"
+      value = "docs/"
+    }
+  ]
+
   ports = [
     {
       internal_port       = 8080

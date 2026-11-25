@@ -14,6 +14,13 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Added
+
+- `qovery_container` and its data source get `deployment_restrictions`: on a container with
+  `source.git_repository`, a push deploys the container only if the files it changes pass the
+  rules. The plan rejects rules on a container that runs a registry image: remove the block when
+  switching to one, which deletes the rules in Qovery. (QOV-2669)
+
 ### Changed
 
 - `auto_deploy` and `auto_preview` can now be `true` on a `qovery_container` with

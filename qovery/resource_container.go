@@ -77,6 +77,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 	ports := portDescriptions("container")
 	storages := storageDescriptions("container")
 	customDomains := customDomainDescriptions("container")
+	restrictions := deploymentRestrictionDescriptions("container")
 	buildSettings := buildSettingsResourceSchemaAttributes()
 	buildSettings.MarkdownDescription += containerBuildSettingsNote
 
@@ -527,6 +528,30 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				// No static Default: an omitted auto_deploy defaults to false on a Git container.
 				PlanModifiers: []planmodifier.Bool{ContainerAutoDeployDefault()},
 			},
+			"deployment_restrictions": schema.SetNestedAttribute{
+				MarkdownDescription: restrictions.List + containerDeploymentRestrictionsNote,
+				Optional:            true,
+				NestedObject: schema.NestedAttributeObject{
+					Attributes: map[string]schema.Attribute{
+						"id": schema.StringAttribute{
+							MarkdownDescription: restrictions.ID,
+							Computed:            true,
+						},
+						"mode": schema.StringAttribute{
+							MarkdownDescription: restrictions.Mode,
+							Required:            true,
+						},
+						"type": schema.StringAttribute{
+							MarkdownDescription: restrictions.Type,
+							Required:            true,
+						},
+						"value": schema.StringAttribute{
+							MarkdownDescription: restrictions.Value,
+							Required:            true,
+						},
+					},
+				},
+			},
 			"annotations_group_ids": schema.SetAttribute{
 				MarkdownDescription: groupIDsDescription("annotations", "the container's pods"),
 				Optional:            true,
@@ -557,7 +582,11 @@ func (r containerResource) Create(ctx context.Context, req resource.CreateReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	request := plan.toUpsertServiceRequest(nil, secretValuesWo)
+	request, err := plan.toUpsertServiceRequest(nil, secretValuesWo)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on container create", err.Error())
+		return
+	}
 	cont, err := r.containerService.Create(ctx, plan.EnvironmentID.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container create", err.Error())
@@ -621,7 +650,11 @@ func (r containerResource) Update(ctx context.Context, req resource.UpdateReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	request := plan.toUpsertServiceRequest(&state, secretValuesWo)
+	request, err := plan.toUpsertServiceRequest(&state, secretValuesWo)
+	if err != nil {
+		resp.Diagnostics.AddError("Error on container update", err.Error())
+		return
+	}
 	cont, err := r.containerService.Update(ctx, state.ID.ValueString(), *request)
 	if err != nil {
 		resp.Diagnostics.AddError("Error on container update", err.Error())
