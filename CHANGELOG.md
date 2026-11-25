@@ -25,8 +25,14 @@ explained in the matching upgrade guide.
   and secrets. (QOV-2669)
 - The `deployment_restrictions` of `qovery_application`, `qovery_job` and `qovery_helm` are now
   read and written through the Qovery API shared by every service kind,
-  `/service/{serviceId}/deploymentRestriction`. The rules, the plan and the errors stay the same.
-  (QOV-2669)
+  `/service/{serviceId}/deploymentRestriction`. The rules, the plan and the restriction error
+  messages stay the same. (QOV-2669, #679)
+
+### Fixed
+
+- When Qovery refuses an `external_secrets` or `external_secret_files` entry because its key
+  already exists (409), the error now reads `409 Conflict - <reason>`. It used to hold Go pointers
+  such as `%!s(*string=0x…)`. Other API errors keep their message. (QOV-2669, #679)
 
 ## [1.10.0] - 2026-11-20
 
