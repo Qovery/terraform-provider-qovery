@@ -179,7 +179,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 			},
 			"autoscaling": autoscalingResourceSchema(),
 			"auto_preview": schema.BoolAttribute{
-				MarkdownDescription: descriptions.NewBoolDefaultDescription(autoPreviewDescription("container")+containerGitSourceFalseNote, serviceAutoPreviewDefault),
+				MarkdownDescription: descriptions.NewBoolDefaultDescription(autoPreviewDescription("container")+containerAutoPreviewGitSourceNote, serviceAutoPreviewDefault),
 				Optional:            true,
 				Computed:            true,
 				Default:             booldefault.StaticBool(serviceAutoPreviewDefault),
@@ -521,11 +521,10 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				},
 			},
 			"auto_deploy": schema.BoolAttribute{
-				MarkdownDescription: containerAutoDeployDescription + containerGitSourceFalseNote + containerAutoDeployDefaultNote,
+				MarkdownDescription: containerAutoDeployDescription + containerAutoDeployGitSourceNote + containerAutoDeployDefaultNote,
 				Optional:            true,
 				Computed:            true,
-				// No static Default: true would be planned and sent for a Git container that omits
-				// auto_deploy, and the API rejects it there.
+				// No static Default: an omitted auto_deploy defaults to false on a Git container.
 				PlanModifiers: []planmodifier.Bool{ContainerAutoDeployDefault()},
 			},
 			"annotations_group_ids": schema.SetAttribute{

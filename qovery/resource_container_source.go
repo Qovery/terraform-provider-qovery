@@ -273,7 +273,7 @@ func GitContainerImage() planmodifier.String {
 }
 
 // containerAutoDeployDefaultModifier plans the default of an omitted auto_deploy: true for a container
-// that runs a registry image, false for one with a Git repository source, where the API rejects true.
+// that runs a registry image, false for one with a Git repository source.
 type containerAutoDeployDefaultModifier struct{}
 
 func (m containerAutoDeployDefaultModifier) Description(_ context.Context) string {
@@ -316,8 +316,6 @@ type containerSourceConfig struct {
 	ImageName            types.String
 	Tag                  types.String
 	BuildSettings        types.Object
-	AutoDeploy           types.Bool
-	AutoPreview          types.Bool
 	AdvancedSettingsJson types.String
 }
 
@@ -352,14 +350,6 @@ func (c containerSourceConfig) validate() diag.Diagnostics {
 				fmt.Sprintf("Set either registry_id, image_name and tag, or source.git_repository, not both. "+
 					"On a container with source.git_repository, Qovery reports the image it built in registry_id, image_name and tag: remove %s from the configuration.",
 					strings.Join(set, ", ")))
-		}
-		if c.AutoDeploy.ValueBool() {
-			diags.AddAttributeError(path.Root("auto_deploy"), "auto_deploy is not supported with a Git repository source",
-				"Qovery does not redeploy a container with source.git_repository on new commits. Remove auto_deploy or set it to false.")
-		}
-		if c.AutoPreview.ValueBool() {
-			diags.AddAttributeError(path.Root("auto_preview"), "auto_preview is not supported with a Git repository source",
-				"Qovery does not create preview environments for a container with source.git_repository. Remove auto_preview or set it to false.")
 		}
 		diags.Append(validateBuildSettingsConflict(c.BuildSettings, c.AdvancedSettingsJson)...)
 		return diags
@@ -402,8 +392,6 @@ func (v containerSourceValidator) ValidateResource(ctx context.Context, req reso
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("image_name"), &cfg.ImageName)...)
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("tag"), &cfg.Tag)...)
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("build_settings"), &cfg.BuildSettings)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("auto_deploy"), &cfg.AutoDeploy)...)
-	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("auto_preview"), &cfg.AutoPreview)...)
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("advanced_settings_json"), &cfg.AdvancedSettingsJson)...)
 	if resp.Diagnostics.HasError() {
 		return

@@ -16,7 +16,7 @@ const (
 	containerImageTagDescription        = "Tag of the image, for example `v1.2.3`."
 )
 
-const containerAutoDeployDescription = "Whether Qovery redeploys the container when it receives a new image tag."
+const containerAutoDeployDescription = "Whether Qovery redeploys the container on every push to the branch of its `source.git_repository`, or on every new image tag for a registry image."
 
 // Git repository source of qovery_container. A container switches between a registry image and a
 // Git repository source in place.
@@ -30,7 +30,8 @@ const (
 	containerSourceGitRepositoryDescription = "Git repository with the Dockerfile Qovery builds the image from."
 	containerSourceBranchDescription        = "Branch to build."
 	containerGitSourceRootPathWriteNote     = " Use `/`, not an empty string, for the repository root."
-	containerGitSourceFalseNote             = " On a container with `source.git_repository` it must be `false`."
+	containerAutoDeployGitSourceNote        = " With `source.git_repository`, anyone who can push to the branch can deploy the container."
+	containerAutoPreviewGitSourceNote       = " With `source.git_repository`, a preview builds the pull request's code, pull requests from forks included, and runs it with the environment's variables and secrets."
 	containerAutoDeployDefaultNote          = "\n\t- Default: `true`, or `false` on a container with `source.git_repository`."
 	containerBuildSettingsNote              = " Only for a container with `source.git_repository`."
 )
