@@ -593,7 +593,7 @@ func (r applicationResource) Schema(_ context.Context, _ resource.SchemaRequest,
 				Default:             booldefault.StaticBool(serviceAutoDeployDefault),
 			},
 			"deployment_restrictions": schema.SetNestedAttribute{
-				MarkdownDescription: restrictions.List,
+				MarkdownDescription: restrictions.List + restrictions.Removal,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{

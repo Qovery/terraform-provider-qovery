@@ -317,18 +317,22 @@ func customDomainDescriptions(kind string) customDomainDescription {
 }
 
 // deploymentRestrictionDescription holds the descriptions of the deployment_restrictions
-// attribute of application, helm and job, and of its nested attributes.
+// attribute of application, container, helm and job, and of its nested attributes. A resource
+// appends Removal to List; a data source uses List alone.
 type deploymentRestrictionDescription struct {
-	List  string
-	ID    string
-	Mode  string
-	Type  string
-	Value string
+	List    string
+	Removal string
+	ID      string
+	Mode    string
+	Type    string
+	Value   string
 }
 
 func deploymentRestrictionDescriptions(kind string) deploymentRestrictionDescription {
 	return deploymentRestrictionDescription{
-		List:  fmt.Sprintf("Deployment restrictions of the %s: a new commit deploys it only if the files it changes pass them.", kind),
+		List: fmt.Sprintf("Deployment restrictions of the %s: a new commit deploys it only if the files it changes pass them.", kind),
+		Removal: fmt.Sprintf(" Leaving it out deletes the rules Qovery holds for the %s; "+
+			"`lifecycle { ignore_changes = [deployment_restrictions] }` keeps rules managed in the Qovery Console.", kind),
 		ID:    "ID of the deployment restriction.",
 		Mode:  "`MATCH` deploys only when a changed file matches `value`; `EXCLUDE` ignores the changed files that match it.",
 		Type:  "Type of the restriction. Only `PATH` is supported.",

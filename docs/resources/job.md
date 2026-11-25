@@ -59,7 +59,7 @@ You can find complete examples within these repositories:
 - `cpu` (Number) CPU of the job, in millicores (1000 = 1 vCPU).
 	- Must be: `>= 10`.
 	- Default: `500`.
-- `deployment_restrictions` (Attributes Set) Deployment restrictions of the job: a new commit deploys it only if the files it changes pass them. (see [below for nested schema](#nestedatt--deployment_restrictions))
+- `deployment_restrictions` (Attributes Set) Deployment restrictions of the job: a new commit deploys it only if the files it changes pass them. Leaving it out deletes the rules Qovery holds for the job; `lifecycle { ignore_changes = [deployment_restrictions] }` keeps rules managed in the Qovery Console. (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `deployment_stage_id` (String) ID of the deployment stage of the service. Stages set the order in which the services of an environment deploy. Removing it keeps the service in its current stage, because Qovery cannot detach a service from its stage.
 - `environment_variable_aliases` (Attributes Set) Environment variable aliases of the job. An alias gives an existing variable another name. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_files` (Attributes Set) Environment variable files of the job, each mounted as a file. (see [below for nested schema](#nestedatt--environment_variable_files))

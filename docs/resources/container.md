@@ -137,7 +137,7 @@ resource "qovery_container" "my_git_container" {
 	- Must be: `>= 10`.
 	- Default: `500`.
 - `custom_domains` (Attributes Set) Custom domains of the container. Each one needs a CNAME record that points to its `validation_domain`. (see [below for nested schema](#nestedatt--custom_domains))
-- `deployment_restrictions` (Attributes Set) Deployment restrictions of the container: a new commit deploys it only if the files it changes pass them. Only for a container with `source.git_repository`: remove them when switching to a registry image, which deletes them in Qovery. (see [below for nested schema](#nestedatt--deployment_restrictions))
+- `deployment_restrictions` (Attributes Set) Deployment restrictions of the container: a new commit deploys it only if the files it changes pass them. Only for a container with `source.git_repository`: remove it when switching to a registry image. Leaving it out deletes the rules Qovery holds for the container; `lifecycle { ignore_changes = [deployment_restrictions] }` keeps rules managed in the Qovery Console. (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `deployment_stage_id` (String) ID of the deployment stage of the service. Stages set the order in which the services of an environment deploy. Removing it keeps the service in its current stage, because Qovery cannot detach a service from its stage.
 - `entrypoint` (String) Command that replaces the `ENTRYPOINT` of the image.
 - `environment_variable_aliases` (Attributes Set) Environment variable aliases of the container. An alias gives an existing variable another name. (see [below for nested schema](#nestedatt--environment_variable_aliases))

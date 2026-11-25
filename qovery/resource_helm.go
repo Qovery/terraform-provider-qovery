@@ -574,7 +574,7 @@ func (r helmResource) Schema(_ context.Context, _ resource.SchemaRequest, resp *
 				},
 			},
 			"deployment_restrictions": schema.SetNestedAttribute{
-				MarkdownDescription: restrictions.List,
+				MarkdownDescription: restrictions.List + restrictions.Removal,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{

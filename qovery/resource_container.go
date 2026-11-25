@@ -529,7 +529,7 @@ func (r containerResource) Schema(_ context.Context, _ resource.SchemaRequest, r
 				PlanModifiers: []planmodifier.Bool{ContainerAutoDeployDefault()},
 			},
 			"deployment_restrictions": schema.SetNestedAttribute{
-				MarkdownDescription: restrictions.List + containerDeploymentRestrictionsNote,
+				MarkdownDescription: restrictions.List + containerDeploymentRestrictionsNote + restrictions.Removal,
 				Optional:            true,
 				NestedObject: schema.NestedAttributeObject{
 					Attributes: map[string]schema.Attribute{
