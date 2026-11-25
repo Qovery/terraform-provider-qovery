@@ -16,7 +16,7 @@ const (
 	containerImageTagDescription        = "Tag of the image, for example `v1.2.3`."
 )
 
-const containerAutoDeployDescription = "Whether Qovery redeploys the container on every push to its branch with `source.git_repository`, or on every new image tag for a registry image."
+const containerAutoDeployDescription = "Whether Qovery redeploys the container on every push to the branch of its `source.git_repository`, or on every new image tag for a registry image."
 
 // Git repository source of qovery_container. A container switches between a registry image and a
 // Git repository source in place.

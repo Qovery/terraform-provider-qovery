@@ -284,8 +284,8 @@ func TestAcc_ContainerGitRepositorySourceAutoFlags(t *testing.T) {
 				ImportState:       true,
 				ImportStateVerify: true,
 			},
-			// Removing the flags from the config plans their default, false, and the apply sends it:
-			// the API keeps a stored flag that an update of a Git container leaves out.
+			// Removing the flags from the config plans their default, false, and the apply sends false
+			// explicitly: an update of a Git container without them would keep the stored true.
 			{
 				Config: testAccContainerGitSourceConfig(testName, ""),
 				ConfigPlanChecks: resource.ConfigPlanChecks{

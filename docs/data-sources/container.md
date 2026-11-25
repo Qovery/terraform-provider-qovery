@@ -21,7 +21,7 @@ data "qovery_container" "my_container" {
 
 - `advanced_settings_json` (String) Advanced settings of the container, as a JSON string.
 - `arguments` (List of String) Arguments that replace the `CMD` of the image.
-- `auto_deploy` (Boolean) Whether Qovery redeploys the container on every push to its branch with `source.git_repository`, or on every new image tag for a registry image.
+- `auto_deploy` (Boolean) Whether Qovery redeploys the container on every push to the branch of its `source.git_repository`, or on every new image tag for a registry image.
 - `auto_preview` (Boolean) Whether Qovery creates a preview environment with the container for each pull request.
 - `cpu` (Number) CPU of the container, in millicores (1000 = 1 vCPU).
 - `custom_domains` (Attributes Set) Custom domains of the container. Each one needs a CNAME record that points to its `validation_domain`. (see [below for nested schema](#nestedatt--custom_domains))

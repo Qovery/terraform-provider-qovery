@@ -119,7 +119,7 @@ resource "qovery_container" "my_git_container" {
 - `advanced_settings_json` (String) Advanced settings to override, as a JSON string built with `jsonencode()`. The [Qovery API documentation](https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings) lists them with their defaults. Terraform manages only the keys you set, and removing a key keeps its current value: see [Advanced settings](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes#advanced-settings).
 - `annotations_group_ids` (Set of String) IDs of the annotations groups applied to the container's pods. Omitting it detaches every annotations group.
 - `arguments` (List of String) Arguments that replace the `CMD` of the image. Omitting it sets none.
-- `auto_deploy` (Boolean) Whether Qovery redeploys the container on every push to its branch with `source.git_repository`, or on every new image tag for a registry image. With `source.git_repository`, anyone who can push to the branch can deploy the container.
+- `auto_deploy` (Boolean) Whether Qovery redeploys the container on every push to the branch of its `source.git_repository`, or on every new image tag for a registry image. With `source.git_repository`, anyone who can push to the branch can deploy the container.
 	- Default: `true`, or `false` on a container with `source.git_repository`.
 - `auto_preview` (Boolean) Whether Qovery creates a preview environment with the container for each pull request. With `source.git_repository`, a preview builds the pull request's code, pull requests from forks included, and runs it with the environment's variables and secrets.
 	- Default: `false`.
