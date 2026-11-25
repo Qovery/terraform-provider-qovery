@@ -311,12 +311,13 @@ func ContainerAutoDeployDefault() planmodifier.Bool {
 
 // containerSourceConfig holds the configuration values that decide what a container runs.
 type containerSourceConfig struct {
-	Source               types.Object
-	RegistryID           types.String
-	ImageName            types.String
-	Tag                  types.String
-	BuildSettings        types.Object
-	AdvancedSettingsJson types.String
+	Source                 types.Object
+	RegistryID             types.String
+	ImageName              types.String
+	Tag                    types.String
+	BuildSettings          types.Object
+	AdvancedSettingsJson   types.String
+	DeploymentRestrictions types.Set
 }
 
 // validate checks that the container runs either a registry image or a Git repository source.
@@ -360,6 +361,11 @@ func (c containerSourceConfig) validate() diag.Diagnostics {
 			"Qovery builds no image for a container that runs a registry image. Remove build_settings, or set source.git_repository.")
 	}
 
+	if !c.DeploymentRestrictions.IsUnknown() && len(c.DeploymentRestrictions.Elements()) > 0 {
+		diags.AddAttributeError(path.Root("deployment_restrictions"), "deployment_restrictions needs source.git_repository",
+			"Deployment restrictions filter the commits of a Git repository, and a container that runs a registry image has none. Remove deployment_restrictions, or set source.git_repository.")
+	}
+
 	switch len(missing) {
 	case 0:
 	case len(imageFields):
@@ -393,6 +399,7 @@ func (v containerSourceValidator) ValidateResource(ctx context.Context, req reso
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("tag"), &cfg.Tag)...)
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("build_settings"), &cfg.BuildSettings)...)
 	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("advanced_settings_json"), &cfg.AdvancedSettingsJson)...)
+	resp.Diagnostics.Append(req.Config.GetAttribute(ctx, path.Root("deployment_restrictions"), &cfg.DeploymentRestrictions)...)
 	if resp.Diagnostics.HasError() {
 		return
 	}

@@ -93,6 +93,7 @@ var flickerAllowlist = map[string]string{
 	"qovery_container.custom_domains.id":                            "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_container.custom_domains.status":                        "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_container.custom_domains.validation_domain":             "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
+	"qovery_container.deployment_restrictions.id":                   "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_container.environment_variable_aliases.id":              "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_container.environment_variable_files.id":                "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",
 	"qovery_container.environment_variable_overrides.id":            "TODO: add UseStateForUnknown (set-element id; cosmetic flicker only)",

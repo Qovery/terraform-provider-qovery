@@ -8,6 +8,7 @@ import (
 
 	"github.com/qovery/terraform-provider-qovery/client"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/container"
+	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/port"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/storage"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/variable"
@@ -55,6 +56,7 @@ type Container struct {
 	Autoscaling                  types.Object     `tfsdk:"autoscaling"`
 	Source                       *ContainerSource `tfsdk:"source"`
 	BuildSettings                types.Object     `tfsdk:"build_settings"`
+	DeploymentRestrictions       types.Set        `tfsdk:"deployment_restrictions"`
 }
 
 func (cont Container) EnvironmentVariableList() EnvironmentVariableList {
@@ -119,7 +121,7 @@ func (cont Container) CustomDomainsList() CustomDomainList {
 
 // toUpsertServiceRequest builds the request from the plan, state is nil on create.
 // secretValuesWo holds the secrets[].value_wo read from the config.
-func (cont Container) toUpsertServiceRequest(state *Container, secretValuesWo writeOnlySecretValues) *container.UpsertServiceRequest {
+func (cont Container) toUpsertServiceRequest(state *Container, secretValuesWo writeOnlySecretValues) (*container.UpsertServiceRequest, error) {
 	var stateEnvironmentVariables EnvironmentVariableList
 	var stateEnvironmentVariableAliases EnvironmentVariableList
 	var stateEnvironmentVariableOverrides EnvironmentVariableList
@@ -131,6 +133,7 @@ func (cont Container) toUpsertServiceRequest(state *Container, secretValuesWo wr
 	var stateCustomDomains CustomDomainList
 	var stateExternalSecrets ExternalSecretList
 	var stateExternalSecretFiles ExternalSecretFileList
+	var stateDeploymentRestrictions types.Set
 
 	if state != nil {
 		stateEnvironmentVariables = state.EnvironmentVariableList()
@@ -144,6 +147,12 @@ func (cont Container) toUpsertServiceRequest(state *Container, secretValuesWo wr
 		stateCustomDomains = state.CustomDomainsList()
 		stateExternalSecrets = state.ExternalSecretList()
 		stateExternalSecretFiles = state.ExternalSecretFileList()
+		stateDeploymentRestrictions = state.DeploymentRestrictions
+	}
+
+	deploymentRestrictionsDiff, err := deploymentrestriction.ToDeploymentRestrictionDiff(cont.DeploymentRestrictions, &stateDeploymentRestrictions)
+	if err != nil {
+		return nil, err
 	}
 
 	return &container.UpsertServiceRequest{
@@ -158,7 +167,8 @@ func (cont Container) toUpsertServiceRequest(state *Container, secretValuesWo wr
 		SecretFiles:                  cont.SecretFileList().diffRequest(stateSecretFiles),
 		ExternalSecrets:              cont.ExternalSecretList().diffRequest(stateExternalSecrets),
 		ExternalSecretFiles:          cont.ExternalSecretFileList().diffRequest(stateExternalSecretFiles),
-	}
+		DeploymentRestrictionsDiff:   *deploymentRestrictionsDiff,
+	}, nil
 }
 
 // toUpsertRepositoryRequest sends either the image or the Git repository source of the plan. state is
@@ -273,6 +283,7 @@ func convertDomainContainerToContainer(ctx context.Context, state Container, con
 		ExternalSecretFiles:          convertDomainExternalSecretFilesToExternalSecretFileList(container.ExternalSecretFiles, state.ExternalSecretFiles, variable.ScopeContainer).toTerraformSet(ctx),
 		Source:                       containerSourceFromDomain(state.Source, container.GitSource),
 		BuildSettings:                buildSettingsToState(state.BuildSettings, container.BuildSettings),
+		DeploymentRestrictions:       FromDeploymentRestrictionList(state.DeploymentRestrictions, container.DeploymentRestrictions),
 	}
 }
 

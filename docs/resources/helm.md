@@ -53,7 +53,7 @@ resource "qovery_helm" "my_helm" {
 	- Default: `false`.
 - `blueprint_id` (String) ID of the blueprint the Helm service is created from. It can only be set at creation: changing it fails at plan time, and removing it keeps the recorded value.
 - `custom_domains` (Attributes Set) Custom domains of the Helm service. Each one needs a CNAME record that points to its `validation_domain`. (see [below for nested schema](#nestedatt--custom_domains))
-- `deployment_restrictions` (Attributes Set) Deployment restrictions of the Helm service: a new commit deploys it only if the files it changes pass them. (see [below for nested schema](#nestedatt--deployment_restrictions))
+- `deployment_restrictions` (Attributes Set) Deployment restrictions of the Helm service: a new commit deploys it only if the files it changes pass them. Leaving it out deletes the rules Qovery holds for the Helm service; `lifecycle { ignore_changes = [deployment_restrictions] }` keeps rules managed in the Qovery Console. (see [below for nested schema](#nestedatt--deployment_restrictions))
 - `deployment_stage_id` (String) ID of the deployment stage of the service. Stages set the order in which the services of an environment deploy. Removing it keeps the service in its current stage, because Qovery cannot detach a service from its stage.
 - `environment_variable_aliases` (Attributes Set) Environment variable aliases of the Helm service. An alias gives an existing variable another name. (see [below for nested schema](#nestedatt--environment_variable_aliases))
 - `environment_variable_files` (Attributes Set) Environment variable files of the Helm service, each mounted as a file. (see [below for nested schema](#nestedatt--environment_variable_files))

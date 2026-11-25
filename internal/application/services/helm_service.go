@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/qovery/terraform-provider-qovery/internal/domain"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/helm"
@@ -110,7 +109,7 @@ func (s helmService) Create(ctx context.Context, environmentID string, request h
 	}
 
 	if request.DeploymentRestrictionsDiff.IsNotEmpty() {
-		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, newHelm.ID.String(), domain.HELM, request.DeploymentRestrictionsDiff); apiErr != nil {
+		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, newHelm.ID.String(), request.DeploymentRestrictionsDiff); apiErr != nil {
 			return newHelm, apiErr
 		}
 	}
@@ -179,7 +178,7 @@ func (s helmService) Update(ctx context.Context, helmID string, request helm.Ups
 	}
 
 	if request.DeploymentRestrictionsDiff.IsNotEmpty() {
-		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, updateHelm.ID.String(), domain.HELM, request.DeploymentRestrictionsDiff); apiErr != nil {
+		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, updateHelm.ID.String(), request.DeploymentRestrictionsDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}
@@ -243,7 +242,7 @@ func (s helmService) refreshHelm(ctx context.Context, helm helm.Helm) (*helm.Hel
 		return nil, err
 	}
 
-	deploymentRestrictions, apiErr := s.deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, helm.ID.String(), domain.HELM)
+	deploymentRestrictions, apiErr := s.deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, helm.ID.String())
 	if apiErr != nil {
 		return nil, apiErr
 	}

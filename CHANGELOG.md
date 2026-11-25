@@ -14,6 +14,17 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Added
+
+- `qovery_container` and its data source get `deployment_restrictions`: on a container with
+  `source.git_repository`, a push deploys the container only if the files it changes pass the
+  rules. The plan rejects rules on a container that runs a registry image: remove the block when
+  switching to one, which deletes the rules in Qovery. When you upgrade, the next apply on a
+  container with no `deployment_restrictions` block deletes the rules Qovery already holds for it,
+  both rules set in the Qovery Console on a Git container and rules left from before a switch to an
+  image: to keep rules managed in the Console, set
+  `lifecycle { ignore_changes = [deployment_restrictions] }`. (QOV-2669)
+
 ### Changed
 
 - `auto_deploy` and `auto_preview` can now be `true` on a `qovery_container` with
@@ -23,6 +34,20 @@ explained in the matching upgrade guide.
   Anyone who can push to the branch can deploy the container, and a preview builds the pull
   request's code, pull requests from forks included, and runs it with the environment's variables
   and secrets. (QOV-2669)
+- The `deployment_restrictions` of `qovery_application`, `qovery_job` and `qovery_helm` are now
+  read and written through the Qovery API shared by every service kind,
+  `/service/{serviceId}/deploymentRestriction`. The rules, the plan and the restriction error
+  messages stay the same. (QOV-2669, #679)
+
+### Fixed
+
+- When Qovery refuses an `external_secrets` or `external_secret_files` entry because its key
+  already exists (409), the error now reads `409 Conflict - <reason>`. It used to hold Go pointers
+  such as `%!s(*string=0x…)`. Other API errors keep their message. (QOV-2669, #679)
+- Leaving out (or removing) `deployment_restrictions` from a `qovery_application`, `qovery_job` or
+  `qovery_helm` now deletes its rules. The apply used to fail with "Provider produced inconsistent
+  result after apply". To keep rules managed in the Qovery Console, set
+  `lifecycle { ignore_changes = [deployment_restrictions] }`. (QOV-2669)
 
 ## [1.10.0] - 2026-11-20
 

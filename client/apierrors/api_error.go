@@ -61,9 +61,9 @@ func (e APIError) Detail() string {
 	payload := e.errorPayload()
 
 	if e.err != nil {
-		extra = fmt.Sprintf("unexpected error: %s", e.err)
+		extra = fmt.Sprintf("unexpected error: %s", e.errorMessage())
 		if payload != nil && payload.Message != "" {
-			extra = fmt.Sprintf("unexpected error: %s - %s", e.err, payload.Message)
+			extra = fmt.Sprintf("unexpected error: %s - %s", e.errorMessage(), payload.Message)
 		}
 	} else {
 		extra = fmt.Sprintf("unexpected status code: %d", e.res.StatusCode)
@@ -72,6 +72,14 @@ func (e APIError) Detail() string {
 		return fmt.Sprintf("Could not %s, %s", e.action, extra)
 	}
 	return fmt.Sprintf("Could not %s %s '%s', %s", e.action, e.resource, e.resourceID, extra)
+}
+
+func (e APIError) errorMessage() string {
+	// The client formats some error bodies into err as Go pointers; the status line reads the same for every status.
+	if e.res != nil && e.res.StatusCode >= 300 && e.res.Status != "" {
+		return e.res.Status
+	}
+	return e.err.Error()
 }
 
 func (e APIError) errorPayload() *errorPayload {

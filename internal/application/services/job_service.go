@@ -7,7 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
-	"github.com/qovery/terraform-provider-qovery/internal/domain"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deployment"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/deploymentrestriction"
 	"github.com/qovery/terraform-provider-qovery/internal/domain/job"
@@ -110,7 +109,7 @@ func (s jobService) Create(ctx context.Context, environmentID string, request jo
 	}
 
 	if request.DeploymentRestrictionsDiff.IsNotEmpty() {
-		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, newJob.ID.String(), domain.JOB, request.DeploymentRestrictionsDiff); apiErr != nil {
+		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, newJob.ID.String(), request.DeploymentRestrictionsDiff); apiErr != nil {
 			return newJob, apiErr
 		}
 	}
@@ -179,7 +178,7 @@ func (s jobService) Update(ctx context.Context, jobID string, request job.Upsert
 	}
 
 	if request.DeploymentRestrictionsDiff.IsNotEmpty() {
-		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, updateJob.ID.String(), domain.JOB, request.DeploymentRestrictionsDiff); apiErr != nil {
+		if apiErr := s.deploymentRestrictionService.UpdateServiceDeploymentRestrictions(ctx, updateJob.ID.String(), request.DeploymentRestrictionsDiff); apiErr != nil {
 			return nil, apiErr
 		}
 	}
@@ -243,7 +242,7 @@ func (s jobService) refreshJob(ctx context.Context, job job.Job) (*job.Job, erro
 		return nil, err
 	}
 
-	deploymentRestrictions, apiErr := s.deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, job.ID.String(), domain.JOB)
+	deploymentRestrictions, apiErr := s.deploymentRestrictionService.GetServiceDeploymentRestrictions(ctx, job.ID.String())
 	if apiErr != nil {
 		return nil, apiErr
 	}

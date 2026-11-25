@@ -3,7 +3,9 @@
 package qovery_test
 
 import (
+	"context"
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/compare"
@@ -11,7 +13,9 @@ import (
 	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
+	"github.com/hashicorp/terraform-plugin-testing/terraform"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
+	"github.com/qovery/qovery-client-go"
 )
 
 const containerGitSourceAddress = "qovery_container.test"
@@ -301,6 +305,126 @@ func TestAcc_ContainerGitRepositorySourceAutoFlags(t *testing.T) {
 	})
 }
 
+func TestAcc_ContainerGitRepositorySourceDeploymentRestrictions(t *testing.T) {
+	t.Parallel()
+	testName := "container-git-source-restrictions"
+	var containerID string
+	inPlaceUpdate := resource.ConfigPlanChecks{
+		PreApply:             []plancheck.PlanCheck{plancheck.ExpectResourceAction(containerGitSourceAddress, plancheck.ResourceActionUpdate)},
+		PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+	}
+	excludeDocs := resource.TestCheckTypeSetElemNestedAttrs(containerGitSourceAddress, "deployment_restrictions.*",
+		map[string]string{"mode": "EXCLUDE", "type": "PATH", "value": "docs/"})
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryContainerDestroy(containerGitSourceAddress),
+		Steps: []resource.TestStep{
+			{
+				Config:           testAccContainerGitSourceConfig(testName, containerGitSourceExcludeDocs),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists(containerGitSourceAddress),
+					testAccCaptureResourceID(containerGitSourceAddress, &containerID),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "deployment_restrictions.#", "1"),
+					excludeDocs,
+					testAccContainerDeploymentRestrictionCount(1),
+				),
+			},
+			// Changing a rule replaces it, and adding one creates it.
+			{
+				Config:           testAccContainerGitSourceConfig(testName, containerGitSourceTwoRules),
+				ConfigPlanChecks: inPlaceUpdate,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "deployment_restrictions.#", "2"),
+					resource.TestCheckTypeSetElemNestedAttrs(containerGitSourceAddress, "deployment_restrictions.*",
+						map[string]string{"mode": "EXCLUDE", "type": "PATH", "value": "documentation/"}),
+					resource.TestCheckTypeSetElemNestedAttrs(containerGitSourceAddress, "deployment_restrictions.*",
+						map[string]string{"mode": "MATCH", "type": "PATH", "value": "src/"}),
+					testAccContainerDeploymentRestrictionCount(2),
+				),
+			},
+			// A rule added outside Terraform shows as a difference on refresh, and an apply deletes it.
+			{
+				PreConfig: func() {
+					_, res, err := qoveryAPIClient.ServiceMainCallsAPI.CreateServiceDeploymentRestriction(context.TODO(), containerID).
+						ServiceDeploymentRestrictionRequest(qovery.ServiceDeploymentRestrictionRequest{
+							Mode:  qovery.DEPLOYMENTRESTRICTIONMODEENUM_MATCH,
+							Type:  qovery.DEPLOYMENTRESTRICTIONTYPEENUM_PATH,
+							Value: "api/",
+						}).Execute()
+					if err != nil || res.StatusCode >= 400 {
+						t.Fatalf("cannot add a deployment restriction to container %s: %v", containerID, err)
+					}
+				},
+				Config:             testAccContainerGitSourceConfig(testName, containerGitSourceTwoRules),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config:           testAccContainerGitSourceConfig(testName, containerGitSourceTwoRules),
+				ConfigPlanChecks: inPlaceUpdate,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "deployment_restrictions.#", "2"),
+					testAccContainerDeploymentRestrictionCount(2),
+				),
+			},
+			{
+				ResourceName:      containerGitSourceAddress,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Removing the block deletes the rules.
+			{
+				Config:           testAccContainerGitSourceConfig(testName, ""),
+				ConfigPlanChecks: inPlaceUpdate,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr(containerGitSourceAddress, "deployment_restrictions.#"),
+					testAccContainerDeploymentRestrictionCount(0),
+				),
+			},
+			{
+				Config:           testAccContainerGitSourceConfig(testName, containerGitSourceExcludeDocs),
+				ConfigPlanChecks: inPlaceUpdate,
+				Check:            testAccContainerDeploymentRestrictionCount(1),
+			},
+			// A registry image takes no rules: the switch keeps them only until the block is removed.
+			{
+				Config:      testAccContainerImageConfigWithAttributes(testName, containerGitSourceExcludeDocs),
+				ExpectError: regexp.MustCompile("deployment_restrictions needs source.git_repository"),
+			},
+			{
+				Config:           testAccContainerDefaultConfig(testName),
+				ConfigPlanChecks: inPlaceUpdate,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckNoResourceAttr(containerGitSourceAddress, "source.git_repository.url"),
+					resource.TestCheckNoResourceAttr(containerGitSourceAddress, "deployment_restrictions.#"),
+					testAccContainerDeploymentRestrictionCount(0),
+				),
+			},
+		},
+	})
+}
+
+// testAccContainerDeploymentRestrictionCount checks how many deployment restrictions Qovery holds for the test container.
+func testAccContainerDeploymentRestrictionCount(expected int) resource.TestCheckFunc {
+	return func(s *terraform.State) error {
+		rs, ok := s.RootModule().Resources[containerGitSourceAddress]
+		if !ok || rs.Primary.ID == "" {
+			return fmt.Errorf("%s: id not found in state", containerGitSourceAddress)
+		}
+		rules, res, err := qoveryAPIClient.ServiceMainCallsAPI.ListServiceDeploymentRestrictions(context.TODO(), rs.Primary.ID).Execute()
+		if err != nil || res.StatusCode >= 400 {
+			return fmt.Errorf("cannot list the deployment restrictions of container %s: %v", rs.Primary.ID, err)
+		}
+		if len(rules.Results) != expected {
+			return fmt.Errorf("container %s: expected %d deployment restrictions in Qovery, got %d", rs.Primary.ID, expected, len(rules.Results))
+		}
+		return nil
+	}
+}
+
 // withoutContainerImageFields drops the image of a container read from the API, which a request on a
 // container with a Git repository source must not repeat next to a source.
 func withoutContainerImageFields(container map[string]any) {
@@ -317,6 +441,36 @@ const containerGitSourceBuildSettings = `
 const containerGitSourceAutoFlags = `
   auto_deploy = true
   auto_preview = true`
+
+const containerGitSourceExcludeDocs = `
+  deployment_restrictions = [
+    { mode = "EXCLUDE", type = "PATH", value = "docs/" },
+  ]`
+
+const containerGitSourceTwoRules = `
+  deployment_restrictions = [
+    { mode = "EXCLUDE", type = "PATH", value = "documentation/" },
+    { mode = "MATCH", type = "PATH", value = "src/" },
+  ]`
+
+func testAccContainerImageConfigWithAttributes(testName string, attributes string) string {
+	return fmt.Sprintf(`
+%s
+
+%s
+
+resource "qovery_container" "test" {
+  environment_id = qovery_environment.test.id
+  registry_id = qovery_container_registry.test.id
+  name = "%s"
+  image_name = "%s"
+  tag = "%s"%s
+  healthchecks = {}
+  advanced_settings_json = jsonencode({"network.ingress.proxy_body_size_mb": 101})
+}
+`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), containerImageName, containerTag, attributes,
+	)
+}
 
 func testAccContainerGitSourceConfig(testName string, attributes string) string {
 	return fmt.Sprintf(`
