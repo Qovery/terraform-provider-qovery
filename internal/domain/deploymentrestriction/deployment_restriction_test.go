@@ -47,6 +47,7 @@ func TestToDeploymentRestrictionDiff(t *testing.T) {
 		restrictionObject(t, types.StringValue("rule-1"), "docs/"),
 		restrictionObject(t, types.StringValue("rule-2"), "tests/"),
 	)
+	nullState := types.SetNull(restrictionObjectType)
 
 	testCases := []struct {
 		name         string
@@ -77,6 +78,11 @@ func TestToDeploymentRestrictionDiff(t *testing.T) {
 			name:  "null_plan_without_state_gives_empty_diff",
 			plan:  types.SetNull(restrictionObjectType),
 			state: nil,
+		},
+		{
+			name:  "null_plan_with_null_state_gives_empty_diff",
+			plan:  types.SetNull(restrictionObjectType),
+			state: &nullState,
 		},
 		{
 			name: "explicit_plan_updates_kept_rule_creates_new_one_and_deletes_the_rest",

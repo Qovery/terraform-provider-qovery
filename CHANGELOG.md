@@ -33,9 +33,9 @@ explained in the matching upgrade guide.
 - When Qovery refuses an `external_secrets` or `external_secret_files` entry because its key
   already exists (409), the error now reads `409 Conflict - <reason>`. It used to hold Go pointers
   such as `%!s(*string=0x…)`. Other API errors keep their message. (QOV-2669, #679)
-- Removing `deployment_restrictions` from a `qovery_application`, `qovery_job` or `qovery_helm`
-  now deletes its rules. The apply used to fail with "Provider produced inconsistent result after
-  apply". To keep rules managed in the Qovery Console, set
+- Leaving out (or removing) `deployment_restrictions` from a `qovery_application`, `qovery_job` or
+  `qovery_helm` now deletes its rules. The apply used to fail with "Provider produced inconsistent
+  result after apply". To keep rules managed in the Qovery Console, set
   `lifecycle { ignore_changes = [deployment_restrictions] }`. (QOV-2669)
 
 ## [1.10.0] - 2026-11-20
