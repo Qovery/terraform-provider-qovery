@@ -14,6 +14,14 @@ explained in the matching upgrade guide.
 
 ## [Unreleased]
 
+### Changed
+
+- `auto_deploy` and `auto_preview` can now be `true` on a `qovery_container` with
+  `source.git_repository`: a push to the branch deploys the container, and a pull request adds it
+  to its preview environment. The plan used to reject both. Left out, they still default to
+  `false` on such a container, and the plan shows the difference when Qovery holds `true`.
+  (QOV-2669)
+
 ## [1.10.0] - 2026-11-20
 
 ### Changed

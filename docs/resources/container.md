@@ -61,7 +61,7 @@ resource "qovery_container" "my_container" {
 
 # A container can also run an image Qovery builds from a Dockerfile in a Git repository. Until the
 # first build, registry_id, image_name and tag report a placeholder; then the image Qovery last
-# built. auto_deploy is false on a Git container.
+# built. auto_deploy defaults to false on a Git container: set it to true to deploy on every push.
 resource "qovery_container" "my_git_container" {
   environment_id = qovery_environment.my_environment.id
   name           = "my-git-container"
@@ -119,9 +119,9 @@ resource "qovery_container" "my_git_container" {
 - `advanced_settings_json` (String) Advanced settings to override, as a JSON string built with `jsonencode()`. The [Qovery API documentation](https://api-doc.qovery.com/#tag/Containers/operation/getDefaultContainerAdvancedSettings) lists them with their defaults. Terraform manages only the keys you set, and removing a key keeps its current value: see [Advanced settings](https://registry.terraform.io/providers/qovery/qovery/latest/docs/guides/managing-changes#advanced-settings).
 - `annotations_group_ids` (Set of String) IDs of the annotations groups applied to the container's pods. Omitting it detaches every annotations group.
 - `arguments` (List of String) Arguments that replace the `CMD` of the image. Omitting it sets none.
-- `auto_deploy` (Boolean) Whether Qovery redeploys the container when it receives a new image tag. On a container with `source.git_repository` it must be `false`.
+- `auto_deploy` (Boolean) Whether Qovery redeploys the container on every push to its branch with `source.git_repository`, or on every new image tag for a registry image. With `source.git_repository`, anyone who can push to the branch can deploy the container.
 	- Default: `true`, or `false` on a container with `source.git_repository`.
-- `auto_preview` (Boolean) Whether Qovery creates a preview environment with the container for each pull request. On a container with `source.git_repository` it must be `false`.
+- `auto_preview` (Boolean) Whether Qovery creates a preview environment with the container for each pull request. With `source.git_repository`, a preview builds the pull request's code, pull requests from forks included, and runs it with the environment's variables and secrets.
 	- Default: `false`.
 - `autoscaling` (Attributes) Event-driven autoscaling with KEDA, which requires KEDA on the cluster. It adds to the CPU and memory autoscaling of `min_running_instances` and `max_running_instances`, and allows `min_running_instances = 0`. (see [below for nested schema](#nestedatt--autoscaling))
 - `build_settings` (Attributes) Build limits and options of the service. Terraform manages them only while the block is set: omitted settings plan their default, and removing the block resets them all. It conflicts with `build.*` keys in `advanced_settings_json`. Only for a container with `source.git_repository`. (see [below for nested schema](#nestedatt--build_settings))

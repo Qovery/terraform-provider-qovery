@@ -51,7 +51,7 @@ resource "qovery_container" "my_container" {
 
 # A container can also run an image Qovery builds from a Dockerfile in a Git repository. Until the
 # first build, registry_id, image_name and tag report a placeholder; then the image Qovery last
-# built. auto_deploy is false on a Git container.
+# built. auto_deploy defaults to false on a Git container: set it to true to deploy on every push.
 resource "qovery_container" "my_git_container" {
   environment_id = qovery_environment.my_environment.id
   name           = "my-git-container"

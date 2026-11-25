@@ -5,6 +5,7 @@ package qovery
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -41,8 +42,6 @@ func TestContainerSourceConfigValidate(t *testing.T) {
 			ImageName:     types.StringValue("nginx"),
 			Tag:           types.StringValue("1.27"),
 			BuildSettings: types.ObjectNull(buildSettingsAttrTypes),
-			AutoDeploy:    types.BoolNull(),
-			AutoPreview:   types.BoolNull(),
 		}
 	}
 	git := func() containerSourceConfig {
@@ -62,12 +61,10 @@ func TestContainerSourceConfigValidate(t *testing.T) {
 		{TestName: "image", Config: image},
 		{TestName: "git_repository_source", Config: git},
 		{
-			TestName: "git_repository_source_with_build_settings_and_false_auto_deploy",
+			TestName: "git_repository_source_with_build_settings",
 			Config: func() containerSourceConfig {
 				cfg := git()
 				cfg.BuildSettings = buildSettings
-				cfg.AutoDeploy = types.BoolValue(false)
-				cfg.AutoPreview = types.BoolValue(false)
 				return cfg
 			},
 		},
@@ -122,24 +119,6 @@ func TestContainerSourceConfigValidate(t *testing.T) {
 				return cfg
 			},
 			ExpectedError: "build_settings needs a Git repository source",
-		},
-		{
-			TestName: "auto_deploy_true_with_git_repository_source",
-			Config: func() containerSourceConfig {
-				cfg := git()
-				cfg.AutoDeploy = types.BoolValue(true)
-				return cfg
-			},
-			ExpectedError: "auto_deploy is not supported with a Git repository source",
-		},
-		{
-			TestName: "auto_preview_true_with_git_repository_source",
-			Config: func() containerSourceConfig {
-				cfg := git()
-				cfg.AutoPreview = types.BoolValue(true)
-				return cfg
-			},
-			ExpectedError: "auto_preview is not supported with a Git repository source",
 		},
 		{
 			TestName: "build_settings_with_build_keys_in_advanced_settings",
@@ -257,6 +236,21 @@ func TestContainerToUpsertRepositoryRequest_Source(t *testing.T) {
 		assert.Equal(t, new(false), request.AutoDeploy.Get())
 		assert.Equal(t, new(false), request.AutoPreview)
 	})
+
+	for _, enabled := range []bool{true, false} {
+		t.Run(fmt.Sprintf("update_git_container_sends_auto_flags_%t", enabled), func(t *testing.T) {
+			t.Parallel()
+			updated := gitContainer
+			updated.AutoDeploy = types.BoolValue(enabled)
+			updated.AutoPreview = types.BoolValue(enabled)
+
+			request := updated.toUpsertRepositoryRequest(client.CustomDomainsDiff{}, &gitContainer)
+			require.NoError(t, request.Validate())
+			require.NotNil(t, request.GitSource)
+			assert.Equal(t, new(enabled), request.AutoDeploy.Get())
+			assert.Equal(t, new(enabled), request.AutoPreview)
+		})
+	}
 }
 
 func TestConvertDomainContainerToContainer_Source(t *testing.T) {
@@ -549,9 +543,35 @@ func TestContainerPlan_ReplaceGitContainer_IsAccepted(t *testing.T) {
 	requireCreatePlanOfGitContainer(t, plannedTestContainer(t, create))
 }
 
+// TestContainerPlan_GitContainer_AutoFlags plans auto_deploy and auto_preview set to true on a Git
+// container, then removed from the configuration: they go back to their default, false.
+func TestContainerPlan_GitContainer_AutoFlags(t *testing.T) {
+	t.Parallel()
+
+	enabled := map[string]tftypes.Value{
+		"auto_deploy":  tftypes.NewValue(tftypes.Bool, true),
+		"auto_preview": tftypes.NewValue(tftypes.Bool, true),
+	}
+	s := testContainerSchema(t)
+	created := planTestContainer(t, tftypes.NewValue(s.Type().TerraformType(context.Background()), nil), testContainerValue(t, testGitContainerConfig(enabled)))
+	requireNoPlanErrors(t, created)
+	planned := testValueAttributes(t, plannedTestContainer(t, created))
+	assert.Equal(t, tftypes.NewValue(tftypes.Bool, true), planned["auto_deploy"])
+	assert.Equal(t, tftypes.NewValue(tftypes.Bool, true), planned["auto_preview"])
+
+	state := testGitContainerState()
+	for name, value := range enabled {
+		state[name] = value
+	}
+	removed := planTestContainer(t, testContainerValue(t, state), testContainerValue(t, testGitContainerConfig(nil)))
+	requireNoPlanErrors(t, removed)
+	planned = testValueAttributes(t, plannedTestContainer(t, removed))
+	assert.Equal(t, tftypes.NewValue(tftypes.Bool, false), planned["auto_deploy"])
+	assert.Equal(t, tftypes.NewValue(tftypes.Bool, false), planned["auto_preview"])
+}
+
 // requireCreatePlanOfGitContainer checks the create plan of testGitContainerConfig: the API sets
-// the image and the built-in variables, and the auto flags it rejects as true on a Git container
-// are planned false.
+// the image and the built-in variables, and the auto flags take their Git container default, false.
 func requireCreatePlanOfGitContainer(t *testing.T, plannedValue tftypes.Value) {
 	t.Helper()
 	planned := testValueAttributes(t, plannedValue)
@@ -679,6 +699,26 @@ func TestContainerValidateConfig_RunsSourceValidator(t *testing.T) {
 	require.NoError(t, err)
 	require.NotEmpty(t, resp.Diagnostics)
 	assert.Equal(t, "Conflicting container image", resp.Diagnostics[0].Summary)
+}
+
+func TestContainerValidateConfig_GitSourceAcceptsAutoFlags(t *testing.T) {
+	t.Parallel()
+
+	config := testGitContainerConfig(map[string]tftypes.Value{
+		"healthchecks": testEmptyHealthchecksValue(),
+		"auto_deploy":  tftypes.NewValue(tftypes.Bool, true),
+		"auto_preview": tftypes.NewValue(tftypes.Bool, true),
+	})
+	s := testContainerSchema(t)
+
+	resp, err := providerserver.NewProtocol6(New("test")())().ValidateResourceConfig(context.Background(), &tfprotov6.ValidateResourceConfigRequest{
+		TypeName: "qovery_container",
+		Config:   testDynamicValue(t, s, testContainerValue(t, config)),
+	})
+	require.NoError(t, err)
+	for _, d := range resp.Diagnostics {
+		assert.NotEqual(t, tfprotov6.DiagnosticSeverityError, d.Severity, "%s: %s", d.Summary, d.Detail)
+	}
 }
 
 func testImageContainerConfig() map[string]tftypes.Value {

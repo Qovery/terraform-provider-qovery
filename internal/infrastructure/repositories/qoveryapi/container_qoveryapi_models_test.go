@@ -3,6 +3,7 @@ package qoveryapi
 import (
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"testing"
 
 	"github.com/brianvoe/gofakeit/v6"
@@ -448,6 +449,38 @@ func TestNewQoveryContainerRequestFromDomain_GitSourceProviderConflict(t *testin
 		},
 	})
 	assert.ErrorContains(t, err, "conflicts with the repository URL")
+}
+
+func TestNewQoveryContainerRequestFromDomain_GitSourceSendsAutoFlags(t *testing.T) {
+	t.Parallel()
+
+	for _, enabled := range []bool{true, false} {
+		t.Run(strconv.FormatBool(enabled), func(t *testing.T) {
+			t.Parallel()
+			req, err := newQoveryContainerRequestFromDomain(container.UpsertRepositoryRequest{
+				Name: "api",
+				Healthchecks: qovery.Healthcheck{
+					ReadinessProbe: *qovery.NewNullableProbe(nil),
+					LivenessProbe:  *qovery.NewNullableProbe(nil),
+				},
+				AutoDeploy:  *qovery.NewNullableBool(new(enabled)),
+				AutoPreview: new(enabled),
+				GitSource: &docker.Docker{
+					GitRepository:  git_repository.GitRepository{Url: "https://github.com/acme/api.git"},
+					DockerFilePath: new("Dockerfile"),
+				},
+			})
+			require.NoError(t, err)
+
+			body, err := json.Marshal(req)
+			require.NoError(t, err)
+
+			var fields map[string]json.RawMessage
+			require.NoError(t, json.Unmarshal(body, &fields))
+			assert.JSONEq(t, strconv.FormatBool(enabled), string(fields["auto_deploy"]))
+			assert.JSONEq(t, strconv.FormatBool(enabled), string(fields["auto_preview"]))
+		})
+	}
 }
 
 // TestNewDomainContainerFromQovery_Autoscaling covers the autoscaling glue in

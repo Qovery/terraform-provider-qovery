@@ -8,6 +8,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-testing/compare"
 	"github.com/hashicorp/terraform-plugin-testing/helper/resource"
+	"github.com/hashicorp/terraform-plugin-testing/knownvalue"
 	"github.com/hashicorp/terraform-plugin-testing/plancheck"
 	"github.com/hashicorp/terraform-plugin-testing/statecheck"
 	"github.com/hashicorp/terraform-plugin-testing/tfjsonpath"
@@ -221,6 +222,85 @@ func TestAcc_ContainerCreateWithGitRepositorySource(t *testing.T) {
 	})
 }
 
+func TestAcc_ContainerGitRepositorySourceAutoFlags(t *testing.T) {
+	t.Parallel()
+	testName := "container-git-source-auto-flags"
+	var containerID string
+	autoFlags := func(value bool) []plancheck.PlanCheck {
+		return []plancheck.PlanCheck{
+			plancheck.ExpectResourceAction(containerGitSourceAddress, plancheck.ResourceActionUpdate),
+			plancheck.ExpectKnownValue(containerGitSourceAddress, tfjsonpath.New("auto_deploy"), knownvalue.Bool(value)),
+			plancheck.ExpectKnownValue(containerGitSourceAddress, tfjsonpath.New("auto_preview"), knownvalue.Bool(value)),
+		}
+	}
+
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryContainerDestroy(containerGitSourceAddress),
+		Steps: []resource.TestStep{
+			{
+				Config:           testAccContainerGitSourceConfig(testName, containerGitSourceAutoFlags),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryContainerExists(containerGitSourceAddress),
+					testAccCaptureResourceID(containerGitSourceAddress, &containerID),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "source.git_repository.url", applicationRepositoryURL),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "auto_deploy", "true"),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "auto_preview", "true"),
+				),
+			},
+			// Flags changed outside Terraform show as a difference on refresh, and an apply restores them.
+			{
+				PreConfig: func() {
+					err := testAccEditServiceOutOfBand("/container/"+containerID, func(container map[string]any) {
+						withoutContainerImageFields(container)
+						delete(container, "source")
+					}, func(container map[string]any) {
+						container["auto_deploy"] = false
+						container["auto_preview"] = false
+					})
+					if err != nil {
+						t.Fatal(err)
+					}
+				},
+				Config:             testAccContainerGitSourceConfig(testName, containerGitSourceAutoFlags),
+				PlanOnly:           true,
+				ExpectNonEmptyPlan: true,
+			},
+			{
+				Config: testAccContainerGitSourceConfig(testName, containerGitSourceAutoFlags),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             autoFlags(true),
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "auto_deploy", "true"),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "auto_preview", "true"),
+				),
+			},
+			{
+				ResourceName:      containerGitSourceAddress,
+				ImportState:       true,
+				ImportStateVerify: true,
+			},
+			// Removing the flags from the config plans their default, false, and the apply sends it:
+			// the API keeps a stored flag that an update of a Git container leaves out.
+			{
+				Config: testAccContainerGitSourceConfig(testName, ""),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply:             autoFlags(false),
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "auto_deploy", "false"),
+					resource.TestCheckResourceAttr(containerGitSourceAddress, "auto_preview", "false"),
+				),
+			},
+		},
+	})
+}
+
 // withoutContainerImageFields drops the image of a container read from the API, which a request on a
 // container with a Git repository source must not repeat next to a source.
 func withoutContainerImageFields(container map[string]any) {
@@ -234,7 +314,11 @@ const containerGitSourceBuildSettings = `
     timeout_max_sec = 900
   }`
 
-func testAccContainerGitSourceConfig(testName string, buildSettings string) string {
+const containerGitSourceAutoFlags = `
+  auto_deploy = true
+  auto_preview = true`
+
+func testAccContainerGitSourceConfig(testName string, attributes string) string {
 	return fmt.Sprintf(`
 %s
 
@@ -256,6 +340,6 @@ resource "qovery_container" "test" {
   healthchecks = {}
   advanced_settings_json = jsonencode({"network.ingress.proxy_body_size_mb": 101})
 }
-`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(), buildSettings,
+`, testAccEnvironmentDefaultConfig(testName), testAccContainerRegistryDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(), attributes,
 	)
 }
