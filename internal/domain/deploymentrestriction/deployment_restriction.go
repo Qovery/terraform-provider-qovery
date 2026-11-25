@@ -23,7 +23,8 @@ type ServiceDeploymentRestriction struct {
 }
 
 func ToDeploymentRestrictionDiff(deploymentRestrictionsSet types.Set, deploymentRestrictionsState *types.Set) (*ServiceDeploymentRestrictionsDiff, error) {
-	if deploymentRestrictionsSet.IsNull() || deploymentRestrictionsSet.IsUnknown() {
+	// A null set falls through: no rules planned, so every rule held in state is deleted.
+	if deploymentRestrictionsSet.IsUnknown() {
 		return &ServiceDeploymentRestrictionsDiff{
 			Create: make([]ServiceDeploymentRestriction, 0),
 			Update: make([]ServiceDeploymentRestriction, 0),

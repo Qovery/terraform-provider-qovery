@@ -355,6 +355,45 @@ func TestAcc_ApplicationGitProvider(t *testing.T) {
 	})
 }
 
+func TestAcc_ApplicationWithDeploymentRestrictions(t *testing.T) {
+	t.Parallel()
+	testName := "application-deployment-restrictions"
+	resource.Test(t, resource.TestCase{
+		PreCheck:                 func() { testAccPreCheck(t) },
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		CheckDestroy:             testAccQoveryApplicationDestroy("qovery_application.test"),
+		Steps: []resource.TestStep{
+			// Create with two rules
+			{
+				Config: testAccApplicationDefaultConfigWithDeploymentRestrictions(testName, `
+  deployment_restrictions = [
+    { mode = "EXCLUDE", type = "PATH", value = "docs/" },
+    { mode = "MATCH", type = "PATH", value = "src/" },
+  ]`),
+				ConfigPlanChecks: testAccEmptyPlanAfterApply,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckResourceAttr("qovery_application.test", "deployment_restrictions.#", "2"),
+				),
+			},
+			// Remove the block: the apply deletes both rules, so the refresh after it reads none
+			{
+				Config: testAccApplicationDefaultConfigWithDeploymentRestrictions(testName, ""),
+				ConfigPlanChecks: resource.ConfigPlanChecks{
+					PreApply: []plancheck.PlanCheck{
+						plancheck.ExpectResourceAction("qovery_application.test", plancheck.ResourceActionUpdate),
+					},
+					PostApplyPostRefresh: []plancheck.PlanCheck{plancheck.ExpectEmptyPlan()},
+				},
+				Check: resource.ComposeAggregateTestCheckFunc(
+					testAccQoveryApplicationExists("qovery_application.test"),
+					resource.TestCheckNoResourceAttr("qovery_application.test", "deployment_restrictions.#"),
+				),
+			},
+		},
+	})
+}
+
 func TestAcc_ApplicationWithAutoPreview(t *testing.T) {
 	t.Parallel()
 	testName := "application-with-auto-preview"
@@ -1608,6 +1647,26 @@ resource "qovery_application" "test" {
   healthchecks = {}
 }
 `, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), ephemeralStorage, applicationRepositoryURL, getTestQoverySandboxGitTokenID(),
+	)
+}
+
+func testAccApplicationDefaultConfigWithDeploymentRestrictions(testName string, deploymentRestrictions string) string {
+	return fmt.Sprintf(`
+%s
+
+resource "qovery_application" "test" {
+  environment_id = qovery_environment.test.id
+  name = "%s"
+  build_mode = "DOCKER"
+  dockerfile_path = "Dockerfile"
+  git_repository = {
+    url = "%s"
+    git_token_id = "%s"
+  }
+  healthchecks = {}
+%s
+}
+`, testAccEnvironmentDefaultConfig(testName), generateTestName(testName), applicationRepositoryURL, getTestQoverySandboxGitTokenID(), deploymentRestrictions,
 	)
 }
 
